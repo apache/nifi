@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Defines a policy for a set of entities to perform a set of actions on a given resource.
+ * Defines a policy for a set of userIdentifiers to perform a set of actions on a given resource.
  */
 public class AccessPolicy {
 
@@ -30,14 +30,17 @@ public class AccessPolicy {
 
     private final Resource resource;
 
-    private final Set<String> entities;
+    private final Set<String> users;
+
+    private final Set<String> groups;
 
     private final Set<RequestAction> actions;
 
     private AccessPolicy(final AccessPolicyBuilder builder) {
         this.identifier = builder.identifier;
         this.resource = builder.resource;
-        this.entities = Collections.unmodifiableSet(new HashSet<>(builder.entities));
+        this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
+        this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
         this.actions = Collections.unmodifiableSet(new HashSet<>(builder.actions));
 
         if (this.identifier == null || this.identifier.trim().isEmpty()) {
@@ -48,8 +51,8 @@ public class AccessPolicy {
             throw new IllegalArgumentException("Resource can not be null");
         }
 
-        if (this.entities == null || this.entities.isEmpty()) {
-            throw new IllegalArgumentException("Entities can not be null or empty");
+        if ((this.users == null || this.users.isEmpty()) && (this.groups == null || this.groups.isEmpty())) {
+            throw new IllegalArgumentException("Users & Groups can not both be null or empty");
         }
 
         if (this.actions == null || this.actions.isEmpty()) {
@@ -72,10 +75,17 @@ public class AccessPolicy {
     }
 
     /**
-     * @return an unmodifiable set of entity ids for this policy
+     * @return an unmodifiable set of user ids for this policy
      */
-    public Set<String> getEntities() {
-        return entities;
+    public Set<String> getUsers() {
+        return users;
+    }
+
+    /**
+     * @return an unmodifiable set of group ids for this policy
+     */
+    public Set<String> getGroups() {
+        return groups;
     }
 
     /**
@@ -105,8 +115,8 @@ public class AccessPolicy {
 
     @Override
     public String toString() {
-        return String.format("identifier[%s], resource[%s], entityId[%s], action[%s]",
-                getIdentifier(), getResource().getIdentifier(), getEntities(), getActions());
+        return String.format("identifier[%s], resource[%s], users[%s], groups[%s], action[%s]",
+                getIdentifier(), getResource().getIdentifier(), getUsers(), getGroups(), getActions());
     }
 
     /**
@@ -116,7 +126,8 @@ public class AccessPolicy {
 
         private String identifier;
         private Resource resource;
-        private Set<String> entities = new HashSet<>();
+        private Set<String> users = new HashSet<>();
+        private Set<String> groups = new HashSet<>();
         private Set<RequestAction> actions = new HashSet<>();
         private final boolean fromPolicy;
 
@@ -141,8 +152,10 @@ public class AccessPolicy {
 
             this.identifier = other.getIdentifier();
             this.resource = other.getResource();
-            this.entities.clear();
-            this.entities.addAll(other.getEntities());
+            this.users.clear();
+            this.users.addAll(other.getUsers());
+            this.groups.clear();
+            this.groups.addAll(other.getGroups());
             this.actions.clear();
             this.actions.addAll(other.getActions());
             this.fromPolicy = true;
@@ -177,64 +190,126 @@ public class AccessPolicy {
         }
 
         /**
-         * Adds all the entities from the provided set to the builder's set of entities.
+         * Adds all the users from the provided set to the builder's set of users.
          *
-         * @param entities the entities to add
+         * @param users the users to add
          * @return the builder
          */
-        public AccessPolicyBuilder addEntities(final Set<String> entities) {
-            if (entities != null) {
-                this.entities.addAll(entities);
+        public AccessPolicyBuilder addUsers(final Set<String> users) {
+            if (users != null) {
+                this.users.addAll(users);
             }
             return this;
         }
 
         /**
-         * Adds the given entity to the builder's set of entities.
+         * Adds the given user to the builder's set of users.
          *
-         * @param entity the entity to add
+         * @param user the user to add
          * @return the builder
          */
-        public AccessPolicyBuilder addEntity(final String entity) {
-            if (entity != null) {
-                this.entities.add(entity);
+        public AccessPolicyBuilder addUser(final String user) {
+            if (user != null) {
+                this.users.add(user);
             }
             return this;
         }
 
         /**
-         * Removes all entities in the provided set from the builder's set of entities.
+         * Removes all users in the provided set from the builder's set of users.
          *
-         * @param entities the entities to remove
+         * @param users the users to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeEntities(final Set<String> entities) {
-            if (entities != null) {
-                this.entities.removeAll(entities);
+        public AccessPolicyBuilder removeUsers(final Set<String> users) {
+            if (users != null) {
+                this.users.removeAll(users);
             }
             return this;
         }
 
         /**
-         * Removes the provided entity from the builder's set of entities.
+         * Removes the provided user from the builder's set of users.
          *
-         * @param entity the entity to remove
+         * @param user the user to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeEntity(final String entity) {
-            if (entity != null) {
-                this.entities.remove(entity);
+        public AccessPolicyBuilder removeUser(final String user) {
+            if (user != null) {
+                this.users.remove(user);
             }
             return this;
         }
 
         /**
-         * Clears the builder's set of entities so that it is non-null and size == 0.
+         * Clears the builder's set of users so that it is non-null and size == 0.
          *
          * @return the builder
          */
-        public AccessPolicyBuilder clearEntities() {
-            this.entities.clear();
+        public AccessPolicyBuilder clearUsers() {
+            this.users.clear();
+            return this;
+        }
+
+        /**
+         * Adds all the groups from the provided set to the builder's set of groups.
+         *
+         * @param groups the groups to add
+         * @return the builder
+         */
+        public AccessPolicyBuilder addGroups(final Set<String> groups) {
+            if (groups != null) {
+                this.groups.addAll(groups);
+            }
+            return this;
+        }
+
+        /**
+         * Adds the given group to the builder's set of groups.
+         *
+         * @param group the group to add
+         * @return the builder
+         */
+        public AccessPolicyBuilder addGroup(final String group) {
+            if (group != null) {
+                this.groups.add(group);
+            }
+            return this;
+        }
+
+        /**
+         * Removes all groups in the provided set from the builder's set of groups.
+         *
+         * @param groups the groups to remove
+         * @return the builder
+         */
+        public AccessPolicyBuilder removeGroups(final Set<String> groups) {
+            if (groups != null) {
+                this.groups.removeAll(groups);
+            }
+            return this;
+        }
+
+        /**
+         * Removes the provided groups from the builder's set of groups.
+         *
+         * @param group the group to remove
+         * @return the builder
+         */
+        public AccessPolicyBuilder removeGroup(final String group) {
+            if (group != null) {
+                this.groups.remove(group);
+            }
+            return this;
+        }
+
+        /**
+         * Clears the builder's set of groups so that it is non-null and size == 0.
+         *
+         * @return the builder
+         */
+        public AccessPolicyBuilder clearGroups() {
+            this.groups.clear();
             return this;
         }
 

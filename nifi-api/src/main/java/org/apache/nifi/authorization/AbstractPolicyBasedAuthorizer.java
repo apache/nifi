@@ -23,7 +23,47 @@ import java.util.Set;
 /**
  * An Authorizer that provides management of users, groups, and policies.
  */
-public interface MutableAuthorizer extends Authorizer {
+public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
+
+    @Override
+    public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
+        final Set<AccessPolicy> policies = getAccessPolicies(request.getResource());
+
+        if (policies == null || policies.isEmpty()) {
+            return AuthorizationResult.resourceNotFound();
+        }
+
+        final User user = getUserByIdentity(request.getIdentity());
+
+        if (user == null) {
+            return AuthorizationResult.denied("Unknown user with identity " + request.getIdentity());
+        }
+
+        for (AccessPolicy policy : policies) {
+            final boolean containsAction = policy.getActions().contains(request.getAction());
+            final boolean containsUser = policy.getUsers().contains(user.getIdentifier());
+            if (containsAction && (containsUser || containsGroup(user, policy)) ) {
+                return AuthorizationResult.approved();
+            }
+        }
+
+        return AuthorizationResult.denied();
+    }
+
+
+    private boolean containsGroup(final User user, final AccessPolicy policy) {
+        if (user.getGroups().isEmpty() || policy.getGroups().isEmpty()) {
+            return false;
+        }
+
+        for (String userGroup : user.getGroups()) {
+            if (policy.getGroups().contains(userGroup)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * Adds a new group.
@@ -32,7 +72,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the added Group
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Group addGroup(Group group) throws AuthorizationAccessException;
+    public abstract Group addGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Retrieves a Group by id.
@@ -41,7 +81,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the Group with the given identifier, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Group getGroup(String identifier) throws AuthorizationAccessException;
+    public abstract Group getGroup(String identifier) throws AuthorizationAccessException;
 
     /**
      * The group represented by the provided instance will be updated based on the provided instance.
@@ -50,7 +90,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the updated group instance, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Group updateGroup(Group group) throws AuthorizationAccessException;
+    public abstract Group updateGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Deletes the given group.
@@ -59,7 +99,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the deleted group, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Group deleteGroup(Group group) throws AuthorizationAccessException;
+    public abstract Group deleteGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Retrieves all groups.
@@ -67,7 +107,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return a list of groups
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Set<Group> getGroups() throws AuthorizationAccessException;
+    public abstract Set<Group> getGroups() throws AuthorizationAccessException;
 
 
     /**
@@ -77,7 +117,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the user that was added
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public User addUser(User user) throws AuthorizationAccessException;
+    public abstract User addUser(User user) throws AuthorizationAccessException;
 
     /**
      * Retrieves the user with the given identifier.
@@ -86,7 +126,16 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the user with the given id, or null if no matching user was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public User getUser(String identifier) throws AuthorizationAccessException;
+    public abstract User getUser(String identifier) throws AuthorizationAccessException;
+
+    /**
+     * Retrieves the user with the given identity.
+     *
+     * @param identity the identity of the user to retrieve
+     * @return the user with the given identity, or null if no matching user was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract User getUserByIdentity(String identity) throws AuthorizationAccessException;
 
     /**
      * The user represented by the provided instance will be updated based on the provided instance.
@@ -95,7 +144,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the updated user instance, or null if no matching user was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public User updateUser(User user) throws AuthorizationAccessException;
+    public abstract User updateUser(User user) throws AuthorizationAccessException;
 
     /**
      * Deletes the given user.
@@ -104,7 +153,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the user that was deleted, or null if no matching user was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public User deleteUser(User user) throws AuthorizationAccessException;
+    public abstract User deleteUser(User user) throws AuthorizationAccessException;
 
     /**
      * Retrieves all users.
@@ -112,7 +161,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return a list of users
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Set<User> getUsers() throws AuthorizationAccessException;
+    public abstract Set<User> getUsers() throws AuthorizationAccessException;
 
 
     /**
@@ -122,7 +171,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the policy that was added
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
+    public abstract AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
 
     /**
      * Retrieves the policy with the given identifier.
@@ -131,7 +180,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the policy with the given id, or null if no matching policy exists
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException;
+    public abstract AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException;
 
     /**
      * The policy represented by the provided instance will be updated based on the provided instance.
@@ -140,7 +189,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the updated policy, or null if no matching policy was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
+    public abstract AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
 
     /**
      * Deletes the given policy.
@@ -149,7 +198,7 @@ public interface MutableAuthorizer extends Authorizer {
      * @return the deleted policy, or null if no matching policy was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public AccessPolicy deleteAccessPolicy(AccessPolicy policy) throws AuthorizationAccessException;
+    public abstract AccessPolicy deleteAccessPolicy(AccessPolicy policy) throws AuthorizationAccessException;
 
     /**
      * Retrieves all access policies.
@@ -157,6 +206,15 @@ public interface MutableAuthorizer extends Authorizer {
      * @return a list of policies
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException;
+    public abstract Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException;
+
+    /**
+     * Retrieves the access policies for the given Resource.
+     *
+     * @param resource the resource to retrieve policies for
+     * @return a set of policies for the given resource, or an empty set if there are none
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract Set<AccessPolicy> getAccessPolicies(Resource resource) throws AuthorizationAccessException;
 
 }
