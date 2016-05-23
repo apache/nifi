@@ -16,16 +16,33 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.UUID;
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.web.AuthorizableLookup;
+import org.apache.nifi.web.AuthorizeAccess;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,25 +54,19 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.util.WebUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Base class for controllers.
@@ -368,5 +379,129 @@ public abstract class ApplicationResource {
      */
     protected Revision getRevision(ComponentEntity entity, String componentId) {
         return getRevision(entity.getRevision(), componentId);
+    }
+
+    /**
+     * Authorizes the specified Snippet with the specified request action.
+     *
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param action action
+     */
+    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action);
+
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
+        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+    }
+
+    /**
+     * Authorizes the specified Snippet with the specified request action.
+     *
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param action action
+     */
+    protected void authorizeSnippet(final SnippetDTO snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action);
+
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
+        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+    }
+
+    /**
+     * Executes an action through the service facade using the specified revision.
+     *
+     * @param serviceFacade service facade
+     * @param revision revision
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
+     * @return the response
+     */
+    protected Response withWriteLock(
+        final NiFiServiceFacade serviceFacade, final Revision revision, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action) {
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(authorizer);
+            serviceFacade.claimRevision(revision, user);
+        }
+
+        try {
+            if (validationPhase) {
+                if (verifier != null) {
+                    verifier.run();
+                }
+                return generateContinueResponse().build();
+            }
+        } catch (final Exception e) {
+            serviceFacade.cancelRevision(revision);
+            throw e;
+        }
+
+        try {
+            // delete the specified output port
+            return action.get();
+        } finally {
+            serviceFacade.cancelRevision(revision);
+        }
+    }
+
+    /**
+     * Executes an action through the service facade using the specified revision.
+     *
+     * @param serviceFacade service facade
+     * @param revisions revisions
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
+     * @return the response
+     */
+    protected Response withWriteLock(
+        final NiFiServiceFacade serviceFacade, final Set<Revision> revisions, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action) {
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(authorizer);
+            serviceFacade.claimRevisions(revisions, user);
+        }
+
+        try {
+            if (validationPhase) {
+                if (verifier != null) {
+                    verifier.run();
+                }
+                return generateContinueResponse().build();
+            }
+        } catch (final Exception e) {
+            serviceFacade.cancelRevisions(revisions);
+            throw e;
+        }
+
+        try {
+            // delete the specified output port
+            return action.get();
+        } finally {
+            serviceFacade.cancelRevisions(revisions);
+        }
     }
 }

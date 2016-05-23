@@ -383,7 +383,7 @@ nf.ConnectionDetails = (function () {
                 var groupResponse = groupResult[0];
                 var connectionResponse = connectionResult[0];
 
-                if (nf.Common.isDefinedAndNotNull(groupResponse.processGroup) && nf.Common.isDefinedAndNotNull(connectionResponse.connection)) {
+                if (nf.Common.isDefinedAndNotNull(groupResponse.component) && nf.Common.isDefinedAndNotNull(connectionResponse.component)) {
                     var processGroup = groupResponse.component;
                     var connection = connectionResponse.component;
 

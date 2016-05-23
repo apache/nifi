@@ -253,7 +253,7 @@ public class SnippetAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
-            + "execution(org.apache.nifi.controller.Snippet updateSnippet(org.apache.nifi.web.api.dto.SnippetDTO)) && "
+            + "execution(org.apache.nifi.controller.Snippet updateSnippetComponents(org.apache.nifi.web.api.dto.SnippetDTO)) && "
             + "args(snippetDTO) && "
             + "target(snippetDAO)")
     public Snippet updateSnippetAdvice(ProceedingJoinPoint proceedingJoinPoint, SnippetDTO snippetDTO, SnippetDAO snippetDAO) throws Throwable {
@@ -266,7 +266,7 @@ public class SnippetAuditor extends NiFiAuditor {
 
         // if this snippet is linked and its parent group id has changed
         final String groupId = snippetDTO.getParentGroupId();
-        if (snippet.isLinked() && !previousGroupId.equals(groupId)) {
+        if (!previousGroupId.equals(groupId)) {
 
             // create move audit records for all items in this snippet
             final Collection<Action> actions = new ArrayList<>();
@@ -346,114 +346,109 @@ public class SnippetAuditor extends NiFiAuditor {
      * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
-            + "execution(void deleteSnippet(java.lang.String)) && "
+            + "execution(void deleteSnippetComponents(java.lang.String)) && "
             + "args(snippetId) && "
             + "target(snippetDAO)")
     public void removeSnippetAdvice(ProceedingJoinPoint proceedingJoinPoint, String snippetId, SnippetDAO snippetDAO) throws Throwable {
         // get the snippet before removing it
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
 
-        if (snippet.isLinked()) {
-            // locate all the components being removed
-            final Set<Funnel> funnels = new HashSet<>();
-            for (String id : snippet.getFunnels().keySet()) {
-                funnels.add(funnelDAO.getFunnel(id));
+        // locate all the components being removed
+        final Set<Funnel> funnels = new HashSet<>();
+        for (String id : snippet.getFunnels().keySet()) {
+            funnels.add(funnelDAO.getFunnel(id));
+        }
+
+        final Set<Port> inputPorts = new HashSet<>();
+        for (String id : snippet.getInputPorts().keySet()) {
+            inputPorts.add(inputPortDAO.getPort(id));
+        }
+
+        final Set<Port> outputPorts = new HashSet<>();
+        for (String id : snippet.getOutputPorts().keySet()) {
+            outputPorts.add(outputPortDAO.getPort(id));
+        }
+
+        final Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
+        for (String id : snippet.getRemoteProcessGroups().keySet()) {
+            remoteProcessGroups.add(remoteProcessGroupDAO.getRemoteProcessGroup(id));
+        }
+
+        final Set<ProcessGroup> processGroups = new HashSet<>();
+        final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        for (String id : snippet.getProcessGroups().keySet()) {
+            processGroups.add(processGroupDAO.getProcessGroup(id));
+        }
+
+        final Set<ProcessorNode> processors = new HashSet<>();
+        for (String id : snippet.getProcessors().keySet()) {
+            processors.add(processorDAO.getProcessor(id));
+        }
+
+        final Set<Connection> connections = new HashSet<>();
+        for (String id : snippet.getConnections().keySet()) {
+            connections.add(connectionDAO.getConnection(id));
+        }
+
+        // remove the snippet and components
+        proceedingJoinPoint.proceed();
+
+        final Collection<Action> actions = new ArrayList<>();
+
+        // audit funnel removal
+        for (Funnel funnel : funnels) {
+            final Action action = funnelAuditor.generateAuditRecord(funnel, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<Port> inputPorts = new HashSet<>();
-            for (String id : snippet.getInputPorts().keySet()) {
-                inputPorts.add(inputPortDAO.getPort(id));
+        for (Port inputPort : inputPorts) {
+            final Action action = portAuditor.generateAuditRecord(inputPort, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<Port> outputPorts = new HashSet<>();
-            for (String id : snippet.getOutputPorts().keySet()) {
-                outputPorts.add(outputPortDAO.getPort(id));
+        for (Port outputPort : outputPorts) {
+            final Action action = portAuditor.generateAuditRecord(outputPort, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<RemoteProcessGroup> remoteProcessGroups = new HashSet<>();
-            for (String id : snippet.getRemoteProcessGroups().keySet()) {
-                remoteProcessGroups.add(remoteProcessGroupDAO.getRemoteProcessGroup(id));
+        for (RemoteProcessGroup remoteProcessGroup : remoteProcessGroups) {
+            final Action action = remoteProcessGroupAuditor.generateAuditRecord(remoteProcessGroup, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<ProcessGroup> processGroups = new HashSet<>();
-            final ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
-            for (String id : snippet.getProcessGroups().keySet()) {
-                processGroups.add(processGroupDAO.getProcessGroup(id));
+        for (ProcessGroup processGroup : processGroups) {
+            final Action action = processGroupAuditor.generateAuditRecord(processGroup, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<ProcessorNode> processors = new HashSet<>();
-            for (String id : snippet.getProcessors().keySet()) {
-                processors.add(processorDAO.getProcessor(id));
+        for (ProcessorNode processor : processors) {
+            final Action action = processorAuditor.generateAuditRecord(processor, Operation.Remove);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            final Set<Connection> connections = new HashSet<>();
-            for (String id : snippet.getConnections().keySet()) {
-                connections.add(connectionDAO.getConnection(id));
+        for (Connection connection : connections) {
+            final ConnectDetails connectDetails = relationshipAuditor.createConnectDetails(connection, connection.getRelationships());
+            final Action action = relationshipAuditor.generateAuditRecordForConnection(connection, Operation.Disconnect, connectDetails);
+            if (action != null) {
+                actions.add(action);
             }
+        }
 
-            // remove the snippet and components
-            proceedingJoinPoint.proceed();
-
-            final Collection<Action> actions = new ArrayList<>();
-
-            // audit funnel removal
-            for (Funnel funnel : funnels) {
-                final Action action = funnelAuditor.generateAuditRecord(funnel, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (Port inputPort : inputPorts) {
-                final Action action = portAuditor.generateAuditRecord(inputPort, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (Port outputPort : outputPorts) {
-                final Action action = portAuditor.generateAuditRecord(outputPort, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (RemoteProcessGroup remoteProcessGroup : remoteProcessGroups) {
-                final Action action = remoteProcessGroupAuditor.generateAuditRecord(remoteProcessGroup, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (ProcessGroup processGroup : processGroups) {
-                final Action action = processGroupAuditor.generateAuditRecord(processGroup, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (ProcessorNode processor : processors) {
-                final Action action = processorAuditor.generateAuditRecord(processor, Operation.Remove);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            for (Connection connection : connections) {
-                final ConnectDetails connectDetails = relationshipAuditor.createConnectDetails(connection, connection.getRelationships());
-                final Action action = relationshipAuditor.generateAuditRecordForConnection(connection, Operation.Disconnect, connectDetails);
-                if (action != null) {
-                    actions.add(action);
-                }
-            }
-
-            // save the actions
-            if (CollectionUtils.isNotEmpty(actions)) {
-                saveActions(actions, logger);
-            }
-        } else {
-            // remove the snippet but not the components since this snippet isn't linked
-            proceedingJoinPoint.proceed();
+        // save the actions
+        if (CollectionUtils.isNotEmpty(actions)) {
+            saveActions(actions, logger);
         }
     }
 

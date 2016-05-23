@@ -51,6 +51,13 @@ public interface SnippetDAO {
     boolean hasSnippet(String snippetId);
 
     /**
+     * Drops the specified snippet.
+     *
+     * @param snippetId snippet id
+     */
+    void dropSnippet(String snippetId);
+
+    /**
      * Gets the specified snippet.
      *
      * @param snippetId The snippet id
@@ -59,31 +66,31 @@ public interface SnippetDAO {
     Snippet getSnippet(String snippetId);
 
     /**
-     * Verifies the specified snippet can be updated.
+     * Verifies the components of the specified snippet can be updated.
      *
      * @param snippetDTO snippet
      */
-    void verifyUpdate(SnippetDTO snippetDTO);
+    void verifyUpdateSnippetComponent(SnippetDTO snippetDTO);
 
     /**
-     * Updates the specified snippet.
+     * Updates the components in the specified snippet.
      *
      * @param snippetDTO snippet
      * @return The snippet
      */
-    Snippet updateSnippet(SnippetDTO snippetDTO);
+    Snippet updateSnippetComponents(SnippetDTO snippetDTO);
 
     /**
-     * Verifies the specified snippet can be removed.
+     * Verifies the components of the specified snippet can be removed.
      *
      * @param snippetId snippet id
      */
-    void verifyDelete(String snippetId);
+    void verifyDeleteSnippetComponents(String snippetId);
 
     /**
-     * Deletes the specified snippet.
+     * Deletes the components in the specified snippet.
      *
      * @param snippetId The snippet id
      */
-    void deleteSnippet(String snippetId);
+    void deleteSnippetComponents(String snippetId);
 }

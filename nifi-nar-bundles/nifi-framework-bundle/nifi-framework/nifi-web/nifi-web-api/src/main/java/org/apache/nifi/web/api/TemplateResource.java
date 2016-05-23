@@ -23,25 +23,25 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -62,6 +62,7 @@ public class TemplateResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     /**
      * Populates the uri for the specified templates.
@@ -119,12 +120,18 @@ public class TemplateResource extends ApplicationResource {
                     value = "The template id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable template = lookup.getTemplate(id);
+            template.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the template
         final TemplateDTO template = serviceFacade.exportTemplate(id);
@@ -148,9 +155,6 @@ public class TemplateResource extends ApplicationResource {
      * Removes the specified template.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param id The id of the template to remove.
      * @return A templateEntity.
      */
@@ -176,17 +180,12 @@ public class TemplateResource extends ApplicationResource {
             }
     )
     public Response removeTemplate(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The template id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -194,9 +193,13 @@ public class TemplateResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        // TODO: NEED VERSION FOR REVISION!
         final boolean validationPhase = isValidationPhase(httpServletRequest);
         if (validationPhase) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable template = lookup.getTemplate(id);
+                template.authorize(authorizer, RequestAction.WRITE);
+            });
             return generateContinueResponse().build();
         }
 
@@ -220,5 +223,9 @@ public class TemplateResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

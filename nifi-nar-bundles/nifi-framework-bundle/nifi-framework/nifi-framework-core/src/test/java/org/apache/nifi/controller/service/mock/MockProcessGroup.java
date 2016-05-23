@@ -557,4 +557,11 @@ public class MockProcessGroup implements ProcessGroup {
         return null;
     }
 
+    @Override
+    public void verifyCanStart(Connectable connectable) {
+    }
+
+    @Override
+    public void verifyCanStop(Connectable connectable) {
+    }
 }

@@ -157,7 +157,9 @@ nf.Actions = (function () {
                             // reload the group's connections
                             var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                             $.each(connections, function (_, connection) {
-                                nf.Connection.reload(connection.component);
+                                if (connection.accessPolicy.canRead) {
+                                    nf.Connection.reload(connection.component);
+                                }
                             });
                         }
                     });
@@ -487,13 +489,11 @@ nf.Actions = (function () {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
-                    'component': {
-                        'id': nf.Canvas.getGroupId(),
-                        'running': true
-                    }
+                    'id': nf.Canvas.getGroupId(),
+                    'state': 'RUNNING'
                 };
 
-                updateResource(config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStart = selection.filter(function (d) {
                     return nf.CanvasUtils.isRunnable(d3.select(this));
@@ -535,7 +535,9 @@ nf.Actions = (function () {
                                 // reload the group's connections
                                 var connections = nf.Connection.getComponentConnections(response.id);
                                 $.each(connections, function (_, connection) {
-                                    nf.Connection.reload(connection);
+                                    if (connection.accessPolicy.canRead) {
+                                        nf.Connection.reload(connection.component);
+                                    }
                                 });
                             } else {
                                 nf[d.type].set(response);
@@ -562,13 +564,11 @@ nf.Actions = (function () {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
-                    'component': {
-                        'id': nf.Canvas.getGroupId(),
-                        'running': false
-                    }
+                    'id': nf.Canvas.getGroupId(),
+                    'state': 'STOPPED'
                 };
 
-                updateResource(config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()), entity).done(updateProcessGroup);
             } else {
                 var componentsToStop = selection.filter(function (d) {
                     return nf.CanvasUtils.isStoppable(d3.select(this));
@@ -610,7 +610,9 @@ nf.Actions = (function () {
                                 // reload the group's connections
                                 var connections = nf.Connection.getComponentConnections(response.id);
                                 $.each(connections, function (_, connection) {
-                                    nf.Connection.reload(connection);
+                                    if (connection.accessPolicy.canRead) {
+                                        nf.Connection.reload(connection.component);
+                                    }
                                 });
                             } else {
                                 nf[d.type].set(response);
@@ -826,10 +828,10 @@ nf.Actions = (function () {
                     }).fail(nf.Common.handleAjaxError);
                 } else {
                     // create a snippet for the specified component and link to the data flow
-                    var snippetDetails = nf.Snippet.marshal(selection, true);
-                    nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
+                    var snippet = nf.Snippet.marshal(selection);
+                    nf.Snippet.create(snippet).done(function (response) {
                         // remove the snippet, effectively removing the components
-                        nf.Snippet.remove(snippetEntity).done(function () {
+                        nf.Snippet.remove(response.snippet.id).done(function () {
                             var components = d3.map();
 
                             // add the id to the type's array
@@ -870,18 +872,10 @@ nf.Actions = (function () {
 
                             // refresh the birdseye
                             nf.Birdseye.refresh();
+                            
                             // inform Angular app values have changed
                             nf.ng.Bridge.digest();
-                        }).fail(function (xhr, status, error) {
-                            // unable to actually remove the components so attempt to
-                            // unlink and remove just the snippet - if unlinking fails
-                            // just ignore
-                            nf.Snippet.unlink(snippetEntity).done(function (unlinkedSnippetEntity) {
-                                nf.Snippet.remove(unlinkedSnippetEntity);
-                            });
-
-                            nf.Common.handleAjaxError(xhr, status, error);
-                        });
+                        }).fail(nf.Common.handleAjaxError);
                     }).fail(nf.Common.handleAjaxError);
                 }
             }
@@ -1222,14 +1216,14 @@ nf.Actions = (function () {
                             var templateDescription = $('#new-template-description').val();
 
                             // create a snippet
-                            var snippetDetails = nf.Snippet.marshal(selection, false);
+                            var snippet = nf.Snippet.marshal(selection);
 
                             // create the snippet
-                            nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
+                            nf.Snippet.create(snippet).done(function (response) {
                                 var createSnippetEntity = {
                                     'name': templateName,
                                     'description': templateDescription,
-                                    'snippetId': snippetEntity.id
+                                    'snippetId': response.snippet.id
                                 };
 
                                 // create the template
@@ -1246,9 +1240,6 @@ nf.Actions = (function () {
                                         overlayBackground: false
                                     });
                                 }).always(function () {
-                                    // remove the snippet
-                                    nf.Snippet.remove(snippetEntity);
-
                                     // clear the template dialog fields
                                     $('#new-template-name').val('');
                                     $('#new-template-description').val('');
@@ -1284,7 +1275,7 @@ nf.Actions = (function () {
 
             // copy the snippet details
             nf.Clipboard.copy({
-                snippet: nf.Snippet.marshal(selection, false),
+                snippet: nf.Snippet.marshal(selection),
                 origin: origin
             });
         },
@@ -1323,7 +1314,7 @@ nf.Actions = (function () {
                     };
 
                     // create a snippet from the details
-                    nf.Snippet.create(data['snippet']).done(function (snippetEntity) {
+                    nf.Snippet.create(data['snippet']).done(function (createResponse) {
                         // determine the origin of the bounding box of the copy
                         var origin = pasteLocation;
                         var snippetOrigin = data['origin'];
@@ -1336,7 +1327,7 @@ nf.Actions = (function () {
                         }
 
                         // copy the snippet to the new location
-                        nf.Snippet.copy(snippetEntity.id, origin).done(function (copyResponse) {
+                        nf.Snippet.copy(createResponse.snippet.id, origin).done(function (copyResponse) {
                             var snippetFlow = copyResponse.flow;
 
                             // update the graph accordingly
@@ -1349,9 +1340,6 @@ nf.Actions = (function () {
 
                             // refresh the birdseye/toolbar
                             nf.Birdseye.refresh();
-
-                            // remove the original snippet
-                            nf.Snippet.remove(snippetEntity).fail(reject);
                         }).fail(function () {
                             // an error occured while performing the copy operation, reload the
                             // graph in case it was a partial success

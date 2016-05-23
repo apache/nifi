@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto.flow;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -32,7 +33,7 @@ public class ProcessGroupFlowDTO {
     private String id;
     private String uri;
     private String parentGroupId;
-    private FlowBreadcrumbDTO breadcrumb;
+    private FlowBreadcrumbEntity breadcrumb;
     private FlowDTO flow;
     private Date lastRefreshed;
 
@@ -74,11 +75,11 @@ public class ProcessGroupFlowDTO {
     @ApiModelProperty(
         value = "The breadcrumb of the process group."
     )
-    public FlowBreadcrumbDTO getBreadcrumb() {
+    public FlowBreadcrumbEntity getBreadcrumb() {
         return breadcrumb;
     }
 
-    public void setBreadcrumb(FlowBreadcrumbDTO breadcrumb) {
+    public void setBreadcrumb(FlowBreadcrumbEntity breadcrumb) {
         this.breadcrumb = breadcrumb;
     }
 

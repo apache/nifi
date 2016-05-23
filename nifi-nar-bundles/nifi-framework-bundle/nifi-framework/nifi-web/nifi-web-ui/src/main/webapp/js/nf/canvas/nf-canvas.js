@@ -111,6 +111,7 @@ nf.Canvas = (function () {
     var polling = false;
     var groupId = 'root';
     var groupName = null;
+    var accessPolicy = null;
     var parentGroupId = null;
     var secureSiteToSite = false;
     var clustered = false;
@@ -621,6 +622,9 @@ nf.Canvas = (function () {
             // set the group details
             nf.Canvas.setGroupId(processGroupFlow.id);
 
+            // update the access policies
+            accessPolicy = flowResponse.accessPolicy;
+            
             // update the breadcrumbs
             nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
@@ -939,6 +943,19 @@ nf.Canvas = (function () {
          */
         getParentGroupId: function () {
             return parentGroupId;
+        },
+
+        /**
+         * Whether the current user can write in this group.
+         * 
+         * @returns {boolean}   can write
+         */
+        canWrite: function () {
+            if (accessPolicy === null) {
+                return false;
+            } else {
+                return accessPolicy.canWrite === true;
+            }
         },
 
         View: (function () {

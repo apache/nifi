@@ -23,6 +23,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -73,6 +76,7 @@ public class ReportingTaskResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ServletContext servletContext;
@@ -142,9 +146,6 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Retrieves the specified reporting task.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param id The id of the reporting task to retrieve
      * @return A reportingTaskEntity.
      */
@@ -173,20 +174,21 @@ public class ReportingTaskResource extends ApplicationResource {
     )
     public Response getReportingTask(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The reporting task id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            reportingTask.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the reporting task
         final ReportingTaskEntity reportingTask = serviceFacade.getReportingTask(id);
@@ -198,9 +200,6 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param id The id of the reporting task.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
@@ -230,20 +229,15 @@ public class ReportingTaskResource extends ApplicationResource {
     )
     public Response getPropertyDescriptor(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The reporting task id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") String propertyName) {
+            @QueryParam("propertyName") final String propertyName) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -254,6 +248,12 @@ public class ReportingTaskResource extends ApplicationResource {
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            reportingTask.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getReportingTaskPropertyDescriptor(id, propertyName);
@@ -298,12 +298,18 @@ public class ReportingTaskResource extends ApplicationResource {
             value = "The reporting task id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            reportingTask.authorize(authorizer, RequestAction.WRITE);
+        });
 
         // get the component state
         final ComponentStateDTO state = serviceFacade.getReportingTaskState(id);
@@ -345,16 +351,16 @@ public class ReportingTaskResource extends ApplicationResource {
         }
     )
     public Response clearState(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
-        ) ComponentStateEntity revisionEntity,
+        ) final ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The reporting task id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -363,6 +369,11 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         if (isValidationPhase(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                reportingTask.authorize(authorizer, RequestAction.WRITE);
+            });
             serviceFacade.verifyCanClearReportingTaskState(id);
             return generateContinueResponse().build();
         }
@@ -407,16 +418,16 @@ public class ReportingTaskResource extends ApplicationResource {
             }
     )
     public Response updateReportingTask(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The reporting task id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The reporting task configuration details.",
                     required = true
-            ) ReportingTaskEntity reportingTaskEntity) {
+            ) final ReportingTaskEntity reportingTaskEntity) {
 
         if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
@@ -440,27 +451,29 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(reportingTaskEntity, id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO);
-            return generateContinueResponse().build();
-        }
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                reportingTask.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
+            () -> {
+                // update the reporting task
+                final UpdateResult<ReportingTaskEntity> controllerResponse = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
 
-        // update the reporting task
-        final UpdateResult<ReportingTaskEntity> controllerResponse = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
+                // get the results
+                final ReportingTaskEntity entity = controllerResponse.getResult();
+                populateRemainingReportingTaskEntityContent(entity);
 
-        // get the results
-        final ReportingTaskEntity entity = controllerResponse.getResult();
-        populateRemainingReportingTaskEntityContent(entity);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                if (controllerResponse.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            }
+        );
     }
 
     /**
@@ -521,18 +534,20 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyDeleteReportingTask(id);
-            return generateContinueResponse().build();
-        }
-
-        // delete the specified reporting task
-        final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                reportingTask.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteReportingTask(id),
+            () -> {
+                // delete the specified reporting task
+                final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -546,5 +561,9 @@ public class ReportingTaskResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

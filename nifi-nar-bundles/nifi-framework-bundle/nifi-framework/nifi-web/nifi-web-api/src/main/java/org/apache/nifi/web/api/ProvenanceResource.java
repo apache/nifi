@@ -16,31 +16,22 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -65,12 +56,29 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -89,6 +97,7 @@ public class ProvenanceResource extends ApplicationResource {
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
+    private Authorizer authorizer;
 
     /**
      * Populates the uri for the specified provenance.
@@ -104,6 +113,24 @@ public class ProvenanceResource extends ApplicationResource {
     private LineageDTO populateRemainingLineageContent(LineageDTO lineage) {
         lineage.setUri(generateResourceUri("provenance", "lineage", lineage.getId()));
         return lineage;
+    }
+
+    private void authorizeProvenanceRequest() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+            .resource(ResourceFactory.getProvenanceResource())
+            .identity(user.getIdentity())
+            .anonymous(user.isAnonymous())
+            .accessAttempt(true)
+            .action(RequestAction.READ)
+            .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
     }
 
     /**
@@ -132,6 +159,8 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response getSearchOptions() {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -178,11 +207,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitReplay(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The replay request.",
             required = true
-        ) SubmitReplayRequestEntity replayRequestEntity) {
+        ) final SubmitReplayRequestEntity replayRequestEntity) {
+
+        authorizeProvenanceRequest();
 
         // ensure the event id is specified
         if (replayRequestEntity == null || replayRequestEntity.getEventId() == null) {
@@ -259,12 +290,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where the content exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenance event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure proper input
         if (id == null) {
@@ -352,12 +385,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where the content exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenance event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure proper input
         if (id == null) {
@@ -445,11 +480,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitProvenanceRequest(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The provenance query details.",
                     required = true
             ) ProvenanceEntity provenanceEntity) {
+
+        authorizeProvenanceRequest();
 
         // check the request
         if (provenanceEntity == null) {
@@ -546,12 +583,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the provenance query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -617,17 +656,19 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response deleteProvenance(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the provenance query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -699,12 +740,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this event exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenence event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure the id is specified
         if (id == null) {
@@ -780,12 +823,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitLineageRequest(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The lineage query details.",
                     required = true
-            )
-            final LineageEntity lineageEntity) {
+            ) final LineageEntity lineageEntity) {
+
+        authorizeProvenanceRequest();
 
         if (lineageEntity == null || lineageEntity.getLineage() == null || lineageEntity.getLineage().getRequest() == null) {
             throw new IllegalArgumentException("Lineage request must be specified.");
@@ -892,12 +936,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the lineage query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -961,17 +1007,19 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response deleteLineage(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the lineage query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1019,5 +1067,9 @@ public class ProvenanceResource extends ApplicationResource {
 
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

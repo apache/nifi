@@ -55,11 +55,11 @@ nf.CanvasUtils = (function () {
         return $.Deferred(function (deferred) {
             // ensure the current selection is eligible for move into the specified group
             nf.CanvasUtils.eligibleForMove(components, groupId).done(function () {
-                // create a snippet for the specified components and link to the data flow
-                var snippetDetails = nf.Snippet.marshal(components, true);
-                nf.Snippet.create(snippetDetails).done(function (snippetEntity) {
+                // create a snippet for the specified components
+                var snippet = nf.Snippet.marshal(components);
+                nf.Snippet.create(snippet).done(function (response) {
                     // move the snippet into the target
-                    nf.Snippet.move(snippetEntity, groupId).done(function () {
+                    nf.Snippet.move(response.snippet.id, groupId).done(function () {
                         var componentMap = d3.map();
 
                         // add the id to the type's array
@@ -85,12 +85,6 @@ nf.CanvasUtils = (function () {
                         deferred.resolve();
                     }).fail(nf.Common.handleAjaxError).fail(function () {
                         deferred.reject();
-                    }).always(function () {
-                        // unable to acutally move the components so attempt to
-                        // unlink and remove just the snippet
-                        nf.Snippet.unlink(snippetEntity).done(function (unlinkedSnippetEntity) {
-                            nf.Snippet.remove(unlinkedSnippetEntity);
-                        });
                     });
                 }).fail(nf.Common.handleAjaxError).fail(function () {
                     deferred.reject();
@@ -240,6 +234,7 @@ nf.CanvasUtils = (function () {
         getSelection: function () {
             return d3.selectAll('g.component.selected, g.connection.selected');
         },
+
         /**
          * Centers the specified bounding box.
          * 
@@ -558,10 +553,12 @@ nf.CanvasUtils = (function () {
             
             // determine if the current selection is entirely processors or labels
             var selectedProcessors = selection.filter(function(d) {
-                return nf.CanvasUtils.isProcessor(d3.select(this));
+                var processor = d3.select(this);
+                return nf.CanvasUtils.isProcessor(processor) && nf.CanvasUtils.canModify(processor);
             });
             var selectedLabels = selection.filter(function(d) {
-                return nf.CanvasUtils.isLabel(d3.select(this));
+                var label = d3.select(this);
+                return nf.CanvasUtils.isLabel(label) && nf.CanvasUtils.canModify(label);
             });
 
             var allProcessors = selectedProcessors.size() === selection.size();
@@ -753,7 +750,7 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            return !nf.CanvasUtils.filterEnable(selection).empty();
+            return nf.CanvasUtils.filterEnable(selection).size() === selection.size();
         },
 
         /**
@@ -783,7 +780,7 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            return !nf.CanvasUtils.filterDisable(selection).empty();
+            return nf.CanvasUtils.filterDisable(selection).size() === selection.size();
         },
 
 
@@ -844,9 +841,29 @@ nf.CanvasUtils = (function () {
         canStopTransmitting: function (selection) {
             return nf.CanvasUtils.isRemoteProcessGroup(selection);
         },
-        
+
         /**
          * Determines whether the components in the specified selection are deletable.
+         *
+         * @argument {selection} selection      The selection
+         * @return {boolean}            Whether the selection is deletable
+         */
+        areDeletable: function (selection) {
+            if (selection.empty()) {
+                return false;
+            }
+
+            var isDeletable = true;
+            selection.each(function () {
+                if (!nf.CanvasUtils.isDeletable(d3.select(this))) {
+                    isDeletable = false;
+                }
+            });
+            return isDeletable;
+        },
+
+        /**
+         * Determines whether the component in the specified selection is deletable.
          *
          * @argument {selection} selection      The selection
          * @return {boolean}            Whether the selection is deletable
@@ -895,6 +912,11 @@ nf.CanvasUtils = (function () {
          * @argument {selection} selection      The selection
          */
         supportsModification: function (selection) {
+            if (selection.size() !== 1) {
+                return false;
+            }
+
+            // get the selection data
             var selectionData = selection.datum();
 
             // check access policies first
@@ -1301,6 +1323,11 @@ nf.CanvasUtils = (function () {
          * @argument {selection} selection          The selection
          */
         isDisconnected: function (selection) {
+            // if nothing is selected return
+            if (selection.empty()) {
+                return false;
+            }
+            
             var connections = d3.map();
             var components = d3.map();
             var isDisconnected = true;

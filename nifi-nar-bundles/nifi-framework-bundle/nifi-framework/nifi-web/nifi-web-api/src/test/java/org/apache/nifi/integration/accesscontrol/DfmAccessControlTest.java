@@ -361,7 +361,6 @@ public class DfmAccessControlTest {
 
         // get a processor and update its configuration state
         ProcessGroupDTO processGroup = getRandomProcessGroup();
-        processGroup.setRunning(Boolean.FALSE);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
