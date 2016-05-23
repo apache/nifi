@@ -188,7 +188,7 @@ public class ExecuteProcess extends AbstractProcessor {
         } finally {
             if (this.externalProcess.isAlive()) {
                 this.getLogger().info("Process hasn't terminated, forcing the interrupt");
-                this.externalProcess.destroyForcibly();
+                this.externalProcess.destroy();
             }
         }
     }
