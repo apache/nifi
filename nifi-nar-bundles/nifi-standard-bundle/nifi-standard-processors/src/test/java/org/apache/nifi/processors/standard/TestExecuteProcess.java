@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -117,11 +116,6 @@ public class TestExecuteProcess {
             ExecutorService executor = (ExecutorService) executorF.get(processor);
             assertTrue(executor.isShutdown());
             assertTrue(executor.isTerminated());
-
-            Field processF = ExecuteProcess.class.getDeclaredField("externalProcess");
-            processF.setAccessible(true);
-            Process process = (Process) processF.get(processor);
-            assertFalse(process.isAlive());
         } catch (Exception e) {
             fail();
         }

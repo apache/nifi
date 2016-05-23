@@ -186,10 +186,7 @@ public class ExecuteProcess extends AbstractProcessor {
         try {
             executor.shutdown();
         } finally {
-            if (this.externalProcess.isAlive()) {
-                this.getLogger().info("Process hasn't terminated, forcing the interrupt");
-                this.externalProcess.destroy();
-            }
+            this.externalProcess.destroy();
         }
     }
 
@@ -379,9 +376,15 @@ public class ExecuteProcess extends AbstractProcessor {
                     try {
                         // Since we are going to exit anyway, one sec gives it an extra chance to exit gracefully.
                         // In the future consider exposing it via configuration.
-                        boolean terminated = externalProcess.waitFor(1000, TimeUnit.MILLISECONDS);
-                        int exitCode = terminated ? externalProcess.exitValue() : -9999;
-                        getLogger().info("Process finished with exit code {} ", new Object[] { exitCode });
+                        externalProcess.waitFor();
+                        int exitCode = -9999;
+                        try {
+                            exitCode = externalProcess.exitValue();
+                            ExecuteProcess.this.getLogger().info("Process finished with exit code {} ",
+                                    new Object[] { exitCode });
+                        } catch (IllegalThreadStateException e) {
+                            ExecuteProcess.this.getLogger().warn("Failed to terminate external process");
+                        }
                     } catch (InterruptedException e1) {
                         Thread.currentThread().interrupt();
                     }
