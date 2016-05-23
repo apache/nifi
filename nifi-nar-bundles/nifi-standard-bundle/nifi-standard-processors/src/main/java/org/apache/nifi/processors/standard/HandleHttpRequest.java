@@ -611,6 +611,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                         new Object[]{request.getRemoteAddr(), e});
             }
 
+            session.remove(flowFile);
             return;
         }
 
