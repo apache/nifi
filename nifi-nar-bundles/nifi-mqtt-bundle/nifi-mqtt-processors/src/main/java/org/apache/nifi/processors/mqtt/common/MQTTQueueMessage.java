@@ -15,15 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.processors.mqtt;
+package org.apache.nifi.processors.mqtt.common;
 
-public class MQTTQueueMessage
-{
-    public String topic;
-    public byte[] message;
-    
-    public MQTTQueueMessage(String topic, byte[] message) {
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+
+public class MQTTQueueMessage {
+    private String topic;
+
+    private byte[] payload;
+    private int qos = 1;
+    private boolean retained = false;
+    private boolean duplicate = false;
+
+    public MQTTQueueMessage(String topic, MqttMessage message) {
         this.topic = topic;
-        this.message = message;
+        payload = message.getPayload();
+        qos = message.getQos();
+        retained = message.isRetained();
+        duplicate = message.isDuplicate();
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public byte[] getPayload() {
+        return payload;
+    }
+
+    public int getQos() {
+        return qos;
+    }
+
+    public boolean isRetained() {
+        return retained;
+    }
+
+    public boolean isDuplicate() {
+        return duplicate;
     }
 }
