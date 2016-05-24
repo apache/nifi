@@ -73,6 +73,8 @@ import org.apache.nifi.util.StopWatch;
     + "the content that matches the Regular Expression with some alternate value.")
 public class ReplaceText extends AbstractProcessor {
 
+    private static Pattern REPLACEMENT_NORMALIZATION_PATTERN = Pattern.compile("(\\$\\D)");
+
     // Constants
     public static final String LINE_BY_LINE = "Line-by-Line";
     public static final String ENTIRE_TEXT = "Entire text";
@@ -520,8 +522,7 @@ public class ReplaceText extends AbstractProcessor {
                     String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
 
-                    // If we have a $ followed by anything other than a number, then escape it. E.g., $d becomes \$d so that it can be used as a literal in a regex.
-                    final String replacementFinal = replacement.replaceAll("(\\$\\D)", "\\\\$1");
+                    String replacementFinal = normalizeReplacementString(replacement);
 
                     final String updatedValue = contentString.replaceAll(searchRegex, replacementFinal);
                     updatedFlowFile = session.write(flowFile, new OutputStreamCallback() {
@@ -553,8 +554,7 @@ public class ReplaceText extends AbstractProcessor {
                                     String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, additionalAttrs, escapeBackRefDecorator).getValue();
                                     replacement = escapeLiteralBackReferences(replacement, numCapturingGroups);
 
-                                    // If we have a $ followed by anything other than a number, then escape it. E.g., $d becomes \$d so that it can be used as a literal in a regex.
-                                    final String replacementFinal = replacement.replaceAll("(\\$\\D)", "\\\\$1");
+                                    String replacementFinal = normalizeReplacementString(replacement);
 
                                     final String updatedValue = oneLine.replaceAll(searchRegex, replacementFinal);
                                     bw.write(updatedValue);
@@ -633,6 +633,19 @@ public class ReplaceText extends AbstractProcessor {
         public boolean isAllDataBufferedForEntireText() {
             return true;
         }
+    }
+
+    /**
+     * If we have a '$' followed by anything other than a number, then escape
+     * it. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
+     * regex.
+     */
+    private static String normalizeReplacementString(String replacement) {
+        String replacementFinal = replacement;
+        if (REPLACEMENT_NORMALIZATION_PATTERN.matcher(replacement).find()) {
+            replacementFinal = Matcher.quoteReplacement(replacement);
+        }
+        return replacementFinal;
     }
 
     private interface ReplacementStrategyExecutor {
