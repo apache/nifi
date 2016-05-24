@@ -41,6 +41,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.ssl.SSLContextService;
 
 import com.amazonaws.AmazonWebServiceClient;
@@ -72,28 +73,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    public static final PropertyDescriptor CREDENTIALS_FILE = new PropertyDescriptor.Builder()
-            .name("Credentials File")
-            .expressionLanguageSupported(false)
-            .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
-            .name("Access Key")
-            .expressionLanguageSupported(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
-
-    public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
-            .name("Secret Key")
-            .expressionLanguageSupported(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(true)
-            .build();
+    public static final PropertyDescriptor CREDENTIALS_FILE = CredentialPropertyDescriptors.CREDENTIALS_FILE;
+    public static final PropertyDescriptor ACCESS_KEY = CredentialPropertyDescriptors.ACCESS_KEY;
+    public static final PropertyDescriptor SECRET_KEY = CredentialPropertyDescriptors.SECRET_KEY;
 
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("Proxy Host")
