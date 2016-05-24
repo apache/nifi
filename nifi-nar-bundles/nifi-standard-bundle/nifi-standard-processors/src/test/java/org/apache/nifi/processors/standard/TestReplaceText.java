@@ -64,6 +64,36 @@ public class TestReplaceText {
     }
 
     @Test
+    public void testWithEscaped$InReplacemenmt() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a\\$b");
+
+        runner.enqueue("a$a,b,c,d");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("a\\$b".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testWithUnEscaped$InReplacemenmt() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "(?s:^.*$)");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "a$b");
+
+        runner.enqueue("a$a,b,c,d");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("a$b".getBytes("UTF-8"));
+    }
+
+    @Test
     public void testPrependSimple() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
         runner.setValidateExpressionUsage(false);
