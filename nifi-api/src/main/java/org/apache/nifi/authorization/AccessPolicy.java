@@ -28,7 +28,7 @@ public class AccessPolicy {
 
     private final String identifier;
 
-    private final Resource resource;
+    private final String resource;
 
     private final Set<String> users;
 
@@ -36,7 +36,7 @@ public class AccessPolicy {
 
     private final Set<RequestAction> actions;
 
-    private AccessPolicy(final AccessPolicyBuilder builder) {
+    private AccessPolicy(final Builder builder) {
         this.identifier = builder.identifier;
         this.resource = builder.resource;
         this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
@@ -49,10 +49,6 @@ public class AccessPolicy {
 
         if (this.resource == null) {
             throw new IllegalArgumentException("Resource can not be null");
-        }
-
-        if ((this.users == null || this.users.isEmpty()) && (this.groups == null || this.groups.isEmpty())) {
-            throw new IllegalArgumentException("Users & Groups can not both be null or empty");
         }
 
         if (this.actions == null || this.actions.isEmpty()) {
@@ -70,7 +66,7 @@ public class AccessPolicy {
     /**
      * @return the resource for this policy
      */
-    public Resource getResource() {
+    public String getResource() {
         return resource;
     }
 
@@ -116,16 +112,16 @@ public class AccessPolicy {
     @Override
     public String toString() {
         return String.format("identifier[%s], resource[%s], users[%s], groups[%s], action[%s]",
-                getIdentifier(), getResource().getIdentifier(), getUsers(), getGroups(), getActions());
+                getIdentifier(), getResource(), getUsers(), getGroups(), getActions());
     }
 
     /**
      * Builder for Access Policies.
      */
-    public static class AccessPolicyBuilder {
+    public static class Builder {
 
         private String identifier;
-        private Resource resource;
+        private String resource;
         private Set<String> users = new HashSet<>();
         private Set<String> groups = new HashSet<>();
         private Set<RequestAction> actions = new HashSet<>();
@@ -134,7 +130,7 @@ public class AccessPolicy {
         /**
          * Default constructor for building a new AccessPolicy.
          */
-        public AccessPolicyBuilder() {
+        public Builder() {
             this.fromPolicy = false;
         }
 
@@ -145,7 +141,7 @@ public class AccessPolicy {
          *
          * @param other the existing access policy to initialize from
          */
-        public AccessPolicyBuilder(final AccessPolicy other) {
+        public Builder(final AccessPolicy other) {
             if (other == null) {
                 throw new IllegalArgumentException("Can not initialize builder with a null access policy");
             }
@@ -168,7 +164,7 @@ public class AccessPolicy {
          * @return the builder
          * @throws IllegalStateException if this method is called when this builder was constructed from an existing Policy
          */
-        public AccessPolicyBuilder identifier(final String identifier) {
+        public Builder identifier(final String identifier) {
             if (fromPolicy) {
                 throw new IllegalStateException(
                         "Identifier can not be changed when initialized from an existing policy");
@@ -184,7 +180,7 @@ public class AccessPolicy {
          * @param resource the resource to set
          * @return the builder
          */
-        public AccessPolicyBuilder resource(final Resource resource) {
+        public Builder resource(final String resource) {
             this.resource = resource;
             return this;
         }
@@ -195,7 +191,7 @@ public class AccessPolicy {
          * @param users the users to add
          * @return the builder
          */
-        public AccessPolicyBuilder addUsers(final Set<String> users) {
+        public Builder addUsers(final Set<String> users) {
             if (users != null) {
                 this.users.addAll(users);
             }
@@ -208,7 +204,7 @@ public class AccessPolicy {
          * @param user the user to add
          * @return the builder
          */
-        public AccessPolicyBuilder addUser(final String user) {
+        public Builder addUser(final String user) {
             if (user != null) {
                 this.users.add(user);
             }
@@ -221,7 +217,7 @@ public class AccessPolicy {
          * @param users the users to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeUsers(final Set<String> users) {
+        public Builder removeUsers(final Set<String> users) {
             if (users != null) {
                 this.users.removeAll(users);
             }
@@ -234,7 +230,7 @@ public class AccessPolicy {
          * @param user the user to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeUser(final String user) {
+        public Builder removeUser(final String user) {
             if (user != null) {
                 this.users.remove(user);
             }
@@ -246,7 +242,7 @@ public class AccessPolicy {
          *
          * @return the builder
          */
-        public AccessPolicyBuilder clearUsers() {
+        public Builder clearUsers() {
             this.users.clear();
             return this;
         }
@@ -257,7 +253,7 @@ public class AccessPolicy {
          * @param groups the groups to add
          * @return the builder
          */
-        public AccessPolicyBuilder addGroups(final Set<String> groups) {
+        public Builder addGroups(final Set<String> groups) {
             if (groups != null) {
                 this.groups.addAll(groups);
             }
@@ -270,7 +266,7 @@ public class AccessPolicy {
          * @param group the group to add
          * @return the builder
          */
-        public AccessPolicyBuilder addGroup(final String group) {
+        public Builder addGroup(final String group) {
             if (group != null) {
                 this.groups.add(group);
             }
@@ -283,7 +279,7 @@ public class AccessPolicy {
          * @param groups the groups to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeGroups(final Set<String> groups) {
+        public Builder removeGroups(final Set<String> groups) {
             if (groups != null) {
                 this.groups.removeAll(groups);
             }
@@ -296,7 +292,7 @@ public class AccessPolicy {
          * @param group the group to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeGroup(final String group) {
+        public Builder removeGroup(final String group) {
             if (group != null) {
                 this.groups.remove(group);
             }
@@ -308,7 +304,7 @@ public class AccessPolicy {
          *
          * @return the builder
          */
-        public AccessPolicyBuilder clearGroups() {
+        public Builder clearGroups() {
             this.groups.clear();
             return this;
         }
@@ -319,7 +315,7 @@ public class AccessPolicy {
          * @param action the action to add
          * @return the builder
          */
-        public AccessPolicyBuilder addAction(final RequestAction action) {
+        public Builder addAction(final RequestAction action) {
             this.actions.add(action);
             return this;
         }
@@ -330,7 +326,7 @@ public class AccessPolicy {
          * @param action the action to remove
          * @return the builder
          */
-        public AccessPolicyBuilder removeAction(final RequestAction action) {
+        public Builder removeAction(final RequestAction action) {
             this.actions.remove(action);
             return this;
         }
@@ -340,7 +336,7 @@ public class AccessPolicy {
          *
          * @return the builder
          */
-        public AccessPolicyBuilder clearActions() {
+        public Builder clearActions() {
             this.actions.clear();
             return this;
         }

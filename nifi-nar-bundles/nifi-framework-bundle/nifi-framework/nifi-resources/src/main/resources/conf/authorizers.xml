@@ -23,6 +23,6 @@
         <identifier>file-provider</identifier>
         <class>org.apache.nifi.authorization.FileAuthorizer</class>
         <property name="Authorizations File">./conf/authorizations.xml</property>
-        <property name="Reload Interval">30 secs</property>
+        <property name="Initial Admin Identity"></property>
     </authorizer>
 </authorizers>

@@ -27,7 +27,8 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
 
     @Override
     public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
-        final Set<AccessPolicy> policies = getAccessPolicies(request.getResource());
+        final String resource = request.getResource().getIdentifier();
+        final Set<AccessPolicy> policies = getAccessPolicies(resource);
 
         if (policies == null || policies.isEmpty()) {
             return AuthorizationResult.resourceNotFound();
@@ -211,10 +212,10 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     /**
      * Retrieves the access policies for the given Resource.
      *
-     * @param resource the resource to retrieve policies for
+     * @param resourceIdentifier the identifier of the resource to retrieve policies for
      * @return a set of policies for the given resource, or an empty set if there are none
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public abstract Set<AccessPolicy> getAccessPolicies(Resource resource) throws AuthorizationAccessException;
+    public abstract Set<AccessPolicy> getAccessPolicies(String resourceIdentifier) throws AuthorizationAccessException;
 
 }
