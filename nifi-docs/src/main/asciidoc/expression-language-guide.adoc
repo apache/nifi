@@ -831,7 +831,7 @@ then the following Expressions will result in the following values:
 [.function]
 === replace
 
-*Description*: [.description]#Replaces occurrences of one String within the Subject with another String.#
+*Description*: [.description]#Replaces *all* occurrences of one literal String within the Subject with another String.#
 
 *Subject Type*: [.subject]#String#
 
@@ -861,9 +861,41 @@ Expressions will provide the following results:
 
 
 [.function]
+=== replaceFirst
+
+*Description*: [.description]#Replaces *the first* occurrence of one literal String or regular expression within the Subject with another String.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_Search String_# : [.argDesc]#The String (literal or regular expression pattern) to find within the Subject#
+	- [.argName]#_Replacement_# : [.argDesc]#The value to replace _Search String_ with#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the following
+Expressions will provide the following results:
+
+
+
+.ReplaceFirst Examples
+|===================================================================
+| Expression | Value
+| `${filename:replaceFirst('a', 'the')}` | `the brand new filename.txt`
+| `${filename:replaceFirst('[br]', 'g')}` | `a grand new filename.txt`
+| `${filename:replaceFirst('XYZ', 'ZZZ')}` | `a brand new filename.txt`
+| `${filename:replaceFirst('\w{8}', 'book')}` | `a brand new book.txt`
+|===================================================================
+
+
+
+
+
+[.function]
 === replaceAll
 
-*Description*: [.description]#The `replaceAll` function takes two String arguments: a Regular Expression (NiFi uses the Java Pattern
+*Description*: [.description]#The `replaceAll` function takes two String arguments: a literal String or Regular Expression (NiFi uses the Java Pattern
 	syntax), and a replacement string. The return value is the result of substituting the replacement string for
 	all patterns within the Subject that match the Regular Expression.#
 
@@ -884,7 +916,7 @@ Expressions will provide the following results:
 
 
 
-.replaceAll Examples
+.ReplaceAll Examples
 |=======================================================================================
 | Expression | Value
 | `${filename:replaceAll('\..*', '')}` | `a brand new filename`

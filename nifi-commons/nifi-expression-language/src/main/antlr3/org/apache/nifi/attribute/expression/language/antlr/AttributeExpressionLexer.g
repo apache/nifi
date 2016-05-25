@@ -156,6 +156,7 @@ TO_LITERAL : 'literal';
 // 2 arg functions
 SUBSTRING	: 'substring';
 REPLACE	: 'replace';
+REPLACE_FIRST	: 'replaceFirst';
 REPLACE_ALL : 'replaceAll';
 
 // 4 arg functions
