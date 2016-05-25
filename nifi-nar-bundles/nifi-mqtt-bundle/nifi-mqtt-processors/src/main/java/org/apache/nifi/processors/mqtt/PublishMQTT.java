@@ -38,6 +38,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StopWatch;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Set;
 import java.io.InputStream;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -189,6 +191,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
 
         try {
             mqttClientConnectLock.readLock().lock();
+            final StopWatch stopWatch = new StopWatch(true);
             try {
                 /*
                  * Underlying method waits for the message to publish (according to set QoS), so it executes synchronously:
@@ -198,6 +201,8 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             } finally {
                 mqttClientConnectLock.readLock().unlock();
             }
+
+            session.getProvenanceReporter().send(flowfile, broker, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowfile, REL_SUCCESS);
         } catch(MqttException me) {
             logger.error("Failed to publish message.", me);
