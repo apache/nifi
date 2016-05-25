@@ -22,6 +22,7 @@ import org.apache.nifi.util.TestRunners
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -149,6 +150,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         }
     }
 
+    @Ignore("This test fails intermittently when the serial execution happens faster than pooled")
     @Test
     public void testPooledExecutionShouldBeFaster() throws Exception {
         // Arrange
