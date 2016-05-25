@@ -32,7 +32,7 @@ public class User {
 
     private final Set<String> groups;
 
-    private User(final UserBuilder builder) {
+    private User(final Builder builder) {
         this.identifier = builder.identifier;
         this.identity = builder.identity;
         this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
@@ -94,7 +94,7 @@ public class User {
     /**
      * Builder for Users.
      */
-    public static class UserBuilder {
+    public static class Builder {
 
         private String identifier;
         private String identity;
@@ -104,7 +104,7 @@ public class User {
         /**
          * Default constructor for building a new User.
          */
-        public UserBuilder() {
+        public Builder() {
             this.fromUser = false;
         }
 
@@ -115,7 +115,7 @@ public class User {
          *
          * @param other the existing user to initialize from
          */
-        public UserBuilder(final User other) {
+        public Builder(final User other) {
             if (other == null) {
                 throw new IllegalArgumentException("Provided user can not be null");
             }
@@ -134,7 +134,7 @@ public class User {
          * @return the builder
          * @throws IllegalStateException if this method is called when this builder was constructed from an existing User
          */
-        public UserBuilder identifier(final String identifier) {
+        public Builder identifier(final String identifier) {
             if (fromUser) {
                 throw new IllegalStateException(
                         "Identifier can not be changed when initialized from an existing user");
@@ -150,7 +150,7 @@ public class User {
          * @param identity the identity to set
          * @return the builder
          */
-        public UserBuilder identity(final String identity) {
+        public Builder identity(final String identity) {
             this.identity = identity;
             return this;
         }
@@ -161,7 +161,7 @@ public class User {
          * @param groups the groups to add
          * @return the builder
          */
-        public UserBuilder addGroups(final Set<String> groups) {
+        public Builder addGroups(final Set<String> groups) {
             if (groups != null) {
                 this.groups.addAll(groups);
             }
@@ -174,7 +174,7 @@ public class User {
          * @param group the group to add
          * @return the builder
          */
-        public UserBuilder addGroup(final String group) {
+        public Builder addGroup(final String group) {
             if (group != null) {
                 this.groups.add(group);
             }
@@ -187,7 +187,7 @@ public class User {
          * @param groups the groups to remove
          * @return the builder
          */
-        public UserBuilder removeGroups(final Set<String> groups) {
+        public Builder removeGroups(final Set<String> groups) {
             if (groups != null) {
                 this.groups.removeAll(groups);
             }
@@ -200,7 +200,7 @@ public class User {
          * @param group the group to remove
          * @return the builder
          */
-        public UserBuilder removeGroup(final String group) {
+        public Builder removeGroup(final String group) {
             if (group != null) {
                 this.groups.remove(group);
             }
@@ -212,7 +212,7 @@ public class User {
          *
          * @return the builder
          */
-        public UserBuilder clearGroups() {
+        public Builder clearGroups() {
             this.groups.clear();
             return this;
         }

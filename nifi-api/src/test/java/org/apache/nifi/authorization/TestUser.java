@@ -34,7 +34,7 @@ public class TestUser {
         final String group1 = "group1";
         final String group2 = "group2";
 
-        final User user = new User.UserBuilder()
+        final User user = new User.Builder()
                 .identifier(identifier)
                 .identity(identity)
                 .addGroup(group1)
@@ -52,7 +52,7 @@ public class TestUser {
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingIdentifier() {
-        new User.UserBuilder()
+        new User.Builder()
                 .identity("user1")
                 .addGroup("group1")
                 .addGroup("group2")
@@ -61,7 +61,7 @@ public class TestUser {
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingIdentity() {
-        new User.UserBuilder()
+        new User.Builder()
                 .identifier("1")
                 .addGroup("group1")
                 .addGroup("group2")
@@ -73,7 +73,7 @@ public class TestUser {
         final String identifier = "1";
         final String identity = "user1";
 
-        final User user = new User.UserBuilder()
+        final User user = new User.Builder()
                 .identifier(identifier)
                 .identity(identity)
                 .build();
@@ -92,7 +92,7 @@ public class TestUser {
         final String group1 = "group1";
         final String group2 = "group2";
 
-        final User user = new User.UserBuilder()
+        final User user = new User.Builder()
                 .identifier(identifier)
                 .identity(identity)
                 .addGroup(group1)
@@ -107,7 +107,7 @@ public class TestUser {
         assertTrue(user.getGroups().contains(group1));
         assertTrue(user.getGroups().contains(group2));
 
-        final User user2 = new User.UserBuilder(user).build();
+        final User user2 = new User.Builder(user).build();
         assertEquals(user.getIdentifier(), user2.getIdentifier());
         assertEquals(user.getIdentity(), user2.getIdentity());
         assertEquals(user.getGroups(), user2.getGroups());
@@ -115,19 +115,19 @@ public class TestUser {
 
     @Test(expected = IllegalStateException.class)
     public void testFromUserAndChangeIdentifier() {
-        final User user = new User.UserBuilder()
+        final User user = new User.Builder()
                 .identifier("1")
                 .identity("user1")
                 .addGroup("group1")
                 .addGroup("group2")
                 .build();
 
-        new User.UserBuilder(user).identifier("2").build();
+        new User.Builder(user).identifier("2").build();
     }
 
     @Test
     public void testAddRemoveClearGroups() {
-        final User.UserBuilder builder = new User.UserBuilder()
+        final User.Builder builder = new User.Builder()
                 .identifier("1")
                 .identity("user1")
                 .addGroup("group1");

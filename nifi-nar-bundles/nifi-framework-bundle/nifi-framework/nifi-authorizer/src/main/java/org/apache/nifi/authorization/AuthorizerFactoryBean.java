@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.NiFiProperties;
@@ -71,7 +72,12 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
 
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private FlowController flowController;
     private final Map<String, Authorizer> authorizers = new HashMap<>();
+
+    public void setFlowController(FlowController flowController) {
+        this.flowController = flowController;
+    }
 
     @Override
     public Authorizer getAuthorizer(String identifier) {
@@ -189,7 +195,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
             authorizerProperties.put(property.getName(), property.getValue());
         }
 
-        return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties);
+        return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), flowController.getRootGroupId(), authorizerProperties);
     }
 
     private void performMethodInjection(final Authorizer instance, final Class authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {

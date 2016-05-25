@@ -32,7 +32,7 @@ public class Group {
 
     private final Set<String> users;
 
-    private Group(final GroupBuilder builder) {
+    private Group(final Builder builder) {
         this.identifier = builder.identifier;
         this.name = builder.name;
         this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
@@ -61,6 +61,9 @@ public class Group {
     }
 
     /**
+     * NOTE: This set of users is populated when retrieving an existing group and  will be ignored when adding a new Group.
+     * To add a User to a group, it should be done by adding or updating a User with the appropriate Group id.
+     *
      * @return an unmodifiable set of user identifiers that belong to this group
      */
     public Set<String> getUsers() {
@@ -94,14 +97,14 @@ public class Group {
     /**
      * Builder for creating Groups.
      */
-    public static class GroupBuilder {
+    public static class Builder {
 
         private String identifier;
         private String name;
         private Set<String> users = new HashSet<>();
         private final boolean fromGroup;
 
-        public GroupBuilder() {
+        public Builder() {
             this.fromGroup = false;
         }
 
@@ -112,7 +115,7 @@ public class Group {
          *
          * @param other the existing access policy to initialize from
          */
-        public GroupBuilder(final Group other) {
+        public Builder(final Group other) {
             if (other == null) {
                 throw new IllegalArgumentException("Provided group can not be null");
             }
@@ -131,7 +134,7 @@ public class Group {
          * @return the builder
          * @throws IllegalStateException if this method is called when this builder was constructed from an existing Group
          */
-        public GroupBuilder identifier(final String identifier) {
+        public Builder identifier(final String identifier) {
             if (fromGroup) {
                 throw new IllegalStateException(
                         "Identifier can not be changed when initialized from an existing group");
@@ -147,7 +150,7 @@ public class Group {
          * @param name the name
          * @return the builder
          */
-        public GroupBuilder name(final String name) {
+        public Builder name(final String name) {
             this.name = name;
             return this;
         }
@@ -158,7 +161,7 @@ public class Group {
          * @param users a set of users to add
          * @return the builder
          */
-        public GroupBuilder addUsers(final Set<String> users) {
+        public Builder addUsers(final Set<String> users) {
             if (users != null) {
                 this.users.addAll(users);
             }
@@ -171,7 +174,7 @@ public class Group {
          * @param user the user to add
          * @return the builder
          */
-        public GroupBuilder addUser(final String user) {
+        public Builder addUser(final String user) {
             if (user != null) {
                 this.users.add(user);
             }
@@ -184,7 +187,7 @@ public class Group {
          * @param user the user to remove
          * @return the builder
          */
-        public GroupBuilder removeUser(final String user) {
+        public Builder removeUser(final String user) {
             if (user != null) {
                 this.users.remove(user);
             }
@@ -197,7 +200,7 @@ public class Group {
          * @param users the users to remove
          * @return the builder
          */
-        public GroupBuilder removeUsers(final Set<String> users) {
+        public Builder removeUsers(final Set<String> users) {
             if (users != null) {
                 this.users.removeAll(users);
             }
@@ -209,7 +212,7 @@ public class Group {
          *
          * @return the builder
          */
-        public GroupBuilder clearUsers() {
+        public Builder clearUsers() {
             this.users.clear();
             return this;
         }

@@ -29,16 +29,23 @@ import java.util.Map;
 public class StandardAuthorizerConfigurationContext implements AuthorizerConfigurationContext {
 
     private final String identifier;
+    private final String rootGroupId;
     private final Map<String, String> properties;
 
-    public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardAuthorizerConfigurationContext(String identifier, String rootGroupId, Map<String, String> properties) {
         this.identifier = identifier;
+        this.rootGroupId = rootGroupId;
         this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
     }
 
     @Override
     public String getIdentifier() {
         return identifier;
+    }
+
+    @Override
+    public String getRootGroupId() {
+        return rootGroupId;
     }
 
     @Override

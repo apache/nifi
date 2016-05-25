@@ -34,7 +34,7 @@ public class TestGroup {
         final String user1 = "user1";
         final String user2 = "user2";
 
-        final Group group = new Group.GroupBuilder()
+        final Group group = new Group.Builder()
                 .identifier(id)
                 .name(name)
                 .addUser(user1)
@@ -52,7 +52,7 @@ public class TestGroup {
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingId() {
-        new Group.GroupBuilder()
+        new Group.Builder()
                 .name("group1")
                 .addUser("user1")
                 .addUser("user2")
@@ -61,7 +61,7 @@ public class TestGroup {
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingName() {
-        new Group.GroupBuilder()
+        new Group.Builder()
                 .identifier("1")
                 .addUser("user1")
                 .addUser("user2")
@@ -73,7 +73,7 @@ public class TestGroup {
         final String id = "1";
         final String name = "group1";
 
-        final Group group = new Group.GroupBuilder()
+        final Group group = new Group.Builder()
                 .identifier(id)
                 .name(name)
                 .build();
@@ -92,7 +92,7 @@ public class TestGroup {
         final String user1 = "user1";
         final String user2 = "user2";
 
-        final Group group1 = new Group.GroupBuilder()
+        final Group group1 = new Group.Builder()
                 .identifier(id)
                 .name(name)
                 .addUser(user1)
@@ -107,7 +107,7 @@ public class TestGroup {
         assertTrue(group1.getUsers().contains(user1));
         assertTrue(group1.getUsers().contains(user2));
 
-        final Group group2 = new Group.GroupBuilder(group1).build();
+        final Group group2 = new Group.Builder(group1).build();
         assertEquals(group1.getIdentifier(), group2.getIdentifier());
         assertEquals(group1.getName(), group2.getName());
         assertEquals(group1.getUsers(), group2.getUsers());
@@ -115,18 +115,18 @@ public class TestGroup {
 
     @Test(expected = IllegalStateException.class)
     public void testFromGroupAndChangeIdentifier() {
-        final Group group1 = new Group.GroupBuilder()
+        final Group group1 = new Group.Builder()
                 .identifier("1")
                 .name("group1")
                 .addUser("user1")
                 .build();
 
-        new Group.GroupBuilder(group1).identifier("2").build();
+        new Group.Builder(group1).identifier("2").build();
     }
 
     @Test
     public void testAddRemoveClearUsers() {
-        final Group.GroupBuilder builder = new Group.GroupBuilder()
+        final Group.Builder builder = new Group.Builder()
                 .identifier("1")
                 .name("group1")
                 .addUser("user1");

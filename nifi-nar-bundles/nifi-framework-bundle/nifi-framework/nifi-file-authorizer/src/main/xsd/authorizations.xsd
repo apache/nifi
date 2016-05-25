@@ -14,9 +14,112 @@
   limitations under the License.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <!-- authorization -->
-    <xs:complexType name="Authorization">
+
+    <!-- group -->
+    <xs:complexType name="Group">
+        <xs:attribute name="identifier">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:pattern value=".*[^\s].*"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="name">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:pattern value=".*[^\s].*"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- groups -->
+    <xs:complexType name="Groups">
+        <xs:sequence>
+            <xs:element name="group" type="Group" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- user -->
+    <xs:complexType name="User">
+        <xs:sequence>
+            <xs:element name="group" minOccurs="0" maxOccurs="unbounded" >
+                <xs:complexType>
+                    <xs:attribute name="identifier">
+                        <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                                <xs:minLength value="1"/>
+                                <xs:pattern value=".*[^\s].*"/>
+                            </xs:restriction>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="identifier">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:pattern value=".*[^\s].*"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
         <xs:attribute name="identity">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:pattern value=".*[^\s].*"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- users -->
+    <xs:complexType name="Users">
+        <xs:sequence>
+            <xs:element name="user" type="User" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- authorization -->
+    <xs:complexType name="Policy">
+        <xs:sequence>
+            <xs:element name="group" minOccurs="0" maxOccurs="unbounded" >
+                <xs:complexType>
+                    <xs:attribute name="identifier">
+                        <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                                <xs:minLength value="1"/>
+                                <xs:pattern value=".*[^\s].*"/>
+                            </xs:restriction>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="user" minOccurs="0" maxOccurs="unbounded" >
+                <xs:complexType>
+                    <xs:attribute name="identifier">
+                        <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                                <xs:minLength value="1"/>
+                                <xs:pattern value=".*[^\s].*"/>
+                            </xs:restriction>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="identifier">
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:pattern value=".*[^\s].*"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:attribute>
+        <xs:attribute name="resource">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:minLength value="1"/>
@@ -34,27 +137,22 @@
         </xs:attribute>
     </xs:complexType>
 
-    <!-- resource -->
-    <xs:complexType name="Resource">
+    <!-- resources -->
+    <xs:complexType name="Policies">
         <xs:sequence>
-            <xs:element name="authorization" type="Authorization" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="policy" type="Policy" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="identifier">
-            <xs:simpleType>
-                <xs:restriction base="xs:string">
-                    <xs:minLength value="1"/>
-                    <xs:pattern value=".*[^\s].*"/>
-                </xs:restriction>
-            </xs:simpleType>
-        </xs:attribute>
     </xs:complexType>
 
-    <!-- resources -->
-    <xs:element name="resources">
+    <!-- top-level authorizations element -->
+    <xs:element name="authorizations">
         <xs:complexType>
             <xs:sequence>
-                <xs:element name="resource" type="Resource" minOccurs="0" maxOccurs="unbounded"/>
+                <xs:element name="groups" type="Groups" minOccurs="0" maxOccurs="1" />
+                <xs:element name="users" type="Users" minOccurs="0" maxOccurs="1" />
+                <xs:element name="policies" type="Policies" minOccurs="0" maxOccurs="1" />
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+
 </xs:schema>
