@@ -79,6 +79,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Random
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceFirstEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StartsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToDateEvaluator;
@@ -172,6 +173,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_FIRST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STARTS_WITH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STRING_LITERAL;
@@ -427,8 +429,8 @@ public class Query {
     }
 
     static Map<String, String> createExpressionMap(final FlowFile flowFile, final Map<String, String> additionalAttributes) {
-        final Map<String, String> attributeMap = flowFile == null ? Collections.<String, String> emptyMap() : flowFile.getAttributes();
-        final Map<String, String> additionalOrEmpty = additionalAttributes == null ? Collections.<String, String> emptyMap() : additionalAttributes;
+        final Map<String, String> attributeMap = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
+        final Map<String, String> additionalOrEmpty = additionalAttributes == null ? Collections.emptyMap() : additionalAttributes;
         final Map<String, String> envMap = System.getenv();
         final Map<?, ?> sysProps = System.getProperties();
 
@@ -1125,6 +1127,12 @@ public class Query {
                 return addToken(new ReplaceEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to replace"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replace")), "replace");
+            }
+            case REPLACE_FIRST: {
+                verifyArgCount(argEvaluators, 2, "replaceFirst");
+                return addToken(new ReplaceFirstEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to replaceFirst"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument to replaceFirst")), "replaceFirst");
             }
             case REPLACE_ALL: {
                 verifyArgCount(argEvaluators, 2, "replaceAll");
