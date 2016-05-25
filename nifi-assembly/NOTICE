@@ -877,6 +877,7 @@ The following binary components are provided under the Eclipse Public License 1.
 
         The following NOTICE information applies:
             Copyright (c) 2007-2015 The JRuby project
+    (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
 
 *****************
 Mozilla Public License v2.0

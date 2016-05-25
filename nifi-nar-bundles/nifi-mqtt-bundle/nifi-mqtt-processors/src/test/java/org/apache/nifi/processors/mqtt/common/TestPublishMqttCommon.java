@@ -19,11 +19,17 @@ package org.apache.nifi.processors.mqtt.common;
 
 import io.moquette.server.Server;
 import org.apache.nifi.processors.mqtt.PublishMQTT;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.apache.nifi.processors.mqtt.PublishMQTT.REL_SUCCESS;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public abstract class TestPublishMqttCommon {
 
@@ -47,6 +53,7 @@ public abstract class TestPublishMqttCommon {
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
+        assertProvenanceEvents();
 
         verifyPublishedMessage(testMessage.getBytes(), 0, false);
     }
@@ -63,6 +70,7 @@ public abstract class TestPublishMqttCommon {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvents();
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         verifyPublishedMessage(testMessage.getBytes(), 1, false);
@@ -82,6 +90,7 @@ public abstract class TestPublishMqttCommon {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvents();
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         verifyPublishedMessage(testMessage.getBytes(), 2, false);
@@ -99,6 +108,7 @@ public abstract class TestPublishMqttCommon {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvents();
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         verifyPublishedMessage(testMessage.getBytes(), 2, false);
@@ -117,8 +127,16 @@ public abstract class TestPublishMqttCommon {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(REL_SUCCESS);
+        assertProvenanceEvents();
 
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         verifyPublishedMessage(testMessage.getBytes(), 2, true);
+    }
+
+    private void assertProvenanceEvents(){
+        List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertNotNull(provenanceEvents);
+        assertEquals(1, provenanceEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provenanceEvents.get(0).getEventType());
     }
 }
