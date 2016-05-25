@@ -21,6 +21,8 @@ import io.moquette.proto.messages.AbstractMessage;
 import io.moquette.proto.messages.PublishMessage;
 import io.moquette.server.Server;
 import org.apache.nifi.processors.mqtt.ConsumeMQTT;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
@@ -40,6 +42,8 @@ import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_RETAINED_ATTRIBUTE_
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.QOS_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.TOPIC_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public abstract class TestConsumeMqttCommon {
@@ -93,6 +97,7 @@ public abstract class TestConsumeMqttCommon {
         testRunner.run(1, false, false);
 
         testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 1);
+        assertProvenanceEvents(1);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         MockFlowFile flowFile = flowFiles.get(0);
@@ -141,6 +146,7 @@ public abstract class TestConsumeMqttCommon {
         testRunner.run(1, false, false);
 
         testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 1);
+        assertProvenanceEvents(1);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         MockFlowFile flowFile = flowFiles.get(0);
@@ -183,6 +189,7 @@ public abstract class TestConsumeMqttCommon {
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         assertTrue(flowFiles.size() > 0);
+        assertProvenanceEvents(flowFiles.size());
         MockFlowFile flowFile = flowFiles.get(0);
 
         flowFile.assertContentEquals("testMessage");
@@ -232,6 +239,7 @@ public abstract class TestConsumeMqttCommon {
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         assertTrue(flowFiles.size() > 0);
+        assertProvenanceEvents(flowFiles.size());
         MockFlowFile flowFile = flowFiles.get(0);
 
         flowFile.assertContentEquals("testMessage");
@@ -271,6 +279,7 @@ public abstract class TestConsumeMqttCommon {
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         assertTrue(flowFiles.size() < 2);
+        assertProvenanceEvents(flowFiles.size());
 
         if(flowFiles.size() == 1) {
             MockFlowFile flowFile = flowFiles.get(0);
@@ -314,6 +323,7 @@ public abstract class TestConsumeMqttCommon {
         consumeMQTT.onStopped(testRunner.getProcessContext());
 
         testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 1);
+        assertProvenanceEvents(1);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         MockFlowFile flowFile = flowFiles.get(0);
@@ -363,6 +373,7 @@ public abstract class TestConsumeMqttCommon {
         testRunner.run(1);
 
         testRunner.assertTransferCount(ConsumeMQTT.REL_MESSAGE, 2);
+        assertProvenanceEvents(2);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
         MockFlowFile flowFile = flowFiles.get(0);
@@ -387,5 +398,14 @@ public abstract class TestConsumeMqttCommon {
         Method method = ConsumeMQTT.class.getDeclaredMethod("reconnect");
         method.setAccessible(true);
         method.invoke(processor);
+    }
+
+    private void assertProvenanceEvents(int count){
+        List<ProvenanceEventRecord> provenanceEvents = testRunner.getProvenanceEvents();
+        assertNotNull(provenanceEvents);
+        assertEquals(count, provenanceEvents.size());
+        if (count > 0) {
+            assertEquals(ProvenanceEventType.RECEIVE, provenanceEvents.get(0).getEventType());
+        }
     }
 }
