@@ -99,6 +99,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessSession.class);
     private static final Logger claimLog = LoggerFactory.getLogger(StandardProcessSession.class.getSimpleName() + ".claims");
+    private static final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
 
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
@@ -861,6 +862,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} session rollback called, FlowFile records are {} {}",
+                    this, loggableFlowfileInfo(), new Throwable("Stack Trace on rollback"));
+        }
+
         deleteOnCommit.clear();
 
         final Set<StandardRepositoryRecord> recordsToHandle = new HashSet<>();
@@ -949,6 +955,44 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         acknowledgeRecords();
         resetState();
     }
+
+    private String loggableFlowfileInfo() {
+        final StringBuilder details = new StringBuilder(1024).append("[");
+        final int initLen = details.length();
+        int filesListed = 0;
+        for (Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
+            if (filesListed >= MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+                break;
+            }
+            filesListed++;
+            final FlowFileRecord entryKey = entry.getKey();
+            final StandardRepositoryRecord entryValue = entry.getValue();
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            if (entryValue.getOriginalQueue() != null && entryValue.getOriginalQueue().getIdentifier() != null) {
+                details.append("queue=")
+                        .append(entryValue.getOriginalQueue().getIdentifier())
+                        .append("/");
+            }
+            details.append("filename=")
+                    .append(entryKey.getAttribute(CoreAttributes.FILENAME.key()))
+                    .append("/uuid=")
+                    .append(entryKey.getAttribute(CoreAttributes.UUID.key()));
+        }
+        if (records.entrySet().size() > MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            details.append(records.entrySet().size() - MAX_ROLLBACK_FLOWFILES_TO_LOG)
+                    .append(" additional Flowfiles not listed");
+        } else if (filesListed == 0) {
+            details.append("none");
+        }
+        details.append("]");
+        return details.toString();
+    }
+
 
     private void removeContent(final ContentClaim claim) {
         if (claim == null) {
