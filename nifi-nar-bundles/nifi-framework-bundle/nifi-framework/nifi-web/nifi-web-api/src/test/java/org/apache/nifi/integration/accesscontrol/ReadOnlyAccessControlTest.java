@@ -180,7 +180,6 @@ public class ReadOnlyAccessControlTest {
         ControllerConfigurationEntity entity = response.getEntity(ControllerConfigurationEntity.class);
         Assert.assertNotNull(entity);
         Assert.assertNotNull(entity.getConfig());
-        Assert.assertEquals("NiFi Flow", entity.getConfig().getName());
         Assert.assertEquals(10, entity.getConfig().getMaxTimerDrivenThreadCount().intValue());
         Assert.assertEquals(5, entity.getConfig().getMaxEventDrivenThreadCount().intValue());
         Assert.assertEquals(30, entity.getConfig().getAutoRefreshIntervalSeconds().intValue());

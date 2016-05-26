@@ -14,11 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /* flow status styles positioned at the top of the graph */
 
 #flow-status {
-    height: 32px;
+    height: 33px;
     background-color: #E3E8EB; /*tint base-color 60%*/
+    border-bottom: 1px solid #aabbc3;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    z-index: 3;
+    position: relative;
 }
 
 #flow-status .icon {

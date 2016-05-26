@@ -16,10 +16,43 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.cluster.node.Node;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.CounterDTO;
+import org.apache.nifi.web.api.dto.CountersDTO;
+import org.apache.nifi.web.api.entity.AuthorityEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.CounterEntity;
+import org.apache.nifi.web.api.entity.CountersEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -36,41 +69,10 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
-import org.apache.nifi.web.api.dto.CounterDTO;
-import org.apache.nifi.web.api.dto.CountersDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.AuthorityEntity;
-import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
-import org.apache.nifi.web.api.entity.CounterEntity;
-import org.apache.nifi.web.api.entity.CountersEntity;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.ReportingTasksEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -85,11 +87,34 @@ public class ControllerResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     private ReportingTaskResource reportingTaskResource;
+    private ControllerServiceResource controllerServiceResource;
 
     @Context
     private ResourceContext resourceContext;
+
+    /**
+     * Authorizes access to the flow.
+     */
+    private void authorizeController(final RequestAction action) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                .resource(ResourceFactory.getControllerResource())
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(true)
+                .action(action)
+                .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
+    }
 
     /**
      * Creates a new archive of this flow controller. Note, this is a POST operation that returns a URI that is not representative of the thing that was actually created. The archive that is created
@@ -311,19 +336,15 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getControllerConfig() {
+        // TODO
+//        authorizeController(RequestAction.READ);
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        final ControllerConfigurationDTO controllerConfig = serviceFacade.getControllerConfiguration();
-
-        // create the response entity
-        final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
-        entity.setConfig(controllerConfig);
-
-        // generate the response
+        final ControllerConfigurationEntity entity = serviceFacade.getControllerConfiguration();
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -374,31 +395,19 @@ public class ControllerResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), configEntity, getHeaders()).getResponse();
         }
 
-        final RevisionDTO revisionDto = configEntity.getRevision();
-        final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), "controller");
-
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
-        if (expects != null) {
-            return generateContinueResponse().build();
-        }
-
-        final ConfigurationSnapshot<ControllerConfigurationDTO> controllerResponse
-            = serviceFacade.updateControllerConfiguration(revision, configEntity.getConfig());
-        final ControllerConfigurationDTO controllerConfig = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
-        entity.setRevision(updatedRevision);
-        entity.setConfig(controllerConfig);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        final Revision revision = getRevision(configEntity.getRevision(), FlowController.class.getSimpleName());
+        return withWriteLock(
+                serviceFacade,
+                revision,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+                },
+                null,
+                () -> {
+                    final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getConfig());
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+        );
     }
 
     /**x
@@ -519,26 +528,27 @@ public class ControllerResource extends ApplicationResource {
         return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
     }
 
+    // -------------------
+    // controller services
+    // -------------------
+
     /**
-     * Retrieves all the of reporting tasks in this NiFi.
+     * Creates a new Controller Service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @return A reportingTasksEntity.
+     * @param httpServletRequest request
+     * @param controllerServiceEntity A controllerServiceEntity.
+     * @return A controllerServiceEntity.
      */
-    @GET
-    @Consumes(MediaType.WILDCARD)
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("reporting-tasks")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("controller-services")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Gets all reporting tasks",
-        response = ReportingTasksEntity.class,
+        value = "Creates a new controller service",
+        response = ControllerServiceEntity.class,
         authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
         }
     )
     @ApiResponses(
@@ -549,28 +559,50 @@ public class ControllerResource extends ApplicationResource {
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
         }
     )
-    public Response getReportingTasks(
+    public Response createControllerService(
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+            value = "The controller service configuration details.",
+            required = true
+        ) final ControllerServiceEntity controllerServiceEntity) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
-        // get all the reporting tasks
-        final Set<ReportingTaskEntity> reportingTasks = serviceFacade.getReportingTasks();
-        reportingTaskResource.populateRemainingReportingTaskEntitiesContent(reportingTasks);
+        if (controllerServiceEntity.getComponent().getId() != null) {
+            throw new IllegalArgumentException("Controller service ID cannot be specified.");
+        }
 
-            // create the response entity
-        final ReportingTasksEntity entity = new ReportingTasksEntity();
-        entity.setReportingTasks(reportingTasks);
+        if (StringUtils.isBlank(controllerServiceEntity.getComponent().getType())) {
+            throw new IllegalArgumentException("The type of controller service to create must be specified.");
+        }
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                // TODO - authorize controller access
+            });
+        }
+        if (validationPhase) {
+            return generateContinueResponse().build();
+        }
+
+        // set the processor id as appropriate
+        controllerServiceEntity.getComponent().setId(generateUuid());
+
+        // create the controller service and generate the json
+        final ControllerServiceEntity entity = serviceFacade.createControllerService(null, controllerServiceEntity.getComponent());
+        controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
+
+        // build the response
+        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
     }
 
     // setters
@@ -586,8 +618,15 @@ public class ControllerResource extends ApplicationResource {
         this.reportingTaskResource = reportingTaskResource;
     }
 
+    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+        this.controllerServiceResource = controllerServiceResource;
+    }
+
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
 }

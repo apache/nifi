@@ -1108,36 +1108,43 @@
         };
         
         var goToControllerService = function (property) {
-            // close the dialog
-            var dialog = table.closest('.dialog');
-            if (dialog.hasClass('modal')) {
-                dialog.modal('hide');
-            } else {
-                dialog.hide();
-            }
-
-            $.Deferred(function (deferred) {
-                if ($('#settings').is(':visible')) {
-                    deferred.resolve();
+            $.ajax({
+                type: 'GET',
+                url: '../nifi-api/controller-services/' + encodeURIComponent(property.value),
+                dataType: 'json'
+            }).done(function (controllerServiceEntity) {
+                // close the dialog
+                var dialog = table.closest('.dialog');
+                if (dialog.hasClass('modal')) {
+                    dialog.modal('hide');
                 } else {
-                    // reload the settings and show
-                    nf.Settings.loadSettings().done(function () {
-                        nf.Settings.showSettings();
-                        deferred.resolve();
-                    });
+                    dialog.hide();
                 }
-            }).done(function () {
-                var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
-                var controllerServiceData = controllerServiceGrid.getData();
 
-                // select the desired service
-                var row = controllerServiceData.getRowById(property.value);
-                controllerServiceGrid.setSelectedRows([row]);
-                controllerServiceGrid.scrollRowIntoView(row);
-
-                // select the controller services tab
-                $('#settings-tabs').find('li:eq(1)').click();
-            });
+                var controllerService = controllerServiceEntity.component;
+                $.Deferred(function (deferred) {
+                    if (nf.Common.isDefinedAndNotNull(controllerService.parentGroupId)) {
+                        nf.ProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
+                            deferred.resolve();
+                        });
+                    } else {
+                        if ($('#settings').is(':visible')) {
+                            deferred.resolve();
+                        } else {
+                            // reload the settings and show
+                            nf.Settings.showSettings().done(function () {
+                                deferred.resolve();
+                            });
+                        }
+                    }
+                }).done(function () {
+                    if (nf.Common.isDefinedAndNotNull(controllerService.parentGroupId)) {
+                        nf.ProcessGroupConfiguration.selectControllerService(property.value);
+                    } else {
+                        nf.Settings.selectControllerService(property.value);
+                    }
+                });
+            }).fail(nf.Common.handleAjaxError);
         };
 
         // initialize the grid
@@ -1580,13 +1587,15 @@
                 var propertyTableContainer = $(this);
                 var options = propertyTableContainer.data('options');
                 
-                // clear the property table container
-                clear(propertyTableContainer);
-                
-                // clear any existing new property dialogs
-                if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
-                    $(options.dialogContainer).children('div.new-property-dialog').remove();
-                    $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
+                if (nf.Common.isDefinedAndNotNull(options)) {
+                    // clear the property table container
+                    clear(propertyTableContainer);
+                    
+                    // clear any existing new property dialogs
+                    if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
+                        $(options.dialogContainer).children('div.new-property-dialog').remove();
+                        $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
+                    }
                 }
             });
         },

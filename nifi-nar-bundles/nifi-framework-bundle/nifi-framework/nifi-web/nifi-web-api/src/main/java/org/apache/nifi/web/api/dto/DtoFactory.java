@@ -134,6 +134,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
 import javax.ws.rs.WebApplicationException;
@@ -154,6 +155,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -173,6 +175,22 @@ public final class DtoFactory {
     private ControllerServiceProvider controllerServiceProvider;
     private EntityFactory entityFactory;
     private Authorizer authorizer;
+
+    public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade, final String autoRefreshInterval) {
+        final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
+        dto.setMaxTimerDrivenThreadCount(controllerFacade.getMaxTimerDrivenThreadCount());
+        dto.setMaxEventDrivenThreadCount(controllerFacade.getMaxEventDrivenThreadCount());
+
+        // get the refresh interval
+        final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
+        dto.setAutoRefreshIntervalSeconds(refreshInterval);
+
+        final Date now = new Date();
+        dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
+        dto.setCurrentTime(now);
+
+        return dto;
+    }
 
     /**
      * Creates an ActionDTO for the specified Action.
@@ -1143,6 +1161,7 @@ public final class DtoFactory {
     public ControllerServiceDTO createControllerServiceDto(final ControllerServiceNode controllerServiceNode) {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
         dto.setId(controllerServiceNode.getIdentifier());
+        dto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
         dto.setName(controllerServiceNode.getName());
         dto.setType(controllerServiceNode.getControllerServiceImplementation().getClass().getName());
         dto.setState(controllerServiceNode.getState().name());

@@ -207,7 +207,6 @@ public class DfmAccessControlTest {
 
         // create the controller configuration
         ControllerConfigurationDTO controllerConfig = new ControllerConfigurationDTO();
-        controllerConfig.setName("new name");
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -229,7 +228,6 @@ public class DfmAccessControlTest {
         entity = response.getEntity(ControllerConfigurationEntity.class);
         Assert.assertNotNull(entity);
         Assert.assertNotNull(entity.getConfig());
-        Assert.assertEquals("new name", entity.getConfig().getName());
         Assert.assertEquals(10, entity.getConfig().getMaxTimerDrivenThreadCount().intValue());
         Assert.assertEquals(5, entity.getConfig().getMaxEventDrivenThreadCount().intValue());
         Assert.assertEquals(30, entity.getConfig().getAutoRefreshIntervalSeconds().intValue());

@@ -337,8 +337,8 @@ nf.Common = (function () {
                 return;
             }
 
-            // status code 400, 404, and 409 are expected response codes for common errors.
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+            // status code 400, 403, 404, and 409 are expected response codes for common errors.
+            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
                     dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     overlayBackground: false
@@ -360,14 +360,7 @@ nf.Common = (function () {
                 } else if (xhr.status === 401) {
                     $('#message-title').text('Unauthorized');
                     if ($.trim(xhr.responseText) === '') {
-                        $('#message-content').text('Authorization is required to use this NiFi.');
-                    } else {
-                        $('#message-content').text(xhr.responseText);
-                    }
-                } else if (xhr.status === 403) {
-                    $('#message-title').text('Access Denied');
-                    if ($.trim(xhr.responseText) === '') {
-                        $('#message-content').text('Unable to authorize you to use this NiFi.');
+                        $('#message-content').text('Authentication is required to use this NiFi.');
                     } else {
                         $('#message-content').text(xhr.responseText);
                     }

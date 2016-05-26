@@ -55,12 +55,11 @@
 }
 
 div.graph-control {
-    background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
-    border-top: 1px solid #C7D2D7; /*tint base-color 60%*/
-    border-right: 1px solid #C7D2D7; /*tint base-color 60%*/
-    border-bottom: 1px solid #C7D2D7; /*tint base-color 60%*/
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.25);
+    background-color: rgba(249, 250, 251, 0.9);
+    border-top: 1px solid #aabbc3;
+    border-right: 1px solid #aabbc3;
+    border-bottom: 1px solid #aabbc3;
     padding: 10px;
     margin-bottom: 2px;
 }
@@ -75,9 +74,8 @@ div.graph-control button {
     height: 24px;
     width: 24px;
     line-height: 19px;
-    border-radius: 2px;
     border: 1px solid #CCDADB; /*tint link-color 80%*/
-    background-color: rgba(249, 250, 251, 0.97);
+    background-color: rgba(249,250,251,1);
     color: #004849;
 }
 
@@ -186,8 +184,9 @@ rect.birdseye-brush {
 #breadcrumbs {
     position: absolute;
     bottom: 0px;
-    background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
-    border-top: 1px solid #C7D2D7; /*tint base-color 60%*/
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    background-color: rgba(249, 250, 251, 0.9);
+    border-top: 1px solid #aabbc3;
     color: #598599;
     z-index: 3;
     height: 31px;

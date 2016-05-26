@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
@@ -39,6 +40,19 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
 public final class EntityFactory {
+
+    public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            // TODO - remove this once contents of ControllerConfigurationEntity is updated
+//            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setConfig(dto);
+//            }
+        }
+        return entity;
+    }
 
     public ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroupFlowDTO dto, final AccessPolicyDTO accessPolicy) {
         final ProcessGroupFlowEntity entity = new ProcessGroupFlowEntity();

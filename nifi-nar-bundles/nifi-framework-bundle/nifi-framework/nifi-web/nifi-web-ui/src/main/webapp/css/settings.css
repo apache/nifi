@@ -25,13 +25,13 @@
     padding: 20px;
 }
 
-#settings-header-text {
+div.settings-header-text {
     height: 35px;
     font-size: 16px;
     font-weight: bold;
 }
 
-#settings-container {
+div.settings-container {
     margin-top: 18px;
 }
 
@@ -45,11 +45,11 @@
 
 /* settings tabs */
 
-#settings-tabs-container {
+div.settings-tabs-container {
     border-bottom: 2px solid #666;
 }
 
-#settings-tabs {
+div.settings-tabs {
     float: left;
 }
 
@@ -78,7 +78,7 @@
     border-right: 1px solid #666;
 }
 
-#settings-tab-background {
+div.settings-tab-background {
     height: 200px;
     margin-top: 1px;
     background-color: transparent;
@@ -86,7 +86,7 @@
     filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#dddddd, endColorstr=#ffffff);
 }
 
-#settings div.configuration-tab {
+#settings div.configuration-tab, #process-group-configuration div.configuration-tab {
     display: none;
 }
 
@@ -105,13 +105,13 @@ span.sorted {
     text-decoration: underline;
 }
 
-#settings-refresh-button {
+div.settings-refresh-button {
     height: 24px;
     width: 26px;
     float: left;
 }
 
-#settings-last-refreshed-container {
+div.settings-last-refreshed-container {
     float: left;
     color: #666;
     font-weight: normal;
@@ -134,15 +134,6 @@ span.sorted {
     font-weight: bold;
 }
 
-#settings-refresh-required-icon {
-    float: left;
-    margin-top: 4px;
-    margin-left: 3px;
-    width: 18px;
-    height: 16px;
-    background-image: url(../images/iconAlert.png);
-}
-
 /* general */
 
 #general-settings {
@@ -150,23 +141,19 @@ span.sorted {
     margin-left: 10px;
 }
 
-#general-settings input, #general-settings textarea {
+#general-settings input {
     font-size: 11px !important;
     font-family: Verdana;
     width: 350px;
     vertical-align: middle;
 }
 
-#data-flow-comments-field {
-    height: 100px;
-}
-
-#settings-buttons {
-    margin-left: 304px;
+div.settings-buttons {
+    margin-left: 310px;
     margin-top: 10px;
 }
 
-#settings-save {
+div.settings-buttons div.button {
     float: left;
 }
 

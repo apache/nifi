@@ -128,9 +128,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  * Launch the settings shell.
                  */
                 launch: function () {
-                    nf.Settings.loadSettings().done(function () {
-                        nf.Settings.showSettings();
-                    });
+                    nf.Settings.showSettings();
                 }
             }
         };

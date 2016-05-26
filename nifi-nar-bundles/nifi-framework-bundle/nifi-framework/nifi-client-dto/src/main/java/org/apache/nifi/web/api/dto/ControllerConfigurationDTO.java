@@ -17,10 +17,11 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Date;
 
 /**
  * Details for the controller configuration.
@@ -28,13 +29,10 @@ import org.apache.nifi.web.api.dto.util.TimeAdapter;
 @XmlType(name = "config")
 public class ControllerConfigurationDTO {
 
-    private String name;
-    private String comments;
     private Integer maxTimerDrivenThreadCount;
     private Integer maxEventDrivenThreadCount;
 
     private Long autoRefreshIntervalSeconds;
-    private Boolean siteToSiteSecure;
 
     private Date currentTime;
     private Integer timeOffset;
@@ -68,34 +66,6 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * @return name of this NiFi
-     */
-    @ApiModelProperty(
-            value = "The name of this NiFi."
-    )
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * @return comments for this NiFi
-     */
-    @ApiModelProperty(
-            value = "The comments for this NiFi."
-    )
-    public String getComments() {
-        return comments;
-    }
-
-    public void setComments(String comments) {
-        this.comments = comments;
-    }
-
-    /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
      */
     @ApiModelProperty(
@@ -108,21 +78,6 @@ public class ControllerConfigurationDTO {
 
     public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
         this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
-    }
-
-    /**
-     * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication). This value is read only
-     */
-    @ApiModelProperty(
-            value = "Indicates whether site to site communication with the NiFi is secure (requires 2-way authenticiation).",
-            readOnly = true
-    )
-    public Boolean isSiteToSiteSecure() {
-        return siteToSiteSecure;
-    }
-
-    public void setSiteToSiteSecure(Boolean siteToSiteSecure) {
-        this.siteToSiteSecure = siteToSiteSecure;
     }
 
     /**

@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
@@ -26,10 +27,11 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ControllerConfigurationDTO.
  */
 @XmlRootElement(name = "controllerConfigurationEntity")
-public class ControllerConfigurationEntity extends ComponentEntity {
+public class ControllerConfigurationEntity extends Entity {
 
     private ControllerConfigurationDTO config;
     private RevisionDTO revision;
+    private AccessPolicyDTO accessPolicy;
 
     /**
      * @return revision for this request/response
@@ -65,4 +67,19 @@ public class ControllerConfigurationEntity extends ComponentEntity {
         this.config = config;
     }
 
+    /**
+     * The access policy for this component.
+     *
+     * @return The access policy
+     */
+    @ApiModelProperty(
+            value = "The access policy for the controller."
+    )
+    public AccessPolicyDTO getAccessPolicy() {
+        return accessPolicy;
+    }
+
+    public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
+        this.accessPolicy = accessPolicy;
+    }
 }

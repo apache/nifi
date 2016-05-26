@@ -177,6 +177,7 @@
         <property name="connectionResource" ref="connectionResource"/>
         <property name="templateResource" ref="templateResource"/>
         <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="reportingTaskResource" ref="reportingTaskResource"/>
         <property name="processGroupResource" ref="processGroupResource"/>
     </bean>
     <bean id="resourceResource" class="org.apache.nifi.web.api.ResourceResource" scope="singleton">
@@ -190,6 +191,8 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
         <property name="reportingTaskResource" ref="reportingTaskResource"/>
+        <property name="controllerServiceResource" ref="controllerServiceResource"/>
+        <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="siteToSiteResource" class="org.apache.nifi.web.api.SiteToSiteResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

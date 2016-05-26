@@ -66,6 +66,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -262,7 +263,7 @@ public interface NiFiServiceFacade {
      *
      * @return Controller configuration transfer object
      */
-    ControllerConfigurationDTO getControllerConfiguration();
+    ControllerConfigurationEntity getControllerConfiguration();
 
     /**
      * Updates the configuration for this controller.
@@ -271,7 +272,7 @@ public interface NiFiServiceFacade {
      * @param controllerConfigurationDTO Controller configuration DTO
      * @return Controller configuration DTO
      */
-    ConfigurationSnapshot<ControllerConfigurationDTO> updateControllerConfiguration(Revision revision, ControllerConfigurationDTO controllerConfigurationDTO);
+    ControllerConfigurationEntity updateControllerConfiguration(Revision revision, ControllerConfigurationDTO controllerConfigurationDTO);
 
     /**
      * Creates a new archive of the flow configuration.

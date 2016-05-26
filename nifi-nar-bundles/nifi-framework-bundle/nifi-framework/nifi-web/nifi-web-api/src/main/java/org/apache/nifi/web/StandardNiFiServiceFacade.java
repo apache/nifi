@@ -45,6 +45,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -67,7 +68,6 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -127,6 +127,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
@@ -183,9 +184,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -886,32 +885,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<ControllerConfigurationDTO> updateControllerConfiguration(final Revision revision, final ControllerConfigurationDTO controllerConfigurationDTO) {
-        final Supplier<ControllerConfigurationDTO> daoUpdate = () -> {
-            // update the controller configuration through the proxy
-            if (controllerConfigurationDTO.getName() != null) {
-                controllerFacade.setName(controllerConfigurationDTO.getName());
-            }
-            if (controllerConfigurationDTO.getComments() != null) {
-                controllerFacade.setComments(controllerConfigurationDTO.getComments());
-            }
-            if (controllerConfigurationDTO.getMaxTimerDrivenThreadCount() != null) {
-                controllerFacade.setMaxTimerDrivenThreadCount(controllerConfigurationDTO.getMaxTimerDrivenThreadCount());
-            }
-            if (controllerConfigurationDTO.getMaxEventDrivenThreadCount() != null) {
-                controllerFacade.setMaxEventDrivenThreadCount(controllerConfigurationDTO.getMaxEventDrivenThreadCount());
-            }
-
-            return controllerConfigurationDTO;
-        };
-
+    public ControllerConfigurationEntity updateControllerConfiguration(final Revision revision, final ControllerConfigurationDTO controllerConfigurationDTO) {
         final RevisionUpdate<ControllerConfigurationDTO> updatedComponent = updateComponent(
             revision,
             controllerFacade,
-            daoUpdate,
-            controller -> getControllerConfiguration());
+            () -> {
+                if (controllerConfigurationDTO.getMaxTimerDrivenThreadCount() != null) {
+                    controllerFacade.setMaxTimerDrivenThreadCount(controllerConfigurationDTO.getMaxTimerDrivenThreadCount());
+                }
+                if (controllerConfigurationDTO.getMaxEventDrivenThreadCount() != null) {
+                    controllerFacade.setMaxEventDrivenThreadCount(controllerConfigurationDTO.getMaxEventDrivenThreadCount());
+                }
 
-        return new ConfigurationSnapshot<>(updatedComponent.getLastModification().getRevision().getVersion());
+                return controllerConfigurationDTO;
+            },
+            controller -> dtoFactory.createControllerConfigurationDto(controllerFacade, properties.getAutoRefreshInterval()));
+
+        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerFacade);
+        final RevisionDTO updateRevision = dtoFactory.createRevisionDTO(updatedComponent.getLastModification());
+        return entityFactory.createControllerConfigurationEntity(updatedComponent.getComponent(), updateRevision, accessPolicy);
     }
 
     @Override
@@ -1266,9 +1258,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      *
      * @return a RevisionUpdate that represents the updated configuration
      */
-    private <D, C> RevisionUpdate<D> createComponent(final ComponentDTO componentDto,
-        final Supplier<C> daoCreation, final Function<C, D> dtoCreation) {
-
+    private <D, C> RevisionUpdate<D> createComponent(final ComponentDTO componentDto, final Supplier<C> daoCreation, final Function<C, D> dtoCreation) {
         final String modifier = NiFiUserUtils.getNiFiUserName();
 
         // ensure id is set
@@ -1638,6 +1628,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ControllerServiceEntity createControllerService(final String groupId, final ControllerServiceDTO controllerServiceDTO) {
+        final String normalizedGroupId = groupId == null ? controllerFacade.getRootGroupId() : groupId;
+        controllerServiceDTO.setParentGroupId(normalizedGroupId);
+
         final RevisionUpdate<ControllerServiceDTO> snapshot = createComponent(
             controllerServiceDTO,
             () -> {
@@ -1645,7 +1638,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final ControllerServiceNode controllerService = controllerServiceDAO.createControllerService(controllerServiceDTO);
 
                 // TODO - this logic should be part of the controllerServiceDAO
-                final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+                final ProcessGroup group = processGroupDAO.getProcessGroup(normalizedGroupId);
                 group.addControllerService(controllerService);
                 return controllerService;
             },
@@ -2350,8 +2343,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ControllerDTO controllerDTO = new ControllerDTO();
         controllerDTO.setId(controllerFacade.getRootGroupId());
         controllerDTO.setInstanceId(controllerFacade.getInstanceId());
-        controllerDTO.setName(controllerFacade.getName());
-        controllerDTO.setComments(controllerFacade.getComments());
         controllerDTO.setInputPorts(inputPortDtos);
         controllerDTO.setOutputPorts(outputPortDtos);
         controllerDTO.setInputPortCount(inputPorts.size());
@@ -2374,29 +2365,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ControllerConfigurationDTO getControllerConfiguration() {
-        ControllerConfigurationDTO controllerConfig = new ControllerConfigurationDTO();
-        controllerConfig.setName(controllerFacade.getName());
-        controllerConfig.setComments(controllerFacade.getComments());
-        controllerConfig.setMaxTimerDrivenThreadCount(controllerFacade.getMaxTimerDrivenThreadCount());
-        controllerConfig.setMaxEventDrivenThreadCount(controllerFacade.getMaxEventDrivenThreadCount());
-
-        // get the refresh interval
-        final long refreshInterval = FormatUtils.getTimeDuration(properties.getAutoRefreshInterval(), TimeUnit.SECONDS);
-        controllerConfig.setAutoRefreshIntervalSeconds(refreshInterval);
-
-        final Date now = new Date();
-        controllerConfig.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
-        controllerConfig.setCurrentTime(now);
-
-        // determine the site to site configuration
-        if (isClustered()) {
-            controllerConfig.setSiteToSiteSecure(controllerFacade.isClusterManagerRemoteSiteCommsSecure());
-        } else {
-            controllerConfig.setSiteToSiteSecure(controllerFacade.isRemoteSiteCommsSecure());
-        }
-
-        return controllerConfig;
+    public ControllerConfigurationEntity getControllerConfiguration() {
+        return revisionManager.get(FlowController.class.getSimpleName(), rev -> {
+            final ControllerConfigurationDTO dto = dtoFactory.createControllerConfigurationDto(controllerFacade, properties.getAutoRefreshInterval());
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerFacade);
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
+            return entityFactory.createControllerConfigurationEntity(dto, revision, accessPolicy);
+        });
     }
 
     @Override
@@ -2656,9 +2631,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public Set<ControllerServiceEntity> getControllerServices(String groupId) {
         // TODO - move this logic into the ControllerServiceDAO
-        final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-        final Set<ControllerServiceNode> serviceNodes = group.getControllerServices(true);
-        final Set<String> serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
+
+        final Set<ControllerServiceNode> serviceNodes;
+        final Set<String> serviceIds;
+        if (groupId == null) {
+            // TODO - controller services scoped by the controller
+            serviceNodes = controllerServiceDAO.getControllerServices();
+            serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
+        } else {
+            final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
+            serviceNodes = group.getControllerServices(true);
+            serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
+        }
 
         return revisionManager.get(serviceIds, () -> {
             return serviceNodes.stream()

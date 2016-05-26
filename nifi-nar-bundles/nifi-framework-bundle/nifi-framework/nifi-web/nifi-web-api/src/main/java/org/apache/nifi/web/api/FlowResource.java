@@ -48,7 +48,6 @@ import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
-import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -81,7 +80,9 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -141,6 +142,7 @@ public class FlowResource extends ApplicationResource {
     private TemplateResource templateResource;
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
+    private ReportingTaskResource reportingTaskResource;
 
     /**
      * Populates the remaining fields in the specified process group.
@@ -186,6 +188,9 @@ public class FlowResource extends ApplicationResource {
         return flowStructure;
     }
 
+    /**
+     * Authorizes access to the flow.
+     */
     private void authorizeFlow() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
@@ -269,6 +274,56 @@ public class FlowResource extends ApplicationResource {
         return clusterContext(generateOkResponse(entity)).build();
     }
 
+    // -------------------
+    // controller services
+    // -------------------
+
+    /**
+     * Retrieves all the of controller services in this NiFi.
+     *
+     * @return A controllerServicesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("controller/controller-services")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets all controller services",
+        response = ControllerServicesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getControllerServicesFromController() {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get all the controller services
+        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(null);
+        controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
+
+        // create the response entity
+        final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setControllerServices(controllerServices);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
     /**
      * Retrieves all the of controller services in this NiFi.
      *
@@ -296,7 +351,7 @@ public class FlowResource extends ApplicationResource {
             @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
         }
     )
-    public Response getControllerServices(
+    public Response getControllerServicesFromGroup(
         @ApiParam(
             value = "The process group id.",
             required = true
@@ -315,6 +370,64 @@ public class FlowResource extends ApplicationResource {
         // create the response entity
         final ControllerServicesEntity entity = new ControllerServicesEntity();
         entity.setControllerServices(controllerServices);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    // ---------------
+    // reporting-tasks
+    // ---------------
+
+    /**
+     * Retrieves all the of reporting tasks in this NiFi.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @return A reportingTasksEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("reporting-tasks")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets all reporting tasks",
+        response = ReportingTasksEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getReportingTasks(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get all the reporting tasks
+        final Set<ReportingTaskEntity> reportingTasks = serviceFacade.getReportingTasks();
+        reportingTaskResource.populateRemainingReportingTaskEntitiesContent(reportingTasks);
+
+        // create the response entity
+        final ReportingTasksEntity entity = new ReportingTasksEntity();
+        entity.setReportingTasks(reportingTasks);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -357,8 +470,6 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id,
         ScheduleComponentsEntity scheduleComponentsEntity) {
-
-        authorizeFlow();
 
         // ensure the same id is being used
         if (!id.equals(scheduleComponentsEntity.getId())) {
@@ -441,6 +552,9 @@ public class FlowResource extends ApplicationResource {
             serviceFacade,
             revisions,
             lookup -> {
+                // ensure access to the flow
+                authorizeFlow();
+
                 // ensure access to every component being scheduled
                 componentsToSchedule.keySet().forEach(componentId -> {
                     final Authorizable connectable = lookup.getConnectable(componentId);
@@ -875,11 +989,9 @@ public class FlowResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        final ControllerConfigurationDTO controllerConfig = serviceFacade.getControllerConfiguration();
-
         // create the about dto
         final AboutDTO aboutDTO = new AboutDTO();
-        aboutDTO.setTitle(controllerConfig.getName());
+        aboutDTO.setTitle("NiFi"); // TODO - where to load title from
         aboutDTO.setVersion(properties.getUiTitle());
         aboutDTO.setUri(generateResourceUri());
 
@@ -1851,6 +1963,10 @@ public class FlowResource extends ApplicationResource {
 
     public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
+    }
+
+    public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
+        this.reportingTaskResource = reportingTaskResource;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

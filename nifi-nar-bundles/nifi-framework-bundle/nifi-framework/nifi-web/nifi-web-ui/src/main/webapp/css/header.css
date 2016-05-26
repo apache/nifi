@@ -23,11 +23,15 @@ md-toolbar.md-small {
     height: 56px;
     background-color:#AABBC3; /*tint base-color 40%*/
     min-height: 56px;
-    max-height: 56px; }
+    max-height: 56px;
+    position: relative;
+    z-index: 4;
+}
 md-toolbar.md-small .md-toolbar-tools {
     height: 56px;
     min-height: 56px;
-    max-height: 56px; }
+    max-height: 56px;
+}
 
 #header .icon {
     font-size:30px;
