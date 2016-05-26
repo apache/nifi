@@ -297,10 +297,6 @@
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
     </bean>
-    <bean id="nodeResource" class="org.apache.nifi.web.api.NodeResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
     <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
