@@ -33,12 +33,16 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HEAD;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
@@ -63,27 +67,13 @@ public class ClusterResource extends ApplicationResource {
     private NiFiProperties properties;
 
     /**
-     * Locates the ClusterConnection sub-resource.
-     *
-     * @return node resource
-     */
-    @Path("/nodes")
-    @ApiOperation(
-            value = "Gets the node resource",
-            response = NodeResource.class
-    )
-    public NodeResource getNodeResource() {
-        return resourceContext.getResource(NodeResource.class);
-    }
-
-    /**
      * Returns a 200 OK response to indicate this is a valid cluster endpoint.
      *
      * @return An OK response with an empty entity body.
      */
     @HEAD
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.WILDCARD)
     public Response getClusterHead() {
         if (properties.isClusterManager()) {
             return Response.ok().build();
@@ -99,7 +89,7 @@ public class ClusterResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the contents of the cluster",
@@ -144,7 +134,7 @@ public class ClusterResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/search-results")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
@@ -207,6 +197,174 @@ public class ClusterResource extends ApplicationResource {
         }
 
         throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+    }
+
+    /**
+     * Gets the contents of the specified node in this NiFi cluster.
+     *
+     * @param id The node id.
+     * @return A nodeEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("nodes/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Gets a node in the cluster",
+            response = NodeEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getNode(
+            @ApiParam(
+                    value = "The node id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
+
+        if (properties.isClusterManager()) {
+
+            // get the specified relationship
+            final NodeDTO dto = serviceFacade.getNode(id);
+
+            // create the response entity
+            final NodeEntity entity = new NodeEntity();
+            entity.setNode(dto);
+
+            // generate the response
+            return generateOkResponse(entity).build();
+
+        }
+
+        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+    }
+
+    /**
+     * Updates the contents of the specified node in this NiFi cluster.
+     *
+     * @param id The id of the node
+     * @param nodeEntity A nodeEntity
+     * @return A nodeEntity
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("nodes/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Updates a node in the cluster",
+            response = NodeEntity.class,
+            authorizations = {
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateNode(
+            @ApiParam(
+                    value = "The node id.",
+                    required = true
+            )
+            @PathParam("id") String id,
+            @ApiParam(
+                    value = "The node configuration. The only configuration that will be honored at this endpoint is the status or primary flag.",
+                    required = true
+            ) NodeEntity nodeEntity) {
+
+        if (properties.isClusterManager()) {
+
+            if (nodeEntity == null || nodeEntity.getNode() == null) {
+                throw new IllegalArgumentException("Node details must be specified.");
+            }
+
+            // get the request node
+            final NodeDTO requestNodeDTO = nodeEntity.getNode();
+            if (!id.equals(requestNodeDTO.getNodeId())) {
+                throw new IllegalArgumentException(String.format("The node id (%s) in the request body does "
+                        + "not equal the node id of the requested resource (%s).", requestNodeDTO.getNodeId(), id));
+            }
+
+            // update the node
+            final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
+
+            // create the response entity
+            NodeEntity entity = new NodeEntity();
+            entity.setNode(node);
+
+            // generate the response
+            return generateOkResponse(entity).build();
+        }
+
+        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+    }
+
+    /**
+     * Removes the specified from this NiFi cluster.
+     *
+     * @param id The id of the node
+     * @return A nodeEntity
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("nodes/{id}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Removes a node from the cluster",
+            response = NodeEntity.class,
+            authorizations = {
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response deleteNode(
+            @ApiParam(
+                    value = "The node id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
+
+        if (properties.isClusterManager()) {
+
+            serviceFacade.deleteNode(id);
+
+            // create the response entity
+            final NodeEntity entity = new NodeEntity();
+
+            // generate the response
+            return generateOkResponse(entity).build();
+        }
+
+        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+
     }
 
     // setters
