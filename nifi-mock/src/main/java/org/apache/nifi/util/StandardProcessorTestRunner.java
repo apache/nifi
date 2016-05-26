@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -90,8 +89,8 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
-    private final Map<String, MockProcessorLog> controllerServiceLoggers = new HashMap<>();
-    private final MockProcessorLog logger;
+    private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
+    private final MockComponentLog logger;
 
     static {
         // do this in a separate method, just so that we can add a @SuppressWarnings annotation
@@ -320,6 +319,40 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public void assertAllFlowFilesContainAttribute(final String attributeName) {
+        assertAllFlowFiles(new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assert.assertTrue(f.getAttribute(attributeName) != null);
+            }
+        });
+    }
+
+    @Override
+    public void assertAllFlowFilesContainAttribute(final Relationship relationship, final String attributeName) {
+        assertAllFlowFiles(relationship, new FlowFileValidator() {
+            @Override
+            public void assertFlowFile(FlowFile f) {
+                Assert.assertTrue(f.getAttribute(attributeName) != null);
+            }
+        });
+    }
+
+    @Override
+    public void assertAllFlowFiles(FlowFileValidator validator) {
+        for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
+            session.assertAllFlowFiles(validator);
+        }
+    }
+
+    @Override
+    public void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator) {
+        for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
+            session.assertAllFlowFiles(relationship, validator);
+        }
+    }
+
+    @Override
     public void assertAllFlowFilesTransferred(final Relationship relationship, final int count) {
         assertAllFlowFilesTransferred(relationship);
         assertTransferCount(relationship, count);
@@ -402,7 +435,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void enqueue(final String data) {
-        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.<String, String> emptyMap());
+        enqueue(data.getBytes(StandardCharsets.UTF_8), Collections.emptyMap());
     }
 
     @Override
@@ -531,6 +564,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         this.numThreads = threadCount;
+        this.context.setMaxConcurrentTasks(threadCount);
     }
 
     @Override
@@ -606,7 +640,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         // }
         // }
 
-        final MockProcessorLog logger = new MockProcessorLog(identifier, service);
+        final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
@@ -834,11 +868,13 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceStateManagers.get(controllerService.getIdentifier());
     }
 
-    public MockProcessorLog getLogger() {
+    @Override
+    public MockComponentLog getLogger() {
         return logger;
     }
 
-    public MockProcessorLog getControllerServiceLogger(final String identifier) {
+    @Override
+    public MockComponentLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }
 

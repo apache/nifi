@@ -18,20 +18,23 @@
 /* global nf, d3 */
 
 nf.ng.Bridge = (function () {
+    'use strict';
 
     function AngularBridge() {
         this.rootScope;
     };
     AngularBridge.prototype = {
         constructor: AngularBridge,
+
         /**
          * Sets the root scope for the angular application being bridged.
          *
          * @param {object} scope    An object that refers to the application model.
          */
-        setRootScope: function(scope){
+        setRootScope: function (scope) {
             this.rootScope = scope;
         },
+
         /**
          * Inspects the root scope of the bridged angular application to look up
          * objects (to be provided as the `this` context) and invoke methods.
@@ -48,24 +51,47 @@ nf.ng.Bridge = (function () {
          *
          */
         call: function (thisArg, fun) {
-            var thisArgArray = thisArg.split(".");
-            thisArg = this.rootScope;
-            angular.forEach(thisArgArray, function (value) {
-                thisArg = thisArg[value];
+            var objArray = thisArg.split(".");
+            var obj = this.rootScope;
+            angular.forEach(objArray, function (value) {
+                obj = obj[value];
             });
             var funArray = fun.split(".");
             fun = this.rootScope;
             angular.forEach(funArray, function (value) {
                 fun = fun[value];
             });
+
             var args = Array.prototype.slice.call(arguments, 2);
-            var result = fun.apply(thisArg, args);
-            this.rootScope.$apply();
-            if(result){
+            var result = fun.apply(obj, args);
+
+            if (result) {
                 return result;
             }
+        },
+
+        /**
+         * Inspects the root scope of the bridged angular application to look up
+         * and return object.
+         *
+         * @param {string} name     The name of the object to lookup.
+         * @returns {Object|*}
+         */
+        get: function (name) {
+            var objArray = name.split(".");
+            var obj = this.rootScope;
+            angular.forEach(objArray, function (value) {
+                obj = obj[value];
+            });
+
+            return obj;
+        },
+
+        digest: function () {
+            this.rootScope.$digest();
         }
     };
+
     var angularBridge = new AngularBridge();
 
     return angularBridge;

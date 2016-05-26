@@ -19,12 +19,13 @@ package org.apache.nifi.web.api.config;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.user.NiFiUser;
+
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Maps access denied exceptions into a client response.

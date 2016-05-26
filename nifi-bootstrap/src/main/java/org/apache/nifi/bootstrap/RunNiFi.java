@@ -55,6 +55,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,23 +78,25 @@ import org.slf4j.LoggerFactory;
 public class RunNiFi {
 
     public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
-    public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
     public static final String DEFAULT_JAVA_CMD = "java";
+    public static final String DEFAULT_PID_DIR = "bin";
+    public static final String DEFAULT_LOG_DIR = "./logs";
 
     public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
     public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
 
     public static final String NOTIFICATION_SERVICES_FILE_PROP = "notification.services.file";
-    public static final String DEFAULT_NOTIFICATION_SERVICES_FILE = "./conf/bootstrap-notification-services.xml";
     public static final String NOTIFICATION_ATTEMPTS_PROP = "notification.max.attempts";
 
     public static final String NIFI_START_NOTIFICATION_SERVICE_IDS_PROP = "nifi.start.notification.services";
     public static final String NIFI_STOP_NOTIFICATION_SERVICE_IDS_PROP = "nifi.stop.notification.services";
     public static final String NIFI_DEAD_NOTIFICATION_SERVICE_IDS_PROP = "nifi.dead.notification.services";
 
-    public static final String RUN_AS_PROP = "run.as";
+    public static final String NIFI_PID_DIR_PROP = "org.apache.nifi.bootstrap.config.pid.dir";
 
-    public static final int MAX_RESTART_ATTEMPTS = 5;
+    public static final String NIFI_PID_FILE_NAME = "nifi.pid";
+    public static final String NIFI_LOCK_FILE_NAME = "nifi.lock";
+
     public static final int STARTUP_WAIT_SECONDS = 60;
 
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
@@ -324,29 +327,38 @@ public class RunNiFi {
         defaultLogger.info("Registered {} Notification Services for Notification Type {}", registered, type);
     }
 
-    File getStatusFile() {
-        return getStatusFile(defaultLogger);
-    }
 
-    public File getStatusFile(final Logger logger) {
+    private File getBootstrapFile(final Logger logger, String directory, String defaultDirectory, String fileName) throws IOException{
+
         final File confDir = bootstrapConfigFile.getParentFile();
         final File nifiHome = confDir.getParentFile();
-        final File bin = new File(nifiHome, "bin");
-        final File statusFile = new File(bin, "nifi.pid");
 
+        String confFileDir = System.getProperty(directory);
+
+        final File fileDir;
+
+        if(confFileDir != null){
+            fileDir = new File(confFileDir.trim());
+        } else{
+            fileDir = new File(nifiHome, defaultDirectory);
+        }
+
+        FileUtils.ensureDirectoryExistAndCanAccess(fileDir);
+        final File statusFile = new File(fileDir, fileName);
         logger.debug("Status File: {}", statusFile);
-
         return statusFile;
     }
 
-    public File getLockFile(final Logger logger) {
-        final File confDir = bootstrapConfigFile.getParentFile();
-        final File nifiHome = confDir.getParentFile();
-        final File bin = new File(nifiHome, "bin");
-        final File lockFile = new File(bin, "nifi.lock");
+    File getStatusFile(final Logger logger) throws IOException{
+        return getBootstrapFile(logger,NIFI_PID_DIR_PROP,DEFAULT_PID_DIR,NIFI_PID_FILE_NAME);
+    }
 
-        logger.debug("Lock File: {}", lockFile);
-        return lockFile;
+    File getLockFile(final Logger logger) throws IOException{
+        return getBootstrapFile(logger,NIFI_PID_DIR_PROP,DEFAULT_PID_DIR,NIFI_LOCK_FILE_NAME);
+    }
+
+    File getStatusFile() throws IOException{
+        return getStatusFile(defaultLogger);
     }
 
     private Properties loadProperties(final Logger logger) throws IOException {
@@ -869,6 +881,8 @@ public class RunNiFi {
             builder.directory(workingDir);
         }
 
+        final String nifiLogDir = replaceNull(System.getProperty("org.apache.nifi.bootstrap.config.log.dir"),DEFAULT_LOG_DIR).trim();
+
         final String libFilename = replaceNull(props.get("lib.dir"), "./lib").trim();
         File libDir = getFile(libFilename, workingDir);
 
@@ -956,6 +970,7 @@ public class RunNiFi {
         cmd.add("-Dnifi.properties.file.path=" + nifiPropsFilename);
         cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
         cmd.add("-Dapp=NiFi");
+        cmd.add("-Dorg.apache.nifi.bootstrap.config.log.dir="+nifiLogDir);
         cmd.add("org.apache.nifi.NiFi");
 
         builder.command(cmd);
@@ -1196,7 +1211,7 @@ public class RunNiFi {
         this.autoRestartNiFi = restart;
     }
 
-    void setNiFiCommandControlPort(final int port, final String secretKey) {
+    void setNiFiCommandControlPort(final int port, final String secretKey) throws IOException{
         this.ccPort = port;
         this.secretKey = secretKey;
 

@@ -20,8 +20,6 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.cluster.event.EventManager;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.flow.DataFlowManagementService;
-import org.apache.nifi.cluster.manager.HttpRequestReplicator;
-import org.apache.nifi.cluster.manager.HttpResponseMapper;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.protocol.impl.ClusterManagerProtocolSenderListener;
 import org.apache.nifi.cluster.protocol.impl.ClusterServicesBroadcaster;
@@ -29,7 +27,6 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
 import org.apache.nifi.io.socket.multicast.DiscoverableServiceImpl;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.OptimisticLockingManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -48,8 +45,6 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
 
     private StringEncryptor encryptor;
 
-    private OptimisticLockingManager optimisticLockingManager;
-
     @Override
     public Object getObject() throws Exception {
         if (properties.isClusterManager() && properties.isNode()) {
@@ -61,20 +56,15 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
              */
             return null;
         } else if (clusterManager == null) {
-            final HttpRequestReplicator requestReplicator = applicationContext.getBean("httpRequestReplicator", HttpRequestReplicator.class);
-            final HttpResponseMapper responseMapper = applicationContext.getBean("httpResponseMapper", HttpResponseMapper.class);
             final DataFlowManagementService dataFlowService = applicationContext.getBean("dataFlowManagementService", DataFlowManagementService.class);
             final ClusterManagerProtocolSenderListener senderListener = applicationContext.getBean("clusterManagerProtocolSenderListener", ClusterManagerProtocolSenderListener.class);
 
             // create the manager
             clusterManager = new WebClusterManager(
-                    requestReplicator,
-                    responseMapper,
                     dataFlowService,
                     senderListener,
                     properties,
-                    encryptor,
-                    optimisticLockingManager
+                encryptor
             );
 
             // set the service broadcaster
@@ -124,9 +114,5 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
 
     public void setEncryptor(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
-    }
-
-    public void setOptimisticLockingManager(OptimisticLockingManager optimisticLockingManager) {
-        this.optimisticLockingManager = optimisticLockingManager;
     }
 }

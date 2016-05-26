@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="controller-service-configuration">
+<div id="controller-service-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="controller-service-configuration-tab-container">
         <div id="controller-service-configuration-tabs"></div>
         <div id="controller-service-configuration-tabs-content">
@@ -41,18 +41,6 @@
                         <div class="setting-field">
                             <span id="controller-service-type"></span>
                         </div>
-                    </div>
-                    <div id="controller-service-availability-setting-container" class="setting hidden">
-                        <div class="availability-setting">
-                            <div class="setting-name">
-                                Availability
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Where this controller service is available."/>
-                            </div>
-                            <div class="setting-field">
-                                <div id="controller-service-availability"></div>
-                            </div>
-                        </div>
-                        <div class="clear"></div>
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>

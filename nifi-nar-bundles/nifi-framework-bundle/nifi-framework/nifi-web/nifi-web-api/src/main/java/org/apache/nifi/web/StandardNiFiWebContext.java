@@ -25,18 +25,18 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.web.util.ClientResponseUtils;
 import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
@@ -166,7 +166,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             // create the request URL
             URI requestUrl;
             try {
-                String path = "/nifi-api/cluster/processors/" + URLEncoder.encode(processorId, "UTF-8");
+                String path = "/nifi-api/processors/" + URLEncoder.encode(processorId, "UTF-8");
                 requestUrl = new URI(config.getScheme(), null, "localhost", 0, path, null, null);
             } catch (final URISyntaxException | UnsupportedEncodingException use) {
                 throw new ClusterRequestException(use);
@@ -200,9 +200,9 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             if (entity == null) {
                 entity = nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
             }
-            processor = entity.getProcessor();
+            processor = entity.getComponent();
         } else {
-            processor = serviceFacade.getProcessor(processorId);
+            processor = serviceFacade.getProcessor(processorId).getComponent();
         }
 
         // return the processor info
@@ -233,7 +233,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             // create the request URL
             URI requestUrl;
             try {
-                String path = "/nifi-api/cluster/processors/" + URLEncoder.encode(processorId, "UTF-8");
+                String path = "/nifi-api/processors/" + URLEncoder.encode(processorId, "UTF-8");
                 requestUrl = new URI(config.getScheme(), null, "localhost", 0, path, null, null);
             } catch (final URISyntaxException | UnsupportedEncodingException use) {
                 throw new ClusterRequestException(use);
@@ -250,7 +250,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
 
             // create the processor dto
             ProcessorDTO processorDto = new ProcessorDTO();
-            processorEntity.setProcessor(processorDto);
+            processorEntity.setComponent(processorDto);
             processorDto.setId(processorId);
 
             // create the processor configuration with the given annotation data

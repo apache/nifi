@@ -302,8 +302,7 @@ nf.ProcessorConfiguration = (function () {
 
         // create the processor entity
         var processorEntity = {};
-        processorEntity['revision'] = nf.Client.getRevision();
-        processorEntity['processor'] = processorDto;
+        processorEntity['component'] = processorDto;
 
         // return the marshaled details
         return processorEntity;
@@ -340,7 +339,7 @@ nf.ProcessorConfiguration = (function () {
      */
     var validateDetails = function (details) {
         var errors = [];
-        var processor = details['processor'];
+        var processor = details['component'];
         var config = processor['config'];
 
         // ensure numeric fields are specified correctly
@@ -377,8 +376,10 @@ nf.ProcessorConfiguration = (function () {
     var reloadProcessorConnections = function (processor) {
         var connections = nf.Connection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
-            if (connection.source.id === processor.id) {
-                nf.Connection.reload(connection);
+            if (connection.accessPolicy.canRead) {
+                if (connection.sourceId === processor.id) {
+                    nf.Connection.reload(connection.component);
+                }
             }
         });
     };
@@ -426,19 +427,20 @@ nf.ProcessorConfiguration = (function () {
 
         // ensure details are valid as far as we can tell
         if (validateDetails(updatedProcessor)) {
+            // set the revision
+            var d = nf.Processor.get(processor.id);
+            updatedProcessor['revision'] = nf.Client.getRevision(d);
+            
             // update the selected component
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedProcessor),
                 url: processor.uri,
                 dataType: 'json',
-                processData: false,
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.processor)) {
-                    // update the revision
-                    nf.Client.setRevision(response.revision);
-                }
+                // set the new processor state based on the response
+                nf.Processor.set(response);
             }).fail(handleProcessorConfigurationError);
         } else {
             return $.Deferred(function (deferred) {
@@ -505,9 +507,6 @@ nf.ProcessorConfiguration = (function () {
                         $('#processor-configuration').removeData('processorDetails');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // initialize the bulletin combo
@@ -544,6 +543,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
+                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function(propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
@@ -592,7 +592,7 @@ nf.ProcessorConfiguration = (function () {
                 // once everything is loaded, show the dialog
                 $.when.apply(window, requests).done(function (processorResponse, historyResponse) {
                     // get the updated processor
-                    processor = processorResponse[0].processor;
+                    processor = processorResponse[0].component;
                     
                     // get the processor history
                     var processorHistory = historyResponse[0].componentHistory;
@@ -716,14 +716,14 @@ nf.ProcessorConfiguration = (function () {
 
                                     // save the processor
                                     saveProcessor(processor).done(function (response) {
-                                        // set the new processor state based on the response
-                                        nf.Processor.set(response.processor);
-
                                         // reload the processor's outgoing connections
                                         reloadProcessorConnections(processor);
 
                                         // close the details panel
                                         $('#processor-configuration').modal('hide');
+                                        
+                                        // inform Angular app values have changed
+                                        nf.ng.Bridge.digest();
                                     });
                                 }
                             }

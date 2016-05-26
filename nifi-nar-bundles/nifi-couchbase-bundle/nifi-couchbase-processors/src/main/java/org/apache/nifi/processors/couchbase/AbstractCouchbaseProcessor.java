@@ -26,7 +26,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.couchbase.CouchbaseAttributes;
 import org.apache.nifi.couchbase.CouchbaseClusterControllerService;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -178,7 +178,7 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
      * @param errMsg a message to be logged
      */
     protected void handleCouchbaseException(final ProcessContext context, final ProcessSession session,
-        final ProcessorLog logger, FlowFile inFile, CouchbaseException e,
+        final ComponentLog logger, FlowFile inFile, CouchbaseException e,
         String errMsg) {
         logger.error(errMsg, e);
         if (inFile != null) {

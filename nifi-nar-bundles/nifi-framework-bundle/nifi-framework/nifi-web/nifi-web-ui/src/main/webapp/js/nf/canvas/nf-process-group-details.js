@@ -42,9 +42,6 @@ nf.ProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-process-group-comments');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         
@@ -54,7 +51,7 @@ nf.ProcessGroupDetails = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                nf.Common.populateField('read-only-process-group-id', selectionData.component.id);
+                nf.Common.populateField('read-only-process-group-id', selectionData.id);
                 nf.Common.populateField('read-only-process-group-name', selectionData.component.name);
                 nf.Common.populateField('read-only-process-group-comments', selectionData.component.comments);
 

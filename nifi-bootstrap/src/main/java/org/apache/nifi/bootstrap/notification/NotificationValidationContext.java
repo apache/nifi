@@ -102,4 +102,8 @@ public class NotificationValidationContext implements ValidationContext {
         return Boolean.TRUE.equals(supported);
     }
 
+    @Override
+    public String getProcessGroupIdentifier() {
+        return null;
+    }
 }

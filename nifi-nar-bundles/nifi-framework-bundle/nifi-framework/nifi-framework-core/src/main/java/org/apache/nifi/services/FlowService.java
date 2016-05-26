@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationException;
-import org.apache.nifi.controller.FlowSynchronizationException;
 import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.lifecycle.LifeCycle;
 
 /**
@@ -115,4 +115,10 @@ public interface FlowService extends LifeCycle {
      */
     FlowController getController();
 
+    /**
+     * Creates a copy of the current flow and saves it in the configured 'archive' directory
+     *
+     * @throws IOException if unable to write to the archive directory
+     */
+    void archiveFlow() throws IOException;
 }

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -41,6 +41,7 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
     @Override
     protected Authentication createAuthentication(HttpServletRequest request) {
+        // TODO - conditional anonymous authentication
         return new NiFiAuthenticationToken(new NiFiUserDetails(NiFiUser.ANONYMOUS));
     }
 

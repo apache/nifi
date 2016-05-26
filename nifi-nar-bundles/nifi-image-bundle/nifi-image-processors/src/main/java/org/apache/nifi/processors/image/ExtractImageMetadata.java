@@ -35,7 +35,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -115,7 +115,7 @@ public class ExtractImageMetadata extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = this.getLogger();
+        final ComponentLog logger = this.getLogger();
         final ObjectHolder<Metadata> value = new ObjectHolder<>(null);
         final Integer max = context.getProperty(MAX_NUMBER_OF_ATTRIBUTES).asInteger();
 

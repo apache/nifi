@@ -24,58 +24,47 @@ import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor.Formatter;
 
 public enum RemoteProcessGroupStatusDescriptor {
-    SENT_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytes", "Bytes Sent (5 mins)",
-        "The cumulative size of all FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return status.getSentContentSize();
-            }
-        })),
+    SENT_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytes",
+        "Bytes Sent (5 mins)",
+        "The cumulative size of all FlowFiles that have been successfully sent to the remote system in the past 5 minutes",
+        Formatter.DATA_SIZE,
+        s -> s.getSentContentSize())),
 
-    SENT_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentCount", "FlowFiles Sent (5 mins)",
-        "The number of FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getSentCount().longValue());
-            }
-        })),
+    SENT_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentCount",
+        "FlowFiles Sent (5 mins)",
+        "The number of FlowFiles that have been successfully sent to the remote system in the past 5 minutes",
+        Formatter.COUNT,
+        s -> s.getSentCount().longValue())),
 
-    RECEIVED_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytes", "Bytes Received (5 mins)",
-        "The cumulative size of all FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return status.getReceivedContentSize();
-            }
-        })),
+    RECEIVED_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytes",
+        "Bytes Received (5 mins)",
+        "The cumulative size of all FlowFiles that have been received from the remote system in the past 5 minutes",
+        Formatter.DATA_SIZE,
+        s -> s.getReceivedContentSize())),
 
-    RECEIVED_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedCount", "FlowFiles Received (5 mins)",
-        "The number of FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getReceivedCount().longValue());
-            }
-        })),
+    RECEIVED_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedCount",
+        "FlowFiles Received (5 mins)",
+        "The number of FlowFiles that have been received from the remote system in the past 5 minutes",
+        Formatter.COUNT,
+        s -> s.getReceivedCount().longValue())),
 
-    RECEIVED_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytesPerSecond", "Received Bytes Per Second",
+    RECEIVED_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytesPerSecond",
+        "Received Bytes Per Second",
         "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second",
-        Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getReceivedContentSize().longValue() / 300L);
-            }
-        })),
+        Formatter.DATA_SIZE,
+        s -> s.getReceivedContentSize().longValue() / 300L)),
 
-    SENT_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytesPerSecond", "Sent Bytes Per Second",
-        "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getSentContentSize().longValue() / 300L);
-            }
-        })),
+    SENT_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytesPerSecond",
+        "Sent Bytes Per Second",
+        "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second",
+        Formatter.DATA_SIZE,
+        s -> s.getSentContentSize().longValue() / 300L)),
 
-    TOTAL_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("totalBytesPerSecond", "Total Bytes Per Second",
+    TOTAL_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("totalBytesPerSecond",
+        "Total Bytes Per Second",
         "The sum of the send and receive data rate from the remote system in the past 5 minutes in terms of Bytes Per Second",
-        Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+        Formatter.DATA_SIZE,
+        new ValueMapper<RemoteProcessGroupStatus>() {
             @Override
             public Long getValue(final RemoteProcessGroupStatus status) {
                 return Long.valueOf((status.getReceivedContentSize().longValue() + status.getSentContentSize().longValue()) / 300L);
@@ -87,12 +76,8 @@ public enum RemoteProcessGroupStatusDescriptor {
         "Average Lineage Duration (5 mins)",
         "The average amount of time that a FlowFile took to process from receipt to drop in the past 5 minutes. For Processors that do not terminate FlowFiles, this value will be 0.",
         Formatter.DURATION,
-        new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return status.getAverageLineageDuration(TimeUnit.MILLISECONDS);
-            }
-        }, new ValueReducer<StatusSnapshot, Long>() {
+        s -> s.getAverageLineageDuration(TimeUnit.MILLISECONDS),
+        new ValueReducer<StatusSnapshot, Long>() {
             @Override
             public Long reduce(final List<StatusSnapshot> values) {
                 long millis = 0L;

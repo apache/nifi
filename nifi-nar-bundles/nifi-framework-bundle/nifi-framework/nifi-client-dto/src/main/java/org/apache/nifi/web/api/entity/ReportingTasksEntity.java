@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Set;
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import java.util.Set;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of reporting tasks.
@@ -26,16 +25,16 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 @XmlRootElement(name = "reportingTasksEntity")
 public class ReportingTasksEntity extends Entity {
 
-    private Set<ReportingTaskDTO> reportingTasks;
+    private Set<ReportingTaskEntity> reportingTasks;
 
     /**
      * @return list of reporting tasks that are being serialized
      */
-    public Set<ReportingTaskDTO> getReportingTasks() {
+    public Set<ReportingTaskEntity> getReportingTasks() {
         return reportingTasks;
     }
 
-    public void setReportingTasks(Set<ReportingTaskDTO> reportingTasks) {
+    public void setReportingTasks(Set<ReportingTaskEntity> reportingTasks) {
         this.reportingTasks = reportingTasks;
     }
 

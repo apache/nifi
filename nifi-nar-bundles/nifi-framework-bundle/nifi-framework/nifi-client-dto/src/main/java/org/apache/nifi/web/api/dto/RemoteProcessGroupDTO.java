@@ -27,7 +27,7 @@ import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
  * Details of a remote process group in this NiFi.
  */
 @XmlType(name = "remoteProcessGroup")
-public class RemoteProcessGroupDTO extends NiFiComponentDTO {
+public class RemoteProcessGroupDTO extends ComponentDTO {
 
     private String targetUri;
     private Boolean targetSecure;

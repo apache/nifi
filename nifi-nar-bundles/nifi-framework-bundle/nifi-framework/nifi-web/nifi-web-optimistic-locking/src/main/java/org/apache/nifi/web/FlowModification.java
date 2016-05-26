@@ -54,4 +54,8 @@ public class FlowModification {
         return lastModifier;
     }
 
+    @Override
+    public String toString() {
+        return "Last Modified by '" + lastModifier + "' with Revision " + revision;
+    }
 }

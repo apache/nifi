@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -34,7 +37,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -43,7 +45,6 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectionDAO.class);
 
     private FlowController flowController;
-    private KeyService keyService;
+    private Authorizer authorizer;
 
     private Connection locateConnection(final String connectionId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -292,6 +293,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             source = sourceGroup.getConnectable(sourceConnectableDTO.getId());
         }
 
+        // ensure the user has write access to the source component
+        source.authorize(authorizer, RequestAction.WRITE);
+
         // find the destination
         final Connectable destination;
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationConnectableDTO.getType())) {
@@ -314,6 +318,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final ProcessGroup destinationGroup = locateProcessGroup(flowController, destinationConnectableDTO.getGroupId());
             destination = destinationGroup.getConnectable(destinationConnectableDTO.getId());
         }
+
+        // ensure the user has write access to the source component
+        destination.authorize(authorizer, RequestAction.WRITE);
 
         // determine the relationships
         final Set<String> relationships = new HashSet<>();
@@ -612,7 +619,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         this.flowController = flowController;
     }
 
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

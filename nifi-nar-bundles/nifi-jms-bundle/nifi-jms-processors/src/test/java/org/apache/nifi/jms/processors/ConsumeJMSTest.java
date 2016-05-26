@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -36,7 +36,7 @@ public class ConsumeJMSTest {
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
         JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
-        JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ProcessorLog.class));
+        JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         sender.publish("Hey dude!".getBytes());
         TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);

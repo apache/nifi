@@ -29,7 +29,7 @@ public interface Resource {
     String getIdentifier();
 
     /**
-     * The name of this resource.
+     * The name of this resource. May be null.
      *
      * @return name of this resource
      */

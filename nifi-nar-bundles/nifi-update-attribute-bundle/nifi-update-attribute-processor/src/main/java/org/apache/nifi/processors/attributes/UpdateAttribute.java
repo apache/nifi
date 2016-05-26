@@ -49,7 +49,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -332,7 +332,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Criteria criteria = criteriaCache.get();
 
         List<FlowFile> flowFiles = session.get(100);
@@ -385,7 +385,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     //Evaluates the specified Criteria on the specified flowfile. Clones the
     // specified flow file for each rule that is applied.
     private boolean evaluateCriteria(final ProcessSession session, final ProcessContext context, final Criteria criteria, final FlowFile flowfile, final Map<FlowFile, List<Rule>> matchedRules) {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final List<Rule> rules = criteria.getRules();
 
         // consider each rule and hold a copy of the flowfile for each matched rule
@@ -459,7 +459,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     // Executes the specified action on the specified flowfile.
     private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile) {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Map<String, Action> actions = new HashMap<>(defaultActions);
         final String ruleName = (rules == null || rules.isEmpty()) ? "default" : rules.get(rules.size() - 1).getName();
 

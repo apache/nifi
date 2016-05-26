@@ -283,6 +283,11 @@ public class TestAbstractHeartbeatMonitor {
         public NodeIdentifier getNodeIdentifier(final String uuid) {
             return statuses.keySet().stream().filter(p -> p.getId().equals(uuid)).findFirst().orElse(null);
         }
+
+        @Override
+        public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
+            return statuses.keySet().stream().collect(Collectors.groupingBy(nodeId -> getConnectionStatus(nodeId).getState()));
+        }
     }
 
     public static class ReportedEvent {

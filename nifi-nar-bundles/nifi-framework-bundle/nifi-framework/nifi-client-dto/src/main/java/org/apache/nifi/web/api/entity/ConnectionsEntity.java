@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ConnectionDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ConnectionDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ConnectionEntitys.
  */
 @XmlRootElement(name = "connectionsEntity")
 public class ConnectionsEntity extends Entity {
 
-    private Set<ConnectionDTO> connections;
+    private Set<ConnectionEntity> connections;
 
     /**
-     * @return list of ConnectionDTOs that are being serialized
+     * @return list of ConnectionEntitys that are being serialized
      */
-    public Set<ConnectionDTO> getConnections() {
+    public Set<ConnectionEntity> getConnections() {
         return connections;
     }
 
-    public void setConnections(Set<ConnectionDTO> connections) {
+    public void setConnections(Set<ConnectionEntity> connections) {
         this.connections = connections;
     }
 

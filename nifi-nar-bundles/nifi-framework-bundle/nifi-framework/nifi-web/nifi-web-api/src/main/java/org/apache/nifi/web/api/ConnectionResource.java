@@ -23,15 +23,17 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -51,8 +53,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -68,6 +68,33 @@ public class ConnectionResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
+
+    /**
+     * Populate the URIs for the specified connections.
+     *
+     * @param connectionEntities connections
+     * @return dtos
+     */
+    public Set<ConnectionEntity> populateRemainingConnectionEntitiesContent(Set<ConnectionEntity> connectionEntities) {
+        for (ConnectionEntity connectionEntity : connectionEntities) {
+            populateRemainingConnectionEntityContent(connectionEntity);
+        }
+        return connectionEntities;
+    }
+
+    /**
+     * Populate the URIs for the specified connection.
+     *
+     * @param connectionEntity connection
+     * @return dto
+     */
+    public ConnectionEntity populateRemainingConnectionEntityContent(ConnectionEntity connectionEntity) {
+        if (connectionEntity.getComponent() != null) {
+            populateRemainingConnectionContent(connectionEntity.getComponent());
+        }
+        return connectionEntity;
+    }
 
     /**
      * Populate the URIs for the specified connections.
@@ -129,7 +156,6 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Retrieves the specified connection.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection.
      * @return A connectionEntity.
      */
@@ -158,32 +184,25 @@ public class ConnectionResource extends ApplicationResource {
     )
     public Response getConnection(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable conn = lookup.getConnection(id);
+            conn.authorize(authorizer, RequestAction.READ);
+        });
+
         // get the specified relationship
-        ConnectionDTO connection = serviceFacade.getConnection(id);
-
-        // create the revision
-        RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
-        ConnectionEntity entity = new ConnectionEntity();
-        entity.setRevision(revision);
-        entity.setConnection(populateRemainingConnectionContent(connection));
+        ConnectionEntity entity = serviceFacade.getConnection(id);
+        populateRemainingConnectionEntityContent(entity);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -224,13 +243,13 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The connection configuration details.",
                     required = true
-            ) ConnectionEntity connectionEntity) {
+            ) final ConnectionEntity connectionEntity) {
 
-        if (connectionEntity == null || connectionEntity.getConnection() == null) {
+        if (connectionEntity == null || connectionEntity.getComponent() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
         }
 
@@ -239,7 +258,7 @@ public class ConnectionResource extends ApplicationResource {
         }
 
         // ensure the ids are the same
-        final ConnectionDTO connection = connectionEntity.getConnection();
+        final ConnectionDTO connection = connectionEntity.getComponent();
         if (!id.equals(connection.getId())) {
             throw new IllegalArgumentException(String.format("The connection id "
                     + "(%s) in the request body does not equal the connection id of the "
@@ -248,46 +267,32 @@ public class ConnectionResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(connectionEntity), getHeaders(headersToOverride)).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), connectionEntity, getHeaders()).getResponse();
         }
 
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyUpdateConnection(connection);
-            return generateContinueResponse().build();
-        }
+        final Revision revision = getRevision(connectionEntity, id);
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable conn = lookup.getConnection(id);
+                conn.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateConnection(connection),
+            () -> {
+                // update the relationship target
+                final UpdateResult<ConnectionEntity> updateResult = serviceFacade.updateConnection(revision, connection);
 
-        // update the relationship target
-        final RevisionDTO revision = connectionEntity.getRevision();
-        final ConfigurationSnapshot<ConnectionDTO> controllerResponse = serviceFacade.updateConnection(
-                new Revision(revision.getVersion(), revision.getClientId()), connection);
+                final ConnectionEntity entity = updateResult.getResult();
+                populateRemainingConnectionEntityContent(entity);
 
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // marshall the target and add the source processor
-        final ConnectionDTO connectionDTO = controllerResponse.getConfiguration();
-        populateRemainingConnectionContent(connectionDTO);
-
-        // create the response entity
-        ConnectionEntity entity = new ConnectionEntity();
-        entity.setRevision(updatedRevision);
-        entity.setConnection(connectionDTO);
-
-        // generate the response
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(connectionDTO.getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                // generate the response
+                if (updateResult.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            });
     }
 
     /**
@@ -326,50 +331,44 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyDeleteConnection(id);
-            return generateContinueResponse().build();
-        }
-
         // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
+        final Long clientVersion = version == null ? null : version.getLong();
+        final Revision revision = new Revision(clientVersion, clientId.getClientId(), id);
 
-        // delete the connection
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteConnection(new Revision(clientVersion, clientId.getClientId()), id);
+        // get the current user
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable conn = lookup.getConnection(id);
+                conn.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteConnection(id),
+            () -> {
+                // delete the connection
+                final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
 
-        // create the revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(clientId.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final ConnectionEntity entity = new ConnectionEntity();
-        entity.setRevision(updatedRevision);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                // generate the response
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -383,5 +382,9 @@ public class ConnectionResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

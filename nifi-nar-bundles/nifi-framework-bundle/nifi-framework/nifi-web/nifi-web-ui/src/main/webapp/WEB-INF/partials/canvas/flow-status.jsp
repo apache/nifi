@@ -15,41 +15,26 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="flow-status">
-    <div class="flow-status-property-element">
-        Active threads:
-        <span id="active-thread-count" class="flow-status-property-value"></span>
+<div id="flow-status" flex layout="row" layout-align="space-between center">
+    <div id="flow-status-container" layout="row" layout-align="space-around center">
+        <i class="fa fa-cubes" ng-if="appCtrl.nf.Canvas.isClustered()"><span id="connected-nodes-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.connectedNodesCount}}</span></i>
+        <i class="icon icon-threads"><span id="active-thread-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.activeThreadCount}}</span></i>
+        <i class="fa fa-list"><span id="total-queued">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.totalQueued}}</span></i>
+        <i class="fa fa-bullseye"><span id="controller-transmitting-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerTransmittingCount}}</span></i>
+        <i class="icon icon-transmit-false"><span id="controller-not-transmitting-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerNotTransmittingCount}}</span></i>
+        <i class="fa fa-play"><span id="controller-running-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerRunningCount}}</span></i>
+        <i class="fa fa-stop"><span id="controller-stopped-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerStoppedCount}}</span></i>
+        <i class="fa fa-warning"><span id="controller-invalid-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerInvalidCount}}</span></i>
+        <i class="icon icon-enable-false"><span id="controller-disabled-count">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.controllerDisabledCount}}</span></i>
+        <i class="fa fa-refresh"><span id="stats-last-refreshed">{{appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.statsLastRefreshed}}</span></i>
+        <div id="canvas-loading-container" class="loading-container"></div>
     </div>
-    <div class="flow-status-property-element">
-        Queued:
-        <span id="total-queued" class="flow-status-property-value"></span>
-    </div>
-    <div id="connected-nodes-element" class="flow-status-property-element">
-        Connected nodes:
-        <span id="connected-nodes-count" class="flow-status-property-value"></span>
-    </div>
-    <div class="flow-status-property-element">
-        Stats last refreshed:
-        <span id="stats-last-refreshed" class="flow-status-property-value"></span>
-    </div>
-    <div id="refresh-required-container" class="flow-status-property-element">
-        <div id="refresh-required-icon"></div>
-        <span id="refresh-required-link" class="link">Refresh</span>
-    </div>
-    <div id="controller-bulletins" class="bulletin-icon"></div>
-    <div id="canvas-loading-container" class="loading-container"></div>
-    <div id="controller-counts">
-        <div class="transmitting"></div>
-        <div id="controller-transmitting-count" class="controller-component-count">0</div>
-        <div class="not-transmitting"></div>
-        <div id="controller-not-transmitting-count" class="controller-component-count">0</div>
-        <div class="running"></div>
-        <div id="controller-running-count" class="controller-component-count">-</div>
-        <div class="stopped"></div>
-        <div id="controller-stopped-count" class="controller-component-count">-</div>
-        <div class="invalid"></div>
-        <div id="controller-invalid-count" class="controller-component-count">-</div>
-        <div class="disabled"></div>
-        <div id="controller-disabled-count" class="controller-component-count">-</div>
+    <div layout="row" layout-align="end center">
+        <div id="search-container">
+            <button id="search-button" ng-click="appCtrl.serviceProvider.headerCtrl.flowStatusCtrl.search.toggleSearchField();"><i class="fa fa-search"></i></button>
+            <input id="search-field" type="text" placeholder="Search"/>
+        </div>
+        <button id="bulletin-button"><i class="fa fa-sticky-note-o"></i></button>
     </div>
 </div>
+<div id="search-flow-results"></div>

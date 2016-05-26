@@ -18,7 +18,7 @@ package org.apache.nifi.amqp.processors;
 
 import java.io.IOException;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +38,7 @@ final class AMQPPublisher extends AMQPWorker {
 
     private final String routingKey;
 
-    private final ProcessorLog processLog;
+    private final ComponentLog processLog;
 
     /**
      * Creates an instance of this publisher
@@ -52,7 +52,7 @@ final class AMQPPublisher extends AMQPWorker {
      *            (required) the name of the routingKey to be used by AMQP-based
      *            system to route messages to its final destination (queue).
      */
-    AMQPPublisher(Connection connection, String exchangeName, String routingKey, ProcessorLog processLog) {
+    AMQPPublisher(Connection connection, String exchangeName, String routingKey, ComponentLog processLog) {
         super(connection);
         this.processLog = processLog;
         this.validateStringProperty("routingKey", routingKey);

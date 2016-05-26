@@ -17,7 +17,7 @@
 package org.apache.nifi.processor.util.put.sender;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 
 import javax.net.ssl.SSLContext;
@@ -35,7 +35,7 @@ public class SSLSocketChannelSender extends SocketChannelSender {
                                   final int port,
                                   final int maxSendBufferSize,
                                   final SSLContext sslContext,
-                                  final ProcessorLog logger) {
+                                  final ComponentLog logger) {
         super(host, port, maxSendBufferSize, logger);
         this.sslContext = sslContext;
     }

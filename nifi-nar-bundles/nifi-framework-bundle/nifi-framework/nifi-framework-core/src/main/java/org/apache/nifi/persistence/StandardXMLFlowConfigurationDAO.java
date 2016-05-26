@@ -29,12 +29,12 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.FlowSerializationException;
-import org.apache.nifi.controller.FlowSynchronizationException;
-import org.apache.nifi.controller.FlowSynchronizer;
-import org.apache.nifi.controller.StandardFlowSerializer;
 import org.apache.nifi.controller.StandardFlowSynchronizer;
 import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizer;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -81,6 +81,15 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
                 final InputStream gzipIn = new GZIPInputStream(inStream)) {
             FileUtils.copy(gzipIn, os);
+        }
+    }
+
+    @Override
+    public void load(final OutputStream os, final boolean compressed) throws IOException {
+        if (compressed) {
+            Files.copy(flowXmlPath, os);
+        } else {
+            load(os);
         }
     }
 
@@ -140,15 +149,8 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         if (archive) {
             try {
-                final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
-                final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? configFile.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-                Files.createDirectories(archiveDir);
-
-                if (!Files.isDirectory(archiveDir)) {
-                    throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
-                }
-                final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + configFile.toFile().getName());
-                Files.copy(configFile, archiveFile);
+                final File archiveFile = createArchiveFile();
+                Files.copy(configFile, archiveFile.toPath());
             } catch (final Exception ex) {
                 LOG.warn("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {
@@ -158,4 +160,16 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
 
+    @Override
+    public File createArchiveFile() throws IOException {
+        final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
+        final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? flowXmlPath.getParent().resolve("archive") : new File(archiveDirVal).toPath();
+        Files.createDirectories(archiveDir);
+
+        if (!Files.isDirectory(archiveDir)) {
+            throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
+        }
+        final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + flowXmlPath.toFile().getName());
+        return archiveFile.toFile();
+    }
 }

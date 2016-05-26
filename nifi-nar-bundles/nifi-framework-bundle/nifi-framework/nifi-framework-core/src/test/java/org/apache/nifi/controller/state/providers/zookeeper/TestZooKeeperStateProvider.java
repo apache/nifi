@@ -117,8 +117,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
     }
 
 
-    @Test
-    public void testStateTooLargeExceptionThrown() {
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
 
@@ -132,13 +132,56 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             state.put("numbers." + i, sb.toString());
         }
 
-        try {
-            getProvider().setState(state, componentId);
-            Assert.fail("Expected StateTooLargeException");
-        } catch (final StateTooLargeException stle) {
-            // expected behavior.
-        } catch (final Exception e) {
-            Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+        while (true) {
+            try {
+                getProvider().setState(state, componentId);
+                Assert.fail("Expected StateTooLargeException");
+            } catch (final StateTooLargeException stle) {
+                // expected behavior.
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                Assert.fail("Expected StateTooLargeException but " + e.getClass() + " was thrown", e);
+            }
+        }
+    }
+
+
+    @Test(timeout = 20000)
+    public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {
+        final Map<String, String> state = new HashMap<>();
+        final StringBuilder sb = new StringBuilder();
+
+        // Build a string that is a little less than 64 KB, because that's
+        // the largest value available for DataOutputStream.writeUTF
+        for (int i = 0; i < 6500; i++) {
+            sb.append("0123456789");
+        }
+
+        for (int i = 0; i < 20; i++) {
+            state.put("numbers." + i, sb.toString());
+        }
+
+        final Map<String, String> smallState = new HashMap<>();
+        smallState.put("abc", "xyz");
+
+        while (true) {
+            try {
+                getProvider().setState(smallState, componentId);
+                break;
+            } catch (final IOException ioe) {
+                // If we attempt to interact with the server too quickly, we will get a
+                // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
+                // We will wait 1 second in this case and try again. The test will timeout if this
+                // does not succeeed within 20 seconds.
+                Thread.sleep(1000L);
+            }
         }
 
         try {
@@ -147,7 +190,8 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         } catch (final StateTooLargeException stle) {
             // expected behavior.
         } catch (final Exception e) {
-            Assert.fail("Expected StateTooLargeException");
+            e.printStackTrace();
+            Assert.fail("Expected StateTooLargeException", e);
         }
 
     }

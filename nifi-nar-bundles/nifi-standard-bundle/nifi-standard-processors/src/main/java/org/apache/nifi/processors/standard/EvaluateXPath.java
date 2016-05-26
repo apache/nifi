@@ -64,7 +64,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -219,7 +219,7 @@ public class EvaluateXPath extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final XPathFactory factory = factoryRef.get();
         final XPathEvaluator xpathEvaluator = (XPathEvaluator) factory.newXPath();
         final Map<String, XPathExpression> attributeToXPathMap = new HashMap<>();
@@ -400,7 +400,7 @@ public class EvaluateXPath extends AbstractProcessor {
         props.setProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
         transformer.setOutputProperties(props);
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final ObjectHolder<TransformerException> error = new ObjectHolder<>(null);
         transformer.setErrorListener(new ErrorListener() {

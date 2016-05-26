@@ -159,6 +159,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kafka-pubsub-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-http-context-map-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -312,6 +317,21 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-spring-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-hive-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+	    <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-site-to-site-reporting-nar</artifactId>
+            <type>nar</type>
+      	</dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mqtt-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -457,12 +477,13 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
         <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
 
+        <nifi.cluster.request.replication.claim.timeout>1 min</nifi.cluster.request.replication.claim.timeout>
+
         <!--  nifi.properties: zookeeper properties -->
         <nifi.zookeeper.connect.string></nifi.zookeeper.connect.string>
         <nifi.zookeeper.connect.timeout>3 secs</nifi.zookeeper.connect.timeout>
         <nifi.zookeeper.session.timeout>3 secs</nifi.zookeeper.session.timeout>
         <nifi.zookeeper.root.node>/nifi</nifi.zookeeper.root.node>
-        <nifi.zookeeper.access.control>Open</nifi.zookeeper.access.control>
 
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>

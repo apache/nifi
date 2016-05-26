@@ -239,9 +239,6 @@ nf.ComponentState = (function () {
                         resetDialog();
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
 
             // clear state link
@@ -254,21 +251,12 @@ nf.ComponentState = (function () {
                     var stateEntryCount = componentStateGrid.getDataLength();
 
                     if (stateEntryCount > 0) {
-                        // clear the state
-                        var revision = {
-                            'revision': nf.Client.getRevision()
-                        };
-                        
                         var component = componentStateTable.data('component');
                         $.ajax({
                             type: 'POST',
                             url: component.uri + '/state/clear-requests',
-                            data: JSON.stringify(revision),
                             dataType: 'json'
                         }).done(function (response) {
-                            // update the revision
-                            nf.Client.setRevision(response.revision);
-
                             // clear the table
                             clearTable();
 

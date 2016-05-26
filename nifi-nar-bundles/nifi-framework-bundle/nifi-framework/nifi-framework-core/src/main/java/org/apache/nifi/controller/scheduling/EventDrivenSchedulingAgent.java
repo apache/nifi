@@ -39,7 +39,7 @@ import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.SimpleProcessLogger;
@@ -328,11 +328,11 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
                     worker.onTrigger(processContext, sessionFactory);
                 } catch (final ProcessException pe) {
-                    final ProcessorLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor());
+                    final ComponentLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor());
                     procLog.error("Failed to process session due to {}", new Object[]{pe});
                 } catch (final Throwable t) {
-                    // Use ProcessorLog to log the event so that a bulletin will be created for this processor
-                    final ProcessorLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor());
+                    // Use ComponentLog to log the event so that a bulletin will be created for this processor
+                    final ComponentLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor());
                     procLog.error("{} failed to process session due to {}", new Object[]{worker.getProcessor(), t});
                     procLog.warn("Processor Administratively Yielded for {} due to processing failure", new Object[]{adminYieldDuration});
                     logger.warn("Administratively Yielding {} due to uncaught Exception: ", worker.getProcessor());

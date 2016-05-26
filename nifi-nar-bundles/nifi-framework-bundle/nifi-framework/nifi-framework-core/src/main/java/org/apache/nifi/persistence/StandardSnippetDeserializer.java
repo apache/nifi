@@ -24,8 +24,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.nifi.controller.FlowSerializationException;
 import org.apache.nifi.controller.StandardSnippet;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
 
 public class StandardSnippetDeserializer {
 

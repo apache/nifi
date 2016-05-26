@@ -23,8 +23,10 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
@@ -37,7 +39,6 @@ import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
@@ -64,10 +65,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -82,6 +81,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     /**
      * Populate the URIs for the specified flowfile listing.
@@ -118,7 +118,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Gets the specified flowfile from the specified connection.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param flowFileUuid The flowfile uuid
      * @param clusterNodeId The cluster node id where the flowfile resides
@@ -146,25 +145,20 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getFlowFile(
             @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                 value = "The flowfile uuid.",
                 required = true
             )
-            @PathParam("flowfile-uuid") String flowFileUuid,
+            @PathParam("flowfile-uuid") final String flowFileUuid,
             @ApiParam(
                 value = "The id of the node where the content exists if clustered.",
                 required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId) {
+            @QueryParam("clusterNodeId") final String clusterNodeId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -186,17 +180,18 @@ public class FlowFileQueueResource extends ApplicationResource {
             }
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // get the flowfile
         final FlowFileDTO flowfileDto = serviceFacade.getFlowFile(connectionId, flowFileUuid);
         populateRemainingFlowFileContent(connectionId, flowfileDto);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final FlowFileEntity entity = new FlowFileEntity();
-        entity.setRevision(revision);
         entity.setFlowFile(flowfileDto);
 
         return generateOkResponse(entity).build();
@@ -236,22 +231,22 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                 required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                 value = "The flowfile uuid.",
                 required = true
             )
-            @PathParam("flowfile-uuid") String flowFileUuid,
+            @PathParam("flowfile-uuid") final String flowFileUuid,
             @ApiParam(
                 value = "The id of the node where the content exists if clustered.",
                 required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId) {
+            @QueryParam("clusterNodeId") final String clusterNodeId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -272,6 +267,12 @@ public class FlowFileQueueResource extends ApplicationResource {
                 return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
             }
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
 
         // get the uri of the request
         final String uri = generateResourceUri("flowfile-queues", connectionId, "flowfiles", flowFileUuid, "content");
@@ -332,44 +333,40 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
     )
     public Response createFlowFileListing(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String id) {
+            @PathParam("connection-id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(id);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             serviceFacade.verifyListQueue(id);
             return generateContinueResponse().build();
         }
 
         // ensure the id is the same across the cluster
-        final String listingRequestId;
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            listingRequestId = UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString();
-        } else {
-            listingRequestId = UUID.randomUUID().toString();
-        }
+        final String listingRequestId = generateUuid();
 
         // submit the listing request
         final ListingRequestDTO listingRequest = serviceFacade.createFlowFileListingRequest(id, listingRequestId);
         populateRemainingFlowFileListingContent(id, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         // generate the URI where the response will be
@@ -380,7 +377,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding listing request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The id of the connection
      * @param listingRequestId The id of the drop request
      * @return A dropRequestEntity
@@ -408,37 +404,33 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getListingRequest(
             @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                 value = "The listing request id.",
                 required = true
             )
-            @PathParam("listing-request-id") String listingRequestId) {
+            @PathParam("listing-request-id") final String listingRequestId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // get the listing request
         final ListingRequestDTO listingRequest = serviceFacade.getFlowFileListingRequest(connectionId, listingRequestId);
         populateRemainingFlowFileListingContent(connectionId, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         return generateOkResponse(entity).build();
@@ -448,7 +440,6 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified listing request.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param listingRequestId The drop request id
      * @return A dropRequestEntity
@@ -475,22 +466,17 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
     )
     public Response deleteListingRequest(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                 value = "The listing request id.",
                 required = true
             )
-            @PathParam("listing-request-id") String listingRequestId) {
+            @PathParam("listing-request-id") final String listingRequestId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -498,10 +484,16 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
 
         // delete the listing request
         final ListingRequestDTO listingRequest = serviceFacade.deleteFlowFileListingRequest(connectionId, listingRequestId);
@@ -512,13 +504,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         // populate remaining content
         populateRemainingFlowFileListingContent(connectionId, listingRequest);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ListingRequestEntity entity = new ListingRequestEntity();
-        entity.setRevision(revision);
         entity.setListingRequest(listingRequest);
 
         return generateOkResponse(entity).build();
@@ -554,43 +541,39 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
     )
     public Response createDropRequest(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The connection id.",
             required = true
         )
-        @PathParam("connection-id") String id) {
+        @PathParam("connection-id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(id);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
         // ensure the id is the same across the cluster
-        final String dropRequestId;
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            dropRequestId = UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString();
-        } else {
-            dropRequestId = UUID.randomUUID().toString();
-        }
+        final String dropRequestId = generateUuid();
 
         // submit the drop request
         final DropRequestDTO dropRequest = serviceFacade.createFlowFileDropRequest(id, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", id, "drop-requests", dropRequest.getId()));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         // generate the URI where the response will be
@@ -601,7 +584,6 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding drop request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The id of the connection
      * @param dropRequestId The id of the drop request
      * @return A dropRequestEntity
@@ -629,37 +611,33 @@ public class FlowFileQueueResource extends ApplicationResource {
     )
     public Response getDropRequest(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                     value = "The drop request id.",
                     required = true
             )
-            @PathParam("drop-request-id") String dropRequestId) {
+            @PathParam("drop-request-id") final String dropRequestId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // get the drop request
         final DropRequestDTO dropRequest = serviceFacade.getFlowFileDropRequest(connectionId, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         return generateOkResponse(entity).build();
@@ -669,7 +647,6 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified drop request.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The connection id
      * @param dropRequestId The drop request id
      * @return A dropRequestEntity
@@ -696,30 +673,31 @@ public class FlowFileQueueResource extends ApplicationResource {
             }
     )
     public Response removeDropRequest(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("connection-id") String connectionId,
+            @PathParam("connection-id") final String connectionId,
             @ApiParam(
                     value = "The drop request id.",
                     required = true
             )
-            @PathParam("drop-request-id") String dropRequestId) {
+            @PathParam("drop-request-id") final String dropRequestId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connection = lookup.getConnection(connectionId);
+            connection.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -728,13 +706,8 @@ public class FlowFileQueueResource extends ApplicationResource {
         final DropRequestDTO dropRequest = serviceFacade.deleteFlowFileDropRequest(connectionId, dropRequestId);
         dropRequest.setUri(generateResourceUri("flowfile-queues", connectionId, "drop-requests", dropRequestId));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final DropRequestEntity entity = new DropRequestEntity();
-        entity.setRevision(revision);
         entity.setDropRequest(dropRequest);
 
         return generateOkResponse(entity).build();
@@ -751,5 +724,9 @@ public class FlowFileQueueResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

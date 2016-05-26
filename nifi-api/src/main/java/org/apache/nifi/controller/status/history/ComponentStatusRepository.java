@@ -17,12 +17,8 @@
 package org.apache.nifi.controller.status.history;
 
 import java.util.Date;
-import java.util.List;
 
-import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
-import org.apache.nifi.controller.status.ProcessorStatus;
-import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 
 /**
  * A repository for storing and retrieving components' historical status
@@ -121,29 +117,4 @@ public interface ComponentStatusRepository {
      * period
      */
     StatusHistory getRemoteProcessGroupStatusHistory(String remoteGroupId, Date start, Date end, int preferredDataPoints);
-
-    /**
-     * @return a List of all {@link MetricDescriptor}s that are applicable to
-     * Process Groups
-     */
-    List<MetricDescriptor<ProcessGroupStatus>> getProcessGroupMetricDescriptors();
-
-    /**
-     * @return a List of all {@link MetricDescriptor}s that are applicable to
-     * Processors
-     */
-    List<MetricDescriptor<ProcessorStatus>> getProcessorMetricDescriptors();
-
-    /**
-     * @return a List of all {@link MetricDescriptor}s that are applicable to
-     * Remote Process Groups
-     */
-    List<MetricDescriptor<RemoteProcessGroupStatus>> getRemoteProcessGroupMetricDescriptors();
-
-    /**
-     * @return a List of all {@link MetricDescriptor}s that are applicable to
-     * Connections
-     */
-    List<MetricDescriptor<ConnectionStatus>> getConnectionMetricDescriptors();
-
 }

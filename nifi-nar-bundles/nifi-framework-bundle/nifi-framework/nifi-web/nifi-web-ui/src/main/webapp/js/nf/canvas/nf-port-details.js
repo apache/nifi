@@ -42,9 +42,6 @@ nf.PortDetails = (function () {
                         nf.Common.clearField('read-only-port-comments');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         
@@ -55,7 +52,7 @@ nf.PortDetails = (function () {
 
                 // populate the port settings
                 nf.Common.populateField('read-only-port-name', selectionData.component.name);
-                nf.Common.populateField('read-only-port-id', selectionData.component.id);
+                nf.Common.populateField('read-only-port-id', selectionData.id);
                 nf.Common.populateField('read-only-port-comments', selectionData.component.comments);
 
                 // show the details

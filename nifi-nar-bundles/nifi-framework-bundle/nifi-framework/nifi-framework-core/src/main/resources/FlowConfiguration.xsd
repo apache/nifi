@@ -15,7 +15,7 @@
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0">
     <xs:element name="flowController" type="FlowControllerType" />
-	
+
     <xs:complexType name="FlowControllerType">
         <xs:sequence>
             <xs:choice>
@@ -29,10 +29,13 @@
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
             
+            <!-- This exists for backward compatibility between NiFi 1.x and NiFi 0.x. Any Controller Service that is listed
+            here is assigned to the root group -->
             <xs:element name="controllerServices" type="ControllerServicesType" minOccurs="0" maxOccurs="1" />
             
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
+        <xs:attribute name="encoding-version" type="xs:string"/>
     </xs:complexType>
 	
     <!-- the processor "id" is a key that should be valid within each flowController-->
@@ -139,6 +142,7 @@
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     
@@ -162,6 +166,7 @@
             <xs:element name="processGroup" type="ProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="remoteProcessGroup" type="RemoteProcessGroupType" minOccurs="0" maxOccurs="unbounded"	/>
             <xs:element name="connection" type="ConnectionType" minOccurs="0" maxOccurs="unbounded" />
+            <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
     

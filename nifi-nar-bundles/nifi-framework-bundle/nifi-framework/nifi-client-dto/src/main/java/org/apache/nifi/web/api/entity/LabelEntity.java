@@ -16,28 +16,43 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.DimensionsDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a LabelDTO.
  */
 @XmlRootElement(name = "labelEntity")
-public class LabelEntity extends Entity {
+public class LabelEntity extends ComponentEntity {
 
-    private LabelDTO label;
+    private DimensionsDTO dimensions;
+    private LabelDTO component;
 
     /**
      * The LabelDTO that is being serialized.
      *
      * @return The LabelDTO object
      */
-    public LabelDTO getLabel() {
-        return label;
+    public LabelDTO getComponent() {
+        return component;
     }
 
-    public void setLabel(LabelDTO label) {
-        this.label = label;
+    public void setComponent(LabelDTO component) {
+        this.component = component;
     }
 
+    /**
+     * The dimensions of this label.
+     *
+     * @return The dimensions
+     */
+    public DimensionsDTO getDimensions() {
+        return dimensions;
+    }
+
+    public void setDimensions(DimensionsDTO dimensions) {
+        this.dimensions = dimensions;
+    }
 }

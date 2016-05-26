@@ -26,9 +26,9 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.logging.NiFiLog;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

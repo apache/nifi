@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="reporting-task-configuration">
+<div id="reporting-task-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="reporting-task-configuration-tab-container">
         <div id="reporting-task-configuration-tabs"></div>
         <div id="reporting-task-configuration-tabs-content">
@@ -45,18 +45,6 @@
                         <div class="setting-field">
                             <span id="reporting-task-type"></span>
                         </div>
-                    </div>
-                    <div id="reporting-task-availability-setting-container" class="setting hidden">
-                        <div class="availability-setting">
-                            <div class="setting-name">
-                                Availability
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Where this controller service is available."/>
-                            </div>
-                            <div class="setting-field">
-                                <div id="reporting-task-availability"></div>
-                            </div>
-                        </div>
-                        <div class="clear"></div>
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>

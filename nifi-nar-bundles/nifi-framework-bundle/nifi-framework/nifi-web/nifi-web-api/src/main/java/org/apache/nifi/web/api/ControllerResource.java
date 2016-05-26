@@ -16,47 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.user.NiFiUser;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
-import org.apache.nifi.web.api.dto.CounterDTO;
-import org.apache.nifi.web.api.dto.CountersDTO;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.AuthorityEntity;
-import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
-import org.apache.nifi.web.api.entity.CounterEntity;
-import org.apache.nifi.web.api.entity.CountersEntity;
-import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
-import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.ReportingTasksEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
-import org.apache.nifi.web.util.Availability;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
@@ -69,12 +36,41 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.cluster.node.Node;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ConfigurationSnapshot;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
+import org.apache.nifi.web.api.dto.CounterDTO;
+import org.apache.nifi.web.api.dto.CountersDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.AuthorityEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
+import org.apache.nifi.web.api.entity.CounterEntity;
+import org.apache.nifi.web.api.entity.CountersEntity;
+import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -102,7 +98,6 @@ public class ControllerResource extends ApplicationResource {
      * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
      * @param httpServletRequest request
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @return A processGroupEntity.
      */
     @POST
@@ -129,17 +124,7 @@ public class ControllerResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response createArchive(
-            @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                value = "The revision used to verify the client is working with the latest version of the flow.",
-                required = true
-            ) Entity revisionEntity) {
-
-        // ensure the revision was specified
-        if (revisionEntity == null || revisionEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
+    public Response createArchive(@Context HttpServletRequest httpServletRequest) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -148,33 +133,22 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
         // create the archive
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.createArchive(new Revision(requestRevision.getVersion(), requestRevision.getClientId()));
-
-        // create the revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(requestRevision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // create the response entity
-        final ProcessGroupEntity controllerEntity = new ProcessGroupEntity();
-        controllerEntity.setRevision(updatedRevision);
+        final ProcessGroupEntity entity = serviceFacade.createArchive();
 
         // generate the response
         URI uri = URI.create(generateResourceUri("controller", "archive"));
-        return clusterContext(generateCreatedResponse(uri, controllerEntity)).build();
+        return clusterContext(generateCreatedResponse(uri, entity)).build();
     }
 
     /**
      * Retrieves the counters report for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A countersEntity.
      */
     @GET
@@ -200,11 +174,6 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response getCounters(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @ApiParam(
                 value = "Whether or not to include the breakdown per node. Optional, defaults to false",
                 required = false
@@ -251,13 +220,8 @@ public class ControllerResource extends ApplicationResource {
 
         final CountersDTO countersReport = serviceFacade.getCounters();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final CountersEntity entity = new CountersEntity();
-        entity.setRevision(revision);
         entity.setCounters(countersReport);
 
         // generate the response
@@ -268,7 +232,6 @@ public class ControllerResource extends ApplicationResource {
      * Update the specified counter. This will reset the counter value to 0.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the counter.
      * @return A counterEntity.
      */
@@ -295,11 +258,6 @@ public class ControllerResource extends ApplicationResource {
     )
     public Response updateCounter(
             @Context HttpServletRequest httpServletRequest,
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("id") String id) {
 
         // replicate if cluster manager
@@ -308,7 +266,7 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -316,13 +274,8 @@ public class ControllerResource extends ApplicationResource {
         // reset the specified counter
         final CounterDTO counter = serviceFacade.updateCounter(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final CounterEntity entity = new CounterEntity();
-        entity.setRevision(revision);
         entity.setCounter(counter);
 
         // generate the response
@@ -332,7 +285,6 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the configuration for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerConfigurationEntity.
      */
     @GET
@@ -358,12 +310,7 @@ public class ControllerResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getControllerConfig(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getControllerConfig() {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -372,13 +319,8 @@ public class ControllerResource extends ApplicationResource {
 
         final ControllerConfigurationDTO controllerConfig = serviceFacade.getControllerConfiguration();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
-        entity.setRevision(revision);
         entity.setConfig(controllerConfig);
 
         // generate the response
@@ -429,18 +371,20 @@ public class ControllerResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(configEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), configEntity, getHeaders()).getResponse();
         }
 
+        final RevisionDTO revisionDto = configEntity.getRevision();
+        final Revision revision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), "controller");
+
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
-        final RevisionDTO revision = configEntity.getRevision();
         final ConfigurationSnapshot<ControllerConfigurationDTO> controllerResponse
-                = serviceFacade.updateControllerConfiguration(new Revision(revision.getVersion(), revision.getClientId()), configEntity.getConfig());
+            = serviceFacade.updateControllerConfiguration(revision, configEntity.getConfig());
         final ControllerConfigurationDTO controllerConfig = controllerResponse.getConfiguration();
 
         // get the updated revision
@@ -460,7 +404,6 @@ public class ControllerResource extends ApplicationResource {
     /**x
      * Retrieves the user details, including the authorities, about the user making the request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A authoritiesEntity.
      */
     @GET
@@ -488,12 +431,7 @@ public class ControllerResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getAuthorities(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getAuthorities() {
 
         // note that the cluster manager will handle this request directly
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -501,13 +439,8 @@ public class ControllerResource extends ApplicationResource {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         AuthorityEntity entity = new AuthorityEntity();
-        entity.setRevision(revision);
         entity.setUserId(user.getIdentity());
         entity.setAuthorities(new HashSet<>(Arrays.asList("ROLE_MONITOR", "ROLE_DFM", "ROLE_ADMIN", "ROLE_PROXY", "ROLE_NIFI", "ROLE_PROVENANCE")));
 
@@ -523,16 +456,13 @@ public class ControllerResource extends ApplicationResource {
      * Creates a new Reporting Task.
      *
      * @param httpServletRequest request
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("reporting-tasks/{availability}")
+    @Path("reporting-tasks")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Creates a new reporting task",
@@ -552,72 +482,41 @@ public class ControllerResource extends ApplicationResource {
     public Response createReportingTask(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability,
-        @ApiParam(
             value = "The reporting task configuration details.",
             required = true
         ) ReportingTaskEntity reportingTaskEntity) {
 
-        final Availability avail = reportingTaskResource.parseAvailability(availability);
-
-        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
+        if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
 
-        if (reportingTaskEntity.getRevision() == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
-        if (reportingTaskEntity.getReportingTask().getId() != null) {
+        if (reportingTaskEntity.getComponent().getId() != null) {
             throw new IllegalArgumentException("Reporting task ID cannot be specified.");
         }
 
-        if (StringUtils.isBlank(reportingTaskEntity.getReportingTask().getType())) {
+        if (StringUtils.isBlank(reportingTaskEntity.getComponent().getType())) {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
 
-        // get the revision
-        final RevisionDTO revision = reportingTaskEntity.getRevision();
-
         if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), reportingTaskEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
         // set the processor id as appropriate
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            reportingTaskEntity.getReportingTask().setId(UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString());
-        } else {
-            reportingTaskEntity.getReportingTask().setId(UUID.randomUUID().toString());
-        }
+        reportingTaskEntity.getComponent().setId(generateUuid());
 
         // create the reporting task and generate the json
-        final ConfigurationSnapshot<ReportingTaskDTO> controllerResponse = serviceFacade.createReportingTask(
-            new Revision(revision.getVersion(), revision.getClientId()), reportingTaskEntity.getReportingTask());
-        final ReportingTaskDTO reportingTask = controllerResponse.getConfiguration();
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // build the response entity
-        final ReportingTaskEntity entity = new ReportingTaskEntity();
-        entity.setRevision(updatedRevision);
-        entity.setReportingTask(reportingTaskResource.populateRemainingReportingTaskContent(availability, reportingTask));
+        final ReportingTaskEntity entity = serviceFacade.createReportingTask(reportingTaskEntity.getComponent());
+        reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(reportingTask.getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
     }
 
     /**
@@ -626,15 +525,12 @@ public class ControllerResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
      * @return A reportingTasksEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("reporting-tasks/{availability}")
+    @Path("reporting-tasks")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
         value = "Gets all reporting tasks",
@@ -658,31 +554,19 @@ public class ControllerResource extends ApplicationResource {
             value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
             required = false
         )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
-            value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
-            allowableValues = "NCM, NODE",
-            required = true
-        )
-        @PathParam("availability") String availability) {
-
-        final Availability avail = reportingTaskResource.parseAvailability(availability);
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager
-        if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
+        if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
         // get all the reporting tasks
-        final Set<ReportingTaskDTO> reportingTasks = reportingTaskResource.populateRemainingReportingTasksContent(availability, serviceFacade.getReportingTasks());
+        final Set<ReportingTaskEntity> reportingTasks = serviceFacade.getReportingTasks();
+        reportingTaskResource.populateRemainingReportingTaskEntitiesContent(reportingTasks);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // create the response entity
+            // create the response entity
         final ReportingTasksEntity entity = new ReportingTasksEntity();
-        entity.setRevision(revision);
         entity.setReportingTasks(reportingTasks);
 
         // generate the response

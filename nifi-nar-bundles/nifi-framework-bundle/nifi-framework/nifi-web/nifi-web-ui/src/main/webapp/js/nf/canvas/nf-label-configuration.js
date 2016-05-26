@@ -42,8 +42,8 @@ nf.LabelConfiguration = (function () {
 
                             // build the label entity
                             var labelEntity = {
-                                'revision': nf.Client.getRevision(),
-                                'label': {
+                                'revision': nf.Client.getRevision(labelData),
+                                'component': {
                                     'id': labelId,
                                     'label': labelValue,
                                     'style': {
@@ -60,11 +60,8 @@ nf.LabelConfiguration = (function () {
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
                                 // get the label out of the response
-                                nf.Label.set(response.label);
+                                nf.Label.set(response);
                             }).fail(nf.Common.handleAjaxError);
 
                             // reset and hide the dialog
@@ -139,7 +136,7 @@ nf.LabelConfiguration = (function () {
                 }
 
                 // store the label uri
-                labelId = selectionData.component.id;
+                labelId = selectionData.id;
 
                 // populate the dialog
                 $('#label-value').val(labelValue);

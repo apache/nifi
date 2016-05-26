@@ -19,7 +19,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -94,7 +94,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
@@ -187,7 +187,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
             final String path,
             final FlowFile flowFile,
             final boolean rejectZeroByteFiles,
-            final ProcessorLog logger)
+            final ComponentLog logger)
             throws IOException {
         Relationship destinationRelationship = REL_SUCCESS;
         String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -215,7 +215,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         }
 
         if (remoteFileInfo.isDirectory()) {
-            logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+            logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
             return new ConflictResult(REL_REJECT, false, fileName, false);
         }
 
@@ -227,7 +227,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 destinationRelationship = REL_REJECT;
                 transferFile = false;
                 penalizeFile = false;
-                logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+                logger.warn("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
                 transfer.deleteFile(path, fileName);
@@ -256,7 +256,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     destinationRelationship = REL_REJECT;
                     transferFile = false;
                     penalizeFile = false;
-                    logger.info("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
+                    logger.warn("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
                 }
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
@@ -269,7 +269,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 destinationRelationship = REL_FAILURE;
                 transferFile = false;
                 penalizeFile = true;
-                logger.info("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
+                logger.warn("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
             default:
                 break;
         }

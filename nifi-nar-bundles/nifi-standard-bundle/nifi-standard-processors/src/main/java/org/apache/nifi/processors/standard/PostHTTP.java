@@ -94,7 +94,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -351,6 +351,15 @@ public class PostHTTP extends AbstractProcessor {
         }
 
         configMap.clear();
+
+        final StreamThrottler throttler = throttlerRef.getAndSet(null);
+        if(throttler != null) {
+            try {
+                throttler.close();
+            } catch (IOException e) {
+                getLogger().error("Failed to close StreamThrottler", e);
+            }
+        }
     }
 
     @OnScheduled
@@ -446,7 +455,7 @@ public class PostHTTP extends AbstractProcessor {
         final RequestConfig requestConfig = requestConfigBuilder.build();
 
         final StreamThrottler throttler = throttlerRef.get();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final Double maxBatchBytes = context.getProperty(MAX_BATCH_SIZE).asDataSize(DataUnit.B);
         String lastUrl = null;
@@ -868,7 +877,7 @@ public class PostHTTP extends AbstractProcessor {
     }
 
     private DestinationAccepts getDestinationAcceptance(final boolean sendAsFlowFile, final HttpClient client, final String uri,
-                                                        final ProcessorLog logger, final String transactionId) throws IOException {
+                                                        final ComponentLog logger, final String transactionId) throws IOException {
         final HttpHead head = new HttpHead(uri);
         if (sendAsFlowFile) {
             head.addHeader(TRANSACTION_ID_HEADER, transactionId);

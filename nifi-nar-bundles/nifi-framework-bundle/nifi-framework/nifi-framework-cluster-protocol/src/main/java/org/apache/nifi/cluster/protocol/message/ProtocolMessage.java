@@ -27,11 +27,11 @@ public abstract class ProtocolMessage {
         EXCEPTION,
         FLOW_REQUEST,
         FLOW_RESPONSE,
-        HEARTBEAT,
         PING,
         RECONNECTION_REQUEST,
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
+        HEARTBEAT,
         NODE_STATUS_CHANGE;
     }
 

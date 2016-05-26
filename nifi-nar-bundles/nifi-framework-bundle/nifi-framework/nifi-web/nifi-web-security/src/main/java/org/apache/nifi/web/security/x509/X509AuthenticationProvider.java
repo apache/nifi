@@ -18,11 +18,18 @@ package org.apache.nifi.web.security.x509;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -37,9 +44,11 @@ import java.util.ListIterator;
 public class X509AuthenticationProvider implements AuthenticationProvider {
 
     private X509IdentityProvider certificateIdentityProvider;
+    private Authorizer authorizer;
 
-    public X509AuthenticationProvider(X509IdentityProvider certificateIdentityProvider) {
+    public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer) {
         this.certificateIdentityProvider = certificateIdentityProvider;
+        this.authorizer = authorizer;
     }
 
     @Override
@@ -64,6 +73,24 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
             // add the chain as appropriate to each proxy
             NiFiUser proxy = null;
             for (final ListIterator<String> chainIter = proxyChain.listIterator(proxyChain.size()); chainIter.hasPrevious();) {
+                final String identity = chainIter.previous();
+
+                if (chainIter.hasPrevious()) {
+                    // authorize this proxy in order to authenticate this user
+                    final AuthorizationRequest proxyAuthorizationRequest = new AuthorizationRequest.Builder()
+                        .identity(identity)
+                        .anonymous(false)
+                        .accessAttempt(true)
+                        .action(RequestAction.WRITE)
+                        .resource(ResourceFactory.getProxyResource())
+                        .build();
+
+                    final AuthorizationResult proxyAuthorizationResult = authorizer.authorize(proxyAuthorizationRequest);
+                    if (!Result.Approved.equals(proxyAuthorizationResult.getResult())) {
+                        throw new UntrustedProxyException(String.format("Untrusted proxy %s", identity));
+                    }
+                }
+
                 proxy = new NiFiUser(chainIter.previous(), proxy);
             }
 

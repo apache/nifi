@@ -25,7 +25,7 @@ import javax.xml.bind.annotation.XmlType;
  * The details for a port within this NiFi flow.
  */
 @XmlType(name = "port")
-public class PortDTO extends NiFiComponentDTO {
+public class PortDTO extends ComponentDTO {
 
     private String name;
     private String comments;

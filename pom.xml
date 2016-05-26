@@ -204,7 +204,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.9</version>
+                <version>1.11</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -972,6 +972,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kafka-pubsub-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
@@ -1074,6 +1080,12 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-mqtt-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase_1_1_2-client-service-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
@@ -1123,6 +1135,18 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hive-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+	    <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1205,6 +1229,12 @@ language governing permissions and limitations under the License. -->
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.spockframework</groupId>
+                <artifactId>spock-core</artifactId>
+                <version>1.0-groovy-2.4</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.hamcrest</groupId>
                 <artifactId>hamcrest-all</artifactId>
                 <version>1.3</version>
@@ -1273,9 +1303,22 @@ language governing permissions and limitations under the License. -->
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.18</version>
                     <configuration>
+                        <includes>
+                            <include>**/*Test.class</include>
+                            <include>**/Test*.class</include>
+                            <include>**/*Spec.class</include>
+                        </includes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G -Djava.net.preferIPv4Stack=true</argLine>
                     </configuration>
+                    <dependencies>
+                        <dependency>
+                            <!-- Force surefire to use JUnit -->
+                            <groupId>org.apache.maven.surefire</groupId>
+                            <artifactId>surefire-junit4</artifactId>
+                            <version>2.18</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1548,6 +1591,7 @@ language governing permissions and limitations under the License. -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                         <exclude>.travis.yml</exclude> <!-- Travis CI Build Descriptor File -->
+                        <exclude>appveyor.yml</exclude> <!-- AppVeyor CI Build Descriptor File -->
                     </excludes>
                 </configuration>
                 <dependencies>

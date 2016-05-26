@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +45,7 @@ public class ControllerServiceReferencingComponentDTO {
     private Integer activeThreadCount;
 
     private Boolean referenceCycle;
-    private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
+    private Set<ControllerServiceReferencingComponentEntity> referencingComponents;
 
     /**
      * @return Group id for this component referencing a controller service. If this component is another service, this field is blank
@@ -194,11 +196,11 @@ public class ControllerServiceReferencingComponentDTO {
     @ApiModelProperty(
             value = "If the referencing component represents a controller service, these are the components that referenc it."
     )
-    public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
+    public Set<ControllerServiceReferencingComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }
 
-    public void setReferencingComponents(Set<ControllerServiceReferencingComponentDTO> referencingComponents) {
+    public void setReferencingComponents(Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
         this.referencingComponents = referencingComponents;
     }
 

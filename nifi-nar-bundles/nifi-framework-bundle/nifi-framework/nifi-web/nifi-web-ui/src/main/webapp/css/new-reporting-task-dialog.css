@@ -60,26 +60,6 @@
     line-height: 12px;
 }
 
-#reporting-task-availability-container {
-    position: relative;
-    left: 190px;
-    top: 9px;
-}
-
-div.availability-label {
-    float: left;
-    height: 24px;
-    line-height: 24px;
-}
-
-#reporting-task-availability-combo {
-    float: left;
-    margin-left: 6px;
-    width: 125px;
-    height: 18px;
-    line-height: 18px;
-}
-
 #reporting-task-types-table {
     width: 586px;
     height: 249px;

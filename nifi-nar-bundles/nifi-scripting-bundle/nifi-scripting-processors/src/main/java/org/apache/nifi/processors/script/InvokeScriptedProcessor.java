@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.script.Invocable;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 import org.apache.commons.io.IOUtils;
@@ -41,7 +42,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -67,6 +68,8 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
 
     private AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
+    private ScriptEngine scriptEngine = null;
+
     /**
      * Returns the valid relationships for this processor. SUCCESS and FAILURE are always returned, and if the script
      * processor has defined additional relationships, those will be added as well.
@@ -81,7 +84,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             try {
                 relationships.addAll(instance.getRelationships());
             } catch (final Throwable t) {
-                final ProcessorLog logger = getLogger();
+                final ComponentLog logger = getLogger();
                 final String message = "Unable to get relationships from scripted Processor: " + t;
 
                 logger.error(message);
@@ -123,7 +126,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     supportedPropertyDescriptors.addAll(instanceDescriptors);
                 }
             } catch (final Throwable t) {
-                final ProcessorLog logger = getLogger();
+                final ComponentLog logger = getLogger();
                 final String message = "Unable to get property descriptors from Processor: " + t;
 
                 logger.error(message);
@@ -174,9 +177,14 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         setup();
     }
 
-    @Override
     public void setup() {
-        super.setup();
+        // Create a single script engine, the Processor object is reused by each task
+        super.setup(1);
+        scriptEngine = engineQ.poll();
+        if (scriptEngine == null) {
+            throw new ProcessException("No script engine available!");
+        }
+
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (isFile(scriptPath)) {
                 reloadScriptFile(scriptPath);
@@ -198,7 +206,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final Processor instance = processor.get();
 
         if (SCRIPT_FILE.equals(descriptor)
@@ -232,7 +240,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             return reloadScript(IOUtils.toString(scriptStream));
 
         } catch (final Exception e) {
-            final ProcessorLog logger = getLogger();
+            final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;
 
             logger.error(message, e);
@@ -263,7 +271,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             return reloadScript(scriptBody);
 
         } catch (final Exception e) {
-            final ProcessorLog logger = getLogger();
+            final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + e;
 
             logger.error(message, e);
@@ -311,7 +319,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 // get configured processor from the script (if it exists)
                 final Object obj = scriptEngine.get("processor");
                 if (obj != null) {
-                    final ProcessorLog logger = getLogger();
+                    final ComponentLog logger = getLogger();
 
                     try {
                         // set the logger if the processor wants it
@@ -335,7 +343,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                                 }
 
                                 @Override
-                                public ProcessorLog getLogger() {
+                                public ComponentLog getLogger() {
                                     return logger;
                                 }
 
@@ -355,7 +363,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             }
 
         } catch (final Exception ex) {
-            final ProcessorLog logger = getLogger();
+            final ComponentLog logger = getLogger();
             final String message = "Unable to load script: " + ex.getLocalizedMessage();
 
             logger.error(message, ex);
@@ -386,7 +394,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
 
         Collection<ValidationResult> commonValidationResults = super.customValidate(context);
-        if(!commonValidationResults.isEmpty()) {
+        if (!commonValidationResults.isEmpty()) {
             return commonValidationResults;
         }
 
@@ -415,7 +423,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     return instanceResults;
                 }
             } catch (final Exception e) {
-                final ProcessorLog logger = getLogger();
+                final ComponentLog logger = getLogger();
                 final String message = "Unable to validate the script Processor: " + e;
                 logger.error(message, e);
 
@@ -457,7 +465,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
             }
         }
 
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
 
         // ensure the processor (if it exists) is loaded
         final Processor instance = processor.get();
@@ -486,6 +494,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
 
     @OnStopped
     public void stop() {
+        super.stop();
         processor.set(null);
     }
 }

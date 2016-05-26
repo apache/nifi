@@ -41,7 +41,7 @@ public class MockControllerServiceInitializationContext implements ControllerSer
 
     @Override
     public ComponentLog getLogger() {
-        return new MockProcessorLogger();
+        return new MockComponentLogger();
     }
 
     @Override

@@ -18,16 +18,15 @@ package org.apache.nifi.audit;
 
 import java.util.ArrayList;
 import java.util.Collection;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 /**
@@ -58,13 +57,6 @@ public abstract class NiFiAuditor {
      * @param logger logger
      */
     protected void saveActions(Collection<Action> actions, Logger logger) {
-        ClusterContext ctx = ClusterContextThreadLocal.getContext();
-
-        // if we're a connected node, then put audit actions on threadlocal to propagate back to manager
-        if (ctx != null) {
-            ctx.getActions().addAll(actions);
-        }
-
         // always save the actions regardless of cluster or stand-alone
         // all nodes in a cluster will have their own local copy without batching
         try {

@@ -19,21 +19,17 @@
 */
 
 div.main-banner-header {
+    display: none;
     z-index: 100;
-    font-weight: bold;
-    font-size: 1em;
+    font-weight: 300;
+    font-size: 10px;
     text-align: center;
-    line-height: 15px;
-    color: #7e7e7e;
+    line-height: 12px;
     margin: 0px auto;
-    width: 900px;
-    height: 17px;
-    background-color: #fff;
+    height: 10px;
+    background-color: #AABBC3;
     z-index: 100;
-}
-
-div.banner-header-background {
-    background-image: url(../images/bgHeader.png);
+    overflow: hidden;
 }
 
 div.main-banner-footer {
@@ -42,17 +38,13 @@ div.main-banner-footer {
     left: 0px;
     right: 0px;
     bottom: 0px;
-    height: 15px;
-    color: #fff;
+    height: 10px;
     text-align: center;
-    font-weight: bold;
-    font-size: 1em;
-    line-height: 15px;
+    font-weight: 300;
+    font-size: 10px;
+    line-height: 9px;
     overflow: visible;
-    background-color: #9eb9c7;
-    background-image: url(../images/bgBannerFoot.png);
-    background-repeat: repeat-x;
-    background-position: left top;
+    background-color: rgba(249,250,251,0.97);
 }
 
 div.utility-banner-header {

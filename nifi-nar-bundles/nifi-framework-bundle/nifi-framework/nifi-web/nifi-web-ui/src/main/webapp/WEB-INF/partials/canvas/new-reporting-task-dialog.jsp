@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-reporting-task-dialog">
+<div id="new-reporting-task-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="dialog-content">
         <div id="reporting-task-type-filter-controls">
             <div id="controller-service-type-filter-container">
@@ -43,10 +43,5 @@
             </div>
         </div>
         <div class="clear"></div>
-        <div id="reporting-task-availability-container" class="hidden">
-            <div class="setting-name availability-label">Available on</div>
-            <div id="reporting-task-availability-combo"></div>
-            <div class="clear"></div>
-        </div>
     </div>
 </div>

@@ -86,8 +86,8 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) {
-        return context.getControllerServiceIdentifiers(serviceType);
+    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId) {
+        return context.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
     @Override
@@ -135,5 +135,10 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);
         return Boolean.TRUE.equals(supported);
+    }
+
+    @Override
+    public String getProcessGroupIdentifier() {
+        return "unit test";
     }
 }

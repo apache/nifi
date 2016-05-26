@@ -24,20 +24,35 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
@@ -52,29 +67,35 @@ import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.IdentityEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
+import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -83,8 +104,12 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -92,7 +117,7 @@ import java.util.Set;
 @Path("/flow")
 @Api(
     value = "/flow",
-    description = "Endpoint for accessing the flow structure and component statuses."
+    description = "Endpoint for accessing the flow structure and component status."
 )
 public class FlowResource extends ApplicationResource {
 
@@ -101,9 +126,367 @@ public class FlowResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ResourceContext resourceContext;
+
+    private ProcessorResource processorResource;
+    private InputPortResource inputPortResource;
+    private OutputPortResource outputPortResource;
+    private FunnelResource funnelResource;
+    private LabelResource labelResource;
+    private RemoteProcessGroupResource remoteProcessGroupResource;
+    private ConnectionResource connectionResource;
+    private TemplateResource templateResource;
+    private ProcessGroupResource processGroupResource;
+    private ControllerServiceResource controllerServiceResource;
+
+    /**
+     * Populates the remaining fields in the specified process group.
+     *
+     * @param flow group
+     * @return group dto
+     */
+    private ProcessGroupFlowDTO populateRemainingFlowContent(ProcessGroupFlowDTO flow) {
+        FlowDTO flowStructure = flow.getFlow();
+
+        // populate the remaining fields for the processors, connections, process group refs, remote process groups, and labels if appropriate
+        if (flowStructure != null) {
+            populateRemainingFlowStructure(flowStructure);
+        }
+
+        // set the process group uri
+        flow.setUri(generateResourceUri("flow", "process-groups",  flow.getId()));
+
+        return flow;
+    }
+
+    /**
+     * Populates the remaining content of the specified snippet.
+     */
+    private FlowDTO populateRemainingFlowStructure(FlowDTO flowStructure) {
+        processorResource.populateRemainingProcessorEntitiesContent(flowStructure.getProcessors());
+        connectionResource.populateRemainingConnectionEntitiesContent(flowStructure.getConnections());
+        inputPortResource.populateRemainingInputPortEntitiesContent(flowStructure.getInputPorts());
+        outputPortResource.populateRemainingOutputPortEntitiesContent(flowStructure.getOutputPorts());
+        remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntitiesContent(flowStructure.getRemoteProcessGroups());
+        funnelResource.populateRemainingFunnelEntitiesContent(flowStructure.getFunnels());
+        labelResource.populateRemainingLabelEntitiesContent(flowStructure.getLabels());
+        processGroupResource.populateRemainingProcessGroupEntitiesContent(flowStructure.getProcessGroups());
+
+        // go through each process group child and populate its uri
+        for (final ProcessGroupEntity processGroupEntity : flowStructure.getProcessGroups()) {
+            final ProcessGroupDTO processGroup = processGroupEntity.getComponent();
+            if (processGroup != null) {
+                processGroup.setContents(null);
+            }
+        }
+
+        return flowStructure;
+    }
+
+    private void authorizeFlow() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+            .resource(ResourceFactory.getFlowResource())
+            .identity(user.getIdentity())
+            .anonymous(user.isAnonymous())
+            .accessAttempt(true)
+            .action(RequestAction.READ)
+            .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
+    }
+
+    // ----
+    // flow
+    // ----
+
+    /**
+     * Retrieves the contents of the specified group.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
+     * @param groupId The id of the process group.
+     * @return A processGroupEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}")
+    @ApiOperation(
+        value = "Gets a process group",
+        response = ProcessGroupFlowEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getFlow(
+        @ApiParam(
+            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+            required = false
+        )
+        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+        @ApiParam(
+            value = "The process group id.",
+            required = false
+        )
+        @PathParam("id") String groupId,
+        @ApiParam(
+            value = "Whether the response should contain all encapsulated components or just the immediate children.",
+            required = false
+        )
+        @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) {
+
+        authorizeFlow();
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get this process group flow
+        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, recursive);
+        populateRemainingFlowContent(entity.getProcessGroupFlow());
+
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Retrieves all the of controller services in this NiFi.
+     *
+     * @return A controllerServicesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/controller-services")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Gets all controller services",
+        response = ControllerServicesEntity.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getControllerServices(
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String groupId) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // get all the controller services
+        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
+        controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
+
+        // create the response entity
+        final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setControllerServices(controllerServices);
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**
+     * Updates the specified process group.
+     *
+     * @param httpServletRequest request
+     * @param id The id of the process group.
+     * @param scheduleComponentsEntity A scheduleComponentsEntity.
+     * @return A processGroupEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}")
+    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+        value = "Updates a process group",
+        response = ScheduleComponentsEntity.class,
+        authorizations = {
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response scheduleComponents(
+        @Context HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The process group id.",
+            required = true
+        )
+        @PathParam("id") String id,
+        ScheduleComponentsEntity scheduleComponentsEntity) {
+
+        authorizeFlow();
+
+        // ensure the same id is being used
+        if (!id.equals(scheduleComponentsEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                + "not equal the process group id of the requested resource (%s).", scheduleComponentsEntity.getId(), id));
+        }
+
+        final ScheduledState state;
+        if (scheduleComponentsEntity.getState() == null) {
+            throw new IllegalArgumentException("The scheduled state must be specified.");
+        } else {
+            try {
+                state = ScheduledState.valueOf(scheduleComponentsEntity.getState());
+            } catch (final IllegalArgumentException iae) {
+                throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+            }
+        }
+
+        // ensure its a supported scheduled state
+        if (ScheduledState.DISABLED.equals(state) || ScheduledState.STARTING.equals(state) || ScheduledState.STOPPING.equals(state)) {
+            throw new IllegalArgumentException(String.format("The scheduled must be one of [%s].", StringUtils.join(EnumSet.of(ScheduledState.RUNNING, ScheduledState.STOPPED), ", ")));
+        }
+
+        // if the components are not specified, gather all components and their current revision
+        if (scheduleComponentsEntity.getComponents() == null) {
+            // TODO - this will break while clustered until nodes are able to process/replicate requests
+            // get the current revisions for the components being updated
+            final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(id, group -> {
+                final Set<String> componentIds = new HashSet<>();
+
+                // ensure authorized for each processor we will attempt to schedule
+                group.findAllProcessors().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PROCESSORS : ProcessGroup.UNSCHEDULABLE_PROCESSORS)
+                    .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(processor -> {
+                        componentIds.add(processor.getIdentifier());
+                    });
+
+                // ensure authorized for each input port we will attempt to schedule
+                group.findAllInputPorts().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(inputPort -> {
+                        componentIds.add(inputPort.getIdentifier());
+                    });
+
+                // ensure authorized for each output port we will attempt to schedule
+                group.findAllOutputPorts().stream()
+                    .filter(ScheduledState.RUNNING.equals(state) ? ProcessGroup.SCHEDULABLE_PORTS : ProcessGroup.UNSCHEDULABLE_PORTS)
+                    .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE))
+                    .forEach(outputPort -> {
+                        componentIds.add(outputPort.getIdentifier());
+                    });
+
+                return componentIds;
+            });
+
+            // build the component mapping
+            final Map<String, RevisionDTO> componentsToSchedule = new HashMap<>();
+            revisions.forEach(revision -> {
+                final RevisionDTO dto = new RevisionDTO();
+                dto.setClientId(revision.getClientId());
+                dto.setVersion(revision.getVersion());
+                componentsToSchedule.put(revision.getComponentId(), dto);
+            });
+
+            // set the components and their current revision
+            scheduleComponentsEntity.setComponents(componentsToSchedule);
+        }
+
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), scheduleComponentsEntity, getHeaders()).getResponse();
+        }
+
+        final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
+        final Map<String, Revision> componentRevisions = componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
+        final Set<Revision> revisions = new HashSet<>(componentRevisions.values());
+
+        return withWriteLock(
+            serviceFacade,
+            revisions,
+            lookup -> {
+                // ensure access to every component being scheduled
+                componentsToSchedule.keySet().forEach(componentId -> {
+                    final Authorizable connectable = lookup.getConnectable(componentId);
+                    connectable.authorize(authorizer, RequestAction.WRITE);
+                });
+            },
+            () -> serviceFacade.verifyScheduleComponents(id, state, componentRevisions.keySet()),
+            () -> {
+                // update the process group
+                final ScheduleComponentsEntity entity = serviceFacade.scheduleComponents(id, state, componentRevisions);
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("client-id")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+        value = "Generates a client id.",
+        response = String.class,
+        authorizations = {
+            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response generateClientId() {
+        authorizeFlow();
+        return clusterContext(generateOkResponse(generateUuid())).build();
+    }
+
+    // ------
+    // search
+    // ------
 
     /**
      * Performs a search request in this flow.
@@ -134,6 +517,8 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+        authorizeFlow();
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -151,56 +536,8 @@ public class FlowResource extends ApplicationResource {
     }
 
     /**
-     * Gets current revision of this NiFi.
-     *
-     * @return A revisionEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("revision")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Gets the current revision of this NiFi",
-            notes = "NiFi employs an optimistic locking strategy where the client must include a revision in their request when "
-            + "performing an update. If the specified revision does not match the current base revision a 409 status code "
-            + "is returned. The revision is comprised of a clientId and a version number. The version is a simple integer "
-            + "value that is incremented with each change. Including the most recent version tells NiFi that your working "
-            + "with the most recent flow. In addition to the version the client who is performing the updates is recorded. "
-            + "This allows the same client to submit multiple requests without having to wait for the previously ones to "
-            + "return. Invoking this endpoint will return the current base revision. It is also available when retrieving "
-            + "a process group and in the response of all mutable requests.",
-            response = Entity.class,
-            authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response getRevision() {
-        // create the current revision
-        final RevisionDTO revision = serviceFacade.getRevision();
-
-        // create the response entity
-        final Entity entity = new Entity();
-        entity.setRevision(revision);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
      * Retrieves the status for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerStatusEntity.
      */
     @GET
@@ -225,12 +562,9 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getControllerStatus(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getControllerStatus() {
+
+        authorizeFlow();
 
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -238,13 +572,8 @@ public class FlowResource extends ApplicationResource {
 
         final ControllerStatusDTO controllerStatus = serviceFacade.getControllerStatus();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ControllerStatusEntity entity = new ControllerStatusEntity();
-        entity.setRevision(revision);
         entity.setControllerStatus(controllerStatus);
 
         // generate the response
@@ -254,7 +583,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the identity of the user making the request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return An identityEntity
      */
     @GET
@@ -265,12 +593,7 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves the user identity of the user making the request",
             response = IdentityEntity.class
     )
-    public Response getIdentity(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getIdentity() {
 
         // note that the cluster manager will handle this request directly
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -278,13 +601,8 @@ public class FlowResource extends ApplicationResource {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         IdentityEntity entity = new IdentityEntity();
-        entity.setRevision(revision);
         entity.setUserId(user.getIdentity());
         entity.setIdentity(user.getUserName());
 
@@ -295,7 +613,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the banners for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A bannerEntity.
      */
     @GET
@@ -320,12 +637,9 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getBanners(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getBanners() {
+
+        authorizeFlow();
 
         // get the banner from the properties - will come from the NCM when clustered
         final String bannerText = properties.getBannerText();
@@ -335,13 +649,8 @@ public class FlowResource extends ApplicationResource {
         bannerDTO.setHeaderText(bannerText);
         bannerDTO.setFooterText(bannerText);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final BannerEntity entity = new BannerEntity();
-        entity.setRevision(revision);
         entity.setBanners(bannerDTO);
 
         // generate the response
@@ -351,7 +660,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the types of processors that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorTypesEntity.
      */
     @GET
@@ -376,25 +684,17 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getProcessorTypes(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getProcessorTypes() {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
-        entity.setRevision(revision);
         entity.setProcessorTypes(serviceFacade.getProcessorTypes());
 
         // generate the response
@@ -404,7 +704,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the types of controller services that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param serviceType Returns only services that implement this type
      * @return A controllerServicesTypesEntity.
      */
@@ -432,28 +731,20 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerServiceTypes(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "If specified, will only return controller services of this type.",
                     required = false
             )
             @QueryParam("serviceType") String serviceType) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
-        entity.setRevision(revision);
         entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType));
 
         // generate the response
@@ -463,7 +754,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the types of reporting tasks that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerServicesTypesEntity.
      */
     @GET
@@ -488,25 +778,17 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getReportingTaskTypes(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getReportingTaskTypes() {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
-        entity.setRevision(revision);
         entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes());
 
         // generate the response
@@ -516,7 +798,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the types of prioritizers that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A prioritizerTypesEntity.
      */
     @GET
@@ -541,25 +822,17 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getPrioritizers(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getPrioritizers() {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create response entity
         final PrioritizerTypesEntity entity = new PrioritizerTypesEntity();
-        entity.setRevision(revision);
         entity.setPrioritizerTypes(serviceFacade.getWorkQueuePrioritizerTypes());
 
         // generate the response
@@ -569,7 +842,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves details about this NiFi to put in the About dialog.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return An aboutEntity.
      */
     @GET
@@ -594,12 +866,9 @@ public class FlowResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getAboutInfo(
-            @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getAboutInfo() {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -617,13 +886,8 @@ public class FlowResource extends ApplicationResource {
         // get the content viewer url
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final AboutEntity entity = new AboutEntity();
-        entity.setRevision(revision);
         entity.setAbout(aboutDTO);
 
         // generate the response
@@ -637,9 +901,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves all the of templates in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @param after Supporting querying for bulletins after a particular
      * bulletin id.
      * @param limit The max number of bulletins to return.
@@ -673,11 +934,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getBulletinBoard(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Includes bulletins with an id after this value.",
             required = false
         )
@@ -707,6 +963,8 @@ public class FlowResource extends ApplicationResource {
             required = false
         )
         @QueryParam("limit") IntegerParameter limit) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -738,13 +996,8 @@ public class FlowResource extends ApplicationResource {
         // get the bulletin board
         final BulletinBoardDTO bulletinBoard = serviceFacade.getBulletinBoard(query);
 
-        // create the revision
-        RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         BulletinBoardEntity entity = new BulletinBoardEntity();
-        entity.setRevision(revision);
         entity.setBulletinBoard(bulletinBoard);
 
         // generate the response
@@ -758,7 +1011,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified processor status.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A processorStatusEntity.
      */
@@ -787,11 +1039,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getProcessorStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether or not to include the breakdown per node. Optional, defaults to false",
             required = false
         )
@@ -806,6 +1053,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -842,13 +1091,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified processor status
         final ProcessorStatusDTO processorStatus = serviceFacade.getProcessorStatus(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final ProcessorStatusEntity entity = new ProcessorStatusEntity();
-        entity.setRevision(revision);
         entity.setProcessorStatus(processorStatus);
 
         // generate the response
@@ -858,7 +1102,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified input port status.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A portStatusEntity.
      */
@@ -887,11 +1130,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getInputPortStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether or not to include the breakdown per node. Optional, defaults to false",
             required = false
         )
@@ -906,6 +1144,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -942,13 +1182,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified input port status
         final PortStatusDTO portStatus = serviceFacade.getInputPortStatus(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final PortStatusEntity entity = new PortStatusEntity();
-        entity.setRevision(revision);
         entity.setPortStatus(portStatus);
 
         // generate the response
@@ -958,7 +1193,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified output port status.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A portStatusEntity.
      */
@@ -987,11 +1221,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getOutputPortStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether or not to include the breakdown per node. Optional, defaults to false",
             required = false
         )
@@ -1006,6 +1235,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1042,13 +1273,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified output port status
         final PortStatusDTO portStatus = serviceFacade.getOutputPortStatus(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final PortStatusEntity entity = new PortStatusEntity();
-        entity.setRevision(revision);
         entity.setPortStatus(portStatus);
 
         // generate the response
@@ -1058,7 +1284,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process group status.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A remoteProcessGroupStatusEntity.
      */
@@ -1087,11 +1312,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getRemoteProcessGroupStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether or not to include the breakdown per node. Optional, defaults to false",
             required = false
         )
@@ -1106,6 +1326,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1142,13 +1364,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified remote process group status
         final RemoteProcessGroupStatusDTO remoteProcessGroupStatus = serviceFacade.getRemoteProcessGroupStatus(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final RemoteProcessGroupStatusEntity entity = new RemoteProcessGroupStatusEntity();
-        entity.setRevision(revision);
         entity.setRemoteProcessGroupStatus(remoteProcessGroupStatus);
 
         // generate the response
@@ -1158,7 +1375,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the status report for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param recursive Optional recursive flag that defaults to false. If set to true, all descendant groups and the status of their content will be included.
      * @param groupId The group id
      * @return A processGroupStatusEntity.
@@ -1191,11 +1407,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getProcessGroupStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether all descendant groups and the status of their content will be included. Optional, defaults to false",
             required = false
         )
@@ -1215,6 +1426,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String groupId) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1261,13 +1474,8 @@ public class FlowResource extends ApplicationResource {
             }
         }
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response entity
         final ProcessGroupStatusEntity entity = new ProcessGroupStatusEntity();
-        entity.setRevision(revision);
         entity.setProcessGroupStatus(statusReport);
 
         // generate the response
@@ -1288,7 +1496,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified connection status.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection history to retrieve.
      * @return A connectionStatusEntity.
      */
@@ -1317,11 +1524,6 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getConnectionStatus(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "Whether or not to include the breakdown per node. Optional, defaults to false",
             required = false
         )
@@ -1336,6 +1538,8 @@ public class FlowResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1372,13 +1576,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified connection status
         final ConnectionStatusDTO connectionStatus = serviceFacade.getConnectionStatus(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final ConnectionStatusEntity entity = new ConnectionStatusEntity();
-        entity.setRevision(revision);
         entity.setConnectionStatus(connectionStatus);
 
         // generate the response
@@ -1392,7 +1591,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified processor status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A statusHistoryEntity.
      */
@@ -1421,15 +1619,12 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getProcessorStatusHistory(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "The processor id.",
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1439,13 +1634,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified processor status history
         final StatusHistoryDTO processorStatusHistory = serviceFacade.getProcessorStatusHistory(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setRevision(revision);
         entity.setStatusHistory(processorStatusHistory);
 
         // generate the response
@@ -1455,7 +1645,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process groups status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param groupId The group id
      * @return A processorEntity.
      */
@@ -1483,12 +1672,13 @@ public class FlowResource extends ApplicationResource {
         }
     )
     public Response getProcessGroupStatusHistory(
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
         @ApiParam(
             value = "The process group id.",
             required = true
         )
         @PathParam("id") String groupId) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1498,13 +1688,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified processor status history
         final StatusHistoryDTO processGroupStatusHistory = serviceFacade.getProcessGroupStatusHistory(groupId);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setRevision(revision);
         entity.setStatusHistory(processGroupStatusHistory);
 
         // generate the response
@@ -1514,7 +1699,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process groups status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to retrieve the status fow.
      * @return A statusHistoryEntity.
      */
@@ -1543,15 +1727,12 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getRemoteProcessGroupStatusHistory(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "The remote process group id.",
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1561,13 +1742,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified processor status history
         final StatusHistoryDTO remoteProcessGroupStatusHistory = serviceFacade.getRemoteProcessGroupStatusHistory(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setRevision(revision);
         entity.setStatusHistory(remoteProcessGroupStatusHistory);
 
         // generate the response
@@ -1577,7 +1753,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the specified connection status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection to retrieve.
      * @return A statusHistoryEntity.
      */
@@ -1606,15 +1781,12 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getConnectionStatusHistory(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "The connection id.",
             required = true
         )
         @PathParam("id") String id) {
+
+        authorizeFlow();
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -1624,13 +1796,8 @@ public class FlowResource extends ApplicationResource {
         // get the specified processor status history
         final StatusHistoryDTO connectionStatusHistory = serviceFacade.getConnectionStatusHistory(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setRevision(revision);
         entity.setStatusHistory(connectionStatusHistory);
 
         // generate the response
@@ -1644,6 +1811,50 @@ public class FlowResource extends ApplicationResource {
 
     public void setClusterManager(WebClusterManager clusterManager) {
         this.clusterManager = clusterManager;
+    }
+
+    public void setProcessorResource(ProcessorResource processorResource) {
+        this.processorResource = processorResource;
+    }
+
+    public void setInputPortResource(InputPortResource inputPortResource) {
+        this.inputPortResource = inputPortResource;
+    }
+
+    public void setOutputPortResource(OutputPortResource outputPortResource) {
+        this.outputPortResource = outputPortResource;
+    }
+
+    public void setFunnelResource(FunnelResource funnelResource) {
+        this.funnelResource = funnelResource;
+    }
+
+    public void setLabelResource(LabelResource labelResource) {
+        this.labelResource = labelResource;
+    }
+
+    public void setRemoteProcessGroupResource(RemoteProcessGroupResource remoteProcessGroupResource) {
+        this.remoteProcessGroupResource = remoteProcessGroupResource;
+    }
+
+    public void setConnectionResource(ConnectionResource connectionResource) {
+        this.connectionResource = connectionResource;
+    }
+
+    public void setTemplateResource(TemplateResource templateResource) {
+        this.templateResource = templateResource;
+    }
+
+    public void setProcessGroupResource(ProcessGroupResource processGroupResource) {
+        this.processGroupResource = processGroupResource;
+    }
+
+    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+        this.controllerServiceResource = controllerServiceResource;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setProperties(NiFiProperties properties) {

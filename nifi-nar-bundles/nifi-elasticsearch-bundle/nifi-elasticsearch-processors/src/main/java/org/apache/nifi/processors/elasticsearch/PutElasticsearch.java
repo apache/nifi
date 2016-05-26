@@ -27,7 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -154,7 +154,7 @@ public class PutElasticsearch extends AbstractElasticsearchProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         // Keep track of the list of flow files that need to be transferred. As they are transferred, remove them from the list.
         List<FlowFile> flowFilesToTransfer = new LinkedList<>(flowFiles);
         try {

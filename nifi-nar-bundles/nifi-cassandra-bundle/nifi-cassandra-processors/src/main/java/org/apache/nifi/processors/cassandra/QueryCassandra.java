@@ -45,7 +45,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -175,7 +175,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        ProcessorLog log = getLogger();
+        ComponentLog log = getLogger();
         try {
             connectToCassandra(context);
             final int fetchSize = context.getProperty(FETCH_SIZE).asInteger();
@@ -212,7 +212,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final String selectQuery = context.getProperty(CQL_SELECT_QUERY).evaluateAttributeExpressions(fileToProcess).getValue();
         final long queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
         final String outputFormat = context.getProperty(OUTPUT_FORMAT).getValue();

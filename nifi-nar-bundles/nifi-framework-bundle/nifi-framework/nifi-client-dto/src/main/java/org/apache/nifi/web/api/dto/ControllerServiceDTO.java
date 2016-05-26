@@ -16,22 +16,25 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+
 import javax.xml.bind.annotation.XmlType;
+
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * A Controller Service that can be shared by other components
  */
 @XmlType(name = "controllerService")
-public class ControllerServiceDTO extends NiFiComponentDTO {
+public class ControllerServiceDTO extends ComponentDTO {
 
     private String name;
     private String type;
     private String comments;
-    private String availability;
     private String state;
     private Boolean persistsState;
 
@@ -41,7 +44,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     private String customUiUrl;
     private String annotationData;
 
-    private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
+    private Set<ControllerServiceReferencingComponentEntity> referencingComponents;
 
     private Collection<String> validationErrors;
 
@@ -85,21 +88,6 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
 
     public void setComments(String comments) {
         this.comments = comments;
-    }
-
-    /**
-     * @return Where this service is available. Possible values are NCM, NODE
-     */
-    @ApiModelProperty(
-            value = "Where the servcie is available.",
-            allowableValues = "NCM, NODE"
-    )
-    public String getAvailability() {
-        return availability;
-    }
-
-    public void setAvailability(String availability) {
-        this.availability = availability;
     }
 
     /**
@@ -193,11 +181,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     @ApiModelProperty(
             value = "All components referencing this controller service."
     )
-    public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
+    public Set<ControllerServiceReferencingComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }
 
-    public void setReferencingComponents(Set<ControllerServiceReferencingComponentDTO> referencingComponents) {
+    public void setReferencingComponents(Set<ControllerServiceReferencingComponentEntity> referencingComponents) {
         this.referencingComponents = referencingComponents;
     }
 

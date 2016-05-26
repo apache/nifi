@@ -55,12 +55,10 @@ nf.PortConfiguration = (function () {
                             
                             // build the port entity
                             var portEntity = {
-                                'revision': nf.Client.getRevision()
+                                'revision': nf.Client.getRevision(portData),
+                                'component': port
                             };
 
-                            // use bracket notation to set the key based on the type
-                            portEntity[nf[portData.type].getEntityKey(portData)] = port;
-                            
                             // update the selected component
                             $.ajax({
                                 type: 'PUT',
@@ -69,18 +67,8 @@ nf.PortConfiguration = (function () {
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
-                                // update the revision
-                                nf.Client.setRevision(response.revision);
-
-                                var port;
-                                if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
-                                    port = response.inputPort;
-                                } else {
-                                    port = response.outputPort;
-                                }
-
                                 // refresh the port component
-                                nf.Port.set(port);
+                                nf.Port.set(response);
 
                                 // close the details panel
                                 $('#port-configuration').modal('hide');
@@ -131,9 +119,6 @@ nf.PortConfiguration = (function () {
                     $('#port-comments').val('');
                 }
             }
-        }).draggable({
-            containment: 'parent',
-            handle: '.dialog-header'
         });
     };
 
@@ -166,7 +151,7 @@ nf.PortConfiguration = (function () {
                 }
 
                 // populate the port settings
-                $('#port-id').text(selectionData.component.id);
+                $('#port-id').text(selectionData.id);
                 $('#port-name').val(selectionData.component.name);
                 $('#port-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(portEnableStyle);
                 $('#port-concurrent-tasks').val(selectionData.component.concurrentlySchedulableTaskCount);

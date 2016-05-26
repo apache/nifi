@@ -16,27 +16,25 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.Set;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-
 /**
- * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of RemoteProcessGroupDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of RemoteProcessGroupEntitys.
  */
 @XmlRootElement(name = "remoteProcessGroupsEntity")
 public class RemoteProcessGroupsEntity extends Entity {
 
-    private Set<RemoteProcessGroupDTO> remoteProcessGroups;
+    private Set<RemoteProcessGroupEntity> remoteProcessGroups;
 
     /**
-     * @return collection of RemoteProcessGroupDTOs that are being serialized
+     * @return collection of RemoteProcessGroupEntitys that are being serialized
      */
-    public Set<RemoteProcessGroupDTO> getRemoteProcessGroups() {
+    public Set<RemoteProcessGroupEntity> getRemoteProcessGroups() {
         return remoteProcessGroups;
     }
 
-    public void setRemoteProcessGroups(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
+    public void setRemoteProcessGroups(Set<RemoteProcessGroupEntity> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
     }
 

@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="remote-process-group-ports">
+<div id="remote-process-group-ports" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
     <div class="dialog-content">
         <span id="remote-process-group-ports-id" class="hidden"></span>
         <div class="settings-left">

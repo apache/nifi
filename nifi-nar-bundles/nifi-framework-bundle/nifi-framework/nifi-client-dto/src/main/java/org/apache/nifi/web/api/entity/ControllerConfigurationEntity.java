@@ -16,22 +16,47 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ControllerConfigurationDTO.
  */
 @XmlRootElement(name = "controllerConfigurationEntity")
-public class ControllerConfigurationEntity extends Entity {
+public class ControllerConfigurationEntity extends ComponentEntity {
 
     private ControllerConfigurationDTO config;
+    private RevisionDTO revision;
+
+    /**
+     * @return revision for this request/response
+     */
+    @ApiModelProperty(
+        value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    )
+    public RevisionDTO getRevision() {
+        if (revision == null) {
+            return new RevisionDTO();
+        } else {
+            return revision;
+        }
+    }
+
+    public void setRevision(RevisionDTO revision) {
+        this.revision = revision;
+    }
 
     /**
      * The ControllerConfigurationDTO that is being serialized.
      *
      * @return The ControllerConfigurationDTO object
      */
+    @ApiModelProperty(
+        value = "The controller configuration."
+    )
     public ControllerConfigurationDTO getConfig() {
         return config;
     }

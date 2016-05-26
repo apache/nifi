@@ -19,23 +19,70 @@
 
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
-        //Create App
+
+        //Create Angular App
         var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngSanitize', 'ngMessages']);
 
-        //Configure App
+        //Define Dependency Injection Annotations
+        nf.ng.Canvas.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+        nf.ng.Canvas.AppCtrl.$inject = ['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
+        nf.ng.ServiceProvider.$inject = [];
+        nf.ng.BreadcrumbsCtrl.$inject = ['serviceProvider', '$sanitize'];
+        nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl', 'flowStatusCtrl'];
+        nf.ng.Canvas.FlowStatusCtrl.$inject = ['serviceProvider', '$sanitize'];
+        nf.ng.Canvas.GlobalMenuCtrl.$inject = ['serviceProvider'];
+        nf.ng.Canvas.ToolboxCtrl.$inject = ['processorComponent',
+            'inputPortComponent',
+            'outputPortComponent',
+            'groupComponent',
+            'remoteGroupComponent',
+            'funnelComponent',
+            'templateComponent',
+            'labelComponent'];
+        nf.ng.ProcessorComponent.$inject = ['serviceProvider'];
+        nf.ng.InputPortComponent.$inject = ['serviceProvider'];
+        nf.ng.OutputPortComponent.$inject = ['serviceProvider'];
+        nf.ng.GroupComponent.$inject = ['serviceProvider'];
+        nf.ng.RemoteProcessGroupComponent.$inject = ['serviceProvider'];
+        nf.ng.FunnelComponent.$inject = ['serviceProvider'];
+        nf.ng.TemplateComponent.$inject = ['serviceProvider'];
+        nf.ng.LabelComponent.$inject = ['serviceProvider'];
+        nf.ng.Canvas.GraphControlsCtrl.$inject = ['serviceProvider', 'navigateCtrl', 'operateCtrl'];
+        nf.ng.Canvas.NavigateCtrl.$inject = [];
+        nf.ng.Canvas.OperateCtrl.$inject = [];
+        nf.ng.BreadcrumbsDirective.$inject = ['breadcrumbsCtrl'];
+        nf.ng.DraggableDirective.$inject = [];
+
+        //Configure Angular App
         app.config(nf.ng.Canvas.AppConfig);
 
-        //App Controllers
+        //Define Angular App Controllers
         app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
 
-        //App Services
-        app.factory('ServiceProvider', nf.ng.ServiceProvider);
-        app.factory('BreadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+        //Define Angular App Services
+        app.service('serviceProvider', nf.ng.ServiceProvider);
+        app.service('breadcrumbsCtrl', nf.ng.BreadcrumbsCtrl);
+        app.service('headerCtrl', nf.ng.Canvas.HeaderCtrl);
+        app.service('globalMenuCtrl', nf.ng.Canvas.GlobalMenuCtrl);
+        app.service('toolboxCtrl', nf.ng.Canvas.ToolboxCtrl);
+        app.service('flowStatusCtrl', nf.ng.Canvas.FlowStatusCtrl);
+        app.service('processorComponent', nf.ng.ProcessorComponent);
+        app.service('inputPortComponent', nf.ng.InputPortComponent);
+        app.service('outputPortComponent', nf.ng.OutputPortComponent);
+        app.service('groupComponent', nf.ng.GroupComponent);
+        app.service('remoteGroupComponent', nf.ng.RemoteProcessGroupComponent);
+        app.service('funnelComponent', nf.ng.FunnelComponent);
+        app.service('templateComponent', nf.ng.TemplateComponent);
+        app.service('labelComponent', nf.ng.LabelComponent);
+        app.service('graphControlsCtrl', nf.ng.Canvas.GraphControlsCtrl);
+        app.service('navigateCtrl', nf.ng.Canvas.NavigateCtrl);
+        app.service('operateCtrl', nf.ng.Canvas.OperateCtrl);
 
-        //App Directives
-        app.directive('breadcrumbsDirective', nf.ng.BreadcrumbsDirective);
+        //Define Angular App Directives
+        app.directive('nfBreadcrumbs', nf.ng.BreadcrumbsDirective);
+        app.directive('nfDraggable', nf.ng.DraggableDirective);
 
-        //Manually Boostrap App
+        //Manually Boostrap Angular App
         angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
 
         // initialize the NiFi
@@ -61,10 +108,10 @@ nf.Canvas = (function () {
     var MIN_SCALE = 0.2;
     var MIN_SCALE_TO_RENDER = 0.6;
 
-    var revisionPolling = false;
-    var statusPolling = false;
+    var polling = false;
     var groupId = 'root';
     var groupName = null;
+    var accessPolicy = null;
     var parentGroupId = null;
     var secureSiteToSite = false;
     var clustered = false;
@@ -81,71 +128,38 @@ nf.Canvas = (function () {
             authorities: '../nifi-api/controller/authorities',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
-            status: '../nifi-api/flow/status',
-            bulletinBoard: '../nifi-api/flow/bulletin-board',
             banners: '../nifi-api/flow/banners',
-            controller: '../nifi-api/controller',
             controllerConfig: '../nifi-api/controller/config',
-            about: '../nifi-api/flow/about',
-            accessConfig: '../nifi-api/access/config',
-            cluster: '../nifi-api/cluster',
-            d3Script: 'js/d3/d3.min.js'
+            cluster: '../nifi-api/cluster'
         }
     };
     
     /**
-     * Starts polling for the revision.
+     * Starts polling.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
-    var startRevisionPolling = function (autoRefreshInterval) {
+    var startPolling = function (autoRefreshInterval) {
         // set polling flag
-        revisionPolling = true;
-        pollForRevision(autoRefreshInterval);
+        polling = true;
+        poll(autoRefreshInterval);
     };
 
     /**
-     * Polls for the revision.
+     * Register the pooler.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
-    var pollForRevision = function (autoRefreshInterval) {
+    var poll = function (autoRefreshInterval) {
         // ensure we're suppose to poll
-        if (revisionPolling) {
-            // check the revision
-            checkRevision().done(function () {
-                // start the wait to poll again
-                setTimeout(function () {
-                    pollForRevision(autoRefreshInterval);
-                }, autoRefreshInterval * 1000);
-            });
-        }
-    };
-
-    /**
-     * Start polling for the status.
-     *
-     * @argument {int} autoRefreshInterval      The auto refresh interval
-     */
-    var startStatusPolling = function (autoRefreshInterval) {
-        // set polling flag
-        statusPolling = true;
-        pollForStatus(autoRefreshInterval);
-    };
-
-    /**
-     * Register the status poller.
-     *
-     * @argument {int} autoRefreshInterval      The auto refresh interval
-     */
-    var pollForStatus = function (autoRefreshInterval) {
-        // ensure we're suppose to poll
-        if (statusPolling) {
+        if (polling) {
             // reload the status
-            nf.Canvas.reloadStatus().done(function () {
+            nf.Canvas.reload({
+                'transition': true
+            }).done(function () {
                 // start the wait to poll again
                 setTimeout(function () {
-                    pollForStatus(autoRefreshInterval);
+                    poll(autoRefreshInterval);
                 }, autoRefreshInterval * 1000);
             });
         }
@@ -154,50 +168,50 @@ nf.Canvas = (function () {
     /**
      * Checks the current revision against this version of the flow.
      */
-    var checkRevision = function () {
-        // get the revision
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.revision,
-            dataType: 'json'
-        }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.revision)) {
-                var revision = response.revision;
-                var currentRevision = nf.Client.getRevision();
-
-                // if there is a newer revision, there are outstanding
-                // changes that need to be updated
-                if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
-                    var refreshContainer = $('#refresh-required-container');
-                    var settingsRefreshIcon = $('#settings-refresh-required-icon');
-
-                    // insert the refresh needed text in the canvas - if necessary
-                    if (!refreshContainer.is(':visible')) {
-                        $('#stats-last-refreshed').addClass('alert');
-                        var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
-
-                        // update the tooltip
-                        var refreshRequiredIcon = $('#refresh-required-icon');
-                        if (refreshRequiredIcon.data('qtip')) {
-                            refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
-                        } else {
-                            refreshRequiredIcon.qtip($.extend({
-                                content: refreshMessage
-                            }, nf.CanvasUtils.config.systemTooltipConfig));
-                        }
-
-                        refreshContainer.show();
-                    }
-
-                    // insert the refresh needed text in the settings - if necessary
-                    if (!settingsRefreshIcon.is(':visible')) {
-                        $('#settings-last-refreshed').addClass('alert');
-                        settingsRefreshIcon.show();
-                    }
-                }
-            }
-        }).fail(nf.Common.handleAjaxError);
-    };
+    // var checkRevision = function () {
+    //     // get the revision
+    //     return $.ajax({
+    //         type: 'GET',
+    //         url: config.urls.revision,
+    //         dataType: 'json'
+    //     }).done(function (response) {
+    //         if (nf.Common.isDefinedAndNotNull(response.revision)) {
+    //             var revision = response.revision;
+    //             var currentRevision = nf.Client.getRevision();
+    //
+    //             // if there is a newer revision, there are outstanding
+    //             // changes that need to be updated
+    //             if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
+    //                 var refreshContainer = $('#refresh-required-container');
+    //                 var settingsRefreshIcon = $('#settings-refresh-required-icon');
+    //
+    //                 // insert the refresh needed text in the canvas - if necessary
+    //                 if (!refreshContainer.is(':visible')) {
+    //                     $('#stats-last-refreshed').addClass('alert');
+    //                     var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
+    //
+    //                     // update the tooltip
+    //                     var refreshRequiredIcon = $('#refresh-required-icon');
+    //                     if (refreshRequiredIcon.data('qtip')) {
+    //                         refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
+    //                     } else {
+    //                         refreshRequiredIcon.qtip($.extend({
+    //                             content: refreshMessage
+    //                         }, nf.CanvasUtils.config.systemTooltipConfig));
+    //                     }
+    //
+    //                     refreshContainer.show();
+    //                 }
+    //
+    //                 // insert the refresh needed text in the settings - if necessary
+    //                 if (!settingsRefreshIcon.is(':visible')) {
+    //                     $('#settings-last-refreshed').addClass('alert');
+    //                     settingsRefreshIcon.show();
+    //                 }
+    //             }
+    //         }
+    //     }).fail(nf.Common.handleAjaxError);
+    // };
 
     /**
      * Initializes the canvas.
@@ -226,7 +240,7 @@ nf.Canvas = (function () {
 
         // create arrow definitions for the various line types
         defs.selectAll('marker')
-            .data(['normal', 'ghost'])
+            .data(['normal', 'ghost', 'unauthorized'])
             .enter().append('marker')
             .attr({
                 'id': function (d) {
@@ -241,6 +255,8 @@ nf.Canvas = (function () {
                 'fill': function (d) {
                     if (d === 'ghost') {
                         return '#aaaaaa';
+                    } else if (d === 'unauthorized') {
+                        return '#ba554a';
                     } else {
                         return '#000000';
                     }
@@ -249,77 +265,42 @@ nf.Canvas = (function () {
             .append('path')
             .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
 
-        // define the gradient for the processor stats background
-        var processGroupStatsBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'process-group-stats-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
+        // filter for drop shadow
+        var filter = defs.append('filter')
+            .attr('id', 'component-drop-shadow');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#dedede'
-            });
+        // blur
+        filter.append('feGaussianBlur')
+            .attr('in', 'SourceAlpha')
+            .attr('stdDeviation', 2)
+            .attr('result', 'blur');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '50%',
-                'stop-color': '#ffffff'
-            });
+        // offset
+        filter.append('feOffset')
+            .attr('in', 'blur')
+            .attr('dx', 0)
+            .attr('dy', 1)
+            .attr('result', 'offsetBlur');
 
-        processGroupStatsBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#dedede'
-            });
+        // color/opacity
+        filter.append('feFlood')
+            .attr('flood-color', '#000000')
+            .attr('flood-opacity', 0.25)
+            .attr('result', 'offsetColor');
 
-        // define the gradient for the processor stats background
-        var processorStatsBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'processor-stats-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
+        // combine
+        filter.append('feComposite')
+            .attr('in', 'offsetColor')
+            .attr('in2', 'offsetBlur')
+            .attr('operator', 'in')
+            .attr('result', 'offsetColorBlur');
 
-        processorStatsBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#6f97ac'
-            });
-
-        processorStatsBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#30505c'
-            });
-
-        // define the gradient for the port background
-        var portBackground = defs.append('linearGradient')
-            .attr({
-                'id': 'port-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
-
-        portBackground.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': '#aaaaaa'
-            });
-
-        portBackground.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#ffffff'
-            });
+        // stack the effect under the source graph
+        var feMerge = filter.append('feMerge');
+        feMerge.append('feMergeNode')
+            .attr('in', 'offsetColorBlur');
+        feMerge.append('feMergeNode')
+            .attr('in', 'SourceGraphic');
 
         // define the gradient for the expiration icon
         var expirationBackground = defs.append('linearGradient')
@@ -450,8 +431,8 @@ nf.Canvas = (function () {
                     d3.selectAll('g.component').classed('selected', function (d) {
                         // consider it selected if its already selected or enclosed in the bounding box
                         return d3.select(this).classed('selected') ||
-                            d.component.position.x >= selectionBoundingBox.x && (d.component.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                            d.component.position.y >= selectionBoundingBox.y && (d.component.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
+                            d.position.x >= selectionBoundingBox.x && (d.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            d.position.y >= selectionBoundingBox.y && (d.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
                     });
 
                     // see if a connection should be selected or not
@@ -480,8 +461,8 @@ nf.Canvas = (function () {
                     nf.CanvasUtils.getSelection().classed('selected', false);
                 }
 
-                // update the toolbar
-                nf.CanvasToolbar.refresh();
+                // inform Angular app values have changed
+                nf.ng.Bridge.digest();
             });
 
         // define a function for update the graph dimensions
@@ -509,9 +490,7 @@ nf.Canvas = (function () {
             });
 
             //breadcrumbs
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.updateBreadcrumbsCss',
-                {'bottom': bottom + 'px'});
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
 
             // body
             $('#canvas-body').css({
@@ -520,10 +499,19 @@ nf.Canvas = (function () {
             });
         };
 
+        // define a function for update the flow status dimensions
+        var updateFlowStatusContainerSize = function () {
+            $('#flow-status-container').css({
+                'width': ((($('#nifi-logo').width() + $('#component-container').width())/$(window).width())*100)*2 + '%'
+            });
+        };
+        updateFlowStatusContainerSize();
+
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function (e) {
             if (e.target === window) {
                 updateGraphSize();
+                updateFlowStatusContainerSize();
                 nf.Settings.resetTableSize();
             }
         }).on('keydown', function (evt) {
@@ -540,13 +528,13 @@ nf.Canvas = (function () {
             if (isCtrl) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
-                    nf.Actions.reloadStatus();
+                    nf.Actions.reload();
 
                     // default prevented in nf-universal-capture.js
                 } else if (evt.keyCode === 65) {
                     // ctrl-a
                     nf.Actions.selectAll();
-                    nf.CanvasToolbar.refresh();
+                    nf.ng.Bridge.digest();
 
                     // only want to prevent default if the action was performed, otherwise default select all would be overridden
                     evt.preventDefault();
@@ -588,8 +576,9 @@ nf.Canvas = (function () {
             // ensure the banners response is specified
             if (nf.Common.isDefinedAndNotNull(response.banners)) {
                 if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
-                    // update the header text
-                    $('#banner-header').addClass('banner-header-background').text(response.banners.headerText);
+                    // update the header text and show it
+                    $('#banner-header').addClass('banner-header-background').text(response.banners.headerText).show();
+                    $('#canvas-container').css('top', '98px');
                 }
 
                 if (nf.Common.isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
@@ -612,250 +601,59 @@ nf.Canvas = (function () {
     };
 
     /**
-     * Sets the colors for the specified type.
-     *
-     * @param {array} colors The possible colors
-     * @param {string} type The component type for these colors
-     */
-    var setColors = function (colors, type) {
-        var defs = d3.select('defs');
-
-        // update processors
-        var processorSelection = defs.selectAll('linearGradient.' + type + '-background').data(colors, function (d) {
-            return d;
-        });
-
-        // define the gradient for the processor background
-        var gradient = processorSelection.enter().append('linearGradient')
-            .attr({
-                'id': function (d) {
-                    return type + '-background-' + d;
-                },
-                'class': type + '-background',
-                'x1': '0%',
-                'y1': '100%',
-                'x2': '0%',
-                'y2': '0%'
-            });
-
-        gradient.append('stop')
-            .attr({
-                'offset': '0%',
-                'stop-color': function (d) {
-                    return '#' + d;
-                }
-            });
-
-        gradient.append('stop')
-            .attr({
-                'offset': '100%',
-                'stop-color': '#ffffff'
-            });
-
-        // remove old processor colors
-        processorSelection.exit().remove();
-    };
-
-    /**
-     * Reloads the current status of this flow.
-     */
-    var reloadFlowStatus = function () {
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.status,
-            dataType: 'json'
-        }).done(function (response) {
-            // report the updated status
-            if (nf.Common.isDefinedAndNotNull(response.controllerStatus)) {
-                var controllerStatus = response.controllerStatus;
-
-                // update the report values
-                $('#active-thread-count').text(controllerStatus.activeThreadCount);
-                $('#total-queued').text(controllerStatus.queued);
-
-                // update the connected nodes if applicable
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.connectedNodes)) {
-                    var connectedNodes = controllerStatus.connectedNodes.split(' / ');
-                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
-                        $('#connected-nodes-count').addClass('alert');
-                    } else {
-                        $('#connected-nodes-count').removeClass('alert');
-                    }
-
-                    // set the connected nodes
-                    $('#connected-nodes-count').text(controllerStatus.connectedNodes);
-                }
-
-                // update the component counts
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.activeRemotePortCount)) {
-                    $('#controller-transmitting-count').text(controllerStatus.activeRemotePortCount);
-                } else {
-                    $('#controller-transmitting-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.inactiveRemotePortCount)) {
-                    $('#controller-not-transmitting-count').text(controllerStatus.inactiveRemotePortCount);
-                } else {
-                    $('#controller-not-transmitting-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.runningCount)) {
-                    $('#controller-running-count').text(controllerStatus.runningCount);
-                } else {
-                    $('#controller-running-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.stoppedCount)) {
-                    $('#controller-stopped-count').text(controllerStatus.stoppedCount);
-                } else {
-                    $('#controller-stopped-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.invalidCount)) {
-                    $('#controller-invalid-count').text(controllerStatus.invalidCount);
-                } else {
-                    $('#controller-invalid-count').text('-');
-                }
-                if (nf.Common.isDefinedAndNotNull(controllerStatus.disabledCount)) {
-                    $('#controller-disabled-count').text(controllerStatus.disabledCount);
-                } else {
-                    $('#controller-disabled-count').text('-');
-                }
-
-                // icon for system bulletins
-                var bulletinIcon = $('#controller-bulletins');
-                var currentBulletins = bulletinIcon.data('bulletins');
-
-                // update the bulletins if necessary
-                if (nf.Common.doBulletinsDiffer(currentBulletins, controllerStatus.bulletins)) {
-                    bulletinIcon.data('bulletins', controllerStatus.bulletins);
-
-                    // get the formatted the bulletins
-                    var bulletins = nf.Common.getFormattedBulletins(controllerStatus.bulletins);
-
-                    // bulletins for this processor are now gone
-                    if (bulletins.length === 0) {
-                        if (bulletinIcon.data('qtip')) {
-                            bulletinIcon.removeClass('has-bulletins').qtip('api').destroy(true);
-                        }
-
-                        // hide the icon
-                        bulletinIcon.hide();
-                    } else {
-                        var newBulletins = nf.Common.formatUnorderedList(bulletins);
-
-                        // different bulletins, refresh
-                        if (bulletinIcon.data('qtip')) {
-                            bulletinIcon.qtip('option', 'content.text', newBulletins);
-                        } else {
-                            // no bulletins before, show icon and tips
-                            bulletinIcon.addClass('has-bulletins').qtip($.extend({
-                                content: newBulletins
-                            }, nf.CanvasUtils.config.systemTooltipConfig));
-                        }
-
-                        // show the icon
-                        bulletinIcon.show();
-                    }
-                }
-
-                // update controller service and reporting task bulletins
-                nf.Settings.setBulletins(controllerStatus.controllerServiceBulletins, controllerStatus.reportingTaskBulletins);
-
-                // handle any pending user request
-                if (controllerStatus.hasPendingAccounts === true) {
-                    $('#has-pending-accounts').show();
-                } else {
-                    $('#has-pending-accounts').hide();
-                }
-            }
-        }).fail(nf.Common.handleAjaxError);
-    };
-
-    /**
      * Refreshes the graph.
      *
      * @argument {string} processGroupId        The process group id
+     * @argument {object} options               Configuration options
      */
-    var reloadProcessGroup = function (processGroupId) {
+    var reloadProcessGroup = function (processGroupId, options) {
         // load the controller
         return $.ajax({
             type: 'GET',
-            url: config.urls.api + '/process-groups/' + encodeURIComponent(processGroupId),
+            url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId),
             data: {
                 verbose: true
             },
             dataType: 'json'
-        }).done(function (processGroupResponse) {
-            // set the revision
-            nf.Client.setRevision(processGroupResponse.revision);
-
+        }).done(function (flowResponse) {
             // get the controller and its contents
-            var processGroup = processGroupResponse.processGroup;
+            var processGroupFlow = flowResponse.processGroupFlow;
 
             // set the group details
-            nf.Canvas.setGroupId(processGroup.id);
-            nf.Canvas.setGroupName(processGroup.name);
+            nf.Canvas.setGroupId(processGroupFlow.id);
 
+            // update the access policies
+            accessPolicy = flowResponse.accessPolicy;
+            
             // update the breadcrumbs
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetBreadcrumbs');
-            nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                'AppCtrl.ServiceProvider.BreadcrumbsCtrl.generateBreadcrumbs',
-                processGroup);
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetBreadcrumbs();
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
+            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetScrollPosition();
+
+            // update the timestamp
+            $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
 
             // set the parent id if applicable
-            if (nf.Common.isDefinedAndNotNull(processGroup.parent)) {
-                nf.Canvas.setParentGroupId(processGroup.parent.id);
+            if (nf.Common.isDefinedAndNotNull(processGroupFlow.parentGroupId)) {
+                nf.Canvas.setParentGroupId(processGroupFlow.parentGroupId);
             } else {
                 nf.Canvas.setParentGroupId(null);
             }
 
-            // since we're getting a new group, we want to clear it
-            nf.Graph.removeAll();
-
             // refresh the graph
-            nf.Graph.add(processGroup.contents, false);
+            nf.Graph.set(processGroupFlow.flow, $.extend({
+                'selectAll': false
+            }, options));
 
-            // update the toolbar
-            nf.CanvasToolbar.refresh();
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
+
+            // update the birdseye
+            nf.Birdseye.refresh();
+
+            // inform Angular app values have changed
+            nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
-    };
-
-    /**
-     * Refreshes the status for the resources that exist in the specified process group.
-     *
-     * @argument {string} processGroupId        The id of the process group
-     */
-    var reloadStatus = function (processGroupId) {
-        // get the stats
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId) + '/status',
-                data: {
-                    recursive: false
-                },
-                dataType: 'json'
-            }).done(function (response) {
-                // report the updated stats
-                if (nf.Common.isDefinedAndNotNull(response.processGroupStatus)) {
-                    var processGroupStatus = response.processGroupStatus;
-                    var aggregateSnapshot = processGroupStatus.aggregateSnapshot;
-
-                    // update all the stats
-                    nf.Graph.setStatus(aggregateSnapshot);
-
-                    // update the timestamp
-                    $('#stats-last-refreshed').text(processGroupStatus.statsLastRefreshed);
-                }
-                deferred.resolve();
-            }).fail(function (xhr, status, error) {
-                // if clustered, a 404 likely means the flow status at the ncm is stale
-                if (!nf.Canvas.isClustered() || xhr.status !== 404) {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                } else {
-                    deferred.resolve();
-                }
-            });
-        }).promise();
     };
 
     return {
@@ -874,57 +672,27 @@ nf.Canvas = (function () {
         },
 
         /**
-         * Stop polling for revision.
-         */
-        stopRevisionPolling: function () {
-            // set polling flag
-            revisionPolling = false;
-        },
-
-        /**
          * Remove the status poller.
          */
-        stopStatusPolling: function () {
+        stopPolling: function () {
             // set polling flag
-            statusPolling = false;
+            polling = false;
         },
 
         /**
          * Reloads the flow from the server based on the currently specified group id.
-         * To load another group, update nf.Canvas.setGroupId and call nf.Canvas.reload.
+         * To load another group, update nf.Canvas.setGroupId, clear the canvas, and call nf.Canvas.reload.
          */
-        reload: function () {
+        reload: function (options) {
             return $.Deferred(function (deferred) {
                 // hide the context menu
                 nf.ContextMenu.hide();
 
                 // get the process group to refresh everything
-                var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
-                var statusXhr = reloadFlowStatus();
-                var settingsXhr = nf.Settings.loadSettings(false); // don't reload the status as we want to wait for deferreds to complete
-                $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
-                    // adjust breadcrumbs if necessary
-                    nf.ng.Bridge.call('AppCtrl.ServiceProvider.BreadcrumbsCtrl',
-                        'AppCtrl.ServiceProvider.BreadcrumbsCtrl.resetScrollPosition');
-
-                    // don't load the status until the graph is loaded
-                    reloadStatus(nf.Canvas.getGroupId()).done(function () {
-                        deferred.resolve(processGroupResult);
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                });
-            }).promise();
-        },
-
-        /**
-         * Reloads the status.
-         */
-        reloadStatus: function () {
-            return $.Deferred(function (deferred) {
-                // refresh the status and check any bulletins
-                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus(), checkRevision()).done(function () {
-                    deferred.resolve();
+                var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
+                var statusXhr = nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus();
+                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
+                    deferred.resolve(processGroupResult);
                 }).fail(function () {
                     deferred.reject();
                 });
@@ -1007,26 +775,13 @@ nf.Canvas = (function () {
                 });
             }).promise();
             userXhr.done(function () {
+                // load the client id
+                var clientXhr = nf.Client.init();
+                
                 // get the controller config to register the status poller
                 var configXhr = $.ajax({
                     type: 'GET',
                     url: config.urls.controllerConfig,
-                    dataType: 'json'
-                });
-
-                // get the about details
-                var aboutXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.about,
-                    dataType: 'json'
-                }).done(function (response) {
-                    
-                }).fail(nf.Common.handleAjaxError);
-
-                // get the login config
-                var loginXhr = $.ajax({
-                    type: 'GET',
-                    url: config.urls.accessConfig,
                     dataType: 'json'
                 });
 
@@ -1049,10 +804,8 @@ nf.Canvas = (function () {
                 }).promise();
 
                 // ensure the config requests are loaded
-                $.when(configXhr, loginXhr, aboutXhr, userXhr).done(function (configResult, loginResult, aboutResult) {
+                $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
                     var configResponse = configResult[0];
-                    var loginResponse = loginResult[0];
-                    var aboutResponse = aboutResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -1060,17 +813,6 @@ nf.Canvas = (function () {
 
                     // get the config details
                     var configDetails = configResponse.config;
-                    var loginDetails = loginResponse.config;
-                    var aboutDetails = aboutResponse.about;
-                    
-                    // set the document title and the about title
-                    document.title = aboutDetails.title;
-                    $('#nf-version').text(aboutDetails.version);
-                    
-                    // store the content viewer url if available
-                    if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
-                        $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
-                    }
 
                     // when both request complete, load the application
                     isClusteredRequest.done(function () {
@@ -1087,11 +829,7 @@ nf.Canvas = (function () {
                         initCanvas();
                         nf.Canvas.View.init();
                         nf.ContextMenu.init();
-                        nf.CanvasToolbar.init();
-                        nf.CanvasToolbox.init();
-                        nf.CanvasHeader.init(loginDetails.supportsLogin);
-                        nf.GraphControl.init();
-                        nf.Search.init();
+                        nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl').init();
                         nf.Settings.init();
                         nf.Actions.init();
                         nf.QueueListing.init();
@@ -1125,13 +863,14 @@ nf.Canvas = (function () {
                         nf.RemoteProcessGroupDetails.init();
                         nf.GoTo.init();
                         nf.Graph.init().done(function () {
+                            nf.ng.Bridge.get('appCtrl.serviceProvider.graphControlsCtrl').init();
+
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                            // register the revision and status polling
-                            startRevisionPolling(autoRefreshIntervalSeconds);
+                            // register the polling
                             setTimeout(function () {
-                                startStatusPolling(autoRefreshIntervalSeconds);
+                                startPolling(autoRefreshIntervalSeconds);
                             }, pollingSplit * 1000);
 
                             // hide the splash screen
@@ -1140,24 +879,6 @@ nf.Canvas = (function () {
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);
-        },
-
-        /**
-         * Defines the gradient colors used to render processors.
-         *
-         * @param {array} colors The colors
-         */
-        defineProcessorColors: function (colors) {
-            setColors(colors, 'processor');
-        },
-
-        /**
-         * Defines the gradient colors used to render label.
-         *
-         * @param {array} colors The colors
-         */
-        defineLabelColors: function (colors) {
-            setColors(colors, 'label');
         },
 
         /**
@@ -1224,6 +945,19 @@ nf.Canvas = (function () {
             return parentGroupId;
         },
 
+        /**
+         * Whether the current user can write in this group.
+         * 
+         * @returns {boolean}   can write
+         */
+        canWrite: function () {
+            if (accessPolicy === null) {
+                return false;
+            } else {
+                return accessPolicy.canWrite === true;
+            }
+        },
+
         View: (function () {
 
             /**
@@ -1253,8 +987,8 @@ nf.Canvas = (function () {
                         return false;
                     }
 
-                    var left = d.component.position.x;
-                    var top = d.component.position.y;
+                    var left = d.position.x;
+                    var top = d.position.y;
                     var right = left + d.dimensions.width;
                     var bottom = top + d.dimensions.height;
 
@@ -1283,7 +1017,7 @@ nf.Canvas = (function () {
 
                 // marks the specific component as visible and determines if its entering or leaving visibility
                 var updateVisibility = function (d, isVisible) {
-                    var selection = d3.select('#id-' + d.component.id);
+                    var selection = d3.select('#id-' + d.id);
                     var visible = isVisible(d);
                     var wasVisible = selection.classed('visible');
 

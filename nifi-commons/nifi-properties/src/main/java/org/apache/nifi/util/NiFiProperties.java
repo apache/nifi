@@ -172,7 +172,6 @@ public class NiFiProperties extends Properties {
     public static final String ZOOKEEPER_CONNECT_TIMEOUT = "nifi.zookeeper.connect.timeout";
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
-    public static final String ZOOKEEPER_ACCESS_CONTROL = "nifi.zookeeper.access.control";
 
     // cluster manager properties
     public static final String CLUSTER_IS_MANAGER = "nifi.cluster.is.manager";
@@ -186,6 +185,8 @@ public class NiFiProperties extends Properties {
     public static final String CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY = "nifi.cluster.manager.flow.retrieval.delay";
     public static final String CLUSTER_MANAGER_PROTOCOL_THREADS = "nifi.cluster.manager.protocol.threads";
     public static final String CLUSTER_MANAGER_SAFEMODE_DURATION = "nifi.cluster.manager.safemode.duration";
+
+    public static final String REQUEST_REPLICATION_CLAIM_TIMEOUT = "nifi.cluster.request.replication.claim.timeout";
 
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
@@ -249,6 +250,8 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY = "5 sec";
     public static final int DEFAULT_CLUSTER_MANAGER_PROTOCOL_THREADS = 10;
     public static final String DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION = "0 sec";
+
+    public static final String DEFAULT_REQUEST_REPLICATION_CLAIM_TIMEOUT = "1 min";
 
     // state management defaults
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";

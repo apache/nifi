@@ -42,7 +42,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -191,7 +191,7 @@ public class HashAttribute extends AbstractProcessor {
         }
 
         final Map<String, Pattern> patterns = regexMapRef.get();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         final SortedMap<String, String> attributes = getRelevantAttributes(flowFile, patterns);
         if (attributes.size() != patterns.size()) {

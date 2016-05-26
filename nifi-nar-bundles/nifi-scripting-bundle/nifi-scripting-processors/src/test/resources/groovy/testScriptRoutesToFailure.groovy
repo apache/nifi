@@ -16,7 +16,7 @@
  */
 class testScriptRoutesToFailure implements Processor {
 
-  def ProcessorLog log
+  def ComponentLog log
 
   @Override
   void initialize(ProcessorInitializationContext context) {

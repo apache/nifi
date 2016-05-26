@@ -23,6 +23,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.node.Node;
@@ -30,21 +33,21 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
-import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -76,15 +79,45 @@ import java.util.Set;
     description = "Endpoint for managing a Processor."
 )
 public class ProcessorResource extends ApplicationResource {
+    private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
 
     private static final List<Long> POSSIBLE_RUN_DURATIONS = Arrays.asList(0L, 25L, 50L, 100L, 250L, 500L, 1000L, 2000L);
 
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ServletContext servletContext;
+
+    /**
+     * Populate the uri's for the specified processors and their relationships.
+     *
+     * @param processorEntities processors
+     * @return dtos
+     */
+    public Set<ProcessorEntity> populateRemainingProcessorEntitiesContent(Set<ProcessorEntity> processorEntities) {
+        for (ProcessorEntity processorEntity : processorEntities) {
+            if (processorEntity.getComponent() != null) {
+                populateRemainingProcessorContent(processorEntity.getComponent());
+            }
+        }
+        return processorEntities;
+    }
+
+    /**
+     * Populate the uri's for the specified processors and their relationships.
+     *
+     * @param processorEntity processors
+     * @return dtos
+     */
+    public ProcessorEntity populateRemainingProcessorEntityContent(ProcessorEntity processorEntity) {
+        if (processorEntity.getComponent() != null) {
+            populateRemainingProcessorContent(processorEntity.getComponent());
+        }
+        return processorEntity;
+    }
 
     /**
      * Populate the uri's for the specified processors and their relationships.
@@ -133,7 +166,6 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to retrieve.
      * @return A processorEntity.
      */
@@ -162,32 +194,25 @@ public class ProcessorResource extends ApplicationResource {
     )
     public Response getProcessor(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.READ);
+        });
+
         // get the specified processor
-        final ProcessorDTO processor = serviceFacade.getProcessor(id);
-
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
-        // generate the response entity
-        final ProcessorEntity entity = new ProcessorEntity();
-        entity.setRevision(revision);
-        entity.setProcessor(populateRemainingProcessorContent(processor));
+        final ProcessorEntity entity = serviceFacade.getProcessor(id);
+        populateRemainingProcessorEntityContent(entity);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -196,7 +221,6 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor
      * @param propertyName The property
      * @return a propertyDescriptorEntity
@@ -229,17 +253,17 @@ public class ProcessorResource extends ApplicationResource {
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") String propertyName) {
+            @QueryParam("propertyName") final String propertyName) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -251,16 +275,17 @@ public class ProcessorResource extends ApplicationResource {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.READ);
+        });
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
-        entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
 
         // generate the response
@@ -270,7 +295,6 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Gets the state for a processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor
      * @return a componentStateEntity
      */
@@ -297,31 +321,27 @@ public class ProcessorResource extends ApplicationResource {
     )
     public Response getState(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable processor = lookup.getProcessor(id);
+            processor.authorize(authorizer, RequestAction.WRITE);
+        });
+
         // get the component state
         final ComponentStateDTO state = serviceFacade.getProcessorState(id);
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(revision);
         entity.setComponentState(state);
 
         // generate the response
@@ -358,20 +378,19 @@ public class ProcessorResource extends ApplicationResource {
         }
     )
     public Response clearState(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The revision used to verify the client is working with the latest version of the flow.",
             required = true
-        )
-        Entity revisionEntity,
+        ) final ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The processor id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
         // ensure the revision was specified
-        if (revisionEntity == null || revisionEntity.getRevision() == null) {
+        if (revisionEntity == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
 
@@ -381,24 +400,21 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
+        if (isValidationPhase(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            });
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
         }
 
         // get the component state
-        final RevisionDTO requestRevision = revisionEntity.getRevision();
-        final ConfigurationSnapshot<Void> snapshot = serviceFacade.clearProcessorState(new Revision(requestRevision.getVersion(), requestRevision.getClientId()), id);
-
-        // create the revision
-        final RevisionDTO responseRevision = new RevisionDTO();
-        responseRevision.setClientId(requestRevision.getClientId());
-        responseRevision.setVersion(snapshot.getVersion());
+        serviceFacade.clearProcessorState(id);
 
         // generate the response entity
         final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setRevision(responseRevision);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
@@ -434,19 +450,18 @@ public class ProcessorResource extends ApplicationResource {
             }
     )
     public Response updateProcessor(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The processor configuration details.",
                     required = true
-            )
-            ProcessorEntity processorEntity) {
+            ) final ProcessorEntity processorEntity) {
 
-        if (processorEntity == null || processorEntity.getProcessor() == null) {
+        if (processorEntity == null || processorEntity.getComponent() == null) {
             throw new IllegalArgumentException("Processor details must be specified.");
         }
 
@@ -455,7 +470,7 @@ public class ProcessorResource extends ApplicationResource {
         }
 
         // ensure the same id is being used
-        final ProcessorDTO requestProcessorDTO = processorEntity.getProcessor();
+        final ProcessorDTO requestProcessorDTO = processorEntity.getComponent();
         if (!id.equals(requestProcessorDTO.getId())) {
             throw new IllegalArgumentException(String.format("The processor id (%s) in the request body does "
                     + "not equal the processor id of the requested resource (%s).", requestProcessorDTO.getId(), id));
@@ -473,40 +488,32 @@ public class ProcessorResource extends ApplicationResource {
             }
 
             // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(processorEntity), getHeaders()).getResponse();
+            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), processorEntity, getHeaders()).getResponse();
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyUpdateProcessor(requestProcessorDTO);
-            return generateContinueResponse().build();
-        }
+        final Revision revision = getRevision(processorEntity, id);
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
+            () -> {
+                // update the processor
+                final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
+                final ProcessorEntity entity = result.getResult();
+                populateRemainingProcessorEntityContent(entity);
 
-        // update the processor
-        final RevisionDTO revision = processorEntity.getRevision();
-        final ConfigurationSnapshot<ProcessorDTO> controllerResponse = serviceFacade.updateProcessor(
-                new Revision(revision.getVersion(), revision.getClientId()), requestProcessorDTO);
-
-        // get the processor dto
-        final ProcessorDTO responseProcessorDTO = controllerResponse.getConfiguration();
-        populateRemainingProcessorContent(responseProcessorDTO);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // generate the response entity
-        final ProcessorEntity entity = new ProcessorEntity();
-        entity.setRevision(updatedRevision);
-        entity.setProcessor(responseProcessorDTO);
-
-        if (controllerResponse.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(responseProcessorDTO.getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                if (result.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            }
+        );
     }
 
     /**
@@ -540,55 +547,45 @@ public class ProcessorResource extends ApplicationResource {
             }
     )
     public Response deleteProcessor(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The processor id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
 
-        // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
-        if (expects != null) {
-            serviceFacade.verifyDeleteProcessor(id);
-            return generateContinueResponse().build();
-        }
+        final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable processor = lookup.getProcessor(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteProcessor(id),
+            () -> {
+                // delete the processor
+                final ProcessorEntity entity = serviceFacade.deleteProcessor(revision, id);
 
-        // determine the specified version
-        Long clientVersion = null;
-        if (version != null) {
-            clientVersion = version.getLong();
-        }
-
-        // delete the processor
-        final ConfigurationSnapshot<Void> controllerResponse = serviceFacade.deleteProcessor(new Revision(clientVersion, clientId.getClientId()), id);
-
-        // get the updated revision
-        final RevisionDTO updatedRevision = new RevisionDTO();
-        updatedRevision.setClientId(clientId.getClientId());
-        updatedRevision.setVersion(controllerResponse.getVersion());
-
-        // generate the response entity
-        final ProcessorEntity entity = new ProcessorEntity();
-        entity.setRevision(updatedRevision);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                // generate the response
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -602,5 +599,9 @@ public class ProcessorResource extends ApplicationResource {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

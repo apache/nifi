@@ -143,9 +143,9 @@ nf.ProcessorDetails = (function () {
                 url: '../nifi-api/processors/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.processor)) {
+                if (nf.Common.isDefinedAndNotNull(response.component)) {
                     // get the processor details
-                    var details = response.processor;
+                    var details = response.component;
 
                     // record the processor details
                     $('#processor-details').data('processorDetails', details);
@@ -211,7 +211,7 @@ nf.ProcessorDetails = (function () {
             // show the dialog once we have the processor and its history
             $.when(getProcessor, getProcessorHistory).done(function (processorResponse, historyResponse) {
                 var processorResponse = processorResponse[0];
-                var processor = processorResponse.processor;
+                var processor = processorResponse.component;
                 var historyResponse = historyResponse[0];
                 var history = historyResponse.componentHistory;
 

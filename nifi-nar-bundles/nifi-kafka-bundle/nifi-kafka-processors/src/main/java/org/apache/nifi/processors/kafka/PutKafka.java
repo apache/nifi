@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,25 +29,20 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -56,7 +50,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({ "Apache", "Kafka", "Put", "Send", "Message", "PubSub" })
@@ -67,7 +61,7 @@ import org.apache.nifi.util.StopWatch;
         + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"
         + " overriden with warning message describing the override."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
-public class PutKafka extends AbstractProcessor {
+public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
 
     private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
 
@@ -162,9 +156,9 @@ public class PutKafka extends AbstractProcessor {
                             + "If not specified, the entire content of the FlowFile will be used as a single message. If specified, "
                             + "the contents of the FlowFile will be split on this delimiter and each section sent as a separate Kafka "
                             + "message. Note that if messages are delimited and some messages for a given FlowFile are transferred "
-                            + "successfully while others are not, the FlowFile will be transferred to the 'failure' relationship. In "
-                            + "case the FlowFile is sent back to this processor, only the messages not previously transferred "
-                            + "successfully will be handled by the processor to be retransferred to Kafka.")
+                            + "successfully while others are not, the messages will be split into individual FlowFiles, such that those "
+                            + "messages that were successfully sent are routed to the 'success' relationship while other messages are "
+                            + "sent to the 'failure' relationship.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -199,13 +193,14 @@ public class PutKafka extends AbstractProcessor {
             .expressionLanguageSupported(false)
             .build();
     public static final PropertyDescriptor BATCH_NUM_MESSAGES = new PropertyDescriptor.Builder()
-            .name("Async Batch Size").displayName("Batch Size")
-            .description("The number of messages to send in one batch. The producer will wait until either this number of messages are ready "
-                            + "to send or \"Queue Buffering Max Time\" is reached. NOTE: This property will be ignored unless the 'Message Delimiter' "
-                            + "property is specified.")
+            .name("Async Batch Size")
+            .displayName("Batch Size")
+            .description("This configuration controls the default batch size in bytes.The producer will attempt to batch records together into "
+                    + "fewer requests whenever multiple records are being sent to the same partition. This helps performance on both the client "
+                    + "and the server.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("200")
+            .defaultValue("16384") // Kafka default
             .build();
     public static final PropertyDescriptor QUEUE_BUFFERING_MAX = new PropertyDescriptor.Builder()
             .name("Queue Buffering Max Time")
@@ -236,17 +231,15 @@ public class PutKafka extends AbstractProcessor {
             .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
             .build();
 
-    protected static final String ATTR_PROC_ID = "PROC_ID";
+    protected static final String FAILED_PROC_ID_ATTR = "failed.proc.id";
 
-    protected static final String ATTR_FAILED_SEGMENTS = "FS";
+    protected static final String FAILED_LAST_ACK_IDX = "failed.last.idx";
 
-    protected static final String ATTR_TOPIC = "TOPIC";
+    protected static final String FAILED_TOPIC_ATTR = "failed.topic";
 
-    protected static final String ATTR_KEY = "KEY";
+    protected static final String FAILED_KEY_ATTR = "failed.key";
 
-    protected static final String ATTR_DELIMITER = "DELIMITER";
-
-    private volatile KafkaPublisher kafkaPublisher;
+    protected static final String FAILED_DELIMITER_ATTR = "failed.delimiter";
 
     private static final List<PropertyDescriptor> propertyDescriptors;
 
@@ -276,71 +269,130 @@ public class PutKafka extends AbstractProcessor {
         relationships = Collections.unmodifiableSet(_relationships);
     }
 
-    /**
-     *
-     */
-    @OnScheduled
-    public void createKafkaPublisher(ProcessContext context) {
-        this.kafkaPublisher = new KafkaPublisher(this.buildKafkaConfigProperties(context));
-        this.kafkaPublisher.setProcessLog(this.getLogger());
-    }
 
     /**
+     * Will rendezvous with Kafka if {@link ProcessSession} contains {@link FlowFile}
+     * producing a result {@link FlowFile}.
+     * <br>
+     * The result {@link FlowFile} that is successful is then transfered to {@link #REL_SUCCESS}
+     * <br>
+     * The result {@link FlowFile} that is failed is then transfered to {@link #REL_FAILURE}
      *
      */
     @Override
-    public void onTrigger(final ProcessContext context, ProcessSession session) throws ProcessException {
+    protected boolean rendezvousWithKafka(ProcessContext context, ProcessSession session) throws ProcessException {
+        boolean processed = false;
         FlowFile flowFile = session.get();
         if (flowFile != null) {
-            final SplittableMessageContext messageContext = this.buildMessageContext(flowFile, context, session);
-            final Integer partitionKey = this.determinePartition(messageContext, context, flowFile);
-            final AtomicReference<BitSet> failedSegmentsRef = new AtomicReference<BitSet>();
-            final List<Future<RecordMetadata>> sendFutures = new ArrayList<>();
-
-            StopWatch timer = new StopWatch(true);
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream contentStream) throws IOException {
-                    int maxRecordSize = context.getProperty(MAX_RECORD_SIZE).asDataSize(DataUnit.B).intValue();
-                    sendFutures.addAll(kafkaPublisher.split(messageContext, contentStream, partitionKey, maxRecordSize));
-                    failedSegmentsRef.set(kafkaPublisher.publish(sendFutures));
-                }
-            });
-            timer.stop();
-
-            final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
-            final int messagesToSend = sendFutures.size();
-            final int messagesSent = messagesToSend - failedSegmentsRef.get().cardinality();
-            final String details = messagesSent + " message(s) over " + messagesToSend + " sent successfully";
-            if (failedSegmentsRef.get().isEmpty()) {
-                session.getProvenanceReporter().send(flowFile, "kafka://" + context.getProperty(SEED_BROKERS).getValue() + "/" + messageContext.getTopicName(), details, duration);
-                flowFile = this.cleanUpFlowFileIfNecessary(flowFile, session);
+            flowFile = this.doRendezvousWithKafka(flowFile, context, session);
+            if (!this.isFailedFlowFile(flowFile)) {
+                session.getProvenanceReporter().send(flowFile,
+                        context.getProperty(SEED_BROKERS).getValue() + "/"
+                        + context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue());
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
-                if(messagesSent != 0) {
-                    session.getProvenanceReporter().send(flowFile, "kafka://" + context.getProperty(SEED_BROKERS).getValue() + "/" + messageContext.getTopicName(), details, duration);
-                }
-                flowFile = session.putAllAttributes(flowFile, this.buildFailedFlowFileAttributes(failedSegmentsRef.get(), messageContext));
                 session.transfer(session.penalize(flowFile), REL_FAILURE);
             }
-
-        } else {
-            context.yield();
+            processed = true;
         }
+        return processed;
     }
 
-    @OnStopped
-    public void cleanup() {
-        try {
-            this.kafkaPublisher.close();
-        } catch (Exception e) {
-            getLogger().warn("Failed while closing KafkaPublisher", e);
+    /**
+     * Will rendezvous with {@link KafkaPublisher} after building
+     * {@link PublishingContext} and will produce the resulting {@link FlowFile}.
+     * The resulting FlowFile contains all required information to determine
+     * if message publishing originated from the provided FlowFile has actually
+     * succeeded fully, partially or failed completely (see
+     * {@link #isFailedFlowFile(FlowFile)}.
+     */
+    private FlowFile doRendezvousWithKafka(final FlowFile flowFile, final ProcessContext context, final ProcessSession session) {
+        final AtomicReference<KafkaPublisherResult> publishResultRef = new AtomicReference<>();
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(InputStream contentStream) throws IOException {
+                PublishingContext publishingContext = PutKafka.this.buildPublishingContext(flowFile, context, contentStream);
+                KafkaPublisherResult result = PutKafka.this.kafkaResource.publish(publishingContext);
+                publishResultRef.set(result);
+            }
+        });
+
+        FlowFile resultFile = publishResultRef.get().isAllAcked()
+                ? this.cleanUpFlowFileIfNecessary(flowFile, session)
+                : session.putAllAttributes(flowFile, this.buildFailedFlowFileAttributes(publishResultRef.get().getLastMessageAcked(), flowFile, context));
+
+        return resultFile;
+    }
+
+    /**
+     * Builds {@link PublishingContext} for message(s) to be sent to Kafka.
+     * {@link PublishingContext} contains all contextual information required by
+     * {@link KafkaPublisher} to publish to Kafka. Such information contains
+     * things like topic name, content stream, delimiter, key and last ACKed
+     * message for cases where provided FlowFile is being retried (failed in the
+     * past). <br>
+     * For the clean FlowFile (file that has been sent for the first time),
+     * PublishingContext will be built form {@link ProcessContext} associated
+     * with this invocation. <br>
+     * For the failed FlowFile, {@link PublishingContext} will be built from
+     * attributes of that FlowFile which by then will already contain required
+     * information (e.g., topic, key, delimiter etc.). This is required to
+     * ensure the affinity of the retry in the even where processor
+     * configuration has changed. However keep in mind that failed FlowFile is
+     * only considered a failed FlowFile if it is being re-processed by the same
+     * processor (determined via {@link #FAILED_PROC_ID_ATTR}, see
+     * {@link #isFailedFlowFile(FlowFile)}). If failed FlowFile is being sent to
+     * another PublishKafka processor it is treated as a fresh FlowFile
+     * regardless if it has #FAILED* attributes set.
+     */
+    private PublishingContext buildPublishingContext(FlowFile flowFile, ProcessContext context,
+            InputStream contentStream) {
+        String topicName;
+        byte[] keyBytes;
+        byte[] delimiterBytes = null;
+        int lastAckedMessageIndex = -1;
+        if (this.isFailedFlowFile(flowFile)) {
+            lastAckedMessageIndex = Integer.valueOf(flowFile.getAttribute(FAILED_LAST_ACK_IDX));
+            topicName = flowFile.getAttribute(FAILED_TOPIC_ATTR);
+            keyBytes = flowFile.getAttribute(FAILED_KEY_ATTR) != null
+                    ? flowFile.getAttribute(FAILED_KEY_ATTR).getBytes(StandardCharsets.UTF_8) : null;
+            delimiterBytes = flowFile.getAttribute(FAILED_DELIMITER_ATTR) != null
+                    ? flowFile.getAttribute(FAILED_DELIMITER_ATTR).getBytes(StandardCharsets.UTF_8) : null;
+
+        } else {
+            topicName = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
+            String _key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
+            keyBytes = _key == null ? null : _key.getBytes(StandardCharsets.UTF_8);
+            delimiterBytes = context.getProperty(MESSAGE_DELIMITER).isSet() ? context.getProperty(MESSAGE_DELIMITER)
+                    .evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8) : null;
         }
+
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        publishingContext.setKeyBytes(keyBytes);
+        publishingContext.setDelimiterBytes(delimiterBytes);
+        publishingContext.setPartitionId(this.determinePartition(context, flowFile));
+        return publishingContext;
+    }
+
+    /**
+     * Returns 'true' if provided FlowFile is a failed FlowFile. A failed
+     * FlowFile contains {@link #FAILED_PROC_ID_ATTR}.
+     */
+    private boolean isFailedFlowFile(FlowFile flowFile) {
+        return this.getIdentifier().equals(flowFile.getAttribute(FAILED_PROC_ID_ATTR));
     }
 
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
+    }
+
+    @Override
+    protected KafkaPublisher buildKafkaResource(ProcessContext context, ProcessSession session)
+            throws ProcessException {
+        KafkaPublisher kafkaPublisher = new KafkaPublisher(this.buildKafkaConfigProperties(context));
+        kafkaPublisher.setProcessLog(this.getLogger());
+        return kafkaPublisher;
     }
 
     @Override
@@ -374,12 +426,14 @@ public class PutKafka extends AbstractProcessor {
      *
      */
     private FlowFile cleanUpFlowFileIfNecessary(FlowFile flowFile, ProcessSession session) {
-        if (flowFile.getAttribute(ATTR_FAILED_SEGMENTS) != null) {
-            flowFile = session.removeAttribute(flowFile, ATTR_FAILED_SEGMENTS);
-            flowFile = session.removeAttribute(flowFile, ATTR_KEY);
-            flowFile = session.removeAttribute(flowFile, ATTR_TOPIC);
-            flowFile = session.removeAttribute(flowFile, ATTR_DELIMITER);
-            flowFile = session.removeAttribute(flowFile, ATTR_PROC_ID);
+        if (this.isFailedFlowFile(flowFile)) {
+            Set<String> keysToRemove = new HashSet<>();
+            keysToRemove.add(FAILED_DELIMITER_ATTR);
+            keysToRemove.add(FAILED_KEY_ATTR);
+            keysToRemove.add(FAILED_TOPIC_ATTR);
+            keysToRemove.add(FAILED_PROC_ID_ATTR);
+            keysToRemove.add(FAILED_LAST_ACK_IDX);
+            flowFile = session.removeAllAttributes(flowFile, keysToRemove);
         }
         return flowFile;
     }
@@ -387,7 +441,7 @@ public class PutKafka extends AbstractProcessor {
     /**
      *
      */
-    private Integer determinePartition(SplittableMessageContext messageContext, ProcessContext context, FlowFile flowFile) {
+    private Integer determinePartition(ProcessContext context, FlowFile flowFile) {
         String partitionStrategy = context.getProperty(PARTITION_STRATEGY).getValue();
         Integer partitionValue = null;
         if (partitionStrategy.equalsIgnoreCase(USER_DEFINED_PARTITIONING.getValue())) {
@@ -400,44 +454,25 @@ public class PutKafka extends AbstractProcessor {
     }
 
     /**
+     * Builds a {@link Map} of FAILED_* attributes
      *
+     * @see #FAILED_PROC_ID_ATTR
+     * @see #FAILED_LAST_ACK_IDX
+     * @see #FAILED_TOPIC_ATTR
+     * @see #FAILED_KEY_ATTR
+     * @see #FAILED_DELIMITER_ATTR
      */
-    private Map<String, String> buildFailedFlowFileAttributes(BitSet failedSegments, SplittableMessageContext messageContext) {
+    private Map<String, String> buildFailedFlowFileAttributes(int lastAckedMessageIndex, FlowFile sourceFlowFile,
+            ProcessContext context) {
         Map<String, String> attributes = new HashMap<>();
-        attributes.put(ATTR_PROC_ID, this.getIdentifier());
-        attributes.put(ATTR_FAILED_SEGMENTS, new String(failedSegments.toByteArray(), StandardCharsets.UTF_8));
-        attributes.put(ATTR_TOPIC, messageContext.getTopicName());
-        attributes.put(ATTR_KEY, messageContext.getKeyBytesAsString());
-        attributes.put(ATTR_DELIMITER, new String(messageContext.getDelimiterBytes(), StandardCharsets.UTF_8));
+        attributes.put(FAILED_PROC_ID_ATTR, this.getIdentifier());
+        attributes.put(FAILED_LAST_ACK_IDX, String.valueOf(lastAckedMessageIndex));
+        attributes.put(FAILED_TOPIC_ATTR, context.getProperty(TOPIC).evaluateAttributeExpressions(sourceFlowFile).getValue());
+        attributes.put(FAILED_KEY_ATTR, context.getProperty(KEY).evaluateAttributeExpressions(sourceFlowFile).getValue());
+        attributes.put(FAILED_DELIMITER_ATTR, context.getProperty(MESSAGE_DELIMITER).isSet()
+                ? context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(sourceFlowFile).getValue()
+                : null);
         return attributes;
-    }
-
-    /**
-     *
-     */
-    private SplittableMessageContext buildMessageContext(FlowFile flowFile, ProcessContext context, ProcessSession session) {
-        String topicName;
-        byte[] key;
-        byte[] delimiterBytes;
-
-        String failedSegmentsString = flowFile.getAttribute(ATTR_FAILED_SEGMENTS);
-        if (flowFile.getAttribute(ATTR_PROC_ID) != null && flowFile.getAttribute(ATTR_PROC_ID).equals(this.getIdentifier()) && failedSegmentsString != null) {
-            topicName = flowFile.getAttribute(ATTR_TOPIC);
-            key = flowFile.getAttribute(ATTR_KEY) == null ? null : flowFile.getAttribute(ATTR_KEY).getBytes();
-            delimiterBytes = flowFile.getAttribute(ATTR_DELIMITER) != null ? flowFile.getAttribute(ATTR_DELIMITER).getBytes(StandardCharsets.UTF_8) : null;
-        } else {
-            failedSegmentsString = null;
-            topicName = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
-            String _key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
-            key = _key == null ? null : _key.getBytes(StandardCharsets.UTF_8);
-            delimiterBytes = context.getProperty(MESSAGE_DELIMITER).isSet()
-                    ? context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue().getBytes(StandardCharsets.UTF_8) : null;
-        }
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, key, delimiterBytes);
-        if (failedSegmentsString != null) {
-            messageContext.setFailedSegmentsAsByteArray(failedSegmentsString.getBytes());
-        }
-        return messageContext;
     }
 
     /**
@@ -450,11 +485,7 @@ public class PutKafka extends AbstractProcessor {
         properties.setProperty("acks", context.getProperty(DELIVERY_GUARANTEE).getValue());
         properties.setProperty("buffer.memory", String.valueOf(context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).longValue()));
         properties.setProperty("compression.type", context.getProperty(COMPRESSION_CODEC).getValue());
-        if (context.getProperty(MESSAGE_DELIMITER).isSet()) {
-            properties.setProperty("batch.size", context.getProperty(BATCH_NUM_MESSAGES).getValue());
-        } else {
-            properties.setProperty("batch.size", "1");
-        }
+        properties.setProperty("batch.size", context.getProperty(BATCH_NUM_MESSAGES).getValue());
 
         properties.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         Long queueBufferingMillis = context.getProperty(QUEUE_BUFFERING_MAX).asTimePeriod(TimeUnit.MILLISECONDS);

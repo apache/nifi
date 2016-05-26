@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.processor;
 
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
-import org.apache.nifi.logging.ProcessorLog;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimpleProcessLogger implements ProcessorLog {
+public class SimpleProcessLogger implements ComponentLog {
 
     private final Logger logger;
     private final LogRepository logRepository;

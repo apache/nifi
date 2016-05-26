@@ -203,7 +203,6 @@ public final class ResourceFactory {
     public static Resource getComponentResource(final ResourceType resourceType, final String identifier, final String name) {
         Objects.requireNonNull(resourceType, "The resource must be specified.");
         Objects.requireNonNull(identifier, "The component identifier must be specified.");
-        Objects.requireNonNull(name, "The component name must be specified.");
 
         return new Resource() {
             @Override

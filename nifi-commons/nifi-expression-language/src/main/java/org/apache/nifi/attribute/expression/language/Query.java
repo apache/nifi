@@ -55,6 +55,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Greate
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.InEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
@@ -131,6 +132,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTRIBUTE_REFERENCE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTR_NAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.CONTAINS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.COUNT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DIVIDE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ENDS_WITH;
@@ -1187,6 +1189,13 @@ public class Query {
                 verifyArgCount(argEvaluators, 1, "contains");
                 return addToken(new ContainsEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to contains")), "contains");
+            }
+            case IN: {
+                List<Evaluator<String>> list = new ArrayList<Evaluator<String>>();
+                for(int i = 0; i < argEvaluators.size(); i++) {
+                    list.add(toStringEvaluator(argEvaluators.get(i), i + "th argument to in"));
+                }
+                return addToken(new InEvaluator(toStringEvaluator(subjectEvaluator), list), "in");
             }
             case FIND: {
                 verifyArgCount(argEvaluators, 1, "find");

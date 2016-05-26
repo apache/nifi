@@ -16,26 +16,17 @@
  */
 package org.apache.nifi.groups;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -46,15 +37,19 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
@@ -63,8 +58,25 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.web.Revision;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public final class StandardProcessGroup implements ProcessGroup {
 
@@ -86,6 +98,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, RemoteProcessGroup> remoteGroups = new HashMap<>();
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
+    private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
+    private final Map<String, Template> templates = new HashMap<>();
     private final StringEncryptor encryptor;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -116,6 +130,16 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setParent(final ProcessGroup newParent) {
         parent.set(newParent);
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return getParent();
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getComponentResource(ResourceType.ProcessGroup, getIdentifier(), getName());
     }
 
     @Override
@@ -262,38 +286,21 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void startProcessing() {
         readLock.lock();
         try {
-            for (final ProcessorNode node : processors.values()) {
+            findAllProcessors().stream().filter(SCHEDULABLE_PROCESSORS).forEach(node -> {
                 try {
-                    if (!node.isRunning() && node.getScheduledState() != ScheduledState.DISABLED) {
-                        startProcessor(node);
-                    }
+                    node.getProcessGroup().startProcessor(node);
                 } catch (final Throwable t) {
                     LOG.error("Unable to start {} due to {}", new Object[]{node, t});
                 }
-            }
+            });
 
-            for (final Port inputPort : getInputPorts()) {
-                if (inputPort.getScheduledState() != ScheduledState.DISABLED) {
-                    startInputPort(inputPort);
-                }
-            }
+            findAllInputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().startInputPort(port);
+            });
 
-            for (final Port outputPort : getOutputPorts()) {
-                if (outputPort.getScheduledState() != ScheduledState.DISABLED) {
-                    startOutputPort(outputPort);
-                }
-            }
-
-            for (final Funnel funnel : getFunnels()) {
-                if (funnel.getScheduledState() != ScheduledState.DISABLED) {
-                    startFunnel(funnel);
-                }
-            }
-
-            // Recursively start child groups.
-            for (final ProcessGroup group : processGroups.values()) {
-                group.startProcessing();
-            }
+            findAllOutputPorts().stream().filter(SCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().startOutputPort(port);
+            });
         } finally {
             readLock.unlock();
         }
@@ -303,32 +310,21 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void stopProcessing() {
         readLock.lock();
         try {
-            for (final ProcessorNode node : processors.values()) {
+            findAllProcessors().stream().filter(UNSCHEDULABLE_PROCESSORS).forEach(node -> {
                 try {
-                    if (node.isRunning()) {
-                        stopProcessor(node);
-                    }
+                    node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
                     LOG.error("Unable to stop {} due to {}", new Object[]{node, t});
                 }
-            }
+            });
 
-            for (final Port inputPort : getInputPorts()) {
-                if (inputPort.getScheduledState() == ScheduledState.RUNNING) {
-                    stopInputPort(inputPort);
-                }
-            }
+            findAllInputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().stopInputPort(port);
+            });
 
-            for (final Port outputPort : getOutputPorts()) {
-                if (outputPort.getScheduledState() == ScheduledState.RUNNING) {
-                    stopOutputPort(outputPort);
-                }
-            }
-
-            // Recursively stop child groups.
-            for (final ProcessGroup group : processGroups.values()) {
-                group.stopProcessing();
-            }
+            findAllOutputPorts().stream().filter(UNSCHEDULABLE_PORTS).forEach(port -> {
+                port.getProcessGroup().stopOutputPort(port);
+            });
         } finally {
             readLock.unlock();
         }
@@ -1705,6 +1701,41 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public ControllerServiceNode findControllerService(final String id) {
+        return findControllerService(id, this);
+    }
+
+    private ControllerServiceNode findControllerService(final String id, final ProcessGroup start) {
+        ControllerServiceNode service = start.getControllerService(id);
+        if (service != null) {
+            return service;
+        }
+
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            service = findControllerService(id, group);
+            if (service != null) {
+                return service;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Set<ControllerServiceNode> findAllControllerServices() {
+        return findAllControllerServices(this);
+    }
+
+    public Set<ControllerServiceNode> findAllControllerServices(ProcessGroup start) {
+        final Set<ControllerServiceNode> services = start.getControllerServices(false);
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            services.addAll(findAllControllerServices(group));
+        }
+
+        return services;
+    }
+
+    @Override
     public void removeFunnel(final Funnel funnel) {
         writeLock.lock();
         try {
@@ -1743,6 +1774,184 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
+
+    @Override
+    public void addControllerService(final ControllerServiceNode service) {
+        writeLock.lock();
+        try {
+            final String id = requireNonNull(service).getIdentifier();
+            final ControllerServiceNode existingService = controllerServices.get(id);
+            if (existingService != null) {
+                throw new IllegalStateException("A Controller Service is already registered to this ProcessGroup with ID " + id);
+            }
+
+            service.setProcessGroup(this);
+            this.controllerServices.put(service.getIdentifier(), service);
+            LOG.info("{} added to {}", service, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public ControllerServiceNode getControllerService(final String id) {
+        readLock.lock();
+        try {
+            return controllerServices.get(requireNonNull(id));
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<ControllerServiceNode> getControllerServices(final boolean recursive) {
+        readLock.lock();
+        try {
+            final Set<ControllerServiceNode> services = new HashSet<>();
+            services.addAll(controllerServices.values());
+
+            if (recursive && parent.get() != null) {
+                services.addAll(parent.get().getControllerServices(true));
+            }
+
+            return services;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public void removeControllerService(final ControllerServiceNode service) {
+        writeLock.lock();
+        try {
+            final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
+            if (existing == null) {
+                throw new IllegalStateException(service + " is not a member of this Process Group");
+            }
+
+            service.verifyCanDelete();
+
+            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
+            }
+
+            for (final Map.Entry<PropertyDescriptor, String> entry : service.getProperties().entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                if (descriptor.getControllerServiceDefinition() != null) {
+                    final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                    if (value != null) {
+                        final ControllerServiceNode referencedNode = getControllerService(value);
+                        if (referencedNode != null) {
+                            referencedNode.removeReference(service);
+                        }
+                    }
+                }
+            }
+
+            controllerServices.remove(service.getIdentifier());
+            flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+            LOG.info("{} removed from {}", service, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+
+    @Override
+    public void addTemplate(final Template template) {
+        requireNonNull(template);
+
+        writeLock.lock();
+        try {
+            final String id = template.getDetails().getId();
+            if (id == null) {
+                throw new IllegalStateException("Cannot add template that has no ID");
+            }
+
+            if (templates.containsKey(id)) {
+                throw new IllegalStateException("Process Group already contains a Template with ID " + id);
+            }
+
+            templates.put(id, template);
+            template.setProcessGroup(this);
+            LOG.info("{} added to {}", template, this);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public Template getTemplate(final String id) {
+        readLock.lock();
+        try {
+            return templates.get(id);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Template findTemplate(final String id) {
+        return findTemplate(id, this);
+    }
+
+    private Template findTemplate(final String id, final ProcessGroup start) {
+        final Template template = start.getTemplate(id);
+        if (template != null) {
+            return template;
+        }
+
+        for (final ProcessGroup child : start.getProcessGroups()) {
+            final Template childTemplate = findTemplate(id, child);
+            if (childTemplate != null) {
+                return childTemplate;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Set<Template> getTemplates() {
+        readLock.lock();
+        try {
+            return new HashSet<>(templates.values());
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<Template> findAllTemplates() {
+        return findAllTemplates(this);
+    }
+
+    private Set<Template> findAllTemplates(final ProcessGroup group) {
+        final Set<Template> templates = new HashSet<>(group.getTemplates());
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            templates.addAll(findAllTemplates(childGroup));
+        }
+        return templates;
+    }
+
+    @Override
+    public void removeTemplate(final Template template) {
+        writeLock.lock();
+        try {
+            final Template existing = templates.get(requireNonNull(template).getIdentifier());
+            if (existing == null) {
+                throw new IllegalStateException(template + " is not a member of this ProcessGroup");
+            }
+
+            templates.remove(template.getIdentifier());
+            LOG.info("{} removed from flow", template);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
     @Override
     public void remove(final Snippet snippet) {
         writeLock.lock();
@@ -1751,7 +1960,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             verifyContents(snippet);
 
             final Set<Connectable> connectables = getAllConnectables(snippet);
-            final Set<String> connectionIdsToRemove = new HashSet<>(replaceNullWithEmptySet(snippet.getConnections()));
+            final Set<String> connectionIdsToRemove = new HashSet<>(getKeys(snippet.getConnections()));
             // Remove all connections that are the output of any Connectable.
             for (final Connectable connectable : connectables) {
                 for (final Connection conn : connectable.getConnections()) {
@@ -1768,7 +1977,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             // verify that all processors are stopped and have no active threads
-            for (final String procId : snippet.getProcessors()) {
+            for (final String procId : snippet.getProcessors().keySet()) {
                 final ProcessorNode procNode = getProcessor(procId);
                 if (procNode.isRunning()) {
                     throw new IllegalStateException(procNode + " cannot be removed because it is running");
@@ -1780,7 +1989,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             // verify that none of the connectables have incoming connections that are not in the Snippet.
-            final Set<String> connectionIds = snippet.getConnections();
+            final Set<String> connectionIds = snippet.getConnections().keySet();
             for (final Connectable connectable : connectables) {
                 for (final Connection conn : connectable.getIncomingConnections()) {
                     if (!connectionIds.contains(conn.getIdentifier()) && !connectables.contains(conn.getSource())) {
@@ -1791,7 +2000,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             // verify that all of the ProcessGroups in the snippet are empty
-            for (final String groupId : snippet.getProcessGroups()) {
+            for (final String groupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup toRemove = getProcessGroup(groupId);
                 toRemove.verifyCanDelete(true);
             }
@@ -1799,25 +2008,25 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final String id : connectionIdsToRemove) {
                 removeConnection(connections.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getInputPorts())) {
+            for (final String id : getKeys(snippet.getInputPorts())) {
                 removeInputPort(inputPorts.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getOutputPorts())) {
+            for (final String id : getKeys(snippet.getOutputPorts())) {
                 removeOutputPort(outputPorts.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getFunnels())) {
+            for (final String id : getKeys(snippet.getFunnels())) {
                 removeFunnel(funnels.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getLabels())) {
+            for (final String id : getKeys(snippet.getLabels())) {
                 removeLabel(labels.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getProcessors())) {
+            for (final String id : getKeys(snippet.getProcessors())) {
                 removeProcessor(processors.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getRemoteProcessGroups())) {
+            for (final String id : getKeys(snippet.getRemoteProcessGroups())) {
                 removeRemoteProcessGroup(remoteGroups.get(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getProcessGroups())) {
+            for (final String id : getKeys(snippet.getProcessGroups())) {
                 removeProcessGroup(processGroups.get(id));
             }
         } finally {
@@ -1825,9 +2034,10 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private Set<String> replaceNullWithEmptySet(final Set<String> toReplace) {
-        return (toReplace == null) ? new HashSet<String>() : toReplace;
+    private Set<String> getKeys(final Map<String, Revision> map) {
+        return (map == null) ? Collections.emptySet() : map.keySet();
     }
+
 
     @Override
     public void move(final Snippet snippet, final ProcessGroup destination) {
@@ -1847,28 +2057,28 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("Cannot move Ports into the root group");
             }
 
-            for (final String id : replaceNullWithEmptySet(snippet.getInputPorts())) {
+            for (final String id : getKeys(snippet.getInputPorts())) {
                 destination.addInputPort(inputPorts.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getOutputPorts())) {
+            for (final String id : getKeys(snippet.getOutputPorts())) {
                 destination.addOutputPort(outputPorts.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getFunnels())) {
+            for (final String id : getKeys(snippet.getFunnels())) {
                 destination.addFunnel(funnels.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getLabels())) {
+            for (final String id : getKeys(snippet.getLabels())) {
                 destination.addLabel(labels.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getProcessGroups())) {
+            for (final String id : getKeys(snippet.getProcessGroups())) {
                 destination.addProcessGroup(processGroups.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getProcessors())) {
+            for (final String id : getKeys(snippet.getProcessors())) {
                 destination.addProcessor(processors.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getRemoteProcessGroups())) {
+            for (final String id : getKeys(snippet.getRemoteProcessGroups())) {
                 destination.addRemoteProcessGroup(remoteGroups.remove(id));
             }
-            for (final String id : replaceNullWithEmptySet(snippet.getConnections())) {
+            for (final String id : getKeys(snippet.getConnections())) {
                 destination.inheritConnection(connections.remove(id));
             }
         } finally {
@@ -1878,16 +2088,16 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     private Set<Connectable> getAllConnectables(final Snippet snippet) {
         final Set<Connectable> connectables = new HashSet<>();
-        for (final String id : replaceNullWithEmptySet(snippet.getInputPorts())) {
+        for (final String id : getKeys(snippet.getInputPorts())) {
             connectables.add(getInputPort(id));
         }
-        for (final String id : replaceNullWithEmptySet(snippet.getOutputPorts())) {
+        for (final String id : getKeys(snippet.getOutputPorts())) {
             connectables.add(getOutputPort(id));
         }
-        for (final String id : replaceNullWithEmptySet(snippet.getFunnels())) {
+        for (final String id : getKeys(snippet.getFunnels())) {
             connectables.add(getFunnel(id));
         }
-        for (final String id : replaceNullWithEmptySet(snippet.getProcessors())) {
+        for (final String id : getKeys(snippet.getProcessors())) {
             connectables.add(getProcessor(id));
         }
         return connectables;
@@ -1896,13 +2106,13 @@ public final class StandardProcessGroup implements ProcessGroup {
     private boolean isDisconnected(final Snippet snippet) {
         final Set<Connectable> connectables = getAllConnectables(snippet);
 
-        for (final String id : replaceNullWithEmptySet(snippet.getRemoteProcessGroups())) {
+        for (final String id : getKeys(snippet.getRemoteProcessGroups())) {
             final RemoteProcessGroup remoteGroup = getRemoteProcessGroup(id);
             connectables.addAll(remoteGroup.getInputPorts());
             connectables.addAll(remoteGroup.getOutputPorts());
         }
 
-        final Set<String> connectionIds = snippet.getConnections();
+        final Set<String> connectionIds = snippet.getConnections().keySet();
         for (final Connectable connectable : connectables) {
             for (final Connection conn : connectable.getIncomingConnections()) {
                 if (!connectionIds.contains(conn.getIdentifier())) {
@@ -1918,7 +2128,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         final Set<Connectable> recursiveConnectables = new HashSet<>(connectables);
-        for (final String id : snippet.getProcessGroups()) {
+        for (final String id : snippet.getProcessGroups().keySet()) {
             final ProcessGroup childGroup = getProcessGroup(id);
             recursiveConnectables.addAll(findAllConnectables(childGroup, true));
         }
@@ -1931,6 +2141,18 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return true;
+    }
+
+    @Override
+    public Set<Positionable> findAllPositionables() {
+        Set<Positionable> positionables = Sets.newHashSet();
+        positionables.addAll(findAllConnectables(this, true));
+        List<ProcessGroup> allProcessGroups = findAllProcessGroups();
+        positionables.addAll(allProcessGroups);
+        positionables.addAll(allProcessGroups.stream().flatMap(processGroup -> processGroup.findAllPositionables().stream()).collect(Collectors.toSet()));
+        positionables.addAll(findAllRemoteProcessGroups());
+        positionables.addAll(findAllLabels());
+        return positionables;
     }
 
     private Set<Connectable> findAllConnectables(final ProcessGroup group, final boolean includeRemotePorts) {
@@ -1963,14 +2185,14 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void verifyContents(final Snippet snippet) throws NullPointerException, IllegalStateException {
         requireNonNull(snippet);
 
-        verifyAllKeysExist(snippet.getInputPorts(), inputPorts, "Input Port");
-        verifyAllKeysExist(snippet.getOutputPorts(), outputPorts, "Output Port");
-        verifyAllKeysExist(snippet.getFunnels(), funnels, "Funnel");
-        verifyAllKeysExist(snippet.getLabels(), labels, "Label");
-        verifyAllKeysExist(snippet.getProcessGroups(), processGroups, "Process Group");
-        verifyAllKeysExist(snippet.getProcessors(), processors, "Processor");
-        verifyAllKeysExist(snippet.getRemoteProcessGroups(), remoteGroups, "Remote Process Group");
-        verifyAllKeysExist(snippet.getConnections(), connections, "Connection");
+        verifyAllKeysExist(snippet.getInputPorts().keySet(), inputPorts, "Input Port");
+        verifyAllKeysExist(snippet.getOutputPorts().keySet(), outputPorts, "Output Port");
+        verifyAllKeysExist(snippet.getFunnels().keySet(), funnels, "Funnel");
+        verifyAllKeysExist(snippet.getLabels().keySet(), labels, "Label");
+        verifyAllKeysExist(snippet.getProcessGroups().keySet(), processGroups, "Process Group");
+        verifyAllKeysExist(snippet.getProcessors().keySet(), processors, "Processor");
+        verifyAllKeysExist(snippet.getRemoteProcessGroups().keySet(), remoteGroups, "Remote Process Group");
+        verifyAllKeysExist(snippet.getConnections().keySet(), connections, "Connection");
     }
 
     /**
@@ -2057,7 +2279,27 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanStop(Connectable connectable) {
+    }
+
+    @Override
     public void verifyCanStop() {
+    }
+
+    @Override
+    public void verifyCanStart(Connectable connectable) {
+        readLock.lock();
+        try {
+            if (connectable.getScheduledState() == ScheduledState.STOPPED) {
+                if (scheduler.getActiveThreadCount(connectable) > 0) {
+                    throw new IllegalStateException("Cannot start " + connectable + " because it is currently stopping");
+                }
+
+                connectable.verifyCanStart();
+            }
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -2065,13 +2307,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             for (final Connectable connectable : findAllConnectables(this, false)) {
-                if (connectable.getScheduledState() == ScheduledState.STOPPED) {
-                    if (scheduler.getActiveThreadCount(connectable) > 0) {
-                        throw new IllegalStateException("Cannot start " + connectable + " because it is currently stopping");
-                    }
-
-                    connectable.verifyCanStart();
-                }
+                verifyCanStart(connectable);
             }
         } finally {
             readLock.unlock();
@@ -2090,7 +2326,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("One or more components within the snippet is connected to a component outside of the snippet. Only a disconnected snippet may be moved.");
             }
 
-            for (final String id : snippet.getConnections()) {
+            for (final String id : snippet.getConnections().keySet()) {
                 final Connection connection = getConnection(id);
                 if (connection == null) {
                     throw new IllegalStateException("Snippet references Connection with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2099,7 +2335,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 connection.verifyCanDelete();
             }
 
-            for (final String id : snippet.getFunnels()) {
+            for (final String id : snippet.getFunnels().keySet()) {
                 final Funnel funnel = getFunnel(id);
                 if (funnel == null) {
                     throw new IllegalStateException("Snippet references Funnel with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2108,7 +2344,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 funnel.verifyCanDelete(true);
             }
 
-            for (final String id : snippet.getInputPorts()) {
+            for (final String id : snippet.getInputPorts().keySet()) {
                 final Port port = getInputPort(id);
                 if (port == null) {
                     throw new IllegalStateException("Snippet references Input Port with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2117,14 +2353,14 @@ public final class StandardProcessGroup implements ProcessGroup {
                 port.verifyCanDelete(true);
             }
 
-            for (final String id : snippet.getLabels()) {
+            for (final String id : snippet.getLabels().keySet()) {
                 final Label label = getLabel(id);
                 if (label == null) {
                     throw new IllegalStateException("Snippet references Label with ID " + id + ", which does not exist in this ProcessGroup");
                 }
             }
 
-            for (final String id : snippet.getOutputPorts()) {
+            for (final String id : snippet.getOutputPorts().keySet()) {
                 final Port port = getOutputPort(id);
                 if (port == null) {
                     throw new IllegalStateException("Snippet references Output Port with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2132,7 +2368,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 port.verifyCanDelete(true);
             }
 
-            for (final String id : snippet.getProcessGroups()) {
+            for (final String id : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup group = getProcessGroup(id);
                 if (group == null) {
                     throw new IllegalStateException("Snippet references Process Group with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2140,7 +2376,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 group.verifyCanDelete(true);
             }
 
-            for (final String id : snippet.getProcessors()) {
+            for (final String id : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = getProcessor(id);
                 if (processor == null) {
                     throw new IllegalStateException("Snippet references Processor with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2148,7 +2384,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 processor.verifyCanDelete(true);
             }
 
-            for (final String id : snippet.getRemoteProcessGroups()) {
+            for (final String id : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup group = getRemoteProcessGroup(id);
                 if (group == null) {
                     throw new IllegalStateException("Snippet references Remote Process Group with ID " + id + ", which does not exist in this ProcessGroup");
@@ -2178,7 +2414,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new IllegalStateException("Cannot move Ports from the Root Group to a Non-Root Group");
             }
 
-            for (final String id : snippet.getInputPorts()) {
+            for (final String id : snippet.getInputPorts().keySet()) {
                 final Port port = getInputPort(id);
                 final String portName = port.getName();
 
@@ -2187,7 +2423,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 }
             }
 
-            for (final String id : snippet.getOutputPorts()) {
+            for (final String id : snippet.getOutputPorts().keySet()) {
                 final Port port = getOutputPort(id);
                 final String portName = port.getName();
 

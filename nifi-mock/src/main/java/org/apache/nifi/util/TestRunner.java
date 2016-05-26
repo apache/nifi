@@ -273,6 +273,39 @@ public interface TestRunner {
     void assertAllFlowFilesTransferred(Relationship relationship, int count);
 
     /**
+     * Asserts that all FlowFiles that were transferred contain the given
+     * attribute.
+     *
+     * @param attributeName attribute to look for
+     */
+    void assertAllFlowFilesContainAttribute(String attributeName);
+
+    /**
+     * Asserts that all FlowFiles that were transferred to the given
+     * relationship contain the given attribute.
+     *
+     * @param relationship relationship to check
+     * @param attributeName attribute to look for
+     */
+    void assertAllFlowFilesContainAttribute(Relationship relationship, String attributeName);
+
+    /**
+     * Asserts that all FlowFiles that were transferred are compliant with the
+     * given validator.
+     *
+     * @param validator validator to use
+     */
+    void assertAllFlowFiles(FlowFileValidator validator);
+
+    /**
+     * Asserts that all FlowFiles that were transferred in the given relationship
+     * are compliant with the given validator.
+     *
+     * @param validator validator to use
+     */
+    void assertAllFlowFiles(Relationship relationship, FlowFileValidator validator);
+
+    /**
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
@@ -842,18 +875,18 @@ public interface TestRunner {
     void clearProvenanceEvents();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the Processor under test.
+     * Returns the {@link MockComponentLog} that is used by the Processor under test.
      * @return the logger
      */
-    public MockProcessorLog getLogger();
+    public MockComponentLog getLogger();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the specified controller service.
+     * Returns the {@link MockComponentLog} that is used by the specified controller service.
      *
      * @param identifier a controller service identifier
      * @return the logger
      */
-    public MockProcessorLog getControllerServiceLogger(final String identifier);
+    public MockComponentLog getControllerServiceLogger(final String identifier);
 
     /**
      * @return the State Manager that is used to stored and retrieve state

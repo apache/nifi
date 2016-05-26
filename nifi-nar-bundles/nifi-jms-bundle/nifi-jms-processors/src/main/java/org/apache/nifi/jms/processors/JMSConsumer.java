@@ -29,7 +29,7 @@ import javax.jms.Queue;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -48,9 +48,9 @@ final class JMSConsumer extends JMSWorker {
      * @param jmsTemplate
      *            instance of {@link JmsTemplate}
      * @param processLog
-     *            instance of {@link ProcessorLog}
+     *            instance of {@link ComponentLog}
      */
-    JMSConsumer(JmsTemplate jmsTemplate, ProcessorLog processLog) {
+    JMSConsumer(JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(jmsTemplate, processLog);
         if (logger.isInfoEnabled()) {
             logger.info("Created Message Consumer for '" + jmsTemplate.toString() + "'.");

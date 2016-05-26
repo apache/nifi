@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface ReportingTaskNode extends ConfiguredComponent {
 

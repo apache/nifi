@@ -17,6 +17,8 @@
 
 package org.apache.nifi.cluster.coordination;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
@@ -86,6 +88,13 @@ public interface ClusterCoordinator {
      * @return the identifiers of all nodes that have the given connection state
      */
     Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState state);
+
+    /**
+     * Returns a Map of NodeConnectionStatus to all Node Identifiers that have that status.
+     *
+     * @return the NodeConnectionStatus for each Node in the cluster, grouped by the Connection Status
+     */
+    Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates();
 
     /**
      * Checks if the given hostname is blocked by the configured firewall, returning

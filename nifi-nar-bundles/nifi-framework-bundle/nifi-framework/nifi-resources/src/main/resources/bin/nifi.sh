@@ -23,9 +23,9 @@
 
 SCRIPT_DIR=$(dirname "$0")
 SCRIPT_NAME=$(basename "$0")
-NIFI_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
 PROGNAME=$(basename "$0")
 
+. "$SCRIPT_DIR"/nifi-env.sh
 
 warn() {
     echo "${PROGNAME}: $*"
@@ -164,7 +164,7 @@ run() {
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
 
-    run_as=$(grep run.as "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
+    run_as=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
     if [ "$run_as" = "$(whoami)" ]; then
         unset run_as
@@ -210,10 +210,20 @@ run() {
 
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
+
+    #setup directory parameters
+    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.bootstrap.config.log.dir="\""${NIFI_LOG_DIR}"\"""
+    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.bootstrap.config.pid.dir="\""${NIFI_PID_DIR}"\"""
+    BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.bootstrap.config.file="\""${BOOTSTRAP_CONF}"\"""
+
+    BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
+
+    RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
+
     if [ "$1" = "start" ]; then
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (eval $RUN_NIFI_CMD $@ &)
     else
-        (cd "${NIFI_HOME}" && ${sudo_cmd_prefix} "${JAVA}" -cp "${BOOTSTRAP_CLASSPATH}" -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="${BOOTSTRAP_CONF}" org.apache.nifi.bootstrap.RunNiFi $@)
+        (eval $RUN_NIFI_CMD $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.

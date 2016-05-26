@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.security.otp;
 
+import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.security.user.NiFiUserDetails;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;

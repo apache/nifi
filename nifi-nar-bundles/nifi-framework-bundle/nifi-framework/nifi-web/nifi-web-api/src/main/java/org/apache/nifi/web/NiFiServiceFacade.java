@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
@@ -28,13 +30,11 @@ import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -47,7 +47,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
@@ -66,15 +65,95 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.FlowEntity;
+import org.apache.nifi.web.api.entity.FunnelEntity;
+import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.SnippetEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Defines the NiFiServiceFacade interface.
  */
 public interface NiFiServiceFacade {
+
+    // ----------------------------------------
+    // Synchronization methods
+    // ----------------------------------------
+
+    /**
+     * Authorizes access to the service facade.
+     *
+     * @param authorizeAccess authorize access callback
+     */
+    void authorizeAccess(AuthorizeAccess authorizeAccess);
+
+    /**
+     * Claims the specified revision for the specified user.
+     *
+     * @param revision revision
+     * @param user user
+     * @throws InvalidRevisionException invalid revision
+     */
+    void claimRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
+
+    /**
+     * Claims the specified revisions for the specified user.
+     *
+     * @param revisions revisions
+     * @param user user
+     * @throws InvalidRevisionException invalid revision
+     */
+    void claimRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
+
+    /**
+     * Cancels the specified revision. Cancellation is only supported based on the current thread.
+     *
+     * @param revision revision
+     * @throws InvalidRevisionException invalid revision
+     */
+    void cancelRevision(Revision revision) throws InvalidRevisionException;
+
+    /**
+     * Cancels the specified revisions. Cancellation is only supported based on the current thread.
+     *
+     * @param revisions revision
+     * @throws InvalidRevisionException invalid revision
+     */
+    void cancelRevisions(Set<Revision> revisions) throws InvalidRevisionException;
+
+    /**
+     * Gets the current revisions for the components based on the specified function.
+     *
+     * @param groupId group
+     * @param getComponents callback
+     * @return component revisions
+     */
+    Set<Revision> getRevisionsFromGroup(String groupId, Function<ProcessGroup, Set<String>> getComponents);
+
+    /**
+     * Gets the revisions from the specified snippet.
+     *
+     * @param snippetId snippet
+     * @return component revisions from the snippet
+     */
+    Set<Revision> getRevisionsFromSnippet(String snippetId);
 
     // ----------------------------------------
     // Controller methods
@@ -197,10 +276,9 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new archive of the flow configuration.
      *
-     * @param revision Revision to compare with current base revision
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> createArchive(Revision revision);
+    ProcessGroupEntity createArchive();
 
     /**
      * Sets the annotation data for a processor.
@@ -211,7 +289,7 @@ public interface NiFiServiceFacade {
      *
      * @return snapshot
      */
-    ConfigurationSnapshot<ProcessorDTO> setProcessorAnnotationData(Revision revision, String processorId, String annotationData);
+    ProcessorEntity setProcessorAnnotationData(Revision revision, String processorId, String annotationData);
 
     /**
      * Returns the process group status.
@@ -280,13 +358,6 @@ public interface NiFiServiceFacade {
      */
     Set<DocumentedTypeDTO> getWorkQueuePrioritizerTypes();
 
-    /**
-     * Returns the current revision.
-     *
-     * @return revision
-     */
-    RevisionDTO getRevision();
-
     // ----------------------------------------
     // Template methods
     // ----------------------------------------
@@ -296,29 +367,34 @@ public interface NiFiServiceFacade {
      * @param name name
      * @param description description
      * @param snippetId id
+     * @param groupId id of the process group
+     * @param idGenerationSeed the seed to use for generating a UUID
      * @return template
      */
-    TemplateDTO createTemplate(String name, String description, String snippetId);
+    TemplateDTO createTemplate(String name, String description, String snippetId, String groupId, Optional<String> idGenerationSeed);
 
     /**
      * Imports the specified Template.
      *
      * @param templateDTO The template dto
+     * @param groupId id of the process group
+     * @param idGenerationSeed the seed to use for generating a UUID
+     *
      * @return The new template dto
      */
-    TemplateDTO importTemplate(TemplateDTO templateDTO);
+    TemplateDTO importTemplate(TemplateDTO templateDTO, String groupId, Optional<String> idGenerationSeed);
 
     /**
      * Instantiate the corresponding template.
      *
-     * @param revision revision
      * @param groupId group id
      * @param templateId template id
      * @param originX x
      * @param originY y
+     * @param idGenerationSeed the ID to use for generating UUID's. May be null.
      * @return snapshot
      */
-    ConfigurationSnapshot<FlowSnippetDTO> createTemplateInstance(Revision revision, String groupId, Double originX, Double originY, String templateId);
+    FlowEntity createTemplateInstance(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed);
 
     /**
      * Gets the template with the specified id.
@@ -356,12 +432,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new Processor.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId Group id
      * @param processorDTO The processor DTO
      * @return The new processor DTO
      */
-    ConfigurationSnapshot<ProcessorDTO> createProcessor(Revision revision, String groupId, ProcessorDTO processorDTO);
+    ProcessorEntity createProcessor(String groupId, ProcessorDTO processorDTO);
 
     /**
      * Gets the Processor transfer object for the specified id.
@@ -369,7 +444,7 @@ public interface NiFiServiceFacade {
      * @param id Id of the processor to return
      * @return The Processor transfer object
      */
-    ProcessorDTO getProcessor(String id);
+    ProcessorEntity getProcessor(String id);
 
     /**
      * Gets the processor status.
@@ -402,7 +477,7 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @return List of all the Processor transfer object
      */
-    Set<ProcessorDTO> getProcessors(String groupId);
+    Set<ProcessorEntity> getProcessors(String groupId);
 
     /**
      * Verifies the specified processor can be updated.
@@ -418,7 +493,7 @@ public interface NiFiServiceFacade {
      * @param processorDTO The processorDTO
      * @return The updated processor
      */
-    ConfigurationSnapshot<ProcessorDTO> updateProcessor(Revision revision, ProcessorDTO processorDTO);
+    UpdateResult<ProcessorEntity> updateProcessor(Revision revision, ProcessorDTO processorDTO);
 
     /**
      * Verifies the specified processor can be removed.
@@ -434,7 +509,7 @@ public interface NiFiServiceFacade {
      * @param processorId The processor id to delete
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteProcessor(Revision revision, String processorId);
+    ProcessorEntity deleteProcessor(Revision revision, String processorId);
 
     // ----------------------------------------
     // Connections methods
@@ -446,7 +521,7 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @return The Connection transfer objects
      */
-    Set<ConnectionDTO> getConnections(String groupId);
+    Set<ConnectionEntity> getConnections(String groupId);
 
     /**
      * Gets the specified Connection transfer object.
@@ -454,7 +529,7 @@ public interface NiFiServiceFacade {
      * @param connectionId The ID of the connection
      * @return The Connection transfer object
      */
-    ConnectionDTO getConnection(String connectionId);
+    ConnectionEntity getConnection(String connectionId);
 
     /**
      * Gets the status of the specified connection.
@@ -475,12 +550,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new Relationship target.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId group
      * @param connectionDTO The Connection DTO
      * @return The Connection DTO
      */
-    ConfigurationSnapshot<ConnectionDTO> createConnection(Revision revision, String groupId, ConnectionDTO connectionDTO);
+    ConnectionEntity createConnection(String groupId, ConnectionDTO connectionDTO);
 
     /**
      * Determines if this connection can be listed.
@@ -511,7 +585,7 @@ public interface NiFiServiceFacade {
      * @param connectionDTO The Connection DTO
      * @return The Connection DTO
      */
-    ConfigurationSnapshot<ConnectionDTO> updateConnection(Revision revision, ConnectionDTO connectionDTO);
+    UpdateResult<ConnectionEntity> updateConnection(Revision revision, ConnectionDTO connectionDTO);
 
     /**
      * Determines if this connection can be removed.
@@ -527,7 +601,10 @@ public interface NiFiServiceFacade {
      * @param connectionId The ID of the connection
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteConnection(Revision revision, String connectionId);
+    // TODO: Remove the id's from all of the delete methods. The Revision now contains
+    // the component ID. We can't do this yet though because we have to wait for the
+    // Revisions to be properly formed on the client/UI side
+    ConnectionEntity deleteConnection(Revision revision, String connectionId);
 
     /**
      * Creates a new flow file drop request.
@@ -598,12 +675,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new input port.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId The id of the group this port should be create in
      * @param inputPortDTO The input PortDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<PortDTO> createInputPort(Revision revision, String groupId, PortDTO inputPortDTO);
+    PortEntity createInputPort(String groupId, PortDTO inputPortDTO);
 
     /**
      * Gets an input port.
@@ -611,7 +687,7 @@ public interface NiFiServiceFacade {
      * @param inputPortId The input port id
      * @return port
      */
-    PortDTO getInputPort(String inputPortId);
+    PortEntity getInputPort(String inputPortId);
 
     /**
      * Gets all input ports in a given group.
@@ -619,7 +695,7 @@ public interface NiFiServiceFacade {
      * @param groupId The id of the group
      * @return port
      */
-    Set<PortDTO> getInputPorts(String groupId);
+    Set<PortEntity> getInputPorts(String groupId);
 
     /**
      * Gets the input port status.
@@ -643,7 +719,7 @@ public interface NiFiServiceFacade {
      * @param inputPortDTO The input PortDTO
      * @return snapshort
      */
-    ConfigurationSnapshot<PortDTO> updateInputPort(Revision revision, PortDTO inputPortDTO);
+    UpdateResult<PortEntity> updateInputPort(Revision revision, PortDTO inputPortDTO);
 
     /**
      * Determines if the input port could be deleted.
@@ -659,7 +735,7 @@ public interface NiFiServiceFacade {
      * @param inputPortId The id of the input port
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteInputPort(Revision revision, String inputPortId);
+    PortEntity deleteInputPort(Revision revision, String inputPortId);
 
     // ----------------------------------------
     // OutputPort methods
@@ -667,12 +743,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new output port.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId The id of the group this port should be create in
      * @param outputPortDTO The output PortDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<PortDTO> createOutputPort(Revision revision, String groupId, PortDTO outputPortDTO);
+    PortEntity createOutputPort( String groupId, PortDTO outputPortDTO);
 
     /**
      * Gets an output port.
@@ -680,7 +755,7 @@ public interface NiFiServiceFacade {
      * @param outputPortId The output port id
      * @return port
      */
-    PortDTO getOutputPort(String outputPortId);
+    PortEntity getOutputPort(String outputPortId);
 
     /**
      * Gets all output ports in a given group.
@@ -688,7 +763,7 @@ public interface NiFiServiceFacade {
      * @param groupId The id of the group
      * @return ports
      */
-    Set<PortDTO> getOutputPorts(String groupId);
+    Set<PortEntity> getOutputPorts(String groupId);
 
     /**
      * Gets the output port status.
@@ -712,7 +787,7 @@ public interface NiFiServiceFacade {
      * @param outputPortDTO The output PortDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<PortDTO> updateOutputPort(Revision revision, PortDTO outputPortDTO);
+    UpdateResult<PortEntity> updateOutputPort(Revision revision, PortDTO outputPortDTO);
 
     /**
      * Determines if the output port could be deleted.
@@ -728,7 +803,19 @@ public interface NiFiServiceFacade {
      * @param outputPortId The id of the output port
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteOutputPort(Revision revision, String outputPortId);
+    PortEntity deleteOutputPort(Revision revision, String outputPortId);
+
+    // ----------------------------------------
+    // Flow methods
+    // ----------------------------------------
+    /**
+     * Returns the flow.
+     *
+     * @param groupId group
+     * @param recurse recurse
+     * @return the flow
+     */
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean recurse);
 
     // ----------------------------------------
     // ProcessGroup methods
@@ -737,20 +824,18 @@ public interface NiFiServiceFacade {
      * Creates a new process group.
      *
      * @param parentGroupId The id of the parent group
-     * @param revision Revision to compare with current base revision
      * @param processGroupDTO The ProcessGroupDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<ProcessGroupDTO> createProcessGroup(String parentGroupId, Revision revision, ProcessGroupDTO processGroupDTO);
+    ProcessGroupEntity createProcessGroup(String parentGroupId, ProcessGroupDTO processGroupDTO);
 
     /**
      * Returns the process group.
      *
      * @param groupId group
-     * @param recurse recurse
      * @return ProcessGroup transfer object
      */
-    ConfigurationSnapshot<ProcessGroupDTO> getProcessGroup(String groupId, boolean recurse);
+    ProcessGroupEntity getProcessGroup(String groupId);
 
     /**
      * Gets all process groups in the specified parent group.
@@ -758,14 +843,26 @@ public interface NiFiServiceFacade {
      * @param parentGroupId The id of the parent group
      * @return process group
      */
-    Set<ProcessGroupDTO> getProcessGroups(String parentGroupId);
+    Set<ProcessGroupEntity> getProcessGroups(String parentGroupId);
 
     /**
-     * Verifies the specified process group can be updated.
+     * Verifies the contents of the specified process group can be scheduled or unscheduled.
      *
-     * @param processGroupDTO The ProcessGroupDTO
+     * @param processGroupId The ProcessGroup id
+     * @param componentIds the components
+     * @param state scheduled state
      */
-    void verifyUpdateProcessGroup(ProcessGroupDTO processGroupDTO);
+    void verifyScheduleComponents(String processGroupId, ScheduledState state, Set<String> componentIds);
+
+    /**
+     * Schedules all applicable components under the specified ProcessGroup.
+     *
+     * @param processGroupId The ProcessGroup id
+     * @param state schedule state
+     * @param componentRevisions components and their revision
+     * @return snapshot
+     */
+    ScheduleComponentsEntity scheduleComponents(String processGroupId, ScheduledState state, Map<String, Revision> componentRevisions);
 
     /**
      * Updates the specified process group.
@@ -774,7 +871,7 @@ public interface NiFiServiceFacade {
      * @param processGroupDTO The ProcessGroupDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<ProcessGroupDTO> updateProcessGroup(Revision revision, ProcessGroupDTO processGroupDTO);
+    UpdateResult<ProcessGroupEntity> updateProcessGroup(Revision revision, ProcessGroupDTO processGroupDTO);
 
     /**
      * Verifies the specified process group can be removed.
@@ -790,7 +887,7 @@ public interface NiFiServiceFacade {
      * @param groupId The id of the process group
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteProcessGroup(Revision revision, String groupId);
+    ProcessGroupEntity deleteProcessGroup(Revision revision, String groupId);
 
     // ----------------------------------------
     // RemoteProcessGroup methods
@@ -798,12 +895,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new remote process group.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId The id of the parent group
      * @param remoteProcessGroupDTO The RemoteProcessGroupDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<RemoteProcessGroupDTO> createRemoteProcessGroup(Revision revision, String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO);
+    RemoteProcessGroupEntity createRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO);
 
     /**
      * Gets a remote process group.
@@ -811,7 +907,7 @@ public interface NiFiServiceFacade {
      * @param remoteProcessGroupId The id of the remote process group
      * @return group
      */
-    RemoteProcessGroupDTO getRemoteProcessGroup(String remoteProcessGroupId);
+    RemoteProcessGroupEntity getRemoteProcessGroup(String remoteProcessGroupId);
 
     /**
      * Gets all remote process groups in the a given parent group.
@@ -819,7 +915,7 @@ public interface NiFiServiceFacade {
      * @param groupId The id of the parent group
      * @return group
      */
-    Set<RemoteProcessGroupDTO> getRemoteProcessGroups(String groupId);
+    Set<RemoteProcessGroupEntity> getRemoteProcessGroups(String groupId);
 
     /**
      * Gets the remote process group status.
@@ -867,7 +963,7 @@ public interface NiFiServiceFacade {
      * @param remoteProcessGroupDTO The RemoteProcessGroupDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<RemoteProcessGroupDTO> updateRemoteProcessGroup(Revision revision, RemoteProcessGroupDTO remoteProcessGroupDTO);
+    UpdateResult<RemoteProcessGroupEntity> updateRemoteProcessGroup(Revision revision, RemoteProcessGroupDTO remoteProcessGroupDTO);
 
     /**
      * Updates the specified remote process groups input port.
@@ -877,7 +973,7 @@ public interface NiFiServiceFacade {
      * @param remoteProcessGroupPortDTO The RemoteProcessGroupPortDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupInputPort(Revision revision, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO);
+    RemoteProcessGroupPortEntity updateRemoteProcessGroupInputPort(Revision revision, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO);
 
     /**
      * Updates the specified remote process groups output port.
@@ -887,7 +983,7 @@ public interface NiFiServiceFacade {
      * @param remoteProcessGroupPortDTO The RemoteProcessGroupPortDTO
      * @return snapshot
      */
-    ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupOutputPort(Revision revision, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO);
+    RemoteProcessGroupPortEntity updateRemoteProcessGroupOutputPort(Revision revision, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO);
 
     /**
      * Verifies the remote process group can be deleted.
@@ -903,7 +999,7 @@ public interface NiFiServiceFacade {
      * @param remoteProcessGroupId The id of the remote process group
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteRemoteProcessGroup(Revision revision, String remoteProcessGroupId);
+    RemoteProcessGroupEntity deleteRemoteProcessGroup(Revision revision, String remoteProcessGroupId);
 
     // ----------------------------------------
     // Funnel methods
@@ -911,12 +1007,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a funnel.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId group
      * @param funnelDTO funnel
      * @return The funnel DTO
      */
-    ConfigurationSnapshot<FunnelDTO> createFunnel(Revision revision, String groupId, FunnelDTO funnelDTO);
+    FunnelEntity createFunnel(String groupId, FunnelDTO funnelDTO);
 
     /**
      * Gets the specified funnel.
@@ -924,7 +1019,7 @@ public interface NiFiServiceFacade {
      * @param funnelId The funnel id
      * @return The funnel transfer object
      */
-    FunnelDTO getFunnel(String funnelId);
+    FunnelEntity getFunnel(String funnelId);
 
     /**
      * Gets all of the funnels.
@@ -932,7 +1027,7 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @return The funnel transfer objects
      */
-    Set<FunnelDTO> getFunnels(String groupId);
+    Set<FunnelEntity> getFunnels(String groupId);
 
     /**
      * Updates the specified label.
@@ -941,7 +1036,7 @@ public interface NiFiServiceFacade {
      * @param funnelDTO The funnel DTO
      * @return The funnel DTO
      */
-    ConfigurationSnapshot<FunnelDTO> updateFunnel(Revision revision, FunnelDTO funnelDTO);
+    UpdateResult<FunnelEntity> updateFunnel(Revision revision, FunnelDTO funnelDTO);
 
     /**
      * Verifies the specified funnel can be deleted.
@@ -957,7 +1052,7 @@ public interface NiFiServiceFacade {
      * @param funnelId The funnel id
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteFunnel(Revision revision, String funnelId);
+    FunnelEntity deleteFunnel(Revision revision, String funnelId);
 
     // ----------------------------------------
     // Component state methods
@@ -981,11 +1076,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified processor.
      *
-     * @param revision Revision to compare with current base revision
      * @param processorId the processor id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearProcessorState(Revision revision, String processorId);
+    void clearProcessorState(String processorId);
 
     /**
      * Gets the state for the specified controller service.
@@ -1005,11 +1098,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified controller service.
      *
-     * @param revision Revision to compare with current base revision
      * @param controllerServiceId the controller service id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearControllerServiceState(Revision revision, String controllerServiceId);
+    void clearControllerServiceState(String controllerServiceId);
 
     /**
      * Gets the state for the specified reporting task.
@@ -1029,11 +1120,9 @@ public interface NiFiServiceFacade {
     /**
      * Clears the state for the specified reporting task.
      *
-     * @param revision Revision to compare with current base revision
      * @param reportingTaskId the reporting task id
-     * @return snapshot
      */
-    ConfigurationSnapshot<Void> clearReportingTaskState(Revision revision, String reportingTaskId);
+    void clearReportingTaskState(String reportingTaskId);
 
     // ----------------------------------------
     // Label methods
@@ -1041,12 +1130,11 @@ public interface NiFiServiceFacade {
     /**
      * Creates a label.
      *
-     * @param revision Revision to compare with current base revision
      * @param groupId group
      * @param labelDTO The label DTO
      * @return The label DTO
      */
-    ConfigurationSnapshot<LabelDTO> createLabel(Revision revision, String groupId, LabelDTO labelDTO);
+    LabelEntity createLabel(String groupId, LabelDTO labelDTO);
 
     /**
      * Gets the specified label.
@@ -1054,7 +1142,7 @@ public interface NiFiServiceFacade {
      * @param labelId The label id
      * @return The label transfer object
      */
-    LabelDTO getLabel(String labelId);
+    LabelEntity getLabel(String labelId);
 
     /**
      * Gets all of the labels.
@@ -1062,7 +1150,7 @@ public interface NiFiServiceFacade {
      * @param groupId group
      * @return The label transfer objects
      */
-    Set<LabelDTO> getLabels(String groupId);
+    Set<LabelEntity> getLabels(String groupId);
 
     /**
      * Updates the specified label.
@@ -1071,7 +1159,7 @@ public interface NiFiServiceFacade {
      * @param labelDTO The label DTO
      * @return The label DTO
      */
-    ConfigurationSnapshot<LabelDTO> updateLabel(Revision revision, LabelDTO labelDTO);
+    UpdateResult<LabelEntity> updateLabel(Revision revision, LabelDTO labelDTO);
 
     /**
      * Deletes the specified label.
@@ -1080,7 +1168,7 @@ public interface NiFiServiceFacade {
      * @param labelId The label id
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteLabel(Revision revision, String labelId);
+    LabelEntity deleteLabel(Revision revision, String labelId);
 
     // ----------------------------------------
     // Controller Services methods
@@ -1088,18 +1176,19 @@ public interface NiFiServiceFacade {
     /**
      * Creates a controller service.
      *
-     * @param revision Revision to compare with current base revision
+     * @param groupId the ID of the Process Group to add the Controller Service to
      * @param controllerServiceDTO The controller service DTO
      * @return The controller service DTO
      */
-    ConfigurationSnapshot<ControllerServiceDTO> createControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+    ControllerServiceEntity createControllerService(String groupId, ControllerServiceDTO controllerServiceDTO);
 
     /**
-     * Gets all controller services.
+     * Gets all controller services that belong to the given group and its parent/ancestor groups
      *
+     * @param groupId the id of the process group of interest
      * @return services
      */
-    Set<ControllerServiceDTO> getControllerServices();
+    Set<ControllerServiceEntity> getControllerServices(String groupId);
 
     /**
      * Gets the specified controller service.
@@ -1107,7 +1196,7 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId id
      * @return service
      */
-    ControllerServiceDTO getControllerService(String controllerServiceId);
+    ControllerServiceEntity getControllerService(String controllerServiceId);
 
     /**
      * Get the descriptor for the specified property of the specified controller service.
@@ -1124,19 +1213,19 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId id
      * @return service reference
      */
-    Set<ControllerServiceReferencingComponentDTO> getControllerServiceReferencingComponents(String controllerServiceId);
+    ControllerServiceReferencingComponentsEntity getControllerServiceReferencingComponents(String controllerServiceId);
 
     /**
      * Updates the referencing components for the specified controller service.
      *
-     * @param revision revision
+     * @param referenceRevisions revisions
      * @param controllerServiceId id
      * @param scheduledState state
      * @param controllerServiceState the value of state
      * @return The referencing component dtos
      */
-    ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> updateControllerServiceReferencingComponents(
-            Revision revision, String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+    ControllerServiceReferencingComponentsEntity updateControllerServiceReferencingComponents(
+        Map<String, Revision> referenceRevisions, String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
 
     /**
      * Updates the specified label.
@@ -1145,7 +1234,7 @@ public interface NiFiServiceFacade {
      * @param controllerServiceDTO The controller service DTO
      * @return The controller service DTO
      */
-    ConfigurationSnapshot<ControllerServiceDTO> updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+    UpdateResult<ControllerServiceEntity> updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
 
     /**
      * Deletes the specified label.
@@ -1154,7 +1243,7 @@ public interface NiFiServiceFacade {
      * @param controllerServiceId The controller service id
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteControllerService(Revision revision, String controllerServiceId);
+    ControllerServiceEntity deleteControllerService(Revision revision, String controllerServiceId);
 
     /**
      * Verifies the specified controller service can be updated.
@@ -1185,18 +1274,17 @@ public interface NiFiServiceFacade {
     /**
      * Creates a reporting task.
      *
-     * @param revision Revision to compare with current base revision
      * @param reportingTaskDTO The reporting task DTO
      * @return The reporting task DTO
      */
-    ConfigurationSnapshot<ReportingTaskDTO> createReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+    ReportingTaskEntity createReportingTask(ReportingTaskDTO reportingTaskDTO);
 
     /**
      * Gets all reporting tasks.
      *
      * @return tasks
      */
-    Set<ReportingTaskDTO> getReportingTasks();
+    Set<ReportingTaskEntity> getReportingTasks();
 
     /**
      * Gets the specified reporting task.
@@ -1204,7 +1292,7 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId id
      * @return task
      */
-    ReportingTaskDTO getReportingTask(String reportingTaskId);
+    ReportingTaskEntity getReportingTask(String reportingTaskId);
 
     /**
      * Get the descriptor for the specified property of the specified reporting task.
@@ -1222,7 +1310,7 @@ public interface NiFiServiceFacade {
      * @param reportingTaskDTO The reporting task DTO
      * @return The reporting task DTO
      */
-    ConfigurationSnapshot<ReportingTaskDTO> updateReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+    UpdateResult<ReportingTaskEntity> updateReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
 
     /**
      * Deletes the specified reporting task.
@@ -1231,7 +1319,7 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId The reporting task id
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteReportingTask(Revision revision, String reportingTaskId);
+    ReportingTaskEntity deleteReportingTask(Revision revision, String reportingTaskId);
 
     /**
      * Verifies the specified reporting task can be updated.
@@ -1287,63 +1375,55 @@ public interface NiFiServiceFacade {
     /**
      * Creates a new snippet based off the existing snippet.
      *
-     * @param revision revision
      * @param groupId group id
      * @param snippetId snippet id
      * @param originX x
      * @param originY y
+     * @param idGenerationSeed the seed to use for generating UUID's. May be null.
      * @return snapshot
      */
-    ConfigurationSnapshot<FlowSnippetDTO> copySnippet(Revision revision, String groupId, String snippetId, Double originX, Double originY);
+    FlowEntity copySnippet(String groupId, String snippetId, Double originX, Double originY, String idGenerationSeed);
 
     /**
      * Creates a new snippet.
      *
-     * @param revision revision
      * @param snippet snippet
      * @return snapshot
      */
-    ConfigurationSnapshot<SnippetDTO> createSnippet(Revision revision, SnippetDTO snippet);
-
-    /**
-     * Gets the specified snippet.
-     *
-     * @param snippetId id
-     * @return snippet
-     */
-    SnippetDTO getSnippet(String snippetId);
+    SnippetEntity createSnippet(SnippetDTO snippet);
 
     /**
      * Determines if this snippet can be updated.
      *
      * @param snippetDto snippet
      */
-    void verifyUpdateSnippet(SnippetDTO snippetDto);
+    void verifyUpdateSnippet(SnippetDTO snippetDto, Set<String> affectedComponentIds);
 
     /**
      * If group id is specified, moves the specified snippet to the specified group.
      *
-     * @param revision revision
+     * @param revisions revisions
      * @param snippetDto snippet
      * @return snapshot
      */
-    ConfigurationSnapshot<SnippetDTO> updateSnippet(Revision revision, SnippetDTO snippetDto);
+    SnippetEntity updateSnippet(Set<Revision> revisions, SnippetDTO snippetDto);
 
     /**
      * Determines if this snippet can be removed.
      *
      * @param id id
+     * @param affectedComponentIds affected components
      */
-    void verifyDeleteSnippet(String id);
+    void verifyDeleteSnippet(String id, Set<String> affectedComponentIds);
 
     /**
      * Removes the specified snippet.
      *
-     * @param revision revision
+     * @param revisions revisions
      * @param snippetId snippet
      * @return snapshot
      */
-    ConfigurationSnapshot<Void> deleteSnippet(Revision revision, String snippetId);
+    SnippetEntity deleteSnippet(Set<Revision> revisions, String snippetId);
 
     // ----------------------------------------
     // Cluster methods

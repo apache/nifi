@@ -28,16 +28,14 @@ nf.ProcessGroupConfiguration = (function () {
                         buttonText: 'Apply',
                         handler: {
                             click: function () {
-                                var revision = nf.Client.getRevision();
-
                                 // get the process group data to reference the uri
                                 var processGroupId = $('#process-group-id').text();
                                 var processGroupData = d3.select('#id-' + processGroupId).datum();
-
+                                
                                 // build the entity
                                 var entity = {
-                                    'revision': nf.Client.getRevision(),
-                                    'processGroup': {
+                                    'revision': nf.Client.getRevision(processGroupData),
+                                    'component': {
                                         'id': processGroupId,
                                         'name': $('#process-group-name').val(),
                                         'comments': $('#process-group-comments').val()
@@ -52,16 +50,11 @@ nf.ProcessGroupConfiguration = (function () {
                                     dataType: 'json',
                                     contentType: 'application/json'
                                 }).done(function (response) {
-                                    if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
-                                        // update the revision
-                                        nf.Client.setRevision(response.revision);
+                                    // refresh the process group
+                                    nf.ProcessGroup.set(response);
 
-                                        // refresh the process group
-                                        nf.ProcessGroup.set(response.processGroup);
-
-                                        // close the details panel
-                                        $('#process-group-configuration').modal('hide');
-                                    }
+                                    // close the details panel
+                                    $('#process-group-configuration').modal('hide');
                                 }).fail(function (xhr, status, error) {
                                     // close the details panel
                                     $('#process-group-configuration').modal('hide');
@@ -87,9 +80,6 @@ nf.ProcessGroupConfiguration = (function () {
                         $('#process-group-comments').val('');
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                handle: '.dialog-header'
             });
         },
         
@@ -104,7 +94,7 @@ nf.ProcessGroupConfiguration = (function () {
                 var selectionData = selection.datum();
 
                 // populate the process group settings
-                $('#process-group-id').text(selectionData.component.id);
+                $('#process-group-id').text(selectionData.id);
                 $('#process-group-name').val(selectionData.component.name);
                 $('#process-group-comments').val(selectionData.component.comments);
 

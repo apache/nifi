@@ -23,7 +23,15 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
@@ -31,10 +39,8 @@ import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -63,12 +69,27 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     private NiFiProperties properties;
     private Authorizer authorizer;
 
+    private void authorizeSystem() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+            .resource(ResourceFactory.getSystemResource())
+            .identity(user.getIdentity())
+            .anonymous(user.isAnonymous())
+            .accessAttempt(true)
+            .action(RequestAction.READ)
+            .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
+    }
+
     /**
      * Gets the system diagnostics for this NiFi instance.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
      * @return A systemDiagnosticsEntity.
      */
     @GET
@@ -91,20 +112,17 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     )
     public Response getSystemDiagnostics(
             @ApiParam(
-                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                    required = false
-            )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @ApiParam(
                 value = "Whether or not to include the breakdown per node. Optional, defaults to false",
                 required = false
             )
-            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
+            @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
             @ApiParam(
                 value = "The id of the node where to get the status.",
                 required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId) {
+            @QueryParam("clusterNodeId") final String clusterNodeId) {
+
+        authorizeSystem();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -140,13 +158,8 @@ public class SystemDiagnosticsResource extends ApplicationResource {
 
         final SystemDiagnosticsDTO systemDiagnosticsDto = serviceFacade.getSystemDiagnostics();
 
-        // create the revision
-        final RevisionDTO revision = new RevisionDTO();
-        revision.setClientId(clientId.getClientId());
-
         // create the response
         final SystemDiagnosticsEntity entity = new SystemDiagnosticsEntity();
-        entity.setRevision(revision);
         entity.setSystemDiagnostics(systemDiagnosticsDto);
 
         // generate the response

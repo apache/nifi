@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.dao;
 
-import java.util.Set;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+
+import java.util.Set;
 
 public interface TemplateDAO {
 
@@ -27,17 +28,19 @@ public interface TemplateDAO {
      * Creates a template.
      *
      * @param templateDTO The template DTO
+     * @param groupId the ID of the group to add the template to
      * @return The template
      */
-    Template createTemplate(TemplateDTO templateDTO);
+    Template createTemplate(TemplateDTO templateDTO, String groupId);
 
     /**
      * Import the specified template.
      *
      * @param templateDTO dto
+     * @param groupId the ID of the group to add the template to
      * @return template
      */
-    Template importTemplate(TemplateDTO templateDTO);
+    Template importTemplate(TemplateDTO templateDTO, String groupId);
 
     /**
      * Instantiate the corresponding template.
@@ -46,9 +49,10 @@ public interface TemplateDAO {
      * @param originX x
      * @param originY y
      * @param templateId template id
+     * @param idGenerationSeed the seed to use for generating UUID's. May be null.
      * @return flow snippet
      */
-    FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId);
+    FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId, String idGenerationSeed);
 
     /**
      * Gets the specified template.

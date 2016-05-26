@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Set;
+import org.apache.nifi.web.Revision;
+
+import java.util.Map;
 
 /**
  * A Snippet represents a segment of the flow
@@ -29,14 +31,6 @@ public interface Snippet {
     public String getId();
 
     /**
-     * @return Whether or not this snippet is linked to the data flow. If the Snippet is
-     * deleted and is linked, then the underlying components will also be
-     * deleted. If the Snippet is deleted and is NOT linked, only the Snippet is
-     * removed
-     */
-    public boolean isLinked();
-
-    /**
      * @return parent group id of the components in this snippet
      */
     public String getParentGroupId();
@@ -44,42 +38,42 @@ public interface Snippet {
     /**
      * @return connections in this snippet
      */
-    public Set<String> getConnections();
+    public Map<String, Revision> getConnections();
 
     /**
      * @return funnels in this snippet
      */
-    public Set<String> getFunnels();
+    public Map<String, Revision> getFunnels();
 
     /**
      * @return input ports in this snippet
      */
-    public Set<String> getInputPorts();
+    public Map<String, Revision> getInputPorts();
 
     /**
      * @return output ports in this snippet
      */
-    public Set<String> getOutputPorts();
+    public Map<String, Revision> getOutputPorts();
 
     /**
      * @return labels in this snippet
      */
-    public Set<String> getLabels();
+    public Map<String, Revision> getLabels();
 
     /**
      * @return the identifiers of all ProcessGroups in this Snippet
      */
-    public Set<String> getProcessGroups();
+    public Map<String, Revision> getProcessGroups();
 
     /**
      * @return the identifiers of all Processors in this Snippet
      */
-    public Set<String> getProcessors();
+    public Map<String, Revision> getProcessors();
 
     /**
      * @return the identifiers of all RemoteProcessGroups in this Snippet
      */
-    public Set<String> getRemoteProcessGroups();
+    public Map<String, Revision> getRemoteProcessGroups();
 
     /**
      * @return Determines if this snippet is empty

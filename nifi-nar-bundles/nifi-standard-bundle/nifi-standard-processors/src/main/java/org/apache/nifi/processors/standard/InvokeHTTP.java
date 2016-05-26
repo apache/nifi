@@ -78,7 +78,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -543,7 +543,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // Setting some initial variables
         final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
         final UUID txId = UUID.randomUUID();
@@ -866,12 +866,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         return statusCode / 100 == 2;
     }
 
-    private void logRequest(ProcessorLog logger, Request request) {
+    private void logRequest(ComponentLog logger, Request request) {
         logger.debug("\nRequest to remote service:\n\t{}\n{}",
                 new Object[]{request.url().toExternalForm(), getLogString(request.headers().toMultimap())});
     }
 
-    private void logResponse(ProcessorLog logger, URL url, Response response) {
+    private void logResponse(ComponentLog logger, URL url, Response response) {
         logger.debug("\nResponse from remote service:\n\t{}\n{}",
                 new Object[]{url.toExternalForm(), getLogString(response.headers().toMultimap())});
     }

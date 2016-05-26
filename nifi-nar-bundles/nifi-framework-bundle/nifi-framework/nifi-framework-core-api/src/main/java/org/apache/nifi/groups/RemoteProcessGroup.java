@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.groups;
 
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.connectable.Positionable;
+import org.apache.nifi.controller.exception.CommunicationsException;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.RemoteGroupPort;
+
 import java.net.URI;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.exception.CommunicationsException;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.RemoteGroupPort;
-
-public interface RemoteProcessGroup {
+public interface RemoteProcessGroup extends Authorizable, Positionable {
 
     String getIdentifier();
 
@@ -35,10 +36,6 @@ public interface RemoteProcessGroup {
     ProcessGroup getProcessGroup();
 
     void setProcessGroup(ProcessGroup group);
-
-    void setPosition(Position position);
-
-    Position getPosition();
 
     String getComments();
 

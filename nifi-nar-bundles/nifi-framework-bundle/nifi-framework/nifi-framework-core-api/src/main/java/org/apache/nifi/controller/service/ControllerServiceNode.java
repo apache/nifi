@@ -16,13 +16,27 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.groups.ProcessGroup;
+
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.nifi.controller.ConfiguredComponent;
-import org.apache.nifi.controller.ControllerService;
-
 public interface ControllerServiceNode extends ConfiguredComponent {
+
+    /**
+     * @return the Process Group that this Controller Service belongs to, or <code>null</code> if the Controller Service
+     *         does not belong to any Process Group
+     */
+    ProcessGroup getProcessGroup();
+
+    /**
+     * Sets the Process Group for this Controller Service
+     *
+     * @param group the group that the service belongs to
+     */
+    void setProcessGroup(ProcessGroup group);
 
     /**
      * <p>

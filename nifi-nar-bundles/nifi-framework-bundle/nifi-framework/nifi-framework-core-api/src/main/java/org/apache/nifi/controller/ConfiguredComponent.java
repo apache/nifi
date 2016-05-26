@@ -19,10 +19,11 @@ package org.apache.nifi.controller;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 
-public interface ConfiguredComponent {
+public interface ConfiguredComponent extends Authorizable {
 
     public String getIdentifier();
 

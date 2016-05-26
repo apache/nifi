@@ -44,6 +44,7 @@ import org.apache.nifi.cluster.manager.testutils.HttpResponse;
 import org.apache.nifi.cluster.manager.testutils.HttpResponseAction;
 import org.apache.nifi.cluster.manager.testutils.HttpServer;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,6 +70,7 @@ public class HttpRequestReplicatorImplTest {
 
     @Before
     public void setUp() throws IOException, URISyntaxException {
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, getClass().getResource("/conf/nifi.properties").getFile());
 
         executorThreadCount = 5;
         serverThreadCount = 3;
