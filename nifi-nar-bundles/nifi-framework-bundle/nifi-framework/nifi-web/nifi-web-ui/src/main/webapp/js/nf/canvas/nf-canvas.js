@@ -113,7 +113,6 @@ nf.Canvas = (function () {
     var groupName = null;
     var accessPolicy = null;
     var parentGroupId = null;
-    var secureSiteToSite = false;
     var clustered = false;
     var svg = null;
     var canvas = null;
@@ -267,33 +266,45 @@ nf.Canvas = (function () {
 
         // filter for drop shadow
         var filter = defs.append('filter')
-            .attr('id', 'component-drop-shadow');
+            .attr({
+                'id': 'component-drop-shadow',
+                'height': '140%',
+                'y': '-20%'
+            });
 
         // blur
         filter.append('feGaussianBlur')
-            .attr('in', 'SourceAlpha')
-            .attr('stdDeviation', 2)
-            .attr('result', 'blur');
+            .attr({
+                'in': 'SourceAlpha',
+                'stdDeviation': 3,
+                'result': 'blur'
+            });
 
         // offset
         filter.append('feOffset')
-            .attr('in', 'blur')
-            .attr('dx', 0)
-            .attr('dy', 1)
-            .attr('result', 'offsetBlur');
+            .attr({
+                'in': 'blur',
+                'dx': 0,
+                'dy': 1,
+                'result': 'offsetBlur'
+            });
 
         // color/opacity
         filter.append('feFlood')
-            .attr('flood-color', '#000000')
-            .attr('flood-opacity', 0.25)
-            .attr('result', 'offsetColor');
+            .attr({
+                'flood-color': '#000000',
+                'flood-opacity': 0.4,
+                'result': 'offsetColor'
+            });
 
         // combine
         filter.append('feComposite')
-            .attr('in', 'offsetColor')
-            .attr('in2', 'offsetBlur')
-            .attr('operator', 'in')
-            .attr('result', 'offsetColorBlur');
+            .attr({
+                'in': 'offsetColor',
+                'in2': 'offsetBlur',
+                'operator': 'in',
+                'result': 'offsetColorBlur'
+            });
 
         // stack the effect under the source graph
         var feMerge = filter.append('feMerge');
@@ -512,7 +523,6 @@ nf.Canvas = (function () {
             if (e.target === window) {
                 updateGraphSize();
                 updateFlowStatusContainerSize();
-                nf.Settings.resetTableSize();
             }
         }).on('keydown', function (evt) {
             // if a dialog is open, disable canvas shortcuts
@@ -819,9 +829,6 @@ nf.Canvas = (function () {
                         // get the auto refresh interval
                         var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
-                        // initialize whether site to site is secure
-                        secureSiteToSite = configDetails.siteToSiteSecure;
-
                         // init storage
                         nf.Storage.init();
 
@@ -888,13 +895,6 @@ nf.Canvas = (function () {
          */
         isClustered: function () {
             return clustered === true;
-        },
-
-        /**
-         * Returns whether site to site communications is secure.
-         */
-        isSecureSiteToSite: function () {
-            return secureSiteToSite;
         },
 
         /**

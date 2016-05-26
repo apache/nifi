@@ -14,17 +14,64 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #process-group-configuration {
-    z-index: 1301;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    left: 0px;
     display: none;
-    width: 400px;
-    height: 320px;
+    padding: 20px;
 }
 
-.process-group-field {
-    width: 369px;
+#add-process-group-configuration-controller-service {
+    float: right;
+    width: 19px;
+    height: 19px;
+    margin-top: 4px;
+    cursor: pointer;
 }
 
-textarea.process-group-field {
+/* settings tabs */
+
+#process-group-configuration-tabs {
+    float: left;
+}
+
+#process-group-configuration-refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+#process-group-configuration-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#process-group-configuration-last-refreshed {
+    font-weight: bold;
+}
+
+/* general */
+
+#general-process-group-configuration {
+    margin-top: -190px;
+    margin-left: 10px;
+}
+
+#general-process-group-configuration input, #general-process-group-configuration textarea {
+    font-size: 11px !important;
+    font-family: Verdana;
+    width: 350px;
+    vertical-align: middle;
+}
+
+#process-group-comments {
     height: 100px;
 }

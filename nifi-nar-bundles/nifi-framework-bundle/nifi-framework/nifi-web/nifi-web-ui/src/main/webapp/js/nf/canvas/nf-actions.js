@@ -691,13 +691,16 @@ nf.Actions = (function () {
          * @param {selection} selection     Selection of the component to be configured
          */
         showConfiguration: function (selection) {
-            if (selection.size() === 1) {
+            if (selection.empty()) {
+                nf.ProcessGroupConfiguration.showConfiguration(nf.Canvas.getGroupId());
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
                 if (nf.CanvasUtils.isProcessor(selection)) {
                     nf.ProcessorConfiguration.showConfiguration(selection);
                 } else if (nf.CanvasUtils.isLabel(selection)) {
                     nf.LabelConfiguration.showConfiguration(selection);
                 } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                    nf.ProcessGroupConfiguration.showConfiguration(selection);
+                    nf.ProcessGroupConfiguration.showConfiguration(selectionData.id);
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                     nf.RemoteProcessGroupConfiguration.showConfiguration(selection);
                 } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
@@ -710,12 +713,14 @@ nf.Actions = (function () {
         
         // Defines an action for showing component details (like configuration but read only).
         showDetails: function (selection) {
-            if (selection.size() === 1) {
+            if (selection.empty()) {
+                nf.ProcessGroupDetails.showConfiguration(nf.Canvas.getGroupId());
+            } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nf.CanvasUtils.isProcessor(selection)) {
                     nf.ProcessorDetails.showDetails(nf.Canvas.getGroupId(), selectionData.id);
                 } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                    nf.ProcessGroupDetails.showDetails(selection);
+                    nf.ProcessGroupDetails.showConfiguration(selectionData.id);
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                     nf.RemoteProcessGroupDetails.showDetails(selection);
                 } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
