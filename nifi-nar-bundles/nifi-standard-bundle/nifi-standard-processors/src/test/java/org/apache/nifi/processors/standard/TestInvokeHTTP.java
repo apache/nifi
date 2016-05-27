@@ -124,7 +124,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     // Currently InvokeHttp does not support Proxy via Https
@@ -171,7 +171,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(InvokeHTTP.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain;charset=iso-8859-1");
     }
 
     public static class MyProxyHandler extends AbstractHandler {
