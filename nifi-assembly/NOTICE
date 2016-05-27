@@ -802,6 +802,12 @@ The following binary components are provided under the Apache Software License v
        The code for the t-digest was originally authored by Ted Dunning
        A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
 
+
+This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+while at Mandiant http://www.mandiant.com
+The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
+
 ************************
 Common Development and Distribution License 1.1
 ************************

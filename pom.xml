@@ -1138,6 +1138,12 @@ language governing permissions and limitations under the License. -->
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
+	    <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-evtx-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>

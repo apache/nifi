@@ -63,6 +63,7 @@
         <module>nifi-hive-bundle</module>
 	    <module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
+        <module>nifi-evtx-bundle</module>
     </modules>
 
     <dependencyManagement>
