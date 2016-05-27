@@ -87,5 +87,6 @@ org.apache.nifi.processors.standard.TailFile
 org.apache.nifi.processors.standard.TransformXml
 org.apache.nifi.processors.standard.UnpackContent
 org.apache.nifi.processors.standard.ValidateXml
+org.apache.nifi.processors.standard.ValidateCsv
 org.apache.nifi.processors.standard.ExecuteSQL
 org.apache.nifi.processors.standard.FetchDistributedMapCache
