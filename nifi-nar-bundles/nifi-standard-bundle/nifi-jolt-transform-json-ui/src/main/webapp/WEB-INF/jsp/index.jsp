@@ -18,9 +18,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
-    <link rel="stylesheet" href="js/angular/angular-material/angular-material.css">
-    <link rel="stylesheet" type="text/css" href="js/codemirror/addon/lint/lint.css">
+    <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/lib/codemirror.css"/>
+    <link rel="stylesheet" type="text/css" href="../nifi/js/codemirror/addon/lint/lint.css">
+    <link rel="stylesheet" type="text/css" href="js/angular/angular-material/angular-material.css">
     <link rel="stylesheet" type="text/css" href="css/main.css">
 </head>
 
@@ -28,6 +28,9 @@
 
 <!--Parent Libraries-->
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
+<script type="text/javascript" src="../nifi/js/codemirror/addon/lint/lint.js"></script>
+<script type="text/javascript" src="../nifi/js/codemirror/addon/lint/json-lint.js"></script>
+<script type="text/javascript" src="../nifi/js/jsonlint/jsonlint.min.js"></script>
 
 <!--Local Libraries-->
 <script type="text/javascript" src="js/angular/angular.min.js"></script>
@@ -35,12 +38,8 @@
 <script type="text/javascript" src="js/angular/angular-aria/angular-aria.min.js"></script>
 <script type="text/javascript" src="js/angular/angular-messages/angular-messages.min.js"></script>
 <script type="text/javascript" src="js/angular/angular-material/angular-material.min.js"></script>
-
 <script type="text/javascript" src="js/angular-ui/angular-ui-codemirror/ui-codemirror.min.js"></script>
 <script type="text/javascript" src="js/angular-ui/angular-ui-router/angular-ui-router.min.js"></script>
-<script type="text/javascript" src="js/codemirror/addon/lint/lint.js"></script>
-<script type="text/javascript" src="js/codemirror/addon/lint/json-lint.js"></script>
-<script type="text/javascript" src="js/jsonlint/jsonlint.min.js"></script>
 <script type="text/javascript" src="js/js-beautify/beautify.js"></script>
 
 <!--StandardUI-->
