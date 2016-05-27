@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.nifi.processors.standard.util.TestInvokeHttpCommon;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -38,6 +28,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class TestInvokeHTTP extends TestInvokeHttpCommon {
@@ -183,7 +182,7 @@ public class TestInvokeHTTP extends TestInvokeHttpCommon {
 
             if ("Get".equalsIgnoreCase(request.getMethod())) {
                 response.setStatus(200);
-                String proxyPath = baseRequest.getUri().toString();
+                String proxyPath = baseRequest.getHttpURI().toString();
                 response.setContentLength(proxyPath.length());
                 response.setContentType("text/plain");
 
