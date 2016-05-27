@@ -72,6 +72,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -197,6 +198,30 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final String DEFAULT_COOKIE_POLICY_STR = "default";
+    public static final String STANDARD_COOKIE_POLICY_STR = "standard";
+    public static final String STRICT_COOKIE_POLICY_STR = "strict";
+    public static final String NETSCAPE_COOKIE_POLICY_STR = "netscape";
+    public static final String IGNORE_COOKIE_POLICY_STR = "ignore";
+    public static final AllowableValue DEFAULT_COOKIE_POLICY = new AllowableValue(DEFAULT_COOKIE_POLICY_STR, DEFAULT_COOKIE_POLICY_STR,
+            "Default cookie policy that provides a higher degree of compatibility with common cookie management of popular HTTP agents for non-standard (Netscape style) cookies.");
+    public static final AllowableValue STANDARD_COOKIE_POLICY = new AllowableValue(STANDARD_COOKIE_POLICY_STR, STANDARD_COOKIE_POLICY_STR,
+            "RFC 6265 compliant cookie policy (interoperability profile).");
+    public static final AllowableValue STRICT_COOKIE_POLICY = new AllowableValue(STRICT_COOKIE_POLICY_STR, STRICT_COOKIE_POLICY_STR,
+            "RFC 6265 compliant cookie policy (strict profile).");
+    public static final AllowableValue NETSCAPE_COOKIE_POLICY = new AllowableValue(NETSCAPE_COOKIE_POLICY_STR, NETSCAPE_COOKIE_POLICY_STR,
+            "Netscape draft compliant cookie policy.");
+    public static final AllowableValue IGNORE_COOKIE_POLICY = new AllowableValue(IGNORE_COOKIE_POLICY_STR, IGNORE_COOKIE_POLICY_STR,
+            "A cookie policy that ignores cookies.");
+
+    public static final PropertyDescriptor REDIRECT_COOKIE_POLICY = new PropertyDescriptor.Builder()
+            .name("redirect-cookie-policy")
+            .displayName("Redirect Cookie Policy")
+            .description("When a HTTP server responds to a request with a redirect, this is the cookie policy used to copy cookies to the following request.")
+            .allowableValues(DEFAULT_COOKIE_POLICY, STANDARD_COOKIE_POLICY, STRICT_COOKIE_POLICY, NETSCAPE_COOKIE_POLICY, IGNORE_COOKIE_POLICY)
+            .defaultValue(DEFAULT_COOKIE_POLICY_STR)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All files are transferred to the success relationship")
@@ -231,6 +256,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(USER_AGENT);
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
+        properties.add(REDIRECT_COOKIE_POLICY);
         properties.add(PROXY_HOST);
         properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
@@ -359,10 +385,25 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
             requestConfigBuilder.setConnectionRequestTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             requestConfigBuilder.setConnectTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-            requestConfigBuilder.setRedirectsEnabled(false);
             requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
-            requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
+            switch (context.getProperty(REDIRECT_COOKIE_POLICY).getValue()) {
+            case STANDARD_COOKIE_POLICY_STR:
+                requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD);
+                break;
+            case STRICT_COOKIE_POLICY_STR:
+                requestConfigBuilder.setCookieSpec(CookieSpecs.STANDARD_STRICT);
+                break;
+            case NETSCAPE_COOKIE_POLICY_STR:
+                requestConfigBuilder.setCookieSpec(CookieSpecs.NETSCAPE);
+                break;
+            case IGNORE_COOKIE_POLICY_STR:
+                requestConfigBuilder.setCookieSpec(CookieSpecs.IGNORE_COOKIES);
+                break;
+            case DEFAULT_COOKIE_POLICY_STR:
+            default:
+                requestConfigBuilder.setCookieSpec(CookieSpecs.DEFAULT);
+            }
 
             // build the http client
             final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
