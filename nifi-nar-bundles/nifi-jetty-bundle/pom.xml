@@ -49,32 +49,22 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-jsp</artifactId>
+            <artifactId>jetty-annotations</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>javax.servlet.jsp</groupId>
-            <artifactId>javax.servlet.jsp-api</artifactId>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>apache-jsp</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>javax.el</groupId>
-            <artifactId>javax.el-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet.jsp.jstl</groupId>
-            <artifactId>javax.servlet.jsp.jstl-api</artifactId>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>apache-jstl</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty.toolchain</groupId>
-            <artifactId>jetty-jsp-jdt</artifactId>
             <scope>compile</scope>
         </dependency>
     </dependencies>

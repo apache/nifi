@@ -88,7 +88,7 @@ language governing permissions and limitations under the License. -->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
         <org.slf4j.version>1.7.12</org.slf4j.version>
-        <jetty.version>9.2.11.v20150529</jetty.version>
+        <jetty.version>9.3.9.v20160517</jetty.version>
         <lucene.version>4.10.4</lucene.version>
         <spring.version>4.2.4.RELEASE</spring.version>
         <spring.security.version>4.0.3.RELEASE</spring.security.version>
@@ -696,38 +696,26 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-jsp</artifactId>
+                <artifactId>jetty-annotations</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>javax.servlet.jsp</groupId>
-                <artifactId>javax.servlet.jsp-api</artifactId>
-                <version>2.3.1</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>apache-jsp</artifactId>
+                <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>javax.el</groupId>
-                <artifactId>javax.el-api</artifactId>
-                <version>3.0.0</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>javax.servlet.jsp.jstl</groupId>
-                <artifactId>javax.servlet.jsp.jstl-api</artifactId>
-                <version>1.2.1</version>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>apache-jstl</artifactId>
+                <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
                 <version>3.1.0</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty.toolchain</groupId>
-                <artifactId>jetty-jsp-jdt</artifactId>
-                <version>2.3.3</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

@@ -16,27 +16,24 @@
  */
 package org.apache.nifi.web.docs;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.nar.ExtensionMapping;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.text.Collator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.commons.lang3.StringUtils;
-
 /**
  *
  */
-@WebServlet(name = "DocumenationController", urlPatterns = {"/*"})
 public class DocumentationController extends HttpServlet {
 
     private static final int GENERAL_LINK_COUNT = 4;
