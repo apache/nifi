@@ -17,45 +17,45 @@
 
 package org.apache.nifi.processors.ocr;
 
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
-import net.sourceforge.tess4j.TesseractException;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.imageio.ImageIO;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.File;
-import java.io.FileFilter;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicBoolean;
+import net.sourceforge.tess4j.ITesseract;
+import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.TesseractException;
 
 @Tags({"ocr", "tesseract", "image", "text"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -77,27 +77,9 @@ public class TesseractOCRProcessor extends AbstractProcessor {
     public static Set<String> SUPPORTED_LANGUAGES;
     private static final String TESS_LANG_EXTENSION = ".traineddata";
     private static List<AllowableValue> PAGE_SEGMENTATION_MODES;
-    private static ITesseract tessInstance;
-    private List<PropertyDescriptor> descriptors;
-    private Set<Relationship> relationships;
-
-    static {
-        SUPPORTED_LANGUAGES = new HashSet<String>();
-        SUPPORTED_LANGUAGES.add("eng"); //Since this is the default value we need to ensure it is present in the allowableValues.
-
-        PAGE_SEGMENTATION_MODES = new ArrayList<AllowableValue>();
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("0","0 = Orientation and script detection (OSD) only"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("1","1 = Automatic page segmentation with OSD"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("2","2 = Automatic page segmentation, but no OSD, or OCR"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("3","3 = Fully automatic page segmentation, but no OSD"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("4","4 = Assume a single column of text of variable sizes"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("5","5 = Assume a single uniform block of vertically aligned text"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("6","6 = Assume a single uniform block of text"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("7","7 = Treat the image as a single text line"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("8","8 = Treat the image as a single word"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("9","9 = Treat the image as a single word in a circle"));
-        PAGE_SEGMENTATION_MODES.add(new AllowableValue("10","10 = Treat the image as a single character"));
-    }
+    private static volatile ITesseract tesseract;
+    private static final  List<PropertyDescriptor> descriptors;
+    private static final Set<Relationship> relationships;
 
     public static final PropertyDescriptor TESS_DATA_PATH = new PropertyDescriptor
             .Builder().name("Tessdata Directory")
@@ -184,24 +166,38 @@ public class TesseractOCRProcessor extends AbstractProcessor {
             .description("Failed to attempt OCR on input image")
             .build();
 
+    static {
+        SUPPORTED_LANGUAGES = new HashSet<>();
+        SUPPORTED_LANGUAGES.add("eng"); //Since this is the default value we need to ensure it is present in the allowableValues.
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(TESS_DATA_PATH);
-        descriptors.add(TESSERACT_LANGUAGE);
-        descriptors.add(TESSERACT_PAGE_SEG_MODE);
-        descriptors.add(TESSERACT_CONFIGS);
-        this.descriptors = Collections.unmodifiableList(descriptors);
+        PAGE_SEGMENTATION_MODES = new ArrayList<>();
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("0","0 = Orientation and script detection (OSD) only"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("1","1 = Automatic page segmentation with OSD"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("2","2 = Automatic page segmentation, but no OSD, or OCR"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("3","3 = Fully automatic page segmentation, but no OSD"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("4","4 = Assume a single column of text of variable sizes"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("5","5 = Assume a single uniform block of vertically aligned text"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("6","6 = Assume a single uniform block of text"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("7","7 = Treat the image as a single text line"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("8","8 = Treat the image as a single word"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("9","9 = Treat the image as a single word in a circle"));
+        PAGE_SEGMENTATION_MODES.add(new AllowableValue("10","10 = Treat the image as a single character"));
 
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        relationships.add(REL_FAILURE);
-        relationships.add(REL_UNSUPPORTED_IMAGE_FORMAT);
-        relationships.add(REL_ORIGINAL);
-        this.relationships = Collections.unmodifiableSet(relationships);
+        final List<PropertyDescriptor> _descriptors = new ArrayList<>();
+        _descriptors.add(TESS_DATA_PATH);
+        _descriptors.add(TESSERACT_LANGUAGE);
+        _descriptors.add(TESSERACT_PAGE_SEG_MODE);
+        _descriptors.add(TESSERACT_CONFIGS);
+        descriptors = Collections.unmodifiableList(_descriptors);
 
+        final Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        _relationships.add(REL_FAILURE);
+        _relationships.add(REL_UNSUPPORTED_IMAGE_FORMAT);
+        _relationships.add(REL_ORIGINAL);
+        relationships = Collections.unmodifiableSet(_relationships);
     }
+
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -238,7 +234,9 @@ public class TesseractOCRProcessor extends AbstractProcessor {
             //Guard against creating an empty list of allowable values in case the user points to an invalid directory
             if (files != null && files.length > 0) {
                 for (int i = 0; i < files.length; i++) {
-                    getLogger().debug("Found Tesseract supported language: " + files[i].getName());
+                    if (getLogger().isDebugEnabled()) {
+                        getLogger().debug("Found Tesseract supported language: " + files[i].getName());
+                    }
                     SUPPORTED_LANGUAGES.add(StringUtils.split(files[i].getName(), ".")[0]);
                 }
             } else {
@@ -251,7 +249,9 @@ public class TesseractOCRProcessor extends AbstractProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         //Setup the Tesseract instance once the processor is scheuled
-        tessInstance = new Tesseract();
+        tesseract = new Tesseract();
+        tesseract.setLanguage(context.getProperty(TESSERACT_LANGUAGE).getValue());
+        tesseract.setPageSegMode((context.getProperty(TESSERACT_PAGE_SEG_MODE).asInteger()));
     }
 
 
@@ -270,21 +270,19 @@ public class TesseractOCRProcessor extends AbstractProcessor {
         FlowFile ff = session.write(flowFile, new StreamCallback() {
             @Override
             public void process(InputStream inputStream, OutputStream outputStream) throws IOException {
-                tessInstance.setLanguage(context.getProperty(TESSERACT_LANGUAGE).getValue());
-                tessInstance.setDatapath(context.getProperty(TESS_DATA_PATH).evaluateAttributeExpressions(flowFile).getValue());
-                tessInstance.setPageSegMode((context.getProperty(TESSERACT_PAGE_SEG_MODE).asInteger()));
+                tesseract.setDatapath(context.getProperty(TESS_DATA_PATH).evaluateAttributeExpressions(flowFile).getValue());
 
                 //Builds the list of Tesseract configs.
                 Map<String, String> configs = buildTesseractConfigs(context.getProperty(TESSERACT_CONFIGS).getValue());
                 for (Map.Entry<String, String> entry : configs.entrySet()) {
                     getLogger().debug("Tesseract Config Key : '" + entry.getKey()
                             + "' Tesseract Config Value : '" + entry.getValue() + "'");
-                    tessInstance.setTessVariable(entry.getKey(), entry.getValue());
+                    tesseract.setTessVariable(entry.getKey(), entry.getValue());
                 }
 
                 try {
                     BufferedImage imBuff = ImageIO.read(inputStream);
-                    outputStream.write(tessInstance.doOCR(imBuff).getBytes());
+                    outputStream.write(tesseract.doOCR(imBuff).getBytes());
                 } catch (TesseractException te) {
                     getLogger().error(te.getMessage());
                     if (te.getCause().getMessage().equals("image == null!")) {
