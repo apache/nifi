@@ -16,21 +16,24 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.TemplateUtils;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.dao.TemplateDAO;
 import org.apache.nifi.web.util.SnippetUtils;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  *
@@ -88,8 +91,23 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
             TemplateDTO templateDetails = template.getDetails();
             FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed);
 
-            // reposition the template contents
-            org.apache.nifi.util.SnippetUtils.moveSnippet(snippet, originX, originY);
+            // calculate scaling factors based on the template encoding version
+            // attempt to parse the encoding version
+            final FlowEncodingVersion templateEncodingVersion = FlowEncodingVersion.parse(templateDetails.getEncodingVersion());
+            // get the major version, or 0 if no version could be parsed
+            int templateEncodingMajorVersion = templateEncodingVersion != null ? templateEncodingVersion.getMajorVersion() : 0;
+            // based on the major version < 1, use the default scaling factors.  Otherwise, don't scale (use factor of 1.0)
+            double factorX = templateEncodingMajorVersion < 1 ? FlowController.DEFAULT_POSITION_SCALE_FACTOR_X : 1.0;
+            double factorY = templateEncodingMajorVersion < 1 ? FlowController.DEFAULT_POSITION_SCALE_FACTOR_Y : 1.0;
+
+            // reposition and scale the template contents
+            org.apache.nifi.util.SnippetUtils.moveAndScaleSnippet(snippet, originX, originY, factorX, factorY);
+
+
+            // find all the child process groups in each process group in the top level of this snippet
+            final List<ProcessGroupDTO> childProcessGroups  = org.apache.nifi.util.SnippetUtils.findAllProcessGroups(snippet);
+            // scale (but don't reposition) child process groups
+            childProcessGroups.stream().forEach(processGroup -> org.apache.nifi.util.SnippetUtils.scaleSnippet(processGroup.getContents(), factorX, factorY));
 
             // instantiate the template into this group
             flowController.instantiateSnippet(group, snippet);
