@@ -72,18 +72,16 @@
                 must exclude them here.
             -->
             <plugin>
-                <groupId>org.mortbay.jetty</groupId>
+                <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-jspc-maven-plugin</artifactId>
-                <version>8.1.10.v20130312</version>
+                <version>${jetty.version}</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>jspc</goal>
                         </goals>
                         <configuration>
-                            <packageRoot>org.apache.nifi.web.jsp</packageRoot>
                             <keepSources>true</keepSources>
-                            <verbose>true</verbose>
                             <useProvidedScope>true</useProvidedScope>
                             <excludes>
                                 **/message-page.jsp,
