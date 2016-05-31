@@ -284,7 +284,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
                 throw new ClusterRequestException("Method resulted in an unsuccessful HTTP response code: " + nodeResponse.getClientResponse().getStatus());
             }
         } else {
-            serviceFacade.setProcessorAnnotationData(revision, processorId, annotationData);
+            serviceFacade.updateProcessor(revision, processorId, annotationData,null);
         }
     }
 
