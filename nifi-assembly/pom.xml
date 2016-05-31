@@ -347,6 +347,10 @@ language governing permissions and limitations under the License. -->
         <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
 
+        <nifi.processor.rollback.count.enabled>false</nifi.processor.rollback.count.enabled>
+        <nifi.processor.rollback.log.unack.ff.enabled>false</nifi.processor.rollback.log.unack.ff.enabled>
+        <nifi.processor.rollback.log.unack.ff.max>5</nifi.processor.rollback.log.unack.ff.max>
+
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
         <nifi.login.identity.provider.configuration.file>./conf/login-identity-providers.xml</nifi.login.identity.provider.configuration.file>

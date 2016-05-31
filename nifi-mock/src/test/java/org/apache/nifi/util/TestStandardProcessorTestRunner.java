@@ -30,10 +30,16 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestStandardProcessorTestRunner {
+
+    @Before
+    public void before() {
+        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+    }
 
     @Test
     public void testProcessContextPassedToOnStoppedMethods() {

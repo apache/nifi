@@ -21,13 +21,19 @@ import org.apache.nifi.processor.exception.ProcessException;
 public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
 
     @Override
+    protected void init(ProcessorInitializationContext context) {
+        super.init(context);
+    }
+
+    @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
             session.commit();
         } catch (final Throwable t) {
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("{} failed to process {}due to {}; rolling back session",
+                    new Object[]{this, session.getUnacknowledgedFlowfileInfo(), t});
             session.rollback(true);
             throw t;
         }

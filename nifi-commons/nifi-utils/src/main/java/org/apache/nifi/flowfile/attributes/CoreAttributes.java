@@ -49,7 +49,11 @@ public enum CoreAttributes implements FlowFileAttributeKey {
     /**
      * Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
      */
-    ALTERNATE_IDENTIFIER("alternate.identifier");
+    ALTERNATE_IDENTIFIER("alternate.identifier"),
+    /**
+     * An optional numeric count of how many times a FlowFile was rolled back.
+     */
+    ROLLBACK_COUNT("rollback.count");
 
     private final String key;
 
