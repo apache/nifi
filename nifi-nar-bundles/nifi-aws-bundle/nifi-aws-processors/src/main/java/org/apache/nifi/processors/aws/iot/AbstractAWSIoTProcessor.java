@@ -43,7 +43,7 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
     /**
      * Amazon's current service limit on websocket connection duration
      */
-    static final Integer PROP_DEFAULT_KEEPALIVE = 300;
+    static final Integer PROP_DEFAULT_KEEPALIVE = 60 * 60 * 24;
     /**
      * When to start indicating the need for connection renewal (in seconds before actual termination)
      */
