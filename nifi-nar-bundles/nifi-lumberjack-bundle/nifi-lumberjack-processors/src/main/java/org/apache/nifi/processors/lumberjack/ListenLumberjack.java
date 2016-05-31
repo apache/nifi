@@ -83,7 +83,7 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
                     "messages will be received over a secure connection. Note that as Lumberjack client requires"+
                     "two-way SSL authentication, the controller MUST have a truststore and a keystore to work"+
                     "properly.")
-            .required(false)
+            .required(true)
             .identifiesControllerService(SSLContextService.class)
             .build();
 
@@ -113,8 +113,6 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
     }
 
     private volatile LumberjackEncoder lumberjackEncoder;
-    private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
-
 
 
     @Override
