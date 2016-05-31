@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import java.util.Collection;
+import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
 
@@ -80,6 +81,25 @@ public interface NiFiWebConfigurationContext {
      * populated or isn't appropriate for the given request
      */
     ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext configurationContext, String annotationData)
+            throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
+
+    /**
+     * Sets the property values for the underlying component.
+     *
+     * @param configurationContext config context
+     * @param properties Map of property name with property value
+     * @return the configuration for the underlying component
+     * @throws ResourceNotFoundException if the underlying component does not
+     * exit
+     * @throws InvalidRevisionException if a revision other than the current
+     * revision is given
+     * @throws ClusterRequestException if the annotation data was unable to be
+     * set for the underlying component. This exception will only be thrown when
+     * operating in a cluster.
+     * @throws IllegalArgumentException When the requestContext isn't fully
+     * populated or isn't appropriate for the given request
+     */
+    ComponentDetails setProperties(NiFiWebConfigurationRequestContext configurationContext, Map<String,String> properties)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
 
     /**
