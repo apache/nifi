@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -58,6 +59,7 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
 @SeeAlso({FetchFile.class, GetFile.class})
+@ReadsAttribute(attribute = "filename", description = "The filename to use when writing the FlowFile to disk.")
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";
