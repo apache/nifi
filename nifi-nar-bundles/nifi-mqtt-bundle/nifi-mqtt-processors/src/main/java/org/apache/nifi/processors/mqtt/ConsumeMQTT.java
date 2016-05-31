@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.mqtt;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -307,8 +308,14 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
 
         @Override
         public void messageArrived(String topic, MqttMessage message) throws Exception {
-            if (logger.isInfoEnabled()) {
-                logger.info("MQTT message arrived on topic:" + topic);
+            if (logger.isDebugEnabled()) {
+                byte[] payload = message.getPayload();
+                String text = new String(payload, "UTF-8");
+                if (StringUtils.isAsciiPrintable(text)) {
+                    logger.debug("Message arrived from topic {}. Payload: {}", new Object[] {topic, text});
+                } else {
+                    logger.debug("Message arrived from topic {}. Binary value of size {}", new Object[] {topic, payload.length});
+                }
             }
 
             if (mqttQueue.size() >= maxQueueSize){
