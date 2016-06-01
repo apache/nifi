@@ -136,7 +136,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     // so that we are able to aggregate many into a single Fork Event.
     private final Map<FlowFile, ProvenanceEventBuilder> forkEventBuilders = new HashMap<>();
 
-    private int maxRollbackFlowfilesToLog = 5;
+    private final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
 
     private Checkpoint checkpoint = new Checkpoint();
 
@@ -962,7 +962,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final int initLen = details.length();
         int filesListed = 0;
         for (Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
-            if (filesListed >= maxRollbackFlowfilesToLog) {
+            if (filesListed >= MAX_ROLLBACK_FLOWFILES_TO_LOG) {
                 break;
             }
             filesListed++;
@@ -981,11 +981,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     .append("/uuid=")
                     .append(entryKey.getAttribute(CoreAttributes.UUID.key()));
         }
-        if (records.entrySet().size() > maxRollbackFlowfilesToLog) {
+        if (records.entrySet().size() > MAX_ROLLBACK_FLOWFILES_TO_LOG) {
             if (details.length() > initLen) {
                 details.append(", ");
             }
-            details.append(records.entrySet().size() - maxRollbackFlowfilesToLog)
+            details.append(records.entrySet().size() - MAX_ROLLBACK_FLOWFILES_TO_LOG)
                     .append(" additional Flowfiles not listed");
         } else if (filesListed == 0) {
             details.append("none");
