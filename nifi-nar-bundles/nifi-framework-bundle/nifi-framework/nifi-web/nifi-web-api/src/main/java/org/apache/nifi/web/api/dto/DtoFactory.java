@@ -746,6 +746,8 @@ public final class DtoFactory {
         copy.setDescription(original.getDescription());
         copy.setTimestamp(original.getTimestamp());
         copy.setUri(original.getUri());
+        copy.setEncodingVersion(original.getEncodingVersion());
+
         return copy;
     }
 
