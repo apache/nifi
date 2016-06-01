@@ -82,6 +82,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private NiFiProperties properties;
     private File authorizationsFile;
     private File restoreAuthorizationsFile;
+    private String rootGroupId;
 
     private final AtomicReference<Authorizations> authorizations = new AtomicReference<>();
 
@@ -162,6 +163,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             }
 
             logger.info(String.format("Authorizations file loaded at %s", new Date().toString()));
+
+            this.rootGroupId = configurationContext.getRootGroupId();
 
         } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
