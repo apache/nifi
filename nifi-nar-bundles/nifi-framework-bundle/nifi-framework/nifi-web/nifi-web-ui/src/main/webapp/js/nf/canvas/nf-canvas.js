@@ -124,7 +124,7 @@ nf.Canvas = (function () {
         urls: {
             api: '../nifi-api',
             identity: '../nifi-api/flow/identity',
-            authorities: '../nifi-api/controller/authorities',
+            authorities: '../nifi-api/flow/authorities',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
@@ -566,9 +566,9 @@ nf.Canvas = (function () {
                     }
                 }
             } else {
-                if (evt.keyCode == 8 || evt.keyCode === 46) {
+                if (evt.keyCode === 8 || evt.keyCode === 46) {
                     // backspace or delete
-                    if (nf.Common.isDFM() && nf.CanvasUtils.isDeletable(selection)) {
+                    if (nf.Common.isDFM() && nf.CanvasUtils.areDeletable(selection)) {
                         nf.Actions['delete'](selection);
                     }
 
@@ -761,7 +761,7 @@ nf.Canvas = (function () {
                         // at this point the user may be themselves or anonymous
 
                         // if the user is logged, we want to determine if they were logged in using a certificate
-                        if (identityResponse.identity !== 'anonymous') {
+                        if (identityResponse.anonymous === false) {
                             // rendner the users name
                             $('#current-user').text(identityResponse.identity).show();
 
@@ -776,7 +776,7 @@ nf.Canvas = (function () {
                         deferred.resolve();
                     }).fail(function (xhr, status, error) {
                         // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
-                        if (xhr.status === 401 || xhr.status === 403) {
+                        if (xhr.status === 401) {
                             window.location = '/nifi/login';
                         } else {
                             deferred.reject(xhr, status, error);

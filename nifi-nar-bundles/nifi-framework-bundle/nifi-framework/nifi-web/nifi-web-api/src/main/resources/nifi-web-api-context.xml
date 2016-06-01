@@ -292,6 +292,7 @@
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterManager" ref="clusterManager"/>
+        <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="clusterResource" class="org.apache.nifi.web.api.ClusterResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -305,9 +306,11 @@
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
         <property name="properties" ref="nifiProperties"/>
-        <property name="certificateExtractor" ref="certificateExtractor"/>
-        <property name="certificateIdentityProvider" ref="certificateIdentityProvider"/>
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
+        <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
+        <property name="certificateExtractor" ref="certificateExtractor"/>
+        <property name="principalExtractor" ref="principalExtractor"/>
+        <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
         <property name="jwtService" ref="jwtService"/>
         <property name="otpService" ref="otpService"/>
         <property name="kerberosService" ref="kerberosService"/>

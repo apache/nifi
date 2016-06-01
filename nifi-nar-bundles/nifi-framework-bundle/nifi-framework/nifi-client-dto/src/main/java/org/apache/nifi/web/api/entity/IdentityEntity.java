@@ -26,6 +26,7 @@ public class IdentityEntity extends Entity {
 
     private String userId;
     private String identity;
+    private boolean anonymous;
 
     /**
      * @return current user id
@@ -49,4 +50,14 @@ public class IdentityEntity extends Entity {
         this.identity = identity;
     }
 
+    /**
+     * @return if the user is anonymous
+     */
+    public boolean isAnonymous() {
+        return anonymous;
+    }
+
+    public void setAnonymous(boolean anonymous) {
+        this.anonymous = anonymous;
+    }
 }

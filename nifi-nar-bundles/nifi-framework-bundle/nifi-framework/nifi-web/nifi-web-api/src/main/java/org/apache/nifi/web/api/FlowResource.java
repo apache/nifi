@@ -63,6 +63,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
+import org.apache.nifi.web.api.entity.AuthorityEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
@@ -105,6 +106,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -212,6 +214,117 @@ public class FlowResource extends ApplicationResource {
     // ----
     // flow
     // ----
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.TEXT_PLAIN)
+    @Path("client-id")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Generates a client id.",
+            response = String.class,
+            authorizations = {
+                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response generateClientId() {
+        authorizeFlow();
+        return clusterContext(generateOkResponse(generateUuid())).build();
+    }
+
+    /**
+     * Retrieves the identity of the user making the request.
+     *
+     * @return An identityEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("identity")
+    @ApiOperation(
+            value = "Retrieves the user identity of the user making the request",
+            response = IdentityEntity.class
+    )
+    public Response getIdentity() {
+
+        authorizeFlow();
+
+        // note that the cluster manager will handle this request directly
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+        }
+
+        // create the response entity
+        IdentityEntity entity = new IdentityEntity();
+        entity.setUserId(user.getIdentity());
+        entity.setIdentity(user.getUserName());
+        entity.setAnonymous(user.isAnonymous());
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    /**x
+     * Retrieves the user details, including the authorities, about the user making the request.
+     *
+     * @return A authoritiesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("authorities")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_PROXY', 'ROLE_NIFI', 'ROLE_PROVENANCE')")
+    @ApiOperation(
+            value = "Retrieves the user details, including the authorities, about the user making the request",
+            response = AuthorityEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
+                    @Authorization(value = "Proxy", type = "ROLE_PROXY"),
+                    @Authorization(value = "NiFi", type = "ROLE_NIFI"),
+                    @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getAuthorities() {
+
+        // TODO - Remove
+        authorizeFlow();
+
+        // note that the cluster manager will handle this request directly
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+        }
+
+        // create the response entity
+        AuthorityEntity entity = new AuthorityEntity();
+        entity.setUserId(user.getIdentity());
+        entity.setAuthorities(new HashSet<>(Arrays.asList("ROLE_MONITOR", "ROLE_DFM", "ROLE_ADMIN", "ROLE_PROXY", "ROLE_NIFI", "ROLE_PROVENANCE")));
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
 
     /**
      * Retrieves the contents of the specified group.
@@ -570,34 +683,6 @@ public class FlowResource extends ApplicationResource {
         );
     }
 
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("client-id")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-        value = "Generates a client id.",
-        response = String.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response generateClientId() {
-        authorizeFlow();
-        return clusterContext(generateOkResponse(generateUuid())).build();
-    }
-
     // ------
     // search
     // ------
@@ -689,36 +774,6 @@ public class FlowResource extends ApplicationResource {
         // create the response entity
         final ControllerStatusEntity entity = new ControllerStatusEntity();
         entity.setControllerStatus(controllerStatus);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Retrieves the identity of the user making the request.
-     *
-     * @return An identityEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("identity")
-    @ApiOperation(
-            value = "Retrieves the user identity of the user making the request",
-            response = IdentityEntity.class
-    )
-    public Response getIdentity() {
-
-        // note that the cluster manager will handle this request directly
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-        }
-
-        // create the response entity
-        IdentityEntity entity = new IdentityEntity();
-        entity.setUserId(user.getIdentity());
-        entity.setIdentity(user.getUserName());
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

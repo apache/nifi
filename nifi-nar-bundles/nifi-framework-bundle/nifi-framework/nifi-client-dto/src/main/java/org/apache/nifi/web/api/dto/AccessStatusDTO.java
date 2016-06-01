@@ -28,8 +28,6 @@ public class AccessStatusDTO {
     public static enum Status {
 
         UNKNOWN,
-        UNREGISTERED,
-        NOT_ACTIVE,
         ACTIVE
     }
 

@@ -16,16 +16,17 @@
  */
 package org.apache.nifi.web.api.config;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Maps access denied exceptions into a client response.
@@ -39,17 +40,26 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
     public Response toResponse(AccessDeniedException exception) {
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", user.getIdentity(), Response.Status.FORBIDDEN));
+
+        // if the user was authenticated - forbidden, otherwise unauthorized
+        final Response.Status status;
+        if (user.isAnonymous()) {
+            status = Status.UNAUTHORIZED;
         } else {
-            logger.info(String.format("User does not have permission to access the requested resource. Returning %s response.", Response.Status.FORBIDDEN));
+            status = Status.FORBIDDEN;
+        }
+
+        if (user != null) {
+            logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", user.getIdentity(), status));
+        } else {
+            logger.info(String.format("User does not have permission to access the requested resource. Returning %s response.", status));
         }
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }
 
-        return Response.status(Response.Status.FORBIDDEN).entity("Unable to perform the desired action because access is denied.").type("text/plain").build();
+        return Response.status(status).entity("Unable to perform the desired action. Contact the system administrator.").type("text/plain").build();
     }
 
 }

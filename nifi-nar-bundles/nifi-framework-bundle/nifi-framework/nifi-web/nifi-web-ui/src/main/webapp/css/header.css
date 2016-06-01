@@ -152,6 +152,7 @@ md-toolbar.md-small .md-toolbar-tools {
 /* styles for the status link */
 
 #anonymous-user-alert {
+    display: none;
     font-size: 12px;
 }
 
