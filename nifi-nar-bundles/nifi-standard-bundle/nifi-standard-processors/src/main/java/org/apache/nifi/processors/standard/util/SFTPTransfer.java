@@ -406,7 +406,7 @@ public class SFTPTransfer implements FileTransfer {
 
             final Properties properties = new Properties();
             properties.setProperty("StrictHostKeyChecking", ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean() ? "yes" : "no");
-            properties.setProperty("PreferredAuthentications", "publickey,password");
+            properties.setProperty("PreferredAuthentications", "publickey,password,keyboard-interactive");
 
             final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
             if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
