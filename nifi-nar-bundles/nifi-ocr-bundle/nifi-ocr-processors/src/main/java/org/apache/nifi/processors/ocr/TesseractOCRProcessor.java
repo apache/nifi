@@ -77,7 +77,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
     public static Set<String> SUPPORTED_LANGUAGES;
     private static final String TESS_LANG_EXTENSION = ".traineddata";
     private static List<AllowableValue> PAGE_SEGMENTATION_MODES;
-    private static volatile ITesseract tesseract;
+    private volatile ITesseract tesseract;
     private static final  List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
 
@@ -347,11 +347,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
         File[] files = installFile.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
-                if (pathname.getName().endsWith(TESS_LANG_EXTENSION)) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return pathname.getName().endsWith(TESS_LANG_EXTENSION);
             }
         });
         return files;
