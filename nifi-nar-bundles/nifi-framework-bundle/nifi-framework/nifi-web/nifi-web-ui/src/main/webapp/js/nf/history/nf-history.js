@@ -31,7 +31,7 @@ nf.History = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/controller/authorities'
+            authorities: '../nifi-api/flow/authorities'
         }
     };
 

@@ -32,7 +32,7 @@ nf.Provenance = (function () {
             cluster: '../nifi-api/cluster',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/controller/authorities'
+            authorities: '../nifi-api/flow/authorities'
         }
     };
 

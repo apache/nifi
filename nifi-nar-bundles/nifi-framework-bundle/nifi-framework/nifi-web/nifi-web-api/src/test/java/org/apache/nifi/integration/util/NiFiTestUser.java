@@ -20,9 +20,10 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-import java.util.Map;
-import javax.ws.rs.core.MediaType;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+
+import javax.ws.rs.core.MediaType;
+import java.util.Map;
 
 /**
  *
@@ -419,31 +420,4 @@ public class NiFiTestUser {
         return resourceBuilder.post(ClientResponse.class);
     }
 
-    /**
-     * Attempts to create a token with the specified username and password.
-     *
-     * @param url the url
-     * @param justification justification
-     * @param headers http headers
-     * @return response
-     * @throws Exception ex
-     */
-    public ClientResponse testRegisterUser(String url, String justification, Map<String, String> headers) throws Exception {
-        // convert the form data
-        MultivaluedMapImpl entity = new MultivaluedMapImpl();
-        entity.add("justification", justification);
-
-        // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.TEXT_PLAIN).type(MediaType.APPLICATION_FORM_URLENCODED)).entity(entity);
-
-        // append any headers
-        if (headers != null && !headers.isEmpty()) {
-            for (String key : headers.keySet()) {
-                resourceBuilder = resourceBuilder.header(key, headers.get(key));
-            }
-        }
-
-        // perform the request
-        return resourceBuilder.post(ClientResponse.class);
-    }
 }

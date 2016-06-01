@@ -69,11 +69,11 @@
                 </div>
                 <div id="login-link-container">
                     <span id="login-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">login</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">log in</span>
                 </div>
                 <div id="logout-link-container" style="display: none;">
                     <span id="logout-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">logout</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">log out</span>
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">
