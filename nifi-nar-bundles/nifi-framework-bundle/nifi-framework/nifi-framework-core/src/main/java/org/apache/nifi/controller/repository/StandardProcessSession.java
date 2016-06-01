@@ -137,6 +137,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     // so that we are able to aggregate many into a single Fork Event.
     private final Map<FlowFile, ProvenanceEventBuilder> forkEventBuilders = new HashMap<>();
 
+    private final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
+
     private Checkpoint checkpoint = new Checkpoint();
 
     public StandardProcessSession(final ProcessContext context) {
