@@ -288,7 +288,7 @@ public class TesseractOCRProcessor extends AbstractProcessor {
                     if (te.getCause().getMessage().equals("image == null!")) {
                         session.transfer(flowFile, REL_UNSUPPORTED_IMAGE_FORMAT);
                     } else {
-                        session.transfer(flowFile, REL_FAILURE);
+                        session.transfer(session.penalize(flowFile), REL_FAILURE);
                     }
                     errors.set(true);
 
