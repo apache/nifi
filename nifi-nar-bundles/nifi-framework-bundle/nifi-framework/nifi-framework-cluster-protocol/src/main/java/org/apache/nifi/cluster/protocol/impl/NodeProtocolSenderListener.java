@@ -30,7 +30,6 @@ import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolListener {
-
     private final NodeProtocolSender sender;
     private final ProtocolListener listener;
 

@@ -16,24 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.IllegalClusterResourceRequestException;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.ClusterDTO;
-import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
-import org.apache.nifi.web.api.entity.ClusterEntity;
-import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
-import org.apache.nifi.web.api.entity.NodeEntity;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -48,8 +32,26 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.web.IllegalClusterResourceRequestException;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
+import org.apache.nifi.web.api.entity.ClusterEntity;
+import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
+
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+
 
 /**
  * RESTful endpoint for managing a cluster.
@@ -64,7 +66,6 @@ public class ClusterResource extends ApplicationResource {
     @Context
     private ResourceContext resourceContext;
     private NiFiServiceFacade serviceFacade;
-    private NiFiProperties properties;
 
     /**
      * Returns a 200 OK response to indicate this is a valid cluster endpoint.
@@ -75,10 +76,10 @@ public class ClusterResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     public Response getClusterHead() {
-        if (properties.isClusterManager()) {
+        if (isConnectedToCluster()) {
             return Response.ok().build();
         } else {
-            return Response.status(Response.Status.NOT_FOUND).entity("Only a cluster manager can process the request.").build();
+            return Response.status(Response.Status.NOT_FOUND).entity("NiFi instance is not clustered").build();
         }
     }
 
@@ -111,8 +112,7 @@ public class ClusterResource extends ApplicationResource {
     )
     public Response getCluster() {
 
-        if (properties.isClusterManager()) {
-
+        if (isConnectedToCluster()) {
             final ClusterDTO dto = serviceFacade.getCluster();
 
             // create entity
@@ -123,7 +123,7 @@ public class ClusterResource extends ApplicationResource {
             return generateOkResponse(entity).build();
         }
 
-        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+        throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
     }
 
     /**
@@ -163,7 +163,7 @@ public class ClusterResource extends ApplicationResource {
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
 
         // ensure this is the cluster manager
-        if (properties.isClusterManager()) {
+        if (isConnectedToCluster()) {
             final List<NodeSearchResultDTO> nodeMatches = new ArrayList<>();
 
             // get the nodes in the cluster
@@ -172,7 +172,7 @@ public class ClusterResource extends ApplicationResource {
             // check each to see if it matches the search term
             for (NodeDTO node : cluster.getNodes()) {
                 // ensure the node is connected
-                if (!Node.Status.CONNECTED.toString().equals(node.getStatus())) {
+                if (!NodeConnectionState.CONNECTED.name().equals(node.getStatus())) {
                     continue;
                 }
 
@@ -196,7 +196,7 @@ public class ClusterResource extends ApplicationResource {
             return noCache(Response.ok(results)).build();
         }
 
-        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+        throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
     }
 
     /**
@@ -235,21 +235,15 @@ public class ClusterResource extends ApplicationResource {
             )
             @PathParam("id") String id) {
 
-        if (properties.isClusterManager()) {
+        // get the specified relationship
+        final NodeDTO dto = serviceFacade.getNode(id);
 
-            // get the specified relationship
-            final NodeDTO dto = serviceFacade.getNode(id);
+        // create the response entity
+        final NodeEntity entity = new NodeEntity();
+        entity.setNode(dto);
 
-            // create the response entity
-            final NodeEntity entity = new NodeEntity();
-            entity.setNode(dto);
-
-            // generate the response
-            return generateOkResponse(entity).build();
-
-        }
-
-        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -291,31 +285,26 @@ public class ClusterResource extends ApplicationResource {
                     required = true
             ) NodeEntity nodeEntity) {
 
-        if (properties.isClusterManager()) {
-
-            if (nodeEntity == null || nodeEntity.getNode() == null) {
-                throw new IllegalArgumentException("Node details must be specified.");
-            }
-
-            // get the request node
-            final NodeDTO requestNodeDTO = nodeEntity.getNode();
-            if (!id.equals(requestNodeDTO.getNodeId())) {
-                throw new IllegalArgumentException(String.format("The node id (%s) in the request body does "
-                        + "not equal the node id of the requested resource (%s).", requestNodeDTO.getNodeId(), id));
-            }
-
-            // update the node
-            final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
-
-            // create the response entity
-            NodeEntity entity = new NodeEntity();
-            entity.setNode(node);
-
-            // generate the response
-            return generateOkResponse(entity).build();
+        if (nodeEntity == null || nodeEntity.getNode() == null) {
+            throw new IllegalArgumentException("Node details must be specified.");
         }
 
-        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
+        // get the request node
+        final NodeDTO requestNodeDTO = nodeEntity.getNode();
+        if (!id.equals(requestNodeDTO.getNodeId())) {
+            throw new IllegalArgumentException(String.format("The node id (%s) in the request body does "
+                + "not equal the node id of the requested resource (%s).", requestNodeDTO.getNodeId(), id));
+        }
+
+        // update the node
+        final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
+
+        // create the response entity
+        NodeEntity entity = new NodeEntity();
+        entity.setNode(node);
+
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     /**
@@ -352,28 +341,17 @@ public class ClusterResource extends ApplicationResource {
             )
             @PathParam("id") String id) {
 
-        if (properties.isClusterManager()) {
+        serviceFacade.deleteNode(id);
 
-            serviceFacade.deleteNode(id);
+        // create the response entity
+        final NodeEntity entity = new NodeEntity();
 
-            // create the response entity
-            final NodeEntity entity = new NodeEntity();
-
-            // generate the response
-            return generateOkResponse(entity).build();
-        }
-
-        throw new IllegalClusterResourceRequestException("Only a cluster manager can process the request.");
-
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     // setters
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
 }

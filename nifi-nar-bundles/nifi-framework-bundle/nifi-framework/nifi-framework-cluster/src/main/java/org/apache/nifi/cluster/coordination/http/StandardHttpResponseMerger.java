@@ -35,6 +35,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEnd
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpiontMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowSnippetEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.GroupStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
@@ -52,24 +53,14 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpoint
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.StatusMerger;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node.Status;
-import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinQuery;
-import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.stream.io.NullOutputStream;
-import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StandardHttpResponseMerger implements HttpResponseMerger {
     private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMerger.class);
-
-    private static final int NODE_CONTINUE_STATUS_CODE = 150;
-    private final WebClusterManager clusterManager;
 
     private static final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
     static {
@@ -99,14 +90,10 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new StatusHistoryEndpointMerger());
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
+        endpointMergers.add(new FlowMerger());
     }
 
     public StandardHttpResponseMerger() {
-        this(null);
-    }
-
-    public StandardHttpResponseMerger(final WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
     }
 
     @Override
@@ -140,56 +127,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         }
 
         final NodeResponse response = merger.merge(uri, httpMethod, successResponses, problematicResponses, clientResponse);
-        if (clusterManager != null) {
-            mergeNCMBulletins(response, uri, httpMethod);
-        }
-
         return response;
-    }
-
-    /**
-     * This method merges bulletins from the NCM. Eventually, the NCM will go away entirely, and
-     * at that point, we will completely remove this and the WebClusterManager as a member variable.
-     * However, until then, the bulletins from the NCM are important to include, since there is no other
-     * node that can include them.
-     *
-     * @param clientResponse the Node Response that will be returned to the client
-     * @param uri the URI
-     * @param method the HTTP Method
-     *
-     * @deprecated this method exists only until we can remove the Cluster Manager from the picture all together. It will then be removed.
-     */
-    @Deprecated
-    private void mergeNCMBulletins(final NodeResponse clientResponse, final URI uri, final String method) {
-        // determine if we have at least one response
-        final boolean hasClientResponse = clientResponse != null;
-        final boolean hasSuccessfulClientResponse = hasClientResponse && clientResponse.is2xx();
-
-        if (hasSuccessfulClientResponse && clusterManager.isControllerStatusEndpoint(uri, method)) {
-            // for now, we need to merge the NCM's bulletins too.
-            final ControllerStatusEntity responseEntity = (ControllerStatusEntity) clientResponse.getUpdatedEntity();
-            final ControllerStatusDTO mergedStatus = responseEntity.getControllerStatus();
-
-            final int totalNodeCount = clusterManager.getNodeIds().size();
-            final int connectedNodeCount = clusterManager.getNodeIds(Status.CONNECTED).size();
-
-            final List<Bulletin> ncmControllerBulletins = clusterManager.getBulletinRepository().findBulletinsForController();
-            mergedStatus.setBulletins(clusterManager.mergeNCMBulletins(mergedStatus.getBulletins(), ncmControllerBulletins));
-
-            // get the controller service bulletins
-            final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
-            final List<Bulletin> ncmServiceBulletins = clusterManager.getBulletinRepository().findBulletins(controllerServiceQuery);
-            mergedStatus.setControllerServiceBulletins(clusterManager.mergeNCMBulletins(mergedStatus.getControllerServiceBulletins(), ncmServiceBulletins));
-
-            // get the reporting task bulletins
-            final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
-            final List<Bulletin> ncmReportingTaskBulletins = clusterManager.getBulletinRepository().findBulletins(reportingTaskQuery);
-            mergedStatus.setReportingTaskBulletins(clusterManager.mergeNCMBulletins(mergedStatus.getReportingTaskBulletins(), ncmReportingTaskBulletins));
-
-            mergedStatus.setConnectedNodeCount(connectedNodeCount);
-            mergedStatus.setTotalNodeCount(totalNodeCount);
-            StatusMerger.updatePrettyPrintedFields(mergedStatus);
-        }
     }
 
 
@@ -225,7 +163,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         responses.stream()
             .parallel() // parallelize the draining of the responses, since we have multiple streams to consume
             .filter(response -> response != exclude) // don't include the explicitly excluded node
-            .filter(response -> response.getStatus() != NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
+            .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
             .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out
     }
 

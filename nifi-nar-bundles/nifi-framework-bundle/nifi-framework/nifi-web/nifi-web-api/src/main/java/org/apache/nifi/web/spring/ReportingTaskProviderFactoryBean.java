@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.web.spring;
 
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
-import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -28,37 +26,28 @@ import org.springframework.context.ApplicationContextAware;
 /**
  *
  */
-public class ReportingTaskProviderFactoryBean implements FactoryBean, ApplicationContextAware {
+public class ReportingTaskProviderFactoryBean implements FactoryBean<ReportingTaskProvider>, ApplicationContextAware {
 
     private ApplicationContext context;
     private ReportingTaskProvider reportingTaskProvider;
-    private NiFiProperties properties;
 
     @Override
-    public Object getObject() throws Exception {
+    public ReportingTaskProvider getObject() throws Exception {
         if (reportingTaskProvider == null) {
-            if (properties.isClusterManager()) {
-                reportingTaskProvider = context.getBean("clusterManager", WebClusterManager.class);
-            } else {
-                reportingTaskProvider = context.getBean("flowController", FlowController.class);
-            }
+            reportingTaskProvider = context.getBean("flowController", FlowController.class);
         }
 
         return reportingTaskProvider;
     }
 
     @Override
-    public Class getObjectType() {
+    public Class<ReportingTaskProvider> getObjectType() {
         return ReportingTaskProvider.class;
     }
 
     @Override
     public boolean isSingleton() {
         return true;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     @Override

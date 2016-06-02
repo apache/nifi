@@ -35,7 +35,7 @@ import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.QueueSizeDTO;
 import org.apache.nifi.web.api.entity.ListingRequestEntity;
 
-public class ListFlowFilesEndpointMerger extends AbstractSingleEntityEndpoint<ListingRequestEntity, ListingRequestDTO> {
+public class ListFlowFilesEndpointMerger extends AbstractSingleDTOEndpoint<ListingRequestEntity, ListingRequestDTO> {
     public static final Pattern LISTING_REQUESTS_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/listing-requests");
     public static final Pattern LISTING_REQUEST_URI = Pattern.compile("/nifi-api/flowfile-queues/[a-f0-9\\-]{36}/listing-requests/[a-f0-9\\-]{36}");
 

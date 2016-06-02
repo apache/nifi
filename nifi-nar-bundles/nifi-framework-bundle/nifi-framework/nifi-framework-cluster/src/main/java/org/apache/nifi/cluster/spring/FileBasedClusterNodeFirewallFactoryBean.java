@@ -34,7 +34,7 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean {
     @Override
     public Object getObject() throws Exception {
         if (firewall == null) {
-            final File config = properties.getClusterManagerNodeFirewallFile();
+            final File config = properties.getClusterNodeFirewallFile();
             final File restoreDirectory = properties.getRestoreDirectory();
             if (config != null) {
                 firewall = new FileBasedClusterNodeFirewall(config, restoreDirectory);

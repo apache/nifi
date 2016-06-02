@@ -16,7 +16,21 @@
  */
 package org.apache.nifi.web;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -25,13 +39,12 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -44,20 +57,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 /**
  * Implements the NiFiWebContext interface to support a context in both standalone and clustered environments.
@@ -72,7 +72,6 @@ public class StandardNiFiWebContext implements NiFiWebContext {
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
     private ControllerServiceLookup controllerServiceLookup;
     private AuditService auditService;
 
@@ -162,7 +161,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
         }
 
         final ProcessorDTO processor;
-        if (properties.isClusterManager()) {
+        if (properties.isClustered()) {
             // create the request URL
             URI requestUrl;
             try {
@@ -178,7 +177,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             parameters.add(VERBOSE_PARAM, "true");
 
             // replicate request
-            NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, requestUrl, parameters, getHeaders(config));
+            NodeResponse nodeResponse = null;
 
             // check for issues replicating request
             if (nodeResponse.hasThrowable()) {
@@ -228,7 +227,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             throw new ResourceNotFoundException(String.format("Context config did not have a processor ID."));
         }
 
-        if (properties.isClusterManager()) {
+        if (properties.isClustered()) {
 
             // create the request URL
             URI requestUrl;
@@ -263,7 +262,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
             headers.put("Content-Type", "application/json");
 
             // replicate request
-            NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.PUT, requestUrl, processorEntity, headers);
+            NodeResponse nodeResponse = null;
 
             // check for issues replicating request
             if (nodeResponse.hasThrowable()) {
@@ -312,9 +311,6 @@ public class StandardNiFiWebContext implements NiFiWebContext {
         return headers;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;

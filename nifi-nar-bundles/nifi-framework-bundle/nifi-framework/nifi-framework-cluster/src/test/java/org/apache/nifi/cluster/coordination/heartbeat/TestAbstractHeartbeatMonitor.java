@@ -32,37 +32,30 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.curator.test.TestingServer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestAbstractHeartbeatMonitor {
-    private TestingServer zkServer;
     private NodeIdentifier nodeId;
     private TestFriendlyHeartbeatMonitor monitor;
 
     @Before
     public void setup() throws Exception {
-        zkServer = new TestingServer(true);
-        zkServer.start();
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, false);
     }
 
     @After
     public void clear() throws IOException {
-        if (zkServer != null) {
-            zkServer.stop();
-            zkServer.close();
-        }
-
         if (monitor != null) {
             monitor.stop();
         }
@@ -79,7 +72,7 @@ public class TestAbstractHeartbeatMonitor {
         final List<NodeIdentifier> requestedToConnect = Collections.synchronizedList(new ArrayList<>());
         final ClusterCoordinatorAdapter coordinator = new ClusterCoordinatorAdapter() {
             @Override
-            public synchronized void requestNodeConnect(final NodeIdentifier nodeId) {
+            public synchronized void requestNodeConnect(final NodeIdentifier nodeId, String userDn) {
                 requestedToConnect.add(nodeId);
             }
         };
@@ -164,51 +157,9 @@ public class TestAbstractHeartbeatMonitor {
     }
 
 
-    @Test
-    public void testDisconnectedHeartbeatOnStartup() throws InterruptedException {
-        final Set<NodeIdentifier> requestedToConnect = Collections.synchronizedSet(new HashSet<>());
-        final Set<NodeIdentifier> connected = Collections.synchronizedSet(new HashSet<>());
-        final Set<NodeIdentifier> disconnected = Collections.synchronizedSet(new HashSet<>());
-        final ClusterCoordinatorAdapter adapter = new ClusterCoordinatorAdapter() {
-            @Override
-            public synchronized void requestNodeConnect(final NodeIdentifier nodeId) {
-                super.requestNodeConnect(nodeId);
-                requestedToConnect.add(nodeId);
-            }
-
-            @Override
-            public synchronized void finishNodeConnection(final NodeIdentifier nodeId) {
-                super.finishNodeConnection(nodeId);
-                connected.add(nodeId);
-            }
-
-            @Override
-            public synchronized void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
-                super.requestNodeDisconnect(nodeId, disconnectionCode, explanation);
-                disconnected.add(nodeId);
-            }
-        };
-
-        final TestFriendlyHeartbeatMonitor monitor = createMonitor(adapter);
-
-        requestedToConnect.clear();
-
-        monitor.addHeartbeat(createHeartbeat(nodeId, DisconnectionCode.NODE_SHUTDOWN));
-        monitor.waitForProcessed();
-
-        assertTrue(connected.isEmpty());
-        assertTrue(requestedToConnect.isEmpty());
-        assertTrue(disconnected.isEmpty());
-    }
-
-    private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
-        final NodeConnectionStatus status = new NodeConnectionStatus(disconnectionCode);
-        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, false, 0, 0, 0, 0);
-    }
-
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
-        final NodeConnectionStatus status = new NodeConnectionStatus(state);
-        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, false, 0, 0, 0, 0);
+        final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state);
+        return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, Collections.emptySet(), 0, 0, 0, 0);
     }
 
     private TestFriendlyHeartbeatMonitor createMonitor(final ClusterCoordinator coordinator) {
@@ -220,10 +171,6 @@ public class TestAbstractHeartbeatMonitor {
     private Properties createProperties() {
         final Properties properties = new Properties();
         properties.setProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, "10 ms");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, zkServer.getConnectString());
-        properties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, "3 secs");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, "3 secs");
-        properties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, "/nifi");
         return properties;
     }
 
@@ -231,24 +178,33 @@ public class TestAbstractHeartbeatMonitor {
         private final Map<NodeIdentifier, NodeConnectionStatus> statuses = new HashMap<>();
         private final List<ReportedEvent> events = new ArrayList<>();
 
-        @Override
         public synchronized void requestNodeConnect(NodeIdentifier nodeId) {
-            statuses.put(nodeId, new NodeConnectionStatus(NodeConnectionState.CONNECTING));
+            requestNodeConnect(nodeId, null);
+        }
+
+        @Override
+        public synchronized void requestNodeConnect(NodeIdentifier nodeId, String userDn) {
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
+        }
+
+        @Override
+        public void removeNode(NodeIdentifier nodeId, String userDn) {
+            statuses.remove(nodeId);
         }
 
         @Override
         public synchronized void finishNodeConnection(NodeIdentifier nodeId) {
-            statuses.put(nodeId, new NodeConnectionStatus(NodeConnectionState.CONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
         }
 
         @Override
         public synchronized void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(NodeConnectionState.DISCONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
 
         @Override
         public synchronized void disconnectionRequestedByNode(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(NodeConnectionState.DISCONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
         }
 
         @Override
@@ -257,8 +213,16 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState state) {
-            return statuses.entrySet().stream().filter(p -> p.getValue().getState() == state).map(p -> p.getKey()).collect(Collectors.toSet());
+        public synchronized Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState... states) {
+            final Set<NodeConnectionState> stateSet = new HashSet<>();
+            for (final NodeConnectionState state : states) {
+                stateSet.add(state);
+            }
+
+            return statuses.entrySet().stream()
+                .filter(p -> stateSet.contains(p.getValue().getState()))
+                .map(p -> p.getKey())
+                .collect(Collectors.toSet());
         }
 
         @Override
@@ -272,7 +236,7 @@ public class TestAbstractHeartbeatMonitor {
         }
 
         @Override
-        public synchronized void setPrimaryNode(NodeIdentifier nodeId) {
+        public void updateNodeRoles(NodeIdentifier nodeId, Set<String> roles) {
         }
 
         synchronized List<ReportedEvent> getEvents() {
@@ -287,6 +251,41 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
             return statuses.keySet().stream().collect(Collectors.groupingBy(nodeId -> getConnectionStatus(nodeId).getState()));
+        }
+
+        @Override
+        public List<NodeEvent> getNodeEvents(NodeIdentifier nodeId) {
+            return null;
+        }
+
+        @Override
+        public NodeIdentifier getPrimaryNode() {
+            return null;
+        }
+
+        @Override
+        public void setFlowService(FlowService flowService) {
+        }
+
+        @Override
+        public void resetNodeStatuses(Map<NodeIdentifier, NodeConnectionStatus> statusMap) {
+        }
+
+        @Override
+        public void shutdown() {
+        }
+
+        @Override
+        public void setLocalNodeIdentifier(NodeIdentifier nodeId) {
+        }
+
+        @Override
+        public boolean isConnected() {
+            return false;
+        }
+
+        @Override
+        public void setConnected(boolean connected) {
         }
     }
 

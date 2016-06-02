@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
@@ -88,6 +89,30 @@ public class NaiveRevisionManager implements RevisionManager {
     public RevisionClaim requestClaim(final Revision revision, final NiFiUser user) throws InvalidRevisionException {
         Objects.requireNonNull(user);
         return requestClaim(Collections.singleton(revision), user);
+    }
+
+    @Override
+    public void reset(final Collection<Revision> revisions) {
+        final Map<String, RevisionLock> copy;
+        synchronized (this) {
+            copy = new HashMap<>(revisionLockMap);
+            revisionLockMap.clear();
+
+            for (final Revision revision : revisions) {
+                revisionLockMap.put(revision.getComponentId(), new RevisionLock(new FlowModification(revision, null), claimExpirationNanos));
+            }
+        }
+
+        for (final RevisionLock lock : copy.values()) {
+            lock.clear();
+        }
+    }
+
+    @Override
+    public List<Revision> getAllRevisions() {
+        return revisionLockMap.values().stream()
+            .map(lock -> lock.getRevision())
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -154,9 +179,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
     @Override
     public Revision getRevision(final String componentId) {
-        final RevisionLock revisionLock = revisionLockMap.computeIfAbsent(componentId,
-            id -> new RevisionLock(new FlowModification(new Revision(0L, null, componentId), null), claimExpirationNanos));
-
+        final RevisionLock revisionLock = getRevisionLock(new Revision(0L, null, componentId));
         return revisionLock.getRevision();
     }
 
@@ -344,7 +367,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
     @Override
     public <T> T get(final String componentId, final ReadOnlyRevisionCallback<T> callback) {
-        final RevisionLock revisionLock = revisionLockMap.computeIfAbsent(componentId, id -> new RevisionLock(new FlowModification(new Revision(0L, null, id), null), claimExpirationNanos));
+        final RevisionLock revisionLock = getRevisionLock(new Revision(0L, null, componentId));
         logger.debug("Attempting to obtain read lock for {}", revisionLock.getRevision());
         revisionLock.acquireReadLock(null, revisionLock.getRevision().getClientId());
         logger.debug("Obtained read lock for {}", revisionLock.getRevision());
@@ -363,9 +386,11 @@ public class NaiveRevisionManager implements RevisionManager {
         sortedIds.sort(Collator.getInstance());
 
         final Stack<RevisionLock> revisionLocks = new Stack<>();
+
         logger.debug("Will attempt to obtain read locks for components {}", componentIds);
         for (final String componentId : sortedIds) {
-            final RevisionLock revisionLock = revisionLockMap.computeIfAbsent(componentId, id -> new RevisionLock(new FlowModification(new Revision(0L, null, id), null), claimExpirationNanos));
+            final RevisionLock revisionLock = getRevisionLock(new Revision(0L, null, componentId));
+
             logger.trace("Attempting to obtain read lock for {}", revisionLock.getRevision());
             revisionLock.acquireReadLock(null, revisionLock.getRevision().getClientId());
             revisionLocks.push(revisionLock);
@@ -384,7 +409,7 @@ public class NaiveRevisionManager implements RevisionManager {
         }
     }
 
-    private void deleteRevisionLock(final Revision revision) {
+    private synchronized void deleteRevisionLock(final Revision revision) {
         final RevisionLock revisionLock = revisionLockMap.remove(revision.getComponentId());
         if (revisionLock == null) {
             return;
@@ -393,7 +418,7 @@ public class NaiveRevisionManager implements RevisionManager {
         revisionLock.releaseClaim();
     }
 
-    private RevisionLock getRevisionLock(final Revision revision) {
+    private synchronized RevisionLock getRevisionLock(final Revision revision) {
         return revisionLockMap.computeIfAbsent(revision.getComponentId(), id -> new RevisionLock(new FlowModification(revision, null), claimExpirationNanos));
     }
 
@@ -424,6 +449,7 @@ public class NaiveRevisionManager implements RevisionManager {
             try {
                 // check if the revision is correct
                 final FlowModification lastModification = lastModReference.get();
+
                 final Revision currentRevision = lastModification.getRevision();
                 if (proposedRevision.equals(currentRevision)) {
                     // revision is correct - return true
@@ -525,11 +551,11 @@ public class NaiveRevisionManager implements RevisionManager {
                 // write lock held. Wait until it is null and then replace it atomically
                 // with a LockStamp that does not expire (expiration time is Long.MAX_VALUE).
                 final LockStamp curStamp = lockStamp.get();
-                obtained = (curStamp == null || curStamp.isExpired()) && lockStamp.compareAndSet(curStamp, new LockStamp(user, clientId, Long.MAX_VALUE));
+                final boolean nullOrExpired = (curStamp == null || curStamp.isExpired());
+                obtained = nullOrExpired && lockStamp.compareAndSet(curStamp, new LockStamp(user, clientId, Long.MAX_VALUE));
 
                 if (!obtained) {
-                    // Could not obtain lock. Yield so that we don't sit
-                    // around doing nothing with the thread.
+                    // Could not obtain lock. Yield so that we don't sit around doing nothing with the thread.
                     Thread.yield();
                 }
             }
@@ -545,6 +571,15 @@ public class NaiveRevisionManager implements RevisionManager {
 
         private void releaseClaim() {
             lockStamp.set(null);
+        }
+
+        public void clear() {
+            threadLock.writeLock().lock();
+            try {
+                releaseClaim();
+            } finally {
+                threadLock.writeLock().unlock();
+            }
         }
 
         public boolean releaseClaimIfCurrentThread(final Revision revision) {
@@ -584,7 +619,8 @@ public class NaiveRevisionManager implements RevisionManager {
             threadLock.writeLock().lock();
             try {
                 final LockStamp stamp = lockStamp.get();
-                if (stamp == null || stamp.getUser().equals(user)) {
+                final boolean userOk = stamp == null || stamp.getUser().equals(user);
+                if (userOk) {
                     if (getRevision().equals(proposedRevision)) {
                         releaseClaim();
                         return true;
@@ -690,7 +726,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
         @Override
         public String toString() {
-            return "LockStamp[user=" + user + ", clientId=" + clientId + "]";
+            return "LockStamp[user=" + user + ", clientId=" + clientId + ", expired=" + isExpired() + "]";
         }
     }
 

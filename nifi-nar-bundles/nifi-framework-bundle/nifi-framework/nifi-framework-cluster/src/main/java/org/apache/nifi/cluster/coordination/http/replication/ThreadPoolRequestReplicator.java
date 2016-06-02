@@ -47,14 +47,14 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.cluster.flow.DataFlowManagementService;
-import org.apache.nifi.cluster.flow.PersistedFlowState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.logging.NiFiLog;
@@ -76,14 +76,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private static final int MAX_CONCURRENT_REQUESTS = 100;
 
     private final Client client; // the client to use for issuing requests
-    private final int numThreads; // number of threads to use for request replication
     private final int connectionTimeoutMs; // connection timeout per node request
     private final int readTimeoutMs; // read timeout per node request
     private final HttpResponseMerger responseMerger;
     private final EventReporter eventReporter;
     private final RequestCompletionCallback callback;
     private final ClusterCoordinator clusterCoordinator;
-    private final DataFlowManagementService dfmService;
 
     private ExecutorService executorService;
     private ScheduledExecutorService maintenanceExecutor;
@@ -101,8 +99,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
-        final RequestCompletionCallback callback, final EventReporter eventReporter, final DataFlowManagementService dfmService) {
-        this(numThreads, client, clusterCoordinator, "3 sec", "3 sec", callback, eventReporter, null, dfmService);
+        final RequestCompletionCallback callback, final EventReporter eventReporter) {
+        this(numThreads, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter);
     }
 
     /**
@@ -117,36 +115,33 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
-        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback, final EventReporter eventReporter,
-        final WebClusterManager clusterManager, final DataFlowManagementService dfmService) {
+        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback, final EventReporter eventReporter) {
         if (numThreads <= 0) {
             throw new IllegalArgumentException("The number of threads must be greater than zero.");
         } else if (client == null) {
             throw new IllegalArgumentException("Client may not be null.");
         }
 
-        this.numThreads = numThreads;
         this.client = client;
         this.clusterCoordinator = clusterCoordinator;
         this.connectionTimeoutMs = (int) FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         this.readTimeoutMs = (int) FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
-        this.responseMerger = new StandardHttpResponseMerger(clusterManager);
+        this.responseMerger = new StandardHttpResponseMerger();
         this.eventReporter = eventReporter;
         this.callback = callback;
-        this.dfmService = dfmService;
 
         client.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, connectionTimeoutMs);
         client.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, readTimeoutMs);
         client.getProperties().put(ClientConfig.PROPERTY_FOLLOW_REDIRECTS, Boolean.TRUE);
-    }
 
-    @Override
-    public void start() {
-        if (isRunning()) {
-            return;
-        }
+        final AtomicInteger threadId = new AtomicInteger(0);
+        executorService = Executors.newFixedThreadPool(numThreads, r -> {
+            final Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setDaemon(true);
+            t.setName("Replicate Request Thread-" + threadId.incrementAndGet());
+            return t;
+        });
 
-        executorService = Executors.newFixedThreadPool(numThreads);
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(final Runnable r) {
@@ -161,25 +156,61 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     }
 
     @Override
-    public boolean isRunning() {
-        return executorService != null && !executorService.isShutdown();
-    }
-
-    @Override
-    public void stop() {
-        if (!isRunning()) {
-            return;
-        }
-
+    public void shutdown() {
         executorService.shutdown();
         maintenanceExecutor.shutdown();
     }
 
     @Override
+    public AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers) {
+        final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
+        final boolean mutable = isMutableRequest(method, uri.getPath());
+
+        // If the request is mutable, ensure that all nodes are connected.
+        if (mutable) {
+            final List<NodeIdentifier> disconnected = stateMap.get(NodeConnectionState.DISCONNECTED);
+            if (disconnected != null && !disconnected.isEmpty()) {
+                if (disconnected.size() == 1) {
+                    throw new DisconnectedNodeMutableRequestException("Node " + disconnected.iterator().next() + " is currently disconnected");
+                } else {
+                    throw new DisconnectedNodeMutableRequestException(disconnected.size() + " Nodes are currently disconnected");
+                }
+            }
+
+            final List<NodeIdentifier> disconnecting = stateMap.get(NodeConnectionState.DISCONNECTING);
+            if (disconnecting != null && !disconnecting.isEmpty()) {
+                if (disconnecting.size() == 1) {
+                    throw new DisconnectedNodeMutableRequestException("Node " + disconnecting.iterator().next() + " is currently disconnecting");
+                } else {
+                    throw new DisconnectedNodeMutableRequestException(disconnecting.size() + " Nodes are currently disconnecting");
+                }
+            }
+
+            final List<NodeIdentifier> connecting = stateMap.get(NodeConnectionState.CONNECTING);
+            if (connecting != null && !connecting.isEmpty()) {
+                if (connecting.size() == 1) {
+                    throw new ConnectingNodeMutableRequestException("Node " + connecting.iterator().next() + " is currently connecting");
+                } else {
+                    throw new ConnectingNodeMutableRequestException(connecting.size() + " Nodes are currently connecting");
+                }
+            }
+        }
+
+        final List<NodeIdentifier> nodeIds = stateMap.get(NodeConnectionState.CONNECTED);
+        if (nodeIds == null || nodeIds.isEmpty()) {
+            throw new NoConnectedNodesException();
+        }
+
+        final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
+        return replicate(nodeIdSet, method, uri, entity, headers);
+    }
+
+    @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers) {
-        final Map<String, String> headersPlusIdGenerationSeed = new HashMap<>(headers);
-        headersPlusIdGenerationSeed.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
-        return replicate(nodeIds, method, uri, entity, headersPlusIdGenerationSeed, true, null);
+        final Map<String, String> updatedHeaders = new HashMap<>(headers);
+        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
+        updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+        return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
     }
 
     /**
@@ -207,6 +238,18 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         if (nodeIds.isEmpty()) {
             throw new IllegalArgumentException("Cannot replicate request to 0 nodes");
+        }
+
+        // verify all of the nodes exist and are in the proper state
+        for (final NodeIdentifier nodeId : nodeIds) {
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
+            if (status == null) {
+                throw new UnknownNodeException("Node " + nodeId + " does not exist in this cluster");
+            }
+
+            if (status.getState() != NodeConnectionState.CONNECTED) {
+                throw new IllegalClusterStateException("Cannot replicate request to Node " + nodeId + " because the node is not connected");
+            }
         }
 
         logger.debug("Replicating request {} {} with entity {} to {}; response is {}", method, uri, entity, nodeIds, response);
@@ -238,7 +281,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         logger.debug("For Request ID {}, response object is {}", requestId, response);
-        // setRevision(updatedHeaders);
 
         // if mutable request, we have to do a two-phase commit where we ask each node to verify
         // that the request can take place and then, if all nodes agree that it can, we can actually
@@ -258,7 +300,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             logger.debug("Received response from {} for {} {}", nodeResponse.getNodeId(), method, uri.getPath());
             finalResponse.add(nodeResponse);
         };
-
 
         // replicate the request to all nodes
         final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
@@ -309,6 +350,21 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                             return;
                         }
 
+                        final Thread cancelClaimThread = new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
+                                updatedHeaders.put(CLAIM_CANCEL_HEADER, "true");
+
+                                final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
+                                    nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, null);
+
+                                replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
+                            }
+                        });
+                        cancelClaimThread.setName("Cancel Claims");
+                        cancelClaimThread.start();
+
                         // Add a NodeResponse for each node to the Cluster Response
                         // Check that all nodes responded successfully.
                         for (final NodeResponse response : nodeResponses) {
@@ -353,9 +409,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                 }
             }
         };
-
-        // notify dataflow management service that flow state is not known
-        dfmService.setPersistedFlowState(PersistedFlowState.UNKNOWN);
 
         // Callback function for generating a NodeHttpRequestCallable that can be used to perform the work
         final Function<NodeIdentifier, NodeHttpRequest> requestFactory = nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, completionCallback);
@@ -449,11 +502,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param requestId the ID of the request that has been consumed by the client
      */
     private void onResponseConsumed(final String requestId) {
-        final AsyncClusterResponse response = responseMap.remove(requestId);
-
-        if (response != null && logger.isDebugEnabled()) {
-            logTimingInfo(response);
-        }
+        responseMap.remove(requestId);
     }
 
     /**
@@ -466,12 +515,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private void onCompletedResponse(final String requestId) {
         final AsyncClusterResponse response = responseMap.get(requestId);
 
-        if (response != null) {
-            if (isMutableRequest(response.getMethod(), response.getURIPath())) {
-                dfmService.setPersistedFlowState(PersistedFlowState.STALE);
-            }
-        }
-
         if (response != null && callback != null) {
             try {
                 callback.afterRequest(response.getURIPath(), response.getMethod(), response.getCompletedNodeResponses());
@@ -480,6 +523,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                     response.getMethod(), response.getURIPath(), e.toString());
                 logger.warn("", e);
             }
+        }
+
+        if (response != null && logger.isDebugEnabled()) {
+            logTimingInfo(response);
         }
 
         // If we have any nodes that are slow to respond, keep track of this. If the same node is slow 3 times in

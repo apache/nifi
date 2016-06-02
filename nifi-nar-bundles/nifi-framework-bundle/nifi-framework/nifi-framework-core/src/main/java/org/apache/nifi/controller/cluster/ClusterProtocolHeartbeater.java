@@ -63,7 +63,8 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         coordinatorPath = nodesPathPrefix + "/coordinator";
     }
 
-    private String getHeartbeatAddress() throws IOException {
+    @Override
+    public String getHeartbeatAddress() throws IOException {
         final String curAddress = coordinatorAddress;
         if (curAddress != null) {
             return curAddress;

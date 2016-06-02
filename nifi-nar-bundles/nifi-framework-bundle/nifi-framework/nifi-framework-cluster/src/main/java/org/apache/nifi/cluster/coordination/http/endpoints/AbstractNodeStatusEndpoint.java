@@ -24,11 +24,16 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.Entity;
 
-public abstract class AbstractNodeStatusEndpoint<EntityType extends Entity, DtoType> extends AbstractSingleEntityEndpoint<EntityType, DtoType> {
+public abstract class AbstractNodeStatusEndpoint<EntityType extends Entity, DtoType> extends AbstractSingleDTOEndpoint<EntityType, DtoType> {
 
     @Override
     protected final void mergeResponses(DtoType clientDto, Map<NodeIdentifier, DtoType> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        final NodeIdentifier selectedNodeId = dtoMap.entrySet().stream().filter(e -> e.getValue() == clientDto).map(e -> e.getKey()).findFirst().orElse(null);
+        final NodeIdentifier selectedNodeId = dtoMap.entrySet().stream()
+            .filter(e -> e.getValue() == clientDto)
+            .map(e -> e.getKey())
+            .findFirst()
+            .orElse(null);
+
         if (selectedNodeId == null) {
             throw new IllegalArgumentException("Attempted to merge Status request but could not find the appropriate Node Identifier");
         }

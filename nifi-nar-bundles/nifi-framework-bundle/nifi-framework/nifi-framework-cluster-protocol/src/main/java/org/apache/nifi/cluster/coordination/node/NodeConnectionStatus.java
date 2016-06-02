@@ -17,8 +17,15 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeConnectionStatusAdapter;
 
 /**
@@ -26,33 +33,55 @@ import org.apache.nifi.cluster.protocol.jaxb.message.NodeConnectionStatusAdapter
  */
 @XmlJavaTypeAdapter(NodeConnectionStatusAdapter.class)
 public class NodeConnectionStatus {
+    private static final AtomicLong idGenerator = new AtomicLong(0L);
+
+    private final long updateId;
+    private final NodeIdentifier nodeId;
     private final NodeConnectionState state;
     private final DisconnectionCode disconnectCode;
     private final String disconnectReason;
     private final Long connectionRequestTime;
+    private final Set<String> roles;
 
-    public NodeConnectionStatus(final NodeConnectionState state) {
-        this(state, null, null, null);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state) {
+        this(nodeId, state, null, null, null, null);
     }
 
-    public NodeConnectionStatus(final NodeConnectionState state, final long connectionRequestTime) {
-        this(state, null, null, connectionRequestTime);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final Set<String> roles) {
+        this(nodeId, state, null, null, null, roles);
     }
 
-    public NodeConnectionStatus(final DisconnectionCode disconnectionCode) {
-        this(NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionCode.name(), null);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final long connectionRequestTime) {
+        this(nodeId, state, null, null, connectionRequestTime, null);
     }
 
-    public NodeConnectionStatus(final DisconnectionCode disconnectionCode, final String disconnectionExplanation) {
-        this(NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionExplanation, null);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
+        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionCode.name(), null, null);
     }
 
-    public NodeConnectionStatus(final NodeConnectionState state, final DisconnectionCode disconnectionCode) {
-        this(state, disconnectionCode, disconnectionCode.name(), null);
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String disconnectionExplanation) {
+        this(nodeId, NodeConnectionState.DISCONNECTED, disconnectionCode, disconnectionExplanation, null, null);
     }
 
-    public NodeConnectionStatus(final NodeConnectionState state, final DisconnectionCode disconnectCode, final String disconnectReason, final Long connectionRequestTime) {
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectionCode, final Set<String> roles) {
+        this(nodeId, state, disconnectionCode, disconnectionCode.name(), null, roles);
+    }
+
+    public NodeConnectionStatus(final NodeConnectionStatus status, final Set<String> roles) {
+        this(status.getNodeIdentifier(), status.getState(), status.getDisconnectCode(), status.getDisconnectReason(), status.getConnectionRequestTime(), roles);
+    }
+
+    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
+        final String disconnectReason, final Long connectionRequestTime, final Set<String> roles) {
+        this(idGenerator.getAndIncrement(), nodeId, state, disconnectCode, disconnectReason, connectionRequestTime, roles);
+    }
+
+    public NodeConnectionStatus(final long updateId, final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectCode,
+        final String disconnectReason, final Long connectionRequestTime, final Set<String> roles) {
+        this.updateId = updateId;
+        this.nodeId = nodeId;
         this.state = state;
+        this.roles = roles == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(roles));
         if (state == NodeConnectionState.DISCONNECTED && disconnectCode == null) {
             this.disconnectCode = DisconnectionCode.UNKNOWN;
             this.disconnectReason = this.disconnectCode.toString();
@@ -61,7 +90,19 @@ public class NodeConnectionStatus {
             this.disconnectReason = disconnectReason;
         }
 
-        this.connectionRequestTime = connectionRequestTime;
+        this.connectionRequestTime = (connectionRequestTime == null && state == NodeConnectionState.CONNECTING) ? Long.valueOf(System.currentTimeMillis()) : connectionRequestTime;
+    }
+
+    public long getUpdateIdentifier() {
+        return updateId;
+    }
+
+    public Set<String> getRoles() {
+        return roles;
+    }
+
+    public NodeIdentifier getNodeIdentifier() {
+        return nodeId;
     }
 
     public NodeConnectionState getState() {
@@ -88,7 +129,47 @@ public class NodeConnectionStatus {
         if (state == NodeConnectionState.DISCONNECTED || state == NodeConnectionState.DISCONNECTING) {
             sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getDisconnectReason());
         }
+        sb.append(", updateId=").append(getUpdateIdentifier());
         sb.append("]");
         return sb.toString();
+    }
+
+    /**
+     * Updates the ID Generator so that it is at least equal to the given minimum value
+     *
+     * @param minimumValue the minimum value that the ID Generator should be set to
+     */
+    static void updateIdGenerator(long minimumValue) {
+        idGenerator.updateAndGet(curValue -> Math.max(minimumValue, curValue));
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
+        result = prime * result + ((roles == null) ? 0 : roles.hashCode());
+        result = prime * result + ((state == null) ? 0 : state.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+
+        if (obj == null) {
+            return false;
+        }
+
+        if (!(obj instanceof NodeConnectionStatus)) {
+            return false;
+        }
+
+        NodeConnectionStatus other = (NodeConnectionStatus) obj;
+        return Objects.deepEquals(getNodeIdentifier(), other.getNodeIdentifier())
+            && Objects.deepEquals(getRoles(), other.getRoles())
+            && Objects.deepEquals(getState(), other.getState());
     }
 }
