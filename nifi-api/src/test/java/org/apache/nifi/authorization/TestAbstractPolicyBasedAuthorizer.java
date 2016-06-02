@@ -42,6 +42,8 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testApproveBasedOnUser() {
         AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
@@ -54,14 +56,14 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addAction(RequestAction.READ)
                 .build());
 
-        when(authorizer.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
                 .identifier(userIdentifier)
                 .build();
 
-        when(authorizer.getUserByIdentity(userIdentity)).thenReturn(user);
+        when(usersAndAccessPolicies.getUser(userIdentity)).thenReturn(user);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(userIdentity)
@@ -77,6 +79,8 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testApprovedBasedOnGroup() {
         AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
@@ -90,7 +94,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addAction(RequestAction.READ)
                 .build());
 
-        when(authorizer.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
@@ -98,7 +102,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addGroup(groupIdentifier)
                 .build();
 
-        when(authorizer.getUserByIdentity(userIdentity)).thenReturn(user);
+        when(usersAndAccessPolicies.getUser(userIdentity)).thenReturn(user);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(userIdentity)
@@ -114,6 +118,8 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testDeny() {
         AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
@@ -126,14 +132,14 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .addAction(RequestAction.READ)
                 .build());
 
-        when(authorizer.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
                 .identifier(userIdentifier)
                 .build();
 
-        when(authorizer.getUserByIdentity(userIdentity)).thenReturn(user);
+        when(usersAndAccessPolicies.getUser(userIdentity)).thenReturn(user);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(userIdentity)
@@ -149,7 +155,10 @@ public class TestAbstractPolicyBasedAuthorizer {
     @Test
     public void testResourceNotFound() {
         AbstractPolicyBasedAuthorizer authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        when(authorizer.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(new HashSet<>());
+        UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
+        when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
+
+        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(new HashSet<>());
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity("userIdentity")

@@ -797,17 +797,6 @@ public class FileAuthorizerTest {
         assertNull(deletedAccessPolicy);
     }
 
-    @Test
-    public void testGetPoliciesByResource() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
-        authorizer.onConfigured(configurationContext);
-        assertEquals(2, authorizer.getAccessPolicies().size());
-
-        final Set<AccessPolicy> policies = authorizer.getAccessPolicies("/flow");
-        assertNotNull(policies);
-        assertEquals(2, policies.size());
-    }
-
     private static void writeAuthorizationsFile(final File file, final String content) throws Exception {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
