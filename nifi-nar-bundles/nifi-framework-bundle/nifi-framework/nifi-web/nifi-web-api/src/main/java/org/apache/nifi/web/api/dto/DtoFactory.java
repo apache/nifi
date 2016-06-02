@@ -34,9 +34,12 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -671,6 +674,44 @@ public final class DtoFactory {
         dto.setWidth(label.getSize().getWidth());
         dto.setLabel(label.getValue());
         dto.setParentGroupId(label.getProcessGroup().getIdentifier());
+
+        return dto;
+    }
+
+    /**
+     * Creates a {@link UserDTO} from the specified {@link User}.
+     *
+     * @param user user
+     * @return dto
+     */
+    public UserDTO createUserDto(final User user) {
+        if (user == null) {
+            return null;
+        }
+
+        final UserDTO dto = new UserDTO();
+        dto.setId(user.getIdentifier());
+        dto.setGroups(user.getGroups());
+        dto.setIdentity(user.getIdentity());
+
+        return dto;
+    }
+
+    /**
+     * Creates a {@link UserGroupDTO} from the specified {@link Group}.
+     *
+     * @param userGroup user group
+     * @return dto
+     */
+    public UserGroupDTO createUserGroupDto(final Group userGroup) {
+        if (userGroup == null) {
+            return null;
+        }
+
+        final UserGroupDTO dto = new UserGroupDTO();
+        dto.setId(userGroup.getIdentifier());
+        dto.setUsers(userGroup.getUsers());
+        dto.setName(userGroup.getName());
 
         return dto;
     }
@@ -1469,6 +1510,23 @@ public final class DtoFactory {
         return dto;
     }
 
+    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy) {
+        if (accessPolicy == null) {
+            return null;
+        }
+
+        final AccessPolicyDTO dto = new AccessPolicyDTO();
+        dto.setGroups(accessPolicy.getGroups());
+        dto.setUsers(accessPolicy.getUsers());
+        dto.setId(accessPolicy.getIdentifier());
+        dto.setResource(accessPolicy.getResource());
+        Set<RequestAction> accessPolicyActions = accessPolicy.getActions();
+        dto.setCanRead(accessPolicyActions.contains(RequestAction.READ));
+        dto.setCanWrite(accessPolicyActions.contains(RequestAction.WRITE));
+
+        return dto;
+
+    }
     /**
      * Creates the AccessPolicyDTO based on the specified Authorizable.
      *

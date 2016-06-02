@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.Snippet;
 
@@ -151,4 +154,29 @@ public interface AuthorizableLookup {
      * @return snippet of authorizable's
      */
     Snippet getSnippet(String id);
+
+    /**
+     * Get the {@link Authorizable} that represents the resource of {@link User}s.
+     * @return authorizable
+     */
+    Authorizable getUsersAuthorizable();
+
+    /**
+     * Get the {@link Authorizable} that represents the resource of {@link Group}s.
+     * @return authorizable
+     */
+    Authorizable getUserGroupsAuthorizable();
+
+    /**
+     * Get the {@link Authorizable} the represents the parent resource of {@link AccessPolicy} resources.
+     * @return authorizable
+     */
+    Authorizable getAccessPoliciesAuthorizable();
+
+    /**
+     * Get the {@link Authorizable} the represents the {@link AccessPolicy} with the given ID.
+     * @param id access policy ID
+     * @return authorizable
+     */
+    Authorizable getAccessPolicyAuthorizable(String id);
 }
