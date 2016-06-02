@@ -21,6 +21,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
@@ -50,6 +51,8 @@ import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.dto.UserDTO;
+import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
@@ -65,6 +68,7 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -81,6 +85,8 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import java.util.Date;
 import java.util.List;
@@ -1178,6 +1184,110 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     LabelEntity deleteLabel(Revision revision, String labelId);
+
+    // ----------------------------------------
+    // User methods
+    // ----------------------------------------
+    /**
+     * Creates a user.
+     * @param revision The starting revision
+     * @param userDTO The user DTO
+     * @return The user transfer object
+     */
+    UserEntity createUser(Revision revision, UserDTO userDTO);
+
+    /**
+     * Gets the user with the specified ID.
+     * @param userId The user ID
+     * @param prune If true, the users in the groups to which this user belongs will not be returned
+     * @return The user transfer object
+     */
+    UserEntity getUser(String userId, boolean prune);
+
+    /**
+     * Updates the specified user.
+     * @param revision Revision to compare with current base revision
+     * @param userDTO The user DTO
+     * @return The user transfer object
+     */
+    UpdateResult<UserEntity> updateUser(Revision revision, UserDTO userDTO);
+
+    /**
+     * Deletes the specified user.
+     * @param revision Revision to compare with current base revision
+     * @param userId The user ID
+     * @return The user transfer object of the deleted user
+     */
+    UserEntity deleteUser(Revision revision, String userId);
+
+    // ----------------------------------------
+    // Group methods
+    // ----------------------------------------
+    /**
+     * Creates a user group.
+     * @param revision The starting revision
+     * @param userGroupDTO The user group DTO
+     * @return The user group transfer object
+     */
+    UserGroupEntity createUserGroup(Revision revision, UserGroupDTO userGroupDTO);
+
+    /**
+     * Gets the user group with the specified ID.
+     * @param userGroupId The user group ID
+     * @param prune If true, the user groups of the users in this user group will not be returned
+     * @return The user group transfer object
+     */
+    UserGroupEntity getUserGroup(String userGroupId, boolean prune);
+
+    /**
+     * Updates the specified user group.
+     * @param revision Revision to compare with current base revision
+     * @param userGroupDTO The user group DTO
+     * @return The user group transfer object
+     */
+    UpdateResult<UserGroupEntity> updateUserGroup(Revision revision, UserGroupDTO userGroupDTO);
+
+    /**
+     * Deletes the specified user group.
+     * @param revision Revision to compare with current base revision
+     * @param userGroupId The user group ID
+     * @return The user group transfer object of the deleted user group
+     */
+    UserGroupEntity deleteUserGroup(Revision revision, String userGroupId);
+
+    // ----------------------------------------
+    // AccessPolicy methods
+    // ----------------------------------------
+    /**
+     * Creates an access policy.
+     * @param revision The starting revision
+     * @param accessPolicyDTO The access policy DTO
+     * @return The access policy transfer object
+     */
+    AccessPolicyEntity createAccessPolicy(Revision revision, AccessPolicyDTO accessPolicyDTO);
+
+    /**
+     * Gets the access policy with the specified ID.
+     * @param accessPolicyId access policy ID
+     * @return The access policy transfer object
+     */
+    AccessPolicyEntity getAccessPolicy(String accessPolicyId);
+
+    /**
+     * Updates the specified access policy.
+     * @param revision Revision to compare with current base revision
+     * @param accessPolicyDTO The access policy DTO
+     * @return The access policy transfer object
+     */
+    UpdateResult<AccessPolicyEntity> updateAccessPolicy(Revision revision, AccessPolicyDTO accessPolicyDTO);
+
+    /**
+     * Deletes the specified access policy.
+     * @param revision Revision to compare with current base revision
+     * @param accessPolicyId The access policy ID
+     * @return The access policy transfer object of the deleted access policy
+     */
+    AccessPolicyEntity deleteAccessPolicy(Revision revision, String accessPolicyId);
 
     // ----------------------------------------
     // Controller Services methods

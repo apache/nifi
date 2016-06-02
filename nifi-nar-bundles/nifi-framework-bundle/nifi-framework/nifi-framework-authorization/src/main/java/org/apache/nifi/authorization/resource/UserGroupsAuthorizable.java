@@ -14,31 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.entity;
+package org.apache.nifi.authorization.resource;
 
-import org.apache.nifi.web.api.dto.UserDTO;
+import org.apache.nifi.authorization.Resource;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-/**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a UserDTO.
- */
-@XmlRootElement(name = "userEntity")
-public class UserEntity extends ComponentEntity {
-
-    private UserDTO component;
-
-    /**
-     * The UserDTO that is being serialized.
-     *
-     * @return The UserDTO object
-     */
-    public UserDTO getComponent() {
-        return component;
+public class UserGroupsAuthorizable implements Authorizable {
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return null;
     }
 
-    public void setComponent(UserDTO component) {
-        this.component = component;
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getUserGroupsResource();
     }
-
 }

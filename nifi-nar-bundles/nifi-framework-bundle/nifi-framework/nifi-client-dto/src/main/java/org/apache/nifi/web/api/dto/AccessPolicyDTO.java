@@ -17,15 +17,21 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 /**
  * Details for the access configuration.
  */
 @XmlType(name = "accessPolicy")
-public class AccessPolicyDTO {
+public class AccessPolicyDTO  extends ComponentDTO {
 
+    private String resource;
+    private Set<UserEntity> users;
+    private Set<UserGroupEntity> userGroups;
     private Boolean canRead;
     private Boolean canWrite;
 
@@ -59,4 +65,39 @@ public class AccessPolicyDTO {
         this.canWrite = canWrite;
     }
 
+    /**
+     * @return The resource ID for this access policy.
+     */
+    @ApiModelProperty(value="The resource ID for this access policy.")
+    public String getResource() {
+        return resource;
+    }
+
+    public void setResource(String resource) {
+        this.resource = resource;
+    }
+
+    /**
+     * @return The set of user IDs associated with this access policy.
+     */
+    @ApiModelProperty(value = "The set of user IDs associated with this access policy.")
+    public Set<UserEntity> getUsers() {
+        return users;
+    }
+
+    public void setUsers(Set<UserEntity> users) {
+        this.users = users;
+    }
+
+    /**
+     * @return The set of user group IDs associated with this access policy.
+     */
+    @ApiModelProperty(value = "The set of user group IDs associated with this access policy.")
+    public Set<UserGroupEntity> getUserGroups() {
+        return userGroups;
+    }
+
+    public void setUserGroups(Set<UserGroupEntity> userGroups) {
+        this.userGroups = userGroups;
+    }
 }

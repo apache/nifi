@@ -24,7 +24,7 @@ import java.util.Set;
 /**
  * A group that users can belong to.
  */
-public class Group {
+public class Group { // TODO rename to UserGroup
 
     private final String identifier;
 

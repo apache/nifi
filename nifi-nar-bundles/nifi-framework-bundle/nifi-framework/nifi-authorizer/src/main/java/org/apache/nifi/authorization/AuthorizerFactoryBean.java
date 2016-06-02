@@ -47,6 +47,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Factory bean for loading the configured authorizer.
@@ -287,35 +288,180 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
      * @return authorizer
      */
     public Authorizer withNarLoader(final Authorizer baseAuthorizer) {
-        return new Authorizer() {
-            @Override
-            public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    return baseAuthorizer.authorize(request);
+        if (baseAuthorizer instanceof AbstractPolicyBasedAuthorizer) {
+            AbstractPolicyBasedAuthorizer policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) baseAuthorizer;
+            return new AbstractPolicyBasedAuthorizer() {
+                @Override
+                public Group addGroup(Group group) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.addGroup(group);
+                    }
                 }
-            }
 
-            @Override
-            public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    baseAuthorizer.initialize(initializationContext);
+                @Override
+                public Group getGroup(String identifier) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getGroup(identifier);
+                    }
                 }
-            }
 
-            @Override
-            public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    baseAuthorizer.onConfigured(configurationContext);
+                @Override
+                public Group updateGroup(Group group) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.updateGroup(group);
+                    }
                 }
-            }
 
-            @Override
-            public void preDestruction() throws AuthorizerDestructionException {
-                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    baseAuthorizer.preDestruction();
+                @Override
+                public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.deleteGroup(group);
+                    }
                 }
-            }
-        };
+
+                @Override
+                public Set<Group> getGroups() throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getGroups();
+                    }
+                }
+
+                @Override
+                public User addUser(User user) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.addUser(user);
+                    }
+                }
+
+                @Override
+                public User getUser(String identifier) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getUser(identifier);
+                    }
+                }
+
+                @Override
+                public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getUserByIdentity(identity);
+                    }
+                }
+
+                @Override
+                public User updateUser(User user) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.updateUser(user);
+                    }
+                }
+
+                @Override
+                public User deleteUser(User user) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.deleteUser(user);
+                    }
+                }
+
+                @Override
+                public Set<User> getUsers() throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getUsers();
+                    }
+                }
+
+                @Override
+                public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.addAccessPolicy(accessPolicy);
+                    }
+                }
+
+                @Override
+                public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getAccessPolicy(identifier);
+                    }
+                }
+
+                @Override
+                public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.updateAccessPolicy(accessPolicy);
+                    }
+                }
+
+                @Override
+                public AccessPolicy deleteAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.deleteAccessPolicy(accessPolicy);
+                    }
+                }
+
+                @Override
+                public Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getAccessPolicies();
+                    }
+                }
+
+                @Override
+                public UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return policyBasedAuthorizer.getUsersAndAccessPolicies();
+                    }
+                }
+
+                @Override
+                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        policyBasedAuthorizer.initialize(initializationContext);
+                    }
+                }
+
+                @Override
+                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        policyBasedAuthorizer.onConfigured(configurationContext);
+                    }
+                }
+
+                @Override
+                public void preDestruction() throws AuthorizerDestructionException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        baseAuthorizer.preDestruction();
+                    }
+                }
+            };
+        } else {
+            return new Authorizer() {
+                @Override
+                public AuthorizationResult authorize(final AuthorizationRequest request) throws AuthorizationAccessException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        return baseAuthorizer.authorize(request);
+                    }
+                }
+
+                @Override
+                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        baseAuthorizer.initialize(initializationContext);
+                    }
+                }
+
+                @Override
+                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        baseAuthorizer.onConfigured(configurationContext);
+                    }
+                }
+
+                @Override
+                public void preDestruction() throws AuthorizerDestructionException {
+                    try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                        baseAuthorizer.preDestruction();
+                    }
+                }
+            };
+        }
     }
 
     @Override

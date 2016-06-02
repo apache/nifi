@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
+import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -38,6 +39,8 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import java.util.List;
 
@@ -136,6 +139,48 @@ public final class EntityFactory {
             dimensions.setHeight(dto.getHeight());
             dimensions.setWidth(dto.getWidth());
             entity.setDimensions(dimensions);
+
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public UserEntity createUserEntity(final UserDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final UserEntity entity = new UserEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public UserGroupEntity createUserGroupEntity(final UserGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final UserGroupEntity entity = new UserGroupEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public AccessPolicyEntity createAccessPolicyEntity(final AccessPolicyDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final AccessPolicyEntity entity = new AccessPolicyEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
 
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);

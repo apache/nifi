@@ -17,73 +17,44 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Set;
+import org.apache.nifi.web.api.entity.UserEntity;
+
 import javax.xml.bind.annotation.XmlType;
+import java.util.Set;
 
 /**
  * A user group in this NiFi.
  */
 @XmlType(name = "userGroup")
-public class UserGroupDTO {
+public class UserGroupDTO extends ComponentDTO {
 
-    private String group;
-    private Set<String> userIds;
-    private Set<String> authorities;
-    private String status;
-
-    /**
-     * @return user group
-     */
-    @ApiModelProperty(
-            value = "The user group."
-    )
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        this.group = group;
-    }
+    private String name;
+    private Set<UserEntity> users;
 
     /**
      * @return users in this group
      */
     @ApiModelProperty(
-            value = "The users that belong to the group."
+            value = "The users that belong to the user group."
     )
-    public Set<String> getUserIds() {
-        return userIds;
+    public Set<UserEntity> getUsers() {
+        return users;
     }
 
-    public void setUserIds(Set<String> userIds) {
-        this.userIds = userIds;
+    public void setUsers(Set<UserEntity> users) {
+        this.users = users;
     }
 
     /**
-     * @return status of the users account
+     *
+     * @return name of the user group
      */
-    @ApiModelProperty(
-            value = "The status of the users accounts."
-    )
-    public String getStatus() {
-        return status;
+    @ApiModelProperty(value = "The name of the user group.")
+    public String getName() {
+        return name;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    /**
-     * @return users authorities
-     */
-    @ApiModelProperty(
-            value = "The authorities of the users."
-    )
-    public Set<String> getAuthorities() {
-        return authorities;
-    }
-
-    public void setAuthorities(Set<String> authorities) {
-        this.authorities = authorities;
+    public void setName(String name) {
+        this.name = name;
     }
 }

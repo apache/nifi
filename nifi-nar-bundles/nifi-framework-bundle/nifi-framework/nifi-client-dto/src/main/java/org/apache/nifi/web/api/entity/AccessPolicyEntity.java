@@ -16,28 +16,28 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.web.api.dto.UserDTO;
+import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a UserDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an {@link AccessPolicyDTO}.
  */
-@XmlRootElement(name = "userEntity")
-public class UserEntity extends ComponentEntity {
+@XmlRootElement(name = "accessPolicyEntity")
+public class AccessPolicyEntity extends ComponentEntity {
 
-    private UserDTO component;
+    private AccessPolicyDTO component;
 
     /**
-     * The UserDTO that is being serialized.
+     * The {@link AccessPolicyDTO} that is being serialized.
      *
-     * @return The UserDTO object
+     * @return The {@link AccessPolicyDTO} object
      */
-    public UserDTO getComponent() {
+    public AccessPolicyDTO getComponent() {
         return component;
     }
 
-    public void setComponent(UserDTO component) {
+    public void setComponent(AccessPolicyDTO component) {
         this.component = component;
     }
 

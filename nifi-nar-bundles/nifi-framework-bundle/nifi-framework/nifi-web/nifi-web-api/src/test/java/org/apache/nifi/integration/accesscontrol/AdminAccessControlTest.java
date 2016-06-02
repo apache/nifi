@@ -44,7 +44,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
-import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UsersEntity;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -993,7 +992,7 @@ public class AdminAccessControlTest {
 
         // ensure the request succeeded
         Assert.assertEquals(200, putResponse.getStatus());
-        Assert.assertEquals("ACTIVE", putResponse.getEntity(UserEntity.class).getUser().getStatus());
+        Assert.assertEquals("ACTIVE", null);  // FIXME test should fail, needs to be updated to test updating user by changing the groups the user is in and the name of the user
     }
 
     @AfterClass

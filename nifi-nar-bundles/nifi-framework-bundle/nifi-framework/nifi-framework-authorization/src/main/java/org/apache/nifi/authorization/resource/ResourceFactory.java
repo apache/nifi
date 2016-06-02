@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.authorization.resource;
 
+import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.User;
 
 import java.util.Objects;
 
@@ -286,6 +289,45 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource POLICIES_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return "/policies";
+        }
+
+        @Override
+        public String getName() {
+            return "Access Policies";
+        }
+    };
+
+    private final static Resource USERS_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return "/users";
+        }
+
+        @Override
+        public String getName() {
+            return "Users";
+        }
+    };
+
+    private final static Resource USERGROUPS_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return "/user-groups";
+        }
+
+        @Override
+        public String getName() {
+            return "User Groups";
+        }
+    };
+
     /**
      * Gets the Resource for accessing Connections.
      *
@@ -484,6 +526,54 @@ public final class ResourceFactory {
      */
     public static Resource getUserResource() {
         return USER_RESOURCE;
+    }
+
+    /**
+     * Gets the {@link Resource} for accessing {@link AccessPolicy}s.
+     * @return The policies resource
+     */
+    public static Resource getPoliciesResource() {
+        return POLICIES_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for accessing an {@link AccessPolicy} configuration.
+     *
+     * @param identifier    The identifier of the component being accessed
+     * @return              The resource
+     */
+    public static Resource getPolicyResource(final String identifier) {
+        Objects.requireNonNull(identifier, "The component identifier must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s/%s", POLICIES_RESOURCE.getIdentifier(), identifier);
+            }
+
+            @Override
+            public String getName() {
+                return identifier;
+            }
+        };
+    }
+
+    /**
+     * Gets a Resource for accessing {@link User} configurations.
+     *
+     * @return              The resource
+     */
+    public static Resource getUsersResource() {
+        return USERS_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for accessing {@link Group}s configuration.
+     *
+     * @return              The resource
+     */
+    public static Resource getUserGroupsResource() {
+        return USERGROUPS_RESOURCE;
     }
 
     /**
