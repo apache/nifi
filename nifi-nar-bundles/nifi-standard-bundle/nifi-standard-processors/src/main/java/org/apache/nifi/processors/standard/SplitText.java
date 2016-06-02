@@ -127,7 +127,10 @@ public class SplitText extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor REMOVE_TRAILING_NEWLINES = new PropertyDescriptor.Builder()
             .name("Remove Trailing Newlines")
-            .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later.")
+            .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later. If this is set to "
+                    + "'true' and a FlowFile is generated that contains only 'empty lines' (i.e., consists only of \r and \n characters), the FlowFile will not be emitted. "
+                    + "Note, however, that if header lines are specified, the resultant FlowFile will never be empty as it will consist of the header lines, so "
+                    + "a FlowFile may be emitted that contains only the header lines.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -226,7 +229,6 @@ public class SplitText extends AbstractProcessor {
 
     private EndOfLineMarker countBytesToSplitPoint(final InputStream in, final OutputStream out, final long bytesReadSoFar, final long maxSize,
                                                    final boolean includeLineDelimiter, final EndOfLineBuffer eolBuffer, final byte[] leadingNewLineBytes) throws IOException {
-        int lastByte = -1;
         long bytesRead = 0L;
         final ByteArrayOutputStream buffer;
         if (out != null) {
@@ -285,7 +287,7 @@ public class SplitText extends AbstractProcessor {
                 if (buffer != null) {
                     buffer.writeTo(out);
                     buffer.close();
-                    eolBuffer.addEndOfLine(false, true);  //TODO: verify "false" is equivalent to "lastByte == '\r'"
+                    eolBuffer.addEndOfLine(false, true);
                 }
                 return new EndOfLineMarker(bytesRead, eolBuffer, false, bytesToWriteFirst);
             }
@@ -307,7 +309,6 @@ public class SplitText extends AbstractProcessor {
                     return new EndOfLineMarker(bytesRead, eolBuffer, false, bytesToWriteFirst);
                 }
             }
-            lastByte = nextByte;
         }
     }
 
@@ -317,6 +318,7 @@ public class SplitText extends AbstractProcessor {
         final EndOfLineBuffer eolBuffer = new EndOfLineBuffer();
         int lastByte = -1;
         info.lengthBytes = bufferedBytes;
+        long lastEolBufferLength = 0L;
 
         while ((info.lengthLines < numLines || (info.lengthLines == numLines && lastByte == '\r'))
                 && (((info.lengthBytes + eolBuffer.length()) < maxSize) || info.lengthLines == 0)
@@ -354,6 +356,7 @@ public class SplitText extends AbstractProcessor {
                 default:
                     if (eolBuffer.length() > 0) {
                         info.lengthBytes += eolBuffer.length();
+                        lastEolBufferLength = eolBuffer.length();
                         eolBuffer.clear();
                     }
                     info.lengthBytes++;
@@ -361,6 +364,10 @@ public class SplitText extends AbstractProcessor {
                     break;
             }
             lastByte = nextByte;
+        }
+        // if current line exceeds size and not keeping eol characters, remove previously applied eol characters
+        if ((info.lengthBytes + eolBuffer.length()) >= maxSize && !keepAllNewLines) {
+            info.lengthBytes -= lastEolBufferLength;
         }
         if (keepAllNewLines) {
             info.lengthBytes += eolBuffer.length();
