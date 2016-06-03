@@ -228,6 +228,21 @@ language governing permissions and limitations under the License. -->
                 <version>1.5.3-M1</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.ignite</groupId>
+                <artifactId>ignite-core</artifactId>
+                <version>1.6.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ignite</groupId>
+                <artifactId>ignite-spring</artifactId>
+                <version>1.6.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ignite</groupId>
+                <artifactId>ignite-log4j2</artifactId>
+                <version>1.6.0</version>
+            </dependency>
+            <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>1.10</version>
@@ -966,6 +981,12 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kafka-pubsub-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ignite-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
