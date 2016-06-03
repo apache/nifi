@@ -567,4 +567,9 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     public boolean isSideEffectFree() {
         return false;
     }
+
+    @Override
+    public String getComponentType() {
+        return "RootGroupPort";
+    }
 }

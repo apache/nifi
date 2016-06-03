@@ -149,7 +149,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         switch (connectable.getConnectableType()) {
             case PROCESSOR:
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                componentType = procNode.getProcessor().getClass().getSimpleName();
+                componentType = procNode.getComponentType();
                 description = procNode.getProcessor().toString();
                 break;
             case INPUT_PORT:
@@ -1394,12 +1394,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             eventBuilder.setComponentId(context.getConnectable().getIdentifier());
 
             final Connectable connectable = context.getConnectable();
-            final String processorType;
-            if (connectable instanceof ProcessorNode) {
-                processorType = ((ProcessorNode) connectable).getProcessor().getClass().getSimpleName();
-            } else {
-                processorType = connectable.getClass().getSimpleName();
-            }
+            final String processorType = connectable.getComponentType();
             eventBuilder.setComponentType(processorType);
             eventBuilder.addParentFlowFile(parent);
 
@@ -1684,15 +1679,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         LOG.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, flowFiles.size()});
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
-        final String processorType;
         final Connectable connectable = context.getConnectable();
-        if (connectable instanceof ProcessorNode) {
-            final ProcessorNode procNode = (ProcessorNode) connectable;
-            processorType = procNode.getProcessor().getClass().getSimpleName();
-        } else {
-            processorType = connectable.getClass().getSimpleName();
-        }
-
+        final String processorType = connectable.getComponentType();
         final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(),
             processorType, context.getProvenanceRepository(), this);
 

@@ -46,17 +46,22 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     private final ControllerServiceProvider serviceProvider;
     private final AtomicReference<String> name;
     private final AtomicReference<String> annotationData = new AtomicReference<>();
+    private final String componentType;
+    private final String componentCanonicalClass;
 
     private final Lock lock = new ReentrantLock();
     private final ConcurrentMap<PropertyDescriptor, String> properties = new ConcurrentHashMap<>();
 
     public AbstractConfiguredComponent(final ConfigurableComponent component, final String id,
-            final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+        final String componentType, final String componentCanonicalClass) {
         this.id = id;
         this.component = component;
         this.validationContextFactory = validationContextFactory;
         this.serviceProvider = serviceProvider;
         this.name = new AtomicReference<>(component.getClass().getSimpleName());
+        this.componentType = componentType;
+        this.componentCanonicalClass = componentCanonicalClass;
     }
 
     @Override
@@ -307,5 +312,15 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
      */
     ControllerServiceProvider getControllerServiceProvider() {
         return this.serviceProvider;
+    }
+
+    @Override
+    public String getCanonicalClassName() {
+        return componentCanonicalClass;
+    }
+
+    @Override
+    public String getComponentType() {
+        return componentType;
     }
 }

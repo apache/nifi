@@ -1094,7 +1094,7 @@ public final class DtoFactory {
         final ReportingTaskDTO dto = new ReportingTaskDTO();
         dto.setId(reportingTaskNode.getIdentifier());
         dto.setName(reportingTaskNode.getName());
-        dto.setType(reportingTaskNode.getReportingTask().getClass().getName());
+        dto.setType(reportingTaskNode.getComponentType());
         dto.setSchedulingStrategy(reportingTaskNode.getSchedulingStrategy().name());
         dto.setSchedulingPeriod(reportingTaskNode.getSchedulingPeriod());
         dto.setState(reportingTaskNode.getScheduledState().name());
@@ -1166,7 +1166,7 @@ public final class DtoFactory {
         dto.setId(controllerServiceNode.getIdentifier());
         dto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
         dto.setName(controllerServiceNode.getName());
-        dto.setType(controllerServiceNode.getControllerServiceImplementation().getClass().getName());
+        dto.setType(controllerServiceNode.getComponentType());
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
@@ -1238,7 +1238,7 @@ public final class DtoFactory {
             dto.setGroupId(node.getProcessGroup().getIdentifier());
             dto.setState(node.getScheduledState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
-            dto.setType(node.getProcessor().getClass().getName());
+            dto.setType(node.getComponentType());
             dto.setReferenceType(Processor.class.getSimpleName());
 
             propertyDescriptors = node.getProcessor().getPropertyDescriptors();
@@ -1247,7 +1247,7 @@ public final class DtoFactory {
         } else if (component instanceof ControllerServiceNode) {
             final ControllerServiceNode node = ((ControllerServiceNode) component);
             dto.setState(node.getState().name());
-            dto.setType(node.getControllerServiceImplementation().getClass().getName());
+            dto.setType(node.getComponentType());
             dto.setReferenceType(ControllerService.class.getSimpleName());
 
             propertyDescriptors = node.getControllerServiceImplementation().getPropertyDescriptors();
@@ -1257,7 +1257,7 @@ public final class DtoFactory {
             final ReportingTaskNode node = ((ReportingTaskNode) component);
             dto.setState(node.getScheduledState().name());
             dto.setActiveThreadCount(node.getActiveThreadCount());
-            dto.setType(node.getReportingTask().getClass().getName());
+            dto.setType(node.getComponentType());
             dto.setReferenceType(ReportingTask.class.getSimpleName());
 
             propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
@@ -1853,7 +1853,7 @@ public final class DtoFactory {
         dto.setInputRequirement(node.getInputRequirement().name());
         dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
 
-        dto.setType(node.getProcessor().getClass().getCanonicalName());
+        dto.setType(node.getCanonicalClassName());
         dto.setName(node.getName());
         dto.setState(node.getScheduledState().toString());
 

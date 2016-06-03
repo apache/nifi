@@ -262,4 +262,9 @@ public interface Connectable extends Triggerable, Authorizable, Positionable {
     void verifyCanClearState() throws IllegalStateException;
 
     SchedulingStrategy getSchedulingStrategy();
+
+    /**
+     * @return the type of the component. I.e., the class name of the implementation
+     */
+    String getComponentType();
 }

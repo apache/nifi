@@ -32,9 +32,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.ConfiguredComponent;
@@ -129,11 +132,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         try {
             final ClassLoader cl = ExtensionManager.getClassLoader(type);
             final Class<?> rawClass;
-            if (cl == null) {
-                rawClass = Class.forName(type);
-            } else {
-                Thread.currentThread().setContextClassLoader(cl);
-                rawClass = Class.forName(type, false, cl);
+
+            try {
+                if (cl == null) {
+                    rawClass = Class.forName(type);
+                } else {
+                    Thread.currentThread().setContextClassLoader(cl);
+                    rawClass = Class.forName(type, false, cl);
+                }
+            } catch (final Exception e) {
+                logger.error("Could not create Controller Service of type " + type + " for ID " + id + "; creating \"Ghost\" implementation", e);
+                Thread.currentThread().setContextClassLoader(currentContextClassLoader);
+                return createGhostControllerService(type, id);
             }
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
@@ -204,6 +214,57 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 Thread.currentThread().setContextClassLoader(currentContextClassLoader);
             }
         }
+    }
+
+    private ControllerServiceNode createGhostControllerService(final String type, final String id) {
+        final InvocationHandler invocationHandler = new InvocationHandler() {
+            @Override
+            public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+                final String methodName = method.getName();
+
+                if ("validate".equals(methodName)) {
+                    final ValidationResult result = new ValidationResult.Builder()
+                        .input("Any Property")
+                        .subject("Missing Controller Service")
+                        .valid(false)
+                        .explanation("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found")
+                        .build();
+                    return Collections.singleton(result);
+                } else if ("getPropertyDescriptor".equals(methodName)) {
+                    final String propertyName = (String) args[0];
+                    return new PropertyDescriptor.Builder()
+                        .name(propertyName)
+                        .description(propertyName)
+                        .sensitive(true)
+                        .required(true)
+                        .build();
+                } else if ("getPropertyDescriptors".equals(methodName)) {
+                    return Collections.emptyList();
+                } else if ("onPropertyModified".equals(methodName)) {
+                    return null;
+                } else if ("getIdentifier".equals(methodName)) {
+                    return id;
+                } else if ("toString".equals(methodName)) {
+                    return "GhostControllerService[id=" + id + ", type=" + type + "]";
+                } else if ("hashCode".equals(methodName)) {
+                    return 91 * type.hashCode() + 41 * id.hashCode();
+                } else if ("equals".equals(methodName)) {
+                    return proxy == args[0];
+                } else {
+                    throw new IllegalStateException("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found");
+                }
+            }
+        };
+
+        final ControllerService proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(),
+            new Class[] {ControllerService.class}, invocationHandler);
+
+        final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+        final String componentType = "(Missing) " + simpleClassName;
+
+        final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, proxiedService, id,
+            new StandardValidationContextFactory(this), this, componentType, type);
+        return serviceNode;
     }
 
     @Override
@@ -344,7 +405,16 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         final Set<ControllerServiceNode> enabledNodes = Collections.synchronizedSet(new HashSet<ControllerServiceNode>());
-        final ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, branches.size()));
+        final ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, branches.size()), new ThreadFactory() {
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                t.setName("Enable Controller Services");
+                return t;
+            }
+        });
+
         for (final List<ControllerServiceNode> branch : branches) {
             final Runnable enableBranchRunnable = new Runnable() {
                 @Override
@@ -358,6 +428,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                                 logger.info("Enabling {}", serviceNode);
                                 try {
+                                    serviceNode.verifyCanEnable();
                                     processScheduler.enableControllerService(serviceNode);
                                 } catch (final Exception e) {
                                     logger.error("Failed to enable " + serviceNode + " due to " + e);

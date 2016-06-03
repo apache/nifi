@@ -455,4 +455,9 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     public boolean isSideEffectFree() {
         return false;
     }
+
+    @Override
+    public String getComponentType() {
+        return "RemoteGroupPort";
+    }
 }

@@ -132,7 +132,7 @@ public class ProcessorAuditor extends NiFiAuditor {
 
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create a processor action
             Date actionTimestamp = new Date();
@@ -288,7 +288,7 @@ public class ProcessorAuditor extends NiFiAuditor {
         if (user != null) {
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create the processor action for adding this processor
             action = new FlowChangeAction();

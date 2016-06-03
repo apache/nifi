@@ -111,10 +111,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicReference<String> comments;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> annotationData;
-    private final AtomicReference<String> schedulingPeriod; // stored as string
-                                                            // so it's presented
-                                                            // to user as they
-                                                            // entered it
+    private final AtomicReference<String> schedulingPeriod; // stored as string so it's presented to user as they entered it
     private final AtomicReference<String> yieldPeriod;
     private final AtomicReference<String> penalizationPeriod;
     private final AtomicReference<Map<String, String>> style;
@@ -135,11 +132,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
                                                    // ??????? NOT any more
 
+    public StandardProcessorNode(final Processor processor, final String uuid,
+        final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
+        final ControllerServiceProvider controllerServiceProvider) {
+
+        this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider,
+            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName());
+    }
+
     @SuppressWarnings("deprecation")
     public StandardProcessorNode(final Processor processor, final String uuid,
-            final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-            final ControllerServiceProvider controllerServiceProvider) {
-        super(processor, uuid, validationContextFactory, controllerServiceProvider);
+        final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
+        final ControllerServiceProvider controllerServiceProvider,
+        final String componentType, final String componentCanonicalClass) {
+
+        super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
 
         this.processor = processor;
         identifier = new AtomicReference<>(uuid);
