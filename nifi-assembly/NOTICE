@@ -798,6 +798,21 @@ The following binary components are provided under the Apache Software License v
              This product includes software developed by
              The Groovy community (http://groovy.codehaus.org/).
 
+    (ASLv2) Apache Ignite
+      The following NOTICE information applies:
+        Apache Ignite
+        Copyright 2015 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+
+        This software includes code from IntelliJ IDEA Community Edition
+        Copyright (C) JetBrains s.r.o.
+        https://www.jetbrains.com/idea/
+        Licensed under Apache License, Version 2.0.
+        http://search.maven.org/#artifactdetails%7Corg.jetbrains%7Cannotations%7C13.0%7Cjar
+
 (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
       HPPC borrowed code, ideas or both from:
