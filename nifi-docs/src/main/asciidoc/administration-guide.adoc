@@ -485,98 +485,142 @@ It is preferable to request upstream/downstream systems to switch to https://cwi
 Clustering Configuration
 ------------------------
 
-This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster. In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
+This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster.
+In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
 
-The design of NiFi clustering is a simple master/slave model where there is a master and one or more slaves.
-While the model is that of master and slave, if the master dies, the slaves are all instructed to continue operating
-as they were to ensure the dataflow remains live. The absence of the master simply means new slaves cannot join the
-cluster and cluster flow changes cannot occur until the master is restored. In NiFi clustering, we call the master
-the NiFi Cluster Manager (NCM), and the slaves are called Nodes. See a full description of each in the Terminology section below.
+NiFi employs a Zero-Master Clustering paradigm. Each of the nodes in the cluster performs the same tasks on
+the data but each operates on a different set of data. One of the nodes is automatically elected (via Apache
+ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send heartbeat/status information
+to this node, and this node is responsible for disconnecting nodes that do not report any heartbeat status
+for some amount of time. Additionally, when a new node elects to join the cluster, the new node must first
+connect to the currently-elected Cluster Coordinator in order to obtain the most up-to-date flow. If the Cluster
+Coordinator determines that the node is allowed to join (based on its configured Firewall file), the current
+flow is provided to that node, and that node is able to join the cluster, assuming that the node's copy of the
+flow matches the copy provided by the Cluster Coordinator. If the node's version of the flow configuration differs
+from that of the Cluster Coordinator's, the node will not join the cluster.
 
 *Why Cluster?* +
 
-NiFi Administrators or Dataflow Managers (DFMs) may find that using one instance of NiFi on a single server is not enough to process the amount of data they have. So, one solution is to run the same dataflow on multiple NiFi servers. However, this creates a management problem, because each time DFMs want to change or update the dataflow, they must make those changes on each server and then monitor each server individually. By clustering the NiFi servers, it's possible to have that increased processing capability along with a single interface through which to make dataflow changes and monitor the dataflow. Clustering allows the DFM to make each change only once, and that change is then replicated to all the nodes of the cluster. Through the single interface, the DFM may also monitor the health and status of all the nodes.
+NiFi Administrators or Dataflow Managers (DFMs) may find that using one instance of NiFi on a single server is not
+enough to process the amount of data they have. So, one solution is to run the same dataflow on multiple NiFi servers.
+However, this creates a management problem, because each time DFMs want to change or update the dataflow, they must make
+those changes on each server and then monitor each server individually. By clustering the NiFi servers, it's possible to
+have that increased processing capability along with a single interface through which to make dataflow changes and monitor
+the dataflow. Clustering allows the DFM to make each change only once, and that change is then replicated to all the nodes
+of the cluster. Through the single interface, the DFM may also monitor the health and status of all the nodes.
 
 NiFi Clustering is unique and has its own terminology. It's important to understand the following terms before setting up a cluster.
 
 [template="glossary", id="terminology"]
 *Terminology* +
 
-*NiFi Cluster Manager*: A NiFi Cluster Manager (NCM) is an instance of NiFi that provides the sole management point for the cluster. It communicates dataflow changes to the nodes and receives health and status information from the nodes. It also ensures that a uniform dataflow is maintained across the cluster.  When DFMs manage a dataflow in a cluster, they do so through the User Interface of the NCM (i.e., via the URL of the NCM's User Interface). Fundamentally, the NCM keeps the state of the cluster consistent.
+*NiFi Cluster Coordinator*: A NiFi Cluster Cluster Coordinator is the node in a NiFI cluster that is responsible for carrying out
+tasks to manage which nodes are allowed in the cluster and providing the most up-to-date flow to newly joining nodes. When a
+DataFlow Manager manages a dataflow in a cluster, they are able to do so through the User Interface of any node in the cluster. Any
+change made is then replicated to all nodes in the cluster.
 
-*Nodes*: Each cluster is made up of the NCM and one or more nodes. The nodes do the actual data processing. (The NCM does not process any data; all data runs through the nodes.)  While nodes are connected to a cluster, the DFM may not access the User Interface for any of the individual nodes. The User Interface of a node may only be accessed if the node is manually removed from the cluster.
+*Nodes*: Each cluster is made up of one or more nodes. The nodes do the actual data processing.
 
-*Primary Node*: Every cluster has one Primary Node. On this node, it is possible to run "Isolated Processors" (see below). By default, the NCM will elect the first node that connects to the cluster as the Primary Node; however, the DFM may select a new node as the Primary Node in the Cluster Management page of the User Interface if desired. If the cluster restarts, the NCM will "remember" which node was the Primary Node and wait for that node to re-connect before allowing the DFM to make any changes to the dataflow. The ADMIN may adjust how long the NCM waits for the Primary Node to reconnect by adjusting the property _nifi.cluster.manager.safemode.duration_ in the _nifi.properties_ file, which is discussed in the <<system_properties>> section of this document.
+*Primary Node*: Every cluster has one Primary Node. On this node, it is possible to run "Isolated Processors" (see below).
+ZooKeeper is used to automatically elect a Primary Node. If that node disconnects from the cluster for any reason, a new
+Primary Node will automatically be elected. Users can determine which node is currently elected as the Primary Node by
+looking at the Cluster Management page of the User Interface.
 
-*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most common case is when using a processor that communicates with an external service using a protocol that does not scale well. For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP on every node in the cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -with the proper dataflow configuration- load-balance it across the rest of the nodes in the cluster. Note that while this feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster. It just depends on the resources available and how the Administrator decides to configure the cluster.
+*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow
+runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most
+common case is when using a processor that communicates with an external service using a protocol that does not scale well.
+For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP Processor runs on every node in the
+cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could
+configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -
+with the proper dataflow configuration - load-balance it across the rest of the nodes in the cluster. Note that while this
+feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster.
+It just depends on the resources available and how the Administrator decides to configure the cluster.
 
-*Heartbeats*: The nodes communicate their health and status to the NCM via "heartbeats", which let the NCM know they are still connected to the cluster and working properly. By default, the nodes emit heartbeats to the NCM every 5 seconds, and if the NCM does not receive a heartbeat from a node within 45 seconds, it disconnects the node due to "lack of heartbeat". (The 5-second and 45-second settings are configurable in the _nifi.properties_ file. See the <<system_properties>> section of this document for more information.) The reason that the NCM disconnects the node is because the NCM needs to ensure that every node in the cluster is in sync, and if a node is not heard from regularly, the NCM cannot be sure it is still in sync with the rest of the cluster. If, after 45 seconds, the node does send a new heartbeat, the NCM will automatically reconnect the node to the cluster. Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM in the NCM's User Interface.
+*Heartbeats*: The nodes communicate their health and status to the currently elected Cluster Coordinator via "heartbeats",
+which let the Coordinator know they are still connected to the cluster and working properly. By default, the nodes emit
+heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds, it
+disconnects the node due to "lack of heartbeat". (The 5-second setting is configurable in the _nifi.properties_ file.
+See the <<system_properties>> section of this document for more information.) The reason that the Cluster Coordinator
+disconnects the node is because the Coordinator needs to ensure that every node in the cluster is in sync, and if a node
+is not heard from regularly, the Coordinator cannot be sure it is still in sync with the rest of the cluster. If, after
+40 seconds, the node does send a new heartbeat, the Coordinator will automatically request that the node re-join the cluster,
+to include the re-validation of the node's flow.
+Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM
+in the User Interface.
 
 *Communication within the Cluster* +
 
-As noted, the nodes communicate with the NCM via heartbeats. The communication that allows the nodes to find the NCM may be set up as multicast or unicast; this is configured in the _nifi.properties_ file (See <<system_properties>> ). By default, unicast is used. It is important to note that the nodes in a NiFi cluster are not aware of each other. They only communicate with the NCM. Therefore, if one of the nodes goes down, the other nodes in the cluster will not automatically pick up the load of the missing node. It is possible for the DFM to configure the dataflow for failover contingencies; however, this is dependent on the dataflow design and does not happen automatically.
+As noted, the nodes communicate with the Cluster Coordinator via heartbeats. When a Cluster Coordinator is elected, it updates
+a well-known ZNode in Apache ZooKeeper with its connection information so that nodes understand where to send heartbeats. If one
+of the nodes goes down, the other nodes in the cluster will not automatically pick up the load of the missing node. It is possible
+for the DFM to configure the dataflow for failover contingencies; however, this is dependent on the dataflow design and does not
+happen automatically.
 
-When the DFM makes changes to the dataflow, the NCM communicates those changes to the nodes and waits for each node to respond, indicating that it has made the change on its local flow. If the DFM wants to make another change, the NCM will only allow this to happen once all the nodes have acknowledged that they've implemented the last change. This is a safeguard to ensure that all the nodes in the cluster have the correct and up-to-date flow.
+When the DFM makes changes to the dataflow, the node that receives the request to change the flow communicates those changes to all
+nodes and waits for each node to respond, indicating that it has made the change on its local flow.
+
 
 *Dealing with Disconnected Nodes* +
 
-A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat), the NCM will show a bulletin on the User Interface, and the DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working; it just means that the NCM cannot communicate with the node.
+A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat),
+the Cluster Coordinator will show a bulletin on the User Interface. The DFM will not be able to make any changes to the dataflow until the issue
+of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any
+new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working;
+this may happen for a few reasons, including that the node is unable to communicate with the Cluster Coordinator due to network problems.
+
+There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster.
+In this case, they DFM may elect to remove the node from the cluster entirely through the Cluster Management dialog. Once removed,
+the node cannot be rejoined to the cluster until it has been restarted.
 
 
 *Basic Cluster Setup* +
 
-This section describes the setup for a simple two-node, non-secure, unicast cluster comprised of three instances of NiFi:
+This section describes the setup for a simple three-node, non-secure cluster comprised of three instances of NiFi.
 
-* The NCM
-* Node 1
-* Node 2
+For each instance, certain properties in the _nifi.properties_ file will need to be updated. In particular, the Web and Clustering properties
+should be evaluated for your situation and adjusted accordingly. All the properties are described in the <<system_properties>> section of this
+guide; however, in this section, we will focus on the minimum properties that must be set for a simple cluster.
 
-Administrators may install each instance on a separate server; however, it is also perfectly fine to install the NCM and one of the nodes on the same server, as the NCM is very lightweight. Just keep in mind that the ports assigned to each instance must not collide if the NCM and one of the nodes share the same server.
+For all three instances, the Cluster Common Properties can be left with the default settings. Note, however, that if you change these settings,
+they must be set the same on every instance in the cluster.
 
-For each instance, certain properties in the _nifi.properties_ file will need to be updated. In particular, the Web and Clustering properties should be evaluated for your situation and adjusted accordingly. All the properties are described in the <<system_properties>> section of this guide; however, in this section, we will focus on the minimum properties that must be set for a simple cluster.
+For each Node, the minimum properties to configure are as follows:
 
-For all three instances, the Cluster Common Properties can be left with the default settings. Note, however, that if you change these settings, they must be set the same on every instance in the cluster (NCM and nodes).
-
-For the NCM, the minimum properties to configure are as follows:
-
-* Under the Web Properties, set either the http or https port that you want the NCM to run on. If the NCM and one of the nodes are on the same server, make sure this port is different from the web port used by the node.
-* Under the Cluster Manager Properties, set the following:
-** nifi.cluster.is.manager - Set this to _true_.
-** nifi.cluster.manager.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). Take note of this setting, as you will need to reference it when you set up the nodes.
-
-For Node 1, the minimum properties to configure are as follows:
-
-* Under the Web Properties, set either the http or https port that you want Node 1 to run on. If the NCM is running on the same server, choose a different web port for Node 1. Also, consider whether you need to set the http or https host property.
-* Under the State Management section, set the `nifi.state.management.provider.cluster` property to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been configured in the _state-management.xml_ file. See <<state_providers>> for more information.
-* Under Cluster Node Properties, set the following:
-** nifi.cluster.is.node - Set this to _true_.
-** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
-** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.manager.protocol.port.
-** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.
-** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
-
-For Node 2, the minimum properties to configure are as follows:
-
-* Under the Web Properties, set either the http or https port that you want Node 2 to run on. Also, consider whether you need to set the http or https host property.
-* Under the State Management section, set the `nifi.state.management.provider.cluster` property to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been configured in the _state-management.xml_ file. See <<state_providers>> for more information.
-* Under the Cluster Node Properties, set the following:
+* Under the _Web Properties_ section, set either the http or https port that you want the Node to run on.
+  Also, consider whether you need to set the http or https host property.
+* Under the _State Management section_, set the `nifi.state.management.provider.cluster` property
+  to the identifier of the Cluster State Provider. Ensure that the Cluster State Provider has been
+  configured in the _state-management.xml_ file. See <<state_providers>> for more information.
+* Under _Cluster Node_ Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
 ** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
 ** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root).
-** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.
-** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
+** nifi.cluster.node.protocol.threads - The number of threads that should be used to communicate with other nodes in the cluster. This property
+   defaults to 10, but for large clusters, this value may need to be larger.
+** nifi.zookeeper.connect.string - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separted list
+   of hostname:port pairs. For example, localhost:2181,localhost:2182,localhost:2183. This should contain a list of all ZooKeeper
+   instances in the ZooKeeper quorum. 
+** nifi.zookeeper.root.node - The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
+   for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
+   that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
+   the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
+   that is specified. 
+** nifi.cluster.request.replication.claim.timeout - Specifies how long a component can be 'locked' during a request replication
+   before the lock expires and is automatically unlocked. See <<claim_management>> for more information.
 
-Now, it is possible to start up the cluster. Technically, it does not matter which instance starts up first. However, you could start the NCM first, then Node 1 and then Node 2. Since the first node that connects is automatically elected as the Primary Node, this sequence should create a cluster where Node 1 is the Primary Node. Navigate to the URL for the NCM in your web browser, and the User Interface should look similar to the following:
+Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
+one of the nodes, and the User Interface should look similar to the following:
 
-image:ncm.png["NCM User Interface", width=940]
+image:ncm.png["Clustered User Interface", width=940]
 
 *Troubleshooting*
 
-If you encounter issues and your cluster does not work as described, investigate the nifi.app log and nifi.user log on both the NCM and the nodes. If needed, you can change the logging level to DEBUG by editing the conf/logback.xml file. Specifically, set the level="DEBUG" in the following line (instead of "INFO"):
+If you encounter issues and your cluster does not work as described, investigate the nifi-app.log and nifi-user.log
+files on the nodes. If needed, you can change the logging level to DEBUG by editing the conf/logback.xml file. Specifically,
+set the level="DEBUG" in the following line (instead of "INFO"):
 
 ----
-    <logger name="org.apache.nifi.web.api.config" level="INFO"
-additivity="false">
+    <logger name="org.apache.nifi.web.api.config" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
 ----
@@ -662,8 +706,7 @@ This can be accomplished by setting the `nifi.state.management.embedded.zookeepe
 that should run the embedded ZooKeeper server. Generally, it is advisable to run ZooKeeper on either 3 or 5 nodes. Running on fewer than 3 nodes
 provides less durability in the face of failure. Running on more than 5 nodes generally produces more network traffic than is necessary. Additionally,
 running ZooKeeper on 4 nodes provides no more benefit than running on 3 nodes, ZooKeeper requires a majority of nodes be active in order to function.
-However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi. An embedded ZooKeeper
-server cannot be run on the NCM.
+However, it is up to the administrator to determine the number of nodes most appropriate to the particular deployment of NiFi.
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
@@ -1093,7 +1136,7 @@ below marked with an asterisk (*) in such a way that upgrading will be easier. F
 at the end of this section. Note that values for periods of time and data sizes must include the unit of measure,
 for example "10 sec" or "10 MB", not simply "10".
 
-*Core Properties* +
+==== Core Properties +
 
 The first section of the _nifi.properties_ file is for the Core Properties. These properties apply to the core framework as a whole.
 
@@ -1129,7 +1172,7 @@ Providing three total locations, including  _nifi.nar.library.directory_.
 |====
 
 
-*State Management* +
+==== State Management +
 
 The State Management section of the Properties file provides a mechanism for configuring local and cluster-wide mechanisms
 for components to persist state. See the <<state_management>> section for more information on how this is used.
@@ -1144,7 +1187,7 @@ for components to persist state. See the <<state_management>> section for more i
 |====
 
 
-*H2 Settings* +
+==== H2 Settings
 
 The H2 Settings section defines the settings for the H2 database, which keeps track of user access and flow controller history.
 
@@ -1155,7 +1198,7 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |====
 
 
-*FlowFile Repository* +
+==== FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
 this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
@@ -1170,7 +1213,7 @@ to configure it on a separate drive if available.
 |nifi.flowfile.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 |====
 
-*Swap Management* +
+==== Swap Management
 
 NiFi keeps FlowFile information in memory (the JVM)
 but during surges of incoming data, the FlowFile information can start to take up so much of the JVM that system performance
@@ -1187,7 +1230,7 @@ available again. These properties govern how that process occurs.
 |nifi.swap.out.threads|The number of threads to use for swapping out. The default value is 4.
 |====
 
-*Content Repository* +
+==== Content Repository
 
 The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root
 installation directory as all the other repositories; however, administrators will likely want to configure it on a separate
@@ -1200,7 +1243,7 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileContentRepository.
 |====
 
-*File System Content Repository Properties* +
+==== File System Content Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1225,7 +1268,7 @@ this property specifies the maximum amount of time to keep the archived data. It
 |nifi.content.viewer.url|The URL for a web-based content viewer if one is available. It is blank by default.
 |====
 
-*Volatile Content Repository Properties* +
+==== Volatile Content Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1233,7 +1276,7 @@ this property specifies the maximum amount of time to keep the archived data. It
 |nifi.volatile.content.repository.block.size|The Content Repository block size. The default value is 32KB.
 |====
 
-*Provenance Repository* +
+==== Provenance Repository
 
 The Provenance Repository contains the information related to Data Provenance. The next three sections are for Provenance Repository properties.
 
@@ -1242,7 +1285,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 |nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should only be changed with caution. To store provenance events in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.provenance.VolatileProvenanceRepository.
 |====
 
-*Persistent Provenance Repository Properties* +
+==== Persistent Provenance Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1274,14 +1317,14 @@ Providing three total locations, including  _nifi.provenance.repository.director
 |nifi.provenance.repository.max.attribute.length|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default is 65536.
 |====
 
-*Volatile Provenance Repository Properties* +
+==== Volatile Provenance Repository Properties
 
 |====
 |*Property*|*Description*
 |nifi.provenance.repository.buffer.size|The Provenance Repository buffer size. The default value is 100000.
 |====
 
-*Component Status Repository* +
+==== Component Status Repository
 
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These
 properties govern how that tool works.
@@ -1301,7 +1344,7 @@ of 576.
 
 
 [[site_to_site_properties]]
-*Site to Site Properties* +
+==== Site to Site Properties
 
 These properties govern how this instance of NiFi communicates with remote instances of NiFi when Remote Process Groups are configured in the dataflow.
 
@@ -1312,7 +1355,7 @@ These properties govern how this instance of NiFi communicates with remote insta
 |nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to _true_. In order for secure site-to-site to work, many Security Properties (below) must also be configured.
 |====
 
-*Web Properties* +
+==== Web Properties
 
 These properties pertain to the web-based User Interface.
 
@@ -1327,7 +1370,7 @@ These properties pertain to the web-based User Interface.
 |nifi.web.jetty.threads|The number of Jetty threads. The default value is 200.
 |====
 
-*Security Properties* +
+==== Security Properties
 
 These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the
 Security Configuration section of this Administrator's Guide.
@@ -1351,66 +1394,81 @@ in the file specified in `nifi.login.identity.provider.configuration.file`. Sett
 |nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
 
-*Cluster Common Properties* +
+==== Cluster Common Properties
 
-When setting up a NiFi cluster, these properties should be configured the same way on both the cluster manager and the nodes.
+When setting up a NiFi cluster, these properties should be configured the same way on all nodes.
 
 |====
 |*Property*|*Description*
-|nifi.cluster.protocol.heartbeat.interval|The interval at which nodes should emit heartbeats to the cluster manager. The default value is 5 sec.
+|nifi.cluster.protocol.heartbeat.interval|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is 5 sec.
 |nifi.cluster.protocol.is.secure|This indicates whether cluster communications are secure. The default value is _false_.
-|nifi.cluster.protocol.socket.timeout|The amount of time to wait for a cluster protocol socket to be established before trying again. The default value is 30 sec.
-|nifi.cluster.protocol.connection.handshake.timeout|The amount of time to wait for a node to connect to the cluster. The default value is 45 sec.
+|nifi.cluster.node.event.history.size|When the state of a node in the cluster is changed, an event is generated
+and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is _25_.
+|nifi.cluster.node.connection.timeout|When connecting to another node in the cluster, specifies how long this node should wait before considering
+the connection a failure. The default value is _5 secs_.
+|nifi.cluster.node.read.timeout|When communicating with another node in the cluster, specifies how long this node should wait to receive information
+from the remote node before considering the communication with the node a failure. The default value is _5 secs_.
+|nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
+to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |====
 
-*Multicast Cluster Common Properties* +
-If multicast is used, the following nifi.cluster.protocol.multicast.xxx properties must be configured. By default, unicast is used.
+==== Cluster Node Properties
 
-|====
-|*Property*|*Description*
-|nifi.cluster.protocol.use.multicast|Indicates whether multicast is being used. The default value is _false_.
-|nifi.cluster.protocol.multicast.address|The cluster multicast address. It is blank by default.
-|nifi.cluster.protocol.multicast.port|The cluster multicast port. It is blank by default.
-|nifi.cluster.protocol.multicast.service.broadcast.delay|The multicast service broadcast delay. The default value is 500 ms.
-|nifi.cluster.protocol.multicast.service.locator.attempts|The number of multicast service locator attempts to make. The default value is 3.
-|nifi.cluster.protocol.multicast.service.locator.attempts.delay|The multicast service locator attempts delay. The default value is 1 sec.
-|====
-
-*Cluster Node Properties* +
-
-Only configure these properties for cluster nodes.
+Configure these properties for cluster nodes.
 
 |====
 |*Property*|*Description*
 |nifi.cluster.is.node|Set this to _true_ if the instance is a node in a cluster. The default value is _false_.
 |nifi.cluster.node.address|The fully qualified address of the node. It is blank by default.
 |nifi.cluster.node.protocol.port|The node's protocol port. It is blank by default.
-|nifi.cluster.node.protocol.threads|The number of threads used for the node protocol. The default value is 2.
-|nifi.cluster.node.unicast.manager.address|If multicast is not used, the value for this property should be the same as the value configured on the cluster manager for manager address.
-|nifi.cluster.node.unicast.manager.protocol.port|If multicast is not used, the value for this property should be the same as the value configured on the cluster manager for manager protocol port.
+|nifi.cluster.node.protocol.threads|The number of threads that should be used to communicate with other nodes
+in the cluster. This property defaults to 10, but for large clusters, this value may need to be larger.
 |====
 
-*Cluster Manager Properties* +
+[[claim_management]]
+==== Claim Management
 
-Only configure these properties for the cluster manager.
+Whenever a request is made to change the dataflow, it is important that
+all nodes in the NiFi cluster are kept in-sync. In order to allow for this, NiFi employs a two-phase commit. The request
+is first replicated to all nodes in the cluster, simply asking whether or not the request is allowed. Each node then determines
+whether or not it will allow the request and if so issues a "Claim" on the component(s) being modified. This claim can be
+thought of as a mutually-exclusive lock that is owned by the requestor. Once all nodes have voted on whether or not the request
+is allowed, the node from which the request originated must decide whether or not to complete the request. If any node voted
+'NO' then the request is canceled and the Claim is canceled with an error message sent back to the user. However, if the nodes
+all vote 'YES' then the request is completed. In this sort of distributed environment, it is possible that the node that
+made the original request will fail after the voting has occurred and before the request was completed. This would leave
+the component locked indefinitely so that no more changes can be made to the component. In order to avoid this, the Claim
+will time out after some period of time. These properties determines how these locks are managed.
 
 |====
 |*Property*|*Description*
-|nifi.cluster.is.manager|Set this to _true_ if the instance is a cluster manager. The default value is _false_.
-|nifi.cluster.manager.address|The fully qualified address of the cluster manager. It is blank by default.
-|nifi.cluster.manager.protocol.port|The cluster manager's protocol port. It is blank by default.
-|nifi.cluster.manager.node.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect to the cluster. It provides an additional layer of security. This value is blank by default.
-|nifi.cluster.manager.node.event.history.size|The size of the cluster manager's event history. The default value is 10.
-|nifi.cluster.manager.node.api.connection.timeout|The amount of time to wait for an API connection to be made. The default value is 30 sec.
-|nifi.cluster.manager.node.api.read.timeout|The API read timeout. The default value is 30 sec.
-|nifi.cluster.manager.node.api.request.threads|The number of threads to use for API requests. The default value is 10.
-|nifi.cluster.manager.flow.retrieval.delay|The delay before the cluster manager retrieves the latest flow configuration. The default value is 5 sec.
-|nifi.cluster.manager.protocol.threads|The number of threads used for the cluster manager protocol. The default value is 10.
-|nifi.cluster.manager.safemode.duration|Upon restart of an already existing cluster, this is the amount of time that the cluster manager waits for the primary node to connect before giving up and selecting another node to be the primary node. The default value is 0 sec, which means to wait forever. If the administrator does not care which node is the primary node, this value can be changed to some amount of time other than 0 sec.
+|nifi.cluster.request.replication.claim.timeout|Specifies how long to wait before considering a lock 'expired' and automatically
+unlocking.
+|====
+
+
+==== ZooKeeper Properties
+
+NiFi depends on Apache ZooKeeper for determining which node in the cluster should play the role of Primary Node
+and which node should play the role of Cluster Coordinator. These properties must be configured in order for NiFi
+to join a cluster.
+
+|====
+|*Property*|*Description*
+|nifi.zookeeper.connect.string|The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
+of hostname:port pairs. For example, localhost:2181,localhost:2182,localhost:2183. This should contain a list of all ZooKeeper
+instances in the ZooKeeper quorum. This property must be specified to join a cluster and has no default value.
+|nifi.zookeeper.connect.timeout|How long to wait when connecting to ZooKeeper before considering the connection a failure. The default is _3 secs_.
+|nifi.zookeeper.session.timeout|How long to wait after losing a connection to ZooKeeper before the session is expired. The default is _3 secs_.
+|nifi.zookeeper.root.node|The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
+for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
+that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
+the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
+that is specified. 
 |====
 
 [[kerberos_properties]]
-*Kerberos Properties* +
+==== Kerberos Properties
 
 |====
 |*Property*|*Description*
