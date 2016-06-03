@@ -76,7 +76,7 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
         final Map<String, Group> groupByIdMap = Collections.unmodifiableMap(createGroupByIdMap(allGroups));
 
         // create a convenience map from resource id to policies
-        final Map<String, Set<AccessPolicy>> resourcePolicies = Collections.unmodifiableMap(createResourcePolicyMap(allPolicies));
+        final Map<String, Set<AccessPolicy>> policiesByResourceMap = Collections.unmodifiableMap(createResourcePolicyMap(allPolicies));
 
         // create a convenience map from policy id to policy
         final Map<String, AccessPolicy> policiesByIdMap = Collections.unmodifiableMap(createPoliciesByIdMap(allPolicies));
@@ -88,7 +88,7 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
         this.usersById = userByIdMap;
         this.usersByIdentity = userByIdentityMap;
         this.groupsById = groupByIdMap;
-        this.policiesByResource = resourcePolicies;
+        this.policiesByResource = policiesByResourceMap;
         this.policiesById = policiesByIdMap;
     }
 

@@ -212,6 +212,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         final Policy jaxbUsersPolicy = createJAXBPolicy(usersPolicy);
         authorizations.getPolicies().getPolicy().add(jaxbUsersPolicy);
 
+        // grant the user read/write access to the /groups resource
+        final AccessPolicy groupsPolicy = createInitialAdminPolicy("/groups", adminUser.getIdentifier(), RequestAction.READ, RequestAction.WRITE);
+        final Policy jaxbGroupsPolicy = createJAXBPolicy(groupsPolicy);
+        authorizations.getPolicies().getPolicy().add(jaxbGroupsPolicy);
+
         // grant the user read/write access to the /policies resource
         final AccessPolicy policiesPolicy = createInitialAdminPolicy("/policies", adminUser.getIdentifier(), RequestAction.READ, RequestAction.WRITE);
         final Policy jaxbPoliciesPolicy = createJAXBPolicy(policiesPolicy);

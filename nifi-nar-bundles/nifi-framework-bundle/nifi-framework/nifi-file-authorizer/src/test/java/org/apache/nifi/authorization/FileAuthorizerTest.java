@@ -155,7 +155,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(3, policies.size());
+        assertEquals(4, policies.size());
     }
 
     @Test
