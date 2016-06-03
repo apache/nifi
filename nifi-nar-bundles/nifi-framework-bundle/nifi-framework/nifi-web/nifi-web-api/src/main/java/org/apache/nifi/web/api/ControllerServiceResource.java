@@ -332,12 +332,12 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Clears the state for a controller service.
      *
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
+     * @param httpServletRequest servlet request
      * @param id The id of the controller service
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
@@ -359,10 +359,6 @@ public class ControllerServiceResource extends ApplicationResource {
     )
     public Response clearState(
         @Context HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The revision used to verify the client is working with the latest version of the flow.",
-            required = true
-        ) final ComponentStateEntity revisionEntity,
         @ApiParam(
             value = "The controller service id.",
             required = true

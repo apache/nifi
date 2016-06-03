@@ -140,7 +140,6 @@
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
     </bean>
 
-    
     <!-- component ui extension configuration context -->
     <bean id="nifiWebConfigurationContext" class="org.apache.nifi.web.StandardNiFiWebConfigurationContext">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -150,6 +149,7 @@
         <property name="auditService" ref="auditService"/>
         <property name="controllerServiceLookup" ref="controllerServiceProvider"/>
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
+        <property name="authorizer" ref="authorizer"/>
     </bean>
 
     <!-- rest endpoints -->

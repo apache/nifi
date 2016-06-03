@@ -340,15 +340,14 @@ public class ProcessorResource extends ApplicationResource {
      * Clears the state for a processor.
      *
      * @param httpServletRequest servlet request
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
      * @param id The id of the processor
      * @return a componentStateEntity
      * @throws InterruptedException if interrupted
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/{id}/state/clear-requests")
+    @Path("{id}/state/clear-requests")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a processor",
@@ -369,22 +368,13 @@ public class ProcessorResource extends ApplicationResource {
     public Response clearState(
         @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "The revision used to verify the client is working with the latest version of the flow.",
-            required = true
-        ) final ComponentStateEntity revisionEntity,
-        @ApiParam(
             value = "The processor id.",
             required = true
         )
         @PathParam("id") final String id) throws InterruptedException {
 
-        // ensure the revision was specified
-        if (revisionEntity == null) {
-            throw new IllegalArgumentException("Revision must be specified.");
-        }
-
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, revisionEntity);
+            return replicate(HttpMethod.POST);
         }
 
         // handle expects request (usually from the cluster manager)

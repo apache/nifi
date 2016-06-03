@@ -510,7 +510,7 @@
             }
             
             // if this descriptor identifies a controller service, provide a way to create one
-            if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService) && nf.Common.isDefinedAndNotNull(configurationOptions.groupId)) {
+            if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                 options.push({
                     text: 'Create new service...',
                     value: undefined,
@@ -887,15 +887,21 @@
 
                     // build the controller service entity
                     var controllerServiceEntity = {
-                        'controllerService': {
+                        'component': {
                             'type': newControllerServiceType
                         }
                     };
-                    
+
+                    // determine the appropriate uri for creating the controller service
+                    var uri = '../nifi-api/controller/controller-services';
+                    if (nf.Common.isDefinedAndNotNull(configurationOptions.groupId)) {
+                        uri = '../nifi-api/process-groups/' + encodeURIComponent(configurationOptions.groupId) + '/controller-services';
+                    }
+
                     // add the new controller service
                     $.ajax({
                         type: 'POST',
-                        url: '../nifi-api/process-groups/' + encodeURIComponent(configurationOptions.groupId) + '/controller-services/node',
+                        url: uri,
                         data: JSON.stringify(controllerServiceEntity),
                         dataType: 'json',
                         contentType: 'application/json'
@@ -913,7 +919,7 @@
                             // add a row for the new property
                             var data = grid.getData();
                             data.updateItem(item.id, $.extend(item, {
-                                value: response.controllerService.id
+                                value: response.component.id
                             }));
 
                             // close the dialog
