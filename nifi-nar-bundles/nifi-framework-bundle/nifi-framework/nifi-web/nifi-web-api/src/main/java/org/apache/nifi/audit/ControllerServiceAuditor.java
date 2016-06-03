@@ -123,7 +123,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
             // create the controller service details
             FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
-            serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
+            serviceDetails.setType(controllerService.getComponentType());
 
             // create a controller service action
             Date actionTimestamp = new Date();
@@ -267,7 +267,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                 // create the processor details
                 FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-                processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+                processorDetails.setType(processor.getComponentType());
 
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
@@ -284,8 +284,8 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 final ReportingTaskNode reportingTask = ((ReportingTaskNode) component);
 
                 // create the reporting task details
-                FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-                processorDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
+                FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
+                taskDetails.setType(reportingTask.getComponentType());
 
                 // create a reporting task action
                 FlowChangeAction reportingTaskAction = new FlowChangeAction();
@@ -295,7 +295,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 reportingTaskAction.setSourceId(reportingTask.getIdentifier());
                 reportingTaskAction.setSourceName(reportingTask.getName());
                 reportingTaskAction.setSourceType(Component.ReportingTask);
-                reportingTaskAction.setComponentDetails(processorDetails);
+                reportingTaskAction.setComponentDetails(taskDetails);
                 reportingTaskAction.setOperation(ScheduledState.RUNNING.equals(reportingTask.getScheduledState()) ? Operation.Start : Operation.Stop);
                 actions.add(reportingTaskAction);
             } else if (component instanceof ControllerServiceNode) {
@@ -303,7 +303,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
                 // create the controller service details
                 FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
-                serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
+                serviceDetails.setType(controllerService.getComponentType());
 
                 // create a controller service action
                 FlowChangeAction serviceAction = new FlowChangeAction();
@@ -383,7 +383,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         if (user != null) {
             // create the controller service details
             FlowChangeExtensionDetails serviceDetails = new FlowChangeExtensionDetails();
-            serviceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
+            serviceDetails.setType(controllerService.getComponentType());
 
             // create the controller service action for adding this controller service
             action = new FlowChangeAction();

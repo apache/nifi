@@ -65,4 +65,14 @@ public interface ConfiguredComponent extends Authorizable {
      * @return the any validation errors for this connectable
      */
     Collection<ValidationResult> getValidationErrors();
+
+    /**
+     * @return the type of the component. I.e., the class name of the implementation
+     */
+    String getComponentType();
+
+    /**
+     * @return the Canonical Class Name of the component
+     */
+    String getCanonicalClassName();
 }

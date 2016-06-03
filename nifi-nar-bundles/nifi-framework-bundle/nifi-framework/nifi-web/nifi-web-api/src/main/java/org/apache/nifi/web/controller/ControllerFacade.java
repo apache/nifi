@@ -1445,7 +1445,11 @@ public class ControllerFacade implements Authorizable {
         for (final Relationship relationship : procNode.getRelationships()) {
             addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
         }
+
+        // Add both the actual class name and the component type. This allows us to search for 'Ghost'
+        // to search for components that could not be instantiated.
         addIfAppropriate(searchStr, processor.getClass().getSimpleName(), "Type", matches);
+        addIfAppropriate(searchStr, procNode.getComponentType(), "Type", matches);
 
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();

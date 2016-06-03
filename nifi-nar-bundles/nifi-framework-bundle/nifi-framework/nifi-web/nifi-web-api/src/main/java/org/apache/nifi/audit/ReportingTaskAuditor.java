@@ -116,7 +116,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
 
             // create the reporting task details
             FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
-            taskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
+            taskDetails.setType(reportingTask.getComponentType());
 
             // create a reporting task action
             Date actionTimestamp = new Date();
@@ -272,7 +272,7 @@ public class ReportingTaskAuditor extends NiFiAuditor {
         if (user != null) {
             // create the reporting task details
             FlowChangeExtensionDetails taskDetails = new FlowChangeExtensionDetails();
-            taskDetails.setType(reportingTask.getReportingTask().getClass().getSimpleName());
+            taskDetails.setType(reportingTask.getComponentType());
 
             // create the reporting task action for adding this reporting task
             action = new FlowChangeAction();

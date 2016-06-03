@@ -546,4 +546,9 @@ public class StandardFunnel implements Funnel {
     public SchedulingStrategy getSchedulingStrategy() {
         return SchedulingStrategy.TIMER_DRIVEN;
     }
+
+    @Override
+    public String getComponentType() {
+        return "Funnel";
+    }
 }

@@ -174,6 +174,7 @@ public class TestStandardProcessSession {
         when(connectable.getProcessGroup()).thenReturn(procGroup);
         when(connectable.getIdentifier()).thenReturn("connectable-1");
         when(connectable.getConnectableType()).thenReturn(ConnectableType.INPUT_PORT);
+        when(connectable.getComponentType()).thenReturn("Unit Test Component");
 
         Mockito.doAnswer(new Answer<Set<Connection>>() {
             @Override

@@ -181,7 +181,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            final Authorizable reportingTask = lookup.getReportingTask(id);
             reportingTask.authorize(authorizer, RequestAction.READ);
         });
 
@@ -245,7 +245,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            final Authorizable reportingTask = lookup.getReportingTask(id);
             reportingTask.authorize(authorizer, RequestAction.READ);
         });
 
@@ -300,7 +300,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+            final Authorizable reportingTask = lookup.getReportingTask(id);
             reportingTask.authorize(authorizer, RequestAction.WRITE);
         });
 
@@ -359,7 +359,7 @@ public class ReportingTaskResource extends ApplicationResource {
         if (isValidationPhase(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                final Authorizable reportingTask = lookup.getReportingTask(id);
                 reportingTask.authorize(authorizer, RequestAction.WRITE);
             });
             serviceFacade.verifyCanClearReportingTaskState(id);
@@ -442,7 +442,7 @@ public class ReportingTaskResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                final Authorizable reportingTask = lookup.getReportingTask(id);
                 reportingTask.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
@@ -524,7 +524,7 @@ public class ReportingTaskResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable reportingTask = lookup.getRemoteProcessGroup(id);
+                final Authorizable reportingTask = lookup.getReportingTask(id);
                 reportingTask.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyDeleteReportingTask(id),

@@ -125,13 +125,7 @@ public class ProcessContext {
 
     void adjustCounter(final String name, final long delta) {
         final String localContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
-        final String globalContext;
-
-        if (connectable instanceof ProcessorNode) {
-            globalContext = "All " + ((ProcessorNode) connectable).getProcessor().getClass().getSimpleName() + "'s";
-        } else {
-            globalContext = "All " + connectable.getClass().getSimpleName() + "'s";
-        }
+        final String globalContext = "All " + connectable.getComponentType() + "'s";
 
         counterRepo.adjustCounter(localContext, name, delta);
         counterRepo.adjustCounter(globalContext, name, delta);

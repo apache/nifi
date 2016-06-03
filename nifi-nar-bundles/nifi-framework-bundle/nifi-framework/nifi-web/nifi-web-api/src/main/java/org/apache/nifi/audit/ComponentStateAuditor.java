@@ -68,7 +68,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
 
             // create the processor details
             FlowChangeExtensionDetails processorDetails = new FlowChangeExtensionDetails();
-            processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
+            processorDetails.setType(processor.getComponentType());
 
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
@@ -115,7 +115,7 @@ public class ComponentStateAuditor extends NiFiAuditor {
 
             // create the controller service details
             FlowChangeExtensionDetails controllerServiceDetails = new FlowChangeExtensionDetails();
-            controllerServiceDetails.setType(controllerService.getControllerServiceImplementation().getClass().getSimpleName());
+            controllerServiceDetails.setType(controllerService.getComponentType());
 
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
