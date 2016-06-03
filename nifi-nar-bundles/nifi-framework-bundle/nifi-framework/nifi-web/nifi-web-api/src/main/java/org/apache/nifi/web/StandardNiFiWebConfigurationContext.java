@@ -40,6 +40,14 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -74,8 +82,6 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 public class StandardNiFiWebConfigurationContext implements NiFiWebConfigurationContext {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiWebConfigurationContext.class);
-    public static final String CLIENT_ID_PARAM = "clientId";
-    public static final String REVISION_PARAM = "revision";
     public static final String VERBOSE_PARAM = "verbose";
 
     private NiFiProperties properties;
@@ -85,15 +91,35 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private ControllerServiceLookup controllerServiceLookup;
     private ReportingTaskProvider reportingTaskProvider;
     private AuditService auditService;
+    private Authorizer authorizer;
+
+    private void authorizeFlowAccess(final NiFiUser user) {
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                    .resource(ResourceFactory.getFlowResource())
+                    .identity(user.getIdentity())
+                    .anonymous(user.isAnonymous())
+                    .accessAttempt(true)
+                    .action(RequestAction.READ)
+                    .build();
+
+            final AuthorizationResult result = authorizer.authorize(request);
+            if (!Result.Approved.equals(result.getResult())) {
+                final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+                throw new AccessDeniedException(message);
+            }
+        });
+    }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ControllerService getControllerService(String serviceIdentifier) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        authorizeFlowAccess(user);
         return controllerServiceLookup.getControllerService(serviceIdentifier);
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public void saveActions(final NiFiWebRequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
         Objects.requireNonNull(configurationActions, "Actions cannot be null.");
 
@@ -105,12 +131,30 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         Component componentType = null;
         switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getProcessor(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.Processor;
                 break;
             case ControllerServiceConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getControllerService(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.ControllerService;
                 break;
             case ReportingTaskConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getReportingTask(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.ReportingTask;
                 break;
         }
@@ -159,33 +203,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserDn() {
-        String userIdentity = NiFiUser.ANONYMOUS.getIdentity();
-
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            userIdentity = user.getIdentity();
-        }
-
-        return userIdentity;
+        authorizeFlowAccess(user);
+        return user.getIdentity();
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS.getIdentity();
-
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            userName = user.getUserName();
-        }
-
-        return userName;
+        authorizeFlowAccess(user);
+        return user.getUserName();
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException {
         final String id = requestContext.getId();
 
@@ -220,7 +251,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException {
 
@@ -288,6 +318,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getProcessor(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
+
             final ProcessorDTO processor;
             if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
@@ -330,8 +366,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getProcessor(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
 
             final ProcessorDTO processor;
             if (properties.isClustered()) {
@@ -385,8 +428,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 processor = entity.getComponent();
             } else {
-                final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
-                processor = entity.getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
+                    processor = entity.getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             }
 
             // return the processor info
@@ -415,6 +465,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
             final ControllerServiceDTO controllerService;
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getControllerService(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
 
             // if the lookup has the service that means we are either a node or
             // the ncm and the service is available there only
@@ -464,8 +520,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getControllerService(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
 
             final ControllerServiceDTO controllerService;
             if (controllerServiceLookup.getControllerService(id) != null) {
@@ -473,8 +536,16 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
 
-                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                controllerService = updateResult.getResult().getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    // perform the update
+                    final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                    controllerService = updateResult.getResult().getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
@@ -561,6 +632,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             final String id = requestContext.getId();
             final ReportingTaskDTO reportingTask;
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getReportingTask(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
+
             // if the provider has the service that means we are either a node or
             // the ncm and the service is available there only
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
@@ -609,8 +686,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getReportingTask(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
 
             final ReportingTaskDTO reportingTask;
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
@@ -618,8 +702,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
 
-                final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                reportingTask = updateResult.getResult().getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                    reportingTask = updateResult.getResult().getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to
@@ -768,4 +859,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         this.reportingTaskProvider = reportingTaskProvider;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
 }

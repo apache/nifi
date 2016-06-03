@@ -1348,10 +1348,10 @@ nf.ControllerService = (function () {
      * @param {type} propertyName
      */
     var getControllerServicePropertyDescriptor = function (propertyName) {
-        var details = $('#controller-service-configuration').data('controllerServiceDetails');
+        var controllerServiceEntity = $('#controller-service-configuration').data('controllerServiceDetails');
         return $.ajax({
             type: 'GET',
-            url: details.uri + '/descriptors',
+            url: controllerServiceEntity.component.uri + '/descriptors',
             data: {
                 propertyName: propertyName
             },
@@ -1633,7 +1633,7 @@ nf.ControllerService = (function () {
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
-                    groupId: nf.Canvas.getGroupId(),
+                    // groupId: controllerServiceEntity.component.parentGroupId,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
                     goToServiceDeferred: function () {
@@ -1722,7 +1722,7 @@ nf.ControllerService = (function () {
                                     $('#shell-close-button').click();
                     
                                     // show the custom ui
-                                    nf.CustomUi.showCustomUi($('#controller-service-id').text(), controllerService.customUiUrl, true).done(function () {
+                                    nf.CustomUi.showCustomUi(controllerServiceEntity, controllerService.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the controller service
                                         reloadControllerServiceAndReferencingComponents(serviceTable, controllerService);
                                         
@@ -1854,7 +1854,7 @@ nf.ControllerService = (function () {
                                 $('#shell-close-button').click();
 
                                 // show the custom ui
-                                nf.CustomUi.showCustomUi(controllerService.id, controllerService.customUiUrl, false).done(function () {
+                                nf.CustomUi.showCustomUi(controllerServiceEntity, controllerService.customUiUrl, false).done(function () {
                                     nf.Settings.showSettings();
                                 });
                             }

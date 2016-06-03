@@ -58,7 +58,6 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.NiFiWebContext;
 import org.apache.nifi.web.UiExtensionType;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.server.Connector;
@@ -120,9 +119,6 @@ public class JettyServer implements NiFiServer {
     // component (processor, controller service, reporting task) ui extensions
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
-
-    @Deprecated
-    private Collection<WebAppContext> customUiWebContexts;
 
     /**
      * Creates and configures a new Jetty instance.
@@ -222,29 +218,21 @@ public class JettyServer implements NiFiServer {
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
         final ClassLoader jettyClassLoader = frameworkClassLoader.getParent();
 
-        @Deprecated
-        final Map<String, String> customUiMappings = new HashMap<>();
-
         // deploy the other wars
         if (CollectionUtils.isNotEmpty(otherWars)) {
             // hold onto to the web contexts for all ui extensions
-            customUiWebContexts = new ArrayList<>();
             componentUiExtensionWebContexts = new ArrayList<>();
             contentViewerWebContexts = new ArrayList<>();
 
             // ui extension organized by component type
             final Map<String, List<UiExtension>> componentUiExtensionsByType = new HashMap<>();
             for (File war : otherWars) {
-                // see if this war is a custom processor ui
-                @Deprecated
-                List<String> customUiProcessorTypes = getWarExtensions(war, "META-INF/nifi-processor");
-
                 // identify all known extension types in the war
                 final Map<UiExtensionType, List<String>> uiExtensionInWar = new HashMap<>();
                 identifyUiExtensionsForComponents(uiExtensionInWar, war);
 
                 // only include wars that are for custom processor ui's
-                if (!customUiProcessorTypes.isEmpty() || !uiExtensionInWar.isEmpty()) {
+                if (!uiExtensionInWar.isEmpty()) {
                     // get the context path
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
                     String warContextPath = String.format("/%s", warName);
@@ -260,52 +248,41 @@ public class JettyServer implements NiFiServer {
                     // create the extension web app context
                     WebAppContext extensionUiContext = loadWar(war, warContextPath, narClassLoaderForWar);
 
-                    // also store it by type so we can populate the appropriate initialization parameters
-                    if (!customUiProcessorTypes.isEmpty()) {
-                        customUiWebContexts.add(extensionUiContext);
+                    // create the ui extensions
+                    for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
+                        final UiExtensionType extensionType = entry.getKey();
+                        final List<String> types = entry.getValue();
 
-                        // @Deprecated - supported custom uis as init params to the web api
-                        for (String customUiProcessorType : customUiProcessorTypes) {
-                            // map the processor type to the custom ui path
-                            customUiMappings.put(customUiProcessorType, warContextPath);
-                        }
-                    } else {
-                        // create the ui extensions
-                        for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
-                            final UiExtensionType extensionType = entry.getKey();
-                            final List<String> types = entry.getValue();
-
-                            if (UiExtensionType.ContentViewer.equals(extensionType)) {
-                                // consider each content type identified
-                                for (final String contentType : types) {
-                                    // map the content type to the context path
-                                    mimeMappings.put(contentType, warContextPath);
-                                }
-
-                                // this ui extension provides a content viewer
-                                contentViewerWebContexts.add(extensionUiContext);
-                            } else {
-                                // consider each component type identified
-                                for (final String componentType : types) {
-                                    logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, types));
-
-                                    // record the extension definition
-                                    final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
-
-                                    // create if this is the first extension for this component type
-                                    List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentType);
-                                    if (componentUiExtensionsForType == null) {
-                                        componentUiExtensionsForType = new ArrayList<>();
-                                        componentUiExtensionsByType.put(componentType, componentUiExtensionsForType);
-                                    }
-
-                                    // record this extension
-                                    componentUiExtensionsForType.add(uiExtension);
-                                }
-
-                                // this ui extension provides a component custom ui
-                                componentUiExtensionWebContexts.add(extensionUiContext);
+                        if (UiExtensionType.ContentViewer.equals(extensionType)) {
+                            // consider each content type identified
+                            for (final String contentType : types) {
+                                // map the content type to the context path
+                                mimeMappings.put(contentType, warContextPath);
                             }
+
+                            // this ui extension provides a content viewer
+                            contentViewerWebContexts.add(extensionUiContext);
+                        } else {
+                            // consider each component type identified
+                            for (final String componentType : types) {
+                                logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, types));
+
+                                // record the extension definition
+                                final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
+
+                                // create if this is the first extension for this component type
+                                List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentType);
+                                if (componentUiExtensionsForType == null) {
+                                    componentUiExtensionsForType = new ArrayList<>();
+                                    componentUiExtensionsByType.put(componentType, componentUiExtensionsForType);
+                                }
+
+                                // record this extension
+                                componentUiExtensionsForType.add(uiExtension);
+                            }
+
+                            // this ui extension provides a component custom ui
+                            componentUiExtensionWebContexts.add(extensionUiContext);
                         }
                     }
 
@@ -326,7 +303,6 @@ public class JettyServer implements NiFiServer {
 
         // load the web api app
         webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
-        webApiContext.getInitParams().putAll(customUiMappings);
         handlers.addHandler(webApiContext);
 
         // load the content viewer app
@@ -695,23 +671,6 @@ public class JettyServer implements NiFiServer {
 
                 // get the application context
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
-
-                // @Deprecated
-                if (CollectionUtils.isNotEmpty(customUiWebContexts)) {
-                    final NiFiWebContext niFiWebContext = webApplicationContext.getBean("nifiWebContext", NiFiWebContext.class);
-
-                    for (final WebAppContext customUiContext : customUiWebContexts) {
-                        // set the NiFi context in each custom ui servlet context
-                        final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
-                        customUiServletContext.setAttribute("nifi-web-context", niFiWebContext);
-
-                        // add the security filter to any custom ui wars
-                        final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
-                        if (securityFilter != null) {
-                            customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                        }
-                    }
-                }
 
                 // component ui extensions
                 if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {

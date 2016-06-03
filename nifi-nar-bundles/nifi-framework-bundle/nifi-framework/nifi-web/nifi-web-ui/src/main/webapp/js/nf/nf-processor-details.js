@@ -209,10 +209,10 @@ nf.ProcessorDetails = (function () {
             });
 
             // show the dialog once we have the processor and its history
-            $.when(getProcessor, getProcessorHistory).done(function (processorResponse, historyResponse) {
-                var processorResponse = processorResponse[0];
+            $.when(getProcessor, getProcessorHistory).done(function (processorResult, historyResult) {
+                var processorResponse = processorResult[0];
                 var processor = processorResponse.component;
-                var historyResponse = historyResponse[0];
+                var historyResponse = historyResult[0];
                 var history = historyResponse.componentHistory;
 
                 // load the properties
@@ -238,7 +238,7 @@ nf.ProcessorDetails = (function () {
                                 $('#processor-details').modal('hide');
 
                                 // show the custom ui
-                                nf.CustomUi.showCustomUi(processor.id, processor.config.customUiUrl, false);
+                                nf.CustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, false);
                             }
                         }
                     });

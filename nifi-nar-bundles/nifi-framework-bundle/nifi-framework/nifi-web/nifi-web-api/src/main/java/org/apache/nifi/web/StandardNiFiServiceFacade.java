@@ -16,28 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -193,6 +172,27 @@ import org.apache.nifi.web.revision.UpdateRevisionTask;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -1612,6 +1612,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ControllerServiceEntity createControllerService(final String groupId, final ControllerServiceDTO controllerServiceDTO) {
+        // TODO - update once Controller Services can be scoped by Controller
         final String normalizedGroupId = groupId == null ? controllerFacade.getRootGroupId() : groupId;
         controllerServiceDTO.setParentGroupId(normalizedGroupId);
 
@@ -1721,11 +1722,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * @param reference ControllerServiceReference
      * @return The entity
      */
-    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference) {
+    private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(final ControllerServiceReference reference, final Set<String> lockedIds) {
         final Set<String> referencingIds = new HashSet<>();
         final Set<ControllerServiceNode> visited = new HashSet<>();
         visited.add(reference.getReferencedComponent());
         findControllerServiceReferencingComponentIdentifiers(reference, referencingIds, visited);
+
+        // TODO remove once we can update a read lock
+        referencingIds.removeAll(lockedIds);
 
         return revisionManager.get(referencingIds, () -> {
             final Map<String, Revision> referencingRevisions = new HashMap<>();
@@ -2614,8 +2618,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<ControllerServiceNode> serviceNodes;
         final Set<String> serviceIds;
         if (groupId == null) {
-            // TODO - controller services scoped by the controller
-            serviceNodes = controllerServiceDAO.getControllerServices();
+            // TODO - update when controller services are scoped by the controller
+            final ProcessGroup group = processGroupDAO.getProcessGroup(controllerFacade.getRootGroupId());
+            serviceNodes = group.getControllerServices(true);
             serviceIds = serviceNodes.stream().map(service -> service.getIdentifier()).collect(Collectors.toSet());
         } else {
             final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
@@ -2629,7 +2634,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(serviceNode);
 
                         final ControllerServiceReference ref = serviceNode.getReferences();
-                        final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+                        final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref, serviceIds);
                         dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
 
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
@@ -2651,7 +2656,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(controllerService);
 
             final ControllerServiceReference ref = controllerService.getReferences();
-            final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref);
+            final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerServiceId));
             dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
 
             return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
@@ -2678,7 +2683,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return revisionManager.get(controllerServiceId, rev -> {
             final ControllerServiceNode service = controllerServiceDAO.getControllerService(controllerServiceId);
             final ControllerServiceReference ref = service.getReferences();
-            return createControllerServiceReferencingComponentsEntity(ref);
+            return createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerServiceId));
         });
     }
 
