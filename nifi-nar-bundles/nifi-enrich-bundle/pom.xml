@@ -17,21 +17,26 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-geo-bundle</artifactId>
+        <artifactId>nifi-nar-bundles</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-geo-nar</artifactId>
-    <packaging>nar</packaging>
-    <description>NiFi Geo Enrichment NAR</description>
-    <properties>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <source.skip>true</source.skip>
-    </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-geo-processors</artifactId>
-        </dependency>
-    </dependencies>
+    <artifactId>nifi-enrich-bundle</artifactId>
+    <packaging>pom</packaging>
+    <description>NiFi Enrichment Capability Set</description>
+	
+    <modules>
+        <module>nifi-enrich-processors</module>
+        <module>nifi-enrich-nar</module>
+    </modules>
+	
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-enrich-processors</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

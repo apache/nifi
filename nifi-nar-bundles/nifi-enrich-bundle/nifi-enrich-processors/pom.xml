@@ -17,10 +17,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-geo-bundle</artifactId>
+        <artifactId>nifi-enrich-bundle</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-geo-processors</artifactId>
+    <artifactId>nifi-enrich-processors</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
