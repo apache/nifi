@@ -14,3 +14,4 @@
 # limitations under the License.
 
 org.apache.nifi.processors.GeoEnrichIP
+org.apache.nifi.processors.enrich.QueryDNS
