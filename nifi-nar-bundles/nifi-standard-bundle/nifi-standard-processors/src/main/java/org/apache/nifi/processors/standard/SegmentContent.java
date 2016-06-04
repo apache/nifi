@@ -88,7 +88,7 @@ public class SegmentContent extends AbstractProcessor {
 
     public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
             .name("Segment Size")
-            .description("The maximum data size for each segment")
+            .description("The maximum data size in bytes for each segment")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .required(true)
             .build();
