@@ -46,14 +46,14 @@ import org.apache.nifi.stream.io.StreamUtils;
 import ca.uhn.hl7v2.DefaultHapiContext;
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.HapiContext;
-import ca.uhn.hl7v2.model.Composite;
 import ca.uhn.hl7v2.model.Group;
 import ca.uhn.hl7v2.model.Message;
-import ca.uhn.hl7v2.model.Primitive;
 import ca.uhn.hl7v2.model.Segment;
 import ca.uhn.hl7v2.model.Structure;
 import ca.uhn.hl7v2.model.Type;
-import ca.uhn.hl7v2.model.Varies;
+import ca.uhn.hl7v2.parser.DefaultEscaping;
+import ca.uhn.hl7v2.parser.EncodingCharacters;
+import ca.uhn.hl7v2.parser.Escaping;
 import ca.uhn.hl7v2.parser.PipeParser;
 import ca.uhn.hl7v2.validation.ValidationContext;
 import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
@@ -189,60 +189,21 @@ public class ExtractHL7Attributes extends AbstractProcessor {
     private Map<String, String> getAttributes(final Segment segment, final Integer segmentNum) throws HL7Exception {
         final Map<String, String> attributes = new HashMap<>();
 
+        final EncodingCharacters encoding = EncodingCharacters.defaultInstance();
+        final Escaping escaping = new DefaultEscaping();
         for (int i = 1; i <= segment.numFields(); i++) {
             final String fieldName = segment.getName() + (segmentNum == null ? "" : "_" + segmentNum) + "." + i;
             final Type[] types = segment.getField(i);
-            final StringBuilder sb = new StringBuilder();
             for (final Type type : types) {
-                final String typeValue = getValue(type);
-                if (!typeValue.isEmpty()) {
-                    sb.append(typeValue).append("^");
-                }
+                // This maybe should used the escaped values, but that would
+                // change the existing non-broken behavior of the processor
+                final String escapedTypeValue = type.encode();
+                final String unescapedTypeValue = escaping.unescape(escapedTypeValue, encoding);
+                attributes.put(fieldName, unescapedTypeValue);
             }
-
-            if (sb.length() == 0) {
-                continue;
-            }
-            String typeVal = sb.toString();
-            if (typeVal.endsWith("^")) {
-                typeVal = typeVal.substring(0, typeVal.length() - 1);
-            }
-
-            attributes.put(fieldName, typeVal);
         }
 
         return attributes;
     }
 
-    private String getValue(final Type type) {
-        if (type == null) {
-            return "";
-        }
-
-        if (type instanceof Primitive) {
-            final String value = ((Primitive) type).getValue();
-            return value == null ? "" : value;
-        } else if (type instanceof Composite) {
-            final StringBuilder sb = new StringBuilder();
-            final Composite composite = (Composite) type;
-            for (final Type component : composite.getComponents()) {
-                final String componentValue = getValue(component);
-                if (!componentValue.isEmpty()) {
-                    sb.append(componentValue).append("^");
-                }
-            }
-
-            final String value = sb.toString();
-            if (value.endsWith("^")) {
-                return value.substring(0, value.length() - 1);
-            }
-
-            return value;
-        } else if (type instanceof Varies) {
-            final Varies varies = (Varies) type;
-            return getValue(varies.getData());
-        }
-
-        return "";
-    }
 }
