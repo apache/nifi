@@ -24,7 +24,9 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -64,7 +66,11 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"hadoop", "HDFS", "put", "copy", "filesystem"})
 @CapabilityDescription("Write FlowFile data to Hadoop Distributed File System (HDFS)")
-@WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
+@ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "filename", description = "The name of the file written to HDFS is stored in this attribute."),
+        @WritesAttribute(attribute = "absolute.hdfs.path", description = "The absolute path to the file on HDFS is stored in this attribute.")
+})
 @SeeAlso(GetHDFS.class)
 public class PutHDFS extends AbstractHadoopProcessor {
 
@@ -74,6 +80,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
     public static final int BUFFER_SIZE_DEFAULT = 4096;
+
+    public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -329,8 +337,13 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
             final String outputPath = copyFile.toString();
+            final String newFilename = copyFile.getName();
+            final String hdfsPath = copyFile.getParent().toString();
+            flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
+            flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
             final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
             session.getProvenanceReporter().send(flowFile, transitUri);
+
             session.transfer(flowFile, REL_SUCCESS);
 
         } catch (final Throwable t) {
