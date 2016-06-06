@@ -48,12 +48,13 @@ public class NotificationValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, null);
+        return new StandardPropertyValue(rawValue, null, null);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler();
+
+        return new StandardExpressionLanguageCompiler(null);
     }
 
     @Override

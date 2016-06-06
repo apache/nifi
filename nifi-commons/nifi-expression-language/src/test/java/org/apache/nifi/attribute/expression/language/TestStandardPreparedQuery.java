@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.registry.VariableRegistryFactory;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public class TestStandardPreparedQuery {
         final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${xx}");
         final long start = System.nanoTime();
         for (int i = 0; i < 10000000; i++) {
-            assertEquals("world", prepared.evaluateExpressions(attrs, null));
+            assertEquals("world", prepared.evaluateExpressions(VariableRegistryFactory.getInstance(attrs), null));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
@@ -67,7 +68,7 @@ public class TestStandardPreparedQuery {
 
         final long start = System.nanoTime();
         for (int i = 0; i < 10000000; i++) {
-            assertEquals("world", Query.evaluateExpressions("${xx}", attrs));
+            assertEquals("world", Query.evaluateExpressions("${xx}", VariableRegistryFactory.getInstance(attrs)));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
@@ -85,7 +86,7 @@ public class TestStandardPreparedQuery {
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {
-        final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(attrs, null);
+        final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(VariableRegistryFactory.getInstance(attrs), null);
         return evaluated;
     }
 

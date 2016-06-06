@@ -112,4 +112,5 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     public ComponentLog getLogger() {
         return logger;
     }
+
 }

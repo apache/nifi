@@ -80,4 +80,5 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     public boolean isControllerServiceEnabling(String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
+
 }

@@ -45,6 +45,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.ReflectionUtils;
@@ -61,6 +62,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final ProcessContextFactory contextFactory;
     private final AtomicInteger maxThreadCount;
     private final StringEncryptor encryptor;
+    private final VariableRegistry variableRegistry;
 
     private volatile String adminYieldDuration = "1 sec";
 
@@ -68,7 +70,8 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final ConcurrentMap<Connectable, ScheduleState> scheduleStates = new ConcurrentHashMap<>();
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
-        final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor) {
+                                      final EventDrivenWorkerQueue workerQueue, final ProcessContextFactory contextFactory, final int maxThreadCount, final StringEncryptor encryptor,
+                                      final VariableRegistry variableRegistry) {
         super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
@@ -76,6 +79,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
         this.contextFactory = contextFactory;
         this.maxThreadCount = new AtomicInteger(maxThreadCount);
         this.encryptor = encryptor;
+        this.variableRegistry = variableRegistry;
 
         for (int i = 0; i < maxThreadCount; i++) {
             final Runnable eventDrivenTask = new EventDrivenTask(workerQueue);
@@ -185,7 +189,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 if (connectable instanceof ProcessorNode) {
                     final ProcessorNode procNode = (ProcessorNode) connectable;
                     final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider,
-                        encryptor, getStateManager(connectable.getIdentifier()));
+                        encryptor, getStateManager(connectable.getIdentifier()), variableRegistry);
 
                     final long runNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
                     final ProcessSessionFactory sessionFactory;

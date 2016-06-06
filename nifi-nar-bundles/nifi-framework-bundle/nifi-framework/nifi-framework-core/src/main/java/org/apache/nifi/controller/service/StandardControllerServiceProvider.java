@@ -56,6 +56,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ObjectHolder;
@@ -72,6 +73,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
+    private final VariableRegistry variableRegistry;
 
     static {
         // methods that are okay to be called when the service is disabled.
@@ -85,13 +87,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         validDisabledMethods = Collections.unmodifiableSet(validMethods);
     }
 
-    public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo, final StateManagerProvider stateManagerProvider) {
+    public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo, final StateManagerProvider stateManagerProvider,
+                                             final VariableRegistry variableRegistry) {
         // the following 2 maps must be updated atomically, but we do not lock around them because they are modified
         // only in the createControllerService method, and both are modified before the method returns
         this.controllerServices = new ConcurrentHashMap<>();
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
+        this.variableRegistry = variableRegistry;
     }
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
@@ -181,9 +185,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
             originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id)));
 
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
+            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this);
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this, variableRegistry);
             serviceNodeHolder.set(serviceNode);
             serviceNode.setName(rawClass.getSimpleName());
 
@@ -481,7 +485,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         serviceNode.verifyCanDelete();
 
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this, null);
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this, null, variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, serviceNode.getControllerServiceImplementation(), configurationContext);
         }
 
@@ -615,4 +619,5 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public void verifyCanStopReferencingComponents(final ControllerServiceNode serviceNode) {
         // we can always stop referencing components
     }
+
 }

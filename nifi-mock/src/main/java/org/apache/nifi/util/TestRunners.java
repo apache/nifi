@@ -17,11 +17,12 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.VariableRegistryUtils;
 
 public class TestRunners {
 
     public static TestRunner newTestRunner(final Processor processor) {
-        return new StandardProcessorTestRunner(processor);
+        return new StandardProcessorTestRunner(processor, VariableRegistryUtils.createVariableRegistry());
     }
 
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass) {

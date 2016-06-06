@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.expression.AttributeValueDecorator;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
 
 /**
  * An implementation of PreparedQuery that throws an
@@ -40,37 +39,9 @@ public class InvalidPreparedQuery implements PreparedQuery {
     }
 
     @Override
-    public String evaluateExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
+    public String evaluateExpressions(final VariableRegistry variableRegistry, final AttributeValueDecorator decorator) throws ProcessException {
         throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
     }
 
-    @Override
-    public String evaluateExpressions() throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
 
-    @Override
-    public String evaluateExpressions(final AttributeValueDecorator decorator) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
-
-    @Override
-    public String evaluateExpressions(final FlowFile flowFile) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
-
-    @Override
-    public String evaluateExpressions(final Map<String, String> attributes) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
-
-    @Override
-    public String evaluateExpressions(final Map<String, String> attributes, final AttributeValueDecorator decorator) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
-
-    @Override
-    public String evaluateExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
 }

@@ -18,6 +18,8 @@ package org.apache.nifi.attribute.expression.language
 
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult
 import org.apache.nifi.expression.AttributeExpression
+import org.apache.nifi.registry.VariableRegistry
+import org.apache.nifi.registry.VariableRegistryFactory
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -57,6 +59,7 @@ public class QueryGroovyTest extends GroovyTestCase {
         final Map<String, String> attributes = [
                 single   : ORIGINAL_VALUE,
                 repeating: [ORIGINAL_VALUE].multiply(n).join(" ")]
+        final VariableRegistry variableRegistry = VariableRegistryFactory.getInstance(attributes)
         logger.info("Attributes: ${attributes}")
 
         final String REPLACEMENT_VALUE = "Goodbye Planet"
@@ -75,10 +78,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(variableRegistry)
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(variableRegistry)
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
@@ -97,6 +100,7 @@ public class QueryGroovyTest extends GroovyTestCase {
         final Map<String, String> attributes = [
                 single   : ORIGINAL_VALUE,
                 repeating: [ORIGINAL_VALUE].multiply(n).join(" ")]
+        final VariableRegistry variableRegistry = VariableRegistryFactory.getInstance(attributes)
         logger.info("Attributes: ${attributes}")
 
         final String REPLACEMENT_VALUE = "Goodbye Planet"
@@ -115,10 +119,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(variableRegistry)
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(variableRegistry)
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
@@ -137,6 +141,7 @@ public class QueryGroovyTest extends GroovyTestCase {
         final Map<String, String> attributes = [
                 single   : ORIGINAL_VALUE,
                 repeating: [ORIGINAL_VALUE].multiply(n).join(" ")]
+        final VariableRegistry variableRegistry = VariableRegistryFactory.getInstance(attributes)
         logger.info("Attributes: ${attributes}")
 
         final String REPLACEMENT_VALUE = "Goodbye Planet"
@@ -155,10 +160,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(variableRegistry)
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(variableRegistry)
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert

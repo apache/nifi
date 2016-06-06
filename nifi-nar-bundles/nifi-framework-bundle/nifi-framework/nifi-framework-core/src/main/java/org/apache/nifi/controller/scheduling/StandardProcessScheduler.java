@@ -53,6 +53,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -83,13 +84,15 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
 
     private final StringEncryptor encryptor;
+    private final VariableRegistry variableRegistry;
 
     public StandardProcessScheduler(final Heartbeater heartbeater, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
-        final StateManagerProvider stateManagerProvider) {
+                                    final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry) {
         this.heartbeater = heartbeater;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
+        this.variableRegistry = variableRegistry;
 
         administrativeYieldDuration = NiFiProperties.getInstance().getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
@@ -295,7 +298,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
 
         SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -330,7 +333,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState state = getScheduleState(procNode);
 
         procNode.stop(this.componentLifeCycleThreadPool, processContext, new Callable<Boolean>() {
