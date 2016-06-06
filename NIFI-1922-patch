@@ -1,0 +1,24 @@
+Index: nifi-nar-bundles/nifi-hadoop-libraries-bundle/nifi-hadoop-libraries-nar/pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- nifi-nar-bundles/nifi-hadoop-libraries-bundle/nifi-hadoop-libraries-nar/pom.xml	(revision 8d8a9cba794fbea0d6a940f9aa0f286b5a076784)
++++ nifi-nar-bundles/nifi-hadoop-libraries-bundle/nifi-hadoop-libraries-nar/pom.xml	(revision e38f6b69b45470d0768a9427c6a63366c6263361)
+@@ -35,5 +35,16 @@
+             <groupId>org.apache.avro</groupId>
+             <artifactId>avro</artifactId>
+         </dependency>
++        <!-- Added dependencies to support HDInsight wasb file format - http://mvnrepository.com/artifact/org.apache.hadoop/hadoop-azure -->
++        <dependency>
++            <groupId>org.apache.hadoop</groupId>
++            <artifactId>hadoop-azure</artifactId>
++            <version>2.7.2</version>
++        </dependency>
++        <dependency>
++            <groupId>com.microsoft.azure</groupId>
++            <artifactId>azure-storage</artifactId>
++            <version>4.0.0</version>
++        </dependency>
+     </dependencies>
+ </project>
