@@ -108,20 +108,39 @@ public class TestExecuteSQL {
     }
 
     @Test
+    public void testIncomingConnectionWithNoFlowFileAndNoQuery() throws InitializationException {
+        runner.setIncomingConnection(true);
+        runner.run();
+        runner.assertTransferCount(ExecuteSQL.REL_SUCCESS, 0);
+        runner.assertTransferCount(ExecuteSQL.REL_FAILURE, 0);
+    }
+
+    @Test(expected = AssertionError.class)
+    public void testNoIncomingConnectionAndNoQuery() throws InitializationException {
+        runner.setIncomingConnection(false);
+        runner.run();
+    }
+
+    @Test
     public void testNoIncomingConnection() throws ClassNotFoundException, SQLException, InitializationException, IOException {
         runner.setIncomingConnection(false);
-        invokeOnTrigger(null, QUERY_WITHOUT_EL, false);
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, false, true);
     }
 
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-        invokeOnTrigger(null, QUERY_WITH_EL, true);
+        invokeOnTrigger(null, QUERY_WITH_EL, true, true);
+    }
+
+    @Test
+    public void testSelectQueryInFlowFile() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, true, false);
     }
 
     @Test
     public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         // Does to seem to have any effect when using embedded Derby
-        invokeOnTrigger(1, QUERY_WITH_EL, true); // 1 second max time
+        invokeOnTrigger(1, QUERY_WITH_EL, true, true); // 1 second max time
     }
 
     @Test
@@ -177,7 +196,7 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_FAILURE, 1);
     }
 
-    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile)
+    public void invokeOnTrigger(final Integer queryTimeout, final String query, final boolean incomingFlowFile, final boolean setQueryProperty)
         throws InitializationException, ClassNotFoundException, SQLException, IOException {
 
         if (queryTimeout != null) {
@@ -196,13 +215,20 @@ public class TestExecuteSQL {
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}
         final int nrOfRows = 20000;
-        runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
 
         if (incomingFlowFile) {
             // incoming FlowFile content is not used, but attributes are used
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("person.id", "10");
-            runner.enqueue("Hello".getBytes(), attributes);
+            if (!setQueryProperty) {
+                runner.enqueue(query.getBytes(), attributes);
+            } else {
+                runner.enqueue("Hello".getBytes(), attributes);
+            }
+        }
+
+        if(setQueryProperty) {
+            runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
         }
 
         runner.run();
