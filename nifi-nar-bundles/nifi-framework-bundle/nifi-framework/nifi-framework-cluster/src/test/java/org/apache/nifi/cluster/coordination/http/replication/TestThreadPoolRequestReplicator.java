@@ -82,7 +82,7 @@ public class TestThreadPoolRequestReplicator {
     public void testResponseRemovedWhenCompletedAndFetched() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, false));
+            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false));
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
 
@@ -109,7 +109,7 @@ public class TestThreadPoolRequestReplicator {
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, false);
+            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
             nodeIds.add(nodeId);
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
@@ -138,10 +138,10 @@ public class TestThreadPoolRequestReplicator {
     public void testCompleteOnError() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            final NodeIdentifier id1 = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false);
-            final NodeIdentifier id2 = new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, false);
-            final NodeIdentifier id3 = new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, false);
-            final NodeIdentifier id4 = new NodeIdentifier("4", "localhost", 8400, "localhost", 8401, "localhost", 8402, false);
+            final NodeIdentifier id1 = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+            final NodeIdentifier id2 = new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false);
+            final NodeIdentifier id3 = new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, 8303, false);
+            final NodeIdentifier id4 = new NodeIdentifier("4", "localhost", 8400, "localhost", 8401, "localhost", 8402, 8403, false);
             nodeIds.add(id1);
             nodeIds.add(id2);
             nodeIds.add(id3);
@@ -159,7 +159,7 @@ public class TestThreadPoolRequestReplicator {
     @Test(timeout = 15000)
     public void testMultipleRequestWithTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
-        final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false);
+        final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
         nodeIds.add(nodeId);
 
         final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
@@ -223,12 +223,12 @@ public class TestThreadPoolRequestReplicator {
         // build a map of connection state to node ids
         final Map<NodeConnectionState, List<NodeIdentifier>> nodeMap = new HashMap<>();
         final List<NodeIdentifier> connectedNodes = new ArrayList<>();
-        connectedNodes.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false));
-        connectedNodes.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, false));
+        connectedNodes.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
+        connectedNodes.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false));
         nodeMap.put(NodeConnectionState.CONNECTED, connectedNodes);
 
         final List<NodeIdentifier> otherState = new ArrayList<>();
-        otherState.add(new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, false));
+        otherState.add(new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, 8303, false));
         nodeMap.put(NodeConnectionState.CONNECTING, otherState);
 
         Mockito.when(coordinator.getConnectionStates()).thenReturn(nodeMap);
@@ -280,8 +280,8 @@ public class TestThreadPoolRequestReplicator {
     @Test(timeout = 15000)
     public void testOneNodeRejectsTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
-        nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false));
-        nodeIds.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, false));
+        nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
+        nodeIds.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false));
 
         final ClusterCoordinator coordinator = createClusterCoordinator();
         final AtomicInteger requestCount = new AtomicInteger(0);

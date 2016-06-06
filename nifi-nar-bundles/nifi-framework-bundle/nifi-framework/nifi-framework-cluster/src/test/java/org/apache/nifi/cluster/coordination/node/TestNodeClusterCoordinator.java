@@ -450,8 +450,8 @@ public class TestNodeClusterCoordinator {
 
     @Test
     public void testProposedIdentifierResolvedIfConflict() {
-        final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, false);
-        final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "localhost", 10000, false);
+        final NodeIdentifier id1 = new NodeIdentifier("1234", "localhost", 8000, "localhost", 9000, "localhost", 10000, 11000, false);
+        final NodeIdentifier conflictingId = new NodeIdentifier("1234", "localhost", 8001, "localhost", 9000, "localhost", 10000, 11000, false);
 
         final ConnectionRequest connectionRequest = new ConnectionRequest(id1);
         final ConnectionRequestMessage crm = new ConnectionRequestMessage();
@@ -484,7 +484,7 @@ public class TestNodeClusterCoordinator {
 
 
     private NodeIdentifier createNodeId(final int index) {
-        return new NodeIdentifier(String.valueOf(index), "localhost", 8000 + index, "localhost", 9000 + index, "localhost", 10000 + index, false);
+        return new NodeIdentifier(String.valueOf(index), "localhost", 8000 + index, "localhost", 9000 + index, "localhost", 10000 + index, 11000 + index, false);
     }
 
     private ProtocolMessage requestConnection(final NodeIdentifier requestedNodeId, final NodeClusterCoordinator coordinator) {

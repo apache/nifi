@@ -23,17 +23,24 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
     /**
      * Create the controller and add to the graph.
      *
-     * @argument {string} remoteProcessGroupUri         The remote group uri.
      * @argument {object} pt                            The point that the remote group was dropped.
      */
-    var createRemoteProcessGroup = function (remoteProcessGroupUri, pt) {
+    var createRemoteProcessGroup = function (pt) {
+
         var remoteProcessGroupEntity = {
             'component': {
-                'targetUri': remoteProcessGroupUri,
+                'targetUri': $('#new-remote-process-group-uri').val(),
                 'position': {
                     'x': pt.x,
                     'y': pt.y
-                }
+                },
+                'communicationsTimeout': $('#new-remote-process-group-timeout').val(),
+                'yieldDuration': $('#new-remote-process-group-yield-duration').val(),
+                'transportProtocol': $('#new-remote-process-group-transport-protocol-combo').combo('getSelectedOption').value,
+                'proxyHost': $('#new-remote-process-group-proxy-host').val(),
+                'proxyPort': $('#new-remote-process-group-proxy-port').val(),
+                'proxyUser': $('#new-remote-process-group-proxy-user').val(),
+                'proxyPassword': $('#new-remote-process-group-proxy-password').val()
             }
         };
 
@@ -53,13 +60,35 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                     'selectAll': true
                 });
 
+                // hide the dialog
+                $('#new-remote-process-group-dialog').modal('hide');
+
                 // update component visibility
                 nf.Canvas.View.updateVisibility();
 
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }).fail(nf.Common.handleAjaxError);
+        }).fail(function (xhr, status, error) {
+            if (xhr.status === 400) {
+                var errors = xhr.responseText.split('\n');
+
+                var content;
+                if (errors.length === 1) {
+                    content = $('<span></span>').text(errors[0]);
+                } else {
+                    content = nf.Common.formatUnorderedList(errors);
+                }
+
+                nf.Dialog.showOkDialog({
+                    dialogContent: content,
+                    overlayBackground: false,
+                    headerText: 'Configuration Error'
+                });
+            } else {
+                nf.Common.handleAjaxError(xhr, status, error);
+            }
+        });
     };
 
     function RemoteProcessGroupComponent() {
@@ -82,6 +111,8 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
              * Initialize the modal.
              */
             init: function () {
+                var defaultTimeout = "30 sec";
+                var defaultYieldDuration = "10 sec";
                 // configure the new remote process group dialog
                 this.getElement().modal({
                     headerText: 'Add Remote Process Group',
@@ -89,8 +120,30 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                     handler: {
                         close: function () {
                             $('#new-remote-process-group-uri').val('');
+                            $('#new-remote-process-group-timeout').val(defaultTimeout);
+                            $('#new-remote-process-group-yield-duration').val(defaultYieldDuration);
+                            $('#new-remote-process-group-transport-protocol-combo').combo('setSelectedOption', {
+                                value: 'RAW'
+                            });
+                            $('#new-remote-process-group-proxy-host').val('');
+                            $('#new-remote-process-group-proxy-port').val('');
+                            $('#new-remote-process-group-proxy-user').val('');
+                            $('#new-remote-process-group-proxy-password').val('');
                         }
                     }
+                });
+                // set default values
+                $('#new-remote-process-group-timeout').val(defaultTimeout);
+                $('#new-remote-process-group-yield-duration').val(defaultYieldDuration);
+                // initialize the transport protocol combo
+                $('#new-remote-process-group-transport-protocol-combo').combo({
+                    options: [{
+                            text: 'RAW',
+                            value: 'RAW'
+                        }, {
+                            text: 'HTTP',
+                            value: 'HTTP'
+                        }]
                 });
             },
 
@@ -162,14 +215,8 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
         promptForRemoteProcessGroupUri: function(pt) {
             var self = this;
             var addRemoteProcessGroup = function () {
-                // get the uri of the controller and clear the textfield
-                var remoteProcessGroupUri = $('#new-remote-process-group-uri').val();
-
-                // hide the dialog
-                self.modal.hide();
-
                 // create the remote process group
-                createRemoteProcessGroup(remoteProcessGroupUri, pt);
+                createRemoteProcessGroup(pt);
             };
 
             this.modal.update('setButtonModel', [{

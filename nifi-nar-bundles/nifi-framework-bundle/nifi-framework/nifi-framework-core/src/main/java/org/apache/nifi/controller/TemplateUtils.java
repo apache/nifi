@@ -247,6 +247,7 @@ public class TemplateUtils {
             remoteProcessGroupDTO.setInputPortCount(null);
             remoteProcessGroupDTO.setOutputPortCount(null);
             remoteProcessGroupDTO.setTransmitting(null);
+            remoteProcessGroupDTO.setProxyPassword(null);
 
             // if this remote process group has contents
             if (remoteProcessGroupDTO.getContents() != null) {

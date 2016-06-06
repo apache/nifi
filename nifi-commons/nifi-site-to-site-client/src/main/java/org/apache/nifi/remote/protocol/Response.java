@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.protocol.socket;
+package org.apache.nifi.remote.protocol;
 
 import java.io.DataInputStream;
 import java.io.IOException;

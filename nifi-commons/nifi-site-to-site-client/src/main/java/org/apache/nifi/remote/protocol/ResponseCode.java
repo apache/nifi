@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.protocol.socket;
+package org.apache.nifi.remote.protocol;
+
+import org.apache.nifi.remote.exception.ProtocolException;
 
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.nifi.remote.exception.ProtocolException;
 
 public enum ResponseCode {
 
@@ -142,6 +142,10 @@ public enum ResponseCode {
 
     public static ResponseCode fromSequence(final byte[] value) {
         final int code = value[3] & 0xFF;
+        return fromCode(code);
+    }
+
+    public static ResponseCode fromCode(final int code) {
         final ResponseCode responseCode = codeArray[code];
         return (responseCode == null) ? UNRECOGNIZED_RESPONSE_CODE : responseCode;
     }

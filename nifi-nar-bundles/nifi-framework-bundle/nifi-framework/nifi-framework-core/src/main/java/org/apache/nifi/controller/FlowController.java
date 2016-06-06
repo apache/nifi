@@ -184,6 +184,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
 import org.apache.nifi.remote.RemoteSiteListener;
@@ -193,6 +194,7 @@ import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.StandardRootGroupPort;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.socket.SocketFlowFileServerProtocol;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -266,7 +268,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ExtensionManager extensionManager;
     private final NiFiProperties properties;
     private final SSLContext sslContext;
-    private final RemoteSiteListener externalSiteListener;
+    private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
@@ -287,8 +289,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicBoolean heartbeatsSuspended = new AtomicBoolean(false);
 
     private final Integer remoteInputSocketPort;
+    private final Integer remoteInputHttpPort;
     private final Boolean isSiteToSiteSecure;
     private Integer clusterManagerRemoteSitePort = null;
+    private Integer clusterManagerRemoteSiteHttpPort = null;
     private Boolean clusterManagerRemoteSiteCommsSecure = null;
 
     private ProcessGroup rootGroup;
@@ -396,7 +400,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             bulletinRepo,
             heartbeatMonitor);
 
-        flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.isSiteToSiteSecure());
+        flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 
         return flowController;
     }
@@ -482,6 +486,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         gracefulShutdownSeconds = shutdownSecs;
 
         remoteInputSocketPort = properties.getRemoteInputPort();
+        remoteInputHttpPort = properties.getRemoteInputHttpPort();
         isSiteToSiteSecure = properties.isSiteToSiteSecure();
 
         if (isSiteToSiteSecure && sslContext == null && remoteInputSocketPort != null) {
@@ -501,17 +506,24 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         controllerServiceProvider.setRootProcessGroup(rootGroup);
 
         if (remoteInputSocketPort == null) {
-            LOG.info("Not enabling Site-to-Site functionality because nifi.remote.input.socket.port is not set");
-            externalSiteListener = null;
+            LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
         } else if (isSiteToSiteSecure && sslContext == null) {
             LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore "
                 + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
-            externalSiteListener = null;
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
-            externalSiteListener = new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null);
-            externalSiteListener.setRootGroup(rootGroup);
+            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null));
+        }
+
+        if (remoteInputHttpPort == null) {
+            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because nifi.remote.input.html.enabled is not true");
+        } else {
+            externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
+        }
+
+        for(RemoteSiteListener listener : externalSiteListeners) {
+            listener.setRootGroup(rootGroup);
         }
 
         // Determine frequency for obtaining component status snapshots
@@ -648,8 +660,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // ContentRepository to purge superfluous files
             contentRepository.cleanup();
 
-            if (externalSiteListener != null) {
-                externalSiteListener.start();
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.start();
             }
 
             notifyComponentsConfigurationRestored();
@@ -1265,8 +1277,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
             }
 
-            if (externalSiteListener != null) {
-                externalSiteListener.stop();
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.stop();
             }
 
             if (processScheduler != null) {
@@ -1410,8 +1422,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             rootGroup = group;
 
-            if (externalSiteListener != null) {
-                externalSiteListener.setRootGroup(group);
+            for(RemoteSiteListener listener : externalSiteListeners) {
+                listener.setRootGroup(rootGroup);
             }
 
             controllerServiceProvider.setRootProcessGroup(rootGroup);
@@ -1638,6 +1650,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
                 remoteGroup.setYieldDuration(remoteGroupDTO.getYieldDuration());
+                remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(remoteGroupDTO.getTransportProtocol()));
+                remoteGroup.setProxyHost(remoteGroupDTO.getProxyHost());
+                remoteGroup.setProxyPort(remoteGroupDTO.getProxyPort());
+                remoteGroup.setProxyUser(remoteGroupDTO.getProxyUser());
+                remoteGroup.setProxyPassword(remoteGroupDTO.getProxyPassword());
                 remoteGroup.setProcessGroup(group);
 
                 // set the input/output ports
@@ -3740,10 +3757,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return new ArrayList<>(history.getActions());
     }
 
-    public void setClusterManagerRemoteSiteInfo(final Integer managerListeningPort, final Boolean commsSecure) {
+    public void setClusterManagerRemoteSiteInfo(final Integer managerListeningPort, final Integer managerListeningHttpPort, final Boolean commsSecure) {
         writeLock.lock();
         try {
             clusterManagerRemoteSitePort = managerListeningPort;
+            clusterManagerRemoteSiteHttpPort = managerListeningHttpPort;
             clusterManagerRemoteSiteCommsSecure = commsSecure;
         } finally {
             writeLock.unlock();
@@ -3754,6 +3772,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         readLock.lock();
         try {
             return clusterManagerRemoteSitePort;
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+
+    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
+        readLock.lock();
+        try {
+            return clusterManagerRemoteSiteHttpPort;
         } finally {
             readLock.unlock();
         }
@@ -3770,6 +3798,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     public Integer getRemoteSiteListeningPort() {
         return remoteInputSocketPort;
+    }
+
+    public Integer getRemoteSiteListeningHttpPort() {
+        return remoteInputHttpPort;
     }
 
     public Boolean isRemoteSiteCommsSecure() {

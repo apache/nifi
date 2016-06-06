@@ -51,7 +51,8 @@ public class NodeIdentifier {
     private final String apiAddress;
 
     /**
-     * the port to use use for sending requests to the node's external interface
+     * the port to use use for sending requests to the node's external interface,
+     * this can be HTTP API port or HTTPS API port depending on whether //TODO: .
      */
     private final int apiPort;
 
@@ -72,24 +73,31 @@ public class NodeIdentifier {
     private final String siteToSiteAddress;
 
     /**
-     * the port that external clients should use to communicate with this node via Site-to-Site
+     * the port that external clients should use to communicate with this node via Site-to-Site RAW Socket protocol
      */
     private final Integer siteToSitePort;
 
     /**
+     * the port that external clients should use to communicate with this node via Site-to-Site HTTP protocol,
+     * this can be HTTP API port or HTTPS API port depending on whether siteToSiteSecure or not.
+     */
+    private final Integer siteToSiteHttpApiPort;
+
+    /**
      * whether or not site-to-site communications with this node are secure
      */
-    private Boolean siteToSiteSecure;
+    private final Boolean siteToSiteSecure;
+
 
     private final String nodeDn;
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, siteToSiteAddress, siteToSitePort, siteToSiteSecure, null);
+        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort, socketAddress, socketPort, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null);
     }
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final boolean siteToSiteSecure, final String dn) {
+        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, final String dn) {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
@@ -113,6 +121,7 @@ public class NodeIdentifier {
         this.nodeDn = dn;
         this.siteToSiteAddress = siteToSiteAddress == null ? apiAddress : siteToSiteAddress;
         this.siteToSitePort = siteToSitePort;
+        this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
         this.siteToSiteSecure = siteToSiteSecure;
     }
 
@@ -128,6 +137,7 @@ public class NodeIdentifier {
         this.nodeDn = null;
         this.siteToSiteAddress = null;
         this.siteToSitePort = null;
+        this.siteToSiteHttpApiPort = null;
         this.siteToSiteSecure = false;
     }
 
@@ -167,6 +177,10 @@ public class NodeIdentifier {
 
     public Integer getSiteToSitePort() {
         return siteToSitePort;
+    }
+
+    public Integer getSiteToSiteHttpApiPort() {
+        return siteToSiteHttpApiPort;
     }
 
     public boolean isSiteToSiteSecure() {

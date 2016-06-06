@@ -454,7 +454,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     },
                     dataType: 'json'
                 }).done(function (response) {
-                    var remoteProcessGroup = response.remoteProcessGroup;
+                    var remoteProcessGroup = response.component;
 
                     // set the model locally
                     nf.RemoteProcessGroup.set(response);

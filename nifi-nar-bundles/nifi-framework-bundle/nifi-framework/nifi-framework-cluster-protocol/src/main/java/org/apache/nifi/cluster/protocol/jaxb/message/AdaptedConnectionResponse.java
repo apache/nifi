@@ -34,6 +34,7 @@ public class AdaptedConnectionResponse {
     private String rejectionReason;
     private int tryLaterSeconds;
     private Integer managerRemoteInputPort;
+    private Integer managerRemoteInputHttpPort;
     private Boolean managerRemoteCommsSecure;
     private String instanceId;
     private List<NodeConnectionStatus> nodeStatuses;
@@ -86,6 +87,14 @@ public class AdaptedConnectionResponse {
 
     public Integer getManagerRemoteInputPort() {
         return managerRemoteInputPort;
+    }
+
+    public void setManagerRemoteInputHttpPort(Integer managerRemoteInputHttpPort) {
+        this.managerRemoteInputHttpPort = managerRemoteInputHttpPort;
+    }
+
+    public Integer getManagerRemoteInputHttpPort() {
+        return managerRemoteInputHttpPort;
     }
 
     public void setManagerRemoteCommsSecure(Boolean secure) {

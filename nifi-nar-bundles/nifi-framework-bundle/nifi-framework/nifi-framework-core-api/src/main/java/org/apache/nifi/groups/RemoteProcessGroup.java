@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 
 import java.net.URI;
 import java.util.Date;
@@ -157,6 +158,26 @@ public interface RemoteProcessGroup extends Authorizable, Positionable {
      * events
      */
     EventReporter getEventReporter();
+
+    SiteToSiteTransportProtocol getTransportProtocol();
+
+    void setTransportProtocol(SiteToSiteTransportProtocol transportProtocol);
+
+    String getProxyHost();
+
+    void setProxyHost(String proxyHost);
+
+    Integer getProxyPort();
+
+    void setProxyPort(Integer proxyPort);
+
+    String getProxyUser();
+
+    void setProxyUser(String proxyUser);
+
+    String getProxyPassword();
+
+    void setProxyPassword(String proxyPassword);
 
     /**
      * Initiates a task in the remote process group to re-initialize, as a

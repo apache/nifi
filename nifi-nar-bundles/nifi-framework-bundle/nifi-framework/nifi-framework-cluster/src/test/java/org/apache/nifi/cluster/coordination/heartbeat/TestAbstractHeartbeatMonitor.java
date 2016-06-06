@@ -51,7 +51,7 @@ public class TestAbstractHeartbeatMonitor {
 
     @Before
     public void setup() throws Exception {
-        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, false);
+        nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, null, false);
     }
 
     @After

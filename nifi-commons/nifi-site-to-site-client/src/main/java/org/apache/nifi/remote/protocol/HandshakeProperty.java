@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.protocol.socket;
+package org.apache.nifi.remote.protocol;
 
 /**
  * Enumeration of Properties that can be used for the Site-to-Site Socket

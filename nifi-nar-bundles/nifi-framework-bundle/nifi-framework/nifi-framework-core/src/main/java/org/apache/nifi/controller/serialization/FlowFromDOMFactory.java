@@ -175,7 +175,7 @@ public class FlowFromDOMFactory {
 
         nodeList = DomUtils.getChildNodesByTagName(element, "remoteProcessGroup");
         for (int i = 0; i < nodeList.getLength(); i++) {
-            remoteProcessGroups.add(getRemoteProcessGroup((Element) nodeList.item(i)));
+            remoteProcessGroups.add(getRemoteProcessGroup((Element) nodeList.item(i), encryptor));
         }
 
         nodeList = DomUtils.getChildNodesByTagName(element, "connection");
@@ -246,7 +246,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static RemoteProcessGroupDTO getRemoteProcessGroup(final Element element) {
+    public static RemoteProcessGroupDTO getRemoteProcessGroup(final Element element, final StringEncryptor encryptor) {
         final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
         dto.setId(getString(element, "id"));
         dto.setName(getString(element, "name"));
@@ -255,6 +255,13 @@ public class FlowFromDOMFactory {
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setCommunicationsTimeout(getString(element, "timeout"));
         dto.setComments(getString(element, "comment"));
+        dto.setYieldDuration(getString(element, "yieldPeriod"));
+        dto.setTransportProtocol(getString(element, "transportProtocol"));
+        dto.setProxyHost(getString(element, "proxyHost"));
+        dto.setProxyPort(getOptionalInt(element, "proxyPort"));
+        dto.setProxyUser(getString(element, "proxyUser"));
+        String proxyPassword = decrypt(getString(element, "proxyPassword"), encryptor);
+        dto.setProxyPassword(proxyPassword);
 
         return dto;
     }
