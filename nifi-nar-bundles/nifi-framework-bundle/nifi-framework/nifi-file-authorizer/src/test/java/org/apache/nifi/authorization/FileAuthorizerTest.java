@@ -20,6 +20,7 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
@@ -31,6 +32,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -97,17 +101,14 @@ public class FileAuthorizerTest {
             "  </policies>" +
             "</authorizations>";
 
-    private static final String UPDATED_AUTHORIZATIONS =
-        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
-        + "<resources>"
-            + "<resource identifier=\"/flow\">"
-                + "<authorization identity=\"user-1\" action=\"RW\"/>"
-            + "</resource>"
-        + "</resources>";
+    // This is the root group id from the flow.xml.gz in src/test/resources
+    private static final String ROOT_GROUP_ID = "e530e14c-adcf-41c2-b5d6-d9a59ba8765c";
 
+    private NiFiProperties properties;
     private FileAuthorizer authorizer;
     private File primary;
     private File restore;
+    private File flow;
 
     private AuthorizerConfigurationContext configurationContext;
 
@@ -121,8 +122,12 @@ public class FileAuthorizerTest {
         restore = new File("target/restore/authorizations.xml");
         FileUtils.ensureDirectoryExistAndCanAccess(restore.getParentFile());
 
-        final NiFiProperties properties = mock(NiFiProperties.class);
+        flow = new File("src/test/resources/flow.xml.gz");
+        FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
+
+        properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(flow);
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
         when(configurationContext.getProperty(Mockito.eq("Authorizations File"))).thenReturn(new StandardPropertyValue(primary.getPath(), null));
@@ -139,11 +144,9 @@ public class FileAuthorizerTest {
     }
 
     @Test
-    public void testOnConfiguredWhenInitialAdminProvided() throws Exception {
-        final String adminIdentity = "admin-user";
-
-        when(configurationContext.getProperty(Mockito.eq("Initial Admin Identity")))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+    public void testOnConfiguredWhenLegacyUsersFileProvidedWithOverlappingRoles() throws Exception {
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null));
 
         writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
@@ -151,11 +154,159 @@ public class FileAuthorizerTest {
         final Set<User> users = authorizer.getUsers();
         assertEquals(1, users.size());
 
-        final User adminUser = users.iterator().next();
-        assertEquals(adminIdentity, adminUser.getIdentity());
+        // the user has monitor and DFM, but we should only end up with one policy per resource
+        // since DFM has RW to all the same resources that monitor has R
+        UsersAndAccessPolicies usersAndAccessPolicies = authorizer.getUsersAndAccessPolicies();
+        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.Flow.getValue()).size());
+        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.Controller.getValue()).size());
+        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.System.getValue()).size());
+        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
+    }
 
+    @Test
+    public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        // verify all users got created correctly
+        final Set<User> users = authorizer.getUsers();
+        assertEquals(6, users.size());
+
+        final User user1 = authorizer.getUserByIdentity("user1");
+        assertNotNull(user1);
+
+        final User user2 = authorizer.getUserByIdentity("user2");
+        assertNotNull(user2);
+
+        final User user3 = authorizer.getUserByIdentity("user3");
+        assertNotNull(user3);
+
+        final User user4 = authorizer.getUserByIdentity("user4");
+        assertNotNull(user4);
+
+        final User user5 = authorizer.getUserByIdentity("user5");
+        assertNotNull(user5);
+
+        final User user6 = authorizer.getUserByIdentity("user6");
+        assertNotNull(user6);
+
+        // verify one group got created
+        final Set<Group> groups = authorizer.getGroups();
+        assertEquals(1, groups.size());
+        assertEquals("group1", groups.iterator().next().getName());
+
+        // verify more than one policy got created
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(4, policies.size());
+        assertTrue(policies.size() > 0);
+
+        // verify user1's policies
+        final Map<String,Set<RequestAction>> user1Policies = getResourceActions(policies, user1);
+        assertEquals(4, user1Policies.size());
+
+        assertTrue(user1Policies.containsKey(ResourceType.Flow.getValue()));
+        assertEquals(1, user1Policies.get(ResourceType.Flow.getValue()).size());
+        assertTrue(user1Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
+
+        assertTrue(user1Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
+        assertEquals(1, user1Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
+        assertTrue(user1Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.READ));
+
+        // verify user2's policies
+        final Map<String,Set<RequestAction>> user2Policies = getResourceActions(policies, user2);
+        assertEquals(1, user2Policies.size());
+
+        assertTrue(user2Policies.containsKey(ResourceType.Provenance.getValue()));
+        assertEquals(1, user2Policies.get(ResourceType.Provenance.getValue()).size());
+        assertTrue(user2Policies.get(ResourceType.Provenance.getValue()).contains(RequestAction.READ));
+
+        // verify user3's policies
+        final Map<String,Set<RequestAction>> user3Policies = getResourceActions(policies, user3);
+        assertEquals(4, user3Policies.size());
+
+        assertTrue(user3Policies.containsKey(ResourceType.Flow.getValue()));
+        assertEquals(1, user3Policies.get(ResourceType.Flow.getValue()).size());
+        assertTrue(user3Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
+
+        assertTrue(user3Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
+        assertEquals(2, user3Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
+
+        // verify user4's policies
+        final Map<String,Set<RequestAction>> user4Policies = getResourceActions(policies, user4);
+        assertEquals(6, user4Policies.size());
+
+        assertTrue(user4Policies.containsKey(ResourceType.Flow.getValue()));
+        assertEquals(1, user4Policies.get(ResourceType.Flow.getValue()).size());
+        assertTrue(user4Policies.get(ResourceType.Flow.getValue()).contains(RequestAction.READ));
+
+        assertTrue(user4Policies.containsKey(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID));
+        assertEquals(1, user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
+        assertTrue(user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.READ));
+
+        assertTrue(user4Policies.containsKey(ResourceType.User.getValue()));
+        assertEquals(2, user4Policies.get(ResourceType.User.getValue()).size());
+
+        assertTrue(user4Policies.containsKey(ResourceType.Group.getValue()));
+        assertEquals(2, user4Policies.get(ResourceType.Group.getValue()).size());
+
+        assertTrue(user4Policies.containsKey(ResourceType.Policy.getValue()));
+        assertEquals(2, user4Policies.get(ResourceType.Policy.getValue()).size());
+
+        // verify user5's policies
+        final Map<String,Set<RequestAction>> user5Policies = getResourceActions(policies, user5);
+        assertEquals(1, user5Policies.size());
+
+        assertTrue(user5Policies.containsKey(ResourceType.Proxy.getValue()));
+        assertEquals(2, user5Policies.get(ResourceType.Proxy.getValue()).size());
+
+        // verify user6's policies
+        final Map<String,Set<RequestAction>> user6Policies = getResourceActions(policies, user6);
+        assertEquals(2, user6Policies.size());
+
+        assertTrue(user6Policies.containsKey(ResourceType.SiteToSite.getValue()));
+        assertEquals(2, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
+    }
+
+    private Map<String,Set<RequestAction>> getResourceActions(final Set<AccessPolicy> policies, final User user) {
+        Map<String,Set<RequestAction>> resourceActionMap = new HashMap<>();
+
+        for (AccessPolicy accessPolicy : policies) {
+            if (accessPolicy.getUsers().contains(user.getIdentifier())) {
+                Set<RequestAction> actions = resourceActionMap.get(accessPolicy.getResource());
+                if (actions == null) {
+                    actions = new HashSet<>();
+                    resourceActionMap.put(accessPolicy.getResource(), actions);
+                }
+                actions.addAll(accessPolicy.getActions());
+            }
+        }
+
+        return resourceActionMap;
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
     }
 
     @Test
@@ -169,6 +320,113 @@ public class FileAuthorizerTest {
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
         assertEquals(0, policies.size());
     }
+
+    @Test
+    public void testOnConfiguredWhenInitialAdminProvided() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        final Set<User> users = authorizer.getUsers();
+        assertEquals(1, users.size());
+
+        final User adminUser = users.iterator().next();
+        assertEquals(adminIdentity, adminUser.getIdentity());
+
+        final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
+        assertEquals(5, policies.size());
+
+        final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
+
+        boolean foundRootGroupPolicy = false;
+        for (AccessPolicy policy : policies) {
+            if (policy.getResource().equals(rootGroupResource)) {
+                foundRootGroupPolicy = true;
+                break;
+            }
+        }
+
+        assertTrue(foundRootGroupPolicy);
+    }
+
+    @Test
+    public void testOnConfiguredWhenInitialAdminProvidedAndNoFlowExists() throws Exception {
+        // setup NiFi properties to return a file that does not exist
+        properties = mock(NiFiProperties.class);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.xml.gz"));
+        authorizer.setNiFiProperties(properties);
+
+        final String adminIdentity = "admin-user";
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        final Set<User> users = authorizer.getUsers();
+        assertEquals(1, users.size());
+
+        final User adminUser = users.iterator().next();
+        assertEquals(adminIdentity, adminUser.getIdentity());
+
+        final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
+        assertEquals(4, policies.size());
+
+        final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
+
+        boolean foundRootGroupPolicy = false;
+        for (AccessPolicy policy : policies) {
+            if (policy.getResource().equals(rootGroupResource)) {
+                foundRootGroupPolicy = true;
+                break;
+            }
+        }
+
+        assertFalse(foundRootGroupPolicy);
+    }
+
+    @Test
+    public void testOnConfiguredWhenInitialAdminProvidedAndFlowIsNull() throws Exception {
+        // setup NiFi properties to return a file that does not exist
+        properties = mock(NiFiProperties.class);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(null);
+        authorizer.setNiFiProperties(properties);
+
+        final String adminIdentity = "admin-user";
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        final Set<User> users = authorizer.getUsers();
+        assertEquals(1, users.size());
+
+        final User adminUser = users.iterator().next();
+        assertEquals(adminIdentity, adminUser.getIdentity());
+
+        final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
+        assertEquals(4, policies.size());
+
+        final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
+
+        boolean foundRootGroupPolicy = false;
+        for (AccessPolicy policy : policies) {
+            if (policy.getResource().equals(rootGroupResource)) {
+                foundRootGroupPolicy = true;
+                break;
+            }
+        }
+
+        assertFalse(foundRootGroupPolicy);
+    }
+
 
     @Test
     public void testOnConfiguredWhenRestoreDoesNotExist() throws Exception {

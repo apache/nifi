@@ -13,17 +13,9 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<!--
-    This file lists the authority providers to use when running securely. In order
-    to use a specific provider it must be configured here and it's identifier
-    must be specified in the nifi.properties file.
--->
-<authorizers>
-    <authorizer>
-        <identifier>file-provider</identifier>
-        <class>org.apache.nifi.authorization.FileAuthorizer</class>
-        <property name="Authorizations File">./conf/authorizations.xml</property>
-        <property name="Initial Admin Identity"></property>
-        <property name="Legacy Authorized Users File"></property>
-    </authorizer>
-</authorizers>
+<users>
+    <user dn="user1" group="group1">
+        <role name="ROLE_MONITOR"/>
+        <role name="ROLE_DFM" />
+    </user>
+</users>
