@@ -151,31 +151,16 @@ public class TestProcessorLifecycle {
         TestProcessor testProcessor = (TestProcessor) testProcNode.getProcessor();
 
         // sets the scenario for the processor to run
-        int randomDelayLimit = 3000;
-        this.randomOnTriggerDelay(testProcessor, randomDelayLimit);
+        this.noop(testProcessor);
         final ProcessScheduler ps = fc.getProcessScheduler();
-        ExecutorService executor = Executors.newCachedThreadPool();
 
-        int startCallsCount = 100;
-        final CountDownLatch countDownCounter = new CountDownLatch(startCallsCount);
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.STOPPED);
-        for (int i = 0; i < startCallsCount; i++) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    ps.startProcessor(testProcNode);
-                    countDownCounter.countDown();
-                }
-            });
-        }
+        ps.startProcessor(testProcNode);
+        ps.startProcessor(testProcNode);
+        ps.startProcessor(testProcNode);
 
-        assertTrue(countDownCounter.await(2000, TimeUnit.MILLISECONDS));
-        assertTrue(testProcNode.getScheduledState() == ScheduledState.RUNNING);
-        // regardless of how many threads attempted to start Processor, it must
-        // only be started once, hence have only single entry for @OnScheduled
+        Thread.sleep(500);
         assertEquals(1, testProcessor.operationNames.size());
         assertEquals("@OnScheduled", testProcessor.operationNames.get(0));
-        executor.shutdownNow();
     }
 
     /**
@@ -551,7 +536,6 @@ public class TestProcessorLifecycle {
      */
     @Test
     public void validateProcessorDeletion() throws Exception {
-        FlowController fc = this.buildFlowControllerForTest();
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
         this.setControllerRootGroup(fc, testGroup);
 
@@ -609,7 +593,6 @@ public class TestProcessorLifecycle {
         testGroup.removeProcessor(testProcNodeA);
         testGroup.removeProcessor(testProcNodeB);
         testGroup.shutdown();
-        fc.shutdown(true);
     }
 
     /**
