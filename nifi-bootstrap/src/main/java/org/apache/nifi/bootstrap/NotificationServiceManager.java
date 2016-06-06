@@ -247,7 +247,7 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(configuredValue, null);
+                return new StandardPropertyValue(configuredValue, null, null);
             }
 
             @Override
@@ -364,7 +364,7 @@ public class NotificationServiceManager {
                         value = descriptor.getDefaultValue();
                     }
 
-                    return new StandardPropertyValue(value, null);
+                    return new StandardPropertyValue(value, null, null);
                 }
 
                 @Override

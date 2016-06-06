@@ -36,6 +36,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -47,19 +48,23 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private final ProcessScheduler processScheduler;
     private final ControllerServiceLookup serviceLookup;
 
+
     private final AtomicReference<SchedulingStrategy> schedulingStrategy = new AtomicReference<>(SchedulingStrategy.TIMER_DRIVEN);
     private final AtomicReference<String> schedulingPeriod = new AtomicReference<>("5 mins");
 
     private volatile String comment;
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
 
+    protected final VariableRegistry variableRegistry;
+
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
-            final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-            final ValidationContextFactory validationContextFactory) {
+                                     final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
+                                     final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry) {
         super(reportingTask, id, validationContextFactory, controllerServiceProvider);
         this.reportingTask = reportingTask;
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -104,7 +109,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), variableRegistry);
     }
 
     @Override
@@ -146,7 +151,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         // We need to invoke any method annotation with the OnConfigured annotation in order to
         // maintain backward compatibility. This will be removed when we remove the old, deprecated annotations.
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), variableRegistry);
             ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, configContext);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + reportingTask, e);

@@ -17,13 +17,17 @@
 package org.apache.nifi.reporting.ambari;
 
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
+import org.apache.nifi.util.MockControllerServiceLookup;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +47,7 @@ import java.util.UUID;
 public class TestAmbariReportingTask {
 
     private ProcessGroupStatus status;
+    private VariableRegistry variableRegistry;
 
     @Before
     public void setup() {
@@ -73,6 +78,7 @@ public class TestAmbariReportingTask {
         Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
         groupStatuses.add(groupStatus);
         status.setProcessGroupStatus(groupStatuses);
+        variableRegistry = VariableRegistryUtils.createVariableRegistry();
     }
 
     @Test
@@ -101,15 +107,17 @@ public class TestAmbariReportingTask {
 
         // mock the ConfigurationContext for setup(...)
         final ConfigurationContext configurationContext = Mockito.mock(ConfigurationContext.class);
+        final ControllerServiceLookup serviceLookup = new MockControllerServiceLookup() {};
 
         // mock the ReportingContext for onTrigger(...)
         final ReportingContext context = Mockito.mock(ReportingContext.class);
         Mockito.when(context.getProperty(AmbariReportingTask.METRICS_COLLECTOR_URL))
-                .thenReturn(new MockPropertyValue(metricsUrl, null));
+                .thenReturn(new MockPropertyValue(metricsUrl, serviceLookup, variableRegistry));
         Mockito.when(context.getProperty(AmbariReportingTask.APPLICATION_ID))
-                .thenReturn(new MockPropertyValue(applicationId, null));
+                .thenReturn(new MockPropertyValue(applicationId, serviceLookup, variableRegistry));
         Mockito.when(context.getProperty(AmbariReportingTask.HOSTNAME))
-                .thenReturn(new MockPropertyValue(hostName, null));
+                .thenReturn(new MockPropertyValue(hostName, serviceLookup, variableRegistry));
+
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
@@ -121,7 +129,6 @@ public class TestAmbariReportingTask {
         task.setup(configurationContext);
         task.onTrigger(context);
     }
-
     // override the creation of the client to provide a mock
     private class TestableAmbariReportingTask extends AmbariReportingTask {
 

@@ -39,6 +39,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
@@ -126,7 +127,7 @@ public class TestSiteToSiteProvenanceReportingTask {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
                 final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor), null);
+                return new MockPropertyValue(properties.get(descriptor), null, VariableRegistryUtils.createVariableRegistry());
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
@@ -181,4 +182,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         mockFlowFile.putAttributes(attributes);
         return mockFlowFile;
     }
+
+
 }

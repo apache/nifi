@@ -53,7 +53,7 @@ public class StandardSearchContext implements SearchContext {
     @Override
     public PropertyValue getProperty(PropertyDescriptor property) {
         final String configuredValue = processorNode.getProperty(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, null);
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup,null);
     }
 
     @Override

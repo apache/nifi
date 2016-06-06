@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
@@ -33,10 +34,12 @@ public class ClusteredReportingTaskNode extends AbstractReportingTaskNode {
     private final ControllerServiceProvider serviceProvider;
     private final StateManager stateManager;
 
+
     public ClusteredReportingTaskNode(final ReportingTask reportingTask, final String id, final ProcessScheduler scheduler,
-            final EventAccess eventAccess, final BulletinRepository bulletinRepository, final ControllerServiceProvider serviceProvider,
-        final ValidationContextFactory validationContextFactory, final StateManager stateManager) {
-        super(reportingTask, id, serviceProvider, scheduler, validationContextFactory);
+                                      final EventAccess eventAccess, final BulletinRepository bulletinRepository, final ControllerServiceProvider serviceProvider,
+                                      final ValidationContextFactory validationContextFactory, final StateManager stateManager,
+                                      final VariableRegistry variableRegistry) {
+        super(reportingTask, id, serviceProvider, scheduler, validationContextFactory, variableRegistry);
 
         this.eventAccess = eventAccess;
         this.bulletinRepository = bulletinRepository;
@@ -46,7 +49,7 @@ public class ClusteredReportingTaskNode extends AbstractReportingTaskNode {
 
     @Override
     public ReportingContext getReportingContext() {
-        return new ClusteredReportingContext(eventAccess, bulletinRepository, getProperties(), serviceProvider, stateManager);
+        return new ClusteredReportingContext(eventAccess, bulletinRepository, getProperties(), serviceProvider, stateManager, variableRegistry);
     }
 
 }

@@ -16,25 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import java.util.Map;
 
 import org.apache.nifi.expression.AttributeValueDecorator;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
 
 public interface PreparedQuery {
 
-    String evaluateExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
+    String evaluateExpressions(VariableRegistry registry, AttributeValueDecorator decorator) throws ProcessException;
 
-    String evaluateExpressions() throws ProcessException;
-
-    String evaluateExpressions(AttributeValueDecorator decorator) throws ProcessException;
-
-    String evaluateExpressions(FlowFile flowFile) throws ProcessException;
-
-    String evaluateExpressions(Map<String, String> attributes) throws ProcessException;
-
-    String evaluateExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
-
-    String evaluateExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
 }

@@ -34,6 +34,7 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
@@ -49,14 +50,16 @@ public class ClusteredReportingContext implements ReportingContext {
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final StateManager stateManager;
+    private final VariableRegistry variableRegistry;
 
     public ClusteredReportingContext(final EventAccess eventAccess, final BulletinRepository bulletinRepository, final Map<PropertyDescriptor, String> properties,
-        final ControllerServiceProvider serviceProvider, final StateManager stateManager) {
+                                     final ControllerServiceProvider serviceProvider, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.eventAccess = eventAccess;
         this.bulletinRepository = bulletinRepository;
         this.properties = Collections.unmodifiableMap(properties);
         this.serviceProvider = serviceProvider;
         this.stateManager = stateManager;
+        this.variableRegistry = variableRegistry;
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -104,7 +107,7 @@ public class ClusteredReportingContext implements ReportingContext {
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, serviceProvider, preparedQueries.get(property));
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, serviceProvider, preparedQueries.get(property), variableRegistry);
     }
 
     @Override
