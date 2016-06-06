@@ -47,6 +47,7 @@ import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -137,10 +138,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             .url(remoteGroup.getTargetUri().toString())
             .portIdentifier(getIdentifier())
             .sslContext(sslContext)
+            .useCompression(isUseCompression())
             .eventReporter(remoteGroup.getEventReporter())
             .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
             .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
             .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+            .transportProtocol(remoteGroup.getTransportProtocol())
+            .httpProxy(new HttpProxy(remoteGroup.getProxyHost(), remoteGroup.getProxyPort(), remoteGroup.getProxyUser(), remoteGroup.getProxyPassword()))
             .build();
         clientRef.set(client);
     }

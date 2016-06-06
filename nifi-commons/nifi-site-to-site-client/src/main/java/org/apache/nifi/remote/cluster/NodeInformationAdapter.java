@@ -24,7 +24,8 @@ public class NodeInformationAdapter extends XmlAdapter<AdaptedNodeInformation, N
 
     @Override
     public NodeInformation unmarshal(final AdaptedNodeInformation adapted) throws Exception {
-        return new NodeInformation(adapted.getHostname(), adapted.getSiteToSitePort(), adapted.getApiPort(), adapted.isSiteToSiteSecure(), adapted.getTotalFlowFiles());
+        return new NodeInformation(adapted.getHostname(), adapted.getSiteToSitePort(), adapted.getSiteToSiteHttpApiPort(),
+                adapted.getApiPort(), adapted.isSiteToSiteSecure(), adapted.getTotalFlowFiles());
     }
 
     @Override
@@ -32,6 +33,7 @@ public class NodeInformationAdapter extends XmlAdapter<AdaptedNodeInformation, N
         final AdaptedNodeInformation adapted = new AdaptedNodeInformation();
         adapted.setHostname(nodeInformation.getSiteToSiteHostname());
         adapted.setSiteToSitePort(nodeInformation.getSiteToSitePort());
+        adapted.setSiteToSiteHttpApiPort(nodeInformation.getSiteToSiteHttpApiPort());
         adapted.setApiPort(nodeInformation.getAPIPort());
         adapted.setSiteToSiteSecure(nodeInformation.isSiteToSiteSecure());
         adapted.setTotalFlowFiles(nodeInformation.getTotalFlowFiles());

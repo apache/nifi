@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.http.HttpClient;
+import org.apache.nifi.remote.client.socket.SocketClient;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.PortNotRunningException;
+import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.UnknownPortException;
+import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -25,20 +41,6 @@ import java.io.Serializable;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.socket.SocketClient;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.ProtocolException;
-import org.apache.nifi.remote.exception.UnknownPortException;
-import org.apache.nifi.remote.protocol.DataPacket;
 
 /**
  * <p>
@@ -163,6 +165,8 @@ public interface SiteToSiteClient extends Closeable {
         private int batchCount;
         private long batchSize;
         private long batchNanos;
+        private SiteToSiteTransportProtocol transportProtocol = SiteToSiteTransportProtocol.RAW;
+        private HttpProxy httpProxy;
 
         /**
          * Populates the builder with values from the provided config
@@ -185,11 +189,13 @@ public interface SiteToSiteClient extends Closeable {
             this.eventReporter = config.getEventReporter();
             this.peerPersistenceFile = config.getPeerPersistenceFile();
             this.useCompression = config.isUseCompression();
+            this.transportProtocol = config.getTransportProtocol();
             this.portName = config.getPortName();
             this.portIdentifier = config.getPortIdentifier();
             this.batchCount = config.getPreferredBatchCount();
             this.batchSize = config.getPreferredBatchSize();
             this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+            this.httpProxy = config.getHttpProxy();
 
             return this;
         }
@@ -441,6 +447,16 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
+         * Specifies the protocol to use for site to site data transport.
+         * @param transportProtocol transport protocol
+         * @return the builder
+         */
+        public Builder transportProtocol(final SiteToSiteTransportProtocol transportProtocol) {
+            this.transportProtocol = transportProtocol;
+            return this;
+        }
+
+        /**
          * Specifies the name of the port to communicate with. Either the port
          * name or the port identifier must be specified.
          *
@@ -521,7 +537,8 @@ public interface SiteToSiteClient extends Closeable {
          *         data with remote instances of NiFi
          *
          * @throws IllegalStateException if either the url is not set or neither
-         *             the port name nor port identifier is set.
+         *             the port name nor port identifier is set,
+         *             or if the transport protocol is not supported.
          */
         public SiteToSiteClient build() {
             if (url == null) {
@@ -532,7 +549,14 @@ public interface SiteToSiteClient extends Closeable {
                 throw new IllegalStateException("Must specify either Port Name or Port Identifier to build Site-to-Site client");
             }
 
-            return new SocketClient(buildConfig());
+            switch (transportProtocol){
+                case RAW:
+                    return new SocketClient(buildConfig());
+                case HTTP:
+                    return new HttpClient(buildConfig());
+                default:
+                    throw new IllegalStateException("Transport protocol '" + transportProtocol + "' is not supported.");
+            }
         }
 
         /**
@@ -600,6 +624,13 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         /**
+         * @return the transport protocol to use, defaults to RAW
+         */
+        public SiteToSiteTransportProtocol getTransportProtocol(){
+            return transportProtocol;
+        }
+
+        /**
          * @return the name of the port that the client is to communicate with
          */
         public String getPortName() {
@@ -613,6 +644,22 @@ public interface SiteToSiteClient extends Closeable {
         public String getPortIdentifier() {
             return portIdentifier;
         }
+
+
+        /**
+         * Specify a HTTP proxy information to use with HTTP protocol of Site-to-Site communication.
+         * @param httpProxy HTTP proxy information
+         * @return the builder
+         */
+        public Builder httpProxy(final HttpProxy httpProxy) {
+            this.httpProxy = httpProxy;
+            return this;
+        }
+
+        public HttpProxy getHttpProxy() {
+            return httpProxy;
+        }
+
     }
 
 
@@ -634,11 +681,13 @@ public interface SiteToSiteClient extends Closeable {
         private final EventReporter eventReporter;
         private final File peerPersistenceFile;
         private final boolean useCompression;
+        private final SiteToSiteTransportProtocol transportProtocol;
         private final String portName;
         private final String portIdentifier;
         private final int batchCount;
         private final long batchSize;
         private final long batchNanos;
+        private final HttpProxy httpProxy;
 
         // some serialization frameworks require a default constructor
         private StandardSiteToSiteClientConfig() {
@@ -661,6 +710,8 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = 0;
             this.batchSize = 0;
             this.batchNanos = 0;
+            this.transportProtocol = null;
+            this.httpProxy = null;
         }
 
         private StandardSiteToSiteClientConfig(final SiteToSiteClient.Builder builder) {
@@ -683,6 +734,8 @@ public interface SiteToSiteClient extends Closeable {
             this.batchCount = builder.batchCount;
             this.batchSize = builder.batchSize;
             this.batchNanos = builder.batchNanos;
+            this.transportProtocol = builder.getTransportProtocol();
+            this.httpProxy = builder.getHttpProxy();
         }
 
         @Override
@@ -829,6 +882,16 @@ public interface SiteToSiteClient extends Closeable {
         @Override
         public KeystoreType getTruststoreType() {
             return truststoreType;
+        }
+
+        @Override
+        public SiteToSiteTransportProtocol getTransportProtocol() {
+            return transportProtocol;
+        }
+
+        @Override
+        public HttpProxy getHttpProxy() {
+            return httpProxy;
         }
     }
 }

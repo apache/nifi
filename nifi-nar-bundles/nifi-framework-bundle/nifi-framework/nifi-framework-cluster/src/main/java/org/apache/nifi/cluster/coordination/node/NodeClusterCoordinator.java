@@ -620,8 +620,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         } else {
             // there is a node with that ID and it's a different node
             resolvedNodeId = new NodeIdentifier(UUID.randomUUID().toString(), proposedIdentifier.getApiAddress(), proposedIdentifier.getApiPort(),
-                proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(),
-                proposedIdentifier.getSiteToSiteAddress(), proposedIdentifier.getSiteToSitePort(), proposedIdentifier.isSiteToSiteSecure());
+                proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(), proposedIdentifier.getSiteToSiteAddress(),
+                proposedIdentifier.getSiteToSitePort(), proposedIdentifier.getSiteToSiteHttpApiPort(), proposedIdentifier.isSiteToSiteSecure());
             logger.debug("A node already exists with ID {}. Proposed Node Identifier was {}; existing Node Identifier is {}; Resolved Node Identifier is {}",
                 proposedIdentifier.getId(), proposedIdentifier, getNodeIdentifier(proposedIdentifier.getId()), resolvedNodeId);
         }
@@ -682,7 +682,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         // TODO: Remove the 'null' values here from the ConnectionResponse all together. These
         // will no longer be needed for site-to-site once the NCM is gone.
-        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, null, null, instanceId,
+        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, null, null, null, instanceId,
             new ArrayList<>(nodeStatuses.values()),
             revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
     }
@@ -690,7 +690,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
             nodeId.getSocketAddress(), nodeId.getSocketPort(),
-            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(), nodeId.isSiteToSiteSecure(), dn);
+            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
+            nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), dn);
     }
 
     @Override

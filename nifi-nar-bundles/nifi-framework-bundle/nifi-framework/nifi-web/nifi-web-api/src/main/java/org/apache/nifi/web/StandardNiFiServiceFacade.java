@@ -2338,9 +2338,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // determine the site to site configuration
         if (isClustered()) {
             controllerDTO.setRemoteSiteListeningPort(controllerFacade.getClusterManagerRemoteSiteListeningPort());
+            controllerDTO.setRemoteSiteHttpListeningPort(controllerFacade.getClusterManagerRemoteSiteListeningHttpPort());
             controllerDTO.setSiteToSiteSecure(controllerFacade.isClusterManagerRemoteSiteCommsSecure());
         } else {
             controllerDTO.setRemoteSiteListeningPort(controllerFacade.getRemoteSiteListeningPort());
+            controllerDTO.setRemoteSiteHttpListeningPort(controllerFacade.getRemoteSiteListeningHttpPort());
             controllerDTO.setSiteToSiteSecure(controllerFacade.isRemoteSiteCommsSecure());
         }
 

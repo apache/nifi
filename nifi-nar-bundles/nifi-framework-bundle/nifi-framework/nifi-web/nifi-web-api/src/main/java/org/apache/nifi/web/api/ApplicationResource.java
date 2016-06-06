@@ -103,7 +103,7 @@ public abstract class ApplicationResource {
     @Context
     private HttpContext httpContext;
 
-    private NiFiProperties properties;
+    protected NiFiProperties properties;
     private RequestReplicator requestReplicator;
     private ClusterCoordinator clusterCoordinator;
 

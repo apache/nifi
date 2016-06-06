@@ -418,6 +418,7 @@ categorizing them by their functions.
 - *PostHTTP*: Performs an HTTP POST request, sending the contents of the FlowFile as the body of the message. This is often used in conjunction
   with ListenHTTP in order to transfer data between two different instances of NiFi in cases where Site-to-Site cannot be used (for instance,
 	when the nodes cannot access each other directly and are able to communicate through an HTTP proxy).
+	*Note*: HTTP is available as a link:user-guide.html#site-to-site[Site-to-Site] transport protocol in addition to the existing RAW socket transport. It also supports HTTP Proxy. Using HTTP Site-to-Site is recommended since it's more scalable, and can provide bi-directional data transfer using input/output ports with better user authentication and authorization.
 - *HandleHttpRequest* / *HandleHttpResponse*: The HandleHttpRequest Processor is a Source Processor that starts an embedded HTTP(S) server
   similarly to ListenHTTP. However, it does not send a response to the client. Instead, the FlowFile is sent out with the body of the HTTP request
 	as its contents and attributes for all of the typical Servlet parameters, headers, etc. as Attributes. The HandleHttpResponse then is able to

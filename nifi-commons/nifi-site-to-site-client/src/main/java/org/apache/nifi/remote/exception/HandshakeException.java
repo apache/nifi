@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.remote.exception;
 
+import org.apache.nifi.remote.protocol.ResponseCode;
+
 import java.io.IOException;
 
 /**
@@ -28,11 +30,24 @@ public class HandshakeException extends IOException {
 
     private static final long serialVersionUID = 178192341908726L;
 
+    private final ResponseCode responseCode;
+
     public HandshakeException(final String message) {
         super(message);
+        this.responseCode = null;
     }
 
     public HandshakeException(final Throwable cause) {
         super(cause);
+        this.responseCode = null;
+    }
+
+    public HandshakeException(final ResponseCode responseCode, final String message) {
+        super(message);
+        this.responseCode = responseCode;
+    }
+
+    public ResponseCode getResponseCode() {
+        return responseCode;
     }
 }

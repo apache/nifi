@@ -50,7 +50,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -236,7 +235,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return;
         }
 
-        session.commit();
+        // TODO: Comfirm this. Session.commit here is not required since it has been committed inside receiveFlowFiles/transferFlowFiles.
+        // session.commit();
         responseQueue.add(new ProcessingResult(transferCount));
     }
 
@@ -451,7 +451,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     }
 
     @Override
-    public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol, final Map<String, String> requestHeaders)
+    public int receiveFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
         if (getConnectableType() != ConnectableType.INPUT_PORT) {
             throw new IllegalStateException("Cannot receive FlowFiles because this port is not an Input Port");
@@ -505,7 +505,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     }
 
     @Override
-    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol, final Map<String, String> requestHeaders)
+    public int transferFlowFiles(final Peer peer, final ServerProtocol serverProtocol)
             throws NotAuthorizedException, BadRequestException, RequestExpiredException {
         if (getConnectableType() != ConnectableType.OUTPUT_PORT) {
             throw new IllegalStateException("Cannot send FlowFiles because this port is not an Output Port");

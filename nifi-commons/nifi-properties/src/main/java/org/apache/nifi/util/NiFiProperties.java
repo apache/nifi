@@ -60,9 +60,11 @@ public class NiFiProperties extends Properties {
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
     public static final String SENSITIVE_PROPS_PROVIDER = "nifi.sensitive.props.provider";
     public static final String H2_URL_APPEND = "nifi.h2.url.append";
-    public static final String REMOTE_INPUT_HOST = "nifi.remote.input.socket.host";
+    public static final String REMOTE_INPUT_HOST = "nifi.remote.input.host";
     public static final String REMOTE_INPUT_PORT = "nifi.remote.input.socket.port";
     public static final String SITE_TO_SITE_SECURE = "nifi.remote.input.secure";
+    public static final String SITE_TO_SITE_HTTP_ENABLED = "nifi.remote.input.http.enabled";
+    public static final String SITE_TO_SITE_HTTP_TRANSACTION_TTL = "nifi.remote.input.http.transaction.ttl";
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
@@ -210,6 +212,7 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_ZOOKEEPER_CONNECT_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_SESSION_TIMEOUT = "3 secs";
     public static final String DEFAULT_ZOOKEEPER_ROOT_NODE = "/nifi";
+    public static final String DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL = "30 secs";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -387,7 +390,7 @@ public class NiFiProperties extends Properties {
     /**
      * The socket port to listen on for a Remote Input Port.
      *
-     * @return the remote input port
+     * @return the remote input port for RAW socket communication
      */
     public Integer getRemoteInputPort() {
         return getPropertyAsPort(REMOTE_INPUT_PORT, DEFAULT_REMOTE_INPUT_PORT);
@@ -405,6 +408,38 @@ public class NiFiProperties extends Properties {
             return true;
         }
 
+    }
+
+    /**
+     * @return True if property value is 'true'; False otherwise.
+     */
+    public Boolean isSiteToSiteHttpEnabled() {
+        final String remoteInputHttpEnabled = getProperty(SITE_TO_SITE_HTTP_ENABLED, "false");
+
+        if ("true".equalsIgnoreCase(remoteInputHttpEnabled)) {
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
+     * The HTTP or HTTPS Web API port for a Remote Input Port.
+     * @return the remote input port for HTTP(S) communication, or null if HTTP(S) Site-to-Site is not enabled
+     */
+    public Integer getRemoteInputHttpPort() {
+        if (!isSiteToSiteHttpEnabled()) {
+            return null;
+        }
+
+        String propertyKey = isSiteToSiteSecure() ? NiFiProperties.WEB_HTTPS_PORT : NiFiProperties.WEB_HTTP_PORT;
+        Integer port = getIntegerProperty(propertyKey, 0);
+        if (port == 0) {
+            throw new RuntimeException("Remote input HTTP" + (isSiteToSiteSecure() ? "S" : "")
+                    + " is enabled but " + propertyKey + " is not specified.");
+        }
+        return port;
     }
 
     /**
