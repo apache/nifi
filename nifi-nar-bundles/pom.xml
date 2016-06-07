@@ -66,6 +66,7 @@
         <module>nifi-evtx-bundle</module>
         <module>nifi-slack-bundle</module>
         <module>nifi-snmp-bundle</module>
+        <module>nifi-windows-event-log-bundle</module>
     </modules>
 
     <dependencyManagement>
