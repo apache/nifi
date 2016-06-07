@@ -253,6 +253,7 @@ public class FlowFromDOMFactory {
         dto.setTransmitting(getBoolean(element, "transmitting"));
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setCommunicationsTimeout(getString(element, "timeout"));
+        dto.setYieldDuration(getString(element, "yieldPeriod"));
         dto.setComments(getString(element, "comment"));
 
         return dto;
