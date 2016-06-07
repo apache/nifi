@@ -241,7 +241,7 @@ public class TestQuery {
     }
 
     @Test
-    public void testJsonPath() {
+    public void testJsonPath() throws IOException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("json", getResourceAsString("/json/address-book.json"));
         verifyEquals("${json:jsonPath('$.firstName')}", attributes, "John");
@@ -1315,24 +1315,22 @@ public class TestQuery {
         assertEquals(expectedResult, result.getValue());
     }
 
-    private String getResourceAsString(String resourceName) {
-        Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)));
-        int n = 0;
-        char[] buf = new char[1024];
-        StringBuilder sb = new StringBuilder();
-        while (n != -1) {
-            try {
-                n = reader.read(buf, 0, buf.length);
-            } catch (IOException e) {
-                throw new RuntimeException("failed to read resource", e);
+    private String getResourceAsString(String resourceName) throws IOException {
+        try (final Reader reader = new InputStreamReader(new BufferedInputStream(getClass().getResourceAsStream(resourceName)))) {
+            int n = 0;
+            char[] buf = new char[1024];
+            StringBuilder sb = new StringBuilder();
+            while (n != -1) {
+                try {
+                    n = reader.read(buf, 0, buf.length);
+                } catch (IOException e) {
+                    throw new RuntimeException("failed to read resource", e);
+                }
+                if (n > 0) {
+                    sb.append(buf, 0, n);
+                }
             }
-            if (n > 0) {
-                sb.append(buf, 0, n);
-            }
+            return sb.toString();
         }
-        return sb.toString();
-
-
     }
-
 }
