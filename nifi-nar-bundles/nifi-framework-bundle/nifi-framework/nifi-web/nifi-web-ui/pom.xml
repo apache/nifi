@@ -38,6 +38,10 @@
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
+        <!--
+            This property can be set on the command line and allows any bower cli options to be set.
+        -->
+        <bower.options></bower.options>
     </properties>
     <build>
         <!--
@@ -65,10 +69,10 @@
             <!--
                 Precompile jsp's and add entries into the web.xml - the web.xml
                 is automatically places in ${project.build.directory}. Do not
-                precompile canvas.jsp, summary.jsp, history.jsp, etc. 
-                These jsp's need to have the artifacts version filtered in to 
-                eliminate broswer caching issues and set up the proper includes. 
-                Since the webResource filter occurs after the precompilation we 
+                precompile canvas.jsp, summary.jsp, history.jsp, etc.
+                These jsp's need to have the artifacts version filtered in to
+                eliminate broswer caching issues and set up the proper includes.
+                Since the webResource filter occurs after the precompilation we
                 must exclude them here.
             -->
             <plugin>
@@ -152,7 +156,7 @@
             <!--
                 Tell the war plugin where to find the filtered web.xml and
                 filter the head portion of the pages. The correct includes and
-                project version is filtered into these jsp's as a browser cache 
+                project version is filtered into these jsp's as a browser cache
                 buster.
             -->
             <plugin>
@@ -272,7 +276,7 @@
                             <goal>bower</goal>
                         </goals>
                         <configuration>
-                            <arguments>install --config.directory=${frontend.assets}</arguments>
+                            <arguments>install ${bower.options} --config.directory=${frontend.assets}</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -300,7 +304,7 @@
             <build>
                 <plugins>
                     <!--
-                        Minifies and compresses the javascript and css. 
+                        Minifies and compresses the javascript and css.
                     -->
                     <plugin>
                         <groupId>net.alchim31.maven</groupId>
