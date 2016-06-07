@@ -38,6 +38,9 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLPeerUnverifiedException
+import javax.net.ssl.SSLSession
+import javax.net.ssl.SSLSocket
 import java.security.InvalidKeyException
 import java.security.KeyPair
 import java.security.KeyPairGenerator
@@ -271,5 +274,180 @@ class CertificateUtilsTest extends GroovyTestCase {
         // Assert
         assert convertedCertificate instanceof X509Certificate
         assert convertedCertificate == EXPECTED_NEW_CERTIFICATE
+    }
+
+    @Test
+    void testShouldDetermineClientAuthStatusFromSocket() {
+        // Arrange
+        SSLSocket needSocket = [getNeedClientAuth: { -> true }] as SSLSocket
+        SSLSocket wantSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> true }] as SSLSocket
+        SSLSocket noneSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> false }] as SSLSocket
+
+        // Act
+        CertificateUtils.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
+        logger.info("Client auth (needSocket): ${needClientAuthStatus}")
+        CertificateUtils.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
+        logger.info("Client auth (wantSocket): ${wantClientAuthStatus}")
+        CertificateUtils.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
+        logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
+
+        // Assert
+        assert needClientAuthStatus == CertificateUtils.ClientAuth.NEED
+        assert wantClientAuthStatus == CertificateUtils.ClientAuth.WANT
+        assert noneClientAuthStatus == CertificateUtils.ClientAuth.NONE
+    }
+
+    @Test
+    void testShouldNotExtractClientCertificatesFromSSLSocketWithClientAuthNone() {
+        // Arrange
+        SSLSocket mockSocket = [
+                getNeedClientAuth: { -> false },
+                getWantClientAuth: { -> false }
+        ] as SSLSocket
+
+        // Act
+        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        logger.info("Extracted client DN: ${clientDN}")
+
+        // Assert
+        assert !clientDN
+    }
+
+    @Test
+    void testShouldExtractClientCertificatesFromSSLSocketWithClientAuthWant() {
+        // Arrange
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN)
+        logger.info("Expected DN: ${EXPECTED_DN}")
+        logger.info("Expected certificate chain: ${certificateChain.collect { (it as X509Certificate).getSubjectDN().name }.join(" issued by ")}")
+
+        SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
+
+        SSLSocket mockSocket = [
+                getNeedClientAuth: { -> false },
+                getWantClientAuth: { -> true },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        // Act
+        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        logger.info("Extracted client DN: ${clientDN}")
+
+        // Assert
+        assert CertificateUtils.compareDNs(clientDN, EXPECTED_DN)
+    }
+
+    @Test
+    void testShouldHandleFailureToExtractClientCertificatesFromSSLSocketWithClientAuthWant() {
+        // Arrange
+        SSLSession mockSession = [getPeerCertificates: { -> throw new SSLPeerUnverifiedException("peer not authenticated") }] as SSLSession
+
+        SSLSocket mockSocket = [
+                getNeedClientAuth: { -> false },
+                getWantClientAuth: { -> true },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        // Act
+        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        logger.info("Extracted client DN: ${clientDN}")
+
+        // Assert
+        assert CertificateUtils.compareDNs(clientDN, null)
+    }
+
+
+    @Test
+    void testShouldExtractClientCertificatesFromSSLSocketWithClientAuthNeed() {
+        // Arrange
+        final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN)
+        logger.info("Expected DN: ${EXPECTED_DN}")
+        logger.info("Expected certificate chain: ${certificateChain.collect { (it as X509Certificate).getSubjectDN().name }.join(" issued by ")}")
+
+        SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
+
+        SSLSocket mockSocket = [
+                getNeedClientAuth: { -> true },
+                getWantClientAuth: { -> false },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        // Act
+        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        logger.info("Extracted client DN: ${clientDN}")
+
+        // Assert
+        assert CertificateUtils.compareDNs(clientDN, EXPECTED_DN)
+    }
+
+    @Test
+    void testShouldHandleFailureToExtractClientCertificatesFromSSLSocketWithClientAuthNeed() {
+        // Arrange
+        SSLSession mockSession = [getPeerCertificates: { -> throw new SSLPeerUnverifiedException("peer not authenticated") }] as SSLSession
+
+        SSLSocket mockSocket = [
+                getNeedClientAuth: { -> true },
+                getWantClientAuth: { -> false },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        // Act
+        def msg = shouldFail(CertificateException) {
+            String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+            logger.info("Extracted client DN: ${clientDN}")
+        }
+
+        // Assert
+        assert msg =~ "peer not authenticated"
+    }
+
+    @Test
+    void testShouldCompareDNs() {
+        // Arrange
+        final String DN_1_ORDERED = "CN=test1.nifi.apache.org, OU=Apache NiFi, O=Apache, ST=California, C=US"
+        logger.info("DN 1 Ordered : ${DN_1_ORDERED}")
+        final String DN_1_REVERSED = DN_1_ORDERED.split(", ").reverse().join(", ")
+        logger.info("DN 1 Reversed: ${DN_1_REVERSED}")
+
+        final String DN_2_ORDERED = "CN=test2.nifi.apache.org, OU=Apache NiFi, O=Apache, ST=California, C=US"
+        logger.info("DN 2 Ordered : ${DN_2_ORDERED}")
+        final String DN_2_REVERSED = DN_2_ORDERED.split(", ").reverse().join(", ")
+        logger.info("DN 2 Reversed: ${DN_2_REVERSED}")
+
+        // Act
+
+        // True
+        boolean dn1MatchesSelf = CertificateUtils.compareDNs(DN_1_ORDERED, DN_1_ORDERED)
+        logger.matches("DN 1, DN 1: ${dn1MatchesSelf}")
+
+        boolean dn1MatchesReversed = CertificateUtils.compareDNs(DN_1_ORDERED, DN_1_REVERSED)
+        logger.matches("DN 1, DN 1 (R): ${dn1MatchesReversed}")
+
+        boolean emptyMatchesEmpty = CertificateUtils.compareDNs("", "")
+        logger.matches("empty, empty: ${emptyMatchesEmpty}")
+
+        boolean nullMatchesNull = CertificateUtils.compareDNs(null, null)
+        logger.matches("null, null: ${nullMatchesNull}")
+
+        // False
+        boolean dn1MatchesDn2 = CertificateUtils.compareDNs(DN_1_ORDERED, DN_2_ORDERED)
+        logger.matches("DN 1, DN 2: ${dn1MatchesDn2}")
+
+        boolean dn1MatchesDn2Reversed = CertificateUtils.compareDNs(DN_1_ORDERED, DN_2_REVERSED)
+        logger.matches("DN 1, DN 2 (R): ${dn1MatchesDn2Reversed}")
+
+        boolean dn1MatchesEmpty = CertificateUtils.compareDNs(DN_1_ORDERED, "")
+        logger.matches("DN 1, empty: ${dn1MatchesEmpty}")
+
+        // Assert
+        assert dn1MatchesSelf
+        assert dn1MatchesReversed
+        assert emptyMatchesEmpty
+        assert nullMatchesNull
+
+        assert !dn1MatchesDn2
+        assert !dn1MatchesDn2Reversed
+        assert !dn1MatchesEmpty
     }
 }
