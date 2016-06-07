@@ -1359,9 +1359,8 @@ public class Query {
                 return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
             }
-                default:
-                throw new AttributeExpressionLanguageParsingException(
-                        "Expected a Function-type expression but got " + tree.toString());
+            default:
+                throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
             }
     }
 
