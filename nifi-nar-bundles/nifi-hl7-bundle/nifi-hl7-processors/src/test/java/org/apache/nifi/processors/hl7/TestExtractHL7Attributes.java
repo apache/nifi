@@ -24,7 +24,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -38,6 +38,13 @@ public class TestExtractHL7Attributes {
 
     @Test
     public void testExtract() throws IOException {
+        final String inputRecord =
+            "MSH|^~\\&|XXXXXXXX||HealthProvider||||ORU^R01|Q1111111111111111111|P|2.3|\r\n" +
+            "PID|||12345^^^XYZ^MR||SMITH^JOHN||19700100|M||||||||||111111111111|123456789|\r\n" +
+            "PD1||||1234567890^LAST^FIRST^M^^^^^NPI|\r\n" +
+            "OBR|1|341856649^HNAM_ORDERID|000000000000000000|648088^Basic Metabolic Panel|||20150101000000|||||||||1620^Johnson^Corey^A||||||20150101000000|||F|||||||||||20150101000000|\r\n" +
+            "OBX|1|NM|GLU^Glucose Lvl|59|mg/dL|65-99^65^99|L|||F|||20150102000000|\r\n";
+
         final SortedMap<String, String> expectedAttributes = new TreeMap<>();
         // MSH.1 and MSH.2 could be escaped, but it's not clear which is right
         expectedAttributes.put("MSH.1", "|");
@@ -75,7 +82,7 @@ public class TestExtractHL7Attributes {
         expectedAttributes.put("PID.19", "123456789");
 
         final TestRunner runner = TestRunners.newTestRunner(ExtractHL7Attributes.class);
-        runner.enqueue(Paths.get("src/test/resources/hypoglycemia.hl7"));
+        runner.enqueue(inputRecord.getBytes(StandardCharsets.UTF_8));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
