@@ -347,6 +347,11 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-slack-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-windows-event-log-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>
