@@ -131,6 +131,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             .url(remoteGroup.getTargetUri().toString())
             .portIdentifier(getIdentifier())
             .sslContext(sslContext)
+            .useCompression(isUseCompression())
             .eventReporter(remoteGroup.getEventReporter())
             .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
             .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
