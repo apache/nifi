@@ -615,4 +615,100 @@ public class TestNaiveRevisionManager {
         assertTrue(component1Seen);
         assertTrue(component2Seen);
     }
+
+    @Test(timeout = 5000)
+    public void testWriteLockReleasedWhenClaimCanceledByRevision() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.SECONDS);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim);
+        assertEquals(1, claim.getRevisions().size());
+        assertEquals(component1V1, claim.getRevisions().iterator().next());
+
+        assertTrue(revisionManager.cancelClaim(component1V1));
+
+        final RevisionClaim claim2 = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim2);
+        assertEquals(1, claim2.getRevisions().size());
+        assertEquals(component1V1, claim2.getRevisions().iterator().next());
+    }
+
+    @Test(timeout = 5000)
+    public void testWriteLockReleasedWhenClaimCanceledByComponentId() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.SECONDS);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim);
+        assertEquals(1, claim.getRevisions().size());
+        assertEquals(component1V1, claim.getRevisions().iterator().next());
+
+        assertTrue(revisionManager.cancelClaim(COMPONENT_1));
+
+        final RevisionClaim claim2 = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim2);
+        assertEquals(1, claim2.getRevisions().size());
+        assertEquals(component1V1, claim2.getRevisions().iterator().next());
+    }
+
+    @Test(timeout = 5000)
+    public void testDeleteRevisionUnlocksClaimIfExceptionThrown() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.MINUTES);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim);
+        assertEquals(1, claim.getRevisions().size());
+        assertEquals(component1V1, claim.getRevisions().iterator().next());
+
+        final RuntimeException re = new RuntimeException("Intentional Unit Test Exception");
+        try {
+            revisionManager.deleteRevision(claim, USER_1, () -> {
+                throw re;
+            });
+
+            Assert.fail("deleteRevision() method did not propagate Exception thrown");
+        } catch (final RuntimeException e) {
+            assertTrue(re == e);
+        }
+
+        // Ensure that we can obtain a read lock
+        revisionManager.get(COMPONENT_1, rev -> rev);
+
+        final RevisionClaim claim2 = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim2);
+        assertEquals(1, claim2.getRevisions().size());
+        assertEquals(component1V1, claim2.getRevisions().iterator().next());
+    }
+
+    @Test(timeout = 5000)
+    public void testUpdateRevisionUnlocksClaimIfExceptionThrown() {
+        final RevisionManager revisionManager = new NaiveRevisionManager(2, TimeUnit.MINUTES);
+        final Revision component1V1 = new Revision(1L, CLIENT_1, COMPONENT_1);
+
+        final RevisionClaim claim = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim);
+        assertEquals(1, claim.getRevisions().size());
+        assertEquals(component1V1, claim.getRevisions().iterator().next());
+
+        final RuntimeException re = new RuntimeException("Intentional Unit Test Exception");
+        try {
+            revisionManager.updateRevision(claim, USER_1, () -> {
+                throw re;
+            });
+
+            Assert.fail("updateRevision() method did not propagate Exception thrown");
+        } catch (final RuntimeException e) {
+            assertTrue(re == e);
+        }
+
+        // Ensure that we can obtain a read lock
+        revisionManager.get(COMPONENT_1, rev -> rev);
+
+        final RevisionClaim claim2 = revisionManager.requestClaim(component1V1, USER_1);
+        assertNotNull(claim2);
+        assertEquals(1, claim2.getRevisions().size());
+        assertEquals(component1V1, claim2.getRevisions().iterator().next());
+    }
 }
