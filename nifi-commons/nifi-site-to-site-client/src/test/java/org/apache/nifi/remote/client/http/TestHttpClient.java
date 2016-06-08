@@ -22,9 +22,12 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
+import org.apache.nifi.remote.io.CompressionInputStream;
+import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
@@ -53,6 +56,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.SocketTimeoutException;
 import java.net.URI;
@@ -223,6 +227,7 @@ public class TestHttpClient {
                 logger.info("received {}", dataPacket);
                 consumeDataPacket(dataPacket);
             }
+            logger.info("finish receiving data packets.");
 
             assertNotNull("Test case should set <serverChecksum> depending on the test scenario.", serverChecksum);
             respondWithText(resp, serverChecksum, HttpServletResponse.SC_ACCEPTED);
@@ -237,9 +242,11 @@ public class TestHttpClient {
             resp.setContentType("application/octet-stream");
             setCommonResponseHeaders(resp, reqProtocolVersion);
 
-            writeOutgoingPacket(resp);
-            writeOutgoingPacket(resp);
-            writeOutgoingPacket(resp);
+            final OutputStream outputStream = getOutputStream(req, resp);
+            writeOutgoingPacket(outputStream);
+            writeOutgoingPacket(outputStream);
+            writeOutgoingPacket(outputStream);
+            resp.flushBuffer();
         }
     }
 
@@ -287,7 +294,7 @@ public class TestHttpClient {
             resp.setContentType("application/octet-stream");
             setCommonResponseHeaders(resp, reqProtocolVersion);
 
-            writeOutgoingPacket(resp);
+            writeOutgoingPacket(getOutputStream(req, resp));
 
             sleepUntilTestCaseFinish();
         }
@@ -305,8 +312,7 @@ public class TestHttpClient {
         }
     }
 
-    private static void writeOutgoingPacket(HttpServletResponse resp) throws IOException {
-        OutputStream outputStream = resp.getOutputStream();
+    private static void writeOutgoingPacket(OutputStream outputStream) throws IOException {
         final DataPacket packet = new DataPacketBuilder()
                     .contents("Example contents from server.")
                     .attr("Server attr 1", "Server attr 1 value")
@@ -314,12 +320,24 @@ public class TestHttpClient {
                     .build();
         new StandardFlowFileCodec().encode(packet, outputStream);
         outputStream.flush();
-        resp.flushBuffer();
+    }
+
+    private static OutputStream getOutputStream(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        OutputStream outputStream = resp.getOutputStream();
+        if (Boolean.valueOf(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
+            outputStream = new CompressionOutputStream(outputStream);
+        }
+        return outputStream;
     }
 
     private static DataPacket readIncomingPacket(HttpServletRequest req) throws IOException {
         final StandardFlowFileCodec codec = new StandardFlowFileCodec();
-        return codec.decode(req.getInputStream());
+        InputStream inputStream = req.getInputStream();
+        if (Boolean.valueOf(req.getHeader(HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION))){
+            inputStream = new CompressionInputStream(inputStream);
+        }
+
+        return codec.decode(inputStream);
     }
 
     private static int getReqProtocolVersion(HttpServletRequest req) {
@@ -588,10 +606,10 @@ public class TestHttpClient {
 
             assertNotNull(transaction);
 
-            serverChecksum = "3882825556";
+            serverChecksum = "1071206772";
 
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < 20; i++) {
                 DataPacket packet = new DataPacketBuilder()
                         .contents("Example contents from client.")
                         .attr("Client attr 1", "Client attr 1 value")
@@ -599,7 +617,44 @@ public class TestHttpClient {
                         .build();
                 transaction.send(packet);
                 long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
-                logger.info("{} bytes have been written.", written);
+                logger.info("{}: {} bytes have been written.", i, written);
+            }
+
+            transaction.confirm();
+
+            transaction.complete();
+        }
+
+    }
+
+    @Test
+    public void testSendSuccessCompressed() throws Exception {
+
+        final URI uri = server.getURI();
+
+        logger.info("uri={}", uri);
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("input-running")
+                        .useCompression(true)
+                        .build()
+        ) {
+            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+
+            assertNotNull(transaction);
+
+            serverChecksum = "1071206772";
+
+
+            for (int i = 0; i < 20; i++) {
+                DataPacket packet = new DataPacketBuilder()
+                        .contents("Example contents from client.")
+                        .attr("Client attr 1", "Client attr 1 value")
+                        .attr("Client attr 2", "Client attr 2 value")
+                        .build();
+                transaction.send(packet);
+                long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
+                logger.info("{}: {} bytes have been written.", i, written);
             }
 
             transaction.confirm();
@@ -642,49 +697,6 @@ public class TestHttpClient {
 
             transaction.confirm();
             transaction.complete();
-        }
-
-    }
-
-    @Test
-    public void testSendSlowClientTimeout() throws Exception {
-
-        final URI uri = server.getURI();
-
-        logger.info("uri={}", uri);
-        try (
-                SiteToSiteClient client = getDefaultBuilder()
-                        .idleExpiration(10, TimeUnit.MILLISECONDS)
-                        .portName("input-running")
-                        .build()
-        ) {
-            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-
-            assertNotNull(transaction);
-
-            serverChecksum = "3882825556";
-
-
-            try {
-                for (int i = 0; i < 3; i++) {
-                    DataPacket packet = new DataPacketBuilder()
-                            .contents("Example contents from client.")
-                            .attr("Client attr 1", "Client attr 1 value")
-                            .attr("Client attr 2", "Client attr 2 value")
-                            .build();
-                    transaction.send(packet);
-                    long written = ((Peer)transaction.getCommunicant()).getCommunicationsSession().getBytesWritten();
-                    logger.info("{} bytes have been written.", written);
-                    Thread.sleep(50);
-                }
-                fail("Transaction should timeout when its client doesn't process fast enough.");
-            } catch (IOException e) {
-                logger.info("An exception was thrown as expected.", e);
-                assertTrue(e.getMessage().contains("Pipe closed"));
-            }
-
-            confirmShouldFail(transaction);
-            completeShouldFail(transaction);
         }
 
     }
@@ -769,21 +781,21 @@ public class TestHttpClient {
                     .attr("Client attr 2", "Client attr 2 value")
                     .build();
 
-            try {
                 for(int i = 0; i < 100; i++) {
                     transaction.send(packet);
                     if (i % 10 == 0) {
                         logger.info("Sent {} packets...", i);
                     }
                 }
+
+            try {
+                confirmShouldFail(transaction);
+                fail("Should be timeout.");
             } catch (IOException e) {
-                assertTrue("After exceeding certain amount of data sent to server, the server stop responding. " +
-                        "If this client keeps sending data, it should get an IOException, " +
-                        "because its output stream is already closed.", e.getMessage().contains("Pipe closed"));
+                logger.info("Exception message: {}", e.getMessage());
+                assertTrue(e.getMessage().contains("TimeoutException"));
             }
 
-            serverChecksum = "1345413116";
-            confirmShouldFail(transaction);
             completeShouldFail(transaction);
         }
 
@@ -817,6 +829,31 @@ public class TestHttpClient {
             SiteToSiteClient client = getDefaultBuilder()
                 .portName("output-running")
                 .build()
+        ) {
+            final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
+
+            assertNotNull(transaction);
+
+            DataPacket packet;
+            while ((packet = transaction.receive()) != null) {
+                consumeDataPacket(packet);
+            }
+            transaction.confirm();
+            transaction.complete();
+        }
+    }
+
+    @Test
+    public void testReceiveSuccessCompressed() throws Exception {
+
+        final URI uri = server.getURI();
+
+        logger.info("uri={}", uri);
+        try (
+                SiteToSiteClient client = getDefaultBuilder()
+                        .portName("output-running")
+                        .useCompression(true)
+                        .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
 

@@ -86,7 +86,6 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
                 case UNAUTHORIZED:
                 case PORT_NOT_IN_VALID_STATE:
                 case PORTS_DESTINATION_FULL:
-                    // TODO: Why doesn't it through exception with these codes? Need to check client behavior.
                     responseWritten = true;
                     break;
                 default:

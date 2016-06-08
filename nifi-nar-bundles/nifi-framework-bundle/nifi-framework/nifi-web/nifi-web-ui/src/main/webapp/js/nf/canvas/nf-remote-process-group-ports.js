@@ -43,6 +43,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                     'revision': nf.Client.getRevision(remoteProcessGroupData),
                                     'remoteProcessGroupPort': {
                                         id: remotePortId,
+                                        groupId: remoteProcessGroupId,
                                         useCompression: $('#remote-port-use-compression').hasClass('checkbox-checked'),
                                         concurrentlySchedulableTaskCount: remotePortConcurrentTasks
                                     }

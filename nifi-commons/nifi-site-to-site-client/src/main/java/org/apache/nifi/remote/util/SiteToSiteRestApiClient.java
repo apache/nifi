@@ -108,7 +108,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -432,7 +431,6 @@ public class SiteToSiteRestApiClient implements Closeable {
     private final int DATA_PACKET_CHANNEL_READ_BUFFER_SIZE = 16384;
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
-    private AtomicBoolean transferringData = new AtomicBoolean(true);
     public void openConnectionForSend(String transactionUrl, CommunicationsSession commSession) throws IOException {
 
         final String flowFilesPath = transactionUrl + "/flow-files";
@@ -448,7 +446,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         final URI requestUri = post.getURI();
         final PipedOutputStream outputStream = new PipedOutputStream();
-        final PipedInputStream inputStream = new PipedInputStream(outputStream);
+        final PipedInputStream inputStream = new PipedInputStream(outputStream, DATA_PACKET_CHANNEL_READ_BUFFER_SIZE);
         final ReadableByteChannel dataPacketChannel = Channels.newChannel(inputStream);
         final HttpAsyncRequestProducer asyncRequestProducer = new HttpAsyncRequestProducer() {
 
@@ -464,7 +462,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
                 // Pass the output stream so that Site-to-Site client thread can send
                 // data packet through this connection.
-                logger.debug("writeTo {} has started...", flowFilesPath);
+                logger.debug("sending data to {} has started...", flowFilesPath);
                 ((HttpOutput)commSession.getOutput()).setOutputStream(outputStream);
                 initConnectionLatch.countDown();
 
@@ -478,38 +476,32 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public void produceContent(ContentEncoder encoder, IOControl ioControl) throws IOException {
 
-                int read = dataPacketChannel.read(buffer);
+                // This blocks until data becomes available,
+                // or corresponding outputStream is closed.
+                int totalRead = 0;
+                int read;
+                while ((read = dataPacketChannel.read(buffer)) > -1) {
 
-                // read == 0 means the client didn't write additional packet, but didn't call confirm either yet.
-                // Wait until one of those event happens.
-                long started = System.currentTimeMillis();
-                while (read == 0 && transferringData.get()) {
-                    final long elapsed = System.currentTimeMillis() - started;
-                    if (elapsed > requestExpirationMillis) {
-                        final String msg = "Didn't received additional packet to send, nor confirm transaction call for " + elapsed + " millis";
-                        logger.warn(msg + " which exceeds idle connection expiration millis({})." +
-                                " This transaction will timeout.", requestExpirationMillis);
-                        throw new IOException(msg);
+                    buffer.flip();
+                    while (buffer.hasRemaining()) {
+                        encoder.write(buffer);
                     }
-                    read = dataPacketChannel.read(buffer);
+                    buffer.clear();
+                    logger.trace("Read {} bytes from dataPacketChannel. {}", read, flowFilesPath);
+                    totalRead += read;
+
                 }
 
-                logger.debug("Read {} bytes from dataPacketChannel. {}", read, flowFilesPath);
+                logger.debug("sending data to {} has reached to its end. produced {} bytes.", flowFilesPath, totalRead);
+                transferDataLatch.countDown();
+                encoder.complete();
+                dataPacketChannel.close();
 
-                if (read <= 0) {
-                    logger.debug("writeTo {} has reached to its end.", flowFilesPath);
-                    transferDataLatch.countDown();
-                    encoder.complete();
-                    dataPacketChannel.close();
-                    return;
-                }
-
-                buffer.flip();
-                encoder.write(buffer);
             }
 
             @Override
             public void requestCompleted(HttpContext context) {
+                logger.debug("Sending data to {} completed.", flowFilesPath);
             }
 
             @Override
@@ -525,13 +517,14 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             @Override
             public void resetRequest() throws IOException {
-                logger.debug("Request has been reset...");
+                logger.debug("Sending data request to {} has been reset...", flowFilesPath);
             }
 
             @Override
             public void close() throws IOException {
-                logger.debug("close(), closing dataPacketChannel. {}", flowFilesPath);
-                dataPacketChannel.close();
+                logger.debug("Closing sending data request to {}", flowFilesPath);
+                closeSilently(outputStream);
+                closeSilently(dataPacketChannel);
                 stopExtendingTtl();
             }
         };
@@ -561,7 +554,10 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         // No more data can be sent.
-        transferringData.set(false);
+        // Close PipedOutputStream so that dataPacketChannel doesn't blocked.
+        // If we don't close this output stream, then PipedInputStream loops infinitely at read().
+        commSession.getOutput().getOutputStream().close();
+        logger.debug("{} FinishTransferFlowFiles no more data can be sent", this);
 
         try {
             if (!transferDataLatch.await(requestExpirationMillis, TimeUnit.MILLISECONDS)) {
@@ -570,8 +566,6 @@ public class SiteToSiteRestApiClient implements Closeable {
         } catch (InterruptedException e) {
             throw new IOException("Awaiting transferDataLatch has been interrupted.", e);
         }
-
-        commSession.getOutput().getOutputStream().flush();
 
         stopExtendingTtl();
 

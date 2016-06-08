@@ -20,7 +20,6 @@ import java.util.Set;
 
 import org.apache.nifi.remote.PeerStatus;
 
-// TODO: This can be PeerSelector's inner class.
 public class PeerStatusCache {
 
     private final Set<PeerStatus> statuses;
