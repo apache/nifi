@@ -209,7 +209,21 @@ public class NaiveRevisionManager implements RevisionManager {
         if (successCount == revisionList.size()) {
             logger.debug("Successfully verified Revision Claim for all revisions {}", claim);
 
-            final T taskValue = task.performTask();
+            final T taskValue;
+            try {
+                taskValue = task.performTask();
+            } catch (final Exception e) {
+                logger.debug("Failed to perform Claim Deletion task. Will relinquish the Revision Claims for the following revisions: {}", revisionList);
+
+                for (final Revision revision : revisionList) {
+                    final RevisionLock revisionLock = getRevisionLock(revision);
+                    revisionLock.unlock(revision, revision, user.getUserName());
+                    logger.debug("Relinquished lock for {}", revision);
+                }
+
+                throw e;
+            }
+
             for (final Revision revision : revisionList) {
                 deleteRevisionLock(revision);
                 logger.debug("Deleted Revision {}", revision);
