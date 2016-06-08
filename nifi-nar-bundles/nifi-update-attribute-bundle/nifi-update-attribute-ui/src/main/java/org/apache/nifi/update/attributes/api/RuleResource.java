@@ -632,7 +632,7 @@ public class RuleResource {
 
         try {
             // save the annotation data
-            configurationContext.setAnnotationData(requestContext, annotationData);
+            configurationContext.updateComponent(requestContext, annotationData, null);
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(ire, invalidRevision(ire.getMessage()));
         } catch (final Exception e) {

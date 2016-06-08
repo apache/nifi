@@ -124,7 +124,6 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
@@ -1584,44 +1583,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return getProcessGroup("root");
-    }
-
-    @Override
-    public ProcessorEntity setProcessorAnnotationData(final Revision revision, final String processorId, final String annotationData) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final String modifier = user.getUserName();
-
-        final RevisionUpdate<ProcessorEntity> update = revisionManager.updateRevision(new StandardRevisionClaim(revision), user, new UpdateRevisionTask<ProcessorEntity>() {
-            @Override
-            public RevisionUpdate<ProcessorEntity> update() {
-                // create the processor config
-                final ProcessorConfigDTO config = new ProcessorConfigDTO();
-                config.setAnnotationData(annotationData);
-
-                // create the processor dto
-                final ProcessorDTO processorDTO = new ProcessorDTO();
-                processorDTO.setId(processorId);
-                processorDTO.setConfig(config);
-
-                // update the processor configuration
-                final ProcessorNode processor = processorDAO.updateProcessor(processorDTO);
-
-                final ProcessorDTO updatedProcDto = dtoFactory.createProcessorDto(processor);
-
-                // save the flow
-                controllerFacade.save();
-
-                final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
-                final FlowModification lastMod = new FlowModification(incrementRevision(revision), modifier);
-                final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
-                final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
-                final ProcessorEntity entity = entityFactory.createProcessorEntity(updatedProcDto, dtoFactory.createRevisionDTO(lastMod), accessPolicy, status, bulletins);
-
-                return new StandardRevisionUpdate<>(entity, lastMod);
-            }
-        });
-
-        return update.getComponent();
     }
 
     @Override

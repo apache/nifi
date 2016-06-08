@@ -235,6 +235,16 @@ language governing permissions and limitations under the License. -->
             <artifactId>json-utils</artifactId>
             <version>0.0.20</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-utils</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-utils</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -309,20 +319,20 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestSplitText/4.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/5.txt</exclude>
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
-                        <exclude>src/test/resources/TestTransformJson/input.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/chainrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/chainrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/cardrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/cardrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/defaultrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/shiftrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/sortrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/shiftrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/removrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/removrOutput.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/defaultrSpec.json</exclude>
-                        <exclude>src/test/resources/TestTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/input.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/cardrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/sortrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/shiftrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/removrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/defaultrOutput.json</exclude>
                         <exclude>src/test/resources/TestSplitText/original.txt</exclude>
                         <exclude>src/test/resources/TestTransformXml/math.html</exclude>
                         <exclude>src/test/resources/TestTransformXml/tokens.csv</exclude>

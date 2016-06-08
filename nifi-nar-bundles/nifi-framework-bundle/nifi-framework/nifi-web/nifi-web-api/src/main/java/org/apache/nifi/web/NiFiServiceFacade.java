@@ -299,16 +299,6 @@ public interface NiFiServiceFacade {
      */
     ProcessGroupEntity createArchive();
 
-    /**
-     * Sets the annotation data for a processor.
-     *
-     * @param revision the revision to compare with current base revision
-     * @param processorId the id of the processor to update
-     * @param annotationData the annotation data
-     *
-     * @return snapshot
-     */
-    ProcessorEntity setProcessorAnnotationData(Revision revision, String processorId, String annotationData);
 
     /**
      * Returns the process group status.

@@ -51,19 +51,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.TransformFactory;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
-import com.bazaarvoice.jolt.CardinalityTransform;
-import com.bazaarvoice.jolt.Chainr;
-import com.bazaarvoice.jolt.Defaultr;
-import com.bazaarvoice.jolt.JsonUtils;
-import com.bazaarvoice.jolt.Removr;
-import com.bazaarvoice.jolt.Shiftr;
-import com.bazaarvoice.jolt.Sortr;
 import com.bazaarvoice.jolt.Transform;
+import com.bazaarvoice.jolt.JsonUtils;
 
 @EventDriven
 @SideEffectFree
@@ -71,21 +66,21 @@ import com.bazaarvoice.jolt.Transform;
 @Tags({"json", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr","cardinality","sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @WritesAttribute(attribute = "mime.type",description = "Always set to application/json")
-@CapabilityDescription("Applies a list of JOLT specifications to the flowfile JSON payload. A new FlowFile is created "
+@CapabilityDescription("Applies a list of Jolt specifications to the flowfile JSON payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the JSON transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
-public class TransformJSON extends AbstractProcessor {
+public class JoltTransformJSON extends AbstractProcessor {
 
-    public static final AllowableValue SHIFTR = new AllowableValue("jolt-transform-shift", "Shift Transform DSL", "Shift input JSON/data to create the output JSON.");
-    public static final AllowableValue CHAINR = new AllowableValue("jolt-transform-chain", "Chain Transform DSL", "Execute list of JOLT transformations.");
-    public static final AllowableValue DEFAULTR = new AllowableValue("jolt-transform-default", "Default Transform DSL", " Apply default values to the output JSON.");
-    public static final AllowableValue REMOVR = new AllowableValue("jolt-transform-remove", "Remove Transform DSL", " Remove values from input data to create the output JSON.");
-    public static final AllowableValue CARDINALITY = new AllowableValue("jolt-transform-card", "Cardinality Transform DSL", "Change the cardinality of input elements to create the output JSON.");
-    public static final AllowableValue SORTR = new AllowableValue("jolt-transform-sort", "Sort Transform DSL", "Sort input json key values alphabetically. Any specification set is ignored.");
+    public static final AllowableValue SHIFTR = new AllowableValue("jolt-transform-shift", "Shift", "Shift input JSON/data to create the output JSON.");
+    public static final AllowableValue CHAINR = new AllowableValue("jolt-transform-chain", "Chain", "Execute list of Jolt transformations.");
+    public static final AllowableValue DEFAULTR = new AllowableValue("jolt-transform-default", "Default", " Apply default values to the output JSON.");
+    public static final AllowableValue REMOVR = new AllowableValue("jolt-transform-remove", "Remove", " Remove values from input data to create the output JSON.");
+    public static final AllowableValue CARDINALITY = new AllowableValue("jolt-transform-card", "Cardinality", "Change the cardinality of input elements to create the output JSON.");
+    public static final AllowableValue SORTR = new AllowableValue("jolt-transform-sort", "Sort", "Sort input json key values alphabetically. Any specification set is ignored.");
 
     public static final PropertyDescriptor JOLT_TRANSFORM = new PropertyDescriptor.Builder()
             .name("jolt-transform")
-            .displayName("Jolt Transformation")
+            .displayName("Jolt Transformation DSL")
             .description("Specifies the Jolt Transformation that should be used with the provided specification.")
             .required(true)
             .allowableValues(CARDINALITY, CHAINR, DEFAULTR, REMOVR, SHIFTR, SORTR)
@@ -154,8 +149,8 @@ public class TransformJSON extends AbstractProcessor {
             }
         } else {
             try {
-                Object specJson = JsonUtils.jsonToObject(specValue, DEFAULT_CHARSET);
-                TransformationFactory.getTransform(transform, specJson);
+                Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue, DEFAULT_CHARSET);
+                TransformFactory.getTransform(transform, specJson);
             } catch (final Exception e) {
                 getLogger().info("Processor is not valid - " + e.toString());
                 String message = "Specification not valid for the selected transformation." ;
@@ -218,30 +213,11 @@ public class TransformJSON extends AbstractProcessor {
     @OnScheduled
     public void setup(final ProcessContext context) {
         Object specJson = null;
-        if(context.getProperty(JOLT_SPEC).isSet()){
+        if(context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
             specJson = JsonUtils.jsonToObject(context.getProperty(JOLT_SPEC).getValue(), DEFAULT_CHARSET);
         }
-        transform = TransformationFactory.getTransform(context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+        transform = TransformFactory.getTransform(context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
     }
 
-    private static class TransformationFactory {
-
-        static Transform getTransform(String transform, Object specJson) {
-            if (transform.equals(DEFAULTR.getValue())) {
-                return new Defaultr(specJson);
-            } else if (transform.equals(SHIFTR.getValue())) {
-                return new Shiftr(specJson);
-            } else if (transform.equals(REMOVR.getValue())) {
-                return new Removr(specJson);
-            } else if (transform.equals(CARDINALITY.getValue())) {
-                return new CardinalityTransform(specJson);
-            } else if(transform.equals(SORTR.getValue())){
-                return new Sortr();
-            } else {
-                return Chainr.fromSpec(specJson);
-            }
-        }
-
-    }
 
 }
