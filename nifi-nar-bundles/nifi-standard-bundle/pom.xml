@@ -29,6 +29,8 @@
         <module>nifi-standard-reporting-tasks</module>
         <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
+        <module>nifi-jolt-transform-json-ui</module>
+        <module>nifi-standard-utils</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -50,6 +52,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-content-viewer</artifactId>
+                <type>war</type>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-jolt-transform-json-ui</artifactId>
                 <type>war</type>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>

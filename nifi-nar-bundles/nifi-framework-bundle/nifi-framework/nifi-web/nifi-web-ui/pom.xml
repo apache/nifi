@@ -675,6 +675,7 @@
                                 js/d3/**/*,
                                 js/codemirror/**/*,
                                 js/jquery/**/*,
+                                js/jsonlint/**/*,
                                 js/nf/nf-namespace.js,
                                 js/nf/nf-namespace.js.gz,
                                 js/nf/nf-ng-namespace.js,
@@ -729,6 +730,7 @@
                                 <exclude>src/main/webapp/js/jquery/</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
                                 <exclude>src/main/webapp/js/codemirror/</exclude>
+                                <exclude>src/main/webapp/js/jsonlint/</exclude>
                                 <exclude>src/main/webapp/css/reset.css</exclude>
                                 <exclude>src/main/webapp/js/angular/**/*</exclude>
                                 <exclude>src/main/webapp/fonts/**/*</exclude>

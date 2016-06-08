@@ -1,0 +1,15 @@
+{
+  "name": "apache-nifi",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular-ui-codemirror": "^0.3.0",
+    "angular-ui-router": "^0.2.18"
+  }
+}
