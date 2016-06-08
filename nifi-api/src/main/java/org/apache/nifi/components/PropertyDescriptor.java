@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.controller.ControllerService;
@@ -345,7 +346,8 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             }
             return this;
         }
-
+      
+        
         public <E extends Enum<E>> Builder allowableValues(final E[] values) {
             if (null != values) {
                 this.allowableValues = new ArrayList<>();
@@ -366,6 +368,19 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 for (final String value : values) {
                     allowableValues.add(new AllowableValue(value, value));
                 }
+            }
+            return this;
+        }
+        
+        /**
+         * Sets the Allowable Values for this Property
+         *
+         * @param values List of allowable values
+         * @return the builder
+         */
+        public Builder allowableValues(List<AllowableValue> values) {
+            if (null != values) {
+                this.allowableValues = values;
             }
             return this;
         }
