@@ -98,4 +98,8 @@ public interface HBaseClientService extends ControllerService {
      */
     void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, ResultHandler handler) throws IOException;
 
+    byte[] toBytes(boolean b);
+    byte[] toBytes(long l);
+    byte[] toBytes(double d);
+    byte[] toBytes(String s);
 }

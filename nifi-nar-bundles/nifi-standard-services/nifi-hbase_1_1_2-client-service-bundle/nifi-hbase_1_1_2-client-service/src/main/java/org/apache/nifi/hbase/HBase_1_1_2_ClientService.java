@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.ParseFilter;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -403,6 +404,26 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         public Configuration getConfiguration() {
             return configuration;
         }
+    }
+
+    @Override
+    public byte[] toBytes(boolean b) {
+        return Bytes.toBytes(b);
+    }
+
+    @Override
+    public byte[] toBytes(long l) {
+        return Bytes.toBytes(l);
+    }
+
+    @Override
+    public byte[] toBytes(double d) {
+        return Bytes.toBytes(d);
+    }
+
+    @Override
+    public byte[] toBytes(String s) {
+        return Bytes.toBytes(s);
     }
 
 }
