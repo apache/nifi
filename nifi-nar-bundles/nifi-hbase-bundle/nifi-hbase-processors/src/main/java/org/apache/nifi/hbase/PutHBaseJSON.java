@@ -17,6 +17,16 @@
 package org.apache.nifi.hbase;
 
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -39,17 +49,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.ObjectHolder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
-
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
 @EventDriven
 @SupportsBatching
@@ -175,13 +174,13 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final Iterator<String> fieldNames = rootNode.getFieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
-            final ObjectHolder<String> fieldValueHolder = new ObjectHolder<>(null);
+            final ObjectHolder<byte[]> fieldValueHolder = new ObjectHolder<>(null);
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (fieldNode.isNull()) {
                 getLogger().debug("Skipping {} because value was null", new Object[]{fieldName});
             } else if (fieldNode.isValueNode()) {
-                fieldValueHolder.set(fieldNode.asText());
+                fieldValueHolder.set(extractJNodeValue(fieldNode));
             } else {
                 // for non-null, non-value nodes, determine what to do based on the handling strategy
                 switch (complexFieldStrategy) {
@@ -194,7 +193,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     case TEXT_VALUE:
                         // use toString() here because asText() is only guaranteed to be supported on value nodes
                         // some other types of nodes, like ArrayNode, provide toString implementations
-                        fieldValueHolder.set(fieldNode.toString());
+                        fieldValueHolder.set(cliSvc.toBytes(fieldNode.toString()));
                         break;
                     case IGNORE_VALUE:
                         // silently skip
@@ -208,9 +207,9 @@ public class PutHBaseJSON extends AbstractPutHBase {
             // otherwise add a new column where the fieldName and fieldValue are the column qualifier and value
             if (fieldValueHolder.get() != null) {
                 if (extractRowId && fieldName.equals(rowFieldName)) {
-                    rowIdHolder.set(fieldValueHolder.get());
+                    rowIdHolder.set(fieldNode.asText());
                 } else {
-                    columns.add(new PutColumn(columnFamily, fieldName, fieldValueHolder.get().getBytes(StandardCharsets.UTF_8)));
+                    columns.add(new PutColumn(columnFamily, fieldName, fieldValueHolder.get()));
                 }
             }
         }
@@ -225,6 +224,27 @@ public class PutHBaseJSON extends AbstractPutHBase {
 
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
         return new PutFlowFile(tableName, putRowId, columns, flowFile);
+    }
+
+    /*
+     *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function
+     */
+    private byte[] extractJNodeValue(JsonNode n){
+        if (n.isBoolean()){
+            //boolean
+            return cliSvc.toBytes(n.asBoolean());
+        }else if(n.isNumber()){
+            if(n.isIntegralNumber()){
+                //interpret as Long
+                return cliSvc.toBytes(n.asLong());
+            }else{
+                //interpret as Double
+                return cliSvc.toBytes(n.asDouble());
+            }
+        }else{
+            //if all else fails, interpret as String
+            return cliSvc.toBytes(n.asText());
+        }
     }
 
 }
