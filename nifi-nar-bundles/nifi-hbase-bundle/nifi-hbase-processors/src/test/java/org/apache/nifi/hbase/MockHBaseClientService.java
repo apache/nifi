@@ -105,4 +105,30 @@ public class MockHBaseClientService extends AbstractControllerService implements
     public void setThrowException(boolean throwException) {
         this.throwException = throwException;
     }
+
+    @Override
+    public byte[] toBytes(final boolean b) {
+        return new byte[] { b ? (byte) -1 : (byte) 0 };
+    }
+
+    @Override
+    public byte[] toBytes(long l) {
+        byte [] b = new byte[8];
+        for (int i = 7; i > 0; i--) {
+          b[i] = (byte) l;
+          l >>>= 8;
+        }
+        b[0] = (byte) l;
+        return b;
+    }
+
+    @Override
+    public byte[] toBytes(final double d) {
+        return toBytes(Double.doubleToRawLongBits(d));
+    }
+
+    @Override
+    public byte[] toBytes(final String s) {
+        return s.getBytes(StandardCharsets.UTF_8);
+    }
 }
