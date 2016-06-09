@@ -31,6 +31,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -117,6 +118,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (isNotNull(config)) {
             // perform the configuration
             final String schedulingStrategy = config.getSchedulingStrategy();
+            final String executionNode = config.getExecutionNode();
             final String comments = config.getComments();
             final String annotationData = config.getAnnotationData();
             final Integer maxTasks = config.getConcurrentlySchedulableTaskCount();
@@ -133,6 +135,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 processor.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
             }
 
+            if (isNotNull(executionNode)) {
+                processor.setExecutionNode(ExecutionNode.valueOf(executionNode));
+            }
             if (isNotNull(comments)) {
                 processor.setComments(comments);
             }
@@ -209,6 +214,13 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 LogLevel.valueOf(config.getBulletinLevel());
             } catch (IllegalArgumentException iae) {
                 validationErrors.add(String.format("Bulletin level: Value must be one of [%s]", StringUtils.join(LogLevel.values(), ", ")));
+            }
+        }
+        if (isNotNull(config.getExecutionNode())) {
+            try {
+                ExecutionNode.valueOf(config.getExecutionNode());
+            } catch (IllegalArgumentException iae) {
+                validationErrors.add(String.format("Execution node: Value must be one of [%s]", StringUtils.join(ExecutionNode.values(), ", ")));
             }
         }
 
@@ -345,6 +357,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getProperties(),
                     configDTO.getSchedulingPeriod(),
                     configDTO.getSchedulingStrategy(),
+                    configDTO.getExecutionNode(),
                     configDTO.getYieldDuration())) {
 
                 modificationRequest = true;

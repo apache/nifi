@@ -108,6 +108,18 @@
                         </div>
                         <div class="clear"></div>
                     </div>
+                    <div class="setting">
+                        <div id="execution-node-container" class="execution-node-setting">
+                            <div class="setting-name">
+                                Execution node
+                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The node(s) that will run this processor."/>
+                            </div>
+                            <div class="setting-field">
+                                <div id="execution-node-combo"></div>
+                            </div>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
                     <div id="timer-driven-options" class="setting">
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">

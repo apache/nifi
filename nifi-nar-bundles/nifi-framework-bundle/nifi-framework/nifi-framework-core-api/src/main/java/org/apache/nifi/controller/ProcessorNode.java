@@ -35,6 +35,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,10 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     @Override
     public abstract SchedulingStrategy getSchedulingStrategy();
+
+    public abstract void setExecutionNode(ExecutionNode executionNode);
+
+    public abstract ExecutionNode getExecutionNode();
 
     public abstract void setRunDuration(long duration, TimeUnit timeUnit);
 

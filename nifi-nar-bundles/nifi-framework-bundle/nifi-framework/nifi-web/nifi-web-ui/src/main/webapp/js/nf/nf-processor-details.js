@@ -104,6 +104,7 @@ nf.ProcessorDetails = (function () {
                         nf.Common.clearField('read-only-yield-duration');
                         nf.Common.clearField('read-only-run-duration');
                         nf.Common.clearField('read-only-bulletin-level');
+                        nf.Common.clearField('read-only-execution-node');
                         nf.Common.clearField('read-only-execution-status');
                         nf.Common.clearField('read-only-processor-comments');
 
@@ -159,6 +160,7 @@ nf.ProcessorDetails = (function () {
 
                     // make the scheduling strategy human readable
                     var schedulingStrategy = details.config['schedulingStrategy'];
+                    var executionNode = details.config['executionNode'];
                     if (schedulingStrategy === 'EVENT_DRIVEN') {
                         showRunSchedule = false;
                         schedulingStrategy = 'Event driven';
@@ -166,8 +168,12 @@ nf.ProcessorDetails = (function () {
                         schedulingStrategy = 'CRON driven';
                     } else if (schedulingStrategy === 'TIMER_DRIVEN') {
                         schedulingStrategy = "Timer driven";
-                    } else {
-                        schedulingStrategy = "On primary node";
+                    } else if (schedulingStrategy === 'PRIMARY_NODE_ONLY') {
+                        // PRIMARY_NODE_ONLY has been deprecated as a
+                        // schedulingStrategy option, and is now an
+                        // executionNode option instead.
+                        schedulingStrategy = "Timer driven";
+                        executionNode = 'PRIMARY'
                     }
                     nf.Common.populateField('read-only-scheduling-strategy', schedulingStrategy);
 
@@ -176,6 +182,19 @@ nf.ProcessorDetails = (function () {
                         $('#read-only-run-schedule').show();
                     } else {
                         $('#read-only-run-schedule').hide();
+                    }
+
+                    // only show the execution-node when applicable
+                    if (executionNode === 'ALL') {
+                        executionNode = "All nodes";
+                    } else if (executionNode === 'PRIMARY') {
+                        executionNode = "Primary node only";
+                    }
+                    nf.Common.populateField('read-only-execution-node', executionNode);
+                    if (nf.Canvas.isClustered()) {
+                        $('#details-execution-node-container').show();
+                    } else {
+                        $('#details-execution-node-container').hide();
                     }
 
                     // load the relationship list

@@ -207,6 +207,7 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
@@ -481,6 +482,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry, this.nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
+        // PRIMARY_NODE_ONLY is deprecated, but still exists to handle processors that are still defined with it (they haven't been
+        // re-configured with executeNode = PRIMARY).
         processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
         processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
@@ -1707,6 +1710,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                 if (config.getSchedulingStrategy() != null) {
                     procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
+                }
+
+                if (config.getExecutionNode() != null) {
+                    procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
                 }
 
                 // ensure that the scheduling strategy is set prior to these values
