@@ -56,6 +56,10 @@ public enum SchedulingStrategy {
      */
     TIMER_DRIVEN(1, "0 sec"),
     /**
+     * NOTE: This option has been deprecated with the addition of the
+     * execution-node combo box.  It still exists for backward compatibility
+     * with existing flows that still have this value for schedulingStrategy.
+     **
      * Indicates that the component will be scheduled via timer only on the
      * Primary Node. If the instance is not part of a cluster and this
      * Scheduling Strategy is used, the component will be scheduled in the same

@@ -68,6 +68,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String AUTO_TERMINATED_RELATIONSHIPS = "Auto Terminated Relationships";
     private static final String SCHEDULING_PERIOD = "Run Schedule";
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
+    private static final String EXECUTION_NODE = "Execution Node";
 
     /**
      * Audits the creation of processors via createProcessor().
@@ -368,6 +369,9 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
             if (newConfig.getSchedulingStrategy() != null) {
                 values.put(SCHEDULING_STRATEGY, processor.getSchedulingStrategy().toString());
+            }
+            if (newConfig.getExecutionNode() != null) {
+                values.put(EXECUTION_NODE, processor.getExecutionNode().name());
             }
         }
 

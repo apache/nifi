@@ -2492,6 +2492,7 @@ public final class DtoFactory {
         dto.setComments(procNode.getComments());
         dto.setBulletinLevel(procNode.getBulletinLevel().name());
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
+        dto.setExecutionNode(procNode.getExecutionNode().name());
         dto.setAnnotationData(procNode.getAnnotationData());
 
         // set up the default values for concurrent tasks and scheduling period
@@ -2670,6 +2671,7 @@ public final class DtoFactory {
         copy.setAutoTerminatedRelationships(copy(original.getAutoTerminatedRelationships()));
         copy.setComments(original.getComments());
         copy.setSchedulingStrategy(original.getSchedulingStrategy());
+        copy.setExecutionNode(original.getExecutionNode());
         copy.setConcurrentlySchedulableTaskCount(original.getConcurrentlySchedulableTaskCount());
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));

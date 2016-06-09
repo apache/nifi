@@ -519,6 +519,7 @@ public class FingerprintFactory {
         builder.append(config.getComments());
         builder.append(config.getSchedulingPeriod());
         builder.append(config.getSchedulingStrategy());
+        builder.append(config.getExecutionNode());
         builder.append(config.getYieldDuration());
         builder.append(config.getConcurrentlySchedulableTaskCount());
         builder.append(config.getPenaltyDuration());
