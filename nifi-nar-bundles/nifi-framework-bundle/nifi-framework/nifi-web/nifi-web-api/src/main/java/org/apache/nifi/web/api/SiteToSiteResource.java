@@ -39,6 +39,7 @@ import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
+import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocolImpl;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.protocol.ResponseCode;
@@ -201,10 +202,10 @@ public class SiteToSiteResource extends ApplicationResource {
 
 
     /**
-     * Returns the details of this NiFi.
+     * Returns the available Peers and its status of this NiFi.
      *
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @return A controllerEntity.
+     * @return A peersEntity.
      */
     @GET
     @Path("/peers")
@@ -212,7 +213,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     // TODO: @PreAuthorize("hasRole('ROLE_NIFI')")
     @ApiOperation(
-            value = "Returns the details about this NiFi necessary to communicate via site to site",
+            value = "Returns the available Peers and its status of this NiFi",
             response = PeersEntity.class,
             authorizations = @Authorization(value = "NiFi", type = "ROLE_NIFI")
     )
@@ -292,7 +293,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("{portType}/{portId}/transactions")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Create a transaction to this output port",
+            value = "Create a transaction to the specified output port or input port",
             response = TransactionResultEntity.class,
             authorizations = {
                     @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -306,7 +307,8 @@ public class SiteToSiteResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response createPortTransaction(
@@ -368,8 +370,8 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("input-ports/{portId}/transactions/{transactionId}/flow-files")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Transfer flow files to input port",
-            response = TransactionResultEntity.class,
+            value = "Transfer flow files to the input port",
+            response = String.class,
             authorizations = {
                     @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                     @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -382,7 +384,8 @@ public class SiteToSiteResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response receiveFlowFiles(
@@ -399,7 +402,6 @@ public class SiteToSiteResource extends ApplicationResource {
             @PathParam("transactionId") String transactionId,
             @Context HttpServletRequest req,
             @Context ServletContext context,
-            @Context UriInfo uriInfo,
             InputStream inputStream) {
 
         final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
@@ -442,12 +444,16 @@ public class SiteToSiteResource extends ApplicationResource {
         // Switch transaction protocol version based on transport protocol version.
         TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
-        HttpFlowFileServerProtocol serverProtocol = new HttpFlowFileServerProtocol(versionNegotiator);
+        HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance().setupServerProtocol(serverProtocol);
         // TODO: How should I pass cluster information?
         // serverProtocol.setNodeInformant(clusterManager);
         serverProtocol.handshake(peer);
         return serverProtocol;
+    }
+
+    HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+        return new HttpFlowFileServerProtocolImpl(versionNegotiator);
     }
 
     private Peer constructPeer(HttpServletRequest req, InputStream inputStream, OutputStream outputStream, String portId, String transactionId) {
@@ -495,7 +501,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("output-ports/{portId}/transactions/{transactionId}")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Transfer flow files to input port",
+            value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
                     @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -509,7 +515,8 @@ public class SiteToSiteResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response commitOutputPortTransaction(
@@ -524,7 +531,7 @@ public class SiteToSiteResource extends ApplicationResource {
             )
             @QueryParam(RESPONSE_CODE) Integer responseCode,
             @ApiParam(
-                    value = "A checksum calculated at client side using CRC32 to check flow file content integrity. It must be matched with the value calculated at server side.",
+                    value = "A checksum calculated at client side using CRC32 to check flow file content integrity. It must match with the value calculated at server side.",
                     required = true
             )
             @QueryParam(CHECK_SUM) @DefaultValue(StringUtils.EMPTY) String checksum,
@@ -607,7 +614,7 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("input-ports/{portId}/transactions/{transactionId}")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Transfer flow files to input port",
+            value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
                     @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -621,7 +628,8 @@ public class SiteToSiteResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response commitInputPortTransaction(
@@ -716,10 +724,7 @@ public class SiteToSiteResource extends ApplicationResource {
         return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion))).build();
     }
 
-    private Response cancelTransaction(@ApiParam(
-            value = "The transaction id.",
-            required = true
-    ) @PathParam("transactionId") String transactionId, TransactionResultEntity entity) {
+    private Response cancelTransaction(String transactionId, TransactionResultEntity entity) {
         transactionManager.cancelTransaction(transactionId);
         entity.setMessage("Transaction has been canceled.");
         entity.setResponseCode(ResponseCode.CANCEL_TRANSACTION.getCode());
@@ -733,8 +738,8 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("output-ports/{portId}/transactions/{transactionId}/flow-files")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-            value = "Receive flow files from output port",
-            response = TransactionResultEntity.class,
+            value = "Transfer flow files from the output port",
+            response = StreamingOutput.class,
             authorizations = {
                     @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                     @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
@@ -743,12 +748,13 @@ public class SiteToSiteResource extends ApplicationResource {
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 204, message = "There is no flow file to return."),
+                    @ApiResponse(code = 200, message = "There is no flow file to return."),
                     @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response transferFlowFiles(
@@ -766,7 +772,6 @@ public class SiteToSiteResource extends ApplicationResource {
             @Context HttpServletRequest req,
             @Context HttpServletResponse res,
             @Context ServletContext context,
-            @Context UriInfo uriInfo,
             InputStream inputStream) {
 
         final ValidateRequestResult validationResult = validateResult(req, clientId, portId, transactionId);
@@ -832,7 +837,6 @@ public class SiteToSiteResource extends ApplicationResource {
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 204, message = "There is no flow file to return."),
                     @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
@@ -874,12 +878,12 @@ public class SiteToSiteResource extends ApplicationResource {
     )
     @ApiResponses(
             value = {
-                    @ApiResponse(code = 204, message = "There is no flow file to return."),
                     @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
                     @ApiResponse(code = 401, message = "Client could not be authenticated."),
                     @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful."),
+                    @ApiResponse(code = 503, message = "NiFi instance is not ready for serving request, or temporarily overloaded. Retrying the same request later may be successful"),
             }
     )
     public Response extendOutputPortTransactionTTL(
@@ -992,13 +996,6 @@ public class SiteToSiteResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-
-    /*
-    // TODO: remove
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-    */
 
     private class ResponseCreator {
 

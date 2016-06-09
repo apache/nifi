@@ -1347,12 +1347,18 @@ of 576.
 ==== Site to Site Properties
 
 These properties govern how this instance of NiFi communicates with remote instances of NiFi when Remote Process Groups are configured in the dataflow.
+Remote Process Groups can choose transport protocol from RAW and HTTP. Properties named with _nifi.remote.input.socket.*_ are RAW transport protocol specific. Similarly, _nifi.remote.input.http.*_ are HTTP transport protocol specific properties.
 
 |====
 |*Property*|*Description*
-|nifi.remote.input.socket.host|The host name that will be given out to clients to connect to this NiFi instance for Site-to-Site communication. By default, it is the value from InetAddress.getLocalHost().getHostName(). On UNIX-like operating systems, this is typically the output from the `hostname` command.
-|nifi.remote.input.socket.port|The remote input socket port for Site-to-Site communication. By default, it is blank, but it must have a value in order to use Remote Process Groups.
-|nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to _true_. In order for secure site-to-site to work, many Security Properties (below) must also be configured.
+|[line-through]#nifi.remote.input.socket.host# +
+nifi.remote.input.host +
+(renamed since NiFi 1.0)|The host name that will be given out to clients to connect to this NiFi instance for Site-to-Site communication. By default, it is the value from InetAddress.getLocalHost().getHostName(). On UNIX-like operating systems, this is typically the output from the `hostname` command.
+|nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to _false_. In order for secure site-to-site to work, in addition to change it to _true_, many Security Properties (below) must also be configured.
+|nifi.remote.input.socket.port|The remote input socket port for Site-to-Site communication. By default, it is blank, but it must have a value in order to use RAW socket as transport protocol for Site-to-Site.
+|nifi.remote.input.http.enabled|Specify if HTTP Site-to-Site should be enabled on this host. By default, it is _true_. HTTP non-secure Site-to-Site is enabled by default. +
+Whether a Site-to-Site client uses HTTP or HTTPS is determined by _nifi.remote.input.secure_. If it is set to _true_, then requests are sent as HTTPS to _nifi.web.https.port_, if it is _false_, HTTP requests are sent to _nifi.web.http.port_.
+|nifi.remote.input.http.transaction.ttl|Specify how long a transaction can stay alive on server. If a Site-to-Site client didn't proceed to next action for this period of time, the transaction is discarded from remote NiFi instance. For example, a client creates a transaction but doesn't send or receive flow files, or send or received flow files but doesn't confirm that transaction. By default, it is set to 30 seconds.|
 |====
 
 ==== Web Properties

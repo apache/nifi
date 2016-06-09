@@ -90,7 +90,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new HttpFlowFileServerProtocol(versionNegotiator);
+        return new HttpFlowFileServerProtocolImpl(versionNegotiator);
     }
 
     @Test
