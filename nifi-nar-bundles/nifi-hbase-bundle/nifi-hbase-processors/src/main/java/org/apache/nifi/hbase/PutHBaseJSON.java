@@ -17,8 +17,17 @@
 package org.apache.nifi.hbase;
 
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -40,17 +49,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.ObjectHolder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
-
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 
 @EventDriven
 @SupportsBatching
@@ -195,7 +193,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     case TEXT_VALUE:
                         // use toString() here because asText() is only guaranteed to be supported on value nodes
                         // some other types of nodes, like ArrayNode, provide toString implementations
-                        fieldValueHolder.set(Bytes.toBytes(fieldNode.toString()));
+                        fieldValueHolder.set(cliSvc.toBytes(fieldNode.toString()));
                         break;
                     case IGNORE_VALUE:
                         // silently skip
@@ -232,21 +230,21 @@ public class PutHBaseJSON extends AbstractPutHBase {
      *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function 
      */
     private byte[] extractJNodeValue(JsonNode n){
-    	if (n.isBoolean()){
-    		//boolean
-    		return Bytes.toBytes(n.asBoolean());
-    	}else if(n.isNumber()){
-    		if(n.isIntegralNumber()){
-    			//interpret as Long
-    			return Bytes.toBytes(n.asLong());
-    		}else{
-    			//interpret as Double
-    			return Bytes.toBytes(n.asDouble());
-    		}
-    	}else{
-    		//if all else fails, interpret as String
-    		return Bytes.toBytes(n.asText());
-    	}
+        if (n.isBoolean()){
+            //boolean
+            return cliSvc.toBytes(n.asBoolean());
+        }else if(n.isNumber()){
+            if(n.isIntegralNumber()){
+                //interpret as Long
+                return cliSvc.toBytes(n.asLong());
+            }else{
+                //interpret as Double
+                return cliSvc.toBytes(n.asDouble());
+            }
+        }else{
+            //if all else fails, interpret as String
+            return cliSvc.toBytes(n.asText());
+        }
     }
 
 }
