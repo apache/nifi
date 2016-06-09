@@ -17,20 +17,20 @@
  */
 package org.apache.nifi.hbase;
 
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertTrue;
-
 public class HBaseTestUtil {
 
-    public static void verifyPut(final String row, final String columnFamily, final Map<String,String> columns, final List<PutFlowFile> puts) {
+    public static void verifyPut(final String row, final String columnFamily, final Map<String,byte[]> columns, final List<PutFlowFile> puts) {
         boolean foundPut = false;
 
         for (final PutFlowFile put : puts) {
@@ -45,13 +45,12 @@ public class HBaseTestUtil {
             // start off assuming we have all the columns
             boolean foundAllColumns = true;
 
-            for (Map.Entry<String, String> entry : columns.entrySet()) {
+            for (Map.Entry<String, byte[]> entry : columns.entrySet()) {
                 // determine if we have the current expected column
                 boolean foundColumn = false;
                 for (PutColumn putColumn : put.getColumns()) {
-                    final String colVal = new String(putColumn.getBuffer(), StandardCharsets.UTF_8);
                     if (columnFamily.equals(putColumn.getColumnFamily()) && entry.getKey().equals(putColumn.getColumnQualifier())
-                            && entry.getValue().equals(colVal)) {
+                            && Arrays.equals(entry.getValue(), putColumn.getBuffer())) {
                         foundColumn = true;
                         break;
                     }
