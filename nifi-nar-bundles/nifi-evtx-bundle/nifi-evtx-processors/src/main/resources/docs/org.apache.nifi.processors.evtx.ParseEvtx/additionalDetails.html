@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ParseEvtx</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor is used to parse Windows event logs in the binary evtx format. The input flow files' content should be evtx files.  The processor has 4 outputs:
+            <ul>
+              <li>The original unmodified FlowFile</li>
+              <li>The XML resulting from parsing at the configured granularity</li>
+              <li>Failed parsing with partial output</li>
+              <li>Malformed chunk in binary form</li>
+            </ul>
+         </p>
+         <h2>Output XML Example:</h2>
+         <p>
+             <pre>
+&lt;?xml version=&quot;1.0&quot;?&gt;
+&lt;Events&gt;
+  &lt;Event xmlns=&quot;http://schemas.microsoft.com/win/2004/08/events/event&quot;&gt;
+    &lt;System&gt;
+      &lt;Provider Name=&quot;Service Control Manager&quot; Guid=&quot;{555908d1-a6d7-4695-8e1e-26931d2012f4}&quot; Ev
+entSourceName=&quot;Service Control Manager&quot;/&gt;
+      &lt;EventID Qualifiers=&quot;16384&quot;&gt;7036&lt;/EventID&gt;
+      &lt;Version&gt;0&lt;/Version&gt;
+      &lt;Level&gt;4&lt;/Level&gt;
+      &lt;Task&gt;0&lt;/Task&gt;
+      &lt;Opcode&gt;0&lt;/Opcode&gt;
+      &lt;Keywords&gt;0x8080000000000000&lt;/Keywords&gt;
+      &lt;TimeCreated SystemTime=&quot;2016-01-08 16:49:47.518&quot;/&gt;
+      &lt;EventRecordID&gt;780&lt;/EventRecordID&gt;
+      &lt;Correlation ActivityID=&quot;&quot; RelatedActivityID=&quot;&quot;/&gt;
+      &lt;Execution ProcessID=&quot;480&quot; ThreadID=&quot;596&quot;/&gt;
+      &lt;Channel&gt;System&lt;/Channel&gt;
+      &lt;Computer&gt;win7-pro-vm&lt;/Computer&gt;
+      &lt;Security UserID=&quot;&quot;/&gt;
+    &lt;/System&gt;
+    &lt;EventData&gt;
+      &lt;Data Name=&quot;param1&quot;&gt;Workstation&lt;/Data&gt;
+      &lt;Data Name=&quot;param2&quot;&gt;running&lt;/Data&gt;
+      &lt;Binary&gt;TABhAG4AbQBhAG4AVwBvAHIAawBzAHQAYQB0AGkAbwBuAC8ANAAAAA==&lt;/Binary&gt;
+    &lt;/EventData&gt;
+  &lt;/Event&gt;
+  &lt;Event xmlns=&quot;http://schemas.microsoft.com/win/2004/08/events/event&quot;&gt;
+    &lt;System&gt;
+      &lt;Provider Name=&quot;Service Control Manager&quot; Guid=&quot;{555908d1-a6d7-4695-8e1e-26931d2012f4}&quot; EventSourceName=&quot;Service Control Manager&quot;/&gt;
+      &lt;EventID Qualifiers=&quot;16384&quot;&gt;7036&lt;/EventID&gt;
+      &lt;Version&gt;0&lt;/Version&gt;
+      &lt;Level&gt;4&lt;/Level&gt;
+      &lt;Task&gt;0&lt;/Task&gt;
+      &lt;Opcode&gt;0&lt;/Opcode&gt;
+      &lt;Keywords&gt;0x8080000000000000&lt;/Keywords&gt;
+      &lt;TimeCreated SystemTime=&quot;2016-01-08 16:49:47.535&quot;/&gt;
+      &lt;EventRecordID&gt;781&lt;/EventRecordID&gt;
+      &lt;Correlation ActivityID=&quot;&quot; RelatedActivityID=&quot;&quot;/&gt;
+      &lt;Execution ProcessID=&quot;480&quot; ThreadID=&quot;576&quot;/&gt;
+      &lt;Channel&gt;System&lt;/Channel&gt;
+      &lt;Computer&gt;win7-pro-vm&lt;/Computer&gt;
+      &lt;Security UserID=&quot;&quot;/&gt;
+    &lt;/System&gt;
+    &lt;EventData&gt;
+      &lt;Data Name=&quot;param1&quot;&gt;Cryptographic Services&lt;/Data&gt;
+      &lt;Data Name=&quot;param2&quot;&gt;running&lt;/Data&gt;
+      &lt;Binary&gt;QwByAHkAcAB0AFMAdgBjAC8ANAAAAA==&lt;/Binary&gt;
+    &lt;/EventData&gt;
+  &lt;/Event&gt;
+&lt;/Events&gt;
+             </pre>
+        </p>
+</body>
+</html>
