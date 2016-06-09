@@ -83,7 +83,9 @@ import java.util.concurrent.TimeUnit;
 public class GetHDFSEvents extends AbstractHadoopProcessor {
     static final PropertyDescriptor POLL_DURATION = new PropertyDescriptor.Builder()
             .name("Poll Duration")
-            .description("How long to poll for HDFS events.")
+            .displayName("Poll Duration")
+            .description("The time before the polling method returns with the next batch of events if they exist. It may exceed this amount of time by up to the time required for an " +
+                    "RPC to the NameNode.")
             .defaultValue("1 second")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -91,6 +93,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor HDFS_PATH_TO_WATCH = new PropertyDescriptor.Builder()
             .name("HDFS Path to Watch")
+            .displayName("HDFS Path to Watch")
             .description("The HDFS path to get event notifications for.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -98,6 +101,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor RECURSE_SUBDIRECTORIES = new PropertyDescriptor.Builder()
             .name("Recurse Subdirectories")
+            .displayName("Recurse Subdirectories")
             .description("Determines if processor will process event notifications for all subdirectories and files below the defined HDFS path to watch.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -107,10 +111,21 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
 
     static final PropertyDescriptor EVENT_TYPES = new PropertyDescriptor.Builder()
             .name("Event Types to Filter On")
+            .displayName("Event Types to Filter On")
             .description("A comma-separated list of event types to process. Valid event types are: append, close, create, metadata, rename, and unlink. Case does not matter.")
             .addValidator(new EventTypeValidator())
             .required(true)
             .defaultValue("append, close, create, metadata, rename, unlink")
+            .build();
+
+    static final PropertyDescriptor NUMBER_OF_RETRIES_FOR_POLL = new PropertyDescriptor.Builder()
+            .name("IOException Retries During Event Polling")
+            .displayName("IOException Retries During Event Polling")
+            .description("According to the HDFS admin API for event polling it is good to retry at least a few times. This number defines how many times the poll will be retried if it " +
+                    "throws an IOException.")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .required(true)
+            .defaultValue("3")
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -130,6 +145,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         props.add(HDFS_PATH_TO_WATCH);
         props.add(RECURSE_SUBDIRECTORIES);
         props.add(EVENT_TYPES);
+        props.add(NUMBER_OF_RETRIES_FOR_POLL);
         return Collections.unmodifiableList(props);
     }
 
@@ -156,40 +172,50 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         }
 
         try {
+            final int retries = context.getProperty(NUMBER_OF_RETRIES_FOR_POLL).asInteger();
             final TimeUnit pollDurationTimeUnit = TimeUnit.MICROSECONDS;
             final long pollDuration = context.getProperty(POLL_DURATION).asTimePeriod(pollDurationTimeUnit);
             final DFSInotifyEventInputStream eventStream = lastTxId == -1L ? getHdfsAdmin().getInotifyEventStream() : getHdfsAdmin().getInotifyEventStream(lastTxId);
-            final EventBatch eventBatch = getEventBatch(eventStream, pollDuration, pollDurationTimeUnit);
+            final EventBatch eventBatch = getEventBatch(eventStream, pollDuration, pollDurationTimeUnit, retries);
 
             if (eventBatch != null && eventBatch.getEvents() != null) {
                 if (eventBatch.getEvents().length > 0) {
                     List<FlowFile> flowFiles = new ArrayList<>(eventBatch.getEvents().length);
                     for (Event e : eventBatch.getEvents()) {
                         if (toProcessEvent(context, e)) {
-                            getLogger().debug("Creating flow file for event.");
+                            getLogger().debug("Creating flow file for event: {}.", new Object[]{e});
+                            final String path = getPath(e);
+
                             FlowFile flowFile = session.create();
                             flowFile = session.putAttribute(flowFile, EventAttributes.MIME_TYPE, "application/json");
                             flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_TYPE, e.getEventType().name());
-                            flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_PATH, getPath(e));
+                            flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_PATH, path);
                             flowFile = session.write(flowFile, new OutputStreamCallback() {
                                 @Override
                                 public void process(OutputStream out) throws IOException {
                                     out.write(OBJECT_MAPPER.writeValueAsBytes(e));
                                 }
                             });
+
                             flowFiles.add(flowFile);
                         }
                     }
 
-                    getLogger().debug("Transferring all event flow files.");
-                    session.transfer(flowFiles, REL_SUCCESS);
+                    for (FlowFile flowFile : flowFiles) {
+                        final String path = flowFile.getAttribute(EventAttributes.EVENT_PATH);
+                        final String transitUri = path.startsWith("/") ? "hdfs:/" + path : "hdfs://" + path;
+                        getLogger().debug("Transferring flow file {} and creating provenance event with URI {}.", new Object[]{flowFile, transitUri});
+                        session.transfer(flowFile, REL_SUCCESS);
+                        session.getProvenanceReporter().receive(flowFile, transitUri);
+                    }
                 }
 
                 lastTxId = eventBatch.getTxid();
             }
         } catch (IOException | InterruptedException e) {
             getLogger().error("Unable to get notification information: {}", new Object[]{e});
-            throw new ProcessException(e);
+            context.yield();
+            return;
         } catch (MissingEventsException e) {
             // set lastTxId to -1 and update state. This may cause events not to be processed. The reason this exception is thrown is described in the
             // org.apache.hadoop.hdfs.client.HdfsAdmin#getInotifyEventStrea API. It suggests tuning a couple parameters if this API is used.
@@ -201,7 +227,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         updateClusterStateForTxId(stateManager);
     }
 
-    private EventBatch getEventBatch(DFSInotifyEventInputStream eventStream, long duration, TimeUnit timeUnit) throws IOException, InterruptedException, MissingEventsException {
+    private EventBatch getEventBatch(DFSInotifyEventInputStream eventStream, long duration, TimeUnit timeUnit, int retries) throws IOException, InterruptedException, MissingEventsException {
         // According to the inotify API we should retry a few times if poll throws an IOException.
         // Please see org.apache.hadoop.hdfs.DFSInotifyEventInputStream#poll for documentation.
         int i = 0;
@@ -210,7 +236,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                 i += 1;
                 return eventStream.poll(duration, timeUnit);
             } catch (IOException e) {
-                if (i > 3) {
+                if (i > retries) {
                     getLogger().debug("Failed to poll for event batch. Reached max retry times.", e);
                     throw e;
                 } else {

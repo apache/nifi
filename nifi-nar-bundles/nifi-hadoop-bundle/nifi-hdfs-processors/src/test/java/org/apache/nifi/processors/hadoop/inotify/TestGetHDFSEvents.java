@@ -90,6 +90,7 @@ public class TestGetHDFSEvents {
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
         runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
+        runner.setProperty(GetHDFSEvents.NUMBER_OF_RETRIES_FOR_POLL, "5");
         runner.run();
 
         List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
