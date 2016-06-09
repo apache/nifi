@@ -476,15 +476,16 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public void produceContent(ContentEncoder encoder, IOControl ioControl) throws IOException {
 
-                // This blocks until data becomes available,
-                // or corresponding outputStream is closed.
                 int totalRead = 0;
+                int totalProduced = 0;
                 int read;
+                // This read() blocks until data becomes available,
+                // or corresponding outputStream is closed.
                 while ((read = dataPacketChannel.read(buffer)) > -1) {
 
                     buffer.flip();
                     while (buffer.hasRemaining()) {
-                        encoder.write(buffer);
+                        totalProduced += encoder.write(buffer);
                     }
                     buffer.clear();
                     logger.trace("Read {} bytes from dataPacketChannel. {}", read, flowFilesPath);
@@ -492,7 +493,19 @@ public class SiteToSiteRestApiClient implements Closeable {
 
                 }
 
-                logger.debug("sending data to {} has reached to its end. produced {} bytes.", flowFilesPath, totalRead);
+                // There might be remaining bytes in buffer. Make sure it's fully drained.
+                buffer.flip();
+                while (buffer.hasRemaining()) {
+                    totalProduced += encoder.write(buffer);
+                }
+
+                final long totalWritten = commSession.getOutput().getBytesWritten();
+                logger.debug("sending data to {} has reached to its end. produced {} bytes by reading {} bytes from channel. {} bytes written in this transaction.",
+                        flowFilesPath, totalProduced, totalRead, totalWritten);
+                if (totalRead != totalWritten || totalProduced != totalWritten) {
+                    final String msg = "Sending data to %s has reached to its end, but produced : read : wrote byte sizes (%d : $d : %d) were not equal. Something went wrong.";
+                    throw new RuntimeException(String.format(msg, flowFilesPath, totalProduced, totalRead, totalWritten));
+                }
                 transferDataLatch.countDown();
                 encoder.complete();
                 dataPacketChannel.close();
