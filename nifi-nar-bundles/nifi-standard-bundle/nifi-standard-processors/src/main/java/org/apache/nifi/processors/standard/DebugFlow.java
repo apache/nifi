@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.http.annotation.ThreadSafe;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -38,7 +39,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
+@ThreadSafe()
 @EventDriven()
 @Tags({"test", "debug", "processor", "utility", "flow", "flowfile"})
 @CapabilityDescription("This processor aids in the testing and debugging of the flowfile framework by allowing "
@@ -71,7 +74,7 @@ import java.util.Set;
         + "processing.")
 public class DebugFlow extends AbstractProcessor {
 
-    private Set<Relationship> relationships = null;
+    private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -82,7 +85,7 @@ public class DebugFlow extends AbstractProcessor {
             .description("Flowfiles that failed to process.")
             .build();
 
-    private List<PropertyDescriptor> propertyDescriptors = null;
+    private final AtomicReference<List<PropertyDescriptor>> propertyDescriptors = new AtomicReference<>();
 
     static final PropertyDescriptor FF_SUCCESS_ITERATIONS = new PropertyDescriptor.Builder()
             .name("Success Iterations")
@@ -149,32 +152,32 @@ public class DebugFlow extends AbstractProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    Integer FF_SUCCESS_MAX = 0;
-    private Integer FF_FAILURE_MAX = 0;
-    private Integer FF_ROLLBACK_MAX = 0;
-    private Integer FF_YIELD_MAX = 0;
-    private Integer FF_PENALTY_MAX = 0;
-    private Integer FF_EXCEPTION_MAX = 0;
+    volatile Integer FF_SUCCESS_MAX = 0;
+    private volatile Integer FF_FAILURE_MAX = 0;
+    private volatile Integer FF_ROLLBACK_MAX = 0;
+    private volatile Integer FF_YIELD_MAX = 0;
+    private volatile Integer FF_PENALTY_MAX = 0;
+    private volatile Integer FF_EXCEPTION_MAX = 0;
 
-    private Integer NO_FF_EXCEPTION_MAX = 0;
-    private Integer NO_FF_YIELD_MAX = 0;
-    private Integer NO_FF_SKIP_MAX = 0;
+    private volatile Integer NO_FF_EXCEPTION_MAX = 0;
+    private volatile Integer NO_FF_YIELD_MAX = 0;
+    private volatile Integer NO_FF_SKIP_MAX = 0;
 
-    private Integer FF_SUCCESS_CURR = 0;
-    private Integer FF_FAILURE_CURR = 0;
-    private Integer FF_ROLLBACK_CURR = 0;
-    private Integer FF_YIELD_CURR = 0;
-    private Integer FF_PENALTY_CURR = 0;
-    private Integer FF_EXCEPTION_CURR = 0;
+    private volatile Integer FF_SUCCESS_CURR = 0;
+    private volatile Integer FF_FAILURE_CURR = 0;
+    private volatile Integer FF_ROLLBACK_CURR = 0;
+    private volatile Integer FF_YIELD_CURR = 0;
+    private volatile Integer FF_PENALTY_CURR = 0;
+    private volatile Integer FF_EXCEPTION_CURR = 0;
 
-    private Integer NO_FF_EXCEPTION_CURR = 0;
-    private Integer NO_FF_YIELD_CURR = 0;
-    private Integer NO_FF_SKIP_CURR = 0;
+    private volatile Integer NO_FF_EXCEPTION_CURR = 0;
+    private volatile Integer NO_FF_YIELD_CURR = 0;
+    private volatile Integer NO_FF_SKIP_CURR = 0;
 
-    private FlowfileResponse curr_ff_resp;
-    private NoFlowfileResponse curr_noff_resp;
+    private final FlowfileResponse curr_ff_resp = FlowfileResponse.FF_EXCEPTION_RESPONSE;
+    private final NoFlowfileResponse curr_noff_resp = NoFlowfileResponse.NO_FF_EXCEPTION_RESPONSE;
 
-    private enum FlowfileResponse {
+    public enum FlowfileResponse {
         FF_SUCCESS_RESPONSE(0, 1),
         FF_FAILURE_RESPONSE(1, 2),
         FF_ROLLBACK_RESPONSE(2, 3),
@@ -184,7 +187,6 @@ public class DebugFlow extends AbstractProcessor {
 
         private Integer id;
         private Integer nextId;
-        private FlowfileResponse next;
 
         private static final Map<Integer, FlowfileResponse> byId = new HashMap<>();
         static {
@@ -193,27 +195,31 @@ public class DebugFlow extends AbstractProcessor {
                     throw new IllegalArgumentException("duplicate id: " + rc.id);
                 }
             }
-            for (FlowfileResponse rc : FlowfileResponse.values()) {
-                rc.next = byId.get(rc.nextId);
-            }
         }
+
         FlowfileResponse(Integer pId, Integer pNext) {
             id = pId;
             nextId = pNext;
         }
-        FlowfileResponse getNextCycle() {
-            return next;
+        synchronized void getNextCycle() {
+            FlowfileResponse next = byId.get(nextId);
+            id = next.id;
+            nextId = next.nextId;
+        }
+        synchronized void reset() {
+            FlowfileResponse first = byId.get(0);
+            id = first.id;
+            nextId = first.nextId;
         }
     }
 
-    private enum NoFlowfileResponse {
+    public enum NoFlowfileResponse {
         NO_FF_EXCEPTION_RESPONSE(0, 1),
         NO_FF_YIELD_RESPONSE(1, 2),
         NO_FF_SKIP_RESPONSE(2, 0);
 
         private Integer id;
         private Integer nextId;
-        private NoFlowfileResponse next;
 
         private static final Map<Integer, NoFlowfileResponse> byId = new HashMap<>();
         static {
@@ -222,46 +228,54 @@ public class DebugFlow extends AbstractProcessor {
                     throw new IllegalArgumentException("duplicate id: " + rc.id);
                 }
             }
-            for (NoFlowfileResponse rc : NoFlowfileResponse.values()) {
-                rc.next = byId.get(rc.nextId);
-            }
         }
         NoFlowfileResponse(Integer pId, Integer pNext) {
             id = pId;
             nextId = pNext;
         }
-        NoFlowfileResponse getNextCycle() {
-            return next;
+        synchronized void getNextCycle() {
+            NoFlowfileResponse next = byId.get(nextId);
+            id = next.id;
+            nextId = next.nextId;
+        }
+        synchronized void reset() {
+            NoFlowfileResponse first = byId.get(0);
+            id = first.id;
+            nextId = first.nextId;
         }
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        if (relationships == null) {
-            HashSet<Relationship> relSet = new HashSet<>();
-            relSet.add(REL_SUCCESS);
-            relSet.add(REL_FAILURE);
-            relationships = Collections.unmodifiableSet(relSet);
+        synchronized (relationships) {
+            if (relationships.get() == null) {
+                HashSet<Relationship> relSet = new HashSet<>();
+                relSet.add(REL_SUCCESS);
+                relSet.add(REL_FAILURE);
+                relationships.compareAndSet(null, Collections.unmodifiableSet(relSet));
+            }
         }
-        return relationships;
+        return relationships.get();
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        if (propertyDescriptors == null) {
-            ArrayList<PropertyDescriptor> propList = new ArrayList<>();
-            propList.add(FF_SUCCESS_ITERATIONS);
-            propList.add(FF_FAILURE_ITERATIONS);
-            propList.add(FF_ROLLBACK_ITERATIONS);
-            propList.add(FF_ROLLBACK_YIELD_ITERATIONS);
-            propList.add(FF_ROLLBACK_PENALTY_ITERATIONS);
-            propList.add(FF_EXCEPTION_ITERATIONS);
-            propList.add(NO_FF_EXCEPTION_ITERATIONS);
-            propList.add(NO_FF_YIELD_ITERATIONS);
-            propList.add(NO_FF_SKIP_ITERATIONS);
-            propertyDescriptors = Collections.unmodifiableList(propList);
+        synchronized (propertyDescriptors) {
+            if (propertyDescriptors.get() == null) {
+                ArrayList<PropertyDescriptor> propList = new ArrayList<>();
+                propList.add(FF_SUCCESS_ITERATIONS);
+                propList.add(FF_FAILURE_ITERATIONS);
+                propList.add(FF_ROLLBACK_ITERATIONS);
+                propList.add(FF_ROLLBACK_YIELD_ITERATIONS);
+                propList.add(FF_ROLLBACK_PENALTY_ITERATIONS);
+                propList.add(FF_EXCEPTION_ITERATIONS);
+                propList.add(NO_FF_EXCEPTION_ITERATIONS);
+                propList.add(NO_FF_YIELD_ITERATIONS);
+                propList.add(NO_FF_SKIP_ITERATIONS);
+                propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
+            }
         }
-        return propertyDescriptors;
+        return propertyDescriptors.get();
     }
 
     @SuppressWarnings("unused")
@@ -276,13 +290,13 @@ public class DebugFlow extends AbstractProcessor {
         NO_FF_EXCEPTION_MAX = context.getProperty(NO_FF_EXCEPTION_ITERATIONS).asInteger();
         NO_FF_YIELD_MAX = context.getProperty(NO_FF_YIELD_ITERATIONS).asInteger();
         NO_FF_SKIP_MAX = context.getProperty(NO_FF_SKIP_ITERATIONS).asInteger();
-        curr_ff_resp = FlowfileResponse.FF_SUCCESS_RESPONSE;
-        curr_noff_resp = NoFlowfileResponse.NO_FF_EXCEPTION_RESPONSE;
+        curr_ff_resp.reset();
+        curr_noff_resp.reset();
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         FlowFile ff = session.get();
 
@@ -300,7 +314,7 @@ public class DebugFlow extends AbstractProcessor {
                         throw new NullPointerException("forced by " + this.getClass().getName());
                     } else {
                         NO_FF_EXCEPTION_CURR = 0;
-                        curr_noff_resp = curr_noff_resp.getNextCycle();
+                        curr_noff_resp.getNextCycle();
                     }
                 }
                 if (curr_noff_resp == NoFlowfileResponse.NO_FF_YIELD_RESPONSE) {
@@ -311,7 +325,7 @@ public class DebugFlow extends AbstractProcessor {
                         break;
                     } else {
                         NO_FF_YIELD_CURR = 0;
-                        curr_noff_resp = curr_noff_resp.getNextCycle();
+                        curr_noff_resp.getNextCycle();
                     }
                 }
                 if (curr_noff_resp == NoFlowfileResponse.NO_FF_SKIP_RESPONSE) {
@@ -321,7 +335,7 @@ public class DebugFlow extends AbstractProcessor {
                         return;
                     } else {
                         NO_FF_SKIP_CURR = 0;
-                        curr_noff_resp = curr_noff_resp.getNextCycle();
+                        curr_noff_resp.getNextCycle();
                     }
                 }
                 return;
@@ -337,7 +351,7 @@ public class DebugFlow extends AbstractProcessor {
                         break;
                     } else {
                         FF_SUCCESS_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
                 if (curr_ff_resp == FlowfileResponse.FF_FAILURE_RESPONSE) {
@@ -351,7 +365,7 @@ public class DebugFlow extends AbstractProcessor {
                         break;
                     } else {
                         FF_FAILURE_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
                 if (curr_ff_resp == FlowfileResponse.FF_ROLLBACK_RESPONSE) {
@@ -365,7 +379,7 @@ public class DebugFlow extends AbstractProcessor {
                         break;
                     } else {
                         FF_ROLLBACK_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
                 if (curr_ff_resp == FlowfileResponse.FF_YIELD_RESPONSE) {
@@ -379,7 +393,7 @@ public class DebugFlow extends AbstractProcessor {
                         return;
                     } else {
                         FF_YIELD_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
                 if (curr_ff_resp == FlowfileResponse.FF_PENALTY_RESPONSE) {
@@ -393,7 +407,7 @@ public class DebugFlow extends AbstractProcessor {
                         break;
                     } else {
                         FF_PENALTY_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
                 if (curr_ff_resp == FlowfileResponse.FF_EXCEPTION_RESPONSE) {
@@ -405,7 +419,7 @@ public class DebugFlow extends AbstractProcessor {
                         throw new NullPointerException("forced by " + this.getClass().getName());
                     } else {
                         FF_EXCEPTION_CURR = 0;
-                        curr_ff_resp = curr_ff_resp.getNextCycle();
+                        curr_ff_resp.getNextCycle();
                     }
                 }
             }

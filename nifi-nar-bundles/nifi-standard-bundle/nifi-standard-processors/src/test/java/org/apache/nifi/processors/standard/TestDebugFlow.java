@@ -34,36 +34,38 @@ import static org.junit.Assert.assertNotNull;
 
 public class TestDebugFlow {
 
-    private DebugFlowInspectable debugFlow;
+//    private DebugFlowInspectable debugFlow;
+    private DebugFlow debugFlow;
     private TestRunner runner;
     private ProcessContext context;
     private ProcessSession session;
 
-    final String content1 = "Hello, World 1!";
-    final String filename1 = "testFile1.txt";
-    final String content2 = "Hello, World 2!";
-    final String filename2 = "testFile2.txt";
-    final String content3 = "Hello, World 3!";
-    final String filename3 = "testFile3.txt";
+    private final String content1 = "Hello, World 1!";
+    private final String content2 = "Hello, World 2!";
+    private final String content3 = "Hello, World 3!";
 
-    Map<String, String> attribs1 = new HashMap<>();
-    Map<String, String> attribs2 = new HashMap<>();
-    Map<String, String> attribs3 = new HashMap<>();
-    Map<String, String> namesToContent = new HashMap<>();
+    private Map<String, String> attribs1 = new HashMap<>();
+    private Map<String, String> attribs2 = new HashMap<>();
+    private Map<String, String> attribs3 = new HashMap<>();
+    private Map<String, String> namesToContent = new HashMap<>();
 
     @Before
     public void setup() throws IOException {
-        debugFlow = new DebugFlowInspectable();
+//        debugFlow = new DebugFlowInspectable();
+        debugFlow = new DebugFlow();
         runner = TestRunners.newTestRunner(debugFlow);
         context = runner.getProcessContext();
         session = runner.getProcessSessionFactory().createSession();
 
+        String filename1 = "testFile1.txt";
         attribs1.put(CoreAttributes.FILENAME.key(), filename1);
         attribs1.put(CoreAttributes.UUID.key(), "TESTING-1234-TESTING");
 
+        String filename2 = "testFile2.txt";
         attribs2.put(CoreAttributes.FILENAME.key(), filename2);
         attribs2.put(CoreAttributes.UUID.key(), "TESTING-2345-TESTING");
 
+        String filename3 = "testFile3.txt";
         attribs1.put(CoreAttributes.FILENAME.key(), filename3);
         attribs3.put(CoreAttributes.UUID.key(), "TESTING-3456-TESTING");
 
@@ -97,11 +99,12 @@ public class TestDebugFlow {
 
     @Test
     public void testSuccessMaxIsZeroUntilOnScheduled() throws Exception {
-        assertEquals(0L, debugFlow.getSuccessMax());
+//        assertEquals(0L, debugFlow.getSuccessMax());
+        assertEquals(0L, debugFlow.FF_SUCCESS_MAX.longValue());
         runner.assertValid();
         runner.run();
-        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(),
-                debugFlow.getSuccessMax());
+//        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.getSuccessMax());
+        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.FF_SUCCESS_MAX.longValue());
     }
 
     @Test
@@ -216,9 +219,9 @@ public class TestDebugFlow {
         session.rollback();
     }
 
-    private class DebugFlowInspectable extends DebugFlow {
-        public int getSuccessMax() {
-            return this.FF_SUCCESS_MAX;
-        }
-    }
+//    private class DebugFlowInspectable extends DebugFlow {
+//        public int getSuccessMax() {
+//            return this.FF_SUCCESS_MAX;
+//        }
+//    }
 }
