@@ -17,8 +17,12 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -48,7 +52,7 @@ public class FlowSnippetDTO {
     }
 
     public void setConnections(Set<ConnectionDTO> connections) {
-        this.connections = connections;
+        this.connections = this.orderedByInceptionId(connections);
     }
 
     /**
@@ -62,7 +66,7 @@ public class FlowSnippetDTO {
     }
 
     public void setInputPorts(Set<PortDTO> inputPorts) {
-        this.inputPorts = inputPorts;
+        this.inputPorts = this.orderedByInceptionId(inputPorts);
     }
 
     /**
@@ -76,7 +80,7 @@ public class FlowSnippetDTO {
     }
 
     public void setLabels(Set<LabelDTO> labels) {
-        this.labels = labels;
+        this.labels = this.orderedByInceptionId(labels);
     }
 
     /**
@@ -90,7 +94,7 @@ public class FlowSnippetDTO {
     }
 
     public void setFunnels(Set<FunnelDTO> funnels) {
-        this.funnels = funnels;
+        this.funnels = this.orderedByInceptionId(funnels);
     }
 
     /**
@@ -104,7 +108,7 @@ public class FlowSnippetDTO {
     }
 
     public void setOutputPorts(Set<PortDTO> outputPorts) {
-        this.outputPorts = outputPorts;
+        this.outputPorts = this.orderedByInceptionId(outputPorts);
     }
 
     /**
@@ -118,7 +122,7 @@ public class FlowSnippetDTO {
     }
 
     public void setProcessGroups(Set<ProcessGroupDTO> processGroups) {
-        this.processGroups = processGroups;
+        this.processGroups = this.orderedByInceptionId(processGroups);
     }
 
     /**
@@ -132,7 +136,7 @@ public class FlowSnippetDTO {
     }
 
     public void setProcessors(Set<ProcessorDTO> processors) {
-        this.processors = processors;
+        this.processors = this.orderedByInceptionId(processors);
     }
 
     /**
@@ -146,7 +150,7 @@ public class FlowSnippetDTO {
     }
 
     public void setRemoteProcessGroups(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
-        this.remoteProcessGroups = remoteProcessGroups;
+        this.remoteProcessGroups = this.orderedByInceptionId(remoteProcessGroups);
     }
 
     /**
@@ -160,6 +164,12 @@ public class FlowSnippetDTO {
     }
 
     public void setControllerServices(Set<ControllerServiceDTO> controllerServices) {
-        this.controllerServices = controllerServices;
+        this.controllerServices = this.orderedByInceptionId(controllerServices);
+    }
+
+    private <T extends InceptionAware> Set<T> orderedByInceptionId(Set<T> dtos) {
+        TreeSet<T> components = new TreeSet<>();
+        components.addAll(dtos);
+        return components;
     }
 }
