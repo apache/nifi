@@ -554,6 +554,7 @@ public class ControllerResource extends ApplicationResource {
 
     @Override
     public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        super.setClusterCoordinator(clusterCoordinator);
         this.clusterCoordinator = clusterCoordinator;
     }
 

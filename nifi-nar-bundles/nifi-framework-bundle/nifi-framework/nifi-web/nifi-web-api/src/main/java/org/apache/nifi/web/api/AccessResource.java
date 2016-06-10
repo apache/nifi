@@ -16,11 +16,21 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import io.jsonwebtoken.JwtException;
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.TimeUnit;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -39,7 +49,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
@@ -66,19 +75,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.concurrent.TimeUnit;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
+import io.jsonwebtoken.JwtException;
 
 /**
  * RESTful endpoint for managing access.
@@ -91,8 +93,6 @@ import java.util.concurrent.TimeUnit;
 public class AccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(AccessResource.class);
-
-    private NiFiProperties properties;
 
     private X509CertificateExtractor certificateExtractor;
     private X509AuthenticationProvider x509AuthenticationProvider;
@@ -500,10 +500,6 @@ public class AccessResource extends ApplicationResource {
     }
 
     // setters
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
     public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }

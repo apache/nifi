@@ -711,7 +711,9 @@ public class FlowFileQueueResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
+    @Override
     public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        super.setClusterCoordinator(clusterCoordinator);
         this.clusterCoordinator = clusterCoordinator;
     }
 
