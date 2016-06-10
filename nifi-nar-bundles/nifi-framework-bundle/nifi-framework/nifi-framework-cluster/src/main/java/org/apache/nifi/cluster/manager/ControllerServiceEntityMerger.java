@@ -94,8 +94,8 @@ public class ControllerServiceEntityMerger {
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
     }
 
-    public static void mergeControllerServiceReferences(Set<ControllerServiceReferencingComponentEntity> referencingComponents,
-                                                        Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> referencingComponentMap) {
+    public static void mergeControllerServiceReferences(final Set<ControllerServiceReferencingComponentEntity> referencingComponents,
+                                                        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> referencingComponentMap) {
 
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
@@ -131,15 +131,17 @@ public class ControllerServiceEntityMerger {
         }
 
         // go through each referencing components
-        for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
-            final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
-            if (activeThreadCount != null) {
-                referencingComponent.getComponent().setActiveThreadCount(activeThreadCount);
-            }
+        if (referencingComponents != null) {
+            for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
+                final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
+                if (activeThreadCount != null) {
+                    referencingComponent.getComponent().setActiveThreadCount(activeThreadCount);
+                }
 
-            final String state = states.get(referencingComponent.getId());
-            if (state != null) {
-                referencingComponent.getComponent().setState(state);
+                final String state = states.get(referencingComponent.getId());
+                if (state != null) {
+                    referencingComponent.getComponent().setState(state);
+                }
             }
         }
     }

@@ -1523,6 +1523,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 serviceNode.setAnnotationData(controllerServiceDTO.getAnnotationData());
                 serviceNode.setComments(controllerServiceDTO.getComments());
                 serviceNode.setName(controllerServiceDTO.getName());
+
+                group.addControllerService(serviceNode);
             }
 
             // configure controller services. We do this after creating all of them in case 1 service
@@ -1717,6 +1719,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 childTemplateDTO.setProcessors(contents.getProcessors());
                 childTemplateDTO.setFunnels(contents.getFunnels());
                 childTemplateDTO.setRemoteProcessGroups(contents.getRemoteProcessGroups());
+                childTemplateDTO.setControllerServices(contents.getControllerServices());
                 instantiateSnippet(childGroup, childTemplateDTO);
             }
 
