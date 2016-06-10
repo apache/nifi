@@ -225,9 +225,9 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
         return new PutFlowFile(tableName, putRowId, columns, flowFile);
     }
-    
+
     /*
-     *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function 
+     *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function
      */
     private byte[] extractJNodeValue(JsonNode n){
         if (n.isBoolean()){

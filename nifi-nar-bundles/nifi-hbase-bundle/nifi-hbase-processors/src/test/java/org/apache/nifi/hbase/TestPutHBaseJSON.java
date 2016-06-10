@@ -98,7 +98,7 @@ public class TestPutHBaseJSON {
         final ProvenanceEventRecord event = events.get(0);
         assertEquals("hbase://" + DEFAULT_TABLE_NAME + "/" + DEFAULT_ROW, event.getTransitUri());
     }
-    
+
     @Test
     public void testSingleJsonDocAndProvidedRowIdwithNonString() throws IOException, InitializationException {
         final TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, "1");

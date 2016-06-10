@@ -180,9 +180,9 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
      * @return a PutFlowFile instance for the given FlowFile
      */
     protected abstract PutFlowFile createPut(final ProcessSession session, final ProcessContext context, final FlowFile flowFile);
-    
+
     protected HBaseClientService cliSvc;
-    
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         cliSvc = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
