@@ -21,6 +21,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.InvalidTypeException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -118,7 +119,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     // Matches on top-level type (primitive types like text,int) and also for collections (like list<boolean> and map<float,double>)
     private static final Pattern CQL_TYPE_PATTERN = Pattern.compile("([^<]+)(<([^,>]+)(,([^,>]+))*>)?");
-
 
     /*
      * Will ensure that the list of property descriptors is build only once.
@@ -310,9 +310,9 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             // If the matcher doesn't match, this should fall through to the exception at the bottom
             if (matcher.find() && matcher.groupCount() > 1) {
                 String mainTypeString = matcher.group(1).toLowerCase();
-                DataType.Name mainTypeName = DataType.Name.valueOf(mainTypeString.toUpperCase());
-                if (!mainTypeName.isCollection()) {
-                    DataType mainType = getPrimitiveDataTypeFromString(mainTypeString);
+                DataType mainType = getPrimitiveDataTypeFromString(mainTypeString);
+                if (mainType != null) {
+                    TypeCodec typeCodec = codecRegistry.codecFor(mainType);
 
                     // Need the right statement.setXYZ() method
                     if (mainType.equals(DataType.ascii())
@@ -327,23 +327,23 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                         statement.setString(paramIndex, paramValue);
 
                     } else if (mainType.equals(DataType.cboolean())) {
-                        statement.setBool(paramIndex, (boolean) mainType.parse(paramValue));
+                        statement.setBool(paramIndex, (boolean) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cint())) {
-                        statement.setInt(paramIndex, (int) mainType.parse(paramValue));
+                        statement.setInt(paramIndex, (int) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.bigint())
                             || mainType.equals(DataType.counter())) {
-                        statement.setLong(paramIndex, (long) mainType.parse(paramValue));
+                        statement.setLong(paramIndex, (long) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cfloat())) {
-                        statement.setFloat(paramIndex, (float) mainType.parse(paramValue));
+                        statement.setFloat(paramIndex, (float) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.cdouble())) {
-                        statement.setDouble(paramIndex, (double) mainType.parse(paramValue));
+                        statement.setDouble(paramIndex, (double) typeCodec.parse(paramValue));
 
                     } else if (mainType.equals(DataType.blob())) {
-                        statement.setBytes(paramIndex, (ByteBuffer) mainType.parse(paramValue));
+                        statement.setBytes(paramIndex, (ByteBuffer) typeCodec.parse(paramValue));
 
                     }
                     return;
@@ -352,22 +352,28 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     if (matcher.groupCount() > 2) {
                         String firstParamTypeName = matcher.group(3);
                         DataType firstParamType = getPrimitiveDataTypeFromString(firstParamTypeName);
+                        if (firstParamType == null) {
+                            throw new IllegalArgumentException("Nested collections are not supported");
+                        }
 
                         // Check for map type
                         if (DataType.Name.MAP.toString().equalsIgnoreCase(mainTypeString)) {
                             if (matcher.groupCount() > 4) {
                                 String secondParamTypeName = matcher.group(5);
                                 DataType secondParamType = getPrimitiveDataTypeFromString(secondParamTypeName);
-                                statement.setMap(paramIndex, (Map) DataType.map(firstParamType, secondParamType).parse(paramValue));
+                                DataType mapType = DataType.map(firstParamType, secondParamType);
+                                statement.setMap(paramIndex, (Map) codecRegistry.codecFor(mapType).parse(paramValue));
                                 return;
                             }
                         } else {
                             // Must be set or list
                             if (DataType.Name.SET.toString().equalsIgnoreCase(mainTypeString)) {
-                                statement.setSet(paramIndex, (Set) DataType.set(firstParamType).parse(paramValue));
+                                DataType setType = DataType.set(firstParamType);
+                                statement.setSet(paramIndex, (Set) codecRegistry.codecFor(setType).parse(paramValue));
                                 return;
                             } else if (DataType.Name.LIST.toString().equalsIgnoreCase(mainTypeString)) {
-                                statement.setList(paramIndex, (List) DataType.list(firstParamType).parse(paramValue));
+                                DataType listType = DataType.list(firstParamType);
+                                statement.setList(paramIndex, (List) codecRegistry.codecFor(listType).parse(paramValue));
                                 return;
                             }
                         }

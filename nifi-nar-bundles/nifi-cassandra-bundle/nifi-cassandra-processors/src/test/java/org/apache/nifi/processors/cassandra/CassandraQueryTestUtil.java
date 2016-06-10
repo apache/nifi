@@ -21,6 +21,7 @@ import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.google.common.collect.Sets;
+import com.google.common.reflect.TypeToken;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -34,7 +35,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -107,9 +110,9 @@ public class CassandraQueryTestUtil {
         when(row.getString(0)).thenReturn(user_id);
         when(row.getString(1)).thenReturn(first_name);
         when(row.getString(2)).thenReturn(last_name);
-        when(row.getSet(3, String.class)).thenReturn(emails);
-        when(row.getList(4, String.class)).thenReturn(top_places);
-        when(row.getMap(5, Date.class, String.class)).thenReturn(todo);
+        when(row.getSet(eq(3), any(TypeToken.class))).thenReturn(emails);
+        when(row.getList(eq(4), any(TypeToken.class))).thenReturn(top_places);
+        when(row.getMap(eq(5), any(TypeToken.class), any(TypeToken.class))).thenReturn(todo);
         when(row.getBool(6)).thenReturn(registered);
         when(row.getFloat(7)).thenReturn(scale);
         when(row.getDouble(8)).thenReturn(metric);

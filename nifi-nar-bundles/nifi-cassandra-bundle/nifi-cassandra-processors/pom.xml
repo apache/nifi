@@ -41,7 +41,7 @@
         <dependency>
             <groupId>com.datastax.cassandra</groupId>
             <artifactId>cassandra-driver-core</artifactId>
-            <version>2.1.9</version>
+            <version>3.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
