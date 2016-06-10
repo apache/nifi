@@ -596,7 +596,7 @@ public final class SnippetUtils {
         if (seed == null) {
             return UUID.randomUUID().toString();
         } else {
-            return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
+            return UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8)).toString();
         }
     }
 

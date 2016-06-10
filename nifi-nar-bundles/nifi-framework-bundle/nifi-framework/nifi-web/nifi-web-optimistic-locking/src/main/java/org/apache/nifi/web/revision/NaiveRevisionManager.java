@@ -383,6 +383,10 @@ public class NaiveRevisionManager implements RevisionManager {
     public <T> T get(final String componentId, final ReadOnlyRevisionCallback<T> callback) {
         final RevisionLock revisionLock = getRevisionLock(new Revision(0L, null, componentId));
         logger.debug("Attempting to obtain read lock for {}", revisionLock.getRevision());
+        if (logger.isTraceEnabled()) {
+            logger.trace("Attempting to obtain read lock due to following stack trace", new RuntimeException("Exception for generating stack trace for debugging purposes"));
+        }
+
         revisionLock.acquireReadLock(null, revisionLock.getRevision().getClientId());
         logger.debug("Obtained read lock for {}", revisionLock.getRevision());
 
@@ -402,6 +406,10 @@ public class NaiveRevisionManager implements RevisionManager {
         final Stack<RevisionLock> revisionLocks = new Stack<>();
 
         logger.debug("Will attempt to obtain read locks for components {}", componentIds);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Attempting to obtain read lock due to following stack trace", new RuntimeException("Exception for generating stack trace for debugging purposes"));
+        }
+
         for (final String componentId : sortedIds) {
             final RevisionLock revisionLock = getRevisionLock(new Revision(0L, null, componentId));
 
