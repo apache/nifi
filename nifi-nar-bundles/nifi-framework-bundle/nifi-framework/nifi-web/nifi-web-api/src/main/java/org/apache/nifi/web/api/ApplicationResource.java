@@ -112,16 +112,16 @@ public abstract class ApplicationResource {
      * @param path path
      * @return resource uri
      */
-    protected String generateResourceUri(String... path) {
-        UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+    protected String generateResourceUri(final String... path) {
+        final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
         uriBuilder.segment(path);
         URI uri = uriBuilder.build();
         try {
 
             // check for proxy settings
-            String scheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
-            String host = httpServletRequest.getHeader(PROXY_HOST_HTTP_HEADER);
-            String port = httpServletRequest.getHeader(PROXY_PORT_HTTP_HEADER);
+            final String scheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
+            final String host = httpServletRequest.getHeader(PROXY_HOST_HTTP_HEADER);
+            final String port = httpServletRequest.getHeader(PROXY_PORT_HTTP_HEADER);
             String baseContextPath = httpServletRequest.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
 
             // if necessary, prepend the context path
@@ -144,7 +144,7 @@ public abstract class ApplicationResource {
                 } else {
                     try {
                         uriPort = Integer.parseInt(port);
-                    } catch (NumberFormatException nfe) {
+                    } catch (final NumberFormatException nfe) {
                         logger.warn(String.format("Unable to parse proxy port HTTP header '%s'. Using port from request URI '%s'.", port, uriPort));
                     }
                 }
@@ -172,8 +172,8 @@ public abstract class ApplicationResource {
      * @param response response
      * @return builder
      */
-    protected ResponseBuilder noCache(ResponseBuilder response) {
-        CacheControl cacheControl = new CacheControl();
+    protected ResponseBuilder noCache(final ResponseBuilder response) {
+        final CacheControl cacheControl = new CacheControl();
         cacheControl.setPrivate(true);
         cacheControl.setNoCache(true);
         cacheControl.setNoStore(true);
@@ -186,7 +186,7 @@ public abstract class ApplicationResource {
      * @param response response
      * @return builder
      */
-    protected ResponseBuilder clusterContext(ResponseBuilder response) {
+    protected ResponseBuilder clusterContext(final ResponseBuilder response) {
         // TODO: Remove this method. Since ClusterContext was removed, it is no longer needed. However,
         // it is called by practically every endpoint so for now it is just being stubbed out.
         return response;
@@ -222,8 +222,8 @@ public abstract class ApplicationResource {
      * @param entity The entity
      * @return The response to be built
      */
-    protected ResponseBuilder generateOkResponse(Object entity) {
-        ResponseBuilder response = Response.ok(entity);
+    protected ResponseBuilder generateOkResponse(final Object entity) {
+        final ResponseBuilder response = Response.ok(entity);
         return noCache(response);
     }
 
@@ -234,7 +234,7 @@ public abstract class ApplicationResource {
      * @param entity entity
      * @return The response to be built
      */
-    protected ResponseBuilder generateCreatedResponse(URI uri, Object entity) {
+    protected ResponseBuilder generateCreatedResponse(final URI uri, final Object entity) {
         // generate the response builder
         return Response.created(uri).entity(entity);
     }
@@ -268,7 +268,7 @@ public abstract class ApplicationResource {
         // get the form that jersey processed and use it if it exists (only exist for requests with a body and application form urlencoded
         final Form form = (Form) httpContext.getProperties().get(FormDispatchProvider.FORM_PROPERTY);
         if (form == null) {
-            for (Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
+            for (final Map.Entry<String, String[]> entry : httpServletRequest.getParameterMap().entrySet()) {
                 if (entry.getValue() == null) {
                     entity.add(entry.getKey(), null);
                 } else {
@@ -319,7 +319,7 @@ public abstract class ApplicationResource {
         }
 
         // set the proxy scheme to request scheme if not already set client
-        String proxyScheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
+        final String proxyScheme = httpServletRequest.getHeader(PROXY_SCHEME_HTTP_HEADER);
         if (proxyScheme == null) {
             result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
         }
@@ -351,7 +351,7 @@ public abstract class ApplicationResource {
      * @param httpServletRequest the request
      * @return <code>true</code> if the request represents a two-phase commit style request
      */
-    protected boolean isTwoPhaseRequest(HttpServletRequest httpServletRequest) {
+    protected boolean isTwoPhaseRequest(final HttpServletRequest httpServletRequest) {
         final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
         return headerValue != null;
     }
@@ -366,11 +366,11 @@ public abstract class ApplicationResource {
      * @return <code>true</code> if the request represents a two-phase commit style request and is the
      * first of the two phases.
      */
-    protected boolean isValidationPhase(HttpServletRequest httpServletRequest) {
+    protected boolean isValidationPhase(final HttpServletRequest httpServletRequest) {
         return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
     }
 
-    protected boolean isClaimCancelationPhase(HttpServletRequest httpServletRequest) {
+    protected boolean isClaimCancelationPhase(final HttpServletRequest httpServletRequest) {
         return httpServletRequest.getHeader(RequestReplicator.CLAIM_CANCEL_HEADER) != null;
     }
 
@@ -402,7 +402,7 @@ public abstract class ApplicationResource {
      * @param componentId the ID of the component that the Revision DTO belongs to
      * @return a Revision that has the same client ID and Version as the Revision DTO and the Component ID specified
      */
-    protected Revision getRevision(RevisionDTO revisionDto, String componentId) {
+    protected Revision getRevision(final RevisionDTO revisionDto, final String componentId) {
         return new Revision(revisionDto.getVersion(), revisionDto.getClientId(), componentId);
     }
 
@@ -412,7 +412,7 @@ public abstract class ApplicationResource {
      * @param entity the ComponentEntity that contains the Revision DTO & ID
      * @return the Revision specified in the ComponentEntity
      */
-    protected Revision getRevision(ComponentEntity entity, String componentId) {
+    protected Revision getRevision(final ComponentEntity entity, final String componentId) {
         return getRevision(entity.getRevision(), componentId);
     }
 
@@ -650,7 +650,7 @@ public abstract class ApplicationResource {
         return clusterCoordinator != null && clusterCoordinator.isConnected();
     }
 
-    public void setRequestReplicator(RequestReplicator requestReplicator) {
+    public void setRequestReplicator(final RequestReplicator requestReplicator) {
         this.requestReplicator = requestReplicator;
     }
 
@@ -658,11 +658,11 @@ public abstract class ApplicationResource {
         return requestReplicator;
     }
 
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
-    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
 

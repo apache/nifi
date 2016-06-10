@@ -1096,7 +1096,7 @@ public final class DtoFactory {
         final ReportingTaskDTO dto = new ReportingTaskDTO();
         dto.setId(reportingTaskNode.getIdentifier());
         dto.setName(reportingTaskNode.getName());
-        dto.setType(reportingTaskNode.getComponentType());
+        dto.setType(reportingTaskNode.getCanonicalClassName());
         dto.setSchedulingStrategy(reportingTaskNode.getSchedulingStrategy().name());
         dto.setSchedulingPeriod(reportingTaskNode.getSchedulingPeriod());
         dto.setState(reportingTaskNode.getScheduledState().name());
@@ -1168,7 +1168,7 @@ public final class DtoFactory {
         dto.setId(controllerServiceNode.getIdentifier());
         dto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
         dto.setName(controllerServiceNode.getName());
-        dto.setType(controllerServiceNode.getComponentType());
+        dto.setType(controllerServiceNode.getCanonicalClassName());
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
@@ -2404,6 +2404,7 @@ public final class DtoFactory {
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));
         copy.setId(original.getId());
+        copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
@@ -2683,6 +2684,7 @@ public final class DtoFactory {
         final Set<ProcessorDTO> processors = new LinkedHashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
         final Set<FunnelDTO> funnels = new LinkedHashSet<>();
+        final Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
 
         if (deep) {
             for (final ProcessGroupDTO group : original.getProcessGroups()) {
@@ -2716,6 +2718,10 @@ public final class DtoFactory {
             for (final ConnectionDTO connection : original.getConnections()) {
                 connections.add(copy(connection));
             }
+
+            for (final ControllerServiceDTO controllerService : original.getControllerServices()) {
+                controllerServices.add(copy(controllerService));
+            }
         } else {
             if (original.getConnections() != null) {
                 connections.addAll(copy(original.getConnections()));
@@ -2741,6 +2747,9 @@ public final class DtoFactory {
             if (original.getFunnels() != null) {
                 funnels.addAll(copy(original.getFunnels()));
             }
+            if (original.getControllerServices() != null) {
+                controllerServices.addAll(copy(original.getControllerServices()));
+            }
         }
 
         copy.setConnections(connections);
@@ -2751,6 +2760,7 @@ public final class DtoFactory {
         copy.setProcessors(processors);
         copy.setRemoteProcessGroups(remoteProcessGroups);
         copy.setFunnels(funnels);
+        copy.setControllerServices(controllerServices);
 
         return copy;
     }
