@@ -80,7 +80,6 @@ public class FlowFileQueueResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
-    private ClusterCoordinator clusterCoordinator;
 
     /**
      * Populate the URIs for the specified flowfile listing.
@@ -95,7 +94,7 @@ public class FlowFileQueueResource extends ApplicationResource {
 
         // uri of each flowfile
         if (flowFileListing.getFlowFileSummaries() != null) {
-            for (FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
+            for (final FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
                 populateRemainingFlowFileContent(connectionId, flowFile);
             }
         }
@@ -167,7 +166,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
                 // get the target node and ensure it exists
-                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
+                final NodeIdentifier targetNode = getClusterCoordinator().getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
@@ -255,7 +254,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
                 // get the target node and ensure it exists
-                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
+                final NodeIdentifier targetNode = getClusterCoordinator().getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
@@ -282,7 +281,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // generate a streaming response
         final StreamingOutput response = new StreamingOutput() {
             @Override
-            public void write(OutputStream output) throws IOException, WebApplicationException {
+            public void write(final OutputStream output) throws IOException, WebApplicationException {
                 try (InputStream is = content.getContent()) {
                     // stream the content to the response
                     StreamUtils.copy(is, output);
@@ -707,15 +706,11 @@ public class FlowFileQueueResource extends ApplicationResource {
     }
 
     // setters
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
-        this.clusterCoordinator = clusterCoordinator;
-    }
-
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }

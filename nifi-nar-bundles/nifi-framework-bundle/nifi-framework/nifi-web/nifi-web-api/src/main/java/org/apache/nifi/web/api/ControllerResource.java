@@ -84,7 +84,6 @@ public class ControllerResource extends ApplicationResource {
 
     private ReportingTaskResource reportingTaskResource;
     private ControllerServiceResource controllerServiceResource;
-    private ClusterCoordinator clusterCoordinator;
 
     @Context
     private ResourceContext resourceContext;
@@ -143,7 +142,7 @@ public class ControllerResource extends ApplicationResource {
                 @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response createArchive(@Context HttpServletRequest httpServletRequest) {
+    public Response createArchive(@Context final HttpServletRequest httpServletRequest) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -159,7 +158,7 @@ public class ControllerResource extends ApplicationResource {
         final ProcessGroupEntity entity = serviceFacade.createArchive();
 
         // generate the response
-        URI uri = URI.create(generateResourceUri("controller", "archive"));
+        final URI uri = URI.create(generateResourceUri("controller", "archive"));
         return clusterContext(generateCreatedResponse(uri, entity)).build();
     }
 
@@ -196,12 +195,12 @@ public class ControllerResource extends ApplicationResource {
                 value = "Whether or not to include the breakdown per node. Optional, defaults to false",
                 required = false
             )
-            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
+            @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
             @ApiParam(
                 value = "The id of the node where to get the status.",
                 required = false
             )
-        @QueryParam("clusterNodeId") String clusterNodeId) throws InterruptedException {
+        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -223,7 +222,7 @@ public class ControllerResource extends ApplicationResource {
                 return nodeResponse.getResponse();
             } else {
                 // get the target node and ensure it exists
-                final NodeIdentifier targetNode = clusterCoordinator.getNodeIdentifier(clusterNodeId);
+                final NodeIdentifier targetNode = getClusterCoordinator().getNodeIdentifier(clusterNodeId);
                 if (targetNode == null) {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
@@ -274,8 +273,8 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response updateCounter(
-            @Context HttpServletRequest httpServletRequest,
-            @PathParam("id") String id) {
+            @Context final HttpServletRequest httpServletRequest,
+            @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT);
@@ -366,11 +365,11 @@ public class ControllerResource extends ApplicationResource {
             }
     )
     public Response updateControllerConfig(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The controller configuration.",
                     required = true
-            ) ControllerConfigurationEntity configEntity) {
+            ) final ControllerConfigurationEntity configEntity) {
 
         if (configEntity == null || configEntity.getConfig() == null) {
             throw new IllegalArgumentException("Controller configuration must be specified");
@@ -431,11 +430,11 @@ public class ControllerResource extends ApplicationResource {
         }
     )
     public Response createReportingTask(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The reporting task configuration details.",
             required = true
-        ) ReportingTaskEntity reportingTaskEntity) {
+        ) final ReportingTaskEntity reportingTaskEntity) {
 
         if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
@@ -548,24 +547,19 @@ public class ControllerResource extends ApplicationResource {
     }
 
     // setters
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
-    @Override
-    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
-        this.clusterCoordinator = clusterCoordinator;
-    }
-
-    public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
+    public void setReportingTaskResource(final ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
     }
 
-    public void setControllerServiceResource(ControllerServiceResource controllerServiceResource) {
+    public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
         this.controllerServiceResource = controllerServiceResource;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 }
