@@ -112,13 +112,14 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
         this.navigateCtrl = navigateCtrl;
         this.operateCtrl = operateCtrl;
     }
+
     GraphControlsCtrl.prototype = {
         constructor: GraphControlsCtrl,
 
         /**
          *  Register the header controller.
          */
-        register: function() {
+        register: function () {
             if (serviceProvider.graphControlsCtrl === undefined) {
                 serviceProvider.register('graphControlsCtrl', graphControlsCtrl);
             }
@@ -127,7 +128,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
         /**
          * Initialize the graph controls.
          */
-        init: function() {
+        init: function () {
             this.operateCtrl.init();
             // initial the graph control visibility
             var graphControlVisibility = nf.Storage.getItem('graph-control-visibility');
@@ -144,10 +145,14 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
                 });
             }
 
-            // listen for browser resize events to reset the graph control positioning
-            $(window).resize(positionGraphControls);
-
             // set the initial position
+            positionGraphControls();
+        },
+
+        /**
+         * Position the graph controls
+         */
+        positionGraphControls: function () {
             positionGraphControls();
         },
 
@@ -155,7 +160,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
          * Undock the graph control.
          * @param {jQuery} $event
          */
-        undock: function($event) {
+        undock: function ($event) {
             openGraphControl($($event.target).parent().parent());
         },
 
@@ -163,7 +168,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
          * Expand the graph control.
          * @param {jQuery} $event
          */
-        expand: function($event) {
+        expand: function ($event) {
             var icon = $($event.target);
             if (icon.hasClass('fa-plus-square-o')) {
                 openGraphControl(icon.closest('div.graph-control'));

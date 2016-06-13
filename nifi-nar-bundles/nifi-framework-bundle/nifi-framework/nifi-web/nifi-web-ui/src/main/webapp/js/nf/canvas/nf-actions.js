@@ -512,33 +512,28 @@ nf.Actions = (function () {
                     componentsToStart.each(function (d) {
                         var selected = d3.select(this);
 
-                        // processor endpoint does not use running flag...
-                        var component = {
-                            'id': d.id,
-                        };
-                        if (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) {
-                            component['state'] = 'RUNNING';
+                        // prepare the request
+                        var uri, entity;
+                        if (nf.CanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'RUNNING'
+                            }
                         } else {
-                            component['running'] = true;
+                            uri = d.component.uri;
+                            entity = {
+                                'revision': nf.Client.getRevision(d),
+                                'component': {
+                                    'id': d.id,
+                                    'state': 'RUNNING'
+                                }
+                            };
                         }
 
-                        // build the entity
-                        var entity = {
-                            'revision': nf.Client.getRevision(d),
-                            'component': component
-                        };
-
-                        startRequests.push(updateResource(d.component.uri, entity).done(function (response) {
+                        startRequests.push(updateResource(uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessGroup(selected)) {
-                                nf.ProcessGroup.set(response);
-
-                                // reload the group's connections
-                                var connections = nf.Connection.getComponentConnections(response.id);
-                                $.each(connections, function (_, connection) {
-                                    if (connection.accessPolicy.canRead) {
-                                        nf.Connection.reload(connection.component);
-                                    }
-                                });
+                                nf.ProcessGroup.reload(d.component);
                             } else {
                                 nf[d.type].set(response);
                             }
@@ -587,33 +582,28 @@ nf.Actions = (function () {
                     componentsToStop.each(function (d) {
                         var selected = d3.select(this);
 
-                        // processor endpoint does not use running flag...
-                        var component = {
-                            'id': d.id,
-                        };
-                        if (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) {
-                            component['state'] = 'STOPPED';
+                        // prepare the request
+                        var uri, entity;
+                        if (nf.CanvasUtils.isProcessGroup(selected)) {
+                            uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id);
+                            entity = {
+                                'id': d.id,
+                                'state': 'STOPPED'
+                            };
                         } else {
-                            component['running'] = false;
+                            uri = d.component.uri;
+                            entity = {
+                                'revision': nf.Client.getRevision(d),
+                                'component': {
+                                    'id': d.id,
+                                    'state': 'STOPPED'
+                                }
+                            };
                         }
 
-                        // build the entity
-                        var entity = {
-                            'revision': nf.Client.getRevision(d),
-                            'component': component
-                        };
-
-                        stopRequests.push(updateResource(d.component.uri, entity).done(function (response) {
+                        stopRequests.push(updateResource(uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessGroup(selected)) {
-                                nf.ProcessGroup.set(response);
-
-                                // reload the group's connections
-                                var connections = nf.Connection.getComponentConnections(response.id);
-                                $.each(connections, function (_, connection) {
-                                    if (connection.accessPolicy.canRead) {
-                                        nf.Connection.reload(connection.component);
-                                    }
-                                });
+                                nf.ProcessGroup.reload(d.component);
                             } else {
                                 nf[d.type].set(response);
                             }

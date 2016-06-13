@@ -48,6 +48,9 @@ $(document).ready(function () {
 
 nf.Shell = (function () {
 
+    var showPageResize = null;
+    var showContentResize = null;
+
     return {
         /**
          * Shows a page in the shell.
@@ -99,13 +102,21 @@ nf.Shell = (function () {
                     height: shell.height()
                 }).appendTo(shell);
 
-                // add a window resize listener
-                $(window).resize(function () {
+                // remove the window resize listener
+                if (typeof showPageResize === 'function') {
+                    $(window).off('resize', showPageResize);
+                }
+
+                // handle resize
+                showPageResize = function () {
                     shellIframe.css({
                         width: shell.width(),
                         height: shell.height()
                     });
-                });
+                };
+
+                // add a window resize listener
+                $(window).resize(showPageResize);
             }).promise();
         },
         
@@ -152,17 +163,25 @@ nf.Shell = (function () {
                         height: shell.height()
                     }).append(content).appendTo(shell);
 
+                    // remove the window resize listener
+                    if (typeof showContentResize === 'function') {
+                        $(window).off('resize', showContentResize);
+                    }
+                    
                     // show the content
                     $('#shell-dialog').modal('show');
                     content.show();
 
-                    // add a window resize listener
-                    $(window).resize(function () {
+                    // handle resizes
+                    showContentResize = function () {
                         contentContainer.css({
                             width: shell.width(),
                             height: shell.height()
                         });
-                    });
+                    };
+                    
+                    // add a window resize listener
+                    $(window).resize(showContentResize);
                 }
             }).promise();
         }

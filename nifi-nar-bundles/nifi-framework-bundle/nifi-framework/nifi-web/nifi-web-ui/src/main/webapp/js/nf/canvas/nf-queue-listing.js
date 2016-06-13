@@ -365,7 +365,7 @@ nf.QueueListing = (function () {
                     type: 'GET',
                     url: listingRequest.uri,
                     dataType: 'json'
-                }).done(function(response) {
+                }).done(function (response) {
                     listingRequest = response.listingRequest;
                     processListingRequest(nextDelay);
                 }).fail(completeListingRequest).fail(nf.Common.handleAjaxError);
@@ -377,7 +377,7 @@ nf.QueueListing = (function () {
                 url: '../nifi-api/flowfile-queues/' + connection.id + '/listing-requests',
                 dataType: 'json',
                 contentType: 'application/json'
-            }).done(function(response) {
+            }).done(function (response) {
                 // initialize the progress bar value
                 updateProgress(0);
 
@@ -424,7 +424,7 @@ nf.QueueListing = (function () {
             url: flowFileSummary.uri,
             data: params,
             dataType: 'json'
-        }).done(function(response) {
+        }).done(function (response) {
             var flowFile = response.flowFile;
 
             // show the URI to this flowfile
@@ -491,25 +491,10 @@ nf.QueueListing = (function () {
         }).fail(nf.Common.handleAjaxError);
     };
 
-    /**
-     * Resets the table size.
-     */
-    var resetTableSize = function () {
-        var queueListingGrid = $('#queue-listing-table').data('gridInstance');
-        if (nf.Common.isDefinedAndNotNull(queueListingGrid)) {
-            queueListingGrid.resizeCanvas();
-        }
-    };
-
     return {
         init: function () {
             initializeListingRequestStatusDialog();
             initFlowFileDetailsDialog();
-
-            // listen for browser resize events to update the page size
-            $(window).resize(function () {
-                resetTableSize();
-            });
 
             // define mouse over event for the refresh button
             nf.Common.addHoverEffect('#queue-listing-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
@@ -608,8 +593,8 @@ nf.QueueListing = (function () {
 
                         // open the provenance page with the specified component
                         nf.Shell.showPage('provenance?' + $.param({
-                            flowFileUuid: item.uuid
-                        }));
+                                flowFileUuid: item.uuid
+                            }));
                     }
                 }
             });
@@ -632,6 +617,16 @@ nf.QueueListing = (function () {
 
             // initialize the number of display items
             $('#displayed-flowfiles').text('0');
+        },
+
+        /**
+         * Update the size of the grid based on its container's current size.
+         */
+        resetTableSize: function () {
+            var queueListingGrid = $('#queue-listing-table').data('gridInstance');
+            if (nf.Common.isDefinedAndNotNull(queueListingGrid)) {
+                queueListingGrid.resizeCanvas();
+            }
         },
 
         /**
@@ -668,7 +663,7 @@ nf.QueueListing = (function () {
                 });
 
                 // adjust the table size
-                resetTableSize();
+                nf.QueueListing.resetTableSize();
 
                 // store the connection for access later
                 $('#queue-listing-table').data('connection', connection);

@@ -16,24 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -49,12 +37,22 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing a Remote group.
@@ -310,11 +308,16 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     + "remote process group port id of the requested resource (%s).", requestRemoteProcessGroupPort.getId(), portId));
         }
 
+        // ensure the group ids are the same
+        if (!id.equals(requestRemoteProcessGroupPort.getGroupId())) {
+            throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
+                    + "remote process group id of the requested resource (%s).", requestRemoteProcessGroupPort.getGroupId(), id));
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, remoteProcessGroupPortEntity);
         }
 
-        // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(remoteProcessGroupPortEntity, id);
         return withWriteLock(
             serviceFacade,
@@ -393,12 +396,18 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     + "remote process group port id of the requested resource (%s).", requestRemoteProcessGroupPort.getId(), portId));
         }
 
+        // ensure the group ids are the same
+        if (!id.equals(requestRemoteProcessGroupPort.getGroupId())) {
+            throw new IllegalArgumentException(String.format("The remote process group id (%s) in the request body does not equal the "
+                    + "remote process group id of the requested resource (%s).", requestRemoteProcessGroupPort.getGroupId(), id));
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, remoteProcessGroupPortEntity);
         }
 
         // handle expects request (usually from the cluster manager)
-        final Revision revision = getRevision(remoteProcessGroupPortEntity, portId);
+        final Revision revision = getRevision(remoteProcessGroupPortEntity, id);
         return withWriteLock(
             serviceFacade,
             revision,
