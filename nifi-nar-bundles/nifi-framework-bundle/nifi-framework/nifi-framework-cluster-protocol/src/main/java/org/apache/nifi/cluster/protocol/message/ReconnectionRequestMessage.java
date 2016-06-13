@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
@@ -32,8 +36,11 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     private StandardDataFlow dataFlow;
     private boolean primary;
     private Integer managerRemoteSiteListeningPort;
+    private Integer managerRemoteSiteListeningHttpPort;
     private Boolean managerRemoteSiteCommsSecure;
     private String instanceId;
+    private List<NodeConnectionStatus> nodeStatuses;
+    private List<ComponentRevision> componentRevisions;
 
     public ReconnectionRequestMessage() {
     }
@@ -76,6 +83,14 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
         return managerRemoteSiteListeningPort;
     }
 
+    public void setManagerRemoteSiteListeningHttpPort(Integer managerRemoteSiteListeningHttpPort) {
+        this.managerRemoteSiteListeningHttpPort = managerRemoteSiteListeningHttpPort;
+    }
+
+    public Integer getManagerRemoteSiteListeningHttpPort() {
+        return managerRemoteSiteListeningHttpPort;
+    }
+
     public void setManagerRemoteSiteCommsSecure(final Boolean remoteSiteCommsSecure) {
         this.managerRemoteSiteCommsSecure = remoteSiteCommsSecure;
     }
@@ -90,5 +105,21 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
 
     public String getInstanceId() {
         return instanceId;
+    }
+
+    public void setNodeConnectionStatuses(List<NodeConnectionStatus> statuses) {
+        this.nodeStatuses = statuses;
+    }
+
+    public List<NodeConnectionStatus> getNodeConnectionStatuses() {
+        return nodeStatuses;
+    }
+
+    public List<ComponentRevision> getComponentRevisions() {
+        return componentRevisions;
+    }
+
+    public void setComponentRevisions(List<ComponentRevision> componentRevisions) {
+        this.componentRevisions = componentRevisions;
     }
 }

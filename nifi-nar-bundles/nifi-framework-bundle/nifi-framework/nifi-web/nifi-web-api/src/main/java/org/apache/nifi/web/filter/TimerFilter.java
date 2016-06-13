@@ -27,9 +27,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.logging.NiFiLog;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +51,9 @@ public class TimerFilter implements Filter {
             filterChain.doFilter(req, resp);
         } finally {
             final long stop = System.nanoTime();
-            final String requestId = ((HttpServletRequest) req).getHeader(WebClusterManager.REQUEST_ID_HEADER);
-            logger.debug("{} {} from {} request duration: {} millis", request.getMethod(), request.getRequestURL().toString(),
-                    req.getRemoteHost(), TimeUnit.MILLISECONDS.convert(stop - start, TimeUnit.NANOSECONDS));
+            final String requestId = ((HttpServletRequest) req).getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
+            logger.debug("{} {} from {} request duration for Request ID {}: {} millis", request.getMethod(), request.getRequestURL().toString(),
+                req.getRemoteHost(), requestId, TimeUnit.MILLISECONDS.convert(stop - start, TimeUnit.NANOSECONDS));
         }
     }
 

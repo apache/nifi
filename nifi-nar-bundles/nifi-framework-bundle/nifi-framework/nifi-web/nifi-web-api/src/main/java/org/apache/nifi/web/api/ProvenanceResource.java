@@ -16,36 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.cluster.node.Node;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.DownloadableContent;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
-import org.apache.nifi.web.api.entity.LineageEntity;
-import org.apache.nifi.web.api.entity.ProvenanceEntity;
-import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
-import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
-import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
-import org.apache.nifi.web.api.request.LongParameter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -62,16 +38,41 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.web.DownloadableContent;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
+import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
+import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
+import org.apache.nifi.web.api.entity.LineageEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
+import org.apache.nifi.web.api.entity.ProvenanceOptionsEntity;
+import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
+import org.apache.nifi.web.api.request.LongParameter;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+
 
 /**
  * RESTful endpoint for querying data provenance.
@@ -83,12 +84,8 @@ import java.util.UUID;
 )
 public class ProvenanceResource extends ApplicationResource {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProvenanceResource.class);
-    private static final int MAX_MAX_RESULTS = 10000;
-
-    private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
+    private Authorizer authorizer;
 
     /**
      * Populates the uri for the specified provenance.
@@ -104,6 +101,24 @@ public class ProvenanceResource extends ApplicationResource {
     private LineageDTO populateRemainingLineageContent(LineageDTO lineage) {
         lineage.setUri(generateResourceUri("provenance", "lineage", lineage.getId()));
         return lineage;
+    }
+
+    private void authorizeProvenanceRequest() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+            .resource(ResourceFactory.getProvenanceResource())
+            .identity(user.getIdentity())
+            .anonymous(user.isAnonymous())
+            .accessAttempt(true)
+            .action(RequestAction.READ)
+            .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        if (!Result.Approved.equals(result.getResult())) {
+            final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+            throw new AccessDeniedException(message);
+        }
     }
 
     /**
@@ -133,9 +148,10 @@ public class ProvenanceResource extends ApplicationResource {
     )
     public Response getSearchOptions() {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        authorizeProvenanceRequest();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
 
         // get provenance search options
@@ -178,11 +194,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitReplay(
-        @Context HttpServletRequest httpServletRequest,
+        @Context final HttpServletRequest httpServletRequest,
         @ApiParam(
             value = "The replay request.",
             required = true
-        ) SubmitReplayRequestEntity replayRequestEntity) {
+        ) final SubmitReplayRequestEntity replayRequestEntity) {
+
+        authorizeProvenanceRequest();
 
         // ensure the event id is specified
         if (replayRequestEntity == null || replayRequestEntity.getEventId() == null) {
@@ -190,27 +208,17 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (replayRequestEntity.getClusterNodeId() == null) {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(replayRequestEntity.getClusterNodeId());
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), replayRequestEntity, getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.POST, replayRequestEntity, replayRequestEntity.getClusterNodeId());
             }
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -259,12 +267,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where the content exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenance event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure proper input
         if (id == null) {
@@ -272,22 +282,12 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -352,12 +352,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where the content exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenance event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure proper input
         if (id == null) {
@@ -365,22 +367,12 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 throw new IllegalArgumentException("The id of the node in the cluster is required.");
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -445,11 +437,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitProvenanceRequest(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The provenance query details.",
                     required = true
             ) ProvenanceEntity provenanceEntity) {
+
+        authorizeProvenanceRequest();
 
         // check the request
         if (provenanceEntity == null) {
@@ -464,7 +458,7 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // change content type to JSON for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
@@ -472,36 +466,20 @@ public class ProvenanceResource extends ApplicationResource {
             // determine where this request should be sent
             if (provenanceDto.getClusterNodeId() == null) {
                 // replicate to all nodes
-                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), provenanceEntity, getHeaders(headersToOverride)).getResponse();
+                return replicate(HttpMethod.POST, provenanceEntity, headersToOverride);
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(provenanceDto.getClusterNodeId());
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // send to every node
-                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), provenanceEntity, getHeaders(headersToOverride), targetNodes).getResponse();
+                return replicate(HttpMethod.POST, provenanceEntity, provenanceDto.getClusterNodeId(), headersToOverride);
             }
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
 
         // ensure the id is the same across the cluster
-        final String provenanceId;
-        final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
-        if (clusterContext != null) {
-            provenanceId = UUID.nameUUIDFromBytes(clusterContext.getIdGenerationSeed().getBytes(StandardCharsets.UTF_8)).toString();
-        } else {
-            provenanceId = UUID.randomUUID().toString();
-        }
+        final String provenanceId = generateUuid();
 
         // set the provenance id accordingly
         provenanceDto.setId(provenanceId);
@@ -552,31 +530,23 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the provenance query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 // replicate to all nodes
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+                return replicate(HttpMethod.GET);
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.GET, clusterNodeId);
             }
         }
 
@@ -623,41 +593,33 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response deleteProvenance(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the provenance query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 // replicate to all nodes
-                return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+                return replicate(HttpMethod.DELETE);
             } else {
-                // get the target node and ensure it exists
-                final Node targetNode = clusterManager.getNode(clusterNodeId);
-                if (targetNode == null) {
-                    throw new UnknownNodeException("The specified cluster node does not exist.");
-                }
-
-                final Set<NodeIdentifier> targetNodes = new HashSet<>();
-                targetNodes.add(targetNode.getNodeId());
-
-                // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return replicate(HttpMethod.DELETE, clusterNodeId);
             }
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -705,12 +667,14 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this event exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The provenence event id.",
                     required = true
             )
-            @PathParam("id") LongParameter id) {
+            @PathParam("id") final LongParameter id) {
+
+        authorizeProvenanceRequest();
 
         // ensure the id is specified
         if (id == null) {
@@ -718,23 +682,13 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             // since we're cluster we must specify the cluster node identifier
             if (clusterNodeId == null) {
                 throw new IllegalArgumentException("The cluster node identifier must be specified.");
             }
 
-            // get the target node and ensure it exists
-            final Node targetNode = clusterManager.getNode(clusterNodeId);
-            if (targetNode == null) {
-                throw new UnknownNodeException("The specified cluster node does not exist.");
-            }
-
-            final Set<NodeIdentifier> targetNodes = new HashSet<>();
-            targetNodes.add(targetNode.getNodeId());
-
-            // replicate the request to the specific node
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+            return replicate(HttpMethod.GET, clusterNodeId);
         }
 
         // get the provenance event
@@ -786,12 +740,13 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response submitLineageRequest(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The lineage query details.",
                     required = true
-            )
-            final LineageEntity lineageEntity) {
+            ) final LineageEntity lineageEntity) {
+
+        authorizeProvenanceRequest();
 
         if (lineageEntity == null || lineageEntity.getLineage() == null || lineageEntity.getLineage().getRequest() == null) {
             throw new IllegalArgumentException("Lineage request must be specified.");
@@ -824,30 +779,19 @@ public class ProvenanceResource extends ApplicationResource {
         }
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
+        if (isReplicateRequest()) {
             if (lineageDto.getClusterNodeId() == null) {
                 throw new IllegalArgumentException("The cluster node identifier must be specified.");
             }
 
-            // get the target node and ensure it exists
-            final Node targetNode = clusterManager.getNode(lineageDto.getClusterNodeId());
-            if (targetNode == null) {
-                throw new UnknownNodeException("The specified cluster node does not exist.");
-            }
-
-            final Set<NodeIdentifier> targetNodes = new HashSet<>();
-            targetNodes.add(targetNode.getNodeId());
-
             // change content type to JSON for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // send to every node
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), lineageEntity, getHeaders(headersToOverride), targetNodes).getResponse();
+            return replicate(HttpMethod.POST, lineageEntity, lineageDto.getClusterNodeId(), headersToOverride);
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -898,30 +842,18 @@ public class ProvenanceResource extends ApplicationResource {
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the lineage query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // since we're cluster we must specify the cluster node identifier
-            if (clusterNodeId == null) {
-                throw new IllegalArgumentException("The cluster node identifier must be specified.");
-            }
-
-            // get the target node and ensure it exists
-            final Node targetNode = clusterManager.getNode(clusterNodeId);
-            if (targetNode == null) {
-                throw new UnknownNodeException("The specified cluster node does not exist.");
-            }
-
-            final Set<NodeIdentifier> targetNodes = new HashSet<>();
-            targetNodes.add(targetNode.getNodeId());
-
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET, clusterNodeId);
         }
 
         // get the lineage
@@ -967,39 +899,27 @@ public class ProvenanceResource extends ApplicationResource {
             }
     )
     public Response deleteLineage(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The id of the node where this query exists if clustered.",
                     required = false
             )
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
                     value = "The id of the lineage query.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
+
+        authorizeProvenanceRequest();
 
         // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // since we're cluster we must specify the cluster node identifier
-            if (clusterNodeId == null) {
-                throw new IllegalArgumentException("The cluster node identifier must be specified.");
-            }
-
-            // get the target node and ensure it exists
-            final Node targetNode = clusterManager.getNode(clusterNodeId);
-            if (targetNode == null) {
-                throw new UnknownNodeException("The specified cluster node does not exist.");
-            }
-
-            final Set<NodeIdentifier> targetNodes = new HashSet<>();
-            targetNodes.add(targetNode.getNodeId());
-
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE, clusterNodeId);
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
+        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
         if (expects != null) {
             return generateContinueResponse().build();
         }
@@ -1015,15 +935,11 @@ public class ProvenanceResource extends ApplicationResource {
     }
 
     // setters
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

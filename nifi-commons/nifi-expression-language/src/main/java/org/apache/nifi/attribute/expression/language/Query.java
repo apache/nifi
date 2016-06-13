@@ -59,6 +59,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.InEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LessThanEvaluator;
@@ -79,6 +80,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Random
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceFirstEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StartsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToDateEvaluator;
@@ -151,6 +153,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_EMPTY;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JSON_PATH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
@@ -172,6 +175,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_FIRST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_NULL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STARTS_WITH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STRING_LITERAL;
@@ -427,8 +431,8 @@ public class Query {
     }
 
     static Map<String, String> createExpressionMap(final FlowFile flowFile, final Map<String, String> additionalAttributes) {
-        final Map<String, String> attributeMap = flowFile == null ? Collections.<String, String> emptyMap() : flowFile.getAttributes();
-        final Map<String, String> additionalOrEmpty = additionalAttributes == null ? Collections.<String, String> emptyMap() : additionalAttributes;
+        final Map<String, String> attributeMap = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
+        final Map<String, String> additionalOrEmpty = additionalAttributes == null ? Collections.emptyMap() : additionalAttributes;
         final Map<String, String> envMap = System.getenv();
         final Map<?, ?> sysProps = System.getProperties();
 
@@ -1126,6 +1130,12 @@ public class Query {
                     toStringEvaluator(argEvaluators.get(0), "first argument to replace"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replace")), "replace");
             }
+            case REPLACE_FIRST: {
+                verifyArgCount(argEvaluators, 2, "replaceFirst");
+                return addToken(new ReplaceFirstEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to replaceFirst"),
+                        toStringEvaluator(argEvaluators.get(1), "second argument to replaceFirst")), "replaceFirst");
+            }
             case REPLACE_ALL: {
                 verifyArgCount(argEvaluators, 2, "replaceAll");
                 return addToken(new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
@@ -1344,9 +1354,14 @@ public class Query {
                         "getDelimitedField");
                 }
             }
+            case JSON_PATH: {
+                verifyArgCount(argEvaluators, 1, "jsonPath");
+                return addToken(new JsonPathEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to jsonPath")), "jsonPath");
+            }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
-        }
+            }
     }
 
     public static class Range {

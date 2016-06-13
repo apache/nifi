@@ -43,6 +43,7 @@ import org.apache.nifi.cluster.protocol.Heartbeat;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
+import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
@@ -55,7 +56,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Uses Apache Curator to monitor heartbeats from nodes
+ * Uses Apache ZooKeeper to advertise the address to send heartbeats to, and then relies on the NiFi Cluster
+ * Protocol to receive heartbeat messages from nodes in the cluster.
  */
 public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor implements HeartbeatMonitor, ProtocolHandler {
     protected static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeatMonitor.class);
@@ -64,7 +66,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     private final ZooKeeperClientConfig zkClientConfig;
     private final String clusterNodesPath;
 
-    private volatile CuratorFramework curatorClient;
     private volatile Map<String, NodeIdentifier> clusterNodeIds = new HashMap<>();
 
     private final String heartbeatAddress;
@@ -82,32 +83,33 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
 
-    public ClusterProtocolHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final Properties properties) {
+    public ClusterProtocolHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final ProtocolListener protocolListener, final Properties properties) {
         super(clusterCoordinator, properties);
 
+        protocolListener.addHandler(this);
         this.zkClientConfig = ZooKeeperClientConfig.createConfig(properties);
         this.clusterNodesPath = zkClientConfig.resolvePath("cluster/nodes");
 
-        String hostname = properties.getProperty(NiFiProperties.CLUSTER_MANAGER_ADDRESS);
+        String hostname = properties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
         if (hostname == null) {
             try {
                 hostname = InetAddress.getLocalHost().getHostName();
             } catch (UnknownHostException e) {
-                throw new RuntimeException("Unable to determine local hostname and the '" + NiFiProperties.CLUSTER_MANAGER_ADDRESS + "' property is not set");
+                throw new RuntimeException("Unable to determine local hostname and the '" + NiFiProperties.CLUSTER_NODE_ADDRESS + "' property is not set");
             }
         }
 
-        final String port = properties.getProperty(NiFiProperties.CLUSTER_MANAGER_PROTOCOL_PORT);
+        final String port = properties.getProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
         if (port == null) {
-            throw new RuntimeException("Unable to determine which port Cluster Manager Protocol is listening on because the '"
-                + NiFiProperties.CLUSTER_MANAGER_PROTOCOL_PORT + "' property is not set");
+            throw new RuntimeException("Unable to determine which port Cluster Coordinator Protocol is listening on because the '"
+                + NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT + "' property is not set");
         }
 
         try {
             Integer.parseInt(port);
         } catch (final NumberFormatException nfe) {
-            throw new RuntimeException("Unable to determine which port Cluster Manager Protocol is listening on because the '"
-                + NiFiProperties.CLUSTER_MANAGER_PROTOCOL_PORT + "' property is set to '" + port + "', which is not a valid port number.");
+            throw new RuntimeException("Unable to determine which port Cluster Coordinator Protocol is listening on because the '"
+                + NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT + "' property is set to '" + port + "', which is not a valid port number.");
         }
 
         heartbeatAddress = hostname + ":" + port;
@@ -116,9 +118,21 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     @Override
     public void onStart() {
         final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.newClient(zkClientConfig.getConnectString(),
+        final CuratorFramework curatorClient = CuratorFrameworkFactory.newClient(zkClientConfig.getConnectString(),
             zkClientConfig.getSessionTimeoutMillis(), zkClientConfig.getConnectionTimeoutMillis(), retryPolicy);
         curatorClient.start();
+
+        // We don't know what the heartbeats look like for the nodes, since we were just elected to monitoring
+        // them. However, the map may be filled with old heartbeats. So we clear the heartbeats and populate the
+        // map with new heartbeats set to the current time and using the currently known status. We do this so
+        // that if we go the required amount of time without receiving a heartbeat, we do know to mark the node
+        // as disconnected.
+        heartbeatMessages.clear();
+        for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
+            final NodeHeartbeat heartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
+                clusterCoordinator.getConnectionStatus(nodeId), Collections.emptySet(), 0, 0L, 0, System.currentTimeMillis());
+            heartbeatMessages.put(nodeId, heartbeat);
+        }
 
         final Thread publishAddress = new Thread(new Runnable() {
             @Override
@@ -128,6 +142,8 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
                     try {
                         try {
                             curatorClient.setData().forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
+                            curatorClient.close();
+                            logger.info("Successfully published Cluster Heartbeat Monitor Address of {} to ZooKeeper", heartbeatAddress);
                             return;
                         } catch (final NoNodeException nne) {
                             // ensure that parents are created, using a wide-open ACL because the parents contain no data
@@ -162,16 +178,8 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         publishAddress.start();
     }
 
-    private CuratorFramework getClient() {
-        return curatorClient;
-    }
-
     @Override
     public void onStop() {
-        final CuratorFramework client = getClient();
-        if (client != null) {
-            client.close();
-        }
     }
 
     @Override
@@ -201,7 +209,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
         final NodeConnectionStatus connectionStatus = heartbeat.getConnectionStatus();
-        final boolean primary = heartbeat.isPrimary();
+        final Set<String> roles = heartbeat.getRoles();
         final byte[] payloadBytes = heartbeat.getPayload();
         final HeartbeatPayload payload = HeartbeatPayload.unmarshal(payloadBytes);
         final int activeThreadCount = payload.getActiveThreadCount();
@@ -210,7 +218,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         final long systemStartTime = payload.getSystemStartTime();
 
         final NodeHeartbeat nodeHeartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-            connectionStatus, primary, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
+            connectionStatus, roles, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
         heartbeatMessages.put(heartbeat.getNodeIdentifier(), nodeHeartbeat);
         logger.debug("Received new heartbeat from {}", nodeId);
 

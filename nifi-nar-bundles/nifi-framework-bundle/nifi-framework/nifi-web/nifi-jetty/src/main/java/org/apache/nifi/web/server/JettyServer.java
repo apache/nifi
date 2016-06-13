@@ -16,52 +16,6 @@
  */
 package org.apache.nifi.web.server;
 
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.NiFiServer;
-import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.controller.serialization.FlowSynchronizationException;
-import org.apache.nifi.lifecycle.LifeCycleStartException;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.services.FlowService;
-import org.apache.nifi.ui.extension.UiExtension;
-import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.ContentAccess;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.NiFiWebContext;
-import org.apache.nifi.web.UiExtensionType;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.servlet.FilterHolder;
-import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.resource.ResourceCollection;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.webapp.WebAppClassLoader;
-import org.eclipse.jetty.webapp.WebAppContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.ServletContext;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -84,6 +38,55 @@ import java.util.Map;
 import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+
+import javax.servlet.DispatcherType;
+import javax.servlet.ServletContext;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.NiFiServer;
+import org.apache.nifi.controller.UninheritableFlowException;
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
+import org.apache.nifi.lifecycle.LifeCycleStartException;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.services.FlowService;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.ContentAccess;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.UiExtensionType;
+import org.eclipse.jetty.annotations.AnnotationConfiguration;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SecureRequestCustomizer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.SslConnectionFactory;
+import org.eclipse.jetty.server.handler.ContextHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.ResourceHandler;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceCollection;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.webapp.Configuration;
+import org.eclipse.jetty.webapp.JettyWebXmlConfiguration;
+import org.eclipse.jetty.webapp.WebAppClassLoader;
+import org.eclipse.jetty.webapp.WebAppContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
  * Encapsulates the Jetty instance.
@@ -117,9 +120,6 @@ public class JettyServer implements NiFiServer {
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
 
-    @Deprecated
-    private Collection<WebAppContext> customUiWebContexts;
-
     /**
      * Creates and configures a new Jetty instance.
      *
@@ -132,6 +132,10 @@ public class JettyServer implements NiFiServer {
         // create the server
         this.server = new Server(threadPool);
         this.props = props;
+
+        // enable the annotation based configuration to ensure the jsp container is initialized properly
+        final Configuration.ClassList classlist = Configuration.ClassList.setServerDefault(server);
+        classlist.addBefore(JettyWebXmlConfiguration.class.getName(), AnnotationConfiguration.class.getName());
 
         // configure server
         configureConnectors(server);
@@ -214,29 +218,21 @@ public class JettyServer implements NiFiServer {
         final ClassLoader frameworkClassLoader = getClass().getClassLoader();
         final ClassLoader jettyClassLoader = frameworkClassLoader.getParent();
 
-        @Deprecated
-        final Map<String, String> customUiMappings = new HashMap<>();
-
         // deploy the other wars
         if (CollectionUtils.isNotEmpty(otherWars)) {
             // hold onto to the web contexts for all ui extensions
-            customUiWebContexts = new ArrayList<>();
             componentUiExtensionWebContexts = new ArrayList<>();
             contentViewerWebContexts = new ArrayList<>();
 
             // ui extension organized by component type
             final Map<String, List<UiExtension>> componentUiExtensionsByType = new HashMap<>();
             for (File war : otherWars) {
-                // see if this war is a custom processor ui
-                @Deprecated
-                List<String> customUiProcessorTypes = getWarExtensions(war, "META-INF/nifi-processor");
-
                 // identify all known extension types in the war
                 final Map<UiExtensionType, List<String>> uiExtensionInWar = new HashMap<>();
                 identifyUiExtensionsForComponents(uiExtensionInWar, war);
 
                 // only include wars that are for custom processor ui's
-                if (!customUiProcessorTypes.isEmpty() || !uiExtensionInWar.isEmpty()) {
+                if (!uiExtensionInWar.isEmpty()) {
                     // get the context path
                     String warName = StringUtils.substringBeforeLast(war.getName(), ".");
                     String warContextPath = String.format("/%s", warName);
@@ -252,52 +248,41 @@ public class JettyServer implements NiFiServer {
                     // create the extension web app context
                     WebAppContext extensionUiContext = loadWar(war, warContextPath, narClassLoaderForWar);
 
-                    // also store it by type so we can populate the appropriate initialization parameters
-                    if (!customUiProcessorTypes.isEmpty()) {
-                        customUiWebContexts.add(extensionUiContext);
+                    // create the ui extensions
+                    for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
+                        final UiExtensionType extensionType = entry.getKey();
+                        final List<String> types = entry.getValue();
 
-                        // @Deprecated - supported custom uis as init params to the web api
-                        for (String customUiProcessorType : customUiProcessorTypes) {
-                            // map the processor type to the custom ui path
-                            customUiMappings.put(customUiProcessorType, warContextPath);
-                        }
-                    } else {
-                        // create the ui extensions
-                        for (final Map.Entry<UiExtensionType, List<String>> entry : uiExtensionInWar.entrySet()) {
-                            final UiExtensionType extensionType = entry.getKey();
-                            final List<String> types = entry.getValue();
-
-                            if (UiExtensionType.ContentViewer.equals(extensionType)) {
-                                // consider each content type identified
-                                for (final String contentType : types) {
-                                    // map the content type to the context path
-                                    mimeMappings.put(contentType, warContextPath);
-                                }
-
-                                // this ui extension provides a content viewer
-                                contentViewerWebContexts.add(extensionUiContext);
-                            } else {
-                                // consider each component type identified
-                                for (final String componentType : types) {
-                                    logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, types));
-
-                                    // record the extension definition
-                                    final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
-
-                                    // create if this is the first extension for this component type
-                                    List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentType);
-                                    if (componentUiExtensionsForType == null) {
-                                        componentUiExtensionsForType = new ArrayList<>();
-                                        componentUiExtensionsByType.put(componentType, componentUiExtensionsForType);
-                                    }
-
-                                    // record this extension
-                                    componentUiExtensionsForType.add(uiExtension);
-                                }
-
-                                // this ui extension provides a component custom ui
-                                componentUiExtensionWebContexts.add(extensionUiContext);
+                        if (UiExtensionType.ContentViewer.equals(extensionType)) {
+                            // consider each content type identified
+                            for (final String contentType : types) {
+                                // map the content type to the context path
+                                mimeMappings.put(contentType, warContextPath);
                             }
+
+                            // this ui extension provides a content viewer
+                            contentViewerWebContexts.add(extensionUiContext);
+                        } else {
+                            // consider each component type identified
+                            for (final String componentType : types) {
+                                logger.info(String.format("Loading UI extension [%s, %s] for %s", extensionType, warContextPath, types));
+
+                                // record the extension definition
+                                final UiExtension uiExtension = new UiExtension(extensionType, warContextPath);
+
+                                // create if this is the first extension for this component type
+                                List<UiExtension> componentUiExtensionsForType = componentUiExtensionsByType.get(componentType);
+                                if (componentUiExtensionsForType == null) {
+                                    componentUiExtensionsForType = new ArrayList<>();
+                                    componentUiExtensionsByType.put(componentType, componentUiExtensionsForType);
+                                }
+
+                                // record this extension
+                                componentUiExtensionsForType.add(uiExtension);
+                            }
+
+                            // this ui extension provides a component custom ui
+                            componentUiExtensionWebContexts.add(extensionUiContext);
                         }
                     }
 
@@ -318,7 +303,6 @@ public class JettyServer implements NiFiServer {
 
         // load the web api app
         webApiContext = loadWar(webApiWar, "/nifi-api", frameworkClassLoader);
-        webApiContext.getInitParams().putAll(customUiMappings);
         handlers.addHandler(webApiContext);
 
         // load the content viewer app
@@ -477,6 +461,9 @@ public class JettyServer implements NiFiServer {
         final WebAppContext webappContext = new WebAppContext(warFile.getPath(), contextPath);
         webappContext.setContextPath(contextPath);
         webappContext.setDisplayName(contextPath);
+
+        // instruction jetty to examine these jars for tlds, web-fragments, etc
+        webappContext.setAttribute("org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern", ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\\\.jar$|.*/[^/]*taglibs.*\\.jar$" );
 
         // remove slf4j server class to allow WAR files to have slf4j dependencies in WEB-INF/lib
         List<String> serverClasses = new ArrayList<>(Arrays.asList(webappContext.getServerClasses()));
@@ -684,23 +671,6 @@ public class JettyServer implements NiFiServer {
 
                 // get the application context
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
-
-                // @Deprecated
-                if (CollectionUtils.isNotEmpty(customUiWebContexts)) {
-                    final NiFiWebContext niFiWebContext = webApplicationContext.getBean("nifiWebContext", NiFiWebContext.class);
-
-                    for (final WebAppContext customUiContext : customUiWebContexts) {
-                        // set the NiFi context in each custom ui servlet context
-                        final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
-                        customUiServletContext.setAttribute("nifi-web-context", niFiWebContext);
-
-                        // add the security filter to any custom ui wars
-                        final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
-                        if (securityFilter != null) {
-                            customUiContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
-                        }
-                    }
-                }
 
                 // component ui extensions
                 if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {

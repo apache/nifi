@@ -83,65 +83,71 @@
         <div class="graph-control-content hidden">
             <div id="operation-buttons">
                 <div>
+                    <div id="operate-configure" class="action-button" title="Configuration">
+                        <button ng-click="appCtrl.nf.Actions['showConfiguration'](appCtrl.nf.CanvasUtils.getSelection());"
+                                ng-disabled="false">
+                            <i class="graph-control-action-icon fa fa-gear"></i></button>
+                    </div>
+                    <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-enable" class="action-button" title="Enable">
                         <button ng-click="appCtrl.nf.Actions['enable'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty() || !appCtrl.nf.CanvasUtils.canEnable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.canEnable(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-flash"></i></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-disable" class="action-button" title="Disable">
                         <button ng-click="appCtrl.nf.Actions['disable'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty() || !appCtrl.nf.CanvasUtils.canDisable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.canDisable(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon icon icon-enable-false"></i></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-start" class="action-button" title="Start">
                         <button ng-click="appCtrl.nf.Actions['start'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.Common.isDFM();">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-play"></i></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-stop" class="action-button" title="Stop">
                         <button ng-click="appCtrl.nf.Actions['stop'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.Common.isDFM();">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-stop"></i></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-template" class="action-button" title="Create Template">
                         <button ng-click="appCtrl.nf.Actions['template'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.Common.isDFM();">
+                                ng-disabled="!(appCtrl.nf.Canvas.canWrite() && (appCtrl.nf.CanvasUtils.getSelection().empty() || appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection())));">
                             <i class="graph-control-action-icon icon icon-template"></i></button>
                     </div>
-                    <div class="button-spacer-large">&nbsp;</div>
+                    <div class="clear"></div>
+                </div>
+                <div style="margin-top: 5px;">
                     <div id="operate-copy" class="action-button" title="Copy">
                         <button ng-click="appCtrl.nf.Actions['copy'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty() || !appCtrl.nf.CanvasUtils.isCopyable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.isCopyable(appCtrl.nf.CanvasUtils.getSelection()) || !appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-copy"></i></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-paste" class="action-button" title="Paste">
                         <button ng-click="appCtrl.nf.Actions['paste'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.Clipboard.isCopied() || !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.Clipboard.isCopied()">
                             <i class="graph-control-action-icon fa fa-paste"></i></button>
                     </div>
-                    <div class="clear"></div>
-                </div>
-                <div style="margin-top: 5px;">
+                    <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-group" class="action-button" title="Group">
                         <button ng-click="appCtrl.nf.Actions['group'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty() || !appCtrl.nf.CanvasUtils.isDisconnected(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.isDisconnected(appCtrl.nf.CanvasUtils.getSelection()) || !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon icon icon-group"></i></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-color" class="action-button" title="Fill Color">
                         <button ng-click="appCtrl.nf.Actions['fillColor'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty() || !appCtrl.nf.CanvasUtils.isColorable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.isColorable(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-paint-brush"></i></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-delete" class="action-button" title="Delete">
                         <button ng-click="appCtrl.nf.Actions['delete'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().empty();">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.areDeletable(appCtrl.nf.CanvasUtils.getSelection());">
                             <i class="graph-control-action-icon fa fa-trash"></i><span>Delete</span></button>
                     </div>
                     <div class="clear"></div>

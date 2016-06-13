@@ -57,7 +57,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -295,7 +295,7 @@ public class PutEmail extends AbstractProcessor {
         final Session mailSession = this.createMailSession(properties);
 
         final Message message = new MimeMessage(mailSession);
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         try {
             message.addFrom(toInetAddresses(context, flowFile, FROM));
@@ -384,7 +384,7 @@ public class PutEmail extends AbstractProcessor {
 
         final Properties properties = new Properties();
 
-        final ProcessorLog logger = this.getLogger();
+        final ComponentLog logger = this.getLogger();
 
         for (Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
 

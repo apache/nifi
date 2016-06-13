@@ -40,9 +40,10 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-
+import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.events.VolatileBulletinRepository;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -61,6 +62,7 @@ public class StandardFlowServiceTest {
     private KeyService mockKeyService;
     private AuditService mockAuditService;
     private StringEncryptor mockEncryptor;
+    private RevisionManager revisionManager;
 
     @BeforeClass
     public static void setupSuite() {
@@ -73,8 +75,9 @@ public class StandardFlowServiceTest {
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
         mockKeyService = mock(KeyService.class);
         mockAuditService = mock(AuditService.class);
-        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockKeyService, mockAuditService, mockEncryptor);
-        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor);
+        revisionManager = mock(RevisionManager.class);
+        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockKeyService, mockAuditService, mockEncryptor, new VolatileBulletinRepository());
+        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager);
     }
 
     @Test

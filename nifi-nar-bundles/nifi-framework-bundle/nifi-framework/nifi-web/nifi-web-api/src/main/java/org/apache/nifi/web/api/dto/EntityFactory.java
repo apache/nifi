@@ -16,18 +16,23 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
@@ -35,6 +40,26 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
 public final class EntityFactory {
+
+    public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+        final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
+        entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            // TODO - remove this once contents of ControllerConfigurationEntity is updated
+//            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setConfig(dto);
+//            }
+        }
+        return entity;
+    }
+
+    public ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroupFlowDTO dto, final AccessPolicyDTO accessPolicy) {
+        final ProcessGroupFlowEntity entity = new ProcessGroupFlowEntity();
+        entity.setProcessGroupFlow(dto);
+        entity.setAccessPolicy(accessPolicy);
+        return entity;
+    }
 
     public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ProcessorStatusDTO status) {
         final ProcessorEntity entity = new ProcessorEntity();
@@ -178,17 +203,9 @@ public final class EntityFactory {
         return entity;
     }
 
-    public SnippetEntity createSnippetEntity(final SnippetDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public SnippetEntity createSnippetEntity(final SnippetDTO dto) {
         final SnippetEntity entity = new SnippetEntity();
-        entity.setRevision(revision);
-        if (dto != null) {
-            entity.setAccessPolicy(accessPolicy);
-            entity.setId(dto.getId());
-            if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setSnippet(dto);
-            }
-        }
-
+        entity.setSnippet(dto);
         return entity;
     }
 
@@ -233,6 +250,18 @@ public final class EntityFactory {
             }
         }
 
+        return entity;
+    }
+
+    public FlowBreadcrumbEntity createFlowBreadcrumbEntity(final FlowBreadcrumbDTO dto, final AccessPolicyDTO accessPolicy) {
+        final FlowBreadcrumbEntity entity = new FlowBreadcrumbEntity();
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setBreadcrumb(dto);
+            }
+        }
         return entity;
     }
 }

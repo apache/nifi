@@ -27,7 +27,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -153,7 +153,7 @@ public class FetchElasticsearch extends AbstractElasticsearchProcessor {
         final String docType = context.getProperty(TYPE).evaluateAttributeExpressions(flowFile).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         try {
 
             logger.debug("Fetching {}/{}/{} from Elasticsearch", new Object[]{index, docType, docId});

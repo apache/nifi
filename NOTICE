@@ -7,3 +7,8 @@ The Apache Software Foundation (http://www.apache.org/).
 This product includes the following work from the Apache Hadoop project:
 
 BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+while at Mandiant http://www.mandiant.com
+The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.

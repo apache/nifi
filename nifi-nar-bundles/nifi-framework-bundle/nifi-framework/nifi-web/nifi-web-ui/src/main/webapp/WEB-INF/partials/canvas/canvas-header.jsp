@@ -21,34 +21,42 @@
         <div id="component-container">
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processor}}"
                     id="processor-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.processorComponent);">
                 <i class="icon icon-processor"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.inputPort}}"
                     id="port-in-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.inputPortComponent);">
                 <i class="icon icon-port-in"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.outputPort}}"
                     id="port-out-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.outputPortComponent);">
                 <i class="icon icon-port-out"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processGroup}}"
                     id="group-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.groupComponent);">
                 <i class="icon icon-group"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.remoteProcessGroup}}" hide
                     show-gt-sm id="group-remote-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.remoteGroupComponent);">
                 <i class="icon icon-group-remote"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.funnel}}"
                     id="funnel-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
                 <i class="icon icon-funnel"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.template}}"
                     id="template-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.templateComponent);">
                 <i class="icon icon-template"></i></button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
                     id="label-component" class="component-button"
+                    ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.labelComponent);">
                 <i class="icon icon-label"></i></button>
         </div>
@@ -61,11 +69,11 @@
                 </div>
                 <div id="login-link-container">
                     <span id="login-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">login</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.loginCtrl.shell.launch();">log in</span>
                 </div>
                 <div id="logout-link-container" style="display: none;">
                     <span id="logout-link" class="link"
-                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">logout</span>
+                          ng-click="appCtrl.serviceProvider.headerCtrl.logoutCtrl.logout();">log out</span>
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">

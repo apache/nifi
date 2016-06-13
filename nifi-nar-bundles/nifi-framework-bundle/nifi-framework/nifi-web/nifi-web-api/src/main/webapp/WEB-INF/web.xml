@@ -55,14 +55,6 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
     <filter>
-        <filter-name>threadLocal</filter-name>
-        <filter-class>org.apache.nifi.web.filter.ThreadLocalFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>threadLocal</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
-    <filter>
         <filter-name>springSecurityFilterChain</filter-name>
         <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
     </filter>
@@ -88,14 +80,6 @@
     </filter>
     <filter-mapping>
         <filter-name>gzipCompressionFilter</filter-name>
-        <url-pattern>/*</url-pattern>
-    </filter-mapping>
-    <filter>
-        <filter-name>nodeRequestFilter</filter-name>
-        <filter-class>org.apache.nifi.web.filter.NodeRequestFilter</filter-class>
-    </filter>
-    <filter-mapping>
-        <filter-name>nodeRequestFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 </web-app>

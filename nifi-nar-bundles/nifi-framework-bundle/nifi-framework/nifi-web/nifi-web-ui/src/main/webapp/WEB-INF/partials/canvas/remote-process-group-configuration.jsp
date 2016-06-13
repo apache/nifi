@@ -36,19 +36,76 @@
             </div>
         </div>
         <div class="setting">
-            <div class="setting-name">Communications timeout</div>
-            <div class="setting-field">
-                <input type="text" id="remote-process-group-timeout"/>
+            <div class="remote-process-group-timeout-setting">
+                <div class="setting-name">
+                    Communications timeout
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="When communication with this remote process group takes longer than this amount of time, it will timeout."/>
+                </div>
+                <div class="setting-field">
+                    <input type="text" class="small-setting-input" id="remote-process-group-timeout"/>
+                </div>
             </div>
+            <div class="remote-process-group-yield-duration-setting">
+                <div class="setting-name">
+                    Yield duration
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="When communication with this remote process group fails, it will not be scheduled again until this amount of time elapses."/>
+                </div>
+                <div class="setting-field">
+                    <input type="text" class="small-setting-input" id="remote-process-group-yield-duration"/>
+                </div>
+            </div>
+            <div class="clear"></div>
         </div>
         <div class="setting">
             <div class="setting-name">
-                Yield duration
-                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="When communication with this remote process group fails, it will not be scheduled again until this amount of time elapses."/>
+                Transport Protocol
+                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the transport protocol to use for this Remote Process Group communication."/>
             </div>
             <div class="setting-field">
-                <input type="text" id="remote-process-group-yield-duration"/>
+                <div id="remote-process-group-transport-protocol-combo"></div>
             </div>
+        </div>
+        <div class="setting">
+            <div class="remote-process-group-proxy-host-setting">
+                <div class="setting-name">
+                    HTTP Proxy server hostname
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the proxy server's hostname to use. If not specified, HTTP traffics are sent directly to the target NiFi instance."/>
+                </div>
+                <div class="setting-field">
+                    <input type="text" class="small-setting-input" id="remote-process-group-proxy-host"/>
+                </div>
+            </div>
+            <div class="remote-process-group-proxy-port-setting">
+                <div class="setting-name">
+                    HTTP Proxy server port
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify the proxy server's port number, optional. If not specified, default port 80 will be used."/>
+                </div>
+                <div class="setting-field">
+                    <input type="text" class="small-setting-input" id="remote-process-group-proxy-port"/>
+                </div>
+            </div>
+            <div class="clear"></div>
+        </div>
+        <div class="setting">
+            <div class="remote-process-group-proxy-user-setting">
+                <div class="setting-name">
+                    HTTP Proxy user
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify an user name to connect to the proxy server, optional."/>
+                </div>
+                <div class="setting-field">
+                    <input type="text" class="small-setting-input" id="remote-process-group-proxy-user"/>
+                </div>
+            </div>
+            <div class="remote-process-group-proxy-password-setting">
+                <div class="setting-name">
+                    HTTP Proxy password
+                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Specify an user password to connect to the proxy server, optional."/>
+                </div>
+                <div class="setting-field">
+                    <input type="password" class="small-setting-input" id="remote-process-group-proxy-password"/>
+                </div>
+            </div>
+            <div class="clear"></div>
         </div>
     </div>
 </div>

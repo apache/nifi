@@ -16,7 +16,7 @@
  */package org.apache.nifi.processor.util.put.sender;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.SocketChannelOutputStream;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class SocketChannelSender extends ChannelSender {
     protected SocketChannel channel;
     protected SocketChannelOutputStream socketChannelOutput;
 
-    public SocketChannelSender(final String host, final int port, final int maxSendBufferSize, final ProcessorLog logger) {
+    public SocketChannelSender(final String host, final int port, final int maxSendBufferSize, final ComponentLog logger) {
         super(host, port, maxSendBufferSize, logger);
     }
 

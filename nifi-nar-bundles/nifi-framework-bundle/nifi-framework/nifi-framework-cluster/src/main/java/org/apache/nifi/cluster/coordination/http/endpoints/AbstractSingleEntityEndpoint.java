@@ -29,8 +29,7 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.Entity;
 
-public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity, DtoType> implements EndpointResponseMerger {
-
+public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity> implements EndpointResponseMerger {
     @Override
     public final NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
         if (!canHandle(uri, method)) {
@@ -38,19 +37,31 @@ public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity, Dt
         }
 
         final EntityType responseEntity = clientResponse.getClientResponse().getEntity(getEntityClass());
-        final DtoType dto = getDto(responseEntity);
 
-        final Map<NodeIdentifier, DtoType> dtoMap = new HashMap<>();
+        final Map<NodeIdentifier, EntityType> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
             final EntityType nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(getEntityClass());
-            final DtoType nodeDto = getDto(nodeResponseEntity);
-            dtoMap.put(nodeResponse.getNodeId(), nodeDto);
+            entityMap.put(nodeResponse.getNodeId(), nodeResponseEntity);
         }
 
-        mergeResponses(dto, dtoMap, successfulResponses, problematicResponses);
+        mergeResponses(responseEntity, entityMap, successfulResponses, problematicResponses);
         return new NodeResponse(clientResponse, responseEntity);
     }
 
+    /**
+     * Merges the validation errors into the specified map, recording the corresponding node identifier.
+     *
+     * @param validationErrorMap map
+     * @param nodeId id
+     * @param nodeValidationErrors errors
+     */
+    protected void mergeValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeValidationErrors) {
+        if (nodeValidationErrors != null) {
+            nodeValidationErrors.stream().forEach(
+                err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<NodeIdentifier>())
+                    .add(nodeId));
+        }
+    }
 
     /**
      * Normalizes the validation errors by prepending the corresponding nodes when the error does not exist across all nodes.
@@ -75,41 +86,18 @@ public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity, Dt
     }
 
     /**
-     * Merges the validation errors into the specified map, recording the corresponding node identifier.
-     *
-     * @param validationErrorMap map
-     * @param nodeId id
-     * @param nodeValidationErrors errors
-     */
-    protected void mergeValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeValidationErrors) {
-        if (nodeValidationErrors != null) {
-            nodeValidationErrors.stream().forEach(
-                err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<NodeIdentifier>())
-                    .add(nodeId));
-        }
-    }
-
-    /**
      * @return the class that represents the type of Entity that is expected by this response mapper
      */
     protected abstract Class<EntityType> getEntityClass();
 
     /**
-     * Extracts the DTO from the given entity
+     * Merges the responses from all nodes in the given map into the single given entity
      *
-     * @param entity the entity to extract the DTO from
-     * @return the DTO from the given entity
-     */
-    protected abstract DtoType getDto(EntityType entity);
-
-    /**
-     * Merges the responses from all nodes in the given map into the single given DTO
-     *
-     * @param clientDto the DTO to merge responses into
-     * @param dtoMap the responses from all nodes
+     * @param clientEntity the Entity to merge responses into
+     * @param entityMap the responses from all nodes
      * @param successfulResponses the responses from nodes that completed the request successfully
      * @param problematicResponses the responses from nodes that did not complete the request successfully
      */
-    protected abstract void mergeResponses(DtoType clientDto, Map<NodeIdentifier, DtoType> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses);
+    protected abstract void mergeResponses(EntityType clientEntity, Map<NodeIdentifier, EntityType> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses);
 
 }

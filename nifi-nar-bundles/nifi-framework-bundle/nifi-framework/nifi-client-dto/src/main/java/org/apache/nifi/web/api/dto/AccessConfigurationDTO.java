@@ -26,7 +26,6 @@ import javax.xml.bind.annotation.XmlType;
 public class AccessConfigurationDTO {
 
     private Boolean supportsLogin;
-    private Boolean supportsAnonymous;
 
     /**
      * @return Indicates whether or not this NiFi supports user login.
@@ -41,21 +40,6 @@ public class AccessConfigurationDTO {
 
     public void setSupportsLogin(Boolean supportsLogin) {
         this.supportsLogin = supportsLogin;
-    }
-
-    /**
-     * @return Indicates whether or not this NiFi supports anonymous access.
-     */
-    @ApiModelProperty(
-            value = "Indicates whether or not this NiFi supports anonymous.",
-            readOnly = true
-    )
-    public Boolean getSupportsAnonymous() {
-        return supportsAnonymous;
-    }
-
-    public void setSupportsAnonymous(Boolean supportsAnonymous) {
-        this.supportsAnonymous = supportsAnonymous;
     }
 
 }

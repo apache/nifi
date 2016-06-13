@@ -39,6 +39,7 @@
         <property name="keyService" ref="keyService" />
         <property name="auditService" ref="auditService" />
         <property name="encryptor" ref="stringEncryptor" />
+        <property name="bulletinRepository" ref="bulletinRepository" />
     </bean>
 
     <!-- flow service -->
@@ -46,5 +47,11 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="encryptor" ref="stringEncryptor" />
     </bean>
+    
+    <!-- bulletin repository -->
+    <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
 
+    <bean id="eventReporter" class="org.apache.nifi.events.StandardEventReporter">
+        <constructor-arg ref="bulletinRepository" />
+    </bean>
 </beans>

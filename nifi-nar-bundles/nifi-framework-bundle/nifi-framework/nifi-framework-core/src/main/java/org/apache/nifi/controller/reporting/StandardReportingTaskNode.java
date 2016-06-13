@@ -37,6 +37,13 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
         this.flowController = controller;
     }
 
+    public StandardReportingTaskNode(final ReportingTask reportingTask, final String id, final FlowController controller,
+        final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
+        final String componentType, final String canonicalClassName) {
+        super(reportingTask, id, controller, processScheduler, validationContextFactory, componentType, canonicalClassName);
+        this.flowController = controller;
+    }
+
     @Override
     public Authorizable getParentAuthorizable() {
         return flowController;

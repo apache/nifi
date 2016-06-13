@@ -16,23 +16,25 @@
  */
 package org.apache.nifi.groups;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.connectable.Position;
+import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * <p>
@@ -43,7 +45,27 @@ import org.apache.nifi.processor.Processor;
  * <p>
  * MUST BE THREAD-SAFE</p>
  */
-public interface ProcessGroup extends Authorizable {
+public interface ProcessGroup extends Authorizable, Positionable {
+
+    /**
+     * Predicate for filtering schedulable Processors.
+     */
+    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && node.getScheduledState() != ScheduledState.DISABLED;
+
+    /**
+     * Predicate for filtering unschedulable Processors.
+     */
+    Predicate<ProcessorNode> UNSCHEDULABLE_PROCESSORS = node -> node.isRunning();
+
+    /**
+     * Predicate for filtering schedulable Ports
+     */
+    Predicate<Port> SCHEDULABLE_PORTS = port -> port.getScheduledState() != ScheduledState.DISABLED;
+
+    /**
+     * Predicate for filtering schedulable Ports
+     */
+    Predicate<Port> UNSCHEDULABLE_PORTS = port -> port.getScheduledState() == ScheduledState.RUNNING;
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be
@@ -74,17 +96,6 @@ public interface ProcessGroup extends Authorizable {
      * @param name new name
      */
     void setName(String name);
-
-    /**
-     * Updates the position of where this ProcessGroup is located in the graph
-     * @param position new position
-     */
-    void setPosition(Position position);
-
-    /**
-     * @return the position of where this ProcessGroup is located in the graph
-     */
-    Position getPosition();
 
     /**
      * @return the user-set comments about this ProcessGroup, or
@@ -718,6 +729,12 @@ public interface ProcessGroup extends Authorizable {
     Connectable findConnectable(String identifier);
 
     /**
+     * @return a Set of all {@link org.apache.nifi.connectable.Positionable}s contained within this
+     * {@link ProcessGroup} and any child {@link ProcessGroup}s
+     */
+    Set<Positionable> findAllPositionables();
+
+    /**
      * Moves all of the components whose ID's are specified within the given
      * {@link Snippet} from this ProcessGroup into the given destination
      * ProcessGroup
@@ -743,7 +760,11 @@ public interface ProcessGroup extends Authorizable {
      */
     void verifyCanDelete(boolean ignorePortConnections);
 
+    void verifyCanStart(Connectable connectable);
+
     void verifyCanStart();
+
+    void verifyCanStop(Connectable connectable);
 
     void verifyCanStop();
 

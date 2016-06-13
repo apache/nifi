@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.spring;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.revision.RevisionManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -34,41 +36,36 @@ import org.springframework.context.ApplicationContextAware;
 public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationContextAware {
 
     private ApplicationContext applicationContext;
-
     private FlowService flowService;
-
     private NiFiProperties properties;
-
     private StringEncryptor encryptor;
 
     @Override
     public Object getObject() throws Exception {
-        /*
-         * If configured for the cluster manager, then the flow controller is never used.
-         */
-        if (properties.isClusterManager()) {
-            return null;
-        } else if (flowService == null) {
-
+        if (flowService == null) {
             final FlowController flowController = applicationContext.getBean("flowController", FlowController.class);
+            final RevisionManager revisionManager = applicationContext.getBean("revisionManager", RevisionManager.class);
 
             if (properties.isNode()) {
                 final NodeProtocolSenderListener nodeProtocolSenderListener = applicationContext.getBean("nodeProtocolSenderListener", NodeProtocolSenderListener.class);
+                final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
                 flowService = StandardFlowService.createClusteredInstance(
-                        flowController,
-                        properties,
-                        nodeProtocolSenderListener,
-                        encryptor);
+                    flowController,
+                    properties,
+                    nodeProtocolSenderListener,
+                    clusterCoordinator,
+                    encryptor,
+                    revisionManager);
             } else {
                 flowService = StandardFlowService.createStandaloneInstance(
-                        flowController,
-                        properties,
-                        encryptor);
+                    flowController,
+                    properties,
+                    encryptor,
+                    revisionManager);
             }
-
         }
-        return flowService;
 
+        return flowService;
     }
 
     @Override

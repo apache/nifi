@@ -112,4 +112,26 @@ public class ComponentEntity extends Entity {
     public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
         this.accessPolicy = accessPolicy;
     }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+
+        if (obj == this) {
+            return true;
+        }
+
+        if (obj.getClass() != getClass()) {
+            return false;
+        }
+
+        return id.equals(((ComponentEntity) obj).getId());
+    }
 }

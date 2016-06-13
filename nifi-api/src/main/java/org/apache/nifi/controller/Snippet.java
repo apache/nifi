@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Map;
-
 import org.apache.nifi.web.Revision;
+
+import java.util.Map;
 
 /**
  * A Snippet represents a segment of the flow
@@ -29,14 +29,6 @@ public interface Snippet {
      * @return id of this snippet
      */
     public String getId();
-
-    /**
-     * @return Whether or not this snippet is linked to the data flow. If the Snippet is
-     * deleted and is linked, then the underlying components will also be
-     * deleted. If the Snippet is deleted and is NOT linked, only the Snippet is
-     * removed
-     */
-    public boolean isLinked();
 
     /**
      * @return parent group id of the components in this snippet

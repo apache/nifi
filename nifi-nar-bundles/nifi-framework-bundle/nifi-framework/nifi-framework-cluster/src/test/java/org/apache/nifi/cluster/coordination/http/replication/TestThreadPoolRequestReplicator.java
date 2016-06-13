@@ -26,21 +26,28 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.ws.rs.HttpMethod;
 
+import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.flow.DataFlowManagementService;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.StandardOptimisticLockingManager;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Assert;
@@ -48,6 +55,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.Whitebox;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
@@ -73,7 +82,7 @@ public class TestThreadPoolRequestReplicator {
     public void testResponseRemovedWhenCompletedAndFetched() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, false));
+            nodeIds.add(new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false));
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
 
@@ -100,7 +109,7 @@ public class TestThreadPoolRequestReplicator {
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, false);
+            final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
             nodeIds.add(nodeId);
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
@@ -129,10 +138,10 @@ public class TestThreadPoolRequestReplicator {
     public void testCompleteOnError() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
-            final NodeIdentifier id1 = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false);
-            final NodeIdentifier id2 = new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, false);
-            final NodeIdentifier id3 = new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, false);
-            final NodeIdentifier id4 = new NodeIdentifier("4", "localhost", 8400, "localhost", 8401, "localhost", 8402, false);
+            final NodeIdentifier id1 = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+            final NodeIdentifier id2 = new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false);
+            final NodeIdentifier id3 = new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, 8303, false);
+            final NodeIdentifier id4 = new NodeIdentifier("4", "localhost", 8400, "localhost", 8401, "localhost", 8402, 8403, false);
             nodeIds.add(id1);
             nodeIds.add(id2);
             nodeIds.add(id3);
@@ -150,19 +159,19 @@ public class TestThreadPoolRequestReplicator {
     @Test(timeout = 15000)
     public void testMultipleRequestWithTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
-        nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false));
+        final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
+        nodeIds.add(nodeId);
 
         final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
+        Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenReturn(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
-                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.NCM_EXPECTS_HTTP_HEADER);
+                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
 
                 final int statusCode;
                 if (requestCount.incrementAndGet() == 1) {
@@ -179,8 +188,6 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        replicator.start();
-
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
                 new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
@@ -193,7 +200,79 @@ public class TestThreadPoolRequestReplicator {
             e.printStackTrace();
             Assert.fail(e.toString());
         } finally {
-            replicator.stop();
+            replicator.shutdown();
+        }
+    }
+
+    private ClusterCoordinator createClusterCoordinator() {
+        final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
+        Mockito.when(coordinator.getConnectionStatus(Mockito.any(NodeIdentifier.class))).thenAnswer(new Answer<NodeConnectionStatus>() {
+            @Override
+            public NodeConnectionStatus answer(InvocationOnMock invocation) throws Throwable {
+                return new NodeConnectionStatus(invocation.getArgumentAt(0, NodeIdentifier.class), NodeConnectionState.CONNECTED);
+            }
+        });
+
+        return coordinator;
+    }
+
+    @Test
+    public void testMutableRequestRequiresAllNodesConnected() throws URISyntaxException {
+        final ClusterCoordinator coordinator = createClusterCoordinator();
+
+        // build a map of connection state to node ids
+        final Map<NodeConnectionState, List<NodeIdentifier>> nodeMap = new HashMap<>();
+        final List<NodeIdentifier> connectedNodes = new ArrayList<>();
+        connectedNodes.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
+        connectedNodes.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false));
+        nodeMap.put(NodeConnectionState.CONNECTED, connectedNodes);
+
+        final List<NodeIdentifier> otherState = new ArrayList<>();
+        otherState.add(new NodeIdentifier("3", "localhost", 8300, "localhost", 8301, "localhost", 8302, 8303, false));
+        nodeMap.put(NodeConnectionState.CONNECTING, otherState);
+
+        Mockito.when(coordinator.getConnectionStates()).thenReturn(nodeMap);
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
+            @Override
+            public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers) {
+                return null;
+            }
+        };
+
+        try {
+            try {
+                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
+                Assert.fail("Expected ConnectingNodeMutableRequestException");
+            } catch (final ConnectingNodeMutableRequestException e) {
+                // expected behavior
+            }
+
+            nodeMap.remove(NodeConnectionState.CONNECTING);
+            nodeMap.put(NodeConnectionState.DISCONNECTED, otherState);
+            try {
+                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
+                Assert.fail("Expected DisconnectedNodeMutableRequestException");
+            } catch (final DisconnectedNodeMutableRequestException e) {
+                // expected behavior
+            }
+
+            nodeMap.remove(NodeConnectionState.DISCONNECTED);
+            nodeMap.put(NodeConnectionState.DISCONNECTING, otherState);
+            try {
+                replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
+                Assert.fail("Expected DisconnectedNodeMutableRequestException");
+            } catch (final DisconnectedNodeMutableRequestException e) {
+                // expected behavior
+            }
+
+            // should not throw an Exception because it's a GET
+            replicator.replicate(HttpMethod.GET, new URI("http://localhost:80/processors/1"), new MultiValueMap<>(), new HashMap<>());
+
+            // should not throw an Exception because all nodes are now connected
+            nodeMap.remove(NodeConnectionState.DISCONNECTING);
+            replicator.replicate(HttpMethod.POST, new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
+        } finally {
+            replicator.shutdown();
         }
     }
 
@@ -201,20 +280,17 @@ public class TestThreadPoolRequestReplicator {
     @Test(timeout = 15000)
     public void testOneNodeRejectsTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
-        nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, false));
-        nodeIds.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, false));
+        nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
+        nodeIds.add(new NodeIdentifier("2", "localhost", 8200, "localhost", 8201, "localhost", 8202, 8203, false));
 
-        final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
-
+        final ClusterCoordinator coordinator = createClusterCoordinator();
         final AtomicInteger requestCount = new AtomicInteger(0);
-        final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 // the resource builder will not expose its headers to us, so we are using Mockito's Whitebox class to extract them.
                 final OutBoundHeaders headers = (OutBoundHeaders) Whitebox.getInternalState(resourceBuilder, "metadata");
-                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.NCM_EXPECTS_HTTP_HEADER);
+                final Object expectsHeader = headers.getFirst(ThreadPoolRequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
 
                 final int requestIndex = requestCount.incrementAndGet();
                 assertEquals(ThreadPoolRequestReplicator.NODE_CONTINUE, expectsHeader);
@@ -229,8 +305,6 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        replicator.start();
-
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
                 new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>());
@@ -242,7 +316,7 @@ public class TestThreadPoolRequestReplicator {
         } catch (final Exception e) {
             Assert.fail(e.toString());
         } finally {
-            replicator.stop();
+            replicator.shutdown();
         }
     }
 
@@ -253,11 +327,8 @@ public class TestThreadPoolRequestReplicator {
     }
 
     private void withReplicator(final WithReplicator function, final Status status, final long delayMillis, final RuntimeException failure) {
-        final ClusterCoordinator coordinator = Mockito.mock(ClusterCoordinator.class);
-
-        final DataFlowManagementService dfmService = Mockito.mock(DataFlowManagementService.class);
-        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator,
-            "1 sec", "1 sec", null, null, null, new StandardOptimisticLockingManager(), dfmService) {
+        final ClusterCoordinator coordinator = createClusterCoordinator();
+        final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
             @Override
             protected NodeResponse replicateRequest(final WebResource.Builder resourceBuilder, final NodeIdentifier nodeId, final String method, final URI uri, final String requestId) {
                 if (delayMillis > 0L) {
@@ -278,15 +349,13 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        replicator.start();
-
         try {
             function.withReplicator(replicator);
         } catch (final Exception e) {
             e.printStackTrace();
             Assert.fail(e.toString());
         } finally {
-            replicator.stop();
+            replicator.shutdown();
         }
     }
 

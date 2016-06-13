@@ -23,8 +23,6 @@ $(document).ready(function () {
 
 nf.Login = (function () {
 
-    var supportsAnonymous = false;
-
     var config = {
         urls: {
             identity: '../nifi-api/flow/identity',
@@ -53,33 +51,10 @@ nf.Login = (function () {
         $('#username').focus();
     };
 
-    var initializeNiFiRegistration = function () {
-        $('#nifi-registration-justification').count({
-            charCountField: '#remaining-characters'
-        });
-
-        // toggle between signup and login
-        $('#login-to-account-link').on('click', function () {
-            showLogin();
-        });
-    };
-
-    var showNiFiRegistration = function () {
-        // reset the forms
-        $('#login-submission-button').text('Submit');
-        $('#nifi-registration-justification').val('');
-
-        // update the form visibility
-        $('#login-container').hide();
-        $('#nifi-registration-container').show();
-    };
-
     var initializeSubmission = function () {
         $('#login-submission-button').on('click', function () {
             if ($('#login-container').is(':visible')) {
                 login();
-            } else if ($('#nifi-registration-container').is(':visible')) {
-                submitJustification();
             }
         });
 
@@ -121,7 +96,14 @@ nf.Login = (function () {
                 showLogoutLink();
                 
                 // update according to the access status
-                if (accessStatus.status === 'UNKNOWN' || accessStatus.status === 'NOT_ACTIVE') {
+                if (accessStatus.status === 'ACTIVE') {
+                    // reload as appropriate - no need to schedule token refresh as the page is reloading
+                    if (top !== window) {
+                        parent.window.location = '/nifi';
+                    } else {
+                        window.location = '/nifi';
+                    }
+                } else {
                     $('#login-message-title').text('Unable to log in');
                     $('#login-message').text(accessStatus.message);
 
@@ -130,27 +112,6 @@ nf.Login = (function () {
                     $('#login-submission-container').hide();
                     $('#login-progress-container').hide();
                     $('#login-message-container').show();
-                } else if (accessStatus.status === 'UNREGISTERED') {
-                    // schedule automatic token refresh
-                    nf.Common.scheduleTokenRefresh();
-            
-                    // show the user
-                    $('#nifi-user-submit-justification').text(token['preferred_username']);
-
-                    // show the registration form
-                    initializeNiFiRegistration();
-                    showNiFiRegistration();
-                    
-                    // update the form visibility
-                    $('#login-submission-container').show();
-                    $('#login-progress-container').hide();
-                } else if (accessStatus.status === 'ACTIVE') {
-                    // reload as appropriate - no need to schedule token refresh as the page is reloading
-                    if (top !== window) {
-                        parent.window.location = '/nifi';
-                    } else {
-                        window.location = '/nifi';
-                    }
                 }
             }).fail(function (xhr, status, error) {
                 $('#login-message-title').text('Unable to log in');
@@ -171,39 +132,6 @@ nf.Login = (function () {
             // update the form visibility
             $('#login-submission-container').show();
             $('#login-progress-container').hide();
-        });
-    };
-
-    var submitJustification = function () {
-        // show the logging message...
-        $('#login-progress-label').text('Submitting...');
-        $('#login-progress-container').show();
-        $('#login-submission-container').hide();
-        
-        // attempt to create the nifi account registration
-        $.ajax({
-            type: 'POST',
-            url: config.urls.users,
-            data: {
-                'justification': $('#nifi-registration-justification').val()
-            }
-        }).done(function (response) {
-            var markup = 'An administrator will process your request shortly.';
-            if (supportsAnonymous === true) {
-                markup += '<br/><br/>In the meantime you can continue accessing anonymously.';
-            }
-
-            $('#login-message-title').text('Thanks!');
-            $('#login-message').html(markup);
-        }).fail(function (xhr, status, error) {
-            $('#login-message-title').text('Unable to submit justification');
-            $('#login-message').text(xhr.responseText);
-        }).always(function () {
-            // update form visibility
-            $('#nifi-registration-container').hide();
-            $('#login-submission-container').hide();
-            $('#login-progress-container').hide();
-            $('#login-message-container').show();
         });
     };
 
@@ -247,36 +175,24 @@ nf.Login = (function () {
                 url: config.urls.accessConfig,
                 dataType: 'json'
             });
-            
+
             $.when(accessStatus, accessConfigXhr).done(function (accessStatusResult, accessConfigResult) {
                 var accessStatusResponse = accessStatusResult[0];
                 var accessStatus = accessStatusResponse.accessStatus;
-                
+
                 var accessConfigResponse = accessConfigResult[0];
                 var accessConfig = accessConfigResponse.config;
                 
-                // record whether this NiFi supports anonymous access
-                supportsAnonymous = accessConfig.supportsAnonymous;
-            
                 // possible login states
-                var needsLogin = false;
-                var needsNiFiRegistration = false;
+                var needsLogin = true;
                 var showMessage = false;
                 
                 // handle the status appropriately
                 if (accessStatus.status === 'UNKNOWN') {
                     needsLogin = true;
-                } else if (accessStatus.status === 'UNREGISTERED') {
-                    needsNiFiRegistration = true;
-                    
-                    $('#nifi-user-submit-justification').text(accessStatus.username);
-                } else if (accessStatus.status === 'NOT_ACTIVE') {
-                    showMessage = true;
-                    
-                    $('#login-message-title').text('Unable to log in');
-                    $('#login-message').text(accessStatus.message);
                 } else if (accessStatus.status === 'ACTIVE') {
                     showMessage = true;
+                    needsLogin = false;
                     
                     $('#login-message-title').text('Success');
                     $('#login-message').text(accessStatus.message);
@@ -295,12 +211,6 @@ nf.Login = (function () {
                     initializeMessage();
                 } else if (needsLogin === true) {
                     showLogin();
-                } else if (needsNiFiRegistration === true) {
-                    initializeNiFiRegistration();
-                    showNiFiRegistration();
-                }
-
-                if (needsLogin === true || needsNiFiRegistration === true) {
                     initializeSubmission();
                 }
             });

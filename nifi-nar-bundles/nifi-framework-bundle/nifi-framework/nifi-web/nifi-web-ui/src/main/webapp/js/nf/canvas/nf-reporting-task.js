@@ -25,6 +25,15 @@ nf.ReportingTask = (function () {
     };
 
     /**
+     * Gets the controller services table.
+     *
+     * @returns {*|jQuery|HTMLElement}
+     */
+    var getControllerServicesTable = function () {
+        return $('#controller-services-table');
+    };
+    
+    /**
      * Handle any expected reporting task configuration errors.
      * 
      * @argument {object} xhr       The XmlHttpRequest
@@ -205,7 +214,7 @@ nf.ReportingTask = (function () {
         }).done(function (response) {
             // update the task
             renderReportingTask(response);
-            nf.ControllerService.reloadReferencedServices(response.component);
+            nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
         }).fail(nf.Common.handleAjaxError);
     };
     
@@ -346,7 +355,6 @@ nf.ReportingTask = (function () {
             // initialize the property table
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
-                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-reporting-task-property-container',
                 descriptorDeferred: getReportingTaskPropertyDescriptor,
                 goToServiceDeferred: goToServiceFromProperty
@@ -368,7 +376,6 @@ nf.ReportingTask = (function () {
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
-                    groupId: nf.Canvas.getGroupId(),
                     dialogContainer: '#new-reporting-task-property-container',
                     descriptorDeferred: getReportingTaskPropertyDescriptor,
                     goToServiceDeferred: goToServiceFromProperty
@@ -464,7 +471,7 @@ nf.ReportingTask = (function () {
                                 // save the reporting task
                                 saveReportingTask(reportingTaskEntity).done(function (response) {
                                     // reload the reporting task
-                                    nf.ControllerService.reloadReferencedServices(response.component);
+                                    nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
 
                                     // close the details panel
                                     $('#reporting-task-configuration').modal('hide');
@@ -494,10 +501,10 @@ nf.ReportingTask = (function () {
                                     $('#shell-close-button').click();
 
                                     // show the custom ui
-                                    nf.CustomUi.showCustomUi($('#reporting-task-id').text(), reportingTask.customUiUrl, true).done(function () {
+                                    nf.CustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, true).done(function () {
                                         // once the custom ui is closed, reload the reporting task
                                         nf.ReportingTask.reload(reportingTaskEntity.id).done(function (response) {
-                                            nf.ControllerService.reloadReferencedServices(response.reportingTask);
+                                            nf.ControllerService.reloadReferencedServices(getControllerServicesTable(), response.reportingTask);
                                         });
                                         
                                         // show the settings
@@ -625,7 +632,7 @@ nf.ReportingTask = (function () {
                                 $('#shell-close-button').click();
 
                                 // show the custom ui
-                                nf.CustomUi.showCustomUi(reportingTask.id, reportingTask.customUiUrl, false).done(function() {
+                                nf.CustomUi.showCustomUi(reportingTaskEntity, reportingTask.customUiUrl, false).done(function() {
                                     nf.Settings.showSettings();
                                 });
                             }

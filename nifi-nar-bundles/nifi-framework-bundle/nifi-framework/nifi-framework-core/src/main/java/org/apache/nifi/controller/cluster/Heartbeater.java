@@ -38,4 +38,8 @@ public interface Heartbeater extends Closeable {
      */
     void send(HeartbeatMessage heartbeat) throws IOException;
 
+    /**
+     * @return the address that heartbeats are being sent to
+     */
+    String getHeartbeatAddress() throws IOException;
 }

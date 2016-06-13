@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -93,7 +93,7 @@ public class ReflectionUtilsTest {
 
     @Test
     public void validateNoFailureIfQuiatelyIfOneOfArgumentsWrongTypeAndProcessLog() throws Exception {
-        ProcessorLog pl = mock(ProcessorLog.class);
+        ComponentLog pl = mock(ComponentLog.class);
         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, new E(), pl, 3, "hjk", "hjk");
         verify(pl, Mockito.atMost(1)).error(Mockito.anyString());
     }

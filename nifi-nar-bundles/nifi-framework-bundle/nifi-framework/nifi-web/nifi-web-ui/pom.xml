@@ -38,6 +38,10 @@
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
+        <!--
+            This property can be set on the command line and allows any bower cli options to be set.
+        -->
+        <bower.options></bower.options>
     </properties>
     <build>
         <!--
@@ -65,25 +69,23 @@
             <!--
                 Precompile jsp's and add entries into the web.xml - the web.xml
                 is automatically places in ${project.build.directory}. Do not
-                precompile canvas.jsp, summary.jsp, history.jsp, etc. 
-                These jsp's need to have the artifacts version filtered in to 
-                eliminate broswer caching issues and set up the proper includes. 
-                Since the webResource filter occurs after the precompilation we 
+                precompile canvas.jsp, summary.jsp, history.jsp, etc.
+                These jsp's need to have the artifacts version filtered in to
+                eliminate broswer caching issues and set up the proper includes.
+                Since the webResource filter occurs after the precompilation we
                 must exclude them here.
             -->
             <plugin>
-                <groupId>org.mortbay.jetty</groupId>
+                <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-jspc-maven-plugin</artifactId>
-                <version>8.1.10.v20130312</version>
+                <version>${jetty.version}</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>jspc</goal>
                         </goals>
                         <configuration>
-                            <packageRoot>org.apache.nifi.web.jsp</packageRoot>
                             <keepSources>true</keepSources>
-                            <verbose>true</verbose>
                             <useProvidedScope>true</useProvidedScope>
                             <excludes>
                                 **/message-page.jsp,
@@ -154,7 +156,7 @@
             <!--
                 Tell the war plugin where to find the filtered web.xml and
                 filter the head portion of the pages. The correct includes and
-                project version is filtered into these jsp's as a browser cache 
+                project version is filtered into these jsp's as a browser cache
                 buster.
             -->
             <plugin>
@@ -274,7 +276,7 @@
                             <goal>bower</goal>
                         </goals>
                         <configuration>
-                            <arguments>install --config.directory=${frontend.assets}</arguments>
+                            <arguments>install ${bower.options} --config.directory=${frontend.assets}</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -302,7 +304,7 @@
             <build>
                 <plugins>
                     <!--
-                        Minifies and compresses the javascript and css. 
+                        Minifies and compresses the javascript and css.
                     -->
                     <plugin>
                         <groupId>net.alchim31.maven</groupId>
@@ -339,6 +341,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-component-state.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-controller-service.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-controller-services.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-reporting-task.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-processor-configuration.js</include>
                                                 <include>${staging.dir}/js/nf/nf-processor-details.js</include>
@@ -760,22 +763,6 @@
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet.jsp</groupId>
-            <artifactId>javax.servlet.jsp-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.el</groupId>
-            <artifactId>javax.el-api</artifactId>
-            <scope>provided</scope>            
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet.jsp.jstl</groupId>
-            <artifactId>javax.servlet.jsp.jstl-api</artifactId>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

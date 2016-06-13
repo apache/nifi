@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
 import org.junit.AfterClass;
@@ -41,6 +43,8 @@ import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
 
+// The test is valid and should be ran when working on this module. @Ignore is
+// to speed up the overall build
 public class KafkaPublisherTest {
 
     private static EmbeddedKafka kafkaLocal;
@@ -62,17 +66,18 @@ public class KafkaPublisherTest {
 
     @Test
     public void validateSuccessfulSendAsWhole() throws Exception {
-        InputStream fis = new ByteArrayInputStream("Hello Kafka".getBytes(StandardCharsets.UTF_8));
+        InputStream contentStream = new ByteArrayInputStream("Hello Kafka".getBytes(StandardCharsets.UTF_8));
         String topicName = "validateSuccessfulSendAsWhole";
 
         Properties kafkaProperties = this.buildProducerProperties();
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, null);
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
+        KafkaPublisherResult result = publisher.publish(publishingContext);
 
-        publisher.publish(messageContext, fis, null, 2000);
-
-        fis.close();
+        assertEquals(0, result.getLastMessageAcked());
+        assertEquals(1, result.getMessagesSent());
+        contentStream.close();
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -86,16 +91,20 @@ public class KafkaPublisherTest {
 
     @Test
     public void validateSuccessfulSendAsDelimited() throws Exception {
-        InputStream fis = new ByteArrayInputStream(
-                "Hello Kafka 1\nHello Kafka 2\nHello Kafka 3\nHello Kafka 4\n".getBytes(StandardCharsets.UTF_8));
+        InputStream contentStream = new ByteArrayInputStream(
+                "Hello Kafka\nHello Kafka\nHello Kafka\nHello Kafka\n".getBytes(StandardCharsets.UTF_8));
         String topicName = "validateSuccessfulSendAsDelimited";
 
         Properties kafkaProperties = this.buildProducerProperties();
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n".getBytes(StandardCharsets.UTF_8));
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
+        publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
+        KafkaPublisherResult result = publisher.publish(publishingContext);
 
-        publisher.publish(messageContext, fis, null, 2000);
+        assertEquals(3, result.getLastMessageAcked());
+        assertEquals(4, result.getMessagesSent());
+        contentStream.close();
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -111,48 +120,111 @@ public class KafkaPublisherTest {
         }
     }
 
+    /*
+     * This test simulates the condition where not all messages were ACKed by
+     * Kafka
+     */
     @Test
-    public void validateSuccessfulReSendOfFailedSegments() throws Exception {
-        InputStream fis = new ByteArrayInputStream(
-                "Hello Kafka 1\nHello Kafka 2\nHello Kafka 3\nHello Kafka 4\n".getBytes(StandardCharsets.UTF_8));
+    public void validateRetries() throws Exception {
+        byte[] testValue = "Hello Kafka1\nHello Kafka2\nHello Kafka3\nHello Kafka4\n".getBytes(StandardCharsets.UTF_8);
+        InputStream contentStream = new ByteArrayInputStream(testValue);
         String topicName = "validateSuccessfulReSendOfFailedSegments";
 
         Properties kafkaProperties = this.buildProducerProperties();
 
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, "\n".getBytes(StandardCharsets.UTF_8));
-        messageContext.setFailedSegments(1, 3);
+        // simulates the first re-try
+        int lastAckedMessageIndex = 1;
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
 
-        publisher.publish(messageContext, fis, null, 2000);
-        publisher.close();
+        publisher.publish(publishingContext);
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
         String m1 = new String(iter.next().message());
         String m2 = new String(iter.next().message());
-        assertEquals("Hello Kafka 2", m1);
-        assertEquals("Hello Kafka 4", m2);
+        assertEquals("Hello Kafka3", m1);
+        assertEquals("Hello Kafka4", m2);
         try {
             iter.next();
             fail();
         } catch (ConsumerTimeoutException e) {
             // that's OK since this is the Kafka mechanism to unblock
         }
+
+        // simulates the second re-try
+        lastAckedMessageIndex = 2;
+        contentStream = new ByteArrayInputStream(testValue);
+        publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
+        publisher.publish(publishingContext);
+
+        m1 = new String(iter.next().message());
+        assertEquals("Hello Kafka4", m1);
+
+        publisher.close();
     }
 
+    /*
+     * Similar to the above test, but it sets the first retry index to the last
+     * possible message index and second index to an out of bound index. The
+     * expectation is that no messages will be sent to Kafka
+     */
     @Test
-    public void validateWithMultiByteCharacters() throws Exception {
-        String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
-        InputStream fis = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
-        String topicName = "validateWithMultiByteCharacters";
+    public void validateRetriesWithWrongIndex() throws Exception {
+        byte[] testValue = "Hello Kafka1\nHello Kafka2\nHello Kafka3\nHello Kafka4\n".getBytes(StandardCharsets.UTF_8);
+        InputStream contentStream = new ByteArrayInputStream(testValue);
+        String topicName = "validateRetriesWithWrongIndex";
 
         Properties kafkaProperties = this.buildProducerProperties();
 
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
 
-        SplittableMessageContext messageContext = new SplittableMessageContext(topicName, null, null);
+        // simulates the first re-try
+        int lastAckedMessageIndex = 3;
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
 
-        publisher.publish(messageContext, fis, null, 2000);
+        publisher.publish(publishingContext);
+
+        ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
+
+        try {
+            iter.next();
+            fail();
+        } catch (ConsumerTimeoutException e) {
+            // that's OK since this is the Kafka mechanism to unblock
+        }
+
+        // simulates the second re-try
+        lastAckedMessageIndex = 6;
+        contentStream = new ByteArrayInputStream(testValue);
+        publishingContext = new PublishingContext(contentStream, topicName, lastAckedMessageIndex);
+        publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
+        publisher.publish(publishingContext);
+        try {
+            iter.next();
+            fail();
+        } catch (ConsumerTimeoutException e) {
+            // that's OK since this is the Kafka mechanism to unblock
+        }
+
+        publisher.close();
+    }
+
+    @Test
+    public void validateWithMultiByteCharactersNoDelimiter() throws Exception {
+        String data = "僠THIS IS MY NEW TEXT.僠IT HAS A NEWLINE.";
+        InputStream contentStream = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
+        String topicName = "validateWithMultiByteCharacters";
+
+        Properties kafkaProperties = this.buildProducerProperties();
+
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
+
+        publisher.publish(publishingContext);
         publisher.close();
 
         ConsumerIterator<byte[], byte[]> iter = this.buildConsumer(topicName);
@@ -162,12 +234,10 @@ public class KafkaPublisherTest {
 
     private Properties buildProducerProperties() {
         Properties kafkaProperties = new Properties();
-        kafkaProperties.setProperty("bootstrap.servers", "0.0.0.0:" + kafkaLocal.getKafkaPort());
-        kafkaProperties.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
-        kafkaProperties.setProperty("acks", "1");
+        kafkaProperties.put("key.serializer", ByteArraySerializer.class.getName());
+        kafkaProperties.put("value.serializer", ByteArraySerializer.class.getName());
+        kafkaProperties.setProperty("bootstrap.servers", "localhost:" + kafkaLocal.getKafkaPort());
         kafkaProperties.put("auto.create.topics.enable", "true");
-        kafkaProperties.setProperty("partitioner.class", "org.apache.nifi.processors.kafka.Partitioners$RoundRobinPartitioner");
-        kafkaProperties.setProperty("timeout.ms", "5000");
         return kafkaProperties;
     }
 

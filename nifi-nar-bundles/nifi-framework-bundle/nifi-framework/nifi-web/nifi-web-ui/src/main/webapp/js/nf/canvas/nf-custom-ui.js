@@ -21,22 +21,21 @@ nf.CustomUi = {
     /**
      * Shows the custom ui.
      * 
-     * @argument {string} id       The component id
-     * @argument {string} uri               The uri for the custom ui
+     * @argument {object} entity            The component id
+     * @arugment {string} uri               The custom ui uri
      * @argument {boolean} editable         Whether the custom ui should support editing
      */
-    showCustomUi: function (id, uri, editable) {
+    showCustomUi: function (entity, uri, editable) {
         return $.Deferred(function (deferred) {
             nf.Common.getAccessToken('../nifi-api/access/ui-extension-token').done(function (uiExtensionToken) {
                 // record the processor id
                 $('#shell-close-button');
 
-                var revision = nf.Client.getRevision();
+                var revision = nf.Client.getRevision(entity);
 
                 // build the customer ui params
                 var customUiParams = {
-                    'id': id,
-                    'processorId': id,                  // deprecated
+                    'id': entity.id,
                     'revision': revision.version,
                     'clientId': revision.clientId,
                     'editable': editable

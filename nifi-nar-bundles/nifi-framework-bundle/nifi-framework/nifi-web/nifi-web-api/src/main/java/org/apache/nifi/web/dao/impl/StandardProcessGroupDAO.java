@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
@@ -68,15 +75,51 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public void verifyUpdate(ProcessGroupDTO processGroupDTO) {
-        final ProcessGroup group = locateProcessGroup(flowController, processGroupDTO.getId());
+    public void verifyScheduleComponents(final String groupId, final ScheduledState state,final Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        // determine if any action is required
-        if (isNotNull(processGroupDTO.isRunning())) {
-            if (processGroupDTO.isRunning()) {
-                group.verifyCanStart();
+        final Set<Connectable> connectables = new HashSet<>(componentIds.size());
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findConnectable(componentId);
+            if (connectable == null) {
+                throw new ResourceNotFoundException("Unable to find component with id " + componentId);
+            }
+
+            connectables.add(connectable);
+        }
+
+        // verify as appropriate
+        connectables.forEach(connectable -> {
+            if (ScheduledState.RUNNING.equals(state)) {
+                group.verifyCanStart(connectable);
             } else {
-                group.verifyCanStop();
+                group.verifyCanStop(connectable);
+            }
+        });
+    }
+
+    @Override
+    public void scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+        final ProcessGroup group = locateProcessGroup(flowController, groupId);
+
+        for (final String componentId : componentIds) {
+            final Connectable connectable = group.findConnectable(componentId);
+            if (ScheduledState.RUNNING.equals(state)) {
+                if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
+                    group.startProcessor((ProcessorNode) connectable);
+                } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
+                    group.startInputPort((Port) connectable);
+                } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
+                    group.startOutputPort((Port) connectable);
+                }
+            } else {
+                if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
+                    group.stopProcessor((ProcessorNode) connectable);
+                } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
+                    group.stopInputPort((Port) connectable);
+                } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
+                    group.stopOutputPort((Port) connectable);
+                }
             }
         }
     }
@@ -96,15 +139,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
         if (isNotNull(comments)) {
             group.setComments(comments);
-        }
-
-        // determine if any action is required
-        if (isNotNull(processGroupDTO.isRunning())) {
-            if (processGroupDTO.isRunning()) {
-                group.startProcessing();
-            } else {
-                group.stopProcessing();
-            }
         }
 
         return group;

@@ -20,6 +20,8 @@ public class AdaptedNodeInformation {
 
     private String hostname;
     private Integer siteToSitePort;
+    private Integer siteToSiteHttpApiPort;
+
     private int apiPort;
     private boolean isSiteToSiteSecure;
     private int totalFlowFiles;
@@ -63,4 +65,13 @@ public class AdaptedNodeInformation {
     public void setTotalFlowFiles(int totalFlowFiles) {
         this.totalFlowFiles = totalFlowFiles;
     }
+
+    public Integer getSiteToSiteHttpApiPort() {
+        return siteToSiteHttpApiPort;
+    }
+
+    public void setSiteToSiteHttpApiPort(Integer siteToSiteHttpApiPort) {
+        this.siteToSiteHttpApiPort = siteToSiteHttpApiPort;
+    }
+
 }

@@ -19,7 +19,7 @@
     <div id="user-links-container">
         <ul class="links">
             <li id="user-logout-container" style="display: none;">
-                <span id="user-logout" class="link">logout</span>
+                <span id="user-logout" class="link">log out</span>
             </li>
             <li>
                 <span id="user-home" class="link">home</span>

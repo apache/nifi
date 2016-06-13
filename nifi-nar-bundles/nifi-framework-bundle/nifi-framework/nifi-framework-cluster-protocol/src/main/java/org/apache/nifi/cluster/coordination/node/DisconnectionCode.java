@@ -58,6 +58,16 @@ public enum DisconnectionCode {
     MISMATCHED_FLOWS("Node's Flow did not Match Cluster Flow"),
 
     /**
+     * Cannot communicate with the node
+     */
+    UNABLE_TO_COMMUNICATE("Unable to Communicate with Node"),
+
+    /**
+     * Node did not service a request that was replicated to it
+     */
+    FAILED_TO_SERVICE_REQUEST("Failed to Service Request"),
+
+    /**
      * Node is being shut down
      */
     NODE_SHUTDOWN("Node was Shutdown");

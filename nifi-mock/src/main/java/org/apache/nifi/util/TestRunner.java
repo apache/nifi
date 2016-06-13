@@ -875,18 +875,18 @@ public interface TestRunner {
     void clearProvenanceEvents();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the Processor under test.
+     * Returns the {@link MockComponentLog} that is used by the Processor under test.
      * @return the logger
      */
-    public MockProcessorLog getLogger();
+    public MockComponentLog getLogger();
 
     /**
-     * Returns the {@link MockProcessorLog} that is used by the specified controller service.
+     * Returns the {@link MockComponentLog} that is used by the specified controller service.
      *
      * @param identifier a controller service identifier
      * @return the logger
      */
-    public MockProcessorLog getControllerServiceLogger(final String identifier);
+    public MockComponentLog getControllerServiceLogger(final String identifier);
 
     /**
      * @return the State Manager that is used to stored and retrieve state

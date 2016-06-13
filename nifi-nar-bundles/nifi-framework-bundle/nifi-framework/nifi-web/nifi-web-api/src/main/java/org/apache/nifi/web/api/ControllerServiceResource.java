@@ -16,19 +16,38 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.net.URI;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
@@ -47,27 +66,12 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Controller Service.
@@ -82,8 +86,7 @@ public class ControllerServiceResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceResource.class);
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
+    private Authorizer authorizer;
 
     @Context
     private ServletContext servletContext;
@@ -184,12 +187,17 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id);
+            controllerService.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the controller service
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
@@ -233,22 +241,27 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The property name to return the descriptor for.",
                     required = true
             )
-            @QueryParam("propertyName") String propertyName) {
+            @QueryParam("propertyName") final String propertyName) {
 
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
 
-        // replicate if cluster manager and service is on node
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id);
+            controllerService.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
@@ -293,12 +306,17 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "The controller service id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id);
+            controllerService.authorize(authorizer, RequestAction.WRITE);
+        });
 
         // get the component state
         final ComponentStateDTO state = serviceFacade.getControllerServiceState(id);
@@ -314,12 +332,12 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Clears the state for a controller service.
      *
-     * @param revisionEntity The revision is used to verify the client is working with the latest version of the flow.
+     * @param httpServletRequest servlet request
      * @param id The id of the controller service
      * @return a componentStateEntity
      */
     @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
@@ -342,23 +360,23 @@ public class ControllerServiceResource extends ApplicationResource {
     public Response clearState(
         @Context HttpServletRequest httpServletRequest,
         @ApiParam(
-            value = "The revision used to verify the client is working with the latest version of the flow.",
-            required = true
-        ) ComponentStateEntity revisionEntity,
-        @ApiParam(
             value = "The controller service id.",
             required = true
         )
-        @PathParam("id") String id) {
+        @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
         }
 
         // handle expects request (usually from the cluster manager)
         final boolean validationPhase = isValidationPhase(httpServletRequest);
         if (validationPhase) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable controllerService = lookup.getControllerService(id);
+                controllerService.authorize(authorizer, RequestAction.WRITE);
+            });
             serviceFacade.verifyCanClearControllerServiceState(id);
             return generateContinueResponse().build();
         }
@@ -407,12 +425,17 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controllerService = lookup.getControllerService(id);
+            controllerService.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the controller service
         final ControllerServiceReferencingComponentsEntity entity = serviceFacade.getControllerServiceReferencingComponents(id);
@@ -449,11 +472,16 @@ public class ControllerServiceResource extends ApplicationResource {
             }
     )
     public Response updateControllerServiceReferences(
-            @Context HttpServletRequest httpServletRequest,
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                value = "The controller service id.",
+                required = true
+            )
+            @PathParam("id") final String id,
             @ApiParam(
                 value = "The controller service request update request.",
                 required = true
-            ) UpdateControllerServiceReferenceRequestEntity updateReferenceRequest) {
+            ) final UpdateControllerServiceReferenceRequestEntity updateReferenceRequest) {
 
         if (updateReferenceRequest.getId() == null) {
             throw new IllegalArgumentException("The controller service identifier must be specified.");
@@ -467,35 +495,36 @@ public class ControllerServiceResource extends ApplicationResource {
         // need to consider controller service state first as it shares a state with
         // scheduled state (disabled) which is applicable for referencing services
         // but not referencing schedulable components
-        ControllerServiceState controllerServiceState = null;
+        ControllerServiceState requestControllerServiceState = null;
         try {
-            controllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
+            requestControllerServiceState = ControllerServiceState.valueOf(updateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
 
-        ScheduledState scheduledState = null;
+        ScheduledState requestScheduledState = null;
         try {
-            scheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
+            requestScheduledState = ScheduledState.valueOf(updateReferenceRequest.getState());
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
 
         // ensure an action has been specified
-        if (scheduledState == null && controllerServiceState == null) {
+        if (requestScheduledState == null && requestControllerServiceState == null) {
             throw new IllegalArgumentException("Must specify the updated state. To update referencing Processors "
                     + "and Reporting Tasks the state should be RUNNING or STOPPED. To update the referencing Controller Services the "
                     + "state should be ENABLED or DISABLED.");
         }
 
         // ensure the controller service state is not ENABLING or DISABLING
-        if (controllerServiceState != null && (ControllerServiceState.ENABLING.equals(controllerServiceState) || ControllerServiceState.DISABLING.equals(controllerServiceState))) {
+        if (requestControllerServiceState != null
+            && (ControllerServiceState.ENABLING.equals(requestControllerServiceState) || ControllerServiceState.DISABLING.equals(requestControllerServiceState))) {
+
             throw new IllegalArgumentException("Cannot set the referencing services to ENABLING or DISABLING");
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateReferenceRequest, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, updateReferenceRequest);
         }
 
         // convert the referencing revisions
@@ -504,24 +533,28 @@ public class ControllerServiceResource extends ApplicationResource {
                 final RevisionDTO rev = e.getValue();
                 return new Revision(rev.getVersion(), rev.getClientId(), e.getKey());
             }));
+        final Set<Revision> revisions = new HashSet<>(referencingRevisions.values());
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            referencingRevisions.entrySet().stream().forEach(e -> {
-                serviceFacade.claimRevision(e.getValue());
-            });
-        }
-        if (validationPhase) {
-            serviceFacade.verifyUpdateControllerServiceReferencingComponents(updateReferenceRequest.getId(), scheduledState, controllerServiceState);
-            return generateContinueResponse().build();
-        }
+        final ScheduledState scheduledState = requestScheduledState;
+        final ControllerServiceState controllerServiceState = requestControllerServiceState;
+        return withWriteLock(
+            serviceFacade,
+            revisions,
+            lookup -> {
+                referencingRevisions.entrySet().stream().forEach(e -> {
+                    final Authorizable controllerService = lookup.getControllerServiceReferencingComponent(id, e.getKey());
+                    controllerService.authorize(authorizer, RequestAction.WRITE);
+                });
+            },
+            () -> serviceFacade.verifyUpdateControllerServiceReferencingComponents(updateReferenceRequest.getId(), scheduledState, controllerServiceState),
+            () -> {
+                // update the controller service references
+                final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
+                    referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
-        // update the controller service references
-        final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
-            referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
-
-        return clusterContext(generateOkResponse(entity)).build();
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     /**
@@ -559,11 +592,11 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The controller service configuration details.",
                     required = true
-            ) ControllerServiceEntity controllerServiceEntity) {
+            ) final ControllerServiceEntity controllerServiceEntity) {
 
         if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
@@ -580,34 +613,35 @@ public class ControllerServiceResource extends ApplicationResource {
                     + "controller service id of the requested resource (%s).", requestControllerServiceDTO.getId(), id));
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), controllerServiceEntity, getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, controllerServiceEntity);
         }
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(controllerServiceEntity, id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO);
-            return generateContinueResponse().build();
-        }
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable controllerService = lookup.getControllerService(id);
+                controllerService.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
+            () -> {
+                // update the controller service
+                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
 
-        // update the controller service
-        final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
+                // build the response entity
+                final ControllerServiceEntity entity = updateResult.getResult();
+                populateRemainingControllerServiceContent(entity.getComponent());
 
-        // build the response entity
-        final ControllerServiceEntity entity = updateResult.getResult();
-        populateRemainingControllerServiceContent(entity.getComponent());
-
-        if (updateResult.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                if (updateResult.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            }
+        );
     }
 
     /**
@@ -649,37 +683,38 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") String id) {
+            @PathParam("id") final String id) {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         // handle expects request (usually from the cluster manager)
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
-        if (validationPhase) {
-            serviceFacade.verifyDeleteControllerService(id);
-            return generateContinueResponse().build();
-        }
-
-        // delete the specified controller service
-        final ControllerServiceEntity entity = serviceFacade.deleteControllerService(revision, id);
-        return clusterContext(generateOkResponse(entity)).build();
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable controllerService = lookup.getControllerService(id);
+                controllerService.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteControllerService(id),
+            () -> {
+                // delete the specified controller service
+                final ControllerServiceEntity entity = serviceFacade.deleteControllerService(revision, id);
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -687,11 +722,7 @@ public class ControllerServiceResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

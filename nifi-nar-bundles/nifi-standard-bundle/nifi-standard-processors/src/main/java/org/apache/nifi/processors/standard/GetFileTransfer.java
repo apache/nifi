@@ -43,7 +43,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -115,7 +115,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
         final long pollingIntervalMillis = context.getProperty(FileTransfer.POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final long nextPollTime = lastPollTime.get() + pollingIntervalMillis;
         BlockingQueue<FileInfo> fileQueue = fileQueueRef.get();
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
 
         // dont do the listing if there are already 100 or more items in our queue
         // 100 is really just a magic number that seems to work out well in practice

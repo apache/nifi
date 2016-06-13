@@ -29,9 +29,15 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
@@ -42,20 +48,23 @@ import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.apache.nifi.web.security.token.OtpAuthenticationToken;
+import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
+import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
-import org.apache.nifi.web.security.x509.X509IdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.authentication.AccountStatusException;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -69,8 +78,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,13 +94,34 @@ public class AccessResource extends ApplicationResource {
 
     private NiFiProperties properties;
 
-    private LoginIdentityProvider loginIdentityProvider;
     private X509CertificateExtractor certificateExtractor;
-    private X509IdentityProvider certificateIdentityProvider;
+    private X509AuthenticationProvider x509AuthenticationProvider;
+    private X509PrincipalExtractor principalExtractor;
+
+    private LoginIdentityProvider loginIdentityProvider;
+    private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtService jwtService;
     private OtpService otpService;
 
     private KerberosService kerberosService;
+
+    private Authorizer authorizer;
+
+    /**
+     * Authorizes access to the flow.
+     */
+    private boolean hasFlowAccess(final NiFiUser user) {
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                .resource(ResourceFactory.getFlowResource())
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(true)
+                .action(RequestAction.READ)
+                .build();
+
+        final AuthorizationResult result = authorizer.authorize(request);
+        return Result.Approved.equals(result.getResult());
+    }
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -103,8 +131,8 @@ public class AccessResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Path("/config")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("config")
     @ApiOperation(
             value = "Retrieves the access configuration for this NiFi",
             response = AccessConfigurationEntity.class
@@ -115,7 +143,6 @@ public class AccessResource extends ApplicationResource {
 
         // specify whether login should be supported and only support for secure requests
         accessConfiguration.setSupportsLogin(loginIdentityProvider != null && httpServletRequest.isSecure());
-        accessConfiguration.setSupportsAnonymous(false);
 
         // create the response entity
         final AccessConfigurationEntity entity = new AccessConfigurationEntity();
@@ -133,7 +160,7 @@ public class AccessResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("")
     @ApiOperation(
             value = "Gets the status the client's access",
@@ -173,56 +200,41 @@ public class AccessResource extends ApplicationResource {
                     try {
                         // Extract the Base64 encoded token from the Authorization header
                         final String token = StringUtils.substringAfterLast(authorization, " ");
-                        final String principal = jwtService.getAuthenticationFromToken(token);
+
+                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token);
+                        final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
+                        final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
                         // set the user identity
-                        accessStatus.setIdentity(principal);
-                        accessStatus.setUsername(CertificateUtils.extractUsername(principal));
+                        accessStatus.setIdentity(nifiUser.getIdentity());
+                        accessStatus.setUsername(nifiUser.getUserName());
 
-                        // without a certificate, this is not a proxied request
-                        final List<String> chain = Arrays.asList(principal);
-
-                        // TODO - ensure the proxy chain is authorized
-//                        final UserDetails userDetails = checkAuthorization(chain);
-
-                        // no issues with authorization... verify authorities
+                        // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                        accessStatus.setMessage("Your account is active and you are already logged in.");
+                        accessStatus.setMessage("You are already logged in.");
                     } catch (JwtException e) {
                         throw new InvalidAuthenticationException(e.getMessage(), e);
                     }
                 }
             } else {
                 try {
-                    final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
+                    final X509AuthenticationRequestToken x509Request = new X509AuthenticationRequestToken(
+                            httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates);
 
-                    // get the proxy chain and ensure its populated
-                    final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
-                    if (proxyChain.isEmpty()) {
-                        logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
-                        throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
-                    }
+                    final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(x509Request);
+                    final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
                     // set the user identity
-                    accessStatus.setIdentity(proxyChain.get(0));
-                    accessStatus.setUsername(CertificateUtils.extractUsername(proxyChain.get(0)));
+                    accessStatus.setIdentity(nifiUser.getIdentity());
+                    accessStatus.setUsername(nifiUser.getUserName());
 
-                    // TODO - ensure the proxy chain is authorized
-//                    final UserDetails userDetails = checkAuthorization(proxyChain);
-
-                    // no issues with authorization... verify authorities
+                    // attempt authorize to /flow
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
-                    accessStatus.setMessage("Your account is active and you are already logged in.");
+                    accessStatus.setMessage("You are already logged in.");
                 } catch (final IllegalArgumentException iae) {
                     throw new InvalidAuthenticationException(iae.getMessage(), iae);
                 }
             }
-        } catch (final UsernameNotFoundException unfe) {
-            accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
-            accessStatus.setMessage("This NiFi does not support new account requests.");
-        } catch (final AccountStatusException ase) {
-            accessStatus.setStatus(AccessStatusDTO.Status.NOT_ACTIVE.name());
-            accessStatus.setMessage(ase.getMessage());
         } catch (final UntrustedProxyException upe) {
             throw new AccessDeniedException(upe.getMessage(), upe);
         } catch (final AuthenticationServiceException ase) {
@@ -354,8 +366,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }
     )
-    public Response createAccessTokenFromTicket(
-            @Context HttpServletRequest httpServletRequest) {
+    public Response createAccessTokenFromTicket(@Context HttpServletRequest httpServletRequest) {
 
         // only support access tokens when communicating over HTTPS
         if (!httpServletRequest.isSecure()) {
@@ -388,7 +399,6 @@ public class AccessResource extends ApplicationResource {
 
                 // create the authentication token
                 final LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(identity, expiration, "KerberosService");
-
 
                 // generate JWT for response
                 final String token = jwtService.generateSignedToken(loginAuthenticationToken);
@@ -446,43 +456,22 @@ public class AccessResource extends ApplicationResource {
 
         final LoginAuthenticationToken loginAuthenticationToken;
 
-        final X509Certificate[] certificates = certificateExtractor.extractClientCertificate(httpServletRequest);
+        // ensure we have login credentials
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            throw new IllegalArgumentException("The username and password must be specified.");
+        }
 
-        // if there is not certificate, consider login credentials
-        if (certificates == null) {
-            // ensure we have login credentials
-            if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
-                throw new IllegalArgumentException("The username and password must be specified.");
-            }
-
-            try {
-                // attempt to authenticate
-                final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
-                long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
-
-                // create the authentication token
-                loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
-            } catch (final InvalidLoginCredentialsException ilce) {
-                throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
-            } catch (final IdentityAccessException iae) {
-                throw new AdministrationException(iae.getMessage(), iae);
-            }
-        } else {
-            // consider a certificate
-            final AuthenticationResponse authenticationResponse = certificateIdentityProvider.authenticate(certificates);
-
-            // get the proxy chain and ensure its populated
-            final List<String> proxyChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(httpServletRequest, authenticationResponse.getIdentity());
-            if (proxyChain.isEmpty()) {
-                logger.error(String.format("Unable to parse the proxy chain %s from the incoming request.", authenticationResponse.getIdentity()));
-                throw new IllegalArgumentException("Unable to determine the user from the incoming request.");
-            }
-
-            // TODO - authorize the proxy if necessary
-//            authorizeProxyIfNecessary(proxyChain);
+        try {
+            // attempt to authenticate
+            final AuthenticationResponse authenticationResponse = loginIdentityProvider.authenticate(new LoginCredentials(username, password));
+            long expiration = validateTokenExpiration(authenticationResponse.getExpiration(), authenticationResponse.getIdentity());
 
             // create the authentication token
-            loginAuthenticationToken = new LoginAuthenticationToken(proxyChain.get(0), authenticationResponse.getExpiration(), authenticationResponse.getIssuer());
+            loginAuthenticationToken = new LoginAuthenticationToken(authenticationResponse.getIdentity(), expiration, authenticationResponse.getIssuer());
+        } catch (final InvalidLoginCredentialsException ilce) {
+            throw new IllegalArgumentException("The supplied username and password are not valid.", ilce);
+        } catch (final IdentityAccessException iae) {
+            throw new AdministrationException(iae.getMessage(), iae);
         }
 
         // generate JWT for response
@@ -515,6 +504,10 @@ public class AccessResource extends ApplicationResource {
         this.properties = properties;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
     }
@@ -523,19 +516,28 @@ public class AccessResource extends ApplicationResource {
         this.jwtService = jwtService;
     }
 
+    public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
+        this.jwtAuthenticationProvider = jwtAuthenticationProvider;
+    }
+
     public void setKerberosService(KerberosService kerberosService) {
         this.kerberosService = kerberosService;
     }
 
-    public void setOtpService(OtpService otpService) {
-        this.otpService = otpService;
+    public void setX509AuthenticationProvider(X509AuthenticationProvider x509AuthenticationProvider) {
+        this.x509AuthenticationProvider = x509AuthenticationProvider;
+    }
+
+    public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
+        this.principalExtractor = principalExtractor;
     }
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
     }
 
-    public void setCertificateIdentityProvider(X509IdentityProvider certificateIdentityProvider) {
-        this.certificateIdentityProvider = certificateIdentityProvider;
+    public void setOtpService(OtpService otpService) {
+        this.otpService = otpService;
     }
+
 }

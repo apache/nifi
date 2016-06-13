@@ -942,7 +942,9 @@ nf.RemoteProcessGroup = (function () {
                     // reload the group's connections
                     var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                     $.each(connections, function (_, connection) {
-                        nf.Connection.reload(connection);
+                        if (connection.accessPolicy.canRead) {
+                            nf.Connection.reload(connection.component);
+                        }
                     });
                 });
             }

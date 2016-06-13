@@ -43,7 +43,7 @@ import org.apache.nifi.distributed.cache.client.exception.DeserializationExcepti
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -160,7 +160,7 @@ public class DetectDuplicate extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final String cacheKey = context.getProperty(CACHE_ENTRY_IDENTIFIER).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(cacheKey)) {
             logger.error("FlowFile {} has no attribute for given Cache Entry Identifier", new Object[]{flowFile});

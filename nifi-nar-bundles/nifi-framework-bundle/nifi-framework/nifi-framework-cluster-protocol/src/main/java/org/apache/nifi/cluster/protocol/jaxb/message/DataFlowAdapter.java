@@ -18,15 +18,15 @@ package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
+import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
  */
-public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlow> {
+public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, DataFlow> {
 
     @Override
-    public AdaptedDataFlow marshal(final StandardDataFlow df) {
-
+    public AdaptedDataFlow marshal(final DataFlow df) {
         final AdaptedDataFlow aDf = new AdaptedDataFlow();
 
         if (df != null) {
@@ -39,7 +39,7 @@ public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlo
     }
 
     @Override
-    public StandardDataFlow unmarshal(final AdaptedDataFlow aDf) {
+    public DataFlow unmarshal(final AdaptedDataFlow aDf) {
         final StandardDataFlow dataFlow = new StandardDataFlow(aDf.getFlow(), aDf.getSnippets());
         dataFlow.setAutoStartProcessors(aDf.isAutoStartProcessors());
         return dataFlow;

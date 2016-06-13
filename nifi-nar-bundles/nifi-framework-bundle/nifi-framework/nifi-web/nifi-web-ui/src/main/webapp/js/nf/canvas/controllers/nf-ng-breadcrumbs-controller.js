@@ -38,15 +38,21 @@ nf.ng.BreadcrumbsCtrl = function (serviceProvider, $sanitize) {
         /**
          * Generate the breadcrumbs.
          *
-         * @param {object} breadcrumb  The breadcrumb
+         * @param {object} breadcrumbEntity  The breadcrumb
          */
-        generateBreadcrumbs: function(breadcrumb) {
+        generateBreadcrumbs: function(breadcrumbEntity) {
+            var label = breadcrumbEntity.id;
+            if (breadcrumbEntity.accessPolicy.canRead) {
+                label = breadcrumbEntity.breadcrumb.name;
+            }
+            
             //explicitly sanitize processGroup.name
-            breadcrumb.name = $sanitize(breadcrumb.name);
-            this.breadcrumbs.unshift(breadcrumb);
+            this.breadcrumbs.unshift($.extend({
+                'label': $sanitize(label)
+            }, breadcrumbEntity));
 
-            if (nf.Common.isDefinedAndNotNull(breadcrumb.parentBreadcrumb)) {
-                this.generateBreadcrumbs(breadcrumb.parentBreadcrumb);
+            if (nf.Common.isDefinedAndNotNull(breadcrumbEntity.parentBreadcrumb)) {
+                this.generateBreadcrumbs(breadcrumbEntity.parentBreadcrumb);
             }
         },
 

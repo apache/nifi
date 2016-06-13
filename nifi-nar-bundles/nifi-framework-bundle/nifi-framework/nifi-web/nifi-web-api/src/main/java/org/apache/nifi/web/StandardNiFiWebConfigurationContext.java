@@ -16,7 +16,22 @@
  */
 package org.apache.nifi.web;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -25,11 +40,21 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
@@ -49,20 +74,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 /**
  * Implements the NiFiWebConfigurationContext interface to support a context in both standalone and clustered environments.
@@ -70,25 +82,44 @@ import java.util.Objects;
 public class StandardNiFiWebConfigurationContext implements NiFiWebConfigurationContext {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiWebConfigurationContext.class);
-    public static final String CLIENT_ID_PARAM = "clientId";
-    public static final String REVISION_PARAM = "revision";
     public static final String VERBOSE_PARAM = "verbose";
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
+    private ClusterCoordinator clusterCoordinator;
+    private RequestReplicator requestReplicator;
     private ControllerServiceLookup controllerServiceLookup;
     private ReportingTaskProvider reportingTaskProvider;
     private AuditService auditService;
+    private Authorizer authorizer;
+
+    private void authorizeFlowAccess(final NiFiUser user) {
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                    .resource(ResourceFactory.getFlowResource())
+                    .identity(user.getIdentity())
+                    .anonymous(user.isAnonymous())
+                    .accessAttempt(true)
+                    .action(RequestAction.READ)
+                    .build();
+
+            final AuthorizationResult result = authorizer.authorize(request);
+            if (!Result.Approved.equals(result.getResult())) {
+                final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
+                throw new AccessDeniedException(message);
+            }
+        });
+    }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ControllerService getControllerService(String serviceIdentifier) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        authorizeFlowAccess(user);
         return controllerServiceLookup.getControllerService(serviceIdentifier);
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public void saveActions(final NiFiWebRequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
         Objects.requireNonNull(configurationActions, "Actions cannot be null.");
 
@@ -100,12 +131,30 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         Component componentType = null;
         switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getProcessor(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.Processor;
                 break;
             case ControllerServiceConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getControllerService(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.ControllerService;
                 break;
             case ReportingTaskConfiguration:
+                // authorize access
+                serviceFacade.authorizeAccess(lookup -> {
+                    final Authorizable authorizable = lookup.getReportingTask(requestContext.getId());
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                });
+
                 componentType = Component.ReportingTask;
                 break;
         }
@@ -154,33 +203,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserDn() {
-        String userIdentity = NiFiUser.ANONYMOUS.getIdentity();
-
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            userIdentity = user.getIdentity();
-        }
-
-        return userIdentity;
+        authorizeFlowAccess(user);
+        return user.getIdentity();
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public String getCurrentUserName() {
-        String userName = NiFiUser.ANONYMOUS.getIdentity();
-
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user != null) {
-            userName = user.getUserName();
-        }
-
-        return userName;
+        authorizeFlowAccess(user);
+        return user.getUserName();
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException {
         final String id = requestContext.getId();
 
@@ -215,7 +251,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData)
             throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException {
 
@@ -283,8 +318,14 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getProcessor(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
+
             final ProcessorDTO processor;
-            if (properties.isClusterManager()) {
+            if (properties.isClustered() && clusterCoordinator != null && clusterCoordinator.isConnected()) {
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -299,7 +340,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 parameters.add(VERBOSE_PARAM, "true");
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext)).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -320,11 +366,18 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getProcessor(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
+
             final ProcessorDTO processor;
-            if (properties.isClusterManager()) {
+            if (properties.isClustered()) {
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -358,7 +411,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.PUT, requestUrl, processorEntity, headers);
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.PUT, requestUrl, processorEntity, headers).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -370,8 +428,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 processor = entity.getComponent();
             } else {
-                final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
-                processor = entity.getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    final ProcessorEntity entity = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
+                    processor = entity.getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             }
 
             // return the processor info
@@ -401,6 +466,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             final String id = requestContext.getId();
             final ControllerServiceDTO controllerService;
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getControllerService(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
+
             // if the lookup has the service that means we are either a node or
             // the ncm and the service is available there only
             if (controllerServiceLookup.getControllerService(id) != null) {
@@ -408,7 +479,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
-                if (!properties.isClusterManager()) {
+                if (!properties.isClustered()) {
                     throw new ResourceNotFoundException(String.format("Controller service[%s] could not be found on this NiFi.", id));
                 }
 
@@ -425,7 +496,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext)).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -444,8 +520,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getControllerService(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
 
             final ControllerServiceDTO controllerService;
             if (controllerServiceLookup.getControllerService(id) != null) {
@@ -453,12 +536,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
 
-                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                controllerService = updateResult.getResult().getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    // perform the update
+                    final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                    controllerService = updateResult.getResult().getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             } else {
                 // if this is a standalone instance the service should have been found above... there should
                 // no cluster to replicate the request to
-                if (!properties.isClusterManager()) {
+                if (!properties.isClustered()) {
                     throw new ResourceNotFoundException(String.format("Controller service[%s] could not be found on this NiFi.", id));
                 }
 
@@ -497,7 +588,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.PUT, requestUrl, controllerServiceEntity, headers);
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.PUT, requestUrl, controllerServiceEntity, headers).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -536,6 +632,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             final String id = requestContext.getId();
             final ReportingTaskDTO reportingTask;
 
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getReportingTask(id);
+                authorizable.authorize(authorizer, RequestAction.READ);
+            });
+
             // if the provider has the service that means we are either a node or
             // the ncm and the service is available there only
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
@@ -543,7 +645,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to
-                if (!properties.isClusterManager()) {
+                if (!properties.isClustered()) {
                     throw new ResourceNotFoundException(String.format("Reporting task[%s] could not be found on this NiFi.", id));
                 }
 
@@ -560,7 +662,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext));
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.GET, requestUrl, parameters, getHeaders(requestContext)).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -579,8 +686,15 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
         @Override
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
+
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable authorizable = lookup.getReportingTask(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
+            });
 
             final ReportingTaskDTO reportingTask;
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
@@ -588,12 +702,19 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
 
-                final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                reportingTask = updateResult.getResult().getComponent();
+                // claim the revision
+                serviceFacade.claimRevision(revision, user);
+                try {
+                    final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                    reportingTask = updateResult.getResult().getComponent();
+                } finally {
+                    // ensure the revision is canceled.. if the operation succeed, this is a noop
+                    serviceFacade.cancelRevision(revision);
+                }
             } else {
                 // if this is a standalone instance the task should have been found above... there should
                 // no cluster to replicate the request to
-                if (!properties.isClusterManager()) {
+                if (!properties.isClustered()) {
                     throw new ResourceNotFoundException(String.format("Reporting task[%s] could not be found on this NiFi.", id));
                 }
 
@@ -632,7 +753,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 headers.put("Content-Type", "application/json");
 
                 // replicate request
-                NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.PUT, requestUrl, reportingTaskEntity, headers);
+                NodeResponse nodeResponse;
+                try {
+                    nodeResponse = requestReplicator.replicate(HttpMethod.PUT, requestUrl, reportingTaskEntity, headers).awaitMergedResponse();
+                } catch (InterruptedException e) {
+                    throw new IllegalClusterStateException("Request was interrupted while waiting for response from node");
+                }
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
@@ -705,8 +831,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
+    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
+    }
+
+    public void setRequestReplicator(RequestReplicator requestReplicator) {
+        this.requestReplicator = requestReplicator;
     }
 
     public void setProperties(NiFiProperties properties) {
@@ -729,4 +859,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         this.reportingTaskProvider = reportingTaskProvider;
     }
 
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
 }

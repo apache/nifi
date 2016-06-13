@@ -53,6 +53,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
@@ -277,6 +278,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         }
                     }
 
+                    scaleRootGroup(rootGroup, encodingVersion);
+
                     final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
                     if (reportingTasksElement != null) {
                         final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
@@ -308,6 +311,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             logger.debug("Finished synching flows");
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
+        }
+    }
+
+    void scaleRootGroup(ProcessGroup rootGroup, FlowEncodingVersion encodingVersion) {
+        if (encodingVersion == null || encodingVersion.getMajorVersion() < 1) {
+            // Calculate new Positions if the encoding version of the flow is older than 1.0.
+            PositionScaler.scale(rootGroup, 1.5, 1.34);
         }
     }
 
@@ -914,7 +924,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // add remote process group
         final List<Element> remoteProcessGroupNodeList = getChildrenByTagName(processGroupElement, "remoteProcessGroup");
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
-            final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement);
+            final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
             final RemoteProcessGroup remoteGroup = controller.createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUri());
             remoteGroup.setComments(remoteGroupDto.getComments());
             remoteGroup.setPosition(toPosition(remoteGroupDto.getPosition()));
@@ -927,6 +937,27 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             if (remoteGroupDto.getYieldDuration() != null) {
                 remoteGroup.setYieldDuration(remoteGroupDto.getYieldDuration());
+            }
+
+            String transportProtocol = remoteGroupDto.getTransportProtocol();
+            if (transportProtocol != null && !transportProtocol.trim().isEmpty()) {
+                remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
+            }
+
+            if (remoteGroupDto.getProxyHost() != null) {
+                remoteGroup.setProxyHost(remoteGroupDto.getProxyHost());
+            }
+
+            if (remoteGroupDto.getProxyPort() != null) {
+                remoteGroup.setProxyPort(remoteGroupDto.getProxyPort());
+            }
+
+            if (remoteGroupDto.getProxyUser() != null) {
+                remoteGroup.setProxyUser(remoteGroupDto.getProxyUser());
+            }
+
+            if (remoteGroupDto.getProxyPassword() != null) {
+                remoteGroup.setProxyPassword(remoteGroupDto.getProxyPassword());
             }
 
             final Set<RemoteProcessGroupPortDescriptor> inputPorts = new HashSet<>();

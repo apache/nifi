@@ -781,10 +781,23 @@ link:administration-guide.html[Admin Guide].
    This allows new capabilities to be added while still maintaining backward compatibility with all older instances. Additionally, if a vulnerability
    or deficiency is ever discovered in a protocol, it allows a newer version of NiFi to forbid communication over the compromised versions of the protocol.
 
-In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the canvas
+Site-to-Site is a protocol transferring data between two NiFi instances. Both end can be a standalone NiFi or a NiFi cluster. In this section, the NiFi instance initiates the communications is called _Site-to-Site client NiFi instance_ and the other end as _Site-to-Site server NiFi instance_ to clarify what configuration needed on each NiFi instances.
+
+A NiFi instance can be both client and server for Site-to-Site protocol, however, it can only be a client or server within a specific Site-to-Site communication. For example, if there are three NiFi instances A, B and C. A pushes data to B, and B pulls data from C. _A -- push -> B <- pull -- C_. Then B is not only a _server_ in the communication between A and B, but also a _client_ in B and C.
+
+It is important to understand which NiFi instance will be the client or server in order to design your data flow, and configure each instance accordingly. Here is a summary of what components run on which side based on data flow direction:
+
+- Push: a client _sends_ data to a Remote Process Group, the server _receives_ it with an Input Port
+
+- Pull: a client _receives_ data from a Remote Process Group, the server _sends_ data through an Output Port
+
+==== Configure Site-to-Site client NiFi instance
+
+[[Site-to-Site_Remote_Process_Group]]
+*Remote Process Group*: In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the canvas
 and enter the URL of the remote NiFi instance (for more information on the components of a Remote Process Group, see 
 <<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same 
-URL you would use to go to that instance's User Interface. At that point, you can drag a connection to or from the Remote Process Group 
+URL you would use to go to that instance's User Interface. At that point, you can drag a connection to or from the Remote Process Group
 in the same way you would drag a connection to or from a Processor or a local Process Group. When you drag the connection, you will have
 a chance to choose which Port to connect to. Note that it may take up to one minute for the Remote Process Group to determine
 which ports are available.
@@ -797,7 +810,17 @@ the ports shown will be the Input Ports of the remote group, as this implies tha
 communicate with. For information on configuring NiFi to run securely, see the
 link:administration-guide.html[Admin Guide].
 
-In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group
+[[Site-to-Site_Transport_Protocol]]
+*Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
+
+image:configure-remote-process-group.png["Configure Remote Process Group", width=395]
+
+By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server. For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are supported.
+
+==== Configure Site-to-Site server NiFi instance
+
+[[Site-to-Site_Input_Port]]
+*Input Port*: In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group
 of your canvas. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order
 to adjust the name and the number of concurrent tasks that are used for the port. If Site-to-Site is configured to run securely, you will also be given
 the ability to adjust who has access to the port. If secure, only those who have been granted access to communicate with the port will be able to see
@@ -806,14 +829,16 @@ that the port exists.
 After being given access to a particular port, in order to see that port, the operator of a remote NiFi instance may need to right-click on their Remote
 Process Group and choose to "Refresh" the flow.
 
-Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an 
+[[Site-to-Site_Output_Port]]
+*Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an
 authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port will again allow the
 DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured. 
 
 In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
 For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
 
-If your instance of NiFi is running securely, the first time that a client establishes a connection to your instance, the client will be forbidden and
+[[Site-to-Site_Access_Control]]
+*Access Control*: If your instance of NiFi is running securely, the first time that a client establishes a connection to your instance, the client will be forbidden and
 a request for an account for that client will automatically be generated. The client will need to be granted the 'NiFi' role in order to communicate
 via Site-to-Site. For more information on managing user accounts, see the
 link:administration-guide.html#controlling-levels-of-access[Controlling Levels of Access]
@@ -822,8 +847,6 @@ section of the link:administration-guide.html[Admin Guide].
 For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
 link:administration-guide.html[Admin Guide].
-
-
 
 
 === Example Dataflow

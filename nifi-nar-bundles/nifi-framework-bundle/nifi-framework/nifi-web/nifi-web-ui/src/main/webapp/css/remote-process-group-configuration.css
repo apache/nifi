@@ -22,7 +22,7 @@
     position: absolute;
     overflow: hidden;
     width: 400px;
-    height: 315px;
+    height: 435px;
     font-size: 10px;
     z-index: 1201;
     display: none;
@@ -32,7 +32,7 @@
     position: absolute;
     overflow: hidden;
     width: 400px;
-    height: 315px;
+    height: 435px;
     font-size: 10px;
     z-index: 1201;
     display: none;
@@ -65,9 +65,33 @@
     margin-right: 20px;
 }
 
+#remote-process-group-transport-protocol-combo {
+    width: 160px;
+    height: 18px;
+    line-height: 18px;
+}
+
+div.remote-process-group-timeout-setting, div.remote-process-group-yield-duration-setting,
+div.remote-process-group-proxy-host-setting, div.remote-process-group-proxy-port-setting,
+div.remote-process-group-proxy-user-setting, div.remote-process-group-proxy-password-setting {
+    float: left;
+    width: 170px;
+}
+
+div.remote-process-group-yield-duration-setting,
+div.remote-process-group-proxy-port-setting,
+div.remote-process-group-proxy-password-setting {
+    margin-left: 36px;
+}
+
+#remote-process-group-configuration .small-setting-input {
+    width: 160px;
+}
+
 #remote-process-group-configuration input {
     width: 370px;
 }
+
 
 /* remote process group port configuration */
 

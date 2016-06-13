@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.IllegalClusterResourceRequestException;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.NodeDTO;
-import org.apache.nifi.web.api.entity.NodeEntity;
-
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -38,6 +26,18 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.nifi.web.IllegalClusterResourceRequestException;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.entity.NodeEntity;
+
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+
 /**
  * RESTful endpoint for managing a cluster connection.
  */
@@ -45,7 +45,6 @@ import javax.ws.rs.core.Response;
 public class NodeResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private NiFiProperties properties;
 
     /**
      * Gets the contents of the specified node in this NiFi cluster.
@@ -83,8 +82,7 @@ public class NodeResource extends ApplicationResource {
             )
             @PathParam("id") String id) {
 
-        if (properties.isClusterManager()) {
-
+        if (isConnectedToCluster()) {
             // get the specified relationship
             final NodeDTO dto = serviceFacade.getNode(id);
 
@@ -140,8 +138,7 @@ public class NodeResource extends ApplicationResource {
             )
             NodeEntity nodeEntity) {
 
-        if (properties.isClusterManager()) {
-
+        if (isConnectedToCluster()) {
             if (nodeEntity == null || nodeEntity.getNode() == null) {
                 throw new IllegalArgumentException("Node details must be specified.");
             }
@@ -201,8 +198,7 @@ public class NodeResource extends ApplicationResource {
             )
             @PathParam("id") String id) {
 
-        if (properties.isClusterManager()) {
-
+        if (isConnectedToCluster()) {
             serviceFacade.deleteNode(id);
 
             // create the response entity
@@ -220,9 +216,4 @@ public class NodeResource extends ApplicationResource {
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
-    }
-
 }

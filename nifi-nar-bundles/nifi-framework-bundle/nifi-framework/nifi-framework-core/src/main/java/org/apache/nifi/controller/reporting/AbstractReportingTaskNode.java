@@ -54,9 +54,20 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
 
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
+        final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
+        final ValidationContextFactory validationContextFactory) {
+
+        this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
+            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName());
+    }
+
+
+    public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
             final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-            final ValidationContextFactory validationContextFactory) {
-        super(reportingTask, id, validationContextFactory, controllerServiceProvider);
+        final ValidationContextFactory validationContextFactory,
+        final String componentType, final String componentCanonicalClass) {
+
+        super(reportingTask, id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
         this.reportingTask = reportingTask;
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;

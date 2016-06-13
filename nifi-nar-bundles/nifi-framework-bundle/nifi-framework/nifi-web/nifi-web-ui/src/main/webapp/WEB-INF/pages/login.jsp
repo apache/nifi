@@ -40,7 +40,7 @@
         <div id="login-user-links-container">
             <ul id="login-user-links" class="links">
                 <li id="user-logout-container" style="display: none;">
-                    <span id="user-logout" class="link">logout</span>
+                    <span id="user-logout" class="link">log out</span>
                 </li>
                 <li>
                     <span id="user-home" class="link">home</span>
@@ -51,7 +51,6 @@
         <div id="login-contents-container">
             <jsp:include page="/WEB-INF/partials/login/login-message.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-form.jsp"/>
-            <jsp:include page="/WEB-INF/partials/login/nifi-registration-form.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-submission.jsp"/>
             <jsp:include page="/WEB-INF/partials/login/login-progress.jsp"/>
         </div>

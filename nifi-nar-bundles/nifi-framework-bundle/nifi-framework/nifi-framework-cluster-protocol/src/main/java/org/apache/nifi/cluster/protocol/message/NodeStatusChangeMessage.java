@@ -14,36 +14,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.protocol.message;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.jaxb.message.NodeConnectionStatusAdapter;
+import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Message to indicate that the status of a node in the cluster has changed
  */
 @XmlRootElement(name = "nodeStatusChange")
 public class NodeStatusChangeMessage extends ProtocolMessage {
+    private static final Logger logger = LoggerFactory.getLogger(NodeStatusChangeMessage.class);
+
     private NodeConnectionStatus connectionStatus;
     private NodeIdentifier nodeId;
-    private Long statusUpdateId = -1L;
 
     @Override
     public MessageType getType() {
         return MessageType.NODE_STATUS_CHANGE;
     }
 
-    public void setNodeConnectionStatus(final NodeConnectionStatus status) {
-        this.connectionStatus = status;
-    }
-
-    public NodeConnectionStatus getNodeConnectionStatus() {
-        return connectionStatus;
-    }
-
+    @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeId() {
         return nodeId;
     }
@@ -52,11 +50,17 @@ public class NodeStatusChangeMessage extends ProtocolMessage {
         this.nodeId = nodeId;
     }
 
-    public Long getStatusUpdateIdentifier() {
-        return statusUpdateId;
+    @XmlJavaTypeAdapter(NodeConnectionStatusAdapter.class)
+    public NodeConnectionStatus getNodeConnectionStatus() {
+        return connectionStatus;
     }
 
-    public void setStatusUpdateIdentifier(Long statusUpdateId) {
-        this.statusUpdateId = statusUpdateId;
+    public void setNodeConnectionStatus(final NodeConnectionStatus status) {
+        this.connectionStatus = status;
+    }
+
+    @Override
+    public String toString() {
+        return "NodeStatusChangeMessage[nodeId=" + nodeId + ", status=" + getNodeConnectionStatus() + "]";
     }
 }

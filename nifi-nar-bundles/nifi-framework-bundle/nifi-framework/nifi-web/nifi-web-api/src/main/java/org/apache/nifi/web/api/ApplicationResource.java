@@ -16,32 +16,20 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.action.Action;
-import org.apache.nifi.action.FlowChangeAction;
-import org.apache.nifi.action.Operation;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.cluster.context.ClusterContext;
-import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.util.WebUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,14 +41,39 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.AuthorizableLookup;
+import org.apache.nifi.web.AuthorizeAccess;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 
 /**
  * Base class for controllers.
@@ -77,8 +90,6 @@ public abstract class ApplicationResource {
     public static final String PROXIED_ENTITIES_CHAIN_HTTP_HEADER = "X-ProxiedEntitiesChain";
     public static final String PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER = "X-ProxiedEntityUserDetails";
 
-    private static final int HEADER_BUFFER_SIZE = 16 * 1024; // 16kb
-    private static final int CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES = (int) (0.75 * HEADER_BUFFER_SIZE);
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
     public static final String NODEWISE = "false";
@@ -91,6 +102,11 @@ public abstract class ApplicationResource {
 
     @Context
     private HttpContext httpContext;
+
+    protected NiFiProperties properties;
+    private RequestReplicator requestReplicator;
+    private ClusterCoordinator clusterCoordinator;
+
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -173,84 +189,25 @@ public abstract class ApplicationResource {
      * @return builder
      */
     protected ResponseBuilder clusterContext(ResponseBuilder response) {
-
-        NiFiProperties properties = NiFiProperties.getInstance();
-        if (!properties.isNode()) {
-            return response;
-        }
-
-        // get cluster context from threadlocal
-        ClusterContext clusterCtx = ClusterContextThreadLocal.getContext();
-        if (clusterCtx != null) {
-
-            // serialize cluster context
-            String serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
-            if (serializedClusterContext.length() > CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES) {
-                /*
-                 * Actions is the only field that can vary in size. If we have no
-                 * actions and we exceeded the header size, then basic assumptions
-                 * about the cluster context have been violated.
-                 */
-                if (clusterCtx.getActions().isEmpty()) {
-                    throw new IllegalStateException(
-                            String.format("Serialized Cluster context size '%d' is too big for response header", serializedClusterContext.length()));
-                }
-
-                // use the first action as the prototype for creating the "batch" action
-                Action prototypeAction = clusterCtx.getActions().get(0);
-
-                // log the batched actions
-                StringBuilder loggedActions = new StringBuilder();
-                createBatchedActionLogStatement(loggedActions, clusterCtx.getActions());
-                logger.info(loggedActions.toString());
-
-                // remove current actions and replace with batch action
-                clusterCtx.getActions().clear();
-
-                // create the batch action
-                FlowChangeAction batchAction = new FlowChangeAction();
-                batchAction.setOperation(Operation.Batch);
-
-                // copy values from prototype action
-                batchAction.setTimestamp(prototypeAction.getTimestamp());
-                batchAction.setUserIdentity(prototypeAction.getUserIdentity());
-                batchAction.setUserName(prototypeAction.getUserName());
-                batchAction.setSourceId(prototypeAction.getSourceId());
-                batchAction.setSourceName(prototypeAction.getSourceName());
-                batchAction.setSourceType(prototypeAction.getSourceType());
-
-                // add batch action
-                clusterCtx.getActions().add(batchAction);
-
-                // create the final serialized copy of the cluster context
-                serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
-            }
-
-            // put serialized cluster context in response header
-            response.header(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterContext);
-        }
-
+        // TODO: Remove this method. Since ClusterContext was removed, it is no longer needed. However,
+        // it is called by practically every endpoint so for now it is just being stubbed out.
         return response;
     }
 
-    /**
-     * @return the cluster context if found in the request header 'X-CLUSTER_CONTEXT'.
-     */
-    protected ClusterContext getClusterContextFromRequest() {
-        String clusterContextHeaderValue = httpServletRequest.getHeader(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER);
-        if (StringUtils.isNotBlank(clusterContextHeaderValue)) {
-            try {
-                // deserialize object
-                Serializable clusterContextObj = WebUtils.deserializeHexToObject(clusterContextHeaderValue);
-                if (clusterContextObj instanceof ClusterContext) {
-                    return (ClusterContext) clusterContextObj;
-                }
-            } catch (ClassNotFoundException cnfe) {
-                logger.warn("Classpath issue detected because failed to deserialize cluster context from request due to: " + cnfe, cnfe);
-            }
-        }
-        return null;
+    protected String generateUuid() {
+        final Optional<String> seed = getIdGenerationSeed();
+        return seed.isPresent() ? UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8)).toString() : UUID.randomUUID().toString();
     }
+
+    protected Optional<String> getIdGenerationSeed() {
+        final String idGenerationSeed = httpServletRequest.getHeader(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER);
+        if (StringUtils.isBlank(idGenerationSeed)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(idGenerationSeed);
+    }
+
 
     /**
      * Generates an Ok response with no content.
@@ -300,7 +257,7 @@ public abstract class ApplicationResource {
      * @return a 150 Node Continue response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
-        return Response.status(WebClusterManager.NODE_CONTINUE_STATUS_CODE);
+        return Response.status(RequestReplicator.NODE_CONTINUE_STATUS_CODE);
     }
 
     protected URI getAbsolutePath() {
@@ -390,13 +347,6 @@ public abstract class ApplicationResource {
         return result;
     }
 
-    private void createBatchedActionLogStatement(StringBuilder strb, Collection<Action> actions) {
-        strb.append("Cluster context too big for response header.  Replacing below actions with 'batch' action...\n");
-        for (Action action : actions) {
-            strb.append(ReflectionToStringBuilder.toString(action, ToStringStyle.MULTI_LINE_STYLE)).append("\n");
-        }
-    }
-
     /**
      * Checks whether the request is part of a two-phase commit style request (either phase 1 or phase 2)
      *
@@ -404,7 +354,7 @@ public abstract class ApplicationResource {
      * @return <code>true</code> if the request represents a two-phase commit style request
      */
     protected boolean isTwoPhaseRequest(HttpServletRequest httpServletRequest) {
-        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID);
+        final String headerValue = httpServletRequest.getHeader(RequestReplicator.REQUEST_TRANSACTION_ID_HEADER);
         return headerValue != null;
     }
 
@@ -419,7 +369,32 @@ public abstract class ApplicationResource {
      *         first of the two phases.
      */
     protected boolean isValidationPhase(HttpServletRequest httpServletRequest) {
-        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER) != null;
+        return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
+    }
+
+    protected boolean isClaimCancelationPhase(HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getHeader(RequestReplicator.CLAIM_CANCEL_HEADER) != null;
+    }
+
+    /**
+     * Checks whether or not the request should be replicated to the cluster
+     *
+     * @return <code>true</code> if the request should be replicated, <code>false</code> otherwise
+     */
+    boolean isReplicateRequest() {
+        // If not a node in a cluster, we do not replicate
+        if (!properties.isNode()) {
+            return false;
+        }
+
+        if (!isConnectedToCluster()) {
+            return false;
+        }
+
+        // Check if the X-Request-Replicated header is set. If so, the request has already been replicated,
+        // so we need to service the request locally. If not, then replicate the request to the entire cluster.
+        final String header = httpServletRequest.getHeader(RequestReplicator.REPLICATION_INDICATOR_HEADER);
+        return header == null;
     }
 
     /**
@@ -441,5 +416,262 @@ public abstract class ApplicationResource {
      */
     protected Revision getRevision(ComponentEntity entity, String componentId) {
         return getRevision(entity.getRevision(), componentId);
+    }
+
+    /**
+     * Authorizes the specified Snippet with the specified request action.
+     *
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param action action
+     */
+    protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action);
+
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
+        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+    }
+
+    /**
+     * Authorizes the specified Snippet with the specified request action.
+     *
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param action action
+     */
+    protected void authorizeSnippet(final SnippetDTO snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
+        final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action);
+
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
+        snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
+    }
+
+    /**
+     * Executes an action through the service facade using the specified revision.
+     *
+     * @param serviceFacade service facade
+     * @param revision revision
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
+     * @return the response
+     */
+    protected Response withWriteLock(final NiFiServiceFacade serviceFacade, final Revision revision, final AuthorizeAccess authorizer,
+        final Runnable verifier, final Supplier<Response> action) {
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        return withWriteLock(serviceFacade, authorizer, verifier, action,
+            () -> serviceFacade.claimRevision(revision, user),
+            () -> serviceFacade.cancelRevision(revision),
+            () -> serviceFacade.releaseRevisionClaim(revision, user));
+    }
+
+    /**
+     * Executes an action through the service facade using the specified revision.
+     *
+     * @param serviceFacade service facade
+     * @param revisions revisions
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action executor
+     * @return the response
+     */
+    protected Response withWriteLock(final NiFiServiceFacade serviceFacade, final Set<Revision> revisions, final AuthorizeAccess authorizer,
+        final Runnable verifier, final Supplier<Response> action) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        return withWriteLock(serviceFacade, authorizer, verifier, action,
+            () -> serviceFacade.claimRevisions(revisions, user),
+            () -> serviceFacade.cancelRevisions(revisions),
+            () -> serviceFacade.releaseRevisionClaims(revisions, user));
+    }
+
+
+    /**
+     * Executes an action through the service facade using the specified revision.
+     *
+     * @param serviceFacade service facade
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action the action to execute
+     * @param claimRevision a callback that will claim the necessary revisions for the operation
+     * @param cancelRevision a callback that will cancel the necessary revisions if the operation fails
+     * @param releaseClaim a callback that will release any previously claimed revision if the operation is canceled after the first phase
+     * @return the response
+     */
+    private Response withWriteLock(
+        final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
+        final Runnable claimRevision, final Runnable cancelRevision, final Runnable releaseClaim) {
+
+        if (isClaimCancelationPhase(httpServletRequest)) {
+            releaseClaim.run();
+            return generateOkResponse().build();
+        }
+
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(authorizer);
+            claimRevision.run();
+        }
+
+        try {
+            if (validationPhase) {
+                if (verifier != null) {
+                    verifier.run();
+                }
+                return generateContinueResponse().build();
+            }
+        } catch (final Exception e) {
+            cancelRevision.run();
+            throw e;
+        }
+
+        try {
+            return action.get();
+        } finally {
+            cancelRevision.run();
+        }
+    }
+
+    /**
+     * Replicates the request to the given node
+     *
+     * @param method the HTTP method
+     * @param nodeUuid the UUID of the node to replicate the request to
+     * @return the response from the node
+     *
+     * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
+     */
+    protected Response replicate(final String method, final String nodeUuid) {
+        return replicate(method, getRequestParameters(true), nodeUuid);
+    }
+
+    /**
+     * Replicates the request to the given node
+     *
+     * @param method the HTTP method
+     * @param entity the Entity to replicate
+     * @param nodeUuid the UUID of the node to replicate the request to
+     * @return the response from the node
+     *
+     * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
+     */
+    protected Response replicate(final String method, final Object entity, final String nodeUuid) {
+        return replicate(method, entity, nodeUuid, null);
+    }
+
+    /**
+     * Replicates the request to the given node
+     *
+     * @param method the HTTP method
+     * @param entity the Entity to replicate
+     * @param nodeUuid the UUID of the node to replicate the request to
+     * @return the response from the node
+     *
+     * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
+     */
+    protected Response replicate(final String method, final Object entity, final String nodeUuid, final Map<String, String> headersToOverride) {
+        // since we're cluster we must specify the cluster node identifier
+        if (nodeUuid == null) {
+            throw new IllegalArgumentException("The cluster node identifier must be specified.");
+        }
+
+        final NodeIdentifier nodeId = clusterCoordinator.getNodeIdentifier(nodeUuid);
+        if (nodeId == null) {
+            throw new UnknownNodeException("Cannot replicate request " + method + " " + getAbsolutePath() + " to node with ID " + nodeUuid + " because the specified node does not exist.");
+        }
+
+        final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
+        final URI path = getAbsolutePath();
+        try {
+            final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
+            return requestReplicator.replicate(targetNodes, method, path, entity, headers).awaitMergedResponse().getResponse();
+        } catch (final InterruptedException ie) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    /**
+     * Convenience method for calling {@link #replicate(String, Object)} with an entity of
+     * {@link #getRequestParameters() getRequestParameters(true)}
+     *
+     * @param method the HTTP method to use
+     * @return the response from the request
+     */
+    protected Response replicate(final String method) {
+        return replicate(method, getRequestParameters(true));
+    }
+
+    /**
+     * Replicates the request to all nodes in the cluster using the provided method and entity. The headers
+     * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
+     * that provided by the {@link #getAbsolutePath()} method
+     *
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
+     * @return the response from the request
+     */
+    protected Response replicate(final String method, final Object entity) {
+        return replicate(method, entity, (Map<String, String>) null);
+    }
+
+    /**
+     * Replicates the request to all nodes in the cluster using the provided method and entity. The headers
+     * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
+     * that provided by the {@link #getAbsolutePath()} method
+     *
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
+     * @param headersToOverride the headers to override
+     * @return the response from the request
+     */
+    protected Response replicate(final String method, final Object entity, final Map<String, String> headersToOverride) {
+        final URI path = getAbsolutePath();
+        try {
+            final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
+            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse().getResponse();
+        } catch (final InterruptedException ie) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    /**
+     * @return <code>true</code> if connected to a cluster, <code>false</code>
+     *         if running in standalone mode or disconnected from cluster
+     */
+    boolean isConnectedToCluster() {
+        return clusterCoordinator != null && clusterCoordinator.isConnected();
+    }
+
+    public void setRequestReplicator(RequestReplicator requestReplicator) {
+        this.requestReplicator = requestReplicator;
+    }
+
+    protected RequestReplicator getRequestReplicator() {
+        return requestReplicator;
+    }
+
+    public void setProperties(NiFiProperties properties) {
+        this.properties = properties;
+    }
+
+    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
+    }
+
+    protected NiFiProperties getProperties() {
+        return properties;
     }
 }

@@ -99,6 +99,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessSession.class);
     private static final Logger claimLog = LoggerFactory.getLogger(StandardProcessSession.class.getSimpleName() + ".claims");
+    private static final int MAX_ROLLBACK_FLOWFILES_TO_LOG = 5;
 
     private final Map<FlowFileRecord, StandardRepositoryRecord> records = new HashMap<>();
     private final Map<Connection, StandardFlowFileEvent> connectionCounts = new HashMap<>();
@@ -148,7 +149,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         switch (connectable.getConnectableType()) {
             case PROCESSOR:
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                componentType = procNode.getProcessor().getClass().getSimpleName();
+                componentType = procNode.getComponentType();
                 description = procNode.getProcessor().toString();
                 break;
             case INPUT_PORT:
@@ -861,6 +862,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void rollback(final boolean penalize, final boolean rollbackCheckpoint) {
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("{} session rollback called, FlowFile records are {} {}",
+                    this, loggableFlowfileInfo(), new Throwable("Stack Trace on rollback"));
+        }
+
         deleteOnCommit.clear();
 
         final Set<StandardRepositoryRecord> recordsToHandle = new HashSet<>();
@@ -949,6 +955,44 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         acknowledgeRecords();
         resetState();
     }
+
+    private String loggableFlowfileInfo() {
+        final StringBuilder details = new StringBuilder(1024).append("[");
+        final int initLen = details.length();
+        int filesListed = 0;
+        for (Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
+            if (filesListed >= MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+                break;
+            }
+            filesListed++;
+            final FlowFileRecord entryKey = entry.getKey();
+            final StandardRepositoryRecord entryValue = entry.getValue();
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            if (entryValue.getOriginalQueue() != null && entryValue.getOriginalQueue().getIdentifier() != null) {
+                details.append("queue=")
+                        .append(entryValue.getOriginalQueue().getIdentifier())
+                        .append("/");
+            }
+            details.append("filename=")
+                    .append(entryKey.getAttribute(CoreAttributes.FILENAME.key()))
+                    .append("/uuid=")
+                    .append(entryKey.getAttribute(CoreAttributes.UUID.key()));
+        }
+        if (records.entrySet().size() > MAX_ROLLBACK_FLOWFILES_TO_LOG) {
+            if (details.length() > initLen) {
+                details.append(", ");
+            }
+            details.append(records.entrySet().size() - MAX_ROLLBACK_FLOWFILES_TO_LOG)
+                    .append(" additional Flowfiles not listed");
+        } else if (filesListed == 0) {
+            details.append("none");
+        }
+        details.append("]");
+        return details.toString();
+    }
+
 
     private void removeContent(final ContentClaim claim) {
         if (claim == null) {
@@ -1350,12 +1394,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             eventBuilder.setComponentId(context.getConnectable().getIdentifier());
 
             final Connectable connectable = context.getConnectable();
-            final String processorType;
-            if (connectable instanceof ProcessorNode) {
-                processorType = ((ProcessorNode) connectable).getProcessor().getClass().getSimpleName();
-            } else {
-                processorType = connectable.getClass().getSimpleName();
-            }
+            final String processorType = connectable.getComponentType();
             eventBuilder.setComponentType(processorType);
             eventBuilder.addParentFlowFile(parent);
 
@@ -1640,15 +1679,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         LOG.info("{} {} FlowFiles have expired and will be removed", new Object[] {this, flowFiles.size()});
         final List<RepositoryRecord> expiredRecords = new ArrayList<>(flowFiles.size());
 
-        final String processorType;
         final Connectable connectable = context.getConnectable();
-        if (connectable instanceof ProcessorNode) {
-            final ProcessorNode procNode = (ProcessorNode) connectable;
-            processorType = procNode.getProcessor().getClass().getSimpleName();
-        } else {
-            processorType = connectable.getClass().getSimpleName();
-        }
-
+        final String processorType = connectable.getComponentType();
         final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(),
             processorType, context.getProvenanceRepository(), this);
 
@@ -2308,18 +2340,49 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     public void exportTo(final FlowFile source, final OutputStream destination) {
         validateRecordState(source);
         final StandardRepositoryRecord record = records.get(source);
+
+        if(record.getCurrentClaim() == null) {
+            return;
+        }
+
         try {
-            if (record.getCurrentClaim() == null) {
-                return;
+            ensureNotAppending(record.getCurrentClaim());
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+        }
+
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
+                final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
+
+            // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
+            // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
+            // and translates into either FlowFileAccessException or ContentNotFoundException. We keep track of any
+            // ContentNotFoundException because if it is thrown, the Processor code may catch it and do something else with it
+            // but in reality, if it is thrown, we want to know about it and handle it, even if the Processor code catches it.
+            final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
+            boolean cnfeThrown = false;
+
+            try {
+                recursionSet.add(source);
+                StreamUtils.copy(ffais, destination, source.getSize());
+            } catch (final ContentNotFoundException cnfe) {
+                cnfeThrown = true;
+                throw cnfe;
+            } finally {
+                recursionSet.remove(source);
+                IOUtils.closeQuietly(ffais);
+                // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
+                if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
+                    throw ffais.getContentNotFoundException();
+                }
             }
 
-            ensureNotAppending(record.getCurrentClaim());
-            final long size = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, record.getCurrentClaimOffset(), source.getSize());
-            bytesRead.increment(size);
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
-        } catch (final Throwable t) {
-            throw new FlowFileAccessException("Failed to export " + source + " to " + destination + " due to " + t.toString(), t);
+        } catch (final IOException ex) {
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
         }
     }
 

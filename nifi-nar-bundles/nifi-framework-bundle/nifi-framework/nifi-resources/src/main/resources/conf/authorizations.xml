@@ -56,12 +56,17 @@
         /{type}/{id}/provenance     - READ - allows user/entity to view provenance data from the underlying component
                                     - WRITE - NA
 -->
-<resources>
+<authorizations>
     <!--
-    <resource identifier="/flow">
-        <authorization identity="user-identity-1" action="R"></authorization>
-        <authorization identity="user-identity-2" action="W"></authorization>
-        <authorization identity="user-identity-3" action="RW"></authorization>
-    </resource>
+    <users>
+      <user identifier="1" identity="" />
+    </users>
+
+    <policies>
+      <policy identifier="1" resource="/flow" action="RW">
+        <user identifier="1" />
+      </policy>
+    </policies>
     -->
-</resources>
+
+</authorizations>

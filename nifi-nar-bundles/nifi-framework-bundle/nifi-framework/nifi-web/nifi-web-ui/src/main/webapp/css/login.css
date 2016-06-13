@@ -76,22 +76,6 @@ div.login-container {
 }
 
 /*
-    NiFi Registration
-*/
-
-#nifi-user-submit-justification-container {
-    margin-bottom: 10px;
-}
-
-#nifi-user-submit-justification {
-    font-weight: bold;
-}
-
-#nifi-registration-justification {
-    height: 200px;
-}
-
-/*
     Login Progress
 */
 

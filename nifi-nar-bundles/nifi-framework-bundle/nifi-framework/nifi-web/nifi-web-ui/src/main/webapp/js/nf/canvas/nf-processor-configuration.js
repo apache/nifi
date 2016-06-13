@@ -378,7 +378,7 @@ nf.ProcessorConfiguration = (function () {
         $.each(connections, function (_, connection) {
             if (connection.accessPolicy.canRead) {
                 if (connection.sourceId === processor.id) {
-                    nf.Connection.reload(connection);
+                    nf.Connection.reload(connection.component);
                 }
             }
         });
@@ -590,12 +590,13 @@ nf.ProcessorConfiguration = (function () {
                 }
                 
                 // once everything is loaded, show the dialog
-                $.when.apply(window, requests).done(function (processorResponse, historyResponse) {
-                    // get the updated processor
-                    processor = processorResponse[0].component;
+                $.when.apply(window, requests).done(function (processorResult, historyResult) {
+                    // get the updated processor'
+                    var processorResponse = processorResult[0];
+                    processor = processorResponse.component;
                     
                     // get the processor history
-                    var processorHistory = historyResponse[0].componentHistory;
+                    var processorHistory = historyResult[0].componentHistory;
 
                     // record the processor details
                     $('#processor-configuration').data('processorDetails', processor);
@@ -747,7 +748,7 @@ nf.ProcessorConfiguration = (function () {
                                         $('#processor-configuration').modal('hide');
 
                                         // show the custom ui
-                                        nf.CustomUi.showCustomUi($('#processor-id').text(), processor.config.customUiUrl, true).done(function () {
+                                        nf.CustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, true).done(function () {
                                             // once the custom ui is closed, reload the processor
                                             nf.Processor.reload(processor);
 

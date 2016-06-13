@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,13 +43,13 @@ public class ReflectionUtils {
      * @param preferredAnnotation preferred
      * @param alternateAnnotation alternate
      * @param instance instance
-     * @param logger the ProcessorLog to use for logging any errors. If null, will use own logger, but that will not generate bulletins or easily tie to the Processor's log messages.
+     * @param logger the ComponentLog to use for logging any errors. If null, will use own logger, but that will not generate bulletins or easily tie to the Processor's log messages.
      * @param args args
      * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotations(
-            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger, final Object... args) {
+            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ComponentLog logger, final Object... args) {
         final List<Class<? extends Annotation>> annotationClasses = new ArrayList<>(alternateAnnotation == null ? 1 : 2);
         annotationClasses.add(preferredAnnotation);
         if (alternateAnnotation != null) {

@@ -16,6 +16,27 @@
  */
 package org.apache.nifi.web.controller;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
+import javax.ws.rs.WebApplicationException;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +47,8 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -108,26 +131,6 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.WebApplicationException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TimeZone;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-
 public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
@@ -136,6 +139,7 @@ public class ControllerFacade implements Authorizable {
     private FlowController flowController;
     private FlowService flowService;
     private KeyService keyService;
+    private ClusterCoordinator clusterCoordinator;
 
     // properties
     private NiFiProperties properties;
@@ -461,6 +465,20 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setBytesQueued(controllerQueueSize.getByteCount());
         controllerStatus.setFlowFilesQueued(controllerQueueSize.getObjectCount());
 
+        if (clusterCoordinator != null && clusterCoordinator.isConnected()) {
+            final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
+            int totalNodeCount = 0;
+            for (final List<NodeIdentifier> nodeList : stateMap.values()) {
+                totalNodeCount += nodeList.size();
+            }
+            final List<NodeIdentifier> connectedNodeIds = stateMap.get(NodeConnectionState.CONNECTED);
+            final int connectedNodeCount = (connectedNodeIds == null) ? 0 : connectedNodeIds.size();
+
+            controllerStatus.setConnectedNodeCount(connectedNodeCount);
+            controllerStatus.setTotalNodeCount(totalNodeCount);
+            controllerStatus.setConnectedNodes(connectedNodeCount + " / " + totalNodeCount);
+        }
+
         final BulletinRepository bulletinRepository = getBulletinRepository();
         controllerStatus.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
 
@@ -676,6 +694,17 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Returns the http(s) port that the Cluster Manager is listening on for
+     * Site-to-Site communications
+     *
+     * @return the socket port that the Cluster Manager is listening on for
+     *         Site-to-Site communications
+     */
+    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
+        return flowController.getClusterManagerRemoteSiteListeningHttpPort();
+    }
+
+    /**
      * Indicates whether or not Site-to-Site communications with the Cluster
      * Manager are secure
      *
@@ -695,6 +724,17 @@ public class ControllerFacade implements Authorizable {
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
+    }
+
+    /**
+     * Returns the http(s) port that the local instance is listening on for
+     * Site-to-Site communications
+     *
+     * @return the socket port that the local instance is listening on for
+     *         Site-to-Site communications
+     */
+    public Integer getRemoteSiteListeningHttpPort() {
+        return flowController.getRemoteSiteListeningHttpPort();
     }
 
     /**
@@ -1427,7 +1467,11 @@ public class ControllerFacade implements Authorizable {
         for (final Relationship relationship : procNode.getRelationships()) {
             addIfAppropriate(searchStr, relationship.getName(), "Relationship", matches);
         }
+
+        // Add both the actual class name and the component type. This allows us to search for 'Ghost'
+        // to search for components that could not be instantiated.
         addIfAppropriate(searchStr, processor.getClass().getSimpleName(), "Type", matches);
+        addIfAppropriate(searchStr, procNode.getComponentType(), "Type", matches);
 
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
@@ -1657,5 +1701,9 @@ public class ControllerFacade implements Authorizable {
 
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
+    }
+
+    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
     }
 }

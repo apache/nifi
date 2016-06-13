@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -26,9 +23,10 @@ import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.action.details.FlowChangeMoveDetails;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -36,6 +34,10 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * Audits process group creation/removal and configuration changes.
@@ -153,28 +155,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
                 }
             }
 
-            // if the user was starting/stopping this process group
-            if (processGroupDTO.isRunning() != null) {
-                // create a process group action
-                FlowChangeAction processGroupAction = new FlowChangeAction();
-                processGroupAction.setUserIdentity(user.getIdentity());
-                processGroupAction.setUserName(user.getUserName());
-                processGroupAction.setSourceId(processGroup.getIdentifier());
-                processGroupAction.setSourceName(processGroup.getName());
-                processGroupAction.setSourceType(Component.ProcessGroup);
-                processGroupAction.setTimestamp(new Date());
-
-                // determine the running state
-                if (processGroupDTO.isRunning()) {
-                    processGroupAction.setOperation(Operation.Start);
-                } else {
-                    processGroupAction.setOperation(Operation.Stop);
-                }
-
-                // add this action
-                actions.add(processGroupAction);
-            }
-
             // save actions if necessary
             if (!actions.isEmpty()) {
                 saveActions(actions, logger);
@@ -182,6 +162,47 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         return updatedProcessGroup;
+    }
+
+    /**
+     * Audits the update of process group configuration.
+     *
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param state scheduled state
+     * @throws Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
+        + "execution(void scheduleComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, java.util.Set)) && "
+        + "args(groupId, state)")
+    public void scheduleComponentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ScheduledState state) throws Throwable {
+        ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
+        ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+
+        // perform the action
+        proceedingJoinPoint.proceed();
+
+        // get the current user
+        NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // if the user was starting/stopping this process group
+        FlowChangeAction action = new FlowChangeAction();
+        action.setUserIdentity(user.getIdentity());
+        action.setUserName(user.getUserName());
+        action.setSourceId(processGroup.getIdentifier());
+        action.setSourceName(processGroup.getName());
+        action.setSourceType(Component.ProcessGroup);
+        action.setTimestamp(new Date());
+
+        // determine the running state
+        if (ScheduledState.RUNNING.equals(state)) {
+            action.setOperation(Operation.Start);
+        } else {
+            action.setOperation(Operation.Stop);
+        }
+
+        // add this action
+        saveAction(action, logger);
     }
 
     /**

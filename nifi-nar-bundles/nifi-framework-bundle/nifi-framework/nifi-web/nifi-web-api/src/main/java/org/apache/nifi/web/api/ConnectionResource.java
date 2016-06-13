@@ -17,8 +17,6 @@
 package org.apache.nifi.web.api;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -37,8 +35,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.impl.WebClusterManager;
-import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
@@ -67,8 +66,7 @@ import com.wordnik.swagger.annotations.Authorization;
 public class ConnectionResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
-    private WebClusterManager clusterManager;
-    private NiFiProperties properties;
+    private Authorizer authorizer;
 
     /**
      * Populate the URIs for the specified connections.
@@ -158,6 +156,7 @@ public class ConnectionResource extends ApplicationResource {
      *
      * @param id The id of the connection.
      * @return A connectionEntity.
+     * @throws InterruptedException if interrupted
      */
     @GET
     @Consumes(MediaType.WILDCARD)
@@ -187,12 +186,17 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
         }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable conn = lookup.getConnection(id);
+            conn.authorize(authorizer, RequestAction.READ);
+        });
 
         // get the specified relationship
         ConnectionEntity entity = serviceFacade.getConnection(id);
@@ -209,6 +213,7 @@ public class ConnectionResource extends ApplicationResource {
      * @param id The id of the connection.
      * @param connectionEntity A connectionEntity.
      * @return A connectionEntity.
+     * @throws InterruptedException if interrupted
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -237,11 +242,11 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id,
+            @PathParam("id") final String id,
             @ApiParam(
                     value = "The connection configuration details.",
                     required = true
-            ) ConnectionEntity connectionEntity) {
+        ) final ConnectionEntity connectionEntity) throws InterruptedException {
 
         if (connectionEntity == null || connectionEntity.getComponent() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
@@ -259,40 +264,33 @@ public class ConnectionResource extends ApplicationResource {
                     + "requested resource (%s).", connection.getId(), id));
         }
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            // change content type to JSON for serializing entity
-            final Map<String, String> headersToOverride = new HashMap<>();
-            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-
-            // replicate the request
-            return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), connectionEntity, getHeaders(headersToOverride)).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, connectionEntity);
         }
 
-        // handle expects request
         final Revision revision = getRevision(connectionEntity, id);
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable conn = lookup.getConnection(id);
+                conn.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyUpdateConnection(connection),
+            () -> {
+                // update the relationship target
+                final UpdateResult<ConnectionEntity> updateResult = serviceFacade.updateConnection(revision, connection);
 
-        if (validationPhase) {
-            serviceFacade.verifyUpdateConnection(connection);
-            return generateContinueResponse().build();
-        }
+                final ConnectionEntity entity = updateResult.getResult();
+                populateRemainingConnectionEntityContent(entity);
 
-        // update the relationship target
-        final UpdateResult<ConnectionEntity> updateResult = serviceFacade.updateConnection(revision, connection);
-
-        final ConnectionEntity entity = updateResult.getResult();
-        populateRemainingConnectionEntityContent(entity);
-
-        // generate the response
-        if (updateResult.isNew()) {
-            return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
-        } else {
-            return clusterContext(generateOkResponse(entity)).build();
-        }
+                // generate the response
+                if (updateResult.isNew()) {
+                    return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
+                } else {
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
+            });
     }
 
     /**
@@ -303,6 +301,7 @@ public class ConnectionResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection.
      * @return An Entity containing the client id and an updated revision.
+     * @throws InterruptedException if interrupted
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
@@ -331,43 +330,43 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The revision is used to verify the client is working with the latest version of the flow.",
                     required = false
             )
-            @QueryParam(VERSION) LongParameter version,
+            @QueryParam(VERSION) final LongParameter version,
             @ApiParam(
                     value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
                     required = false
             )
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("id") String id) {
+        @PathParam("id") final String id) throws InterruptedException {
 
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
         }
 
         // determine the specified version
         final Long clientVersion = version == null ? null : version.getLong();
         final Revision revision = new Revision(clientVersion, clientId.getClientId(), id);
 
-        // handle expects request (usually from the cluster manager)
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            serviceFacade.claimRevision(revision);
-        }
+        // get the current user
+        return withWriteLock(
+            serviceFacade,
+            revision,
+            lookup -> {
+                final Authorizable conn = lookup.getConnection(id);
+                conn.authorize(authorizer, RequestAction.WRITE);
+            },
+            () -> serviceFacade.verifyDeleteConnection(id),
+            () -> {
+                // delete the connection
+                final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
 
-        if (validationPhase) {
-            serviceFacade.verifyDeleteConnection(id);
-            return generateContinueResponse().build();
-        }
-
-        // delete the connection
-        final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+                // generate the response
+                return clusterContext(generateOkResponse(entity)).build();
+            }
+        );
     }
 
     // setters
@@ -375,11 +374,7 @@ public class ConnectionResource extends ApplicationResource {
         this.serviceFacade = serviceFacade;
     }
 
-    public void setClusterManager(WebClusterManager clusterManager) {
-        this.clusterManager = clusterManager;
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 }

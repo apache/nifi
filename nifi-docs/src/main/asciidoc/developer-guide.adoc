@@ -232,13 +232,13 @@ This object exposes configuration to the Processor that will not
 change throughout the life of the Processor,
 such as the unique identifier of the Processor.
 
-[[ProcessorLog]]
-==== ProcessorLog
+[[ComponentLog]]
+==== ComponentLog
 Processors are encouraged to perform their logging via the
-`ProcessorLog` interface, rather than obtaining
+`ComponentLog` interface, rather than obtaining
 a direct instance of a third-party logger. This is because logging via
-the ProcessorLog allows the framework
-to render log messages that exceed s a configurable severity level to
+the ComponentLog allows the framework
+to render log messages that exceeds a configurable severity level to
 the User Interface, allowing those who
 monitor the dataflow to be notified when important events occur.
 Additionally, it provides a consistent logging
@@ -267,7 +267,7 @@ When a Processor is created, before any other methods are invoked, the
 AbstractProcessor will be invoked. The method takes a single argument,
 which is of type
 `ProcessorInitializationContext`. The context object supplies the
-Processor with a ProcessorLog,
+Processor with a ComponentLog,
 the Processor's unique identifier, and a ControllerServiceLookup that
 can be used to interact with the
 configured ControllerServices. Each of these objects is stored by the
@@ -632,7 +632,7 @@ The `MockStateManager` also provides the ability to indicate that the unit test 
 
 Processors are responsible for reporting their activity so that users
 are able to understand what happens
-to their data. Processors should log events via the ProcessorLog,
+to their data. Processors should log events via the ComponentLog,
 which is accessible via the InitializationContext
 or by calling the `getLogger` method of `AbstractProcessor`.
 

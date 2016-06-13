@@ -24,22 +24,44 @@ import java.util.Set;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public interface RequestReplicator {
-    public static final String REQUEST_TRANSACTION_ID = "X-RequestTransactionId";
+
+    public static final String REQUEST_TRANSACTION_ID_HEADER = "X-RequestTransactionId";
+    public static final String CLUSTER_ID_GENERATION_SEED_HEADER = "X-Cluster-Id-Generation-Seed";
+    public static final String REPLICATION_INDICATOR_HEADER = "X-Request-Replicated";
 
     /**
-     * Starts the instance for replicating requests. Calling this method on an already started instance has no effect.
+     * The HTTP header that the requestor specifies to ask a node if they are able to process a given request. The value
+     * is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
+     * process the request, 417 EXPECTATION_FAILED otherwise.
      */
-    void start();
+    public static final String REQUEST_VALIDATION_HTTP_HEADER = "X-Validation-Expects";
+    public static final String NODE_CONTINUE = "150-NodeContinue";
+    public static final int NODE_CONTINUE_STATUS_CODE = 150;
+
+    public static final String CLAIM_CANCEL_HEADER = "X-Cancel-Claim";
 
     /**
      * Stops the instance from replicating requests. Calling this method on a stopped instance has no effect.
      */
-    void stop();
+    void shutdown();
+
 
     /**
-     * @return true if the instance is started; false otherwise.
+     * Replicates a request to each node in the cluster. If the request attempts to modify the flow and there is a node
+     * that is not currently connected, an Exception will be thrown. Otherwise, the returned AsyncClusterResponse object
+     * will contain the results that are immediately available, as well as an identifier for obtaining an updated result
+     * later.
+     *
+     * @param method the HTTP method (e.g., POST, PUT)
+     * @param uri the base request URI (up to, but not including, the query string)
+     * @param entity an entity
+     * @param headers any HTTP headers
+     * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
+     *
+     * @throws ConnectingNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the CONNECTING state
+     * @throws DisconnectedNodeMutableRequestException if the request attempts to modify the flow and there is a node that is in the DISCONNECTED state
      */
-    boolean isRunning();
+    AsyncClusterResponse replicate(String method, URI uri, Object entity, Map<String, String> headers);
 
     /**
      * Requests are sent to each node in the given set of Node Identifiers. The returned AsyncClusterResponse object will contain

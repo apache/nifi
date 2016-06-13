@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -90,8 +89,8 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
-    private final Map<String, MockProcessorLog> controllerServiceLoggers = new HashMap<>();
-    private final MockProcessorLog logger;
+    private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
+    private final MockComponentLog logger;
 
     static {
         // do this in a separate method, just so that we can add a @SuppressWarnings annotation
@@ -565,7 +564,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         this.numThreads = threadCount;
-        this.context.setNumThreads(threadCount);
+        this.context.setMaxConcurrentTasks(threadCount);
     }
 
     @Override
@@ -641,7 +640,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         // }
         // }
 
-        final MockProcessorLog logger = new MockProcessorLog(identifier, service);
+        final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier), logger, serviceStateManager);
@@ -870,12 +869,12 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
-    public MockProcessorLog getLogger() {
+    public MockComponentLog getLogger() {
         return logger;
     }
 
     @Override
-    public MockProcessorLog getControllerServiceLogger(final String identifier) {
+    public MockComponentLog getControllerServiceLogger(final String identifier) {
         return controllerServiceLoggers.get(identifier);
     }
 

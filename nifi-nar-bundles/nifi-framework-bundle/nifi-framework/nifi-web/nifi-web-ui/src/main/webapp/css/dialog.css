@@ -43,13 +43,24 @@
 #new-remote-process-group-dialog {
     z-index: 1301;
     display: none;
-    width: 350px;
-    height: 150px;
+    width: 400px;
+    height: 370px;
+}
+
+#new-remote-process-group-dialog .small-setting-input {
+    width: 160px;
+}
+
+#new-remote-process-group-transport-protocol-combo {
+    width: 160px;
+    height: 18px;
+    line-height: 18px;
 }
 
 #new-remote-process-group-uri {
-    width: 320px;
+    width: 370px;
 }
+
 
 #new-template-dialog {
     z-index: 1301;

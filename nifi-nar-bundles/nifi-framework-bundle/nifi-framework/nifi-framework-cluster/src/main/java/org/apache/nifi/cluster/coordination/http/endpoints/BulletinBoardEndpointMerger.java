@@ -32,7 +32,7 @@ import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 
-public class BulletinBoardEndpointMerger extends AbstractSingleEntityEndpoint<BulletinBoardEntity, BulletinBoardDTO> {
+public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<BulletinBoardEntity, BulletinBoardDTO> {
     public static final Pattern BULLETIN_BOARD_URI_PATTERN = Pattern.compile("/nifi-api/flow/bulletin-board");
 
     @Override

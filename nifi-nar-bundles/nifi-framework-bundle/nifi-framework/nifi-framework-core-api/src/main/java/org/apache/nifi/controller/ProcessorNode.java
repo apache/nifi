@@ -42,8 +42,9 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     protected final AtomicReference<ScheduledState> scheduledState;
 
     public ProcessorNode(final Processor processor, final String id,
-        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
-        super(processor, id, validationContextFactory, serviceProvider);
+        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+        final String componentType, final String componentCanonicalClass) {
+        super(processor, id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass);
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 

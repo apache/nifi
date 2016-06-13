@@ -31,6 +31,11 @@ public interface AuthorizerConfigurationContext {
     String getIdentifier();
 
     /**
+     * @return the id of the root process group
+     */
+    String getRootGroupId();
+
+    /**
      * Retrieves all properties the component currently understands regardless
      * of whether a value has been set for them or not. If no value is present
      * then its value is null and thus any registered default for the property

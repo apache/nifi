@@ -17,11 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -34,6 +29,11 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
@@ -55,9 +55,19 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     @Override
-    public final void start() {
+    public synchronized final void start() {
+        if (!stopped) {
+            throw new IllegalStateException("Heartbeat Monitor cannot be started because it is already started");
+        }
+
         stopped = false;
-        onStart();
+        logger.info("Heartbeat Monitor started");
+
+        try {
+            onStart();
+        } catch (final Exception e) {
+            logger.error("Failed to start Heartbeat Monitor", e);
+        }
 
         this.future = flowEngine.scheduleWithFixedDelay(new Runnable() {
             @Override
@@ -73,8 +83,13 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     @Override
-    public final void stop() {
+    public synchronized final void stop() {
+        if (stopped) {
+            return;
+        }
+
         this.stopped = true;
+        logger.info("Heartbeat Monitor stopped");
 
         try {
             if (future != null) {
@@ -112,7 +127,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         final Map<NodeIdentifier, NodeHeartbeat> latestHeartbeats = getLatestHeartbeats();
         if (latestHeartbeats == null || latestHeartbeats.isEmpty()) {
             // failed to fetch heartbeats; don't change anything.
-            clusterCoordinator.reportEvent(null, Severity.WARNING, "Failed to retrieve any new heartbeat information for nodes. "
+            clusterCoordinator.reportEvent(null, Severity.INFO, "Failed to retrieve any new heartbeat information for nodes. "
                 + "Will not make any decisions based on heartbeats.");
             return;
         }
@@ -133,8 +148,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         logger.info("Finished processing {} heartbeats in {}", latestHeartbeats.size(), procStopWatch.getDuration());
 
         // Disconnect any node that hasn't sent a heartbeat in a long time (8 times the heartbeat interval)
-        final long maxMillis = heartbeatIntervalMillis * 1000L * 8;
-        final long threshold = latestHeartbeatTime - maxMillis;
+        final long maxMillis = heartbeatIntervalMillis * 8;
+        final long threshold = System.currentTimeMillis() - maxMillis;
         for (final NodeHeartbeat heartbeat : latestHeartbeats.values()) {
             if (heartbeat.getTimestamp() < threshold) {
                 clusterCoordinator.requestNodeDisconnect(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
@@ -165,43 +180,12 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
         final NodeConnectionStatus connectionStatus = clusterCoordinator.getConnectionStatus(nodeId);
         if (connectionStatus == null) {
-            final NodeConnectionState hbConnectionState = heartbeat.getConnectionStatus().getState();
-            if (hbConnectionState == NodeConnectionState.DISCONNECTED || hbConnectionState == NodeConnectionState.DISCONNECTING) {
-                // Node is not part of the cluster. Remove heartbeat and move on.
-                removeHeartbeat(nodeId);
-                return;
-            }
-
             // Unknown node. Issue reconnect request
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from unknown node. Removing heartbeat and requesting that node connect to cluster.");
             removeHeartbeat(nodeId);
 
-            clusterCoordinator.requestNodeConnect(nodeId);
+            clusterCoordinator.requestNodeConnect(nodeId, null);
             return;
-        }
-
-        final DisconnectionCode reportedDisconnectCode = heartbeat.getConnectionStatus().getDisconnectCode();
-        if (reportedDisconnectCode != null) {
-            // Check if the node is notifying us that it wants to disconnect from the cluster
-            final boolean requestingDisconnect;
-            switch (reportedDisconnectCode) {
-                case MISMATCHED_FLOWS:
-                case NODE_SHUTDOWN:
-                case STARTUP_FAILURE:
-                    final NodeConnectionState expectedState = connectionStatus.getState();
-                    requestingDisconnect = expectedState == NodeConnectionState.CONNECTED || expectedState == NodeConnectionState.CONNECTING;
-                    break;
-                default:
-                    requestingDisconnect = false;
-                    break;
-            }
-
-            if (requestingDisconnect) {
-                clusterCoordinator.disconnectionRequestedByNode(nodeId, heartbeat.getConnectionStatus().getDisconnectCode(),
-                    heartbeat.getConnectionStatus().getDisconnectReason());
-                removeHeartbeat(nodeId);
-                return;
-            }
         }
 
         final NodeConnectionState connectionState = connectionStatus.getState();
@@ -210,7 +194,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             clusterCoordinator.reportEvent(nodeId, Severity.WARNING, "Received heartbeat from node that thinks it is not yet part of the cluster,"
                 + "though the Cluster Coordinator thought it was (node claimed state was " + heartbeat.getConnectionStatus().getState()
                 + "). Marking as Disconnected and requesting that Node reconnect to cluster");
-            clusterCoordinator.requestNodeConnect(nodeId);
+            clusterCoordinator.requestNodeConnect(nodeId, null);
             return;
         }
 
@@ -220,14 +204,14 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             // we cannot manually reconnect it.
             final DisconnectionCode disconnectionCode = connectionStatus.getDisconnectCode();
 
-            if (disconnectionCode == DisconnectionCode.LACK_OF_HEARTBEAT) {
-                // record event
+            // Determine whether or not the node should be allowed to be in the cluster still, depending on its reason for disconnection.
+            if (disconnectionCode == DisconnectionCode.LACK_OF_HEARTBEAT || disconnectionCode == DisconnectionCode.UNABLE_TO_COMMUNICATE) {
                 clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node previously "
-                    + "disconnected due to lack of heartbeat. Issuing reconnection request.");
+                    + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
 
-                clusterCoordinator.requestNodeConnect(nodeId);
+                clusterCoordinator.requestNodeConnect(nodeId, null);
             } else {
-                // disconnected nodes should not heartbeat, so we need to issue a disconnection request
+                // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
                 logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
                 clusterCoordinator.requestNodeDisconnect(nodeId, connectionStatus.getDisconnectCode(), connectionStatus.getDisconnectReason());
                 removeHeartbeat(nodeId);
@@ -256,9 +240,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received first heartbeat from connecting node. Node connected.");
         }
 
-        if (heartbeat.isPrimary()) {
-            clusterCoordinator.setPrimaryNode(nodeId);
-        }
+        clusterCoordinator.updateNodeRoles(nodeId, heartbeat.getRoles());
     }
 
 

@@ -56,6 +56,7 @@ import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.util.StringUtils;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -244,6 +245,16 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "timeout", remoteRef.getCommunicationsTimeout());
         addTextElement(element, "yieldPeriod", remoteRef.getYieldDuration());
         addTextElement(element, "transmitting", String.valueOf(remoteRef.isTransmitting()));
+        addTextElement(element, "transportProtocol", remoteRef.getTransportProtocol().name());
+        addTextElement(element, "proxyHost", remoteRef.getProxyHost());
+        if (remoteRef.getProxyPort() != null) {
+            addTextElement(element, "proxyPort", remoteRef.getProxyPort());
+        }
+        addTextElement(element, "proxyUser", remoteRef.getProxyUser());
+        if (!StringUtils.isEmpty(remoteRef.getProxyPassword())) {
+            String value = ENC_PREFIX + encryptor.encrypt(remoteRef.getProxyPassword()) + ENC_SUFFIX;
+            addTextElement(element, "proxyPassword", value);
+        }
 
         for (final RemoteGroupPort port : remoteRef.getInputPorts()) {
             if (port.hasIncomingConnection()) {
@@ -319,7 +330,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addStyle(element, processor.getStyle());
 
         addTextElement(element, "comment", processor.getComments());
-        addTextElement(element, "class", processor.getProcessor().getClass().getCanonicalName());
+        addTextElement(element, "class", processor.getCanonicalClassName());
         addTextElement(element, "maxConcurrentTasks", processor.getMaxConcurrentTasks());
         addTextElement(element, "schedulingPeriod", processor.getSchedulingPeriod());
         addTextElement(element, "penalizationPeriod", processor.getPenalizationPeriod());
@@ -428,7 +439,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(serviceElement, "id", serviceNode.getIdentifier());
         addTextElement(serviceElement, "name", serviceNode.getName());
         addTextElement(serviceElement, "comment", serviceNode.getComments());
-        addTextElement(serviceElement, "class", serviceNode.getControllerServiceImplementation().getClass().getCanonicalName());
+        addTextElement(serviceElement, "class", serviceNode.getCanonicalClassName());
 
         final ControllerServiceState state = serviceNode.getState();
         final boolean enabled = (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING);
@@ -444,7 +455,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(taskElement, "id", taskNode.getIdentifier());
         addTextElement(taskElement, "name", taskNode.getName());
         addTextElement(taskElement, "comment", taskNode.getComments());
-        addTextElement(taskElement, "class", taskNode.getReportingTask().getClass().getCanonicalName());
+        addTextElement(taskElement, "class", taskNode.getCanonicalClassName());
         addTextElement(taskElement, "schedulingPeriod", taskNode.getSchedulingPeriod());
         addTextElement(taskElement, "scheduledState", taskNode.getScheduledState().name());
         addTextElement(taskElement, "schedulingStrategy", taskNode.getSchedulingStrategy().name());

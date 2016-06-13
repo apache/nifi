@@ -21,7 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.AnnotationUtils;
@@ -98,7 +98,7 @@ public class ReflectionUtils {
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation,
-            final Object instance, final ProcessorLog logger, final Object... args) {
+            final Object instance, final ComponentLog logger, final Object... args) {
         return quietlyInvokeMethodsWithAnnotations(annotation, null, instance, logger, args);
     }
 
@@ -119,13 +119,13 @@ public class ReflectionUtils {
         return quietlyInvokeMethodsWithAnnotations(preferredAnnotation, alternateAnnotation, instance, null, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ProcessorLog logger, Object instance,
+    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance,
             Class<? extends Annotation>[] annotations, Object... args)
                     throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         return invokeMethodsWithAnnotations(quietly, logger, instance, instance.getClass(), annotations, args);
     }
 
-    private static boolean invokeMethodsWithAnnotations(boolean quietly, ProcessorLog logger, Object instance,
+    private static boolean invokeMethodsWithAnnotations(boolean quietly, ComponentLog logger, Object instance,
             Class<?> clazz, Class<? extends Annotation>[] annotations, Object... args)
                     throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         boolean isSuccess = true;
@@ -159,7 +159,7 @@ public class ReflectionUtils {
         return false;
     }
 
-    private static Object[] buildUpdatedArgumentsList(boolean quietly, Method method, Class<?>[] annotations, ProcessorLog processLogger, Object... args) {
+    private static Object[] buildUpdatedArgumentsList(boolean quietly, Method method, Class<?>[] annotations, ComponentLog processLogger, Object... args) {
         boolean parametersCompatible = true;
         int argsCount = 0;
 
@@ -185,7 +185,7 @@ public class ReflectionUtils {
         return updatedArguments;
     }
 
-    private static void logErrorMessage(String message, ProcessorLog processLogger, Exception e) {
+    private static void logErrorMessage(String message, ComponentLog processLogger, Exception e) {
         if (processLogger != null) {
             if (e != null) {
                 processLogger.error(message, e);
@@ -214,7 +214,7 @@ public class ReflectionUtils {
      * @param preferredAnnotation preferred
      * @param alternateAnnotation alternate
      * @param instance instance
-     * @param logger the ProcessorLog to use for logging any errors. If null, will
+     * @param logger the ComponentLog to use for logging any errors. If null, will
      *            use own logger, but that will not generate bulletins or easily
      *            tie to the Processor's log messages.
      * @param args args
@@ -225,7 +225,7 @@ public class ReflectionUtils {
      */
     @SuppressWarnings("unchecked")
     public static boolean quietlyInvokeMethodsWithAnnotations(final Class<? extends Annotation> preferredAnnotation,
-            final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger,
+            final Class<? extends Annotation> alternateAnnotation, final Object instance, final ComponentLog logger,
             final Object... args) {
         Class<? extends Annotation>[] annotationArray = (Class<? extends Annotation>[]) (alternateAnnotation != null
                 ? new Class<?>[] { preferredAnnotation, alternateAnnotation } : new Class<?>[] { preferredAnnotation });

@@ -40,7 +40,16 @@
                 <configuration>
                     <excludes>**/antlr/AttributeExpressionParser.java,**/antlr/AttributeExpressionLexer.java</excludes>
                 </configuration>
-            </plugin>            
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/json/address-book.json</exclude>
+		    </excludes>
+		</configuration>
+	    </plugin>            
         </plugins>
     </build>
     <dependencies>
@@ -60,6 +69,14 @@
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.jsonpath</groupId>
+            <artifactId>json-path</artifactId>
+        </dependency>
+        <dependency>
+	        <groupId>com.fasterxml.jackson.core</groupId>
+	        <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
 </project>

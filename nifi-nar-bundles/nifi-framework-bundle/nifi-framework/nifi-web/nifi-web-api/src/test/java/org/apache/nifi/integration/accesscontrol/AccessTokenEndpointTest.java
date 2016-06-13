@@ -18,10 +18,6 @@ package org.apache.nifi.integration.accesscontrol;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
@@ -43,6 +39,11 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Access token endpoint test.
@@ -122,7 +123,6 @@ public class AccessTokenEndpointTest {
 
         // verify config
         Assert.assertTrue(accessConfig.getSupportsLogin());
-        Assert.assertFalse(accessConfig.getSupportsAnonymous());
     }
 
     /**
@@ -259,24 +259,7 @@ public class AccessTokenEndpointTest {
         accessStatus = accessStatusEntity.getAccessStatus();
 
         // verify unregistered
-        Assert.assertEquals("UNREGISTERED", accessStatus.getStatus());
-
-        response = TOKEN_USER.testRegisterUser(registrationUrl, "Gimme access", headers);
-
-        // ensure the request is successful
-        Assert.assertEquals(201, response.getStatus());
-
-        // check the status with the token
-        response = TOKEN_USER.testGetWithHeaders(accessStatusUrl, null, headers);
-
-        // ensure the request is successful
-        Assert.assertEquals(200, response.getStatus());
-
-        accessStatusEntity = response.getEntity(AccessStatusEntity.class);
-        accessStatus = accessStatusEntity.getAccessStatus();
-
-        // verify unregistered
-        Assert.assertEquals("NOT_ACTIVE", accessStatus.getStatus());
+        Assert.assertEquals("ACTIVE", accessStatus.getStatus());
     }
 
     @AfterClass

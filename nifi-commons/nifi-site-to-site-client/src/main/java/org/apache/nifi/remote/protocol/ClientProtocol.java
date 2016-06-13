@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.remote.protocol;
 
-import java.io.IOException;
-import java.util.Set;
-
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.Transaction;
@@ -32,6 +27,9 @@ import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
 
+import java.io.IOException;
+import java.util.Set;
+
 public interface ClientProtocol extends VersionedRemoteResource {
 
     void handshake(Peer peer) throws IOException, HandshakeException, UnknownPortException, PortNotRunningException;
@@ -40,13 +38,7 @@ public interface ClientProtocol extends VersionedRemoteResource {
 
     FlowFileCodec negotiateCodec(Peer peer) throws IOException, ProtocolException;
 
-    int receiveFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
-
-    int transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
-
     void shutdown(Peer peer) throws IOException, ProtocolException;
-
-    boolean isReadyForFileTransfer();
 
     Transaction startTransaction(Peer peer, FlowFileCodec codec, TransferDirection direction) throws IOException;
 

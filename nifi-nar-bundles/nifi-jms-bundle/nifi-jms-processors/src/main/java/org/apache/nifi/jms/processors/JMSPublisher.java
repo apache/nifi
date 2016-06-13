@@ -28,7 +28,7 @@ import javax.jms.Session;
 import javax.jms.Topic;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -50,9 +50,9 @@ final class JMSPublisher extends JMSWorker {
      * @param jmsTemplate
      *            instance of {@link JmsTemplate}
      * @param processLog
-     *            instance of {@link ProcessorLog}
+     *            instance of {@link ComponentLog}
      */
-    JMSPublisher(JmsTemplate jmsTemplate, ProcessorLog processLog) {
+    JMSPublisher(JmsTemplate jmsTemplate, ComponentLog processLog) {
         super(jmsTemplate, processLog);
         if (logger.isInfoEnabled()) {
             logger.info("Created Message Publisher for '" + jmsTemplate.toString() + "'.");

@@ -42,7 +42,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -57,13 +57,13 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
 import com.bazaarvoice.jolt.CardinalityTransform;
-import com.bazaarvoice.jolt.Shiftr;
-import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
+import com.bazaarvoice.jolt.JsonUtils;
+import com.bazaarvoice.jolt.Removr;
+import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
 import com.bazaarvoice.jolt.Transform;
-import com.bazaarvoice.jolt.JsonUtils;
 
 @EventDriven
 @SideEffectFree
@@ -175,7 +175,7 @@ public class TransformJSON extends AbstractProcessor {
             return;
         }
 
-        final ProcessorLog logger = getLogger();
+        final ComponentLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
 
         final byte[] originalContent = new byte[(int) original.getSize()];

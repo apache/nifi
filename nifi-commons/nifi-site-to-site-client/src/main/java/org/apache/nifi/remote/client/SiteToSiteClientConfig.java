@@ -24,6 +24,8 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
 
 public interface SiteToSiteClientConfig extends Serializable {
 
@@ -54,6 +56,7 @@ public interface SiteToSiteClientConfig extends Serializable {
 
     /**
      * @return the SSL Context that is configured for this builder
+     * @throws IllegalStateException if an SSLContext is being constructed and an error occurs doing so
      */
     SSLContext getSslContext();
 
@@ -100,6 +103,11 @@ public interface SiteToSiteClientConfig extends Serializable {
     boolean isUseCompression();
 
     /**
+     * @return a transport protocol to use
+     */
+    SiteToSiteTransportProtocol getTransportProtocol();
+
+    /**
      * @return the name of the port that the client is to communicate with
      */
     String getPortName();
@@ -144,5 +152,11 @@ public interface SiteToSiteClientConfig extends Serializable {
      * @return the EventReporter that is to be used by clients to report events
      */
     EventReporter getEventReporter();
+
+    /**
+     * Return Proxy for HTTP Transport Protocol.
+     * @return proxy or null if not specified
+     */
+    HttpProxy getHttpProxy();
 
 }
