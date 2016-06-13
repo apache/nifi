@@ -167,7 +167,7 @@ public class DebugFlow extends AbstractProcessor {
             .build();
     static final PropertyDescriptor NO_FF_EXCEPTION_CLASS = new PropertyDescriptor.Builder()
             .name("No FlowFile Exception Class")
-            .description("Exception class to be thrown if no FlowFile (must extend java.lang.Exception).")
+            .description("Exception class to be thrown if no FlowFile (must extend java.lang.RuntimeException).")
             .required(true)
             .defaultValue("java.lang.Exception")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -179,7 +179,7 @@ public class DebugFlow extends AbstractProcessor {
                             .subject(subject)
                             .input(input)
                             .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
-                            .explanation(subject + " class must exist and extend java.lang.Exception")
+                            .explanation(subject + " class must exist and extend java.lang.RuntimeException")
                             .build();
                 }
             })
@@ -252,9 +252,11 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(FF_ROLLBACK_YIELD_ITERATIONS);
                 propList.add(FF_ROLLBACK_PENALTY_ITERATIONS);
                 propList.add(FF_EXCEPTION_ITERATIONS);
+                propList.add(FF_EXCEPTION_CLASS);
                 propList.add(NO_FF_EXCEPTION_ITERATIONS);
                 propList.add(NO_FF_YIELD_ITERATIONS);
                 propList.add(NO_FF_SKIP_ITERATIONS);
+                propList.add(NO_FF_EXCEPTION_CLASS);
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
         }
