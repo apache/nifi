@@ -34,7 +34,6 @@ import static org.junit.Assert.assertNotNull;
 
 public class TestDebugFlow {
 
-//    private DebugFlowInspectable debugFlow;
     private DebugFlow debugFlow;
     private TestRunner runner;
     private ProcessContext context;
@@ -51,7 +50,6 @@ public class TestDebugFlow {
 
     @Before
     public void setup() throws IOException {
-//        debugFlow = new DebugFlowInspectable();
         debugFlow = new DebugFlow();
         runner = TestRunners.newTestRunner(debugFlow);
         context = runner.getProcessContext();
@@ -98,13 +96,19 @@ public class TestDebugFlow {
     }
 
     @Test
-    public void testSuccessMaxIsZeroUntilOnScheduled() throws Exception {
-//        assertEquals(0L, debugFlow.getSuccessMax());
-        assertEquals(0L, debugFlow.FF_SUCCESS_MAX.longValue());
+    public void testFlowFileMaxSuccessIsZeroUntilOnScheduled() throws Exception {
+        assertEquals(0, debugFlow.flowFileMaxSuccess.intValue());
         runner.assertValid();
         runner.run();
-//        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.getSuccessMax());
-        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.FF_SUCCESS_MAX.longValue());
+        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.flowFileMaxSuccess.intValue());
+    }
+
+    @Test
+    public void testNoFlowFileMaxSkipIsZeroUntilOnScheduled() throws Exception {
+        assertEquals(0, debugFlow.noFlowFileMaxSkip.intValue());
+        runner.assertValid();
+        runner.run();
+        assertEquals(context.getProperty(DebugFlow.NO_FF_SKIP_ITERATIONS).asInteger().intValue(), debugFlow.noFlowFileMaxSkip.intValue());
     }
 
     @Test
@@ -218,10 +222,4 @@ public class TestDebugFlow {
         assertEquals(namesToContent.get(ff1.getAttribute(CoreAttributes.FILENAME.key())), new String(ff1.toByteArray()));
         session.rollback();
     }
-
-//    private class DebugFlowInspectable extends DebugFlow {
-//        public int getSuccessMax() {
-//            return this.FF_SUCCESS_MAX;
-//        }
-//    }
 }

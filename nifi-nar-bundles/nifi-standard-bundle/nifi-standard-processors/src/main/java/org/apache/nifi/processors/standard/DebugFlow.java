@@ -19,6 +19,9 @@ package org.apache.nifi.processors.standard;
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -32,217 +35,197 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 @ThreadSafe()
 @EventDriven()
-@Tags({"test", "debug", "processor", "utility", "flow", "flowfile"})
-@CapabilityDescription("This processor aids in the testing and debugging of the flowfile framework by allowing "
-        + "a developer or flow manager to force various responses to a flowfile.  In response to a receiving a flowfile "
-        + "it can route to the success or failure relationships, rollback, rollback and yield, rollback with penalty, "
-        + "or throw an exception.  In addition, if using a timer based scheduling strategy, upon being triggered without "
-        + "a flowfile, it can be configured to throw an exception,  when triggered without a flowfile.\n"
+@Tags({"test", "debug", "processor", "utility", "flow", "FlowFile"})
+@CapabilityDescription("The DebugFlow processor aids testing and debugging the FlowFile framework by allowing various "
+        + "responses to be explicitly triggered in response to the receipt of a FlowFile or a timer event without a "
+        + "FlowFile if using timer or cron based scheduling.  It can force responses needed to exercise or test "
+        + "various failure modes that can occur when a processor runs.\n"
         + "\n"
-        + "The 'iterations' properties, such as \"Success iterations\", configure how many times each response should occur "
-        + "in succession before moving on to the next response within the group of flowfile responses or no flowfile"
-        + "responses.\n"
+        + "When triggered, the processor loops through the appropriate response list (based on whether or not it "
+        + "received a FlowFile).  A response is produced the configured number of times for each pass through its"
+        + "response list, as long as the processor is running.\n"
         + "\n"
-        + "The order of responses when a flow file is received are:"
-        + "  1. transfer flowfile to success relationship.\n"
-        + "  2. transfer flowfile to failure relationship.\n"
-        + "  3. rollback the flowfile without penalty.\n"
-        + "  4. rollback the flowfile and yield the context.\n"
-        + "  5. rollback the flowfile with penalty.\n"
+        + "Triggered by a FlowFile, the processor can produce the following responses."
+        + "  1. transfer FlowFile to success relationship.\n"
+        + "  2. transfer FlowFile to failure relationship.\n"
+        + "  3. rollback the FlowFile without penalty.\n"
+        + "  4. rollback the FlowFile and yield the context.\n"
+        + "  5. rollback the FlowFile with penalty.\n"
         + "  6. throw an exception.\n"
         + "\n"
-        + "The order of responses when no flow file is received are:"
-        + "  1. yield the context.\n"
+        + "Triggered without a FlowFile, the processor can produce the following responses."
+        + "  1. do nothing and return.\n"
         + "  2. throw an exception.\n"
-        + "  3. do nothing and return.\n"
-        + "\n"
-        + "By default, the processor is configured to perform each response one time.  After processing the list of "
-        + "responses it will resume from the top of the list.\n"
-        + "\n"
-        + "To suppress any response, it's value can be set to zero (0) and no responses of that type will occur during "
-        + "processing.")
+        + "  3. yield the context.\n")
 public class DebugFlow extends AbstractProcessor {
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Flowfiles processed successfully.")
+            .description("FlowFiles processed successfully.")
             .build();
     static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Flowfiles that failed to process.")
+            .description("FlowFiles that failed to process.")
             .build();
 
     private final AtomicReference<List<PropertyDescriptor>> propertyDescriptors = new AtomicReference<>();
 
     static final PropertyDescriptor FF_SUCCESS_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Success Iterations")
-            .description("Number of flowfiles to forward to success relationship.")
+            .name("FlowFile Success Iterations")
+            .description("Number of FlowFiles to forward to success relationship.")
             .required(true)
             .defaultValue("1")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor FF_FAILURE_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Failure Iterations")
-            .description("Number of flowfiles to forward to failure relationship.")
+            .name("FlowFile Failure Iterations")
+            .description("Number of FlowFiles to forward to failure relationship.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor FF_ROLLBACK_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Rollback Iterations")
-            .description("Number of flowfiles to roll back (without penalty).")
+            .name("FlowFile Rollback Iterations")
+            .description("Number of FlowFiles to roll back (without penalty).")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor FF_ROLLBACK_YIELD_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Rollback Yield Iterations")
-            .description("Number of flowfiles to roll back and yield.")
+            .name("FlowFile Rollback Yield Iterations")
+            .description("Number of FlowFiles to roll back and yield.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor FF_ROLLBACK_PENALTY_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Rollback Penalty Iterations")
-            .description("Number of flowfiles to roll back with penalty.")
+            .name("FlowFile Rollback Penalty Iterations")
+            .description("Number of FlowFiles to roll back with penalty.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor FF_EXCEPTION_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("Exception Iterations")
-            .description("Number of flowfiles to throw NPE exception.")
+            .name("FlowFile Exception Iterations")
+            .description("Number of FlowFiles to throw exception.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
+    static final PropertyDescriptor FF_EXCEPTION_CLASS = new PropertyDescriptor.Builder()
+            .name("FlowFile Exception Class")
+            .description("Exception class to be thrown (must extend java.lang.Exception).")
+            .required(true)
+            .defaultValue("java.lang.Exception")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new Validator() {
+                @Override
+                public ValidationResult validate(String subject, String input, ValidationContext context) {
+                    Class<? extends RuntimeException> klass = classNameToRuntimeExceptionClass(input);
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(input)
+                            .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
+                            .explanation(subject + " class must exist and extend java.lang.Exception")
+                            .build();
+                }
+            })
+            .build();
 
+    static final PropertyDescriptor NO_FF_SKIP_ITERATIONS = new PropertyDescriptor.Builder()
+            .name("No FlowFile Skip Iterations")
+            .description("Number of times to skip onTrigger if no FlowFile.")
+            .required(true)
+            .defaultValue("1")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
     static final PropertyDescriptor NO_FF_EXCEPTION_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("No Flowfile Exception Iterations")
-            .description("Number of times to throw NPE exception if no flowfile.")
+            .name("No FlowFile Exception Iterations")
+            .description("Number of times to throw NPE exception if no FlowFile.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     static final PropertyDescriptor NO_FF_YIELD_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("No Flowfile Yield Iterations")
-            .description("Number of times to yield if no flowfile.")
+            .name("No FlowFile Yield Iterations")
+            .description("Number of times to yield if no FlowFile.")
             .required(true)
             .defaultValue("0")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
-    static final PropertyDescriptor NO_FF_SKIP_ITERATIONS = new PropertyDescriptor.Builder()
-            .name("No Flowfile Skip Iterations")
-            .description("Number of times to skip onTrigger if no flowfile.")
+    static final PropertyDescriptor NO_FF_EXCEPTION_CLASS = new PropertyDescriptor.Builder()
+            .name("No FlowFile Exception Class")
+            .description("Exception class to be thrown if no FlowFile (must extend java.lang.Exception).")
             .required(true)
-            .defaultValue("1")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("java.lang.Exception")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(new Validator() {
+                @Override
+                public ValidationResult validate(String subject, String input, ValidationContext context) {
+                    Class<? extends RuntimeException> klass = classNameToRuntimeExceptionClass(input);
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .input(input)
+                            .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
+                            .explanation(subject + " class must exist and extend java.lang.Exception")
+                            .build();
+                }
+            })
             .build();
 
-    volatile Integer FF_SUCCESS_MAX = 0;
-    private volatile Integer FF_FAILURE_MAX = 0;
-    private volatile Integer FF_ROLLBACK_MAX = 0;
-    private volatile Integer FF_YIELD_MAX = 0;
-    private volatile Integer FF_PENALTY_MAX = 0;
-    private volatile Integer FF_EXCEPTION_MAX = 0;
 
-    private volatile Integer NO_FF_EXCEPTION_MAX = 0;
-    private volatile Integer NO_FF_YIELD_MAX = 0;
-    private volatile Integer NO_FF_SKIP_MAX = 0;
+    volatile Integer flowFileMaxSuccess = 0;
+    private volatile Integer flowFileMaxFailure = 0;
+    private volatile Integer flowFileMaxRollback = 0;
+    private volatile Integer flowFileMaxYield = 0;
+    private volatile Integer flowFileMaxPenalty = 0;
+    private volatile Integer flowFileMaxException = 0;
 
-    private volatile Integer FF_SUCCESS_CURR = 0;
-    private volatile Integer FF_FAILURE_CURR = 0;
-    private volatile Integer FF_ROLLBACK_CURR = 0;
-    private volatile Integer FF_YIELD_CURR = 0;
-    private volatile Integer FF_PENALTY_CURR = 0;
-    private volatile Integer FF_EXCEPTION_CURR = 0;
+    volatile Integer noFlowFileMaxSkip = 0;
+    private volatile Integer noFlowFileMaxException = 0;
+    private volatile Integer noFlowFileMaxYield = 0;
 
-    private volatile Integer NO_FF_EXCEPTION_CURR = 0;
-    private volatile Integer NO_FF_YIELD_CURR = 0;
-    private volatile Integer NO_FF_SKIP_CURR = 0;
+    private volatile Integer flowFileCurrSuccess = 0;
+    private volatile Integer flowFileCurrFailure = 0;
+    private volatile Integer flowFileCurrRollback = 0;
+    private volatile Integer flowFileCurrYield = 0;
+    private volatile Integer flowFileCurrPenalty = 0;
+    private volatile Integer flowFileCurrException = 0;
 
-    private final FlowfileResponse curr_ff_resp = FlowfileResponse.FF_EXCEPTION_RESPONSE;
-    private final NoFlowfileResponse curr_noff_resp = NoFlowfileResponse.NO_FF_EXCEPTION_RESPONSE;
+    private volatile Integer noFlowFileCurrSkip = 0;
+    private volatile Integer noFlowFileCurrException = 0;
+    private volatile Integer noFlowFileCurrYield = 0;
 
-    public enum FlowfileResponse {
-        FF_SUCCESS_RESPONSE(0, 1),
-        FF_FAILURE_RESPONSE(1, 2),
-        FF_ROLLBACK_RESPONSE(2, 3),
-        FF_YIELD_RESPONSE(3, 4),
-        FF_PENALTY_RESPONSE(4, 5),
-        FF_EXCEPTION_RESPONSE(5, 0);
+    private volatile Class<? extends RuntimeException> flowFileExceptionClass = null;
+    private volatile Class<? extends RuntimeException> noFlowFileExceptionClass= null;
 
-        private Integer id;
-        private Integer nextId;
+    private final FlowFileResponse curr_ff_resp = new FlowFileResponse();
+    private final NoFlowFileResponse curr_noff_resp = new NoFlowFileResponse();
 
-        private static final Map<Integer, FlowfileResponse> byId = new HashMap<>();
-        static {
-            for (FlowfileResponse rc : FlowfileResponse.values()) {
-                if (byId.put(rc.id, rc) != null) {
-                    throw new IllegalArgumentException("duplicate id: " + rc.id);
-                }
+    private static Class<? extends RuntimeException> classNameToRuntimeExceptionClass(String name) {
+        Class<? extends RuntimeException> klass = null;
+        try {
+            Class<?> klass2 = Class.forName(name);
+            if (klass2 == RuntimeException.class || RuntimeException.class.isAssignableFrom(klass2)) {
+                klass = (Class<? extends RuntimeException>)klass2;
             }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            klass = null;
         }
-
-        FlowfileResponse(Integer pId, Integer pNext) {
-            id = pId;
-            nextId = pNext;
-        }
-        synchronized void getNextCycle() {
-            FlowfileResponse next = byId.get(nextId);
-            id = next.id;
-            nextId = next.nextId;
-        }
-        synchronized void reset() {
-            FlowfileResponse first = byId.get(0);
-            id = first.id;
-            nextId = first.nextId;
-        }
-    }
-
-    public enum NoFlowfileResponse {
-        NO_FF_EXCEPTION_RESPONSE(0, 1),
-        NO_FF_YIELD_RESPONSE(1, 2),
-        NO_FF_SKIP_RESPONSE(2, 0);
-
-        private Integer id;
-        private Integer nextId;
-
-        private static final Map<Integer, NoFlowfileResponse> byId = new HashMap<>();
-        static {
-            for (NoFlowfileResponse rc : NoFlowfileResponse.values()) {
-                if (byId.put(rc.id, rc) != null) {
-                    throw new IllegalArgumentException("duplicate id: " + rc.id);
-                }
-            }
-        }
-        NoFlowfileResponse(Integer pId, Integer pNext) {
-            id = pId;
-            nextId = pNext;
-        }
-        synchronized void getNextCycle() {
-            NoFlowfileResponse next = byId.get(nextId);
-            id = next.id;
-            nextId = next.nextId;
-        }
-        synchronized void reset() {
-            NoFlowfileResponse first = byId.get(0);
-            id = first.id;
-            nextId = first.nextId;
-        }
+        return klass;
     }
 
     @Override
@@ -281,17 +264,19 @@ public class DebugFlow extends AbstractProcessor {
     @SuppressWarnings("unused")
     @OnScheduled
     public void onScheduled(ProcessContext context) {
-        FF_SUCCESS_MAX = context.getProperty(FF_SUCCESS_ITERATIONS).asInteger();
-        FF_FAILURE_MAX = context.getProperty(FF_FAILURE_ITERATIONS).asInteger();
-        FF_YIELD_MAX = context.getProperty(FF_ROLLBACK_YIELD_ITERATIONS).asInteger();
-        FF_ROLLBACK_MAX = context.getProperty(FF_ROLLBACK_ITERATIONS).asInteger();
-        FF_PENALTY_MAX = context.getProperty(FF_ROLLBACK_PENALTY_ITERATIONS).asInteger();
-        FF_EXCEPTION_MAX = context.getProperty(FF_EXCEPTION_ITERATIONS).asInteger();
-        NO_FF_EXCEPTION_MAX = context.getProperty(NO_FF_EXCEPTION_ITERATIONS).asInteger();
-        NO_FF_YIELD_MAX = context.getProperty(NO_FF_YIELD_ITERATIONS).asInteger();
-        NO_FF_SKIP_MAX = context.getProperty(NO_FF_SKIP_ITERATIONS).asInteger();
+        flowFileMaxSuccess = context.getProperty(FF_SUCCESS_ITERATIONS).asInteger();
+        flowFileMaxFailure = context.getProperty(FF_FAILURE_ITERATIONS).asInteger();
+        flowFileMaxYield = context.getProperty(FF_ROLLBACK_YIELD_ITERATIONS).asInteger();
+        flowFileMaxRollback = context.getProperty(FF_ROLLBACK_ITERATIONS).asInteger();
+        flowFileMaxPenalty = context.getProperty(FF_ROLLBACK_PENALTY_ITERATIONS).asInteger();
+        flowFileMaxException = context.getProperty(FF_EXCEPTION_ITERATIONS).asInteger();
+        noFlowFileMaxException = context.getProperty(NO_FF_EXCEPTION_ITERATIONS).asInteger();
+        noFlowFileMaxYield = context.getProperty(NO_FF_YIELD_ITERATIONS).asInteger();
+        noFlowFileMaxSkip = context.getProperty(NO_FF_SKIP_ITERATIONS).asInteger();
         curr_ff_resp.reset();
         curr_noff_resp.reset();
+        flowFileExceptionClass = classNameToRuntimeExceptionClass(context.getProperty(FF_EXCEPTION_CLASS).toString());
+        noFlowFileExceptionClass = classNameToRuntimeExceptionClass(context.getProperty(NO_FF_EXCEPTION_CLASS).toString());
     }
 
     @Override
@@ -307,42 +292,52 @@ public class DebugFlow extends AbstractProcessor {
         while (pass > 0) {
             pass -= 1;
             if (ff == null) {
-                if (curr_noff_resp == NoFlowfileResponse.NO_FF_EXCEPTION_RESPONSE) {
-                    if (NO_FF_EXCEPTION_CURR < NO_FF_EXCEPTION_MAX) {
-                        NO_FF_EXCEPTION_CURR += 1;
-                        logger.info("DebugFlow throwing NPE with no flow file");
-                        throw new NullPointerException("forced by " + this.getClass().getName());
+                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
+                    if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
+                        noFlowFileCurrSkip += 1;
+                        logger.info("DebugFlow skipping with no flow file");
+                        return;
                     } else {
-                        NO_FF_EXCEPTION_CURR = 0;
+                        noFlowFileCurrSkip = 0;
                         curr_noff_resp.getNextCycle();
                     }
                 }
-                if (curr_noff_resp == NoFlowfileResponse.NO_FF_YIELD_RESPONSE) {
-                    if (NO_FF_YIELD_CURR < NO_FF_YIELD_MAX) {
-                        NO_FF_YIELD_CURR += 1;
+                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_EXCEPTION_RESPONSE) {
+                    if (noFlowFileCurrException < noFlowFileMaxException) {
+                        noFlowFileCurrException += 1;
+                        logger.info("DebugFlow throwing NPE with no flow file");
+                        String message = "forced by " + this.getClass().getName();
+                        RuntimeException rte = null;
+                        try {
+                            rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                            e.printStackTrace();
+                        }
+                        if (rte == null) {
+                            rte = new NullPointerException(message);
+                        }
+                        throw rte;
+                    } else {
+                        noFlowFileCurrException = 0;
+                        curr_noff_resp.getNextCycle();
+                    }
+                }
+                if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_YIELD_RESPONSE) {
+                    if (noFlowFileCurrYield < noFlowFileMaxYield) {
+                        noFlowFileCurrYield += 1;
                         logger.info("DebugFlow yielding with no flow file");
                         context.yield();
                         break;
                     } else {
-                        NO_FF_YIELD_CURR = 0;
-                        curr_noff_resp.getNextCycle();
-                    }
-                }
-                if (curr_noff_resp == NoFlowfileResponse.NO_FF_SKIP_RESPONSE) {
-                    if (NO_FF_SKIP_CURR < NO_FF_SKIP_MAX) {
-                        NO_FF_SKIP_CURR += 1;
-                        logger.info("DebugFlow skipping with no flow file");
-                        return;
-                    } else {
-                        NO_FF_SKIP_CURR = 0;
+                        noFlowFileCurrYield = 0;
                         curr_noff_resp.getNextCycle();
                     }
                 }
                 return;
             } else {
-                if (curr_ff_resp == FlowfileResponse.FF_SUCCESS_RESPONSE) {
-                    if (FF_SUCCESS_CURR < FF_SUCCESS_MAX) {
-                        FF_SUCCESS_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
+                    if (flowFileCurrSuccess < flowFileMaxSuccess) {
+                        flowFileCurrSuccess += 1;
                         logger.info("DebugFlow transferring to success file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
@@ -350,13 +345,13 @@ public class DebugFlow extends AbstractProcessor {
                         session.commit();
                         break;
                     } else {
-                        FF_SUCCESS_CURR = 0;
+                        flowFileCurrSuccess = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
-                if (curr_ff_resp == FlowfileResponse.FF_FAILURE_RESPONSE) {
-                    if (FF_FAILURE_CURR < FF_FAILURE_MAX) {
-                        FF_FAILURE_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_FAILURE_RESPONSE) {
+                    if (flowFileCurrFailure < flowFileMaxFailure) {
+                        flowFileCurrFailure += 1;
                         logger.info("DebugFlow transferring to failure file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
@@ -364,13 +359,13 @@ public class DebugFlow extends AbstractProcessor {
                         session.commit();
                         break;
                     } else {
-                        FF_FAILURE_CURR = 0;
+                        flowFileCurrFailure = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
-                if (curr_ff_resp == FlowfileResponse.FF_ROLLBACK_RESPONSE) {
-                    if (FF_ROLLBACK_CURR < FF_ROLLBACK_MAX) {
-                        FF_ROLLBACK_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_ROLLBACK_RESPONSE) {
+                    if (flowFileCurrRollback < flowFileMaxRollback) {
+                        flowFileCurrRollback += 1;
                         logger.info("DebugFlow rolling back (no penalty) file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
@@ -378,13 +373,13 @@ public class DebugFlow extends AbstractProcessor {
                         session.commit();
                         break;
                     } else {
-                        FF_ROLLBACK_CURR = 0;
+                        flowFileCurrRollback = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
-                if (curr_ff_resp == FlowfileResponse.FF_YIELD_RESPONSE) {
-                    if (FF_YIELD_CURR < FF_YIELD_MAX) {
-                        FF_YIELD_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_YIELD_RESPONSE) {
+                    if (flowFileCurrYield < flowFileMaxYield) {
+                        flowFileCurrYield += 1;
                         logger.info("DebugFlow yielding file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
@@ -392,13 +387,13 @@ public class DebugFlow extends AbstractProcessor {
                         context.yield();
                         return;
                     } else {
-                        FF_YIELD_CURR = 0;
+                        flowFileCurrYield = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
-                if (curr_ff_resp == FlowfileResponse.FF_PENALTY_RESPONSE) {
-                    if (FF_PENALTY_CURR < FF_PENALTY_MAX) {
-                        FF_PENALTY_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_PENALTY_RESPONSE) {
+                    if (flowFileCurrPenalty < flowFileMaxPenalty) {
+                        flowFileCurrPenalty += 1;
                         logger.info("DebugFlow rolling back (with penalty) file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
@@ -406,23 +401,103 @@ public class DebugFlow extends AbstractProcessor {
                         session.commit();
                         break;
                     } else {
-                        FF_PENALTY_CURR = 0;
+                        flowFileCurrPenalty = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
-                if (curr_ff_resp == FlowfileResponse.FF_EXCEPTION_RESPONSE) {
-                    if (FF_EXCEPTION_CURR < FF_EXCEPTION_MAX) {
-                        FF_EXCEPTION_CURR += 1;
+                if (curr_ff_resp.state() == FlowFileResponseState.FF_EXCEPTION_RESPONSE) {
+                    if (flowFileCurrException < flowFileMaxException) {
+                        flowFileCurrException += 1;
+                        String message = "forced by " + this.getClass().getName();
                         logger.info("DebugFlow throwing NPE file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
-                        throw new NullPointerException("forced by " + this.getClass().getName());
+                        RuntimeException rte = null;
+                        try {
+                            rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                            e.printStackTrace();
+                        }
+                        if (rte == null) {
+                            rte = new NullPointerException(message);
+                        }
+                        throw rte;
                     } else {
-                        FF_EXCEPTION_CURR = 0;
+                        flowFileCurrException = 0;
                         curr_ff_resp.getNextCycle();
                     }
                 }
             }
+        }
+    }
+
+    public enum FlowFileResponseState {
+        FF_SUCCESS_RESPONSE,
+        FF_FAILURE_RESPONSE,
+        FF_ROLLBACK_RESPONSE,
+        FF_YIELD_RESPONSE,
+        FF_PENALTY_RESPONSE,
+        FF_EXCEPTION_RESPONSE;
+
+        private FlowFileResponseState nextState;
+        static {
+            FF_SUCCESS_RESPONSE.nextState = FF_FAILURE_RESPONSE;
+            FF_FAILURE_RESPONSE.nextState = FF_ROLLBACK_RESPONSE;
+            FF_ROLLBACK_RESPONSE.nextState = FF_YIELD_RESPONSE;
+            FF_YIELD_RESPONSE.nextState = FF_PENALTY_RESPONSE;
+            FF_PENALTY_RESPONSE.nextState = FF_EXCEPTION_RESPONSE;
+            FF_EXCEPTION_RESPONSE.nextState = FF_SUCCESS_RESPONSE;
+        }
+        FlowFileResponseState next() {
+            return nextState;
+        }
+    }
+
+    private class FlowFileResponse {
+        private final AtomicReference<FlowFileResponseState> current = new AtomicReference<>();
+        FlowFileResponse() {
+            current.set(FlowFileResponseState.FF_SUCCESS_RESPONSE);
+        }
+        synchronized FlowFileResponseState state() {
+            return current.get();
+        }
+        synchronized void getNextCycle() {
+            current.set(current.get().next());
+        }
+        synchronized void reset() {
+            current.set(FlowFileResponseState.FF_SUCCESS_RESPONSE);
+        }
+    }
+
+    public enum NoFlowFileResponseState {
+        NO_FF_SKIP_RESPONSE,
+        NO_FF_EXCEPTION_RESPONSE,
+        NO_FF_YIELD_RESPONSE;
+
+        private NoFlowFileResponseState nextState;
+        static {
+            NO_FF_SKIP_RESPONSE.nextState = NO_FF_EXCEPTION_RESPONSE;
+            NO_FF_EXCEPTION_RESPONSE.nextState = NO_FF_YIELD_RESPONSE;
+            NO_FF_YIELD_RESPONSE.nextState = NO_FF_SKIP_RESPONSE;
+        }
+        NoFlowFileResponseState next() {
+            return nextState;
+        }
+    }
+
+    private class NoFlowFileResponse {
+        private final AtomicReference<NoFlowFileResponseState> current = new AtomicReference<>();
+        NoFlowFileResponse() {
+            current.set(NoFlowFileResponseState.NO_FF_SKIP_RESPONSE);
+        }
+        synchronized NoFlowFileResponseState state() {
+            return current.get();
+        }
+        synchronized void getNextCycle() {
+            current.set(current.get().next());
+        }
+        synchronized void reset() {
+            current.set(NoFlowFileResponseState.NO_FF_SKIP_RESPONSE);
         }
     }
 }
