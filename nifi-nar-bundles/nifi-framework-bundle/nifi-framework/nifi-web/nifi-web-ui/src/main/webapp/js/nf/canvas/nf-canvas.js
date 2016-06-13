@@ -523,6 +523,17 @@ nf.Canvas = (function () {
             if (e.target === window) {
                 updateGraphSize();
                 updateFlowStatusContainerSize();
+
+                nf.ng.Bridge.get('appCtrl.serviceProvider.graphControlsCtrl').positionGraphControls();
+
+                // resize grids when appropriate
+                if ($('#process-group-controller-services-table').is(':visible')) {
+                    nf.ProcessGroupConfiguration.resetTableSize();
+                } else if ($('#controller-services-table').is(':visible') || $('#reporting-tasks-table').is(':visible')) {
+                    nf.Settings.resetTableSize();
+                } else if ($('#queue-listing-table').is(':visible')) {
+                    nf.QueueListing.resetTableSize();
+                }
             }
         }).on('keydown', function (evt) {
             // if a dialog is open, disable canvas shortcuts

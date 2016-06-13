@@ -229,11 +229,6 @@ nf.ProcessGroupConfiguration = (function () {
             // settings refresh button...
             nf.Common.addHoverEffect('#process-group-configuration-refresh-button', 'button-refresh', 'button-refresh-hover');
 
-            // handle window resizing
-            $(window).on('resize', function (e) {
-                nf.ProcessGroupConfiguration.resetTableSize();
-            });
-            
             // initialize each tab
             initGeneral();
             nf.ControllerServices.init(getControllerServicesTable());

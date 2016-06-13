@@ -186,7 +186,7 @@ public class NiFiProperties extends Properties {
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
-    public static final String DEFAULT_AUTHORITY_PROVIDER_CONFIGURATION_FILE = "conf/authority-providers.xml";
+    public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
     public static final String DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "conf/login-identity-providers.xml";
     public static final String DEFAULT_USER_CREDENTIAL_CACHE_DURATION = "24 hours";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
@@ -511,7 +511,7 @@ public class NiFiProperties extends Properties {
     public File getAuthorizerConfiguraitonFile() {
         final String value = getProperty(AUTHORIZER_CONFIGURATION_FILE);
         if (StringUtils.isBlank(value)) {
-            return new File(DEFAULT_AUTHORITY_PROVIDER_CONFIGURATION_FILE);
+            return new File(DEFAULT_AUTHORIZER_CONFIGURATION_FILE);
         } else {
             return new File(value);
         }

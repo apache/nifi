@@ -990,11 +990,6 @@ nf.Settings = (function () {
                 }
             });
             
-            // handle window resizing
-            $(window).on('resize', function (e) {
-                nf.Settings.resetTableSize();
-            });
-
             // initialize each tab
             initGeneral();
             nf.ControllerServices.init(getControllerServicesTable());

@@ -670,7 +670,7 @@ nf.RemoteProcessGroup = (function () {
         // received ports value
         updated.select('text.remote-process-group-received tspan.ports')
             .text(function (d) {
-                return d.inputPortCount + ' ' + String.fromCharCode(8594) + ' ';
+                return d.outputPortCount + ' ' + String.fromCharCode(8594) + ' ';
             });
 
         // received count value
