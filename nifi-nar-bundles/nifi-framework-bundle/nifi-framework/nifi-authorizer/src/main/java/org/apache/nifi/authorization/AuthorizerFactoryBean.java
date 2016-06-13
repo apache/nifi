@@ -126,7 +126,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     }
 
     private Authorizers loadAuthorizersConfiguration() throws Exception {
-        final File authorizersConfigurationFile = properties.getAuthorizerConfiguraitonFile();
+        final File authorizersConfigurationFile = properties.getAuthorizerConfigurationFile();
 
         // load the authorizers from the specified file
         if (authorizersConfigurationFile.exists()) {

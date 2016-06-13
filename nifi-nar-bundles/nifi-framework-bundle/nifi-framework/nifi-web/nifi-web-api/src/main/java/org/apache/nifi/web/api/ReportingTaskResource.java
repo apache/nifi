@@ -355,13 +355,17 @@ public class ReportingTaskResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        // handle expects request (usually from the cluster manager)
-        if (isValidationPhase(httpServletRequest)) {
+        final boolean isValidationPhase = isValidationPhase(httpServletRequest);
+        if (isValidationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable reportingTask = lookup.getReportingTask(id);
                 reportingTask.authorize(authorizer, RequestAction.WRITE);
             });
+        }
+
+        // handle expects request (usually from the cluster manager)
+        if (isValidationPhase) {
             serviceFacade.verifyCanClearReportingTaskState(id);
             return generateContinueResponse().build();
         }

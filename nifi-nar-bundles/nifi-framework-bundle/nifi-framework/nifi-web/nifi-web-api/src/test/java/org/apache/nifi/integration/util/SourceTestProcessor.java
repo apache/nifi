@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.integration.util;
 
-import java.util.HashSet;
-import java.util.Set;
-
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -26,6 +25,10 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
+import java.util.HashSet;
+import java.util.Set;
+
+@Stateful(scopes = Scope.LOCAL, description = "")
 public class SourceTestProcessor extends AbstractSessionFactoryProcessor {
 
     public SourceTestProcessor() {

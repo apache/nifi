@@ -16,9 +16,9 @@
 <!--
     This file lists all authority providers to use when running securely.
 -->
-<authorityProviders>
-    <provider>
+<authorizers>
+    <authorizer>
         <identifier>test-provider</identifier>
         <class>org.apache.nifi.integration.util.NiFiTestAuthorizer</class>
-    </provider>
-</authorityProviders>
+    </authorizer>
+</authorizers>

@@ -37,7 +37,6 @@ import org.apache.nifi.web.util.WebUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.net.ssl.SSLContext;
@@ -48,7 +47,6 @@ import java.util.Map;
 /**
  * Access token endpoint test.
  */
-@Ignore
 public class AccessTokenEndpointTest {
 
     private static final String CLIENT_ID = "token-endpoint-id";
@@ -147,7 +145,7 @@ public class AccessTokenEndpointTest {
     }
 
     private ProcessorDTO createProcessor(final String token) throws Exception {
-        String url = BASE_URL + "/controller/process-groups/root/processors";
+        String url = BASE_URL + "/process-groups/root/processors";
 
         // authorization header
         Map<String, String> headers = new HashMap<>();
@@ -224,7 +222,6 @@ public class AccessTokenEndpointTest {
     public void testRequestAccessUsingToken() throws Exception {
         String accessStatusUrl = BASE_URL + "/access";
         String accessTokenUrl = BASE_URL + "/access/token";
-        String registrationUrl = BASE_URL + "/controller/users";
 
         ClientResponse response = TOKEN_USER.testGet(accessStatusUrl);
 

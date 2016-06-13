@@ -21,14 +21,26 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 
 /**
  *
  */
 public class NiFiTestAuthorizer implements Authorizer {
 
+    public static final String NO_POLICY_COMPONENT_NAME = "No policies";
+
+    public static final String PROXY_DN = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+
+    public static final String NONE_USER_DN = "none@nifi";
+    public static final String READ_USER_DN = "read@nifi";
+    public static final String WRITE_USER_DN = "write@nifi";
+    public static final String READ_WRITE_USER_DN = "readwrite@nifi";
+
+    public static final String TOKEN_USER = "user@nifi";
 
     /**
      * Creates a new FileAuthorizationProvider.
@@ -46,7 +58,41 @@ public class NiFiTestAuthorizer implements Authorizer {
 
     @Override
     public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
-        return AuthorizationResult.approved();
+        // allow proxy
+        if (ResourceFactory.getProxyResource().getIdentifier().equals(request.getResource().getIdentifier()) && PROXY_DN.equals(request.getIdentity())) {
+            return AuthorizationResult.approved();
+        }
+
+        // allow flow
+        if (ResourceFactory.getFlowResource().getIdentifier().equals(request.getResource().getIdentifier())) {
+            return AuthorizationResult.approved();
+        }
+
+        // no policy to test inheritance
+        if (NO_POLICY_COMPONENT_NAME.equals(request.getResource().getName())) {
+            return AuthorizationResult.resourceNotFound();
+        }
+
+        // allow the token user
+        if (TOKEN_USER.equals(request.getIdentity())) {
+            return AuthorizationResult.approved();
+        }
+
+        // read access
+        if (READ_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())) {
+            if (RequestAction.READ.equals(request.getAction())) {
+                return AuthorizationResult.approved();
+            }
+        }
+
+        // write access
+        if (WRITE_USER_DN.equals(request.getIdentity()) || READ_WRITE_USER_DN.equals(request.getIdentity())) {
+            if (RequestAction.WRITE.equals(request.getAction())) {
+                return AuthorizationResult.approved();
+            }
+        }
+
+        return AuthorizationResult.denied();
     }
 
     @Override

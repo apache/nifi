@@ -119,7 +119,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     }
 
     private LoginIdentityProviders loadLoginIdentityProvidersConfiguration() throws Exception {
-        final File loginIdentityProvidersConfigurationFile = properties.getLoginIdentityProviderConfiguraitonFile();
+        final File loginIdentityProvidersConfigurationFile = properties.getLoginIdentityProviderConfigurationFile();
 
         // load the users from the specified file
         if (loginIdentityProvidersConfigurationFile.exists()) {
