@@ -508,7 +508,7 @@ public class NiFiProperties extends Properties {
     /**
      * @return the user authorizers file
      */
-    public File getAuthorizerConfiguraitonFile() {
+    public File getAuthorizerConfigurationFile() {
         final String value = getProperty(AUTHORIZER_CONFIGURATION_FILE);
         if (StringUtils.isBlank(value)) {
             return new File(DEFAULT_AUTHORIZER_CONFIGURATION_FILE);
@@ -520,7 +520,7 @@ public class NiFiProperties extends Properties {
     /**
      * @return the user authorities file
      */
-    public File getLoginIdentityProviderConfiguraitonFile() {
+    public File getLoginIdentityProviderConfigurationFile() {
         final String value = getProperty(LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE);
         if (StringUtils.isBlank(value)) {
             return new File(DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE);
