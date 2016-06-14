@@ -23,16 +23,12 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeConnectionStatusAdapter;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Message to indicate that the status of a node in the cluster has changed
  */
 @XmlRootElement(name = "nodeStatusChange")
 public class NodeStatusChangeMessage extends ProtocolMessage {
-    private static final Logger logger = LoggerFactory.getLogger(NodeStatusChangeMessage.class);
-
     private NodeConnectionStatus connectionStatus;
     private NodeIdentifier nodeId;
 

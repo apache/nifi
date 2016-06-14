@@ -20,6 +20,7 @@ import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
@@ -37,8 +38,9 @@ import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Optional;
 
-public class HttpFlowFileServerProtocolImpl extends AbstractFlowFileServerProtocol implements HttpFlowFileServerProtocol {
+public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol implements HttpFlowFileServerProtocol {
 
     public static final String RESOURCE_NAME = "HttpFlowFileProtocol";
 
@@ -46,7 +48,7 @@ public class HttpFlowFileServerProtocolImpl extends AbstractFlowFileServerProtoc
     private final VersionNegotiator versionNegotiator;
     private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
 
-    public HttpFlowFileServerProtocolImpl(VersionNegotiator versionNegotiator) {
+    public StandardHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
         super();
         this.versionNegotiator = versionNegotiator;
     }
@@ -176,6 +178,7 @@ public class HttpFlowFileServerProtocolImpl extends AbstractFlowFileServerProtoc
         return holdTransaction(peer, transaction);
     }
 
+    @Override
     public int commitTransferTransaction(Peer peer, String clientChecksum) throws IOException, IllegalStateException {
         logger.debug("{} Committing the transfer transaction. peer={} clientChecksum={}", this, peer, clientChecksum);
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -191,6 +194,7 @@ public class HttpFlowFileServerProtocolImpl extends AbstractFlowFileServerProtoc
         return holdTransaction(peer, transaction);
     }
 
+    @Override
     public int commitReceiveTransaction(Peer peer) throws IOException, IllegalStateException {
         logger.debug("{} Committing the receive transaction. peer={}", this, peer);
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -211,13 +215,11 @@ public class HttpFlowFileServerProtocolImpl extends AbstractFlowFileServerProtoc
     }
 
     @Override
-    public void sendPeerList(final Peer peer) throws IOException {
+    public void sendPeerList(final Peer peer, final Optional<ClusterNodeInformation> clusterNodeInformation) throws IOException {
     }
 
     @Override
     public String getResourceName() {
         return RESOURCE_NAME;
     }
-
-
 }

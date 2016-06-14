@@ -678,39 +678,6 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Returns the socket port that the Cluster Manager is listening on for
-     * Site-to-Site communications
-     *
-     * @return the socket port that the Cluster Manager is listening on for
-     *         Site-to-Site communications
-     */
-    public Integer getClusterManagerRemoteSiteListeningPort() {
-        return flowController.getClusterManagerRemoteSiteListeningPort();
-    }
-
-    /**
-     * Returns the http(s) port that the Cluster Manager is listening on for
-     * Site-to-Site communications
-     *
-     * @return the socket port that the Cluster Manager is listening on for
-     *         Site-to-Site communications
-     */
-    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
-        return flowController.getClusterManagerRemoteSiteListeningHttpPort();
-    }
-
-    /**
-     * Indicates whether or not Site-to-Site communications with the Cluster
-     * Manager are secure
-     *
-     * @return whether or not Site-to-Site communications with the Cluster
-     *         Manager are secure
-     */
-    public Boolean isClusterManagerRemoteSiteCommsSecure() {
-        return flowController.isClusterManagerRemoteSiteCommsSecure();
-    }
-
-    /**
      * Returns the socket port that the local instance is listening on for
      * Site-to-Site communications
      *

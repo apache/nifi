@@ -198,6 +198,7 @@ import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.StandardRootGroupPort;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.socket.SocketFlowFileServerProtocol;
 import org.apache.nifi.reporting.Bulletin;
@@ -298,9 +299,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Integer remoteInputSocketPort;
     private final Integer remoteInputHttpPort;
     private final Boolean isSiteToSiteSecure;
-    private Integer clusterManagerRemoteSitePort = null;
-    private Integer clusterManagerRemoteSiteHttpPort = null;
-    private Boolean clusterManagerRemoteSiteCommsSecure = null;
 
     private ProcessGroup rootGroup;
     private final List<Connectable> startConnectablesAfterInitialization;
@@ -410,8 +408,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             bulletinRepo,
             clusterCoordinator,
             heartbeatMonitor);
-
-        flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
 
         return flowController;
     }
@@ -525,11 +521,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
-            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null));
+
+            final NodeInformant nodeInformant = configuredForClustering ? new ClusterCoordinatorNodeInformant(clusterCoordinator) : null;
+            externalSiteListeners.add(new SocketRemoteSiteListener(remoteInputSocketPort, isSiteToSiteSecure ? sslContext : null, nodeInformant));
         }
 
         if (remoteInputHttpPort == null) {
-            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because nifi.remote.input.html.enabled is not true");
+            LOG.info("Not enabling HTTP(S) Site-to-Site functionality because the '" + NiFiProperties.SITE_TO_SITE_HTTP_ENABLED + "' property is not true");
         } else {
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
         }
@@ -3893,45 +3891,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public List<Action> getFlowChanges(final int firstActionId, final int maxActions) {
         final History history = auditService.getActions(firstActionId, maxActions);
         return new ArrayList<>(history.getActions());
-    }
-
-    public void setClusterManagerRemoteSiteInfo(final Integer managerListeningPort, final Integer managerListeningHttpPort, final Boolean commsSecure) {
-        writeLock.lock();
-        try {
-            clusterManagerRemoteSitePort = managerListeningPort;
-            clusterManagerRemoteSiteHttpPort = managerListeningHttpPort;
-            clusterManagerRemoteSiteCommsSecure = commsSecure;
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    public Integer getClusterManagerRemoteSiteListeningPort() {
-        readLock.lock();
-        try {
-            return clusterManagerRemoteSitePort;
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-
-    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
-        readLock.lock();
-        try {
-            return clusterManagerRemoteSiteHttpPort;
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    public Boolean isClusterManagerRemoteSiteCommsSecure() {
-        readLock.lock();
-        try {
-            return clusterManagerRemoteSiteCommsSecure;
-        } finally {
-            readLock.unlock();
-        }
     }
 
     public Integer getRemoteSiteListeningPort() {

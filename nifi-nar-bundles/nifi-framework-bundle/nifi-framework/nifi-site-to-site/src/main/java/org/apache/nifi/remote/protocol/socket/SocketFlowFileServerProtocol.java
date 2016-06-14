@@ -20,6 +20,8 @@ import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.RemoteResourceFactory;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
+import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
@@ -34,14 +36,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol {
 
     public static final String RESOURCE_NAME = "SocketFlowFileProtocol";
 
-    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
+    // Version 6 added to support Zero-Master Clustering, which was introduced in NiFi 1.0.0
+    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
 
     @Override
     protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
@@ -147,7 +154,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
     @Override
-    public void sendPeerList(final Peer peer) throws IOException {
+    public void sendPeerList(final Peer peer, final Optional<ClusterNodeInformation> clusterNodeInfo) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
@@ -167,12 +174,36 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         }
         logger.debug("{} Advertising Remote Input host name {}", this, peer);
 
-        // we have only 1 peer: ourselves.
-        dos.writeInt(1);
-        dos.writeUTF(remoteInputHost);
-        dos.writeInt(properties.getRemoteInputPort());
-        dos.writeBoolean(properties.isSiteToSiteSecure());
-        dos.writeInt(0);    // doesn't matter how many FlowFiles we have, because we're the only host.
+        List<NodeInformation> nodeInfos;
+        if (clusterNodeInfo.isPresent()) {
+            nodeInfos = new ArrayList<>(clusterNodeInfo.get().getNodeInformation());
+        } else {
+            final NodeInformation self = new NodeInformation(remoteInputHost, properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.getRemoteInputHttpPort(),
+                properties.isSiteToSiteSecure(), 0);
+            nodeInfos = Collections.singletonList(self);
+        }
+
+        // determine how many nodes have Site-to-site enabled
+        int numPeers = 0;
+        for (final NodeInformation nodeInfo : nodeInfos) {
+            if (nodeInfo.getSiteToSitePort() != null) {
+                numPeers++;
+            }
+        }
+
+        dos.writeInt(numPeers);
+        for (final NodeInformation nodeInfo : nodeInfos) {
+            if (nodeInfo.getSiteToSitePort() == null) {
+                continue;
+            }
+
+            dos.writeUTF(nodeInfo.getSiteToSiteHostname());
+            dos.writeInt(nodeInfo.getSiteToSitePort());
+            dos.writeBoolean(nodeInfo.isSiteToSiteSecure());
+            dos.writeInt(nodeInfo.getTotalFlowFiles());
+        }
+
+        logger.info("Sending list of {} peers back to client {}", numPeers, peer);
         dos.flush();
     }
 

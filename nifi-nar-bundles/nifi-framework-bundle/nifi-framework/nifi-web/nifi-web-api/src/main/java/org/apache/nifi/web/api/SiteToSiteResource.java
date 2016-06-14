@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.web.api;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -31,6 +42,9 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
@@ -44,18 +58,11 @@ import org.apache.nifi.web.api.entity.PeersEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-
-import static org.apache.commons.lang3.StringUtils.isEmpty;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a SiteToSite connection.
@@ -70,7 +77,11 @@ public class SiteToSiteResource extends ApplicationResource {
     private static final Logger logger = LoggerFactory.getLogger(SiteToSiteResource.class);
 
     private NiFiServiceFacade serviceFacade;
+    private ClusterCoordinator clusterCoordinator;
     private Authorizer authorizer;
+    public static final String CHECK_SUM = "checksum";
+    public static final String RESPONSE_CODE = "responseCode";
+
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
     private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
@@ -147,6 +158,7 @@ public class SiteToSiteResource extends ApplicationResource {
         return clusterContext(noCache(Response.ok(entity))).build();
     }
 
+
     /**
      * Returns the available Peers and its status of this NiFi.
      *
@@ -185,52 +197,42 @@ public class SiteToSiteResource extends ApplicationResource {
             return responseCreator.badRequestResponse(e);
         }
 
-        ArrayList<PeerDTO> peers;
-
+        final List<PeerDTO> peers = new ArrayList<>();
         if (properties.isNode()) {
-            return responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is only accessible on NCM or Standalone NiFi instance.");
-        // TODO: NCM no longer exists.
-        /*
-        } else if (properties.isClusterManager()) {
-            ClusterNodeInformation clusterNodeInfo = clusterManager.getNodeInformation();
-            final Collection<NodeInformation> nodeInfos = clusterNodeInfo.getNodeInformation();
-            peers = new ArrayList<>(nodeInfos.size());
-            for (NodeInformation nodeInfo : nodeInfos) {
-                if (nodeInfo.getSiteToSiteHttpApiPort() == null) {
-                    continue;
-                }
-                PeerDTO peer = new PeerDTO();
-                peer.setHostname(nodeInfo.getSiteToSiteHostname());
-                peer.setPort(nodeInfo.getSiteToSiteHttpApiPort());
-                peer.setSecure(nodeInfo.isSiteToSiteSecure());
-                peer.setFlowFileCount(nodeInfo.getTotalFlowFiles());
+            final Set<NodeIdentifier> nodeIds = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTED);
+
+            // TODO: Get total number of FlowFiles for each node
+            for (final NodeIdentifier nodeId : nodeIds) {
+                final PeerDTO peer = new PeerDTO();
+                final String siteToSiteAddress = nodeId.getSiteToSiteAddress();
+                peer.setHostname(siteToSiteAddress == null ? nodeId.getApiAddress() : siteToSiteAddress);
+                peer.setPort(nodeId.getSiteToSiteHttpApiPort() == null ? nodeId.getApiPort() : nodeId.getSiteToSiteHttpApiPort());
+                peer.setSecure(nodeId.isSiteToSiteSecure());
+                peer.setFlowFileCount(0);
                 peers.add(peer);
             }
-        */
         } else {
             // Standalone mode.
-            PeerDTO peer = new PeerDTO();
+            final PeerDTO peer = new PeerDTO();
             // req.getLocalName returns private IP address, that can't be accessed from client in some environments.
             // So, use the value defined in nifi.properties instead when it is defined.
-            String remoteInputHost = properties.getRemoteInputHost();
+            final String remoteInputHost = properties.getRemoteInputHost();
             peer.setHostname(isEmpty(remoteInputHost) ? req.getLocalName() : remoteInputHost);
             peer.setPort(properties.getRemoteInputHttpPort());
             peer.setSecure(properties.isSiteToSiteSecure());
             peer.setFlowFileCount(0);  // doesn't matter how many FlowFiles we have, because we're the only host.
 
-            peers = new ArrayList<>(1);
             peers.add(peer);
-
         }
 
-        PeersEntity entity = new PeersEntity();
+        final PeersEntity entity = new PeersEntity();
         entity.setPeers(peers);
 
         return clusterContext(noCache(setCommonHeaders(Response.ok(entity), transportProtocolVersion, transactionManager))).build();
     }
 
     // setters
-    public void setServiceFacade(NiFiServiceFacade serviceFacade) {
+    public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }
 
@@ -238,4 +240,9 @@ public class SiteToSiteResource extends ApplicationResource {
         this.authorizer = authorizer;
     }
 
+    @Override
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
+        super.setClusterCoordinator(clusterCoordinator);
+        this.clusterCoordinator = clusterCoordinator;
+    }
 }

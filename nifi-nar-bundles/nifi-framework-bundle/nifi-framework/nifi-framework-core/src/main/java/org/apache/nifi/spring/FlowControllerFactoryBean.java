@@ -44,6 +44,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private AuditService auditService;
     private StringEncryptor encryptor;
     private BulletinRepository bulletinRepository;
+    private ClusterCoordinator clusterCoordinator;
 
     @Override
     public Object getObject() throws Exception {
@@ -53,7 +54,6 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
             if (properties.isNode()) {
                 final NodeProtocolSender nodeProtocolSender = applicationContext.getBean("nodeProtocolSender", NodeProtocolSender.class);
                 final HeartbeatMonitor heartbeatMonitor = applicationContext.getBean("heartbeatMonitor", HeartbeatMonitor.class);
-                final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
                 flowController = FlowController.createClusteredInstance(
                     flowFileEventRepository,
                     properties,
@@ -114,4 +114,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.bulletinRepository = bulletinRepository;
     }
 
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
+    }
 }

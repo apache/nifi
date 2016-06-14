@@ -1138,9 +1138,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         @Override
         public void run() {
-            try (
-                final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient();
-            ){
+            try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()){
                 try {
                     final ControllerDTO dto = apiClient.getController();
 
