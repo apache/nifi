@@ -467,7 +467,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     controller.setClustered(true, null);
                     clusterCoordinator.setConnected(false);
 
-                    controller.setClusterManagerRemoteSiteInfo(null, null, null);
                     controller.setConnectionStatus(new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
 
                     /*
@@ -586,9 +585,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // reconnect
             final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
-                    request.getManagerRemoteSiteListeningPort(), request.getManagerRemoteSiteListeningHttpPort(),
-                    request.isManagerRemoteSiteCommsSecure(), request.getInstanceId(),
-                    request.getNodeConnectionStatuses(), request.getComponentRevisions());
+                request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
 
             connectionResponse.setCoordinatorDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
@@ -853,7 +850,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // mark the node as clustered
             controller.setClustered(true, response.getInstanceId(), response.getCoordinatorDN());
-            controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.getManagerRemoteInputHttpPort(), response.isManagerRemoteCommsSecure());
 
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
             final Set<String> roles = status == null ? Collections.emptySet() : status.getRoles();

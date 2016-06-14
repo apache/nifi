@@ -17,6 +17,7 @@
 package org.apache.nifi.remote.protocol;
 
 import java.io.IOException;
+import java.util.Optional;
 
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
@@ -24,6 +25,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.VersionedRemoteResource;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
@@ -131,9 +133,11 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * a cluster, sends info about itself
      *
      * @param peer peer
+     * @param clusterNodeInfo the cluster information
+     *
      * @throws java.io.IOException ioe
      */
-    void sendPeerList(Peer peer) throws IOException;
+    void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo) throws IOException;
 
     void shutdown(Peer peer);
 

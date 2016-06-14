@@ -1334,7 +1334,7 @@ nf.ConnectionConfiguration = (function () {
                     });
 
                     // store the connection details
-                    $('#connection-uri').val(connection.uri);
+                    $('#connection-uri').val(connectionEntry.uri);
 
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
