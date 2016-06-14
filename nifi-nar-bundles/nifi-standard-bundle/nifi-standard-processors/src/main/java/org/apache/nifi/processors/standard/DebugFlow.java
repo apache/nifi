@@ -126,9 +126,9 @@ public class DebugFlow extends AbstractProcessor {
             .build();
     static final PropertyDescriptor FF_EXCEPTION_CLASS = new PropertyDescriptor.Builder()
             .name("FlowFile Exception Class")
-            .description("Exception class to be thrown (must extend java.lang.Exception).")
+            .description("Exception class to be thrown (must extend java.lang.RuntimeException).")
             .required(true)
-            .defaultValue("java.lang.Exception")
+            .defaultValue("java.lang.RuntimeException")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(new Validator() {
                 @Override
@@ -138,7 +138,7 @@ public class DebugFlow extends AbstractProcessor {
                             .subject(subject)
                             .input(input)
                             .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
-                            .explanation(subject + " class must exist and extend java.lang.Exception")
+                            .explanation(subject + " class must exist and extend java.lang.RuntimeException")
                             .build();
                 }
             })
@@ -169,7 +169,7 @@ public class DebugFlow extends AbstractProcessor {
             .name("No FlowFile Exception Class")
             .description("Exception class to be thrown if no FlowFile (must extend java.lang.RuntimeException).")
             .required(true)
-            .defaultValue("java.lang.Exception")
+            .defaultValue("java.lang.RuntimeException")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(new Validator() {
                 @Override
@@ -186,14 +186,14 @@ public class DebugFlow extends AbstractProcessor {
             .build();
 
 
-    volatile Integer flowFileMaxSuccess = 0;
+    private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
     private volatile Integer flowFileMaxRollback = 0;
     private volatile Integer flowFileMaxYield = 0;
     private volatile Integer flowFileMaxPenalty = 0;
     private volatile Integer flowFileMaxException = 0;
 
-    volatile Integer noFlowFileMaxSkip = 0;
+    private volatile Integer noFlowFileMaxSkip = 0;
     private volatile Integer noFlowFileMaxException = 0;
     private volatile Integer noFlowFileMaxYield = 0;
 
@@ -214,20 +214,6 @@ public class DebugFlow extends AbstractProcessor {
     private final FlowFileResponse curr_ff_resp = new FlowFileResponse();
     private final NoFlowFileResponse curr_noff_resp = new NoFlowFileResponse();
 
-    private static Class<? extends RuntimeException> classNameToRuntimeExceptionClass(String name) {
-        Class<? extends RuntimeException> klass = null;
-        try {
-            Class<?> klass2 = Class.forName(name);
-            if (klass2 == RuntimeException.class || RuntimeException.class.isAssignableFrom(klass2)) {
-                klass = (Class<? extends RuntimeException>)klass2;
-            }
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            klass = null;
-        }
-        return klass;
-    }
-
     @Override
     public Set<Relationship> getRelationships() {
         synchronized (relationships) {
@@ -237,8 +223,8 @@ public class DebugFlow extends AbstractProcessor {
                 relSet.add(REL_FAILURE);
                 relationships.compareAndSet(null, Collections.unmodifiableSet(relSet));
             }
+            return relationships.get();
         }
-        return relationships.get();
     }
 
     @Override
@@ -259,11 +245,10 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(NO_FF_EXCEPTION_CLASS);
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
+            return propertyDescriptors.get();
         }
-        return propertyDescriptors.get();
     }
 
-    @SuppressWarnings("unused")
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         flowFileMaxSuccess = context.getProperty(FF_SUCCESS_ITERATIONS).asInteger();
@@ -309,16 +294,13 @@ public class DebugFlow extends AbstractProcessor {
                         noFlowFileCurrException += 1;
                         logger.info("DebugFlow throwing NPE with no flow file");
                         String message = "forced by " + this.getClass().getName();
-                        RuntimeException rte = null;
+                        RuntimeException rte;
                         try {
                             rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                            throw rte;
                         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                             e.printStackTrace();
                         }
-                        if (rte == null) {
-                            rte = new NullPointerException(message);
-                        }
-                        throw rte;
                     } else {
                         noFlowFileCurrException = 0;
                         curr_noff_resp.getNextCycle();
@@ -414,16 +396,13 @@ public class DebugFlow extends AbstractProcessor {
                         logger.info("DebugFlow throwing NPE file={} UUID={}",
                                 new Object[]{ff.getAttribute(CoreAttributes.FILENAME.key()),
                                         ff.getAttribute(CoreAttributes.UUID.key())});
-                        RuntimeException rte = null;
+                        RuntimeException rte;
                         try {
                             rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
+                            throw rte;
                         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                             e.printStackTrace();
                         }
-                        if (rte == null) {
-                            rte = new NullPointerException(message);
-                        }
-                        throw rte;
                     } else {
                         flowFileCurrException = 0;
                         curr_ff_resp.getNextCycle();
@@ -433,7 +412,22 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
-    public enum FlowFileResponseState {
+    private static Class<? extends RuntimeException> classNameToRuntimeExceptionClass(String name) {
+        Class<? extends RuntimeException> klass = null;
+        try {
+            Class<?> klass2 = Class.forName(name);
+            if (klass2 == RuntimeException.class || RuntimeException.class.isAssignableFrom(klass2)) {
+                //noinspection unchecked
+                klass = (Class<? extends RuntimeException>)klass2;
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            klass = null;
+        }
+        return klass;
+    }
+
+    private enum FlowFileResponseState {
         FF_SUCCESS_RESPONSE,
         FF_FAILURE_RESPONSE,
         FF_ROLLBACK_RESPONSE,
@@ -471,7 +465,7 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
-    public enum NoFlowFileResponseState {
+    private enum NoFlowFileResponseState {
         NO_FF_SKIP_RESPONSE,
         NO_FF_EXCEPTION_RESPONSE,
         NO_FF_YIELD_RESPONSE;

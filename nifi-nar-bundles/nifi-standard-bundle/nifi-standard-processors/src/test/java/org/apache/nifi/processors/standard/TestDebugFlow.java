@@ -17,13 +17,15 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.hamcrest.CoreMatchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -31,63 +33,52 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestDebugFlow {
 
     private DebugFlow debugFlow;
     private TestRunner runner;
-    private ProcessContext context;
     private ProcessSession session;
 
-    private final String content1 = "Hello, World 1!";
-    private final String content2 = "Hello, World 2!";
-    private final String content3 = "Hello, World 3!";
-
-    private Map<String, String> attribs1 = new HashMap<>();
-    private Map<String, String> attribs2 = new HashMap<>();
-    private Map<String, String> attribs3 = new HashMap<>();
+    private final Map<Integer, String> contents = new HashMap<>();
+    private final Map<Integer, Map<String, String>> attribs = new HashMap<>();
     private Map<String, String> namesToContent = new HashMap<>();
+
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
 
     @Before
     public void setup() throws IOException {
+        for (int n = 0; n < 6; n++) {
+            String filename = "testFile" + (n + 1) + ".txt";
+            String content = "Hello World " + (n + 1) + "!";
+            contents.put(n, content);
+            attribs.put(n, new HashMap<String, String>());
+            attribs.get(n).put(CoreAttributes.FILENAME.key(), filename);
+            attribs.get(n).put(CoreAttributes.UUID.key(), "TESTING-FILE-" + (n + 1) + "-TESTING");
+            namesToContent.put(filename, content);
+        }
+
         debugFlow = new DebugFlow();
         runner = TestRunners.newTestRunner(debugFlow);
-        context = runner.getProcessContext();
         session = runner.getProcessSessionFactory().createSession();
 
-        String filename1 = "testFile1.txt";
-        attribs1.put(CoreAttributes.FILENAME.key(), filename1);
-        attribs1.put(CoreAttributes.UUID.key(), "TESTING-1234-TESTING");
-
-        String filename2 = "testFile2.txt";
-        attribs2.put(CoreAttributes.FILENAME.key(), filename2);
-        attribs2.put(CoreAttributes.UUID.key(), "TESTING-2345-TESTING");
-
-        String filename3 = "testFile3.txt";
-        attribs1.put(CoreAttributes.FILENAME.key(), filename3);
-        attribs3.put(CoreAttributes.UUID.key(), "TESTING-3456-TESTING");
-
-        namesToContent.put(filename1, content1);
-        namesToContent.put(filename2, content2);
-        namesToContent.put(filename3, content3);
-
-        // by default flowfiles go to success
-        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "0");
         runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "0");
         runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "0");
         runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "0");
         runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "0");
         runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "0");
 
-        // by default if triggered without flowfile nothing happens
+        runner.setProperty(DebugFlow.NO_FF_SKIP_ITERATIONS, "0");
         runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "0");
         runner.setProperty(DebugFlow.NO_FF_YIELD_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.NO_FF_SKIP_ITERATIONS, "1");
     }
 
     @Test
     public void testGetSupportedPropertyDescriptors() throws Exception {
-        assertEquals(9, debugFlow.getPropertyDescriptors().size());
+        assertEquals(11, debugFlow.getPropertyDescriptors().size());
     }
 
     @Test
@@ -95,131 +86,276 @@ public class TestDebugFlow {
         assertEquals(2, debugFlow.getRelationships().size());
     }
 
-    @Test
-    public void testFlowFileMaxSuccessIsZeroUntilOnScheduled() throws Exception {
-        assertEquals(0, debugFlow.flowFileMaxSuccess.intValue());
-        runner.assertValid();
-        runner.run();
-        assertEquals(context.getProperty(DebugFlow.FF_SUCCESS_ITERATIONS).asInteger().intValue(), debugFlow.flowFileMaxSuccess.intValue());
+    private boolean isInContents(byte[] content) {
+        for (Map.Entry entry : contents.entrySet()) {
+            if (((String)entry.getValue()).compareTo(new String(content)) == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test
-    public void testNoFlowFileMaxSkipIsZeroUntilOnScheduled() throws Exception {
-        assertEquals(0, debugFlow.noFlowFileMaxSkip.intValue());
-        runner.assertValid();
-        runner.run();
-        assertEquals(context.getProperty(DebugFlow.NO_FF_SKIP_ITERATIONS).asInteger().intValue(), debugFlow.noFlowFileMaxSkip.intValue());
-    }
-
-    @Test
-    public void testSuccess() {
+    public void testFlowFileSuccess() {
+        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "1");
         runner.assertValid();
 
-        runner.enqueue(content1.getBytes(), attribs1);
-        runner.enqueue(content2.getBytes(), attribs2);
-        runner.enqueue(content3.getBytes(), attribs3);
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
 
-        runner.run(4);
-        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 3);
+        runner.run(7);
+        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 6);
         runner.assertTransferCount(DebugFlow.REL_FAILURE, 0);
 
-        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(0).assertContentEquals(content1);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(1).assertContentEquals(content2);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(2).assertContentEquals(content3);
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(0).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(1).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(2).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(3).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(4).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(5).toByteArray()));
     }
 
     @Test
-    public void testFailure() {
-        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "0");
+    public void testFlowFileFailure() {
         runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "1");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "0");
         runner.assertValid();
 
-        runner.enqueue(content1.getBytes(), attribs1);
-        runner.enqueue(content2.getBytes(), attribs2);
-        runner.enqueue(content3.getBytes(), attribs3);
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
 
-        runner.run(4);
+        runner.run(7);
         runner.assertTransferCount(DebugFlow.REL_SUCCESS, 0);
-        runner.assertTransferCount(DebugFlow.REL_FAILURE, 3);
+        runner.assertTransferCount(DebugFlow.REL_FAILURE, 6);
 
-        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(0).assertContentEquals(content1);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(1).assertContentEquals(content2);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(2).assertContentEquals(content3);
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(0).assertContentEquals(contents.get(0));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(1).assertContentEquals(contents.get(1));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(2).assertContentEquals(contents.get(2));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(3).assertContentEquals(contents.get(3));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(4).assertContentEquals(contents.get(4));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(5).assertContentEquals(contents.get(5));
     }
 
     @Test
-    public void testSuccessAndFailure() {
+    public void testFlowFileSuccessAndFailure() {
         runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "1");
         runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "1");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "0");
         runner.assertValid();
 
-        runner.enqueue(content1.getBytes(), attribs1);
-        runner.enqueue(content2.getBytes(), attribs2);
-        runner.enqueue(content3.getBytes(), attribs3);
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
 
-        runner.run(4);
-        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 2);
-        runner.assertTransferCount(DebugFlow.REL_FAILURE, 1);
+        runner.run(7);
+        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 3);
+        runner.assertTransferCount(DebugFlow.REL_FAILURE, 3);
 
-        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(0).assertContentEquals(content1);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(1).assertContentEquals(content3);
-        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(0).assertContentEquals(content2);
+        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(0).assertContentEquals(contents.get(0));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(0).assertContentEquals(contents.get(1));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(1).assertContentEquals(contents.get(2));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(1).assertContentEquals(contents.get(3));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(2).assertContentEquals(contents.get(4));
+        runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(2).assertContentEquals(contents.get(5));
     }
 
     @Test
-    public void testYield() {
-        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "1");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "0");
-        runner.assertValid();
-
-        runner.enqueue(content1.getBytes(), attribs1);
-        runner.enqueue(content2.getBytes(), attribs2);
-        runner.enqueue(content3.getBytes(), attribs3);
-
-        runner.run(4);
-        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 0);
-        runner.assertTransferCount(DebugFlow.REL_FAILURE, 0);
-
-        runner.assertQueueNotEmpty();
-        assertEquals(3, runner.getQueueSize().getObjectCount());
-    }
-
-    @Test
-    public void testRollback() throws IOException {
-        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "0");
+    public void testFlowFileRollback() throws IOException {
         runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "1");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "0");
-        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "0");
         runner.assertValid();
 
-        runner.enqueue(content1.getBytes(), attribs1);
-        runner.enqueue(content2.getBytes(), attribs2);
-        runner.enqueue(content3.getBytes(), attribs3);
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
 
-        runner.run(4);
+        runner.run(7);
         runner.assertTransferCount(DebugFlow.REL_SUCCESS, 0);
         runner.assertTransferCount(DebugFlow.REL_FAILURE, 0);
 
         runner.assertQueueNotEmpty();
-        assertEquals(3, runner.getQueueSize().getObjectCount());
+        assertEquals(6, runner.getQueueSize().getObjectCount());
 
         MockFlowFile ff1 = (MockFlowFile) session.get();
         assertNotNull(ff1);
         assertEquals(namesToContent.get(ff1.getAttribute(CoreAttributes.FILENAME.key())), new String(ff1.toByteArray()));
         session.rollback();
+    }
+
+    @Test
+    public void testFlowFileRollbackYield() {
+        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "1");
+        runner.assertValid();
+
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
+
+        runner.run(7);
+        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 0);
+        runner.assertTransferCount(DebugFlow.REL_FAILURE, 0);
+
+        runner.assertQueueNotEmpty();
+        assertEquals(6, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testFlowFileRollbackPenalty() {
+        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "1");
+        runner.assertValid();
+
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
+
+        runner.run(7);
+        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 0);
+        runner.assertTransferCount(DebugFlow.REL_FAILURE, 0);
+
+        runner.assertQueueNotEmpty();
+        assertEquals(6, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testFlowFileDefaultException() {
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "1");
+        runner.assertValid();
+
+        runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
+        runner.run(2);
+    }
+
+    @Test
+    public void testFlowFileNonDefaultException() {
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_EXCEPTION_CLASS, "java.lang.RuntimeException");
+        runner.assertValid();
+
+        runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
+        runner.run(2);
+    }
+
+    @Test
+    public void testFlowFileNPEException() {
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_EXCEPTION_CLASS, "java.lang.NullPointerException");
+        runner.assertValid();
+
+        runner.enqueue(contents.get(0).getBytes(), attribs.get(0));
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(NullPointerException.class));
+        runner.run(2);
+    }
+
+    @Test
+    public void testFlowFileBadException() {
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_EXCEPTION_CLASS, "java.lang.NonExistantException");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testFlowFileExceptionRollover() {
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "2");
+        runner.assertValid();
+
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
+        runner.run(8);
+    }
+
+    @Test
+    public void testFlowFileAll() {
+        runner.setProperty(DebugFlow.FF_SUCCESS_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_FAILURE_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_ROLLBACK_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_ROLLBACK_YIELD_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_ROLLBACK_PENALTY_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.FF_EXCEPTION_ITERATIONS, "1");
+        runner.assertValid();
+
+        for (int n = 0; n < 6; n++) {
+            runner.enqueue(contents.get(n).getBytes(), attribs.get(n));
+        }
+
+        runner.run(5);
+        runner.assertTransferCount(DebugFlow.REL_SUCCESS, 1);
+        runner.assertTransferCount(DebugFlow.REL_FAILURE, 1);
+
+        assertEquals(4, runner.getQueueSize().getObjectCount());
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_SUCCESS).get(0).toByteArray()));
+        assertTrue(isInContents(runner.getFlowFilesForRelationship(DebugFlow.REL_FAILURE).get(0).toByteArray()));
+
+        runner.run(2);
+    }
+
+    @Test
+    public void testNoFlowFileZeroIterations() {
+        runner.run(4);
+    }
+
+    @Test
+    public void testNoFlowFileSkip() {
+        runner.setProperty(DebugFlow.NO_FF_SKIP_ITERATIONS, "1");
+        runner.assertValid();
+
+        runner.run(4);
+    }
+
+    @Test
+    public void testNoFlowFileDefaultException() {
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "1");
+        runner.assertValid();
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
+        runner.run(3);
+    }
+
+    @Test
+    public void testNoFlowFileNonDefaultException() {
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_CLASS, "java.lang.RuntimeException");
+        runner.assertValid();
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(RuntimeException.class));
+        runner.run(3);
+    }
+
+    @Test
+    public void testNoFlowFileOtherException() {
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_CLASS, "java.lang.NullPointerException");
+        runner.assertValid();
+
+        exception.expectMessage(CoreMatchers.containsString("forced by org.apache.nifi.processors.standard.DebugFlow"));
+        exception.expectCause(CoreMatchers.isA(NullPointerException.class));
+        runner.run(3);
+    }
+
+    @Test
+    public void testNoFlowFileBadException() {
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_ITERATIONS, "1");
+        runner.setProperty(DebugFlow.NO_FF_EXCEPTION_CLASS, "java.lang.NonExistantException");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testNoFlowFileYield() {
+        runner.setProperty(DebugFlow.NO_FF_YIELD_ITERATIONS, "1");
+        runner.assertValid();
+
+        runner.run(4);
     }
 }
