@@ -71,7 +71,6 @@ public class TestGetHDFSEvents {
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
         runner.run();
     }
 
@@ -89,7 +88,6 @@ public class TestGetHDFSEvents {
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
         runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
         runner.setProperty(GetHDFSEvents.NUMBER_OF_RETRIES_FOR_POLL, "5");
         runner.run();
 
@@ -108,8 +106,7 @@ public class TestGetHDFSEvents {
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
-        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
+        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path${now()}");
         runner.run();
 
         List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
@@ -132,8 +129,7 @@ public class TestGetHDFSEvents {
         TestRunner runner = TestRunners.newTestRunner(processor);
 
         runner.setProperty(GetHDFSEvents.POLL_DURATION, "1 second");
-        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
+        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path(/)?.*");
         runner.run();
 
         List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
@@ -156,8 +152,7 @@ public class TestGetHDFSEvents {
         GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
-        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/create/");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
+        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/create(/)?");
         runner.run();
 
         List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
@@ -180,8 +175,7 @@ public class TestGetHDFSEvents {
         GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
         TestRunner runner = TestRunners.newTestRunner(processor);
 
-        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path");
-        runner.setProperty(GetHDFSEvents.RECURSE_SUBDIRECTORIES, "true");
+        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path(/.*)?");
         runner.setProperty(GetHDFSEvents.EVENT_TYPES, "create, metadata, rename");
         runner.run();
 
@@ -192,6 +186,41 @@ public class TestGetHDFSEvents {
         for (MockFlowFile f : successfulFlowFiles) {
             String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
             assertTrue(expectedEventTypes.contains(eventType));
+        }
+
+        verify(eventBatch).getTxid();
+        assertEquals("100", runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).get("last.tx.id"));
+    }
+
+    @Test
+    public void makeSureExpressionLanguageIsWorkingProperlyWithinTheHdfsPathToWatch() throws Exception {
+        Event[] events = new Event[] {
+                new Event.AppendEvent("/some/path/1/2/3/t.txt"),
+                new Event.AppendEvent("/some/path/1/2/4/t.txt"),
+                new Event.AppendEvent("/some/path/1/2/3/.t.txt")
+        };
+
+        EventBatch eventBatch = mock(EventBatch.class);
+        when(eventBatch.getEvents()).thenReturn(events);
+
+        when(inotifyEventInputStream.poll(1000000L, TimeUnit.MICROSECONDS)).thenReturn(eventBatch);
+        when(hdfsAdmin.getInotifyEventStream()).thenReturn(inotifyEventInputStream);
+        when(eventBatch.getTxid()).thenReturn(100L);
+
+        GetHDFSEvents processor = new TestableGetHDFSEvents(kerberosProperties, hdfsAdmin);
+        TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(GetHDFSEvents.HDFS_PATH_TO_WATCH, "/some/path/${literal(1)}/${literal(2)}/${literal(3)}/.*.txt");
+        runner.setProperty(GetHDFSEvents.EVENT_TYPES, "append");
+        runner.setProperty(GetHDFSEvents.IGNORE_HIDDEN_FILES, "true");
+        runner.run();
+
+        List<MockFlowFile> successfulFlowFiles = runner.getFlowFilesForRelationship(GetHDFSEvents.REL_SUCCESS);
+        assertEquals(1, successfulFlowFiles.size());
+
+        for (MockFlowFile f : successfulFlowFiles) {
+            String eventType = f.getAttribute(EventAttributes.EVENT_TYPE);
+            assertTrue(eventType.equals("APPEND"));
         }
 
         verify(eventBatch).getTxid();

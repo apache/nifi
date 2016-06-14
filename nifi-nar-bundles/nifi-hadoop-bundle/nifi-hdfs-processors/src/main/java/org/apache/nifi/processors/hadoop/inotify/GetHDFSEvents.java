@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.hadoop.inotify;
 
-
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.DFSInotifyEventInputStream;
 import org.apache.hadoop.hdfs.client.HdfsAdmin;
 import org.apache.hadoop.hdfs.inotify.Event;
@@ -31,11 +32,13 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -59,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
+import java.util.regex.Pattern;
 
 @TriggerSerially
 @TriggerWhenEmpty
@@ -94,19 +97,22 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
     static final PropertyDescriptor HDFS_PATH_TO_WATCH = new PropertyDescriptor.Builder()
             .name("HDFS Path to Watch")
             .displayName("HDFS Path to Watch")
-            .description("The HDFS path to get event notifications for.")
+            .description("The HDFS path to get event notifications for. This property accepts both expression language and regular expressions. This will be evaluated during the " +
+                    "OnScheduled phase.")
             .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor RECURSE_SUBDIRECTORIES = new PropertyDescriptor.Builder()
-            .name("Recurse Subdirectories")
-            .displayName("Recurse Subdirectories")
-            .description("Determines if processor will process event notifications for all subdirectories and files below the defined HDFS path to watch.")
+    static final PropertyDescriptor IGNORE_HIDDEN_FILES = new PropertyDescriptor.Builder()
+            .name("Ignore Hidden Files")
+            .displayName("Ignore Hidden Files")
+            .description("If true and the final component of the path associated with a given event starts with a '.' then that event will not be processed.")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
 
     static final PropertyDescriptor EVENT_TYPES = new PropertyDescriptor.Builder()
@@ -137,13 +143,14 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
     private static final String LAST_TX_ID = "last.tx.id";
     private volatile long lastTxId = -1L;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private NotificationConfig notificationConfig;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> props = new ArrayList<>(properties);
         props.add(POLL_DURATION);
         props.add(HDFS_PATH_TO_WATCH);
-        props.add(RECURSE_SUBDIRECTORIES);
+        props.add(IGNORE_HIDDEN_FILES);
         props.add(EVENT_TYPES);
         props.add(NUMBER_OF_RETRIES_FOR_POLL);
         return Collections.unmodifiableList(props);
@@ -152,6 +159,11 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @OnScheduled
+    public void onSchedule(ProcessContext context) {
+        notificationConfig = new NotificationConfig(context);
     }
 
     @Override
@@ -187,7 +199,7 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
                             final String path = getPath(e);
 
                             FlowFile flowFile = session.create();
-                            flowFile = session.putAttribute(flowFile, EventAttributes.MIME_TYPE, "application/json");
+                            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
                             flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_TYPE, e.getEventType().name());
                             flowFile = session.putAttribute(flowFile, EventAttributes.EVENT_PATH, path);
                             flowFile = session.write(flowFile, new OutputStreamCallback() {
@@ -266,31 +278,15 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
         }
     }
 
-    private boolean toProcessEvent(ProcessContext context, Event e) {
+    private boolean toProcessEvent(ProcessContext context, Event event) {
         final String[] eventTypes = context.getProperty(EVENT_TYPES).getValue().split(",");
         for (String name : eventTypes) {
-            if (name.trim().equalsIgnoreCase(e.getEventType().name())) {
-                final String watchDirectory = context.getProperty(HDFS_PATH_TO_WATCH).getValue();
-                final boolean recursive = context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean();
-                return toProcessPath(e, watchDirectory, recursive);
+            if (name.trim().equalsIgnoreCase(event.getEventType().name())) {
+                return notificationConfig.getPathFilter().accept(new Path(getPath(event)));
             }
         }
 
         return false;
-    }
-
-    private boolean toProcessPath(Event e, String watchDirectory, boolean recursive) {
-        final String path = removeEndingSlashIfExists(getPath(e));
-        if (path == null || "".equals(path) || watchDirectory == null || "".equals(watchDirectory)) {
-            return false;
-        } else {
-            final String watchPath = removeEndingSlashIfExists(watchDirectory);
-            return recursive ? path.startsWith(watchPath) : path.equals(watchPath);
-        }
-    }
-
-    private String removeEndingSlashIfExists(String path) {
-        return path != null && !"".equals(path) && path.endsWith("/") ?  path.substring(0, path.length() - 1) : path;
     }
 
     private String getPath(Event event) {
@@ -306,6 +302,20 @@ public class GetHDFSEvents extends AbstractHadoopProcessor {
             case METADATA: return ((Event.MetadataUpdateEvent) event).getPath();
             case UNLINK: return ((Event.UnlinkEvent) event).getPath();
             default: throw new IllegalArgumentException("Unsupported event type.");
+        }
+    }
+
+    private static class NotificationConfig {
+        private final PathFilter pathFilter;
+
+        NotificationConfig(ProcessContext context) {
+            final boolean toIgnoreHiddenFiles = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
+            final Pattern watchDirectory = Pattern.compile(context.getProperty(HDFS_PATH_TO_WATCH).evaluateAttributeExpressions().getValue());
+            pathFilter = new NotificationEventPathFilter(watchDirectory, toIgnoreHiddenFiles);
+        }
+
+        PathFilter getPathFilter() {
+            return pathFilter;
         }
     }
 }
