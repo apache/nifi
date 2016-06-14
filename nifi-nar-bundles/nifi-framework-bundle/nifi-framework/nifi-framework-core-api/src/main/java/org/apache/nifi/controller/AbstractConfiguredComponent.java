@@ -303,4 +303,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     ControllerServiceProvider getControllerServiceProvider() {
         return this.serviceProvider;
     }
+
+    protected ValidationContextFactory getValidationContextFactory() {
+        return this.validationContextFactory;
+    }
 }
