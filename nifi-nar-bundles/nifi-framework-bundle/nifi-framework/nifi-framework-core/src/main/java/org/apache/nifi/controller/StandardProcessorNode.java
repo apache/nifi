@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.controller;
 
+import static java.util.Objects.requireNonNull;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -59,29 +82,7 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static java.util.Objects.requireNonNull;
+import org.springframework.util.Assert;
 
 /**
  * ProcessorNode provides thread-safe access to a FlowFileProcessor as it exists
@@ -110,7 +111,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicBoolean lossTolerant;
     private final AtomicReference<String> comments;
     private final AtomicReference<Position> position;
-    private final AtomicReference<String> annotationData;
     private final AtomicReference<String> schedulingPeriod; // stored as string so it's presented to user as they entered it
     private final AtomicReference<String> yieldPeriod;
     private final AtomicReference<String> penalizationPeriod;
@@ -125,7 +125,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final boolean eventDrivenSupported;
     private final boolean batchSupported;
     private final Requirement inputRequirement;
-    private final ValidationContextFactory validationContextFactory;
     private final ProcessScheduler processScheduler;
     private long runNanos = 0L;
 
@@ -166,7 +165,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         style = new AtomicReference<>(Collections.unmodifiableMap(new HashMap<String, String>()));
         this.processGroup = new AtomicReference<>();
         processScheduler = scheduler;
-        annotationData = new AtomicReference<>();
         isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
 
@@ -182,7 +180,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class)
                 || procClass.isAnnotationPresent(
                         org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
-        this.validationContextFactory = validationContextFactory;
         eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class)
                 || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class))
                 && !triggeredSerially && !triggerWhenEmpty;
@@ -925,7 +922,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public boolean isValid() {
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier());
+            final ValidationContext validationContext = this.getValidationContextFactory()
+                    .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -971,8 +969,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public Collection<ValidationResult> getValidationErrors() {
         final List<ValidationResult> results = new ArrayList<>();
         try {
-            final ValidationContext validationContext = validationContextFactory.newValidationContext(getProperties(),
-                getAnnotationData(), getProcessGroup().getIdentifier());
+            final ValidationContext validationContext = this.getValidationContextFactory()
+                    .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -1087,16 +1085,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void setAnnotationData(final String data) {
-        if (isRunning()) {
-            throw new IllegalStateException("Cannot set AnnotationData while processor is running");
-        }
-
-        this.annotationData.set(data);
-    }
-
-    @Override
-    public String getAnnotationData() {
-        return annotationData.get();
+        Assert.state(!isRunning(), "Cannot set AnnotationData while processor is running");
+        super.setAnnotationData(data);
     }
 
     @Override
