@@ -32,11 +32,12 @@ public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
     private Transaction.TransactionState status = Transaction.TransactionState.TRANSACTION_STARTED;
     private ResponseCode responseCode;
 
-    public HttpServerCommunicationsSession(InputStream inputStream, OutputStream outputStream, String transactionId){
+    public HttpServerCommunicationsSession(final InputStream inputStream, final OutputStream outputStream, final String transactionId, final String userDn) {
         super();
         input.setInputStream(inputStream);
         output.setOutputStream(outputStream);
         this.transactionId = transactionId;
+        setUserDn(userDn);
     }
 
     // This status is only needed by HttpFlowFileServerProtocol, HttpClientTransaction has its own status.
@@ -46,7 +47,7 @@ public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
         return status;
     }
 
-    public void setStatus(Transaction.TransactionState status) {
+    public void setStatus(final Transaction.TransactionState status) {
         this.status = status;
     }
 
@@ -58,11 +59,11 @@ public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
         return responseCode;
     }
 
-    public void setResponseCode(ResponseCode responseCode) {
+    public void setResponseCode(final ResponseCode responseCode) {
         this.responseCode = responseCode;
     }
 
-    public void putHandshakeParam(HandshakeProperty key, String value) {
+    public void putHandshakeParam(final HandshakeProperty key, final String value) {
         handshakeParams.put(key.name(), value);
     }
 

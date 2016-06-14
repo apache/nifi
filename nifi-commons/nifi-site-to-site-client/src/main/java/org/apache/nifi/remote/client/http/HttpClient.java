@@ -93,45 +93,44 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
         final URI clusterUrl;
         try {
             clusterUrl = new URI(config.getUrl());
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Specified clusterUrl was: " + config.getUrl(), e);
         }
 
-        try (
-            SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy())
-        ) {
-            String clusterApiUrl = apiClient.resolveBaseUrl(scheme, clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort());
+        try (final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy())) {
+            final String clusterApiUrl = apiClient.resolveBaseUrl(scheme, clusterUrl.getHost(), siteInfoProvider.getSiteToSiteHttpPort());
 
-            int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
+            final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
             apiClient.setConnectTimeoutMillis(timeoutMillis);
             apiClient.setReadTimeoutMillis(timeoutMillis);
-            Collection<PeerDTO> peers = apiClient.getPeers();
+
+            final Collection<PeerDTO> peers = apiClient.getPeers();
             if(peers == null || peers.size() == 0){
                 throw new IOException("Couldn't get any peer to communicate with. " + clusterApiUrl + " returned zero peers.");
             }
 
-            return peers.stream()
-                    .map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount()))
+            // Convert the PeerDTO's to PeerStatus objects. Use 'true' for the query-peer-for-peers flag because Site-to-Site over HTTP
+            // was added in NiFi 1.0.0, which means that peer-to-peer queries are always allowed.
+            return peers.stream().map(p -> new PeerStatus(new PeerDescription(p.getHostname(), p.getPort(), p.isSecure()), p.getFlowFileCount(), true))
                     .collect(Collectors.toSet());
         }
     }
 
     @Override
-    public Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
-
-        int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
+    public Transaction createTransaction(final TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException {
+        final int timeoutMillis = (int) config.getTimeout(TimeUnit.MILLISECONDS);
 
         PeerStatus peerStatus;
         while ((peerStatus = peerSelector.getNextPeerStatus(direction)) != null) {
             logger.debug("peerStatus={}", peerStatus);
 
-            CommunicationsSession commSession = new HttpCommunicationsSession();
-            String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
+            final CommunicationsSession commSession = new HttpCommunicationsSession();
+            final String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
             commSession.setUri(nodeApiUrl);
-            String clusterUrl = config.getUrl();
-            Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
+            final String clusterUrl = config.getUrl();
+            final Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
 
-            int penaltyMillis = (int) config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
+            final int penaltyMillis = (int) config.getPenalizationPeriod(TimeUnit.MILLISECONDS);
             String portId = config.getPortIdentifier();
             if (StringUtils.isEmpty(portId)) {
                 portId = siteInfoProvider.getPortIdentifier(config.getPortName(), direction);
@@ -141,7 +140,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 }
             }
 
-            SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy());
+            final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(config.getSslContext(), config.getHttpProxy());
 
             apiClient.setBaseUrl(peer.getUrl());
             apiClient.setConnectTimeoutMillis(timeoutMillis);
@@ -157,7 +156,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             try {
                 transactionUrl = apiClient.initiateTransaction(direction, portId);
                 commSession.setUserDn(apiClient.getTrustedPeerDn());
-            } catch (Exception e) {
+            } catch (final Exception e) {
+                apiClient.close();
                 logger.debug("Penalizing a peer due to {}", e.getMessage());
                 peerSelector.penalize(peer, penaltyMillis);
 
@@ -170,8 +170,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             }
 
             // We found a valid peer to communicate with.
-            Integer transactionProtocolVersion = apiClient.getTransactionProtocolVersion();
-            HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
+            final Integer transactionProtocolVersion = apiClient.getTransactionProtocolVersion();
+            final HttpClientTransaction transaction = new HttpClientTransaction(transactionProtocolVersion, peer, direction,
                     config.isUseCompression(), portId, penaltyMillis, config.getEventReporter());
             transaction.initialize(apiClient, transactionUrl);
 
@@ -183,7 +183,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
     }
 
-    private String resolveNodeApiUrl(PeerDescription description) {
+    private String resolveNodeApiUrl(final PeerDescription description) {
         return (description.isSecure() ? "https" : "http") + "://" + description.getHostname() + ":" + description.getPort() + "/nifi-api";
     }
 

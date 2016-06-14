@@ -125,11 +125,8 @@ public class SiteToSiteRestApiClient implements Closeable {
     private static final int RESPONSE_CODE_OK = 200;
     private static final int RESPONSE_CODE_CREATED = 201;
     private static final int RESPONSE_CODE_ACCEPTED = 202;
-    private static final int RESPONSE_CODE_SEE_OTHER = 303;
     private static final int RESPONSE_CODE_BAD_REQUEST = 400;
-    private static final int RESPONSE_CODE_UNAUTHORIZED = 401;
     private static final int RESPONSE_CODE_NOT_FOUND = 404;
-    private static final int RESPONSE_CODE_SERVICE_UNAVAILABLE = 503;
 
     private static final Logger logger = LoggerFactory.getLogger(SiteToSiteRestApiClient.class);
 
@@ -161,6 +158,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy) {
         this.sslContext = sslContext;
         this.proxy = proxy;
+
         ttlExtendTaskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
@@ -168,6 +166,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
                 thread.setName(Thread.currentThread().getName() + " TTLExtend");
+                thread.setDaemon(true);
                 return thread;
             }
         });
@@ -210,9 +209,9 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private void setupRequestConfig() {
         final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom()
-                .setConnectionRequestTimeout(connectTimeoutMillis)
-                .setConnectTimeout(connectTimeoutMillis)
-                .setSocketTimeout(readTimeoutMillis);
+            .setConnectionRequestTimeout(connectTimeoutMillis)
+            .setConnectTimeout(connectTimeoutMillis)
+            .setSocketTimeout(readTimeoutMillis);
 
         if (proxy != null) {
             requestConfigBuilder.setProxy(proxy.getHttpHost());
@@ -226,8 +225,8 @@ public class SiteToSiteRestApiClient implements Closeable {
         if (proxy != null) {
             if (!isEmpty(proxy.getUsername()) && !isEmpty(proxy.getPassword())) {
                 credentialsProvider.setCredentials(
-                        new AuthScope(proxy.getHttpHost()),
-                        new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword()));
+                    new AuthScope(proxy.getHttpHost()),
+                    new UsernamePasswordCredentials(proxy.getUsername(), proxy.getPassword()));
             }
 
         }
@@ -242,7 +241,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         httpClient = clientBuilder
-                .setDefaultCredentialsProvider(getCredentialsProvider()).build();
+            .setDefaultCredentialsProvider(getCredentialsProvider()).build();
     }
 
     private void setupAsyncClient() {
@@ -268,9 +267,9 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             final SSLSession sslSession;
             if (conn instanceof ManagedHttpClientConnection) {
-                sslSession = ((ManagedHttpClientConnection)conn).getSSLSession();
+                sslSession = ((ManagedHttpClientConnection) conn).getSSLSession();
             } else if (conn instanceof ManagedNHttpClientConnection) {
-                sslSession = ((ManagedNHttpClientConnection)conn).getSSLSession();
+                sslSession = ((ManagedNHttpClientConnection) conn).getSSLSession();
             } else {
                 throw new RuntimeException("Unexpected connection type was used, " + conn);
             }
@@ -285,7 +284,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 try {
                     final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certChain[0]);
                     trustedPeerDn = cert.getSubjectDN().getName().trim();
-                } catch (CertificateException e) {
+                } catch (final CertificateException e) {
                     final String msg = "Could not extract subject DN from SSL session peer certificate";
                     logger.warn(msg);
                     throw new SSLPeerUnverifiedException(msg);
@@ -296,14 +295,14 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     public ControllerDTO getController() throws IOException {
         try {
-            HttpGet get = createGet("/site-to-site");
+            final HttpGet get = createGet("/site-to-site");
             get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
             return execute(get, ControllerEntity.class).getController();
 
-        } catch (HttpGetFailedException e) {
+        } catch (final HttpGetFailedException e) {
             if (RESPONSE_CODE_NOT_FOUND == e.getResponseCode()) {
                 logger.debug("getController received NOT_FOUND, trying to access the old NiFi version resource url...");
-                HttpGet get = createGet("/controller");
+                final HttpGet get = createGet("/controller");
                 return execute(get, ControllerEntity.class).getController();
             }
             throw e;
@@ -311,12 +310,12 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     public Collection<PeerDTO> getPeers() throws IOException {
-        HttpGet get = createGet("/site-to-site/peers");
+        final HttpGet get = createGet("/site-to-site/peers");
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
         return execute(get, PeersEntity.class).getPeers();
     }
 
-    public String initiateTransaction(TransferDirection direction, String portId) throws IOException {
+    public String initiateTransaction(final TransferDirection direction, final String portId) throws IOException {
         if (TransferDirection.RECEIVE.equals(direction)) {
             return initiateTransaction("output-ports", portId);
         } else {
@@ -324,10 +323,9 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    private String initiateTransaction(String portType, String portId) throws IOException {
+    private String initiateTransaction(final String portType, final String portId) throws IOException {
         logger.debug("initiateTransaction handshaking portType={}, portId={}", portType, portId);
-        HttpPost post = createPost("/data-transfer/" + portType + "/" + portId + "/transactions");
-
+        final HttpPost post = createPost("/data-transfer/" + portType + "/" + portId + "/transactions");
 
         post.setHeader("Accept", "application/json");
         post.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
@@ -335,27 +333,27 @@ public class SiteToSiteRestApiClient implements Closeable {
         setHandshakeProperties(post);
 
         try (CloseableHttpResponse response = getHttpClient().execute(post)) {
-            int responseCode = response.getStatusLine().getStatusCode();
+            final int responseCode = response.getStatusLine().getStatusCode();
             logger.debug("initiateTransaction responseCode={}", responseCode);
 
             String transactionUrl;
             switch (responseCode) {
-                case RESPONSE_CODE_CREATED :
+                case RESPONSE_CODE_CREATED:
                     EntityUtils.consume(response.getEntity());
 
                     transactionUrl = readTransactionUrl(response);
                     if (isEmpty(transactionUrl)) {
                         throw new ProtocolException("Server returned RESPONSE_CODE_CREATED without Location header");
                     }
-                    Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
+                    final Header transportProtocolVersionHeader = response.getFirstHeader(HttpHeaders.PROTOCOL_VERSION);
                     if (transportProtocolVersionHeader == null) {
                         throw new ProtocolException("Server didn't return confirmed protocol version");
                     }
-                    Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
+                    final Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
                     logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
                     transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
 
-                    Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
+                    final Header serverTransactionTtlHeader = response.getFirstHeader(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
                     if (serverTransactionTtlHeader == null) {
                         throw new ProtocolException("Server didn't return " + HttpHeaders.SERVER_SIDE_TRANSACTION_TTL);
                     }
@@ -373,33 +371,36 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    public boolean openConnectionForReceive(String transactionUrl, CommunicationsSession commSession) throws IOException {
+    public boolean openConnectionForReceive(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
 
-        HttpGet get = createGet(transactionUrl + "/flow-files");
+        final HttpGet get = createGet(transactionUrl + "/flow-files");
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties(get);
 
-        CloseableHttpResponse response = getHttpClient().execute(get);
-        int responseCode = response.getStatusLine().getStatusCode();
+        final CloseableHttpResponse response = getHttpClient().execute(get);
+        final int responseCode = response.getStatusLine().getStatusCode();
         logger.debug("responseCode={}", responseCode);
 
         boolean keepItOpen = false;
         try {
             switch (responseCode) {
-                case RESPONSE_CODE_OK :
+                case RESPONSE_CODE_OK:
                     logger.debug("Server returned RESPONSE_CODE_OK, indicating there was no data.");
                     EntityUtils.consume(response.getEntity());
                     return false;
 
-                case RESPONSE_CODE_ACCEPTED :
-                    InputStream httpIn = response.getEntity().getContent();
-                    InputStream streamCapture = new InputStream() {
+                case RESPONSE_CODE_ACCEPTED:
+                    final InputStream httpIn = response.getEntity().getContent();
+                    final InputStream streamCapture = new InputStream() {
                         boolean closed = false;
+
                         @Override
                         public int read() throws IOException {
-                            if(closed) return -1;
-                            int r = httpIn.read();
+                            if (closed) {
+                                return -1;
+                            }
+                            final int r = httpIn.read();
                             if (r < 0) {
                                 closed = true;
                                 logger.debug("Reached to end of input stream. Closing resources...");
@@ -410,7 +411,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                             return r;
                         }
                     };
-                    ((HttpInput)commSession.getInput()).setInputStream(streamCapture);
+                    ((HttpInput) commSession.getInput()).setInputStream(streamCapture);
 
                     startExtendingTtl(transactionUrl, httpIn, response);
                     keepItOpen = true;
@@ -431,10 +432,11 @@ public class SiteToSiteRestApiClient implements Closeable {
     private final int DATA_PACKET_CHANNEL_READ_BUFFER_SIZE = 16384;
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
-    public void openConnectionForSend(String transactionUrl, CommunicationsSession commSession) throws IOException {
+
+    public void openConnectionForSend(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
 
         final String flowFilesPath = transactionUrl + "/flow-files";
-        HttpPost post = createPost(flowFilesPath);
+        final HttpPost post = createPost(flowFilesPath);
 
         post.setHeader("Content-Type", "application/octet-stream");
         post.setHeader("Accept", "text/plain");
@@ -442,7 +444,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         setHandshakeProperties(post);
 
-        CountDownLatch initConnectionLatch = new CountDownLatch(1);
+        final CountDownLatch initConnectionLatch = new CountDownLatch(1);
 
         final URI requestUri = post.getURI();
         final PipedOutputStream outputStream = new PipedOutputStream();
@@ -463,7 +465,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 // Pass the output stream so that Site-to-Site client thread can send
                 // data packet through this connection.
                 logger.debug("sending data to {} has started...", flowFilesPath);
-                ((HttpOutput)commSession.getOutput()).setOutputStream(outputStream);
+                ((HttpOutput) commSession.getOutput()).setOutputStream(outputStream);
                 initConnectionLatch.countDown();
 
                 final BasicHttpEntity entity = new BasicHttpEntity();
@@ -474,7 +476,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void produceContent(ContentEncoder encoder, IOControl ioControl) throws IOException {
+            public void produceContent(final ContentEncoder encoder, final IOControl ioControl) throws IOException {
 
                 int totalRead = 0;
                 int totalProduced = 0;
@@ -501,7 +503,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
                 final long totalWritten = commSession.getOutput().getBytesWritten();
                 logger.debug("sending data to {} has reached to its end. produced {} bytes by reading {} bytes from channel. {} bytes written in this transaction.",
-                        flowFilesPath, totalProduced, totalRead, totalWritten);
+                    flowFilesPath, totalProduced, totalRead, totalWritten);
                 if (totalRead != totalWritten || totalProduced != totalWritten) {
                     final String msg = "Sending data to %s has reached to its end, but produced : read : wrote byte sizes (%d : $d : %d) were not equal. Something went wrong.";
                     throw new RuntimeException(String.format(msg, flowFilesPath, totalProduced, totalRead, totalWritten));
@@ -513,12 +515,12 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void requestCompleted(HttpContext context) {
+            public void requestCompleted(final HttpContext context) {
                 logger.debug("Sending data to {} completed.", flowFilesPath);
             }
 
             @Override
-            public void failed(Exception ex) {
+            public void failed(final Exception ex) {
                 logger.error("Sending data to {} has failed", flowFilesPath, ex);
             }
 
@@ -554,13 +556,13 @@ public class SiteToSiteRestApiClient implements Closeable {
             transferDataLatch = new CountDownLatch(1);
             startExtendingTtl(transactionUrl, dataPacketChannel, null);
 
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new IOException("Awaiting initConnectionLatch has been interrupted.", e);
         }
 
     }
 
-    public void finishTransferFlowFiles(CommunicationsSession commSession) throws IOException {
+    public void finishTransferFlowFiles(final CommunicationsSession commSession) throws IOException {
 
         if (postResult == null) {
             new IllegalStateException("Data transfer has not started yet.");
@@ -576,7 +578,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             if (!transferDataLatch.await(requestExpirationMillis, TimeUnit.MILLISECONDS)) {
                 throw new IOException("Awaiting transferDataLatch has been timeout.");
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new IOException("Awaiting transferDataLatch has been interrupted.", e);
         }
 
@@ -585,24 +587,24 @@ public class SiteToSiteRestApiClient implements Closeable {
         final HttpResponse response;
         try {
             response = postResult.get(readTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException e) {
+        } catch (final ExecutionException e) {
             logger.debug("Something has happened at sending thread. {}", e.getMessage());
-            Throwable cause = e.getCause();
+            final Throwable cause = e.getCause();
             if (cause instanceof IOException) {
                 throw (IOException) cause;
             } else {
                 throw new IOException(cause);
             }
-        } catch (TimeoutException|InterruptedException e) {
+        } catch (TimeoutException | InterruptedException e) {
             throw new IOException(e);
         }
 
-        int responseCode = response.getStatusLine().getStatusCode();
+        final int responseCode = response.getStatusLine().getStatusCode();
         switch (responseCode) {
-            case RESPONSE_CODE_ACCEPTED :
-                String receivedChecksum = EntityUtils.toString(response.getEntity());
-                ((HttpInput)commSession.getInput()).setInputStream(new ByteArrayInputStream(receivedChecksum.getBytes()));
-                ((HttpCommunicationsSession)commSession).setChecksum(receivedChecksum);
+            case RESPONSE_CODE_ACCEPTED:
+                final String receivedChecksum = EntityUtils.toString(response.getEntity());
+                ((HttpInput) commSession.getInput()).setInputStream(new ByteArrayInputStream(receivedChecksum.getBytes()));
+                ((HttpCommunicationsSession) commSession).setChecksum(receivedChecksum);
                 logger.debug("receivedChecksum={}", receivedChecksum);
                 break;
 
@@ -623,17 +625,17 @@ public class SiteToSiteRestApiClient implements Closeable {
         extendingApiClient.transportProtocolVersionNegotiator = this.transportProtocolVersionNegotiator;
         extendingApiClient.connectTimeoutMillis = this.connectTimeoutMillis;
         extendingApiClient.readTimeoutMillis = this.readTimeoutMillis;
-        int extendFrequency = serverTransactionTtl / 2;
+        final int extendFrequency = serverTransactionTtl / 2;
         ttlExtendingThread = ttlExtendTaskExecutor.scheduleWithFixedDelay(() -> {
             try {
                 extendingApiClient.extendTransaction(transactionUrl);
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn("Failed to extend transaction ttl", e);
                 try {
                     // Without disconnecting, Site-to-Site client keep reading data packet,
                     // while server has already rollback.
                     this.close();
-                } catch (IOException ec) {
+                } catch (final IOException ec) {
                     logger.warn("Failed to close", e);
                 }
             }
@@ -645,7 +647,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             if (closeable != null) {
                 closeable.close();
             }
-        } catch (IOException e) {
+        } catch (final IOException e) {
             logger.warn("Got an exception during closing {}: {}", closeable, e.getMessage());
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
@@ -653,7 +655,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    public TransactionResultEntity extendTransaction(String transactionUrl) throws IOException {
+    public TransactionResultEntity extendTransaction(final String transactionUrl) throws IOException {
         logger.debug("Sending extendTransaction request to transactionUrl: {}", transactionUrl);
 
         final HttpPut put = createPut(transactionUrl);
@@ -663,15 +665,14 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         setHandshakeProperties(put);
 
-        try (CloseableHttpResponse response = getHttpClient().execute(put)) {
-            int responseCode = response.getStatusLine().getStatusCode();
+        try (final CloseableHttpResponse response = getHttpClient().execute(put)) {
+            final int responseCode = response.getStatusLine().getStatusCode();
             logger.debug("extendTransaction responseCode={}", responseCode);
 
-            try (InputStream content = response.getEntity().getContent()) {
+            try (final InputStream content = response.getEntity().getContent()) {
                 switch (responseCode) {
-                    case RESPONSE_CODE_OK :
+                    case RESPONSE_CODE_OK:
                         return readResponse(content);
-
                     default:
                         throw handleErrResponse(responseCode, content);
                 }
@@ -694,39 +695,41 @@ public class SiteToSiteRestApiClient implements Closeable {
     }
 
     private IOException handleErrResponse(final int responseCode, final InputStream in) throws IOException {
-        if(in == null) {
+        if (in == null) {
             return new IOException("Unexpected response code: " + responseCode);
         }
-        TransactionResultEntity errEntity = readResponse(in);
-        ResponseCode errCode = ResponseCode.fromCode(errEntity.getResponseCode());
+
+        final TransactionResultEntity errEntity = readResponse(in);
+        final ResponseCode errCode = ResponseCode.fromCode(errEntity.getResponseCode());
+
         switch (errCode) {
             case UNKNOWN_PORT:
                 return new UnknownPortException(errEntity.getMessage());
             case PORT_NOT_IN_VALID_STATE:
                 return new PortNotRunningException(errEntity.getMessage());
             default:
-                return new IOException("Unexpected response code: " + responseCode
-                        + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
+                return new IOException("Unexpected response code: " + responseCode + " errCode:" + errCode + " errMessage:" + errEntity.getMessage());
         }
     }
 
-    private TransactionResultEntity readResponse(InputStream inputStream) throws IOException {
+    private TransactionResultEntity readResponse(final InputStream inputStream) throws IOException {
+        final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
         StreamUtils.copy(inputStream, bos);
         String responseMessage = null;
+
         try {
             responseMessage = new String(bos.toByteArray(), "UTF-8");
             logger.debug("readResponse responseMessage={}", responseMessage);
 
             final ObjectMapper mapper = new ObjectMapper();
             return mapper.readValue(responseMessage, TransactionResultEntity.class);
-
         } catch (JsonParseException | JsonMappingException e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Failed to parse JSON.", e);
             }
-            TransactionResultEntity entity = new TransactionResultEntity();
+
+            final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.ABORT.getCode());
             entity.setMessage(responseMessage);
             return entity;
@@ -736,90 +739,109 @@ public class SiteToSiteRestApiClient implements Closeable {
     private String readTransactionUrl(final CloseableHttpResponse response) {
         final Header locationUriIntentHeader = response.getFirstHeader(LOCATION_URI_INTENT_NAME);
         logger.debug("locationUriIntentHeader={}", locationUriIntentHeader);
-        if (locationUriIntentHeader != null) {
-            if (LOCATION_URI_INTENT_VALUE.equals(locationUriIntentHeader.getValue())) {
-                Header transactionUrl = response.getFirstHeader(LOCATION_HEADER_NAME);
-                logger.debug("transactionUrl={}", transactionUrl);
-                if (transactionUrl != null) {
-                    return transactionUrl.getValue();
-                }
+
+        if (locationUriIntentHeader != null && LOCATION_URI_INTENT_VALUE.equals(locationUriIntentHeader.getValue())) {
+            final Header transactionUrl = response.getFirstHeader(LOCATION_HEADER_NAME);
+            logger.debug("transactionUrl={}", transactionUrl);
+
+            if (transactionUrl != null) {
+                return transactionUrl.getValue();
             }
         }
+
         return null;
     }
 
     private void setHandshakeProperties(final HttpRequestBase httpRequest) {
-        if(compress) httpRequest.setHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION, "true");
-        if(requestExpirationMillis > 0) httpRequest.setHeader(HANDSHAKE_PROPERTY_REQUEST_EXPIRATION, String.valueOf(requestExpirationMillis));
-        if(batchCount > 0) httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_COUNT, String.valueOf(batchCount));
-        if(batchSize > 0) httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_SIZE, String.valueOf(batchSize));
-        if(batchDurationMillis > 0) httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_DURATION, String.valueOf(batchDurationMillis));
+        if (compress) {
+            httpRequest.setHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION, "true");
+        }
+
+        if (requestExpirationMillis > 0) {
+            httpRequest.setHeader(HANDSHAKE_PROPERTY_REQUEST_EXPIRATION, String.valueOf(requestExpirationMillis));
+        }
+
+        if (batchCount > 0) {
+            httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_COUNT, String.valueOf(batchCount));
+        }
+
+        if (batchSize > 0) {
+            httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_SIZE, String.valueOf(batchSize));
+        }
+
+        if (batchDurationMillis > 0) {
+            httpRequest.setHeader(HANDSHAKE_PROPERTY_BATCH_DURATION, String.valueOf(batchDurationMillis));
+        }
     }
 
-    private HttpGet createGet(final String path) {
-        final URI url = getUri(path);
-        HttpGet get = new HttpGet(url);
-        get.setConfig(getRequestConfig());
-        return get;
-    }
-
-    private URI getUri(String path) {
+    private URI getUri(final String path) {
         final URI url;
         try {
-            if(HTTP_ABS_URL.matcher(path).find()){
+            if (HTTP_ABS_URL.matcher(path).find()) {
                 url = new URI(path);
             } else {
-                if(StringUtils.isEmpty(getBaseUrl())){
+                if (StringUtils.isEmpty(getBaseUrl())) {
                     throw new IllegalStateException("API baseUrl is not resolved yet, call setBaseUrl or resolveBaseUrl before sending requests with relative path.");
                 }
                 url = new URI(baseUrl + path);
             }
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException(e.getMessage());
         }
         return url;
     }
 
+
+    private HttpGet createGet(final String path) {
+        final URI url = getUri(path);
+        final HttpGet get = new HttpGet(url);
+        get.setConfig(getRequestConfig());
+        return get;
+    }
+
     private HttpPost createPost(final String path) {
         final URI url = getUri(path);
-        HttpPost post = new HttpPost(url);
+        final HttpPost post = new HttpPost(url);
         post.setConfig(getRequestConfig());
         return post;
     }
 
     private HttpPut createPut(final String path) {
         final URI url = getUri(path);
-        HttpPut put = new HttpPut(url);
+        final HttpPut put = new HttpPut(url);
         put.setConfig(getRequestConfig());
         return put;
     }
 
     private HttpDelete createDelete(final String path) {
         final URI url = getUri(path);
-        HttpDelete delete = new HttpDelete(url);
+        final HttpDelete delete = new HttpDelete(url);
         delete.setConfig(getRequestConfig());
         return delete;
     }
 
     private String execute(final HttpGet get) throws IOException {
+        final CloseableHttpClient httpClient = getHttpClient();
 
-        CloseableHttpClient httpClient = getHttpClient();
-        try (CloseableHttpResponse response = httpClient.execute(get)) {
-            StatusLine statusLine = response.getStatusLine();
-            int statusCode = statusLine.getStatusCode();
+        try (final CloseableHttpResponse response = httpClient.execute(get)) {
+            final StatusLine statusLine = response.getStatusLine();
+            final int statusCode = statusLine.getStatusCode();
             if (RESPONSE_CODE_OK != statusCode) {
                 throw new HttpGetFailedException(statusCode, statusLine.getReasonPhrase(), null);
             }
-            HttpEntity entity = response.getEntity();
-            String responseMessage = EntityUtils.toString(entity);
+            final HttpEntity entity = response.getEntity();
+            final String responseMessage = EntityUtils.toString(entity);
             return responseMessage;
         }
     }
 
     public class HttpGetFailedException extends IOException {
+        private static final long serialVersionUID = 7920714957269466946L;
+
         private final int responseCode;
         private final String responseMessage;
         private final String explanation;
+
         public HttpGetFailedException(final int responseCode, final String responseMessage, final String explanation) {
             super("response code " + responseCode + ":" + responseMessage + " with explanation: " + explanation);
             this.responseCode = responseCode;
@@ -854,25 +876,25 @@ public class SiteToSiteRestApiClient implements Closeable {
         this.baseUrl = baseUrl;
     }
 
-    public void setConnectTimeoutMillis(int connectTimeoutMillis) {
+    public void setConnectTimeoutMillis(final int connectTimeoutMillis) {
         this.connectTimeoutMillis = connectTimeoutMillis;
     }
 
-    public void setReadTimeoutMillis(int readTimeoutMillis) {
+    public void setReadTimeoutMillis(final int readTimeoutMillis) {
         this.readTimeoutMillis = readTimeoutMillis;
     }
 
-    public String resolveBaseUrl(String clusterUrl) {
+    public String resolveBaseUrl(final String clusterUrl) {
         URI clusterUri;
         try {
             clusterUri = new URI(clusterUrl);
-        } catch (URISyntaxException e) {
+        } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Specified clusterUrl was: " + clusterUrl, e);
         }
         return this.resolveBaseUrl(clusterUri);
     }
 
-    public String resolveBaseUrl(URI clusterUrl) {
+    public String resolveBaseUrl(final URI clusterUrl) {
         String urlPath = clusterUrl.getPath();
         if (urlPath.endsWith("/")) {
             urlPath = urlPath.substring(0, urlPath.length() - 1);
@@ -884,33 +906,41 @@ public class SiteToSiteRestApiClient implements Closeable {
         return resolveBaseUrl(scheme, host, port, "/nifi-api");
     }
 
-    public String resolveBaseUrl(final String scheme, final String host, final int port, String path) {
-        String baseUri = scheme + "://" + host + ":" + port + path;
+    public String resolveBaseUrl(final String scheme, final String host, final int port, final String path) {
+        final String baseUri = scheme + "://" + host + ":" + port + path;
         this.setBaseUrl(baseUri);
         return baseUri;
     }
 
-    public void setCompress(boolean compress) {
+    public void setCompress(final boolean compress) {
         this.compress = compress;
     }
 
-    public void setRequestExpirationMillis(long requestExpirationMillis) {
-        if(requestExpirationMillis < 0) throw new IllegalArgumentException("requestExpirationMillis can't be a negative value.");
+    public void setRequestExpirationMillis(final long requestExpirationMillis) {
+        if (requestExpirationMillis < 0) {
+            throw new IllegalArgumentException("requestExpirationMillis can't be a negative value.");
+        }
         this.requestExpirationMillis = requestExpirationMillis;
     }
 
-    public void setBatchCount(int batchCount) {
-        if(batchCount < 0) throw new IllegalArgumentException("batchCount can't be a negative value.");
+    public void setBatchCount(final int batchCount) {
+        if (batchCount < 0) {
+            throw new IllegalArgumentException("batchCount can't be a negative value.");
+        }
         this.batchCount = batchCount;
     }
 
-    public void setBatchSize(long batchSize) {
-        if(batchSize < 0) throw new IllegalArgumentException("batchSize can't be a negative value.");
+    public void setBatchSize(final long batchSize) {
+        if (batchSize < 0) {
+            throw new IllegalArgumentException("batchSize can't be a negative value.");
+        }
         this.batchSize = batchSize;
     }
 
-    public void setBatchDurationMillis(long batchDurationMillis) {
-        if(batchDurationMillis < 0) throw new IllegalArgumentException("batchDurationMillis can't be a negative value.");
+    public void setBatchDurationMillis(final long batchDurationMillis) {
+        if (batchDurationMillis < 0) {
+            throw new IllegalArgumentException("batchDurationMillis can't be a negative value.");
+        }
         this.batchDurationMillis = batchDurationMillis;
     }
 
@@ -922,33 +952,33 @@ public class SiteToSiteRestApiClient implements Closeable {
         return this.trustedPeerDn;
     }
 
-    public TransactionResultEntity commitReceivingFlowFiles(String transactionUrl, ResponseCode clientResponse, String checksum) throws IOException {
+    public TransactionResultEntity commitReceivingFlowFiles(final String transactionUrl, final ResponseCode clientResponse, final String checksum) throws IOException {
         logger.debug("Sending commitReceivingFlowFiles request to transactionUrl: {}, clientResponse={}, checksum={}",
-                transactionUrl, clientResponse, checksum);
+            transactionUrl, clientResponse, checksum);
 
         stopExtendingTtl();
 
-        StringBuilder urlBuilder = new StringBuilder(transactionUrl).append("?responseCode=").append(clientResponse.getCode());
+        final StringBuilder urlBuilder = new StringBuilder(transactionUrl).append("?responseCode=").append(clientResponse.getCode());
         if (ResponseCode.CONFIRM_TRANSACTION.equals(clientResponse)) {
             urlBuilder.append("&checksum=").append(checksum);
         }
 
-        HttpDelete delete = createDelete(urlBuilder.toString());
+        final HttpDelete delete = createDelete(urlBuilder.toString());
         delete.setHeader("Accept", "application/json");
         delete.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties(delete);
 
         try (CloseableHttpResponse response = getHttpClient().execute(delete)) {
-            int responseCode = response.getStatusLine().getStatusCode();
+            final int responseCode = response.getStatusLine().getStatusCode();
             logger.debug("commitReceivingFlowFiles responseCode={}", responseCode);
 
             try (InputStream content = response.getEntity().getContent()) {
                 switch (responseCode) {
-                    case RESPONSE_CODE_OK :
+                    case RESPONSE_CODE_OK:
                         return readResponse(content);
 
-                    case RESPONSE_CODE_BAD_REQUEST :
+                    case RESPONSE_CODE_BAD_REQUEST:
                         return readResponse(content);
 
                     default:
@@ -959,26 +989,26 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    public TransactionResultEntity commitTransferFlowFiles(String transactionUrl, ResponseCode clientResponse) throws IOException {
-        String requestUrl = transactionUrl + "?responseCode=" + clientResponse.getCode();
+    public TransactionResultEntity commitTransferFlowFiles(final String transactionUrl, final ResponseCode clientResponse) throws IOException {
+        final String requestUrl = transactionUrl + "?responseCode=" + clientResponse.getCode();
         logger.debug("Sending commitTransferFlowFiles request to transactionUrl: {}", requestUrl);
 
-        HttpDelete delete = createDelete(requestUrl);
+        final HttpDelete delete = createDelete(requestUrl);
         delete.setHeader("Accept", "application/json");
         delete.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties(delete);
 
         try (CloseableHttpResponse response = getHttpClient().execute(delete)) {
-            int responseCode = response.getStatusLine().getStatusCode();
+            final int responseCode = response.getStatusLine().getStatusCode();
             logger.debug("commitTransferFlowFiles responseCode={}", responseCode);
 
             try (InputStream content = response.getEntity().getContent()) {
                 switch (responseCode) {
-                    case RESPONSE_CODE_OK :
+                    case RESPONSE_CODE_OK:
                         return readResponse(content);
 
-                    case RESPONSE_CODE_BAD_REQUEST :
+                    case RESPONSE_CODE_BAD_REQUEST:
                         return readResponse(content);
 
                     default:

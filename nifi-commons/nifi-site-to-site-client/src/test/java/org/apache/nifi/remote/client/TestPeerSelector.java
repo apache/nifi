@@ -54,11 +54,11 @@ public class TestPeerSelector {
     @Test
     public void testFormulateDestinationListForOutput() throws IOException {
         final Set<PeerStatus> collection = new HashSet<>();
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 1111, true), 4096));
-        collection.add(new PeerStatus(new PeerDescription("HasLots", 2222, true), 10240));
-        collection.add(new PeerStatus(new PeerDescription("HasLittle", 3333, true), 1024));
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 4444, true), 4096));
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 1111, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLots", 2222, true), 10240, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLittle", 3333, true), 1024, true));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 4444, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
         PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
@@ -74,8 +74,8 @@ public class TestPeerSelector {
     @Test
     public void testFormulateDestinationListForOutputHugeDifference() throws IOException {
         final Set<PeerStatus> collection = new HashSet<>();
-        collection.add(new PeerStatus(new PeerDescription("HasLittle", 1111, true), 500));
-        collection.add(new PeerStatus(new PeerDescription("HasLots", 2222, true), 50000));
+        collection.add(new PeerStatus(new PeerDescription("HasLittle", 1111, true), 500, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLots", 2222, true), 50000, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
         PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
@@ -90,11 +90,11 @@ public class TestPeerSelector {
     @Test
     public void testFormulateDestinationListForInputPorts() throws IOException {
         final Set<PeerStatus> collection = new HashSet<>();
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 1111, true), 4096));
-        collection.add(new PeerStatus(new PeerDescription("HasLittle", 2222, true), 10240));
-        collection.add(new PeerStatus(new PeerDescription("HasLots", 3333, true), 1024));
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 4444, true), 4096));
-        collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 1111, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLittle", 2222, true), 10240, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLots", 3333, true), 1024, true));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 4444, true), 4096, true));
+        collection.add(new PeerStatus(new PeerDescription("HasMedium", 5555, true), 4096, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
         PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);
@@ -110,8 +110,8 @@ public class TestPeerSelector {
     @Test
     public void testFormulateDestinationListForInputPortsHugeDifference() throws IOException {
         final Set<PeerStatus> collection = new HashSet<>();
-        collection.add(new PeerStatus(new PeerDescription("HasLots", 1111, true), 500));
-        collection.add(new PeerStatus(new PeerDescription("HasLittle", 2222, true), 50000));
+        collection.add(new PeerStatus(new PeerDescription("HasLots", 1111, true), 500, true));
+        collection.add(new PeerStatus(new PeerDescription("HasLittle", 2222, true), 50000, true));
 
         PeerStatusProvider peerStatusProvider = Mockito.mock(PeerStatusProvider.class);
         PeerSelector peerSelector = new PeerSelector(peerStatusProvider, null);

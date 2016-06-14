@@ -49,7 +49,7 @@ import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
-import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocolImpl;
+import org.apache.nifi.remote.protocol.http.StandardHttpFlowFileServerProtocol;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
@@ -305,16 +305,18 @@ public class DataTransferResource extends ApplicationResource {
     }
 
     HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
-        return new HttpFlowFileServerProtocolImpl(versionNegotiator);
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator);
     }
 
     private Peer constructPeer(HttpServletRequest req, InputStream inputStream, OutputStream outputStream, String portId, String transactionId) {
-        String clientHostName = req.getRemoteHost();
-        int clientPort = req.getRemotePort();
+        final String clientHostName = req.getRemoteHost();
+        final int clientPort = req.getRemotePort();
 
-        PeerDescription peerDescription = new PeerDescription(clientHostName, clientPort, req.isSecure());
+        final PeerDescription peerDescription = new PeerDescription(clientHostName, clientPort, req.isSecure());
 
-        HttpServerCommunicationsSession commSession = new HttpServerCommunicationsSession(inputStream, outputStream, transactionId);
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final String userDn = user == null ? null : user.getIdentity();
+        final HttpServerCommunicationsSession commSession = new HttpServerCommunicationsSession(inputStream, outputStream, transactionId, userDn);
 
         boolean useCompression = false;
         final String useCompressionStr = req.getHeader(HANDSHAKE_PROPERTY_USE_COMPRESSION);
@@ -330,20 +332,28 @@ public class DataTransferResource extends ApplicationResource {
         commSession.putHandshakeParam(HandshakeProperty.PORT_IDENTIFIER, portId);
         commSession.putHandshakeParam(HandshakeProperty.GZIP, String.valueOf(useCompression));
 
-        if (!isEmpty(requestExpiration)) commSession.putHandshakeParam(REQUEST_EXPIRATION_MILLIS, requestExpiration);
-        if (!isEmpty(batchCount)) commSession.putHandshakeParam(BATCH_COUNT, batchCount);
-        if (!isEmpty(batchSize)) commSession.putHandshakeParam(BATCH_SIZE, batchSize);
-        if (!isEmpty(batchDuration)) commSession.putHandshakeParam(BATCH_DURATION, batchDuration);
+        if (!isEmpty(requestExpiration)) {
+            commSession.putHandshakeParam(REQUEST_EXPIRATION_MILLIS, requestExpiration);
+        }
+        if (!isEmpty(batchCount)) {
+            commSession.putHandshakeParam(BATCH_COUNT, batchCount);
+        }
+        if (!isEmpty(batchSize)) {
+            commSession.putHandshakeParam(BATCH_SIZE, batchSize);
+        }
+        if (!isEmpty(batchDuration)) {
+            commSession.putHandshakeParam(BATCH_DURATION, batchDuration);
+        }
 
         if(peerDescription.isSecure()){
-            NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
+            final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
             logger.debug("initiating peer, nifiUser={}", nifiUser);
             commSession.setUserDn(nifiUser.getIdentity());
         }
 
         // TODO: Followed how SocketRemoteSiteListener define peerUrl and clusterUrl, but it can be more meaningful values, especially for clusterUrl.
-        String peerUrl = "nifi://" + clientHostName + ":" + clientPort;
-        String clusterUrl = "nifi://localhost:" + req.getLocalPort();
+        final String peerUrl = "nifi://" + clientHostName + ":" + clientPort;
+        final String clusterUrl = "nifi://localhost:" + req.getLocalPort();
         return new Peer(peerDescription, commSession, peerUrl, clusterUrl);
     }
 
@@ -771,7 +781,7 @@ public class DataTransferResource extends ApplicationResource {
         try {
             // Do handshake
             initiateServerProtocol(peer, transportProtocolVersion);
-            transactionManager.extendsTransaction(transactionId);
+            transactionManager.extendTransaction(transactionId);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.CONTINUE_TRANSACTION.getCode());

@@ -766,10 +766,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             return new ConnectionResponse(tryAgainSeconds);
         }
 
-        // TODO: Remove the 'null' values here from the ConnectionResponse all together. These
-        // will no longer be needed for site-to-site once the NCM is gone.
-        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, null, null, null, instanceId,
-            new ArrayList<>(nodeStatuses.values()),
+        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, new ArrayList<>(nodeStatuses.values()),
             revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
     }
 
