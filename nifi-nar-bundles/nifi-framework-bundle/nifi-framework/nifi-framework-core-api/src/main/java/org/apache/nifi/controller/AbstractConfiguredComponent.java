@@ -323,4 +323,8 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     public String getComponentType() {
         return componentType;
     }
+
+    protected ValidationContextFactory getValidationContextFactory() {
+        return this.validationContextFactory;
+    }
 }
