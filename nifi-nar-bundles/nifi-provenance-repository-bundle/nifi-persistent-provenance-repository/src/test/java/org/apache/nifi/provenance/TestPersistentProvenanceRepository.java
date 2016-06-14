@@ -1225,6 +1225,7 @@ public class TestPersistentProvenanceRepository {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
+        attributes.put("nullChar", null);
 
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
         builder.setEventTime(System.currentTimeMillis());
