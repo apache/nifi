@@ -1786,11 +1786,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private Map<String, String> truncateAttributes(final Map<String, String> original) {
         final Map<String, String> truncatedAttrs = new HashMap<>();
         for (final Map.Entry<String, String> entry : original.entrySet()) {
-            if (entry.getValue().length() > maxAttributeChars) {
-                truncatedAttrs.put(entry.getKey(), entry.getValue().substring(0, maxAttributeChars));
-            } else {
-                truncatedAttrs.put(entry.getKey(), entry.getValue());
-            }
+            String value = entry.getValue() != null && entry.getValue().length() > this.maxAttributeChars
+                    ? entry.getValue().substring(0, this.maxAttributeChars) : entry.getValue();
+            truncatedAttrs.put(entry.getKey(), value);
         }
         return truncatedAttrs;
     }
