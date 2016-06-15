@@ -670,6 +670,10 @@ public abstract class ApplicationResource {
     public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }
+    
+    protected ClusterCoordinator getClusterCoordinator() {
+        return clusterCoordinator;
+    }
 
     protected NiFiProperties getProperties() {
         return properties;
