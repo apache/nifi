@@ -855,7 +855,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
 
             // start the processors as indicated by the dataflow
-            controller.onFlowInitialized(dataFlow.isAutoStartProcessors());
+            controller.onFlowInitialized(autoResumeState);
 
             loadSnippets(dataFlow.getSnippets());
 
