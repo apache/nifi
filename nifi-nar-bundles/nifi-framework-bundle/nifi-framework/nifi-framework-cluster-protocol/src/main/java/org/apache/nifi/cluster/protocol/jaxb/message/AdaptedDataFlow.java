@@ -23,11 +23,6 @@ public class AdaptedDataFlow {
     private byte[] flow;
     private byte[] snippets;
 
-    private boolean autoStartProcessors;
-
-    public AdaptedDataFlow() {
-    }
-
     public byte[] getFlow() {
         return flow;
     }
@@ -43,13 +38,4 @@ public class AdaptedDataFlow {
     public void setSnippets(byte[] snippets) {
         this.snippets = snippets;
     }
-
-    public boolean isAutoStartProcessors() {
-        return autoStartProcessors;
-    }
-
-    public void setAutoStartProcessors(boolean runningAllProcessors) {
-        this.autoStartProcessors = runningAllProcessors;
-    }
-
 }

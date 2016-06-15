@@ -34,8 +34,6 @@ public class StandardDataFlow implements Serializable, DataFlow {
     private final byte[] flow;
     private final byte[] snippetBytes;
 
-    private boolean autoStartProcessors;
-
     /**
      * Constructs an instance.
      *
@@ -55,7 +53,6 @@ public class StandardDataFlow implements Serializable, DataFlow {
     public StandardDataFlow(final DataFlow toCopy) {
         this.flow = copy(toCopy.getFlow());
         this.snippetBytes = copy(toCopy.getSnippets());
-        this.autoStartProcessors = toCopy.isAutoStartProcessors();
     }
 
     private static byte[] copy(final byte[] bytes) {
@@ -71,21 +68,5 @@ public class StandardDataFlow implements Serializable, DataFlow {
     @Override
     public byte[] getSnippets() {
         return snippetBytes;
-    }
-
-    @Override
-    public boolean isAutoStartProcessors() {
-        return autoStartProcessors;
-    }
-
-    /**
-     *
-     * Sets the flag to automatically start processors at application startup.
-     *
-     * @param autoStartProcessors true if processors should be automatically
-     * started at application startup; false otherwise
-     */
-    public void setAutoStartProcessors(final boolean autoStartProcessors) {
-        this.autoStartProcessors = autoStartProcessors;
     }
 }
