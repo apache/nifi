@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
@@ -140,8 +142,14 @@ public class TemplateResource extends ApplicationResource {
             attachmentName = attachmentName.replaceAll("\\s", "_");
         }
 
+        /*
+         * Here instead of relying on default JAXB marshalling we are simply
+         * serializing template to String (formatted, indented etc) and sending
+         * it as part of the response.
+         */
+        String serializedTemplate = new String(TemplateSerializer.serialize(template), StandardCharsets.UTF_8);
         // generate the response
-        return generateOkResponse(template).header("Content-Disposition", String.format("attachment; filename=\"%s.xml\"", attachmentName)).build();
+        return generateOkResponse(serializedTemplate).header("Content-Disposition", String.format("attachment; filename=\"%s.xml\"", attachmentName)).build();
     }
 
     /**

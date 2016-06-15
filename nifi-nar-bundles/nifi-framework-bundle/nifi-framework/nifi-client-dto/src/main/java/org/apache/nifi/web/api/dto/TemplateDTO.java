@@ -28,7 +28,7 @@ import java.util.Date;
  * Defines a template.
  */
 @XmlRootElement(name = "template")
-public class TemplateDTO {
+public class TemplateDTO extends InceptionAware {
     public static final String MAX_ENCODING_VERSION = "1.0";
 
     private String uri;

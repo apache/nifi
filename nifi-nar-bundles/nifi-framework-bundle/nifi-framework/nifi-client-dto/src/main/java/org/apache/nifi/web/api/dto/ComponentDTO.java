@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlType;
  * Base class for all nifi components.
  */
 @XmlType(name = "component")
-public class ComponentDTO {
+public class ComponentDTO extends InceptionAware {
 
     private String id;
     private String uri;

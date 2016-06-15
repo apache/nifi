@@ -1974,6 +1974,9 @@ public class ProcessGroupResource extends ApplicationResource {
             Unmarshaller unmarshaller = context.createUnmarshaller();
             JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(new StreamSource(in), TemplateDTO.class);
             template = templateElement.getValue();
+            if (template.getInceptionId() == null) {
+                throw new IllegalStateException("Unmarshalled template is missing 'inceptionId'");
+            }
         } catch (JAXBException jaxbe) {
             logger.warn("An error occurred while parsing a template.", jaxbe);
             String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"The specified template is not in a valid format.\"/>", Response.Status.BAD_REQUEST.getStatusCode());

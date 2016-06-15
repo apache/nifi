@@ -16,16 +16,21 @@
  */
 package org.apache.nifi.persistence;
 
-import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.web.api.dto.TemplateDTO;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+
+import org.apache.nifi.controller.serialization.FlowSerializationException;
+import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+
+import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 public final class TemplateSerializer {
 
@@ -34,17 +39,18 @@ public final class TemplateSerializer {
         final ClassLoader cl = NarClassLoaders.getFrameworkClassLoader();
         Thread.currentThread().setContextClassLoader(cl);
         try {
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final BufferedOutputStream bos = new BufferedOutputStream(baos);
+            final ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
             JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
             Marshaller marshaller = context.createMarshaller();
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-            marshaller.marshal(dto, bos);
+
+            XMLOutputFactory xmlof = XMLOutputFactory.newInstance();
+            XMLStreamWriter writer = new IndentingXMLStreamWriter(xmlof.createXMLStreamWriter(bos));
+            marshaller.marshal(dto, writer);
 
             bos.flush();
-            return baos.toByteArray();
-        } catch (final IOException | JAXBException e) {
+            return bos.toByteArray();
+        } catch (final IOException | JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
         } finally {
             if (currentCl != null) {
