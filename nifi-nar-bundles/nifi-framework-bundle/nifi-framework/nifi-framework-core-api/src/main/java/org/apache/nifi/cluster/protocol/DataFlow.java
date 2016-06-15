@@ -28,9 +28,4 @@ public interface DataFlow {
      */
     public byte[] getSnippets();
 
-    /**
-     * @return true if processors should be automatically started at application
-     * startup; false otherwise
-     */
-    public boolean isAutoStartProcessors();
 }
