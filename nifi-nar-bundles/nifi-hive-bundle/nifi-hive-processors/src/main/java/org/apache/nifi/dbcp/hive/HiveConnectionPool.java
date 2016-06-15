@@ -17,10 +17,7 @@
 package org.apache.nifi.dbcp.hive;
 
 import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.jdbc.HiveDriver;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -30,7 +27,6 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -40,8 +36,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.hive.HiveJdbcCommon;
 
-import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.sql.Connection;
@@ -78,7 +74,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
-            .required(false).addValidator(createMultipleFilesExistValidator()).build();
+            .required(false).addValidator(HiveJdbcCommon.createMultipleFilesExistValidator()).build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("hive-db-user")
@@ -170,7 +166,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             // then load the Configuration and set the new resources in the holder
             if (resources == null || !configFiles.equals(resources.getConfigResources())) {
                 getLogger().debug("Reloading validation resources");
-                resources = new ValidationResources(configFiles, getConfigurationFromFiles(configFiles));
+                resources = new ValidationResources(configFiles, HiveJdbcCommon.getConfigurationFromFiles(configFiles));
                 validationResourceHolder.set(resources);
             }
 
@@ -183,16 +179,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         }
 
         return problems;
-    }
-
-    protected Configuration getConfigurationFromFiles(final String configFiles) {
-        final Configuration hiveConfig = new HiveConf();
-        if (StringUtils.isNotBlank(configFiles)) {
-            for (final String configFile : configFiles.split(",")) {
-                hiveConfig.addResource(new Path(configFile.trim()));
-            }
-        }
-        return hiveConfig;
     }
 
     /**
@@ -213,7 +199,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         connectionUrl = context.getProperty(DATABASE_URL).getValue();
 
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
-        final Configuration hiveConfig = getConfigurationFromFiles(configFiles);
+        final Configuration hiveConfig = HiveJdbcCommon.getConfigurationFromFiles(configFiles);
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -297,34 +283,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     @Override
     public String toString() {
         return "HiveConnectionPool[id=" + getIdentifier() + "]";
-    }
-
-    /**
-     * Validates that one or more files exist, as specified in a single property.
-     */
-    public static Validator createMultipleFilesExistValidator() {
-        return new Validator() {
-
-            @Override
-            public ValidationResult validate(String subject, String input, ValidationContext context) {
-                final String[] files = input.split(",");
-                for (String filename : files) {
-                    try {
-                        final File file = new File(filename.trim());
-                        final boolean valid = file.exists() && file.isFile();
-                        if (!valid) {
-                            final String message = "File " + file + " does not exist or is not a file";
-                            return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
-                        }
-                    } catch (SecurityException e) {
-                        final String message = "Unable to access " + filename + " due to " + e.getMessage();
-                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(message).build();
-                    }
-                }
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            }
-
-        };
     }
 
     @Override

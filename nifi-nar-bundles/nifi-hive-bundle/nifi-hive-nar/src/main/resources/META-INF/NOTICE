@@ -84,6 +84,18 @@ The following binary components are provided under the Apache Software License v
       This project includes software copyrighted by Dell SecureWorks and
       licensed under the Apache License, Version 2.0.
 
+  (ASLv2) Apache ORC
+    The following NOTICE information applies:
+      Apache ORC
+      Copyright 2013-2015 The Apache Software Foundation
+
+      This product includes software developed by The Apache Software
+      Foundation (http://www.apache.org/).
+
+      This product includes software developed by Hewlett-Packard:
+      (c) Copyright [2014-2015] Hewlett-Packard Development Company, L.P
+
+
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
       # Jackson JSON processor
