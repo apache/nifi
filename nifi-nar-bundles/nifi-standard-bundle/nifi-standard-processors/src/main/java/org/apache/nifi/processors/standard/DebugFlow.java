@@ -49,24 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("The DebugFlow processor aids testing and debugging the FlowFile framework by allowing various "
         + "responses to be explicitly triggered in response to the receipt of a FlowFile or a timer event without a "
         + "FlowFile if using timer or cron based scheduling.  It can force responses needed to exercise or test "
-        + "various failure modes that can occur when a processor runs.\n"
-        + "\n"
-        + "When triggered, the processor loops through the appropriate response list (based on whether or not it "
-        + "received a FlowFile).  A response is produced the configured number of times for each pass through its"
-        + "response list, as long as the processor is running.\n"
-        + "\n"
-        + "Triggered by a FlowFile, the processor can produce the following responses."
-        + "  1. transfer FlowFile to success relationship.\n"
-        + "  2. transfer FlowFile to failure relationship.\n"
-        + "  3. rollback the FlowFile without penalty.\n"
-        + "  4. rollback the FlowFile and yield the context.\n"
-        + "  5. rollback the FlowFile with penalty.\n"
-        + "  6. throw an exception.\n"
-        + "\n"
-        + "Triggered without a FlowFile, the processor can produce the following responses."
-        + "  1. do nothing and return.\n"
-        + "  2. throw an exception.\n"
-        + "  3. yield the context.\n")
+        + "various failure modes that can occur when a processor runs.")
 public class DebugFlow extends AbstractProcessor {
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
@@ -185,7 +168,6 @@ public class DebugFlow extends AbstractProcessor {
             })
             .build();
 
-
     private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
     private volatile Integer flowFileMaxRollback = 0;
@@ -239,9 +221,9 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(FF_ROLLBACK_PENALTY_ITERATIONS);
                 propList.add(FF_EXCEPTION_ITERATIONS);
                 propList.add(FF_EXCEPTION_CLASS);
+                propList.add(NO_FF_SKIP_ITERATIONS);
                 propList.add(NO_FF_EXCEPTION_ITERATIONS);
                 propList.add(NO_FF_YIELD_ITERATIONS);
-                propList.add(NO_FF_SKIP_ITERATIONS);
                 propList.add(NO_FF_EXCEPTION_CLASS);
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
@@ -299,7 +281,10 @@ public class DebugFlow extends AbstractProcessor {
                             rte = noFlowFileExceptionClass.getConstructor(String.class).newInstance(message);
                             throw rte;
                         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                            e.printStackTrace();
+                            if (logger.isErrorEnabled()) {
+                                logger.error("{} unexpected exception throwing DebugFlow exception: {}",
+                                        new Object[]{this, e});
+                            }
                         }
                     } else {
                         noFlowFileCurrException = 0;
@@ -401,7 +386,10 @@ public class DebugFlow extends AbstractProcessor {
                             rte = flowFileExceptionClass.getConstructor(String.class).newInstance(message);
                             throw rte;
                         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                            e.printStackTrace();
+                            if (logger.isErrorEnabled()) {
+                                logger.error("{} unexpected exception throwing DebugFlow exception: {}",
+                                        new Object[]{this, e});
+                            }
                         }
                     } else {
                         flowFileCurrException = 0;
@@ -421,7 +409,6 @@ public class DebugFlow extends AbstractProcessor {
                 klass = (Class<? extends RuntimeException>)klass2;
             }
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
             klass = null;
         }
         return klass;
