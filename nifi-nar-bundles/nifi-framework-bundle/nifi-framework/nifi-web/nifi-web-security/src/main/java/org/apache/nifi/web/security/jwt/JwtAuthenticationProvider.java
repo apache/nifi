@@ -19,9 +19,10 @@ package org.apache.nifi.web.security.jwt;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
@@ -30,11 +31,12 @@ import io.jsonwebtoken.JwtException;
 /**
  *
  */
-public class JwtAuthenticationProvider implements AuthenticationProvider {
+public class JwtAuthenticationProvider extends NiFiAuthenticationProvider {
 
     private final JwtService jwtService;
 
-    public JwtAuthenticationProvider(JwtService jwtService) {
+    public JwtAuthenticationProvider(JwtService jwtService, NiFiProperties nifiProperties) {
+        super(nifiProperties);
         this.jwtService = jwtService;
     }
 
@@ -44,7 +46,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
 
         try {
             final String jwtPrincipal = jwtService.getAuthenticationFromToken(request.getToken());
-            final NiFiUser user = new StandardNiFiUser(jwtPrincipal);
+            final NiFiUser user = new StandardNiFiUser(mapIdentity(jwtPrincipal), request.getClientAddress());
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);

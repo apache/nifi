@@ -25,12 +25,13 @@ import java.util.Set;
 public interface UsersAndAccessPolicies {
 
     /**
-     * Retrieves the set of access policies for a given resource.
+     * Retrieves the set of access policies for a given resource and action.
      *
      * @param resourceIdentifier the resource identifier to retrieve policies for
-     * @return the set of access policies for the given resource
+     * @param action the action to retrieve policies for
+     * @return the access policy for the given resource and action
      */
-    public Set<AccessPolicy> getAccessPolicies(final String resourceIdentifier);
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action);
 
     /**
      * Retrieves a user by an identity string.

@@ -105,31 +105,33 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         final UsersAndAccessPolicies usersAndAccessPolicies = getUsersAndAccessPolicies();
         final String resourceIdentifier = request.getResource().getIdentifier();
 
-        final Set<AccessPolicy> policies = usersAndAccessPolicies.getAccessPolicies(resourceIdentifier);
-        if (policies == null || policies.isEmpty()) {
+        final AccessPolicy policy = usersAndAccessPolicies.getAccessPolicy(resourceIdentifier, request.getAction());
+        if (policy == null) {
             return AuthorizationResult.resourceNotFound();
         }
 
         final User user = usersAndAccessPolicies.getUser(request.getIdentity());
-
         if (user == null) {
             return AuthorizationResult.denied("Unknown user with identity " + request.getIdentity());
         }
 
         final Set<Group> userGroups = usersAndAccessPolicies.getGroups(user.getIdentity());
-
-        for (AccessPolicy policy : policies) {
-            final boolean containsUser = policy.getUsers().contains(user.getIdentifier());
-            if (policy.getAction() == request.getAction() && (containsUser || containsGroup(userGroups, policy)) ) {
-                return AuthorizationResult.approved();
-            }
+        if (policy.getUsers().contains(user.getIdentifier()) || containsGroup(userGroups, policy)) {
+            return AuthorizationResult.approved();
         }
+
 
         return AuthorizationResult.denied();
     }
 
-
-    private boolean containsGroup(Set<Group> userGroups, final AccessPolicy policy) {
+    /**
+     * Determines if the policy contains one of the user's groups.
+     *
+     * @param userGroups the set of the user's groups
+     * @param policy the policy
+     * @return true if one of the Groups in userGroups is contained in the policy
+     */
+    private boolean containsGroup(final Set<Group> userGroups, final AccessPolicy policy) {
         if (userGroups.isEmpty() || policy.getGroups().isEmpty()) {
             return false;
         }

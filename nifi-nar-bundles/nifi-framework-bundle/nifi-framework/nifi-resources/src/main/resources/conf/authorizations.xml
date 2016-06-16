@@ -14,59 +14,10 @@
   limitations under the License.
 -->
 <!--
-    This file lists all authorizations for this NiFi instance. Refer to the properties file and authorizers.xml for configuration details.
-    
-    Available resources:
-        /flow                       - READ - allows user/entity to load the UI and see the flow structure
-                                    - WRITE - NA
-        /resource                   - READ - allows user/entity to retrieve the available resources
-                                    - WRITE - NA
-        /system                     - READ - allows user/entity to retrieve system level diagnostics (CPU load, disk utilization, etc)
-                                    - WRITE - NA
-        /controller                 - READ - allows user/entity to retrieve configuration details for the controller (controller bulletins, thread pool, reporting tasks, etc)
-                                    - WRITE - allows user/entity to modify configuration details for the controller
-        /provenance                 - READ - allows user/entity to perform provenance requests. results will be filtered based on access to provenance data per component
-                                    - WRITE - NA
-        /token                      - READ - NA
-                                    - WRITE - allows user/entity to create a token for access the REST API
-        /site-to-site               - READ - allows user/entity to retrieve configuration details for performing site to site data transfers with this NiFi
-                                    - WRITE - NA
-        /proxy                      - READ - NA
-                                    - WRITE - allows user/entity to create a proxy request on behalf of another user
-        /process-groups/{id}        - READ - allows user/entity to retrieve configuration details for the process group and all descendant components without explicit access policies
-                                    - WRITE - allows user/entity to create/update/delete configuration details for the process group and all descendant components without explicit access policies
-        /processors/{id}            - READ - allows user/entity to retrieve configuration details for the processor overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the processor overriding any inherited authorizations from an ancestor process group
-        /input-ports/{id}           - READ - allows user/entity to retrieve configuration details for the input port overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the input port overriding any inherited authorizations from an ancestor process group
-        /output-ports/{id}          - READ - allows user/entity to retrieve configuration details for the output port overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the output port overriding any inherited authorizations from an ancestor process group
-        /labels/{id}                - READ - allows user/entity to retrieve configuration details for the label overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the label overriding any inherited authorizations from an ancestor process group
-        /connections/{id}           - READ - allows user/entity to retrieve configuration details for the connection overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the label overriding any inherited authorizations from an ancestor process group
-        /remote-process-groups/{id} - READ - allows user/entity to retrieve configuration details for the remote process group overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the remote process group overriding any inherited authorizations from an ancestor process group
-        /templates/{id}             - READ - allows user/entity to retrieve configuration details for the template overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to create/update/delete the template overriding any inherited authorizations from an ancestor process group
-        /controller-services/{id}   - READ - allows user/entity to retrieve configuration details for the controller service overriding any inherited authorizations from an ancestor process group
-                                    - WRITE - allows user/entity to update/delete the controller service overriding any inherited authorizations from an ancestor process group
-        /reporting-tasks/{id}       - READ - allows user/entity to retrieve configuration details for the reporting tasks overriding any inherited authorizations from the controller
-                                    - WRITE - allows user/entity to create/update/delete the reporting tasks overriding any inherited authorizations from the controller
-        /{type}/{id}/provenance     - READ - allows user/entity to view provenance data from the underlying component
-                                    - WRITE - NA
+    This file should not be manually edited. Authorizations should only be created through the NiFi UI, and during
+    initial setup of a new instance. Refer to authorizers.xml for properties that allow seeding a new installation
+    with initial authorizations.
 -->
 <authorizations>
-    <!--
-    <users>
-      <user identifier="1" identity="" />
-    </users>
-
-    <policies>
-      <policy identifier="1" resource="/flow" action="RW">
-        <user identifier="1" />
-      </policy>
-    </policies>
-    -->
 
 </authorizations>

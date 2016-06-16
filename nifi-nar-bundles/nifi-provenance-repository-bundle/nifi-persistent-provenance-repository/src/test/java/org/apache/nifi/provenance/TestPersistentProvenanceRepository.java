@@ -1743,6 +1743,12 @@ public class TestPersistentProvenanceRepository {
             public boolean isAnonymous() {
                 return false;
             }
+
+            @Override
+            public String getClientAddress() {
+                return null;
+            }
+
         };
     }
 

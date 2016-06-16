@@ -34,6 +34,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
@@ -77,6 +78,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -108,12 +111,21 @@ public class AccessResource extends ApplicationResource {
      * Authorizes access to the flow.
      */
     private boolean hasFlowAccess(final NiFiUser user) {
+        final Map<String,String> userContext;
+        if (!StringUtils.isBlank(user.getClientAddress())) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getFlowResource())
                 .identity(user.getIdentity())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.READ)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -198,7 +210,7 @@ public class AccessResource extends ApplicationResource {
                         // Extract the Base64 encoded token from the Authorization header
                         final String token = StringUtils.substringAfterLast(authorization, " ");
 
-                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token);
+                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token, httpServletRequest.getRemoteAddr());
                         final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
                         final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
@@ -215,7 +227,7 @@ public class AccessResource extends ApplicationResource {
             } else {
                 try {
                     final X509AuthenticationRequestToken x509Request = new X509AuthenticationRequestToken(
-                            httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates);
+                            httpServletRequest.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates, httpServletRequest.getRemoteAddr());
 
                     final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) x509AuthenticationProvider.authenticate(x509Request);
                     final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();

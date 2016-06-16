@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
@@ -57,6 +59,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -598,6 +601,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
             dnChain.forEach(identity -> {
                 // build the request
+                final Map<String,String> userContext;
+                if (!StringUtils.isBlank(user.getClientAddress())) {
+                    userContext = new HashMap<>();
+                    userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+                } else {
+                    userContext = null;
+                }
+
                 final AuthorizationRequest request = new AuthorizationRequest.Builder()
                         .identity(identity)
                         .anonymous(user.isAnonymous())
@@ -605,6 +616,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                         .action(RequestAction.WRITE)
                         .resource(connection.getResource())
                         .resourceContext(attributes)
+                        .userContext(userContext)
                         .build();
 
                 // perform the authorization

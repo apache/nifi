@@ -14,32 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.web.security;
 
-package org.apache.nifi.authorization.user;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 
 /**
- * A representation of a NiFi user that has logged into the application
+ * Base class for authentication request tokens in NiFI.
  */
-public interface NiFiUser {
+public abstract class NiFiAuthenticationRequestToken extends AbstractAuthenticationToken {
+
+    private final String clientAddress;
 
     /**
-     * @return the unique identity of this user
+     * @param clientAddress   The address of the client making the request
      */
-    String getIdentity();
+    public NiFiAuthenticationRequestToken(final String clientAddress) {
+        super(null);
+        setAuthenticated(false);
+        this.clientAddress = clientAddress;
+    }
 
-    /**
-     * @return the next user in the proxied entities chain, or <code>null</code> if no more users exist in the chain.
-     */
-    NiFiUser getChain();
-
-    /**
-     * @return <code>true</code> if the user is the unauthenticated Anonymous user
-     */
-    boolean isAnonymous();
-
-    /**
-     * @return the address of the client that made the request which created this user
-     */
-    String getClientAddress();
+    public String getClientAddress() {
+        return clientAddress;
+    }
 
 }

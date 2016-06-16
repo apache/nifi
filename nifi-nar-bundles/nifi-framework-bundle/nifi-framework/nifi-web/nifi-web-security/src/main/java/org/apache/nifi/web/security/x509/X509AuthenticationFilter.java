@@ -49,7 +49,7 @@ public class X509AuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
-        return new X509AuthenticationRequestToken(request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates);
+        return new X509AuthenticationRequestToken(request.getHeader(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN), principalExtractor, certificates, request.getRemoteAddr());
     }
 
     /* setters */
