@@ -43,6 +43,7 @@
     <bean id="x509AuthenticationProvider" class="org.apache.nifi.web.security.x509.X509AuthenticationProvider">
         <constructor-arg ref="certificateIdentityProvider" index="0"/>
         <constructor-arg ref="authorizer" index="1"/>
+        <constructor-arg ref="nifiProperties"/>
     </bean>
 
     <!-- jwt service -->
@@ -53,6 +54,7 @@
     <!-- jwt authentication provider -->
     <bean id="jwtAuthenticationProvider" class="org.apache.nifi.web.security.jwt.JwtAuthenticationProvider">
         <constructor-arg ref="jwtService"/>
+        <constructor-arg ref="nifiProperties"/>
     </bean>
 
     <!-- otp service -->
@@ -61,6 +63,7 @@
     <!-- otp authentication provider -->
     <bean id="otpAuthenticationProvider" class="org.apache.nifi.web.security.otp.OtpAuthenticationProvider">
         <constructor-arg ref="otpService"/>
+        <constructor-arg ref="nifiProperties"/>
     </bean>
 
     <!-- Kerberos service -->

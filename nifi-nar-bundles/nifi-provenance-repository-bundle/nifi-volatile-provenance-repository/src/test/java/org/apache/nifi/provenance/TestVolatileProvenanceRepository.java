@@ -201,6 +201,11 @@ public class TestVolatileProvenanceRepository {
             public boolean isAnonymous() {
                 return false;
             }
+
+            @Override
+            public String getClientAddress() {
+                return null;
+            }
         };
     }
 }

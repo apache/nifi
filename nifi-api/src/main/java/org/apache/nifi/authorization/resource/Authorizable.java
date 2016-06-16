@@ -23,9 +23,11 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.user.NiFiUser;
 
 import java.util.Map;
+import java.util.HashMap;
 
 public interface Authorizable {
 
@@ -67,7 +69,13 @@ public interface Authorizable {
      * @return is authorized
      */
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
-        // TODO - include user details context
+        final Map<String,String> userContext;
+        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
 
         // build the request
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -77,6 +85,7 @@ public interface Authorizable {
                 .action(action)
                 .resource(getResource())
                 .resourceContext(resourceContext)
+                .userContext(userContext)
                 .build();
 
         // perform the authorization
@@ -119,7 +128,13 @@ public interface Authorizable {
      * @param resourceContext resource context
      */
     default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
-        // TODO - include user details context
+        final Map<String,String> userContext;
+        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(user.getIdentity())
@@ -128,6 +143,7 @@ public interface Authorizable {
                 .action(action)
                 .resource(getResource())
                 .resourceContext(resourceContext)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);

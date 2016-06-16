@@ -54,15 +54,14 @@ public class TestAbstractPolicyBasedAuthorizer {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
 
-        final Set<AccessPolicy> policiesForResource = new HashSet<>();
-        policiesForResource.add(new AccessPolicy.Builder()
+        final AccessPolicy policy = new AccessPolicy.Builder()
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addUser(userIdentifier)
                 .action(RequestAction.READ)
-                .build());
+                .build();
 
-        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(policy);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
@@ -92,15 +91,14 @@ public class TestAbstractPolicyBasedAuthorizer {
         final String userIdentity = "userIdentity1";
         final String groupIdentifier = "groupIdentifier1";
 
-        final Set<AccessPolicy> policiesForResource = new HashSet<>();
-        policiesForResource.add(new AccessPolicy.Builder()
+        final AccessPolicy policy = new AccessPolicy.Builder()
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addGroup(groupIdentifier)
                 .action(RequestAction.READ)
-                .build());
+                .build();
 
-        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(policy);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
@@ -137,15 +135,14 @@ public class TestAbstractPolicyBasedAuthorizer {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
 
-        final Set<AccessPolicy> policiesForResource = new HashSet<>();
-        policiesForResource.add(new AccessPolicy.Builder()
+        final AccessPolicy policy = new AccessPolicy.Builder()
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addUser("NOT_USER_1")
                 .action(RequestAction.READ)
-                .build());
+                .build();
 
-        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
+        when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(policy);
 
         final User user = new User.Builder()
                 .identity(userIdentity)
@@ -171,7 +168,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         UsersAndAccessPolicies usersAndAccessPolicies = Mockito.mock(UsersAndAccessPolicies.class);
         when(authorizer.getUsersAndAccessPolicies()).thenReturn(usersAndAccessPolicies);
 
-        when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(new HashSet<>());
+        when(usersAndAccessPolicies.getAccessPolicy(TEST_RESOURCE.getIdentifier(), RequestAction.READ)).thenReturn(null);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity("userIdentity")

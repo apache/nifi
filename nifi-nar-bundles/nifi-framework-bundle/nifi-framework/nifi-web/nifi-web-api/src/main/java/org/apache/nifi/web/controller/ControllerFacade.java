@@ -1210,7 +1210,8 @@ public class ControllerFacade implements Authorizable {
         final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
         for (final String identity : dnChain) {
             final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final NiFiUser chainUser = new StandardNiFiUser(identity) {
+            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
+            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
                 @Override
                 public boolean isAnonymous() {
                     // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
@@ -1243,7 +1244,8 @@ public class ControllerFacade implements Authorizable {
         final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
         for (final String identity : dnChain) {
             final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final NiFiUser chainUser = new StandardNiFiUser(identity) {
+            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
+            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
                 @Override
                 public boolean isAnonymous() {
                     // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case

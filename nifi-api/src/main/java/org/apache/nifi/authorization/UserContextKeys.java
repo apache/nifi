@@ -14,32 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.nifi.authorization.user;
+package org.apache.nifi.authorization;
 
 /**
- * A representation of a NiFi user that has logged into the application
+ * Constants for keys that can be passed in the AuthorizationRequest user context Map.
  */
-public interface NiFiUser {
+public enum UserContextKeys {
 
-    /**
-     * @return the unique identity of this user
-     */
-    String getIdentity();
-
-    /**
-     * @return the next user in the proxied entities chain, or <code>null</code> if no more users exist in the chain.
-     */
-    NiFiUser getChain();
-
-    /**
-     * @return <code>true</code> if the user is the unauthenticated Anonymous user
-     */
-    boolean isAnonymous();
-
-    /**
-     * @return the address of the client that made the request which created this user
-     */
-    String getClientAddress();
+    CLIENT_ADDRESS;
 
 }

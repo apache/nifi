@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.apache.nifi.web.security.NiFiAuthenticationRequestToken;
 
 /**
  * This is an authentication request with a given JWT token.
  */
-public class JwtAuthenticationRequestToken extends AbstractAuthenticationToken {
+public class JwtAuthenticationRequestToken extends NiFiAuthenticationRequestToken {
 
     private final String token;
 
@@ -29,9 +29,10 @@ public class JwtAuthenticationRequestToken extends AbstractAuthenticationToken {
      * Creates a representation of the jwt authentication request for a user.
      *
      * @param token   The unique token for this user
+     * @param clientAddress the address of the client making the request
      */
-    public JwtAuthenticationRequestToken(final String token) {
-        super(null);
+    public JwtAuthenticationRequestToken(final String token, final String clientAddress) {
+        super(clientAddress);
         setAuthenticated(false);
         this.token = token;
     }
