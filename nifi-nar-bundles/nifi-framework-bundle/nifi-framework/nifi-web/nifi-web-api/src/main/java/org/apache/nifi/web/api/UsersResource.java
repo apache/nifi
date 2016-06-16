@@ -26,9 +26,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -58,12 +62,15 @@ import java.net.URI;
 )
 public class UsersResource extends ApplicationResource {
 
-    final private NiFiServiceFacade serviceFacade;
-    final private Authorizer authorizer;
+    private final NiFiServiceFacade serviceFacade;
+    private final Authorizer authorizer;
 
-    public UsersResource(NiFiServiceFacade serviceFacade, Authorizer authorizer) {
+    public UsersResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator, ClusterCoordinator clusterCoordinator) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
+        setProperties(properties);
+        setRequestReplicator(requestReplicator);
+        setClusterCoordinator(clusterCoordinator);
     }
 
     /**
@@ -92,7 +99,7 @@ public class UsersResource extends ApplicationResource {
      * Creates a new user.
      *
      * @param httpServletRequest request
-     * @param userEntity An userEntity.
+     * @param userEntity         An userEntity.
      * @return An userEntity.
      */
     @POST
@@ -150,8 +157,12 @@ public class UsersResource extends ApplicationResource {
         // set the user id as appropriate
         userEntity.getComponent().setId(generateUuid());
 
+        // get revision from the config
+        final RevisionDTO revisionDTO = userEntity.getRevision();
+        Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userEntity.getComponent().getId());
+
         // create the user and generate the json
-        final UserEntity entity = serviceFacade.createUser(userEntity.getComponent());
+        final UserEntity entity = serviceFacade.createUser(revision, userEntity.getComponent());
         populateRemainingUserEntityContent(entity);
 
         // build the response
@@ -215,8 +226,8 @@ public class UsersResource extends ApplicationResource {
      * Updates a user.
      *
      * @param httpServletRequest request
-     * @param id The id of the user to update.
-     * @param userEntity An userEntity.
+     * @param id                 The id of the user to update.
+     * @param userEntity         An userEntity.
      * @return An userEntity.
      */
     @PUT
@@ -302,12 +313,12 @@ public class UsersResource extends ApplicationResource {
      * Removes the specified user.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param id The id of the user to remove.
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the user to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
@@ -362,7 +373,8 @@ public class UsersResource extends ApplicationResource {
                     final Authorizable users = lookup.getUsersAuthorizable();
                     users.authorize(authorizer, RequestAction.READ);
                 },
-                () -> {},
+                () -> {
+                },
                 () -> {
                     // delete the specified user
                     final UserEntity entity = serviceFacade.deleteUser(revision, id);

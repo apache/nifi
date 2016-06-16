@@ -251,14 +251,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     private Authorizer authorizer;
 
-    private final AuthorizableLookup authorizableLookup;
-
-    public StandardNiFiServiceFacade(AuthorizableLookup authorizableLookup) {
-        if (authorizableLookup == null) {
-            throw new IllegalArgumentException(AuthorizableLookup.class.getSimpleName() + " cannot be null");
-        }
-        this.authorizableLookup = authorizableLookup;
-    }
+    private AuthorizableLookup authorizableLookup;
 
     // -----------------------------------------
     // Synchronization methods
@@ -527,7 +520,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UpdateResult<AccessPolicyEntity> updateAccessPolicy(final Revision revision, final AccessPolicyDTO accessPolicyDTO) {
         // if access policy does not exist, then create new access policy
         if (!accessPolicyDAO.hasAccessPolicy(accessPolicyDTO.getId())) {
-            return new UpdateResult<>(createAccessPolicy(accessPolicyDTO), false);
+            return new UpdateResult<>(createAccessPolicy(revision, accessPolicyDTO), false);
         }
 
         final Authorizable accessPolicyAuthorizable = authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDTO.getId());
@@ -544,7 +537,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UpdateResult<UserEntity> updateUser(final Revision revision, final UserDTO userDTO) {
         // if user does not exist, then create new user
         if (!userDAO.hasUser(userDTO.getId())) {
-            return new UpdateResult<>(createUser(userDTO), false);
+            return new UpdateResult<>(createUser(revision, userDTO), false);
         }
 
         final Authorizable usersAuthorizable = authorizableLookup.getUsersAuthorizable();
@@ -561,7 +554,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public UpdateResult<UserGroupEntity> updateUserGroup(final Revision revision, final UserGroupDTO userGroupDTO) {
         // if user group does not exist, then create new user group
         if (!userGroupDAO.hasUserGroup(userGroupDTO.getId())) {
-            return new UpdateResult<>(createUserGroup(userGroupDTO), false);
+            return new UpdateResult<>(createUserGroup(revision, userGroupDTO), false);
         }
 
         final Authorizable userGroupsAuthorizable = authorizableLookup.getUserGroupsAuthorizable();
@@ -1320,37 +1313,42 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public AccessPolicyEntity createAccessPolicy(AccessPolicyDTO accessPolicyDTO) {
-        final RevisionUpdate<AccessPolicyDTO> snapshot = createComponent(
-                accessPolicyDTO,
-                () -> accessPolicyDAO.createAccessPolicy(accessPolicyDTO),
-                accessPolicy -> dtoFactory.createAccessPolicyDto(accessPolicy));
+    public AccessPolicyEntity createAccessPolicy(Revision revision, AccessPolicyDTO accessPolicyDTO) {
+        final String creator = NiFiUserUtils.getNiFiUserName();
+        if (revision.getVersion() != 0) {
+            throw new IllegalArgumentException("The revision must start at 0.");
+        }
+        final AccessPolicy newAccessPolicy = accessPolicyDAO.createAccessPolicy(accessPolicyDTO);
+        final AccessPolicyDTO newAccessPolicyDto = dtoFactory.createAccessPolicyDto(newAccessPolicy);
 
-        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(
-                authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDAO.getAccessPolicy(accessPolicyDTO.getId()).getIdentifier()));
-        return entityFactory.createAccessPolicyEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy);
+        final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getAccessPolicyAuthorizable(newAccessPolicy.getIdentifier()));
+        return entityFactory.createAccessPolicyEntity(newAccessPolicyDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
     }
 
     @Override
-    public UserEntity createUser(UserDTO userDTO) {
-        final RevisionUpdate<UserDTO> snapshot = createComponent(
-                userDTO,
-                () -> userDAO.createUser(userDTO),
-                user -> dtoFactory.createUserDto(user));
+    public UserEntity createUser(Revision revision, UserDTO userDTO) {
+        final String creator = NiFiUserUtils.getNiFiUserName();
+        if (revision.getVersion() != 0) {
+            throw new IllegalArgumentException("The revision must start at 0.");
+        }
+        final User newUser = userDAO.createUser(userDTO);
+        final UserDTO newUserDto = dtoFactory.createUserDto(newUser);
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getUsersAuthorizable());
-        return entityFactory.createUserEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy);
+        return entityFactory.createUserEntity(newUserDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
     }
 
     @Override
-    public UserGroupEntity createUserGroup(UserGroupDTO userGroupDTO) {
-        final RevisionUpdate<UserGroupDTO> snapshot = createComponent(
-                userGroupDTO,
-                () -> userGroupDAO.createUserGroup(userGroupDTO),
-                userGroup -> dtoFactory.createUserGroupDto(userGroup));
+    public UserGroupEntity createUserGroup(Revision revision, UserGroupDTO userGroupDTO) {
+        final String creator = NiFiUserUtils.getNiFiUserName();
+        if (revision.getVersion() != 0) {
+            throw new IllegalArgumentException("The revision must start at 0.");
+        }
+        final Group newUserGroup = userGroupDAO.createUserGroup(userGroupDTO);
+        final UserGroupDTO newUserGroupDto = dtoFactory.createUserGroupDto(newUserGroup);
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getUserGroupsAuthorizable());
-        return entityFactory.createUserGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy);
+        return entityFactory.createUserGroupEntity(newUserGroupDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
     }
 
     private void validateSnippetContents(final FlowSnippetDTO flow) {
@@ -3064,7 +3062,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.snippetUtils = snippetUtils;
     }
 
-    public void setAuthorizer(final Authorizer authorizer) {
+    public void setAuthorizableLookup(AuthorizableLookup authorizableLookup) {
+        this.authorizableLookup = authorizableLookup;
+    }
+
+    public void setAuthorizer(Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 

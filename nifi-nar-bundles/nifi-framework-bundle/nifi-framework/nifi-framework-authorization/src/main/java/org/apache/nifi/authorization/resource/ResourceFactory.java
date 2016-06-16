@@ -151,7 +151,7 @@ public final class ResourceFactory {
 
         @Override
         public String getIdentifier() {
-            return "/usergroups";
+            return "/user-groups";
         }
 
         @Override

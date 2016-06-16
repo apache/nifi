@@ -1200,10 +1200,11 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     /**
      * Creates a user.
+     * @param revision The starting revision
      * @param userDTO The user DTO
      * @return The user transfer object
      */
-    UserEntity createUser(UserDTO userDTO);
+    UserEntity createUser(Revision revision, UserDTO userDTO);
 
     /**
      * Gets the user with the specified ID.
@@ -1233,10 +1234,11 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     /**
      * Creates a user group.
+     * @param revision The starting revision
      * @param userGroupDTO The user group DTO
      * @return The user group transfer object
      */
-    UserGroupEntity createUserGroup(UserGroupDTO userGroupDTO);
+    UserGroupEntity createUserGroup(Revision revision, UserGroupDTO userGroupDTO);
 
     /**
      * Gets the user group with the specified ID.
@@ -1266,13 +1268,14 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     /**
      * Creates an access policy.
+     * @param revision The starting revision
      * @param accessPolicyDTO The access policy DTO
      * @return The access policy transfer object
      */
-    AccessPolicyEntity createAccessPolicy(AccessPolicyDTO accessPolicyDTO);
+    AccessPolicyEntity createAccessPolicy(Revision revision, AccessPolicyDTO accessPolicyDTO);
 
     /**
-     * Gets the acess policy with the specified ID.
+     * Gets the access policy with the specified ID.
      * @param accessPolicyId access policy ID
      * @return The access policy transfer object
      */

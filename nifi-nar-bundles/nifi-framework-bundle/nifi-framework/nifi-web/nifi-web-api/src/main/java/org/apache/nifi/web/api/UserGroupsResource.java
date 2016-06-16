@@ -26,9 +26,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UpdateResult;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -51,19 +55,22 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 
-@Path("/usergroups")
+@Path("/user-groups")
 @Api(
-        value = "/usergroups",
+        value = "/user-groups",
         description = "Endpoint for managing user groups."
 )
 public class UserGroupsResource extends ApplicationResource {
 
-    final private NiFiServiceFacade serviceFacade;
-    final private Authorizer authorizer;
+    private final NiFiServiceFacade serviceFacade;
+    private final Authorizer authorizer;
 
-    public UserGroupsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer) {
+    public UserGroupsResource(NiFiServiceFacade serviceFacade, Authorizer authorizer, NiFiProperties properties, RequestReplicator requestReplicator, ClusterCoordinator clusterCoordinator) {
         this.serviceFacade = serviceFacade;
         this.authorizer = authorizer;
+        setProperties(properties);
+        setRequestReplicator(requestReplicator);
+        setClusterCoordinator(clusterCoordinator);
     }
 
     /**
@@ -84,7 +91,7 @@ public class UserGroupsResource extends ApplicationResource {
      */
     public UserGroupDTO populateRemainingUserGroupContent(UserGroupDTO userGroup) {
         // populate the user group href
-        userGroup.setUri(generateResourceUri("usergroups", userGroup.getId()));
+        userGroup.setUri(generateResourceUri("user-groups", userGroup.getId()));
         return userGroup;
     }
 
@@ -92,7 +99,7 @@ public class UserGroupsResource extends ApplicationResource {
      * Creates a new user group.
      *
      * @param httpServletRequest request
-     * @param userGroupEntity An userGroupEntity.
+     * @param userGroupEntity    An userGroupEntity.
      * @return An userGroupEntity.
      */
     @POST
@@ -150,8 +157,12 @@ public class UserGroupsResource extends ApplicationResource {
         // set the user group id as appropriate
         userGroupEntity.getComponent().setId(generateUuid());
 
+        // get revision from the config
+        final RevisionDTO revisionDTO = userGroupEntity.getRevision();
+        Revision revision = new Revision(revisionDTO.getVersion(), revisionDTO.getClientId(), userGroupEntity.getComponent().getId());
+
         // create the user group and generate the json
-        final UserGroupEntity entity = serviceFacade.createUserGroup(userGroupEntity.getComponent());
+        final UserGroupEntity entity = serviceFacade.createUserGroup(revision, userGroupEntity.getComponent());
         populateRemainingUserGroupEntityContent(entity);
 
         // build the response
@@ -215,8 +226,8 @@ public class UserGroupsResource extends ApplicationResource {
      * Updates a user group.
      *
      * @param httpServletRequest request
-     * @param id The id of the user group to update.
-     * @param userGroupEntity An userGroupEntity.
+     * @param id                 The id of the user group to update.
+     * @param userGroupEntity    An userGroupEntity.
      * @return An userGroupEntity.
      */
     @PUT
@@ -302,12 +313,12 @@ public class UserGroupsResource extends ApplicationResource {
      * Removes the specified user group.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param id The id of the user group to remove.
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the user group to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
@@ -362,7 +373,8 @@ public class UserGroupsResource extends ApplicationResource {
                     final Authorizable userGroups = lookup.getUserGroupsAuthorizable();
                     userGroups.authorize(authorizer, RequestAction.READ);
                 },
-                () -> {},
+                () -> {
+                },
                 () -> {
                     // delete the specified user group
                     final UserGroupEntity entity = serviceFacade.deleteUserGroup(revision, id);

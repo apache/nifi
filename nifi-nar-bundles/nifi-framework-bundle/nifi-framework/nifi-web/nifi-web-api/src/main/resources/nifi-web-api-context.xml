@@ -108,14 +108,8 @@
         <property name="flowController" ref="flowController"/>
         <property name="snippetUtils" ref="snippetUtils"/>
     </bean>
-    <bean id="accessPolicyDAO" class="org.apache.nifi.web.dao.impl.StandardAccessPolicyDao">
-        <property name="authorizer" ref="authorizer"/>
-    </bean>
-    <bean id="userGroupDAO" class="org.apache.nifi.web.dao.impl.StandardUserGroupDao">
-        <property name="authorizer" ref="authorizer"/>
-    </bean>
-    <bean id="userDAO" class="org.apache.nifi.web.dao.impl.StandardUserDAO">
-        <property name="authorizer" ref="authorizer"/>
+    <bean id="policyBasedAuthorizerDAO" class="org.apache.nifi.web.dao.impl.StandardPolicyBasedAuthorizerDAO">
+        <constructor-arg ref="authorizer"/>
     </bean>
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
         <property name="properties" ref="nifiProperties"/>
@@ -140,9 +134,10 @@
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
-        <constructor-arg ref="authorizableLookup" />
+        <property name="authorizableLookup" ref="authorizableLookup" />
         <property name="properties" ref="nifiProperties"/>
         <property name="authorizer" ref="authorizer"/>
         <property name="controllerFacade" ref="controllerFacade"/>
@@ -158,9 +153,9 @@
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
-        <property name="accessPolicyDAO" ref="accessPolicyDAO"/>
-        <property name="userGroupDAO" ref="userGroupDAO"/>
-        <property name="userDAO" ref="userDAO"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="userGroupDAO" ref="policyBasedAuthorizerDAO"/>
+        <property name="userDAO" ref="policyBasedAuthorizerDAO"/>
         <property name="auditService" ref="auditService"/>
         <property name="keyService" ref="keyService"/>
         <property name="snippetUtils" ref="snippetUtils"/>
@@ -371,16 +366,25 @@
         <property name="requestReplicator" ref="requestReplicator" />
     </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="authorizer" ref="authorizer"/>
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
     </bean>
     <bean id="userGroupsResource" class="org.apache.nifi.web.api.UserGroupsResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="authorizer" ref="authorizer"/>
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
     </bean>
-    <bean id="usersResource" class="org.apache.nifi.web.api.usersResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="authorizer" ref="authorizer"/>
+    <bean id="usersResource" class="org.apache.nifi.web.api.UsersResource" scope="singleton">
+        <constructor-arg ref="serviceFacade"/>
+        <constructor-arg ref="authorizer"/>
+        <constructor-arg ref="nifiProperties"/>
+        <constructor-arg ref="clusterCoordinator"/>
+        <constructor-arg ref="requestReplicator" />
     </bean>
 
     <!-- configuration for jaxb serialization -->

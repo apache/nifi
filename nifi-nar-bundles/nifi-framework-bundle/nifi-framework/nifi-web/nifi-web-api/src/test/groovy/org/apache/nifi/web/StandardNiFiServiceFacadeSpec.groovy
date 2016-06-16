@@ -47,31 +47,21 @@ class StandardNiFiServiceFacadeSpec extends Specification {
     def "CreateUser: isAuthorized: #isAuthorized"() {
         given:
         def userDao = Mock UserDAO
-        def revisionManager = Mock RevisionManager
-        def controllerServiceProvider = Mock ControllerServiceProvider
         def entityFactory = new EntityFactory()
         def dtoFactory = new DtoFactory()
-        dtoFactory.setControllerServiceProvider controllerServiceProvider
-        dtoFactory.setEntityFactory entityFactory
         def authorizableLookup = Mock AuthorizableLookup
-        def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
-        niFiServiceFacade.setRevisionManager revisionManager
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setUserDAO userDao
         niFiServiceFacade.setEntityFactory entityFactory
-        niFiServiceFacade.setControllerFacade controllerFacade
         def newUser = new User.Builder().identifier(userDto.id).identity(userDto.identity).build()
 
         when:
-        def userEntity = niFiServiceFacade.createUser(userDto)
+        def userEntity = niFiServiceFacade.createUser(new Revision(0L, 'client-1'), userDto)
 
         then:
-        1 * controllerFacade.save()
         1 * userDao.createUser(_) >> newUser
-        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-            callback.withRevision(new Revision(1L, 'client1', 'root'))
-        }
         1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(parentAuthorizable, resource, isAuthorized, authorizationResult)
         0 * _
         userEntity != null
@@ -99,7 +89,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
@@ -138,7 +129,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
     }
 
     @Unroll
-    def "UpdateUser: isAuthorized: #isAuthorized, policy exists: #hasPolicy"() {
+    def "UpdateUser: isAuthorized: #isAuthorized, policy exists: #userExists"() {
         given:
         def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
@@ -146,7 +137,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def authorizableLookup = Mock AuthorizableLookup
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setUserDAO userDao
@@ -158,14 +150,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def userEntityUpdateResult = niFiServiceFacade.updateUser(currentRevision, userDto)
 
         then:
-        1 * userDao.hasUser(userDto.id) >> hasPolicy
-        1 * controllerFacade.save()
-        if (!hasPolicy) {
+        1 * userDao.hasUser(userDto.id) >> userExists
+        if (!userExists) {
             1 * userDao.createUser(userDto) >> user
-            1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-                callback.withRevision(new Revision(1L, 'client1', 'root'))
-            }
         } else {
+            1 * controllerFacade.save()
             1 * userDao.updateUser(userDto) >> user
             1 * revisionManager.updateRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser niFiUser, UpdateRevisionTask callback ->
                 callback.update()
@@ -185,13 +174,14 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        hasPolicy | currentRevision                     | userDto                                  | isAuthorized | authorizationResult
-        false     | null                                | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        true      | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        false     | null                                | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
-        true      | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        userExists | currentRevision                     | userDto                                  | isAuthorized | authorizationResult
+        false      | new Revision(0L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
+        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
+        false      | new Revision(0L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
     }
 
+    @Unroll
     def "DeleteUser: isAuthorized: #isAuthorized, user exists: #userExists"() {
         given:
         def userDao = Mock UserDAO
@@ -200,7 +190,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
@@ -234,11 +225,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        useCase    | userExists | currentRevision                     | userDto                                  | isAuthorized | authorizationResult
-        'approved' | true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        'approved' | false      | null                                | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        'denied'   | true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
-        'denied'   | false      | null                                | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        userExists | currentRevision                     | userDto                                  | isAuthorized | authorizationResult
+        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
+        false      | null                                | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
+        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        false      | null                                | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
     }
 
     @Unroll
@@ -253,7 +244,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         dtoFactory.setEntityFactory entityFactory
         def authorizableLookup = Mock AuthorizableLookup
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setUserGroupDAO userGroupDao
@@ -262,14 +254,10 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def newUserGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name).addUsers(userGroupDto.users).build()
 
         when:
-        def userGroupEntity = niFiServiceFacade.createUserGroup(userGroupDto)
+        def userGroupEntity = niFiServiceFacade.createUserGroup(new Revision(0L, 'client-1'), userGroupDto)
 
         then:
-        1 * controllerFacade.save()
         1 * userGroupDao.createUserGroup(_) >> newUserGroup
-        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-            callback.withRevision(new Revision(1L, 'client1', 'root'))
-        }
         1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.userGroupsResource, isAuthorized, authorizationResult)
         0 * _
         userGroupEntity != null
@@ -297,7 +285,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
@@ -344,7 +333,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def authorizableLookup = Mock AuthorizableLookup
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setUserGroupDAO userGroupDao
@@ -357,13 +347,10 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         then:
         1 * userGroupDao.hasUserGroup(userGroupDto.id) >> hasPolicy
-        1 * controllerFacade.save()
         if (!hasPolicy) {
             1 * userGroupDao.createUserGroup(userGroupDto) >> userGroup
-            1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-                callback.withRevision(new Revision(1L, 'client1', 'root'))
-            }
         } else {
+            1 * controllerFacade.save()
             1 * userGroupDao.updateUserGroup(userGroupDto) >> userGroup
             1 * revisionManager.updateRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser niFiUser, UpdateRevisionTask callback ->
                 callback.update()
@@ -384,9 +371,9 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         where:
         hasPolicy | currentRevision                     | userGroupDto                                                         | isAuthorized | authorizationResult
-        false     | null                                | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
+        false     | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
         true      | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        false     | null                                | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
+        false     | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
         true      | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
     }
 
@@ -399,7 +386,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
@@ -441,6 +429,51 @@ class StandardNiFiServiceFacadeSpec extends Specification {
     }
 
     @Unroll
+    def "CreateAccessPolicy: #isAuthorized"() {
+        given:
+        def accessPolicyDao = Mock AccessPolicyDAO
+        def entityFactory = new EntityFactory()
+        def dtoFactory = new DtoFactory()
+        dtoFactory.setEntityFactory entityFactory
+        def authorizableLookup = Mock AuthorizableLookup
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
+        niFiServiceFacade.setDtoFactory dtoFactory
+        niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
+        niFiServiceFacade.setEntityFactory entityFactory
+        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource).addUsers(accessPolicyDto.users).addGroups(accessPolicyDto.groups)
+        if (accessPolicyDto.canRead) {
+            builder.addAction(RequestAction.READ)
+        }
+        if (accessPolicyDto.canWrite) {
+            builder.addAction(RequestAction.WRITE)
+        }
+        def newAccessPolicy = builder.build()
+
+        when:
+        def accessPolicyEntity = niFiServiceFacade.createAccessPolicy(new Revision(0L, 'client-1'), accessPolicyDto)
+
+        then:
+        1 * accessPolicyDao.createAccessPolicy(accessPolicyDto) >> newAccessPolicy
+        1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+                isAuthorized, authorizationResult)
+        0 * _
+        accessPolicyEntity != null
+        if (isAuthorized) {
+            assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
+            assert accessPolicyEntity?.accessPolicy?.canRead
+            assert accessPolicyEntity?.accessPolicy?.canWrite
+        } else {
+            assert accessPolicyEntity.component == null
+        }
+
+        where:
+        accessPolicyDto                                                                                                 | isAuthorized | authorizationResult
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         | AuthorizationResult.approved()
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        | AuthorizationResult.denied()
+    }
+
+    @Unroll
     def "GetAccessPolicy: isAuthorized: #isAuthorized"() {
         given:
         def accessPolicyDao = Mock AccessPolicyDAO
@@ -448,7 +481,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
@@ -503,7 +537,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def authorizableLookup = Mock AuthorizableLookup
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
@@ -523,14 +558,10 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         then:
         1 * accessPolicyDao.hasAccessPolicy(accessPolicyDto.id) >> hasPolicy
-        1 * controllerFacade.save()
         if (!hasPolicy) {
-            1 * accessPolicyDao.getAccessPolicy(accessPolicyDto.id) >> accessPolicy
             1 * accessPolicyDao.createAccessPolicy(accessPolicyDto) >> accessPolicy
-            1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-                callback.withRevision(new Revision(1L, 'client1', 'root'))
-            }
         } else {
+            1 * controllerFacade.save()
             1 * accessPolicyDao.updateAccessPolicy(accessPolicyDto) >> accessPolicy
             1 * revisionManager.updateRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser niFiUser, UpdateRevisionTask callback ->
                 callback.update()
@@ -552,11 +583,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         where:
         hasPolicy | currentRevision                     | accessPolicyDto                                                                                                 | isAuthorized |
                 authorizationResult
-        false     | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
+        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
                 AuthorizationResult.approved()
         true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
                 AuthorizationResult.approved()
-        false     | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
+        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
                 AuthorizationResult.denied()
         true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
                 AuthorizationResult.denied()
@@ -571,7 +602,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def dtoFactory = new DtoFactory()
         def entityFactory = new EntityFactory()
         def controllerFacade = Mock ControllerFacade
-        def niFiServiceFacade = new StandardNiFiServiceFacade(authorizableLookup)
+        def niFiServiceFacade = new StandardNiFiServiceFacade()
+        niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setRevisionManager revisionManager
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
