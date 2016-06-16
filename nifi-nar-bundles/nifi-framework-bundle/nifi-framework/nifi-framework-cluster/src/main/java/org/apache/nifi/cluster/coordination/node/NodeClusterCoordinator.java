@@ -278,12 +278,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public void reportEvent(final NodeIdentifier nodeId, final Severity severity, final String event) {
-        eventReporter.reportEvent(severity, nodeId == null ? EVENT_CATEGORY : nodeId.toString(), event);
+        eventReporter.reportEvent(severity, EVENT_CATEGORY, "Event Reported for " + nodeId.toString() + " -- " + event);
         if (nodeId != null) {
             addNodeEvent(nodeId, severity, event);
         }
 
-        final String message = nodeId == null ? event : "Event Reported for " + nodeId + ": " + event;
+        final String message = nodeId == null ? event : "Event Reported for " + nodeId + " -- " + event;
         switch (severity) {
             case ERROR:
                 logger.error(message);
