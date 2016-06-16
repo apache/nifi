@@ -597,7 +597,6 @@ public class MockProcessSession implements ProcessSession {
         }
 
         beingProcessed.remove(flowFile.getId());
-       // if(sharedState.)
         list.add((MockFlowFile) flowFile);
     }
 
