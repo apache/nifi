@@ -132,7 +132,7 @@ nf.ProcessGroupConfiguration = (function () {
 
                     // register the click listener for the save button
                     $('#process-group-configuration-save').off('click').on('click', function () {
-                        saveConfiguration(response.revision.version, processGroupResponse.id);
+                        saveConfiguration(response.revision.version, response.id);
                     });
                 } else {
                     if (response.accessPolicy.canRead) {
@@ -247,7 +247,7 @@ nf.ProcessGroupConfiguration = (function () {
         showConfiguration: function (groupId) {
             // update the click listener
             $('#process-group-configuration-refresh-button').off('click').on('click', function () {
-                loadConfiguration(groupId).done(showConfiguration);
+                loadConfiguration(groupId);
             });
 
             // update the new controller service click listener
