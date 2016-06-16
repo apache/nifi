@@ -1464,14 +1464,12 @@ nf.SummaryTable = (function () {
             // determine what to put in the mark up
             var transmissionClass = 'invalid';
             var transmissionLabel = 'Invalid';
-            if (nf.Common.isEmpty(dataContext.authorizationIssues)) {
-                if (value === 'Transmitting') {
-                    transmissionClass = 'transmitting';
-                    transmissionLabel = value;
-                } else {
-                    transmissionClass = 'not-transmitting';
-                    transmissionLabel = 'Not Transmitting';
-                }
+            if (value === 'Transmitting') {
+                transmissionClass = 'transmitting';
+                transmissionLabel = value;
+            } else {
+                transmissionClass = 'not-transmitting';
+                transmissionLabel = 'Not Transmitting';
             }
 
             // generate the mark up
@@ -2423,8 +2421,7 @@ nf.SummaryTable = (function () {
                         transmissionStatus: snapshot.transmissionStatus,
                         sent: snapshot.sent,
                         received: snapshot.received,
-                        activeThreadCount: snapshot.activeThreadCount,
-                        authorizationIssues: snapshot.authorizationIssues
+                        activeThreadCount: snapshot.activeThreadCount
                     });
                 });
 

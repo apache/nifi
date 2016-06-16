@@ -18,31 +18,41 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.ConnectionEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.ProcessGroupEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<ProcessGroupEntity> implements EndpointResponseMerger {
-    public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
+public class ConnectionEndpointMerger extends AbstractSingleEntityEndpoint<ConnectionEntity> implements EndpointResponseMerger {
+    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections");
+    public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/connections/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return ("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && PROCESS_GROUP_URI_PATTERN.matcher(uri.getPath()).matches();
+        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
+            return true;
+        } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
-    protected Class<ProcessGroupEntity> getEntityClass() {
-        return ProcessGroupEntity.class;
+    protected Class<ConnectionEntity> getEntityClass() {
+        return ConnectionEntity.class;
     }
 
+
     @Override
-    protected void mergeResponses(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        ProcessGroupEntityMerger.mergeProcessGroups(clientEntity, entityMap);
+    protected void mergeResponses(final ConnectionEntity clientEntity, final Map<NodeIdentifier, ConnectionEntity> entityMap, final Set<NodeResponse> successfulResponses,
+        final Set<NodeResponse> problematicResponses) {
+
+        ConnectionEntityMerger.mergeConnections(clientEntity, entityMap);
     }
 }

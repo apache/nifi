@@ -110,10 +110,7 @@ nf.CanvasUtils = (function () {
                 },
                 position: {
                     at: 'bottom right',
-                    my: 'top left',
-                    adjust: {
-                        method: 'flipinvert flipinvert'
-                    }
+                    my: 'top left'
                 }
             }
         },
@@ -493,7 +490,7 @@ nf.CanvasUtils = (function () {
             }
 
             // if there are bulletins show them, otherwise hide
-            if (!nf.Common.isEmpty(d.status.bulletins)) {
+            if (!nf.Common.isEmpty(d.bulletins)) {
                 // update the tooltip
                 selection.select('text.bulletin-icon')
                         .each(function () {
@@ -505,7 +502,7 @@ nf.CanvasUtils = (function () {
                                     .attr('class', 'tooltip nifi-tooltip')
                                     .html(function () {
                                         // format the bulletins
-                                        var bulletins = nf.Common.getFormattedBulletins(d.status.bulletins);
+                                        var bulletins = nf.Common.getFormattedBulletins(d.bulletins);
 
                                         // create the unordered list based off the formatted bulletins
                                         var list = nf.Common.formatUnorderedList(bulletins);
@@ -519,6 +516,12 @@ nf.CanvasUtils = (function () {
                             // add the tooltip
                             nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
+
+                // update the tooltip background
+                selection.select('rect.bulletin-background').classed('has-bulletins', true);
+            } else {
+                // update the tooltip background
+                selection.select('rect.bulletin-background').classed('has-bulletins', false);
             }
         },
         

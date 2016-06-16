@@ -17,21 +17,21 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.ProcessorsEntityMerger;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsEntity;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsEntity;
-
 public class ProcessorsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
+    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -47,30 +47,24 @@ public class ProcessorsEndpointMerger implements EndpointResponseMerger {
         final ProcessorsEntity responseEntity = clientResponse.getClientResponse().getEntity(ProcessorsEntity.class);
         final Set<ProcessorEntity> processorEntities = responseEntity.getProcessors();
 
-        final Map<String, Map<NodeIdentifier, ProcessorDTO>> dtoMap = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, ProcessorEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
             final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
             final Set<ProcessorEntity> nodeProcessorEntities = nodeResponseEntity.getProcessors();
 
             for (final ProcessorEntity nodeProcessorEntity : nodeProcessorEntities) {
                 final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ProcessorDTO> innerMap = dtoMap.get(nodeId);
+                Map<NodeIdentifier, ProcessorEntity> innerMap = entityMap.get(nodeId);
                 if (innerMap == null) {
                     innerMap = new HashMap<>();
-                    dtoMap.put(nodeProcessorEntity.getId(), innerMap);
+                    entityMap.put(nodeProcessorEntity.getId(), innerMap);
                 }
 
-                innerMap.put(nodeResponse.getNodeId(), nodeProcessorEntity.getComponent());
+                innerMap.put(nodeResponse.getNodeId(), nodeProcessorEntity);
             }
         }
 
-        final ProcessorEndpointMerger procMerger = new ProcessorEndpointMerger();
-        for (final ProcessorEntity entity : processorEntities) {
-            final String componentId = entity.getId();
-            final Map<NodeIdentifier, ProcessorDTO> mergeMap = dtoMap.get(componentId);
-
-            procMerger.mergeResponses(entity.getComponent(), mergeMap, successfulResponses, problematicResponses);
-        }
+        ProcessorsEntityMerger.mergeProcessors(processorEntities, entityMap);
 
         // create a new client response
         return new NodeResponse(clientResponse, responseEntity);

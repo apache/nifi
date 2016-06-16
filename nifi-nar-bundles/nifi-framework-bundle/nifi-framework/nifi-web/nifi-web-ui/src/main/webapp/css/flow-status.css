@@ -92,6 +92,10 @@
     background-color: #728E9B; /*base-color*/
 }
 
+#bulletin-button.has-bulletins {
+    background-color: #ba554a; /*warm-color*/
+}
+
 #bulletin-button i.fa {
     color: #fff;
     font-size: 15px;

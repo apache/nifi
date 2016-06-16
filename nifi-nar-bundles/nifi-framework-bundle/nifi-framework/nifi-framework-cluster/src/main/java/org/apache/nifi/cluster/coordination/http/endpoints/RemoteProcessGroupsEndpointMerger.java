@@ -17,21 +17,21 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.RemoteProcessGroupsEntityMerger;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
-
 public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/controller/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
+    public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -47,30 +47,24 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
         final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
         final Set<RemoteProcessGroupEntity> rpgEntities = responseEntity.getRemoteProcessGroups();
 
-        final Map<String, Map<NodeIdentifier, RemoteProcessGroupDTO>> dtoMap = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
             final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
             final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
 
             for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
                 final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, RemoteProcessGroupDTO> innerMap = dtoMap.get(nodeId);
+                Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.get(nodeId);
                 if (innerMap == null) {
                     innerMap = new HashMap<>();
-                    dtoMap.put(nodeRpgEntity.getId(), innerMap);
+                    entityMap.put(nodeRpgEntity.getId(), innerMap);
                 }
 
-                innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity.getComponent());
+                innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity);
             }
         }
 
-        final RemoteProcessGroupEndpointMerger rpgMerger = new RemoteProcessGroupEndpointMerger();
-        for (final RemoteProcessGroupEntity entity : rpgEntities) {
-            final String componentId = entity.getId();
-            final Map<NodeIdentifier, RemoteProcessGroupDTO> mergeMap = dtoMap.get(componentId);
-
-            rpgMerger.mergeResponses(entity.getComponent(), mergeMap, successfulResponses, problematicResponses);
-        }
+        RemoteProcessGroupsEntityMerger.mergeRemoteProcessGroups(rpgEntities, entityMap);
 
         // create a new client response
         return new NodeResponse(clientResponse, responseEntity);

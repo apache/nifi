@@ -17,18 +17,20 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.ReportingTasksEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
-public class ReportingTasksEndpointMerger extends AbstractMultiEntityEndpoint<ReportingTasksEntity, ReportingTaskEntity> {
-    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
+public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
+    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -36,28 +38,34 @@ public class ReportingTasksEndpointMerger extends AbstractMultiEntityEndpoint<Re
     }
 
     @Override
-    protected Class<ReportingTasksEntity> getEntityClass() {
-        return ReportingTasksEntity.class;
-    }
+    public final NodeResponse merge(final URI uri, final String method, final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses, final NodeResponse clientResponse) {
+        if (!canHandle(uri, method)) {
+            throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
+        }
 
-    @Override
-    protected Set<ReportingTaskEntity> getDtos(ReportingTasksEntity entity) {
-        return entity.getReportingTasks();
-    }
+        final ReportingTasksEntity responseEntity = clientResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
+        final Set<ReportingTaskEntity> reportingTasksEntities = responseEntity.getReportingTasks();
 
-    @Override
-    protected String getComponentId(ReportingTaskEntity entity) {
-        return entity.getComponent().getId();
-    }
+        final Map<String, Map<NodeIdentifier, ReportingTaskEntity>> entityMap = new HashMap<>();
+        for (final NodeResponse nodeResponse : successfulResponses) {
+            final ReportingTasksEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
+            final Set<ReportingTaskEntity> nodeReportingTaskEntities = nodeResponseEntity.getReportingTasks();
 
-    @Override
-    protected void mergeResponses(ReportingTaskEntity entity, Map<NodeIdentifier, ReportingTaskEntity> entityMap,
-                                  Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+            for (final ReportingTaskEntity nodeReportingTaskEntity : nodeReportingTaskEntities) {
+                final NodeIdentifier nodeId = nodeResponse.getNodeId();
+                Map<NodeIdentifier, ReportingTaskEntity> innerMap = entityMap.get(nodeId);
+                if (innerMap == null) {
+                    innerMap = new HashMap<>();
+                    entityMap.put(nodeReportingTaskEntity.getId(), innerMap);
+                }
 
-        new ReportingTaskEndpointMerger().mergeResponses(
-            entity.getComponent(),
-            entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getComponent())),
-            successfulResponses,
-            problematicResponses);
+                innerMap.put(nodeResponse.getNodeId(), nodeReportingTaskEntity);
+            }
+        }
+
+        ReportingTasksEntityMerger.mergeReportingTasks(reportingTasksEntities, entityMap);
+
+        // create a new client response
+        return new NodeResponse(clientResponse, responseEntity);
     }
 }

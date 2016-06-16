@@ -17,17 +17,18 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.ControllerServiceEntityMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
-import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 
 public class ControllerServiceReferenceEndpointMerger implements EndpointResponseMerger {
     public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/node/[a-f0-9\\-]{36}/references");
@@ -59,7 +60,7 @@ public class ControllerServiceReferenceEndpointMerger implements EndpointRespons
             resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
         }
 
-        ControllerServiceEndpointMerger.mergeControllerServiceReferences(referencingComponents, resultsMap);
+        ControllerServiceEntityMerger.mergeControllerServiceReferences(referencingComponents, resultsMap);
 
         return new NodeResponse(clientResponse, responseEntity);
     }

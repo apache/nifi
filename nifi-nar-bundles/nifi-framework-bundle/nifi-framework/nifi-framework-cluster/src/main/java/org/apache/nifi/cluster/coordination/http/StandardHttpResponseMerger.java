@@ -17,18 +17,11 @@
 
 package org.apache.nifi.cluster.coordination.http;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpiontMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceReferenceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
@@ -38,9 +31,13 @@ import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpiontMe
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowSnippetEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.GroupStatusEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.InputPortsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.OutputPortsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorsEndpointMerger;
@@ -59,6 +56,14 @@ import org.apache.nifi.stream.io.NullOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.core.StreamingOutput;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 public class StandardHttpResponseMerger implements HttpResponseMerger {
     private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMerger.class);
 
@@ -72,9 +77,15 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new RemoteProcessGroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorEndpointMerger());
         endpointMergers.add(new ProcessorsEndpointMerger());
+        endpointMergers.add(new ConnectionEndpointMerger());
+        endpointMergers.add(new ConnectionsEndpointMerger());
+        endpointMergers.add(new PortEndpointMerger());
+        endpointMergers.add(new InputPortsEndpointMerger());
+        endpointMergers.add(new OutputPortsEndpointMerger());
         endpointMergers.add(new RemoteProcessGroupEndpointMerger());
         endpointMergers.add(new RemoteProcessGroupsEndpointMerger());
         endpointMergers.add(new ProcessGroupEndpointMerger());
+        endpointMergers.add(new ProcessGroupsEndpointMerger());
         endpointMergers.add(new FlowSnippetEndpointMerger());
         endpointMergers.add(new ProvenanceQueryEndpointMerger());
         endpointMergers.add(new ProvenanceEventEndpointMerger());

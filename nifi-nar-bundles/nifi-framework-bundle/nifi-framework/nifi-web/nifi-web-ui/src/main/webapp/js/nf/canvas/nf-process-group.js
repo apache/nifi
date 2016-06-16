@@ -679,7 +679,7 @@ nf.ProcessGroup = (function () {
                             'x': function () {
                                 return processGroupData.dimensions.width - 17;
                             },
-                            'y': 50
+                            'y': 49
                         })
                         .text('\uf24a');
                 }

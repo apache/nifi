@@ -52,6 +52,7 @@
         <property name="controllerServiceProvider" ref="controllerServiceProvider" />
         <property name="entityFactory" ref="entityFactory"/>
         <property name="authorizer" ref="authorizer"/>
+        <property name="bulletinRepository" ref="bulletinRepository"/>
     </bean>
 
     <!-- snippet utils -->
@@ -113,6 +114,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="keyService" ref="keyService"/>
         <property name="dtoFactory" ref="dtoFactory"/>
+        <property name="bulletinRepository" ref="bulletinRepository"/>
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">
         <property name="properties" ref="nifiProperties"/>
@@ -138,6 +140,7 @@
         <property name="entityFactory" ref="entityFactory"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
+        <property name="bulletinRepository" ref="bulletinRepository"/>
     </bean>
 
     <!-- component ui extension configuration context -->

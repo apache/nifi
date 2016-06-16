@@ -287,7 +287,15 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                             // no bulletins before, show icon and tips
                             bulletinIcon.addClass('has-bulletins').qtip($.extend({
                                 content: newBulletins
-                            }, nf.CanvasUtils.config.systemTooltipConfig));
+                            }, nf.CanvasUtils.config.systemTooltipConfig, {
+                                position: {
+                                    at: 'bottom left',
+                                    my: 'top right',
+                                    adjust: {
+                                        x: 4
+                                    }
+                                }
+                            }));
                         }
                     }
                 }

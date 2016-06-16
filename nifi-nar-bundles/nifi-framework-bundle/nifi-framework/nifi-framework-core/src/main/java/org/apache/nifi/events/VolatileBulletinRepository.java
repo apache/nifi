@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.events;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 public class VolatileBulletinRepository implements BulletinRepository {
 
@@ -133,6 +133,11 @@ public class VolatileBulletinRepository implements BulletinRepository {
         Collections.sort(selected);
 
         return selected;
+    }
+
+    @Override
+    public List<Bulletin> findBulletinsForSource(String sourceId) {
+        return findBulletins(new BulletinQuery.Builder().sourceIdMatches(sourceId).limit(COMPONENT_BUFFER_SIZE).build());
     }
 
     @Override

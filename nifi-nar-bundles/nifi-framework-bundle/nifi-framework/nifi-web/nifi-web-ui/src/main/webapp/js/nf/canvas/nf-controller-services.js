@@ -496,7 +496,7 @@ nf.ControllerServices = (function () {
             markup += '<img src="images/iconUsage.png" title="Usage" class="pointer controller-service-usage" style="margin-left: 6px; margin-top: 3px; float: left;" />';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
-            var hasBulletins = !nf.Common.isEmpty(dataContext.component.bulletins);
+            var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
                 markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 3px; float: left;" />';
@@ -689,7 +689,7 @@ nf.ControllerServices = (function () {
                 var controllerServiceEntity = controllerServicesData.getItemById(taskId);
 
                 // format the tooltip
-                var bulletins = nf.Common.getFormattedBulletins(controllerServiceEntity.component.bulletins);
+                var bulletins = nf.Common.getFormattedBulletins(controllerServiceEntity.bulletins);
                 var tooltip = nf.Common.formatUnorderedList(bulletins);
 
                 // show the tooltip

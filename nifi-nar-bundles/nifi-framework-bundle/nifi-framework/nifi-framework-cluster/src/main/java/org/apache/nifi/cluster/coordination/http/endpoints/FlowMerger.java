@@ -17,16 +17,15 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.manager.ConnectionsEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.StatusMerger;
+import org.apache.nifi.cluster.manager.PortsEntityMerger;
+import org.apache.nifi.cluster.manager.ProcessGroupsEntityMerger;
+import org.apache.nifi.cluster.manager.ProcessorsEntityMerger;
+import org.apache.nifi.cluster.manager.RemoteProcessGroupsEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
@@ -68,23 +67,31 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
         final FlowDTO flowDto = clientDto.getFlow();
+        final Set<ConnectionEntity> clientConnections = flowDto.getConnections();
+        final Set<ProcessorEntity> clientProcessors = flowDto.getProcessors();
+        final Set<PortEntity> clientInputPorts = flowDto.getInputPorts();
+        final Set<PortEntity> clientOutputPorts = flowDto.getOutputPorts();
+        final Set<RemoteProcessGroupEntity> clientRemoteProcessGroups = flowDto.getRemoteProcessGroups();
+        final Set<ProcessGroupEntity> clientProcessGroups = flowDto.getProcessGroups();
 
-        final Map<String, List<ConnectionEntity>> connections = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, ConnectionEntity>> connections = new HashMap<>();
         final Map<String, List<FunnelEntity>> funnels = new HashMap<>();
-        final Map<String, List<PortEntity>> inputPorts = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, PortEntity>> inputPorts = new HashMap<>();
         final Map<String, List<LabelEntity>> labels = new HashMap<>();
-        final Map<String, List<PortEntity>> outputPorts = new HashMap<>();
-        final Map<String, List<ProcessorEntity>> processors = new HashMap<>();
-        final Map<String, List<RemoteProcessGroupEntity>> rpgs = new HashMap<>();
-        final Map<String, List<ProcessGroupEntity>> processGroups = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, PortEntity>> outputPorts = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, ProcessorEntity>> processors = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> rpgs = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, ProcessGroupEntity>> processGroups = new HashMap<>();
 
-        // Create mapping of ComponentID -> all components with that ID (one per node)
-        for (final ProcessGroupFlowDTO nodeGroupFlowDto : dtoMap.values()) {
+        // Create mapping of ComponentID -> [nodeId, entity on that node]
+        for (final Map.Entry<NodeIdentifier, ProcessGroupFlowDTO> nodeGroupFlowEntry : dtoMap.entrySet()) {
+            final NodeIdentifier nodeIdentifier = nodeGroupFlowEntry.getKey();
+            final ProcessGroupFlowDTO nodeGroupFlowDto = nodeGroupFlowEntry.getValue();
             final FlowDTO nodeFlowDto = nodeGroupFlowDto.getFlow();
 
             // Merge connection statuses
             for (final ConnectionEntity entity : nodeFlowDto.getConnections()) {
-                connections.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                connections.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final FunnelEntity entity : nodeFlowDto.getFunnels()) {
@@ -92,11 +99,11 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
             }
 
             for (final PortEntity entity : nodeFlowDto.getInputPorts()) {
-                inputPorts.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                inputPorts.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final PortEntity entity : nodeFlowDto.getOutputPorts()) {
-                outputPorts.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                outputPorts.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final LabelEntity entity : nodeFlowDto.getLabels()) {
@@ -104,15 +111,15 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
             }
 
             for (final ProcessorEntity entity : nodeFlowDto.getProcessors()) {
-                processors.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                processors.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final RemoteProcessGroupEntity entity : nodeFlowDto.getRemoteProcessGroups()) {
-                rpgs.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                rpgs.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final ProcessGroupEntity entity : nodeFlowDto.getProcessGroups()) {
-                processGroups.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                processGroups.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
         }
 
@@ -121,11 +128,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         //
 
         // Merge connections
-        final Set<ConnectionEntity> mergedConnections = new HashSet<>();
-        for (final List<ConnectionEntity> connectionList : connections.values()) {
-            mergedConnections.add(mergeConnections(connectionList));
-        }
-        flowDto.setConnections(mergedConnections);
+        ConnectionsEntityMerger.mergeConnections(clientConnections, connections);
 
         // Merge funnel statuses
         final Set<FunnelEntity> mergedFunnels = new HashSet<>();
@@ -135,18 +138,10 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         flowDto.setFunnels(mergedFunnels);
 
         // Merge input ports
-        final Set<PortEntity> mergedInputPorts = new HashSet<>();
-        for (final List<PortEntity> portList : inputPorts.values()) {
-            mergedInputPorts.add(mergePorts(portList));
-        }
-        flowDto.setInputPorts(mergedInputPorts);
+        PortsEntityMerger.mergePorts(clientInputPorts, inputPorts);
 
         // Merge output ports
-        final Set<PortEntity> mergedOutputPorts = new HashSet<>();
-        for (final List<PortEntity> portList : outputPorts.values()) {
-            mergedOutputPorts.add(mergePorts(portList));
-        }
-        flowDto.setOutputPorts(mergedOutputPorts);
+        PortsEntityMerger.mergePorts(clientOutputPorts, outputPorts);
 
         // Merge labels
         final Set<LabelEntity> mergedLabels = new HashSet<>();
@@ -155,57 +150,14 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         }
         flowDto.setLabels(mergedLabels);
 
-
         // Merge processors
-        final Set<ProcessorEntity> mergedProcessors = new HashSet<>();
-        for (final List<ProcessorEntity> processorList : processors.values()) {
-            mergedProcessors.add(mergeProcessors(processorList));
-        }
-        flowDto.setProcessors(mergedProcessors);
-
+        ProcessorsEntityMerger.mergeProcessors(clientProcessors, processors);
 
         // Merge Remote Process Groups
-        final Set<RemoteProcessGroupEntity> mergedRpgs = new HashSet<>();
-        for (final List<RemoteProcessGroupEntity> rpgList : rpgs.values()) {
-            mergedRpgs.add(mergeRemoteProcessGroups(rpgList));
-        }
-        flowDto.setRemoteProcessGroups(mergedRpgs);
-
+        RemoteProcessGroupsEntityMerger.mergeRemoteProcessGroups(clientRemoteProcessGroups, rpgs);
 
         // Merge Process Groups
-        final Set<ProcessGroupEntity> mergedGroups = new HashSet<>();
-        for (final List<ProcessGroupEntity> groupList : processGroups.values()) {
-            mergedGroups.add(mergeProcessGroups(groupList));
-        }
-        flowDto.setProcessGroups(mergedGroups);
-    }
-
-    private ConnectionEntity mergeConnections(final List<ConnectionEntity> connections) {
-        final ConnectionEntity merged = connections.get(0);
-        final ConnectionStatusDTO statusDto = merged.getStatus();
-        statusDto.setNodeSnapshots(null);
-
-        for (final ConnectionEntity entity : connections) {
-            if (entity != merged) {
-                StatusMerger.merge(merged.getStatus().getAggregateSnapshot(), entity.getStatus().getAggregateSnapshot());
-            }
-        }
-
-        return merged;
-    }
-
-    private PortEntity mergePorts(final List<PortEntity> ports) {
-        final PortEntity merged = ports.get(0);
-        final PortStatusDTO statusDto = merged.getStatus();
-        statusDto.setNodeSnapshots(null);
-
-        for (final PortEntity entity : ports) {
-            if (entity != merged) {
-                StatusMerger.merge(merged.getStatus().getAggregateSnapshot(), entity.getStatus().getAggregateSnapshot());
-            }
-        }
-
-        return merged;
+        ProcessGroupsEntityMerger.mergeProcessGroups(clientProcessGroups, processGroups);
     }
 
     private FunnelEntity mergeFunnels(final List<FunnelEntity> funnels) {
@@ -214,54 +166,5 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
 
     private LabelEntity mergeLabels(final List<LabelEntity> labels) {
         return labels.get(0);
-    }
-
-    private ProcessorEntity mergeProcessors(final List<ProcessorEntity> processors) {
-        final ProcessorEntity merged = processors.get(0);
-        final ProcessorStatusDTO statusDto = merged.getStatus();
-        statusDto.setNodeSnapshots(null);
-
-        for (final ProcessorEntity entity : processors) {
-            if (entity != merged) {
-                StatusMerger.merge(merged.getStatus().getAggregateSnapshot(), entity.getStatus().getAggregateSnapshot());
-            }
-        }
-
-        return merged;
-    }
-
-
-    private RemoteProcessGroupEntity mergeRemoteProcessGroups(final List<RemoteProcessGroupEntity> rpgs) {
-        final RemoteProcessGroupEntity merged = rpgs.get(0);
-        final RemoteProcessGroupStatusDTO statusDto = merged.getStatus();
-        statusDto.setNodeSnapshots(null);
-
-        for (final RemoteProcessGroupEntity entity : rpgs) {
-            if (entity != merged) {
-                StatusMerger.merge(merged.getStatus().getAggregateSnapshot(), entity.getStatus().getAggregateSnapshot());
-            }
-        }
-
-        return merged;
-    }
-
-    private ProcessGroupEntity mergeProcessGroups(final List<ProcessGroupEntity> groups) {
-        final ProcessGroupEntity merged = groups.get(0);
-        final ProcessGroupStatusDTO statusDto = merged.getStatus();
-        statusDto.setNodeSnapshots(null);
-
-        for (final ProcessGroupEntity entity : groups) {
-            if (entity != merged) {
-                StatusMerger.merge(merged.getStatus().getAggregateSnapshot(), entity.getStatus().getAggregateSnapshot());
-            }
-        }
-
-        // We merge only the statuses of the Process Groups. The child components are not
-        // necessary for a FlowProcessGroupDTO, so we just ensure that they are null
-        if (merged.getComponent() != null) {
-            merged.getComponent().setContents(null);
-        }
-
-        return merged;
     }
 }
