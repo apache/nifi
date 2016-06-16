@@ -68,14 +68,6 @@ public class TestMockProcessSession {
                     .name("NonExistent Relation")
                     .build();
 
-            public Set<Relationship> relationships = Collections.singleton(REL_FAILURE);
-
-            @Override
-            public Set<Relationship> getRelationships() {
-                return relationships;
-            }
-
-
             @Override
             public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
                 final FlowFile file = session.create();
