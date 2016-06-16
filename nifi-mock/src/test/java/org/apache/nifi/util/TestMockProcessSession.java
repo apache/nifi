@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collections;
-import java.util.Set;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -26,6 +23,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.junit.Test;
+
+import java.util.Collections;
+import java.util.Set;
 
 public class TestMockProcessSession {
 
