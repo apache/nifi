@@ -39,6 +39,8 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 
+import java.util.List;
+
 public final class EntityFactory {
 
     public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
@@ -61,7 +63,9 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ProcessorStatusDTO status) {
+    public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,
+        final ProcessorStatusDTO status, final List<BulletinDTO> bulletins) {
+
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -71,12 +75,13 @@ public final class EntityFactory {
             entity.setPosition(dto.getPosition());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
         return entity;
     }
 
-    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final PortStatusDTO status) {
+    public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final PortStatusDTO status, final List<BulletinDTO> bulletins) {
         final PortEntity entity = new PortEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -87,12 +92,15 @@ public final class EntityFactory {
             entity.setPortType(dto.getType());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
         return entity;
     }
 
-    public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final ProcessGroupStatusDTO status) {
+    public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,
+                                                       final ProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
+
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -110,6 +118,7 @@ public final class EntityFactory {
             entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
         return entity;
@@ -170,8 +179,8 @@ public final class EntityFactory {
         return entity;
     }
 
-    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(
-        final RemoteProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,final RemoteProcessGroupStatusDTO status) {
+    public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy,
+                                                                   final RemoteProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
 
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
@@ -184,6 +193,7 @@ public final class EntityFactory {
             entity.setOutputPortCount(dto.getOutputPortCount());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
         return entity;
@@ -209,7 +219,7 @@ public final class EntityFactory {
         return entity;
     }
 
-    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final List<BulletinDTO> bulletins) {
         final ReportingTaskEntity entity = new ReportingTaskEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -217,13 +227,14 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
 
         return entity;
     }
 
-    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
+    public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy, final List<BulletinDTO> bulletins) {
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -232,6 +243,7 @@ public final class EntityFactory {
             entity.setPosition(dto.getPosition());
             if (accessPolicy != null && accessPolicy.getCanRead()) {
                 entity.setComponent(dto);
+                entity.setBulletins(bulletins);
             }
         }
         return entity;

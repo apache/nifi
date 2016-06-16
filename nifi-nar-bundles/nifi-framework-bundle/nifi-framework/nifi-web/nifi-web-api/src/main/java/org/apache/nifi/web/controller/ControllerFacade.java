@@ -16,27 +16,6 @@
  */
 package org.apache.nifi.web.controller;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TimeZone;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.WebApplicationException;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -131,6 +110,26 @@ import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Collator;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TimeZone;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+
 public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
@@ -140,6 +139,7 @@ public class ControllerFacade implements Authorizable {
     private FlowService flowService;
     private KeyService keyService;
     private ClusterCoordinator clusterCoordinator;
+    private BulletinRepository bulletinRepository;
 
     // properties
     private NiFiProperties properties;
@@ -479,7 +479,6 @@ public class ControllerFacade implements Authorizable {
             controllerStatus.setConnectedNodes(connectedNodeCount + " / " + totalNodeCount);
         }
 
-        final BulletinRepository bulletinRepository = getBulletinRepository();
         controllerStatus.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
 
         // get the controller service bulletins
@@ -660,15 +659,6 @@ public class ControllerFacade implements Authorizable {
         }
 
         return status;
-    }
-
-    /**
-     * Gets the BulletinRepository.
-     *
-     * @return the BulletinRepository
-     */
-    public BulletinRepository getBulletinRepository() {
-        return flowController.getBulletinRepository();
     }
 
     /**
@@ -1705,5 +1695,9 @@ public class ControllerFacade implements Authorizable {
 
     public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
+    }
+
+    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+        this.bulletinRepository = bulletinRepository;
     }
 }

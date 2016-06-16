@@ -467,9 +467,9 @@ nf.Processor = (function () {
                         .attr({
                             'class': 'bulletin-icon',
                             'x': function (d) {
-                                return processorData.dimensions.width - 18;
+                                return processorData.dimensions.width - 17;
                             },
-                            'y': 18
+                            'y': 17
                         })
                         .text('\uf24a');
                 }

@@ -18,11 +18,11 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.ControllerServicesEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.PortsEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.apache.nifi.web.api.entity.ControllerServicesEntity;
+import org.apache.nifi.web.api.entity.OutputPortsEntity;
+import org.apache.nifi.web.api.entity.PortEntity;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -30,13 +30,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ControllerServicesEndpointMerger implements EndpointResponseMerger {
-    public static final String CONTROLLER_SERVICES_URI = "/nifi-api/flow/controller/controller-services";
-    public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
+public class OutputPortsEndpointMerger implements EndpointResponseMerger {
+    public static final Pattern OUTPUT_PORTS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/output-ports");
 
     @Override
-    public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && (CONTROLLER_SERVICES_URI.equals(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches());
+    public boolean canHandle(final URI uri, final String method) {
+        return "GET".equalsIgnoreCase(method) && OUTPUT_PORTS_URI_PATTERN.matcher(uri.getPath()).matches();
     }
 
     @Override
@@ -45,27 +44,27 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
             throw new IllegalArgumentException("Cannot use Endpoint Mapper of type " + getClass().getSimpleName() + " to map responses for URI " + uri + ", HTTP Method " + method);
         }
 
-        final ControllerServicesEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
-        final Set<ControllerServiceEntity> controllerServiceEntities = responseEntity.getControllerServices();
+        final OutputPortsEntity responseEntity = clientResponse.getClientResponse().getEntity(OutputPortsEntity.class);
+        final Set<PortEntity> portEntities = responseEntity.getOutputPorts();
 
-        final Map<String, Map<NodeIdentifier, ControllerServiceEntity>> entityMap = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, PortEntity>> entityMap = new HashMap<>();
         for (final NodeResponse nodeResponse : successfulResponses) {
-            final ControllerServicesEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
-            final Set<ControllerServiceEntity> nodeControllerServiceEntities = nodeResponseEntity.getControllerServices();
+            final OutputPortsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(OutputPortsEntity.class);
+            final Set<PortEntity> nodePortEntities = nodeResponseEntity.getOutputPorts();
 
-            for (final ControllerServiceEntity nodeControllerServiceEntity : nodeControllerServiceEntities) {
+            for (final PortEntity nodePortEntity : nodePortEntities) {
                 final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ControllerServiceEntity> innerMap = entityMap.get(nodeId);
+                Map<NodeIdentifier, PortEntity> innerMap = entityMap.get(nodeId);
                 if (innerMap == null) {
                     innerMap = new HashMap<>();
-                    entityMap.put(nodeControllerServiceEntity.getId(), innerMap);
+                    entityMap.put(nodePortEntity.getId(), innerMap);
                 }
 
-                innerMap.put(nodeResponse.getNodeId(), nodeControllerServiceEntity);
+                innerMap.put(nodeResponse.getNodeId(), nodePortEntity);
             }
         }
 
-        ControllerServicesEntityMerger.mergeControllerServices(controllerServiceEntities, entityMap);
+        PortsEntityMerger.mergePorts(portEntities, entityMap);
 
         // create a new client response
         return new NodeResponse(clientResponse, responseEntity);

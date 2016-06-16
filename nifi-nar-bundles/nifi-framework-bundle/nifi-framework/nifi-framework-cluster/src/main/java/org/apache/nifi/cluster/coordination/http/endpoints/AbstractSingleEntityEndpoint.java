@@ -17,17 +17,15 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.Entity;
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity> implements EndpointResponseMerger {
     @Override
@@ -46,43 +44,6 @@ public abstract class AbstractSingleEntityEndpoint<EntityType extends Entity> im
 
         mergeResponses(responseEntity, entityMap, successfulResponses, problematicResponses);
         return new NodeResponse(clientResponse, responseEntity);
-    }
-
-    /**
-     * Merges the validation errors into the specified map, recording the corresponding node identifier.
-     *
-     * @param validationErrorMap map
-     * @param nodeId id
-     * @param nodeValidationErrors errors
-     */
-    protected void mergeValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeValidationErrors) {
-        if (nodeValidationErrors != null) {
-            nodeValidationErrors.stream().forEach(
-                err -> validationErrorMap.computeIfAbsent(err, k -> new HashSet<NodeIdentifier>())
-                    .add(nodeId));
-        }
-    }
-
-    /**
-     * Normalizes the validation errors by prepending the corresponding nodes when the error does not exist across all nodes.
-     *
-     * @param validationErrorMap map
-     * @param totalNodes total
-     * @return normalized errors
-     */
-    protected Set<String> normalizedMergedValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, int totalNodes) {
-        final Set<String> normalizedValidationErrors = new HashSet<>();
-        for (final Map.Entry<String, Set<NodeIdentifier>> validationEntry : validationErrorMap.entrySet()) {
-            final String msg = validationEntry.getKey();
-            final Set<NodeIdentifier> nodeIds = validationEntry.getValue();
-
-            if (nodeIds.size() == totalNodes) {
-                normalizedValidationErrors.add(msg);
-            } else {
-                nodeIds.forEach(id -> normalizedValidationErrors.add(id.getApiAddress() + ":" + id.getApiPort() + " -- " + msg));
-            }
-        }
-        return normalizedValidationErrors;
     }
 
     /**

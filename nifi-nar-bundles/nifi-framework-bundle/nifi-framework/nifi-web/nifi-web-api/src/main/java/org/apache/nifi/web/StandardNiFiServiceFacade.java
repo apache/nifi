@@ -206,6 +206,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     // revision manager
     private RevisionManager revisionManager;
+    private BulletinRepository bulletinRepository;
 
     // data access objects
     private ProcessorDAO processorDAO;
@@ -633,7 +634,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processorNode);
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processorNode.getIdentifier()));
-        return new UpdateResult<>(entityFactory.createProcessorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processorNode.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createProcessorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins), false);
     }
 
     @Override
@@ -772,7 +774,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(inputPortNode);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(inputPortNode.getIdentifier()));
-        return new UpdateResult<>(entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPortNode.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins), false);
     }
 
     @Override
@@ -790,7 +793,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(outputPortNode);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(outputPortNode.getIdentifier()));
-        return new UpdateResult<>(entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPortNode.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins), false);
     }
 
     @Override
@@ -810,7 +814,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroupNode);
         final RevisionDTO updateRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(remoteProcessGroupNode.getIdentifier()));
-        return new UpdateResult<>(entityFactory.createRemoteProcessGroupEntity(snapshot.getComponent(), updateRevision, accessPolicy, status), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(remoteProcessGroupNode.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createRemoteProcessGroupEntity(snapshot.getComponent(), updateRevision, accessPolicy, status, bulletins), false);
     }
 
     @Override
@@ -865,7 +870,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroupNode);
         final RevisionDTO updatedRevision = dtoFactory.createRevisionDTO(snapshot.getLastModification());
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroupNode.getIdentifier()));
-        return new UpdateResult<>(entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, accessPolicy, status), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroupNode.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createProcessGroupEntity(snapshot.getComponent(), updatedRevision, accessPolicy, status, bulletins), false);
     }
 
     @Override
@@ -1047,7 +1053,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> processorDAO.deleteProcessor(processorId),
                 dtoFactory.createProcessorDto(processor));
 
-        return entityFactory.createProcessorEntity(snapshot, null, null, null);
+        return entityFactory.createProcessorEntity(snapshot, null, null, null, null);
     }
 
     @Override
@@ -1146,7 +1152,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> inputPortDAO.deletePort(inputPortId),
                 dtoFactory.createPortDto(port));
 
-        return entityFactory.createPortEntity(snapshot, null, null, null);
+        return entityFactory.createPortEntity(snapshot, null, null, null, null);
     }
 
     @Override
@@ -1158,7 +1164,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> outputPortDAO.deletePort(outputPortId),
                 dtoFactory.createPortDto(port));
 
-        return entityFactory.createPortEntity(snapshot, null, null, null);
+        return entityFactory.createPortEntity(snapshot, null, null, null, null);
     }
 
     @Override
@@ -1170,7 +1176,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> processGroupDAO.deleteProcessGroup(groupId),
                 dtoFactory.createProcessGroupDto(processGroup));
 
-        return entityFactory.createProcessGroupEntity(snapshot, null, null, null);
+        return entityFactory.createProcessGroupEntity(snapshot, null, null, null, null);
     }
 
     @Override
@@ -1182,7 +1188,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> remoteProcessGroupDAO.deleteRemoteProcessGroup(remoteProcessGroupId),
                 dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
-        return entityFactory.createRemoteProcessGroupEntity(snapshot, null, null, null);
+        return entityFactory.createRemoteProcessGroupEntity(snapshot, null, null, null, null);
     }
 
     @Override
@@ -1240,7 +1246,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorNode processor = processorDAO.getProcessor(processorDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processorDTO.getId()));
-        return entityFactory.createProcessorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processorDTO.getId()));
+        return entityFactory.createProcessorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins);
     }
 
     @Override
@@ -1406,7 +1413,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Port port = inputPortDAO.getPort(inputPortDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(port.getIdentifier()));
-        return entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
+        return entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins);
     }
 
     @Override
@@ -1419,7 +1427,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Port port = outputPortDAO.getPort(outputPortDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(port.getIdentifier()));
-        return entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
+        return entityFactory.createPortEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins);
     }
 
     @Override
@@ -1432,7 +1441,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroup);
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(processGroup.getIdentifier()));
-        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
+        return entityFactory.createProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins);
     }
 
     @Override
@@ -1445,7 +1455,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(remoteProcessGroup);
         final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(remoteProcessGroup.getIdentifier()));
-        return entityFactory.createRemoteProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(remoteProcessGroup.getIdentifier()));
+        return entityFactory.createRemoteProcessGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, status, bulletins);
     }
 
     @Override
@@ -1601,7 +1612,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
                 final FlowModification lastMod = new FlowModification(incrementRevision(revision), modifier);
                 final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
-                final ProcessorEntity entity = entityFactory.createProcessorEntity(updatedProcDto, dtoFactory.createRevisionDTO(lastMod), accessPolicy, status);
+                final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
+                final ProcessorEntity entity = entityFactory.createProcessorEntity(updatedProcDto, dtoFactory.createRevisionDTO(lastMod), accessPolicy, status, bulletins);
 
                 return new StandardRevisionUpdate<>(entity, lastMod);
             }
@@ -1631,7 +1643,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceDTO.getId());
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
-        return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceDTO.getId()));
+        return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, bulletins);
     }
 
     @Override
@@ -1649,7 +1662,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 cs -> dtoFactory.createControllerServiceDto(cs));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(controllerService);
-        return new UpdateResult<>(entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceDTO.getId()));
+        return new UpdateResult<>(entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, bulletins), false);
     }
 
     @Override
@@ -1811,7 +1825,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> controllerServiceDAO.deleteControllerService(controllerServiceId),
                 dtoFactory.createControllerServiceDto(controllerService));
 
-        return entityFactory.createControllerServiceEntity(snapshot, null, null);
+        return entityFactory.createControllerServiceEntity(snapshot, null, null, null);
     }
 
 
@@ -1837,7 +1851,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
             final FlowModification lastMod = new FlowModification(new Revision(0L, rev.getClientId(), dto.getId()), modifier);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
-            return entityFactory.createReportingTaskEntity(dto, dtoFactory.createRevisionDTO(lastMod), accessPolicy);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reportingTask.getIdentifier()));
+            return entityFactory.createReportingTaskEntity(dto, dtoFactory.createRevisionDTO(lastMod), accessPolicy, bulletins);
         });
     }
 
@@ -1856,7 +1871,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 rt -> dtoFactory.createReportingTaskDto(rt));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
-        return new UpdateResult<>(entityFactory.createReportingTaskEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reportingTask.getIdentifier()));
+        return new UpdateResult<>(entityFactory.createReportingTaskEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy, bulletins), false);
     }
 
     @Override
@@ -1868,7 +1884,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 () -> reportingTaskDAO.deleteReportingTask(reportingTaskId),
                 dtoFactory.createReportingTaskDto(reportingTask));
 
-        return entityFactory.createReportingTaskEntity(snapshot, null, null);
+        return entityFactory.createReportingTaskEntity(snapshot, null, null, null);
     }
 
     @Override
@@ -2119,7 +2135,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processor);
                         final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(processor.getIdentifier()));
-                        return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, accessPolicy, status);
+                        final List<BulletinDTO> bulletins =
+                                dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
+                        return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, accessPolicy, status, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2177,7 +2195,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final ProcessorStatusDTO status = dtoFactory.createProcessorStatusDto(controllerFacade.getProcessorStatus(id));
-            return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, dtoFactory.createAccessPolicyDto(processor), status);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(id));
+            return entityFactory.createProcessorEntity(dtoFactory.createProcessorDto(processor), revision, dtoFactory.createAccessPolicyDto(processor), status, bulletins);
         });
     }
 
@@ -2214,9 +2233,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .messageMatches(query.getMessage())
                 .after(query.getAfter())
                 .limit(query.getLimit());
-
-        // get the bulletin repository
-        final BulletinRepository bulletinRepository = controllerFacade.getBulletinRepository();
 
         // perform the query
         final List<Bulletin> results = bulletinRepository.findBulletins(queryBuilder.build());
@@ -2432,7 +2448,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
                         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(port.getIdentifier()));
-                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
+                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2452,7 +2469,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(port.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
                         final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(port.getIdentifier()));
-                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(port.getIdentifier()));
+                        return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2471,7 +2489,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(group);
                         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
-                        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, accessPolicy, status);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(group.getIdentifier()));
+                        return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, accessPolicy, status, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2491,7 +2510,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(rpg.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(rpg);
                         final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(rpg.getIdentifier()));
-                        return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(rpg.getIdentifier()));
+                        return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2506,7 +2526,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
             final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(inputPortId));
-            return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPortId));
+            return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status, bulletins);
         });
     }
 
@@ -2524,7 +2545,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(port);
             final PortStatusDTO status = dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(outputPortId));
-            return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPortId));
+            return entityFactory.createPortEntity(dtoFactory.createPortDto(port), revision, accessPolicy, status, bulletins);
         });
     }
 
@@ -2542,7 +2564,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(rpg);
             final RemoteProcessGroupStatusDTO status = dtoFactory.createRemoteProcessGroupStatusDto(controllerFacade.getRemoteProcessGroupStatus(rpg.getIdentifier()));
-            return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(rpg.getIdentifier()));
+            return entityFactory.createRemoteProcessGroupEntity(dtoFactory.createRemoteProcessGroupDto(rpg), revision, accessPolicy, status, bulletins);
         });
     }
 
@@ -2609,7 +2632,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(processGroup);
             final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(groupId));
-            return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(processGroup), revision, accessPolicy, status);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(groupId));
+            return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(processGroup), revision, accessPolicy, status, bulletins);
         });
     }
 
@@ -2641,7 +2665,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(serviceNode.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(serviceNode);
-                        return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(serviceNode.getIdentifier()));
+                        return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2661,7 +2686,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final ControllerServiceReferencingComponentsEntity referencingComponentsEntity = createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerServiceId));
             dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
 
-            return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceId));
+
+            return entityFactory.createControllerServiceEntity(dto, revision, accessPolicy, bulletins);
         });
     }
 
@@ -2699,7 +2726,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     .map(reportingTask -> {
                         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(reportingTask.getIdentifier()));
                         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
-                        return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
+                        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reportingTask.getIdentifier()));
+                        return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy, bulletins);
                     })
                     .collect(Collectors.toSet());
         });
@@ -2713,7 +2741,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(reportingTask);
-            return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy);
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(reportingTaskId));
+            return entityFactory.createReportingTaskEntity(dtoFactory.createReportingTaskDto(reportingTask), revision, accessPolicy, bulletins);
         });
     }
 
@@ -2963,5 +2992,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setHeartbeatMonitor(HeartbeatMonitor heartbeatMonitor) {
         this.heartbeatMonitor = heartbeatMonitor;
+    }
+
+    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+        this.bulletinRepository = bulletinRepository;
     }
 }

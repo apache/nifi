@@ -17,11 +17,12 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import java.util.List;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * Details of a remote process group in this NiFi.
@@ -42,7 +43,7 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     private String proxyUser;
     private String proxyPassword;
 
-    private List<String> authorizationIssues;
+    private Collection<String> authorizationIssues;
     private Boolean transmitting;
 
     private Integer inputPortCount;
@@ -116,11 +117,11 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     @ApiModelProperty(
             value = "Any remote authorization issues for the remote process group."
     )
-    public List<String> getAuthorizationIssues() {
+    public Collection<String> getAuthorizationIssues() {
         return authorizationIssues;
     }
 
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
+    public void setAuthorizationIssues(Collection<String> authorizationIssues) {
         this.authorizationIssues = authorizationIssues;
     }
 

@@ -694,10 +694,10 @@ nf.RemoteProcessGroup = (function () {
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
                 var icon = '';
-                if (!nf.Common.isEmpty(d.status.aggregateSnapshot.authorizationIssues)) {
-                    icon = '\uf071';
-                } else if (d.accessPolicy.canRead) {
-                    if (d.component.transmitting === true) {
+                if (d.accessPolicy.canRead) {
+                    if (!nf.Common.isEmpty(d.component.authorizationIssues)) {
+                        icon = '\uf071';
+                    } else if (d.component.transmitting === true) {
                         icon = '\uf140';
                     } else {
                         icon = '\ue80a';
@@ -707,15 +707,17 @@ nf.RemoteProcessGroup = (function () {
             })
             .attr('font-family', function (d) {
                 var family = '';
-                if (!nf.Common.isEmpty(d.status.aggregateSnapshot.authorizationIssues) || (d.accessPolicy.canRead && d.component.transmitting)) {
-                    family = 'FontAwesome';
-                } else {
-                    family = 'flowfont';
+                if (d.accessPolicy.canRead) {
+                    if (!nf.Common.isEmpty(d.component.authorizationIssues) || d.component.transmitting) {
+                        family = 'FontAwesome';
+                    } else {
+                        family = 'flowfont';
+                    }
                 }
                 return family;
             })
             .classed('has-authorization-errors', function (d) {
-                return !nf.Common.isEmpty(d.status.aggregateSnapshot.authorizationIssues);
+                return d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
             })
             .each(function (d) {
                 // remove the existing tip if necessary
@@ -725,14 +727,14 @@ nf.RemoteProcessGroup = (function () {
                 }
 
                 // if there are validation errors generate a tooltip
-                if (!nf.Common.isEmpty(d.status.aggregateSnapshot.authorizationIssues)) {
+                if (d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.authorizationIssues)) {
                     tip = d3.select('#remote-process-group-tooltips').append('div')
                         .attr('id', function () {
                             return 'authorization-issues-' + d.id;
                         })
                         .attr('class', 'tooltip nifi-tooltip')
                         .html(function () {
-                            var list = nf.Common.formatUnorderedList(d.status.aggregateSnapshot.authorizationIssues);
+                            var list = nf.Common.formatUnorderedList(d.component.authorizationIssues);
                             if (list === null || list.length === 0) {
                                 return '';
                             } else {

@@ -17,20 +17,20 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.cluster.manager.BulletinMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<BulletinBoardEntity, BulletinBoardDTO> {
     public static final Pattern BULLETIN_BOARD_URI_PATTERN = Pattern.compile("/nifi-api/flow/bulletin-board");
@@ -52,31 +52,16 @@ public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<Bulle
 
     @Override
     protected void mergeResponses(BulletinBoardDTO clientDto, Map<NodeIdentifier, BulletinBoardDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        final List<BulletinDTO> bulletinDtos = new ArrayList<>();
+        final Map<NodeIdentifier, List<BulletinDTO>> bulletinDtos = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, BulletinBoardDTO> entry : dtoMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
+            final NodeIdentifier nodeIdentifier = entry.getKey();
             final BulletinBoardDTO boardDto = entry.getValue();
-            final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
-
-            for (final BulletinDTO bulletin : boardDto.getBulletins()) {
-                bulletin.setNodeAddress(nodeAddress);
-                bulletinDtos.add(bulletin);
-            }
+            boardDto.getBulletins().forEach(bulletin -> {
+                bulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+            });
         }
 
-        Collections.sort(bulletinDtos, new Comparator<BulletinDTO>() {
-            @Override
-            public int compare(final BulletinDTO o1, final BulletinDTO o2) {
-                final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
-                if (timeComparison != 0) {
-                    return timeComparison;
-                }
-
-                return o1.getNodeAddress().compareTo(o2.getNodeAddress());
-            }
-        });
-
-        clientDto.setBulletins(bulletinDtos);
+        clientDto.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
     }
 
 }

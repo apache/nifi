@@ -17,28 +17,24 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.ProcessorEntityMerger;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
+
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.StatusMerger;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-
 public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity> implements EndpointResponseMerger {
-    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/processors");
+    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
     public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}");
-    public static final Pattern CLUSTER_PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/cluster/processors/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method))
-            && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches() || CLUSTER_PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
+        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
@@ -53,42 +49,10 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
     }
 
 
-    protected void mergeResponses(final ProcessorDTO clientDto, final Map<NodeIdentifier, ProcessorDTO> dtoMap, final Set<NodeResponse> successfulResponses,
-        final Set<NodeResponse> problematicResponses) {
-        final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
-
-        for (final Map.Entry<NodeIdentifier, ProcessorDTO> nodeEntry : dtoMap.entrySet()) {
-            final NodeIdentifier nodeId = nodeEntry.getKey();
-            final ProcessorDTO nodeProcessor = nodeEntry.getValue();
-
-            // merge the validation errors
-            mergeValidationErrors(validationErrorMap, nodeId, nodeProcessor.getValidationErrors());
-        }
-
-        // set the merged the validation errors
-        clientDto.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, dtoMap.size()));
-    }
-
     @Override
     protected void mergeResponses(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap, final Set<NodeResponse> successfulResponses,
         final Set<NodeResponse> problematicResponses) {
 
-        final ProcessorDTO clientDto = clientEntity.getComponent();
-        final Map<NodeIdentifier, ProcessorDTO> dtoMap = new HashMap<>();
-        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final ProcessorEntity nodeProcEntity = entry.getValue();
-            final ProcessorDTO nodeProcDto = nodeProcEntity.getComponent();
-            dtoMap.put(entry.getKey(), nodeProcDto);
-        }
-
-        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final ProcessorEntity entity = entry.getValue();
-            if (entity != clientEntity) {
-                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
-            }
-        }
-
-        mergeResponses(clientDto, dtoMap, successfulResponses, problematicResponses);
+        ProcessorEntityMerger.mergeProcessors(clientEntity, entityMap);
     }
 }

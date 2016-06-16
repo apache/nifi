@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.util;
 
-import java.util.List;
-
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+
+import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
 
@@ -44,6 +44,12 @@ public class MockBulletinRepository implements BulletinRepository {
 
     @Override
     public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+        // TODO: Implement
+        return null;
+    }
+
+    @Override
+    public List<Bulletin> findBulletinsForSource(String sourceId) {
         // TODO: Implement
         return null;
     }

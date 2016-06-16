@@ -18,10 +18,12 @@ package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.List;
 
 /**
  * A base type for request/response entities.
@@ -33,6 +35,7 @@ public class ComponentEntity extends Entity {
     private String id;
     private PositionDTO position;
     private AccessPolicyDTO accessPolicy;
+    private List<BulletinDTO> bulletins;
 
     /**
      * @return revision for this request/response
@@ -94,6 +97,22 @@ public class ComponentEntity extends Entity {
 
     public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
         this.accessPolicy = accessPolicy;
+    }
+
+    /**
+     * The bulletins for this component.
+     *
+     * @return The bulletins
+     */
+    @ApiModelProperty(
+            value = "The bulletins for this component."
+    )
+    public List<BulletinDTO> getBulletins() {
+        return bulletins;
+    }
+
+    public void setBulletins(List<BulletinDTO> bulletins) {
+        this.bulletins = bulletins;
     }
 
     @Override

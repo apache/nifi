@@ -17,8 +17,9 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.cluster.manager.ErrorMerger;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestProcessorEndpointMerger {
 
@@ -41,13 +42,13 @@ public class TestProcessorEndpointMerger {
         nodeValidationErrors1234.add("error 1");
         nodeValidationErrors1234.add("error 2");
 
-        merger.mergeValidationErrors(validationErrorMap, nodeId1234, nodeValidationErrors1234);
+        ErrorMerger.mergeErrors(validationErrorMap, nodeId1234, nodeValidationErrors1234);
 
         final NodeIdentifier nodeXyz = new NodeIdentifier("xyz", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
         final List<String> nodeValidationErrorsXyz = new ArrayList<>();
         nodeValidationErrorsXyz.add("error 1");
 
-        merger.mergeValidationErrors(validationErrorMap, nodeXyz, nodeValidationErrorsXyz);
+        ErrorMerger.mergeErrors(validationErrorMap, nodeXyz, nodeValidationErrorsXyz);
 
         assertEquals(2, validationErrorMap.size());
 

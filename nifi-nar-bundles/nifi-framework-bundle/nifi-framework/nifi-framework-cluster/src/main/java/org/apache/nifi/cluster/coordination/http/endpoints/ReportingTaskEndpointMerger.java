@@ -17,20 +17,20 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.ReportingTaskEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class ReportingTaskEndpointMerger extends AbstractSingleDTOEndpoint<ReportingTaskEntity, ReportingTaskDTO> {
-    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
-    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/node/[a-f0-9\\-]{36}");
+public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<ReportingTaskEntity> implements EndpointResponseMerger {
+    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
+    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -49,32 +49,7 @@ public class ReportingTaskEndpointMerger extends AbstractSingleDTOEndpoint<Repor
     }
 
     @Override
-    protected ReportingTaskDTO getDto(ReportingTaskEntity entity) {
-        return entity.getComponent();
+    protected void mergeResponses(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+        ReportingTaskEntityMerger.mergeReportingTasks(clientEntity, entityMap);
     }
-
-    @Override
-    protected void mergeResponses(ReportingTaskDTO clientDto, Map<NodeIdentifier, ReportingTaskDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
-
-        int activeThreadCount = 0;
-        for (final Map.Entry<NodeIdentifier, ReportingTaskDTO> nodeEntry : dtoMap.entrySet()) {
-            final NodeIdentifier nodeId = nodeEntry.getKey();
-            final ReportingTaskDTO nodeReportingTask = nodeEntry.getValue();
-
-            if (nodeReportingTask.getActiveThreadCount() != null) {
-                activeThreadCount += nodeReportingTask.getActiveThreadCount();
-            }
-
-            // merge the validation errors
-            mergeValidationErrors(validationErrorMap, nodeId, nodeReportingTask.getValidationErrors());
-        }
-
-        // set the merged active thread counts
-        clientDto.setActiveThreadCount(activeThreadCount);
-
-        // set the merged the validation errors
-        clientDto.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, dtoMap.size()));
-    }
-
 }
