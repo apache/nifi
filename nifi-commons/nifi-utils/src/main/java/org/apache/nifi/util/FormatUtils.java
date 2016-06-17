@@ -41,8 +41,9 @@ public class FormatUtils {
     private static final String MINS = join(UNION, "m", "min", "mins", "minute", "minutes");
     private static final String HOURS = join(UNION, "h", "hr", "hrs", "hour", "hours");
     private static final String DAYS = join(UNION, "d", "day", "days");
+    private static final String WEEKS = join(UNION, "w", "wk", "wks", "week", "weeks");
 
-    private static final String VALID_TIME_UNITS = join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS);
+    private static final String VALID_TIME_UNITS = join(UNION, NANOS, MILLIS, SECS, MINS, HOURS, DAYS, WEEKS);
     public static final String TIME_DURATION_REGEX = "(\\d+)\\s*(" + VALID_TIME_UNITS + ")";
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
 
@@ -176,6 +177,13 @@ public class FormatUtils {
             case "days":
                 specifiedTimeUnit = TimeUnit.DAYS;
                 break;
+            case "w":
+            case "wk":
+            case "wks":
+            case "week":
+            case "weeks":
+                final long durationVal = Long.parseLong(duration);
+                return desiredUnit.convert(durationVal, TimeUnit.DAYS)*7;
         }
 
         final long durationVal = Long.parseLong(duration);
