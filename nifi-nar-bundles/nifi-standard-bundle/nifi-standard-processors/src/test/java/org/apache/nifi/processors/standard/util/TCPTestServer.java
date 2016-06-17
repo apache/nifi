@@ -14,8 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard;
+package org.apache.nifi.processors.standard.util;
 
+import org.apache.nifi.security.util.SslContextFactory;
+
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -28,7 +32,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 public class TCPTestServer implements Runnable {
 
     private final InetAddress ipAddress;
-    private final int port;
+    private int port;
     private final String messageDelimiter;
     private volatile ServerSocket serverSocket;
     private final ArrayBlockingQueue<List<Byte>> recvQueue;
@@ -36,23 +40,31 @@ public class TCPTestServer implements Runnable {
     public final static String DEFAULT_MESSAGE_DELIMITER = "\n";
     private volatile int totalNumConnections = 0;
 
-    public TCPTestServer(final InetAddress ipAddress, final int port, final ArrayBlockingQueue<List<Byte>> recvQueue) {
-        this(ipAddress, port, recvQueue, DEFAULT_MESSAGE_DELIMITER);
+    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue) {
+        this(ipAddress, recvQueue, DEFAULT_MESSAGE_DELIMITER);
     }
 
-    public TCPTestServer(final InetAddress ipAddress, final int port, final ArrayBlockingQueue<List<Byte>> recvQueue, final String messageDelimiter) {
+    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue, final String messageDelimiter) {
         this.ipAddress = ipAddress;
-        this.port = port;
         this.recvQueue = recvQueue;
         this.messageDelimiter = messageDelimiter;
     }
 
-    public synchronized void startServer() throws IOException {
+    public synchronized void startServer(boolean ssl) throws Exception {
         if (!isServerRunning()) {
-            serverSocket = new ServerSocket(port, 0, ipAddress);
+            if(ssl){
+                final SSLContext sslCtx = SslContextFactory.createSslContext("src/test/resources/localhost-ks.jks","localtest".toCharArray(), "JKS", "src/test/resources/localhost-ts.jks",
+                        "localtest".toCharArray(), "JKS", SslContextFactory.ClientAuth.REQUIRED, "TLS");
+
+                ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();
+                serverSocket = sslSocketFactory.createServerSocket(0, 0, ipAddress);
+            } else {
+                serverSocket = new ServerSocket(0, 0, ipAddress);
+            }
             Thread t = new Thread(this);
             t.setName(this.getClass().getSimpleName());
             t.start();
+            port = serverSocket.getLocalPort();
         }
     }
 
@@ -79,6 +91,10 @@ public class TCPTestServer implements Runnable {
                 // Do Nothing.
             }
         }
+    }
+
+    public int getPort(){
+        return port;
     }
 
     private void storeReceivedMessage(final List<Byte> message) {
