@@ -91,6 +91,7 @@
     <bean id="controllerServiceDAO" class="org.apache.nifi.web.dao.impl.StandardControllerServiceDAO">
         <property name="serviceProvider" ref="controllerServiceProvider"/>
         <property name="componentStateDAO" ref="componentStateDAO"/>
+        <property name="flowController" ref="flowController" />
     </bean>
     <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
@@ -150,7 +151,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="auditService" ref="auditService"/>
-        <property name="controllerServiceLookup" ref="controllerServiceProvider"/>
+        <property name="controllerServiceProvider" ref="controllerServiceProvider"/>
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="authorizer" ref="authorizer"/>
     </bean>

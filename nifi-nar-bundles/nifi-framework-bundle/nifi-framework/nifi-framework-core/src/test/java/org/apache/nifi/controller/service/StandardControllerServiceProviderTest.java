@@ -46,7 +46,7 @@ public class StandardControllerServiceProviderTest {
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
-        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, new StateManagerProvider() {
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, null, new StateManagerProvider() {
             @Override
             public StateManager getStateManager(final String componentId) {
                 return Mockito.mock(StateManager.class);

@@ -314,7 +314,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    void scaleRootGroup(ProcessGroup rootGroup, FlowEncodingVersion encodingVersion) {
+    void scaleRootGroup(final ProcessGroup rootGroup, final FlowEncodingVersion encodingVersion) {
         if (encodingVersion == null || encodingVersion.getMajorVersion() < 1) {
             // Calculate new Positions if the encoding version of the flow is older than 1.0.
             PositionScaler.scale(rootGroup, 1.5, 1.34);
@@ -939,7 +939,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 remoteGroup.setYieldDuration(remoteGroupDto.getYieldDuration());
             }
 
-            String transportProtocol = remoteGroupDto.getTransportProtocol();
+            final String transportProtocol = remoteGroupDto.getTransportProtocol();
             if (transportProtocol != null && !transportProtocol.trim().isEmpty()) {
                 remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(transportProtocol.toUpperCase()));
             }

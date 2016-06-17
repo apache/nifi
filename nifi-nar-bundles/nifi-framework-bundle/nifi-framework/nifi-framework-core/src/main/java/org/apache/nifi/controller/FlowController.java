@@ -278,6 +278,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final ConcurrentMap<String, ReportingTaskNode> reportingTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
 
     private volatile ZooKeeperStateServer zooKeeperStateServer;
 
@@ -501,8 +502,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
         instanceId = UUID.randomUUID().toString();
 
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
-        controllerServiceProvider.setRootProcessGroup(rootGroup);
+        controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider);
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
@@ -521,7 +521,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
         }
 
-        for(RemoteSiteListener listener : externalSiteListeners) {
+        for(final RemoteSiteListener listener : externalSiteListeners) {
             listener.setRootGroup(rootGroup);
         }
 
@@ -659,7 +659,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // ContentRepository to purge superfluous files
             contentRepository.cleanup();
 
-            for(RemoteSiteListener listener : externalSiteListeners) {
+            for(final RemoteSiteListener listener : externalSiteListeners) {
                 listener.start();
             }
 
@@ -1297,7 +1297,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
             }
 
-            for(RemoteSiteListener listener : externalSiteListeners) {
+            for(final RemoteSiteListener listener : externalSiteListeners) {
                 listener.stop();
             }
 
@@ -1442,11 +1442,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             rootGroup = group;
 
-            for(RemoteSiteListener listener : externalSiteListeners) {
+            for(final RemoteSiteListener listener : externalSiteListeners) {
                 listener.setRootGroup(rootGroup);
             }
-
-            controllerServiceProvider.setRootProcessGroup(rootGroup);
 
             // update the heartbeat bean
             this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
@@ -2875,8 +2873,65 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
+    public ControllerService getControllerServiceForComponent(final String serviceIdentifier, final String componentId) {
+        return controllerServiceProvider.getControllerServiceForComponent(serviceIdentifier, componentId);
+    }
+
+    @Override
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) throws IllegalArgumentException {
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
+    }
+
+    @Override
     public ControllerServiceNode getControllerServiceNode(final String serviceIdentifier) {
         return controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
+    }
+
+    public Set<ControllerServiceNode> getRootControllerServices() {
+        return new HashSet<>(rootControllerServices.values());
+    }
+
+    public void addRootControllerService(final ControllerServiceNode serviceNode) {
+        final ControllerServiceNode existing = rootControllerServices.putIfAbsent(serviceNode.getIdentifier(), serviceNode);
+        if (existing != null) {
+            throw new IllegalStateException("Controller Service with ID " + serviceNode.getIdentifier() + " already exists at the Controller level");
+        }
+    }
+
+    public ControllerServiceNode getRootControllerService(final String serviceIdentifier) {
+        return rootControllerServices.get(serviceIdentifier);
+    }
+
+    public void removeRootControllerService(final ControllerServiceNode service) {
+        final ControllerServiceNode existing = rootControllerServices.get(requireNonNull(service).getIdentifier());
+        if (existing == null) {
+            throw new IllegalStateException(service + " is not a member of this Process Group");
+        }
+
+        service.verifyCanDelete();
+
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
+        }
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : service.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                if (value != null) {
+                    final ControllerServiceNode referencedNode = getRootControllerService(value);
+                    if (referencedNode != null) {
+                        referencedNode.removeReference(service);
+                    }
+                }
+            }
+        }
+
+        rootControllerServices.remove(service.getIdentifier());
+        getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+        LOG.info("{} removed from Flow Controller", service, this);
     }
 
     @Override
@@ -3844,7 +3899,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, final String groupId) {
         return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 

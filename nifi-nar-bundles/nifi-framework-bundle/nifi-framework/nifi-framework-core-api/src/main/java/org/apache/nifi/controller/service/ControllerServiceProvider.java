@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -176,4 +177,25 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @param serviceNode the node
      */
     Set<ConfiguredComponent> scheduleReferencingComponents(ControllerServiceNode serviceNode);
+
+    /**
+     *
+     * @param serviceType type of service to get identifiers for
+     * @param groupId the ID of the Process Group to look in for Controller Services
+     *
+     * @return the set of all Controller Service Identifiers whose Controller
+     *         Service is of the given type.
+     * @throws IllegalArgumentException if the given class is not an interface
+     */
+    Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId) throws IllegalArgumentException;
+
+    /**
+     * @param serviceIdentifier the identifier of the controller service
+     * @param componentId the identifier of the component that is referencing the service.
+     * @return the Controller Service that is registered with the given identifier or <code>null</code> if that
+     *         identifier does not exist for any controller service or if the controller service with that identifier is
+     *         not accessible from the component with the given componentId, or if no component exists with the given
+     *         identifier
+     */
+    ControllerService getControllerServiceForComponent(String serviceIdentifier, String componentId);
 }
