@@ -92,6 +92,13 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
             .description("A FlowFile is routed to this relationship if it cannot be sent to HBase")
             .build();
 
+    protected HBaseClientService clientService;
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        clientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
@@ -135,11 +142,10 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
 
         final long start = System.nanoTime();
         final List<PutFlowFile> successes = new ArrayList<>();
-        final HBaseClientService hBaseClientService = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
 
         for (Map.Entry<String, List<PutFlowFile>> entry : tablePuts.entrySet()) {
             try {
-                hBaseClientService.put(entry.getKey(), entry.getValue());
+                clientService.put(entry.getKey(), entry.getValue());
                 successes.addAll(entry.getValue());
             } catch (Exception e) {
                 getLogger().error(e.getMessage(), e);
@@ -180,12 +186,5 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
      * @return a PutFlowFile instance for the given FlowFile
      */
     protected abstract PutFlowFile createPut(final ProcessSession session, final ProcessContext context, final FlowFile flowFile);
-
-    protected HBaseClientService cliSvc;
-
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        cliSvc = context.getProperty(HBASE_CLIENT_SERVICE).asControllerService(HBaseClientService.class);
-    }
 
 }

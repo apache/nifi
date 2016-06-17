@@ -89,6 +89,25 @@ public class PutHBaseJSON extends AbstractPutHBase {
             .defaultValue(COMPLEX_FIELD_TEXT.getValue())
             .build();
 
+    protected static final String STRING_ENCODING_VALUE = "String";
+    protected static final String BYTES_ENCODING_VALUE = "Bytes";
+
+    protected static final AllowableValue FIELD_ENCODING_STRING = new AllowableValue(STRING_ENCODING_VALUE, STRING_ENCODING_VALUE,
+            "Stores the value of each field as a UTF-8 String.");
+    protected static final AllowableValue FIELD_ENCODING_BYTES = new AllowableValue(BYTES_ENCODING_VALUE, BYTES_ENCODING_VALUE,
+            "Stores the value of each field as the byte representation of the type derived from the JSON.");
+
+    protected static final PropertyDescriptor FIELD_ENCODING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Field Encoding Strategy")
+            .description(("Indicates how to store the value of each field in HBase. The default behavior is to convert each value from the " +
+                    "JSON to a String, and store the UTF-8 bytes. Choosing Bytes will interpret the type of each field from " +
+                    "the JSON, and convert the value to the byte representation of that type, meaning an integer will be stored as the " +
+                    "byte representation of that integer."))
+            .required(true)
+            .allowableValues(FIELD_ENCODING_STRING, FIELD_ENCODING_BYTES)
+            .defaultValue(FIELD_ENCODING_STRING.getValue())
+            .build();
+
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -99,6 +118,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         properties.add(COLUMN_FAMILY);
         properties.add(BATCH_SIZE);
         properties.add(COMPLEX_FIELD_STRATEGY);
+        properties.add(FIELD_ENCODING_STRATEGY);
         return properties;
     }
 
@@ -142,6 +162,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
         final String columnFamily = context.getProperty(COLUMN_FAMILY).evaluateAttributeExpressions(flowFile).getValue();
         final boolean extractRowId = !StringUtils.isBlank(rowFieldName);
         final String complexFieldStrategy = context.getProperty(COMPLEX_FIELD_STRATEGY).getValue();
+        final String fieldEncodingStrategy = context.getProperty(FIELD_ENCODING_STRATEGY).getValue();
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
@@ -180,7 +201,13 @@ public class PutHBaseJSON extends AbstractPutHBase {
             if (fieldNode.isNull()) {
                 getLogger().debug("Skipping {} because value was null", new Object[]{fieldName});
             } else if (fieldNode.isValueNode()) {
-                fieldValueHolder.set(extractJNodeValue(fieldNode));
+                // for a value node we need to determine if we are storing the bytes of a string, or the bytes of actual types
+                if (STRING_ENCODING_VALUE.equals(fieldEncodingStrategy)) {
+                    final byte[] valueBytes = clientService.toBytes(fieldNode.asText());
+                    fieldValueHolder.set(valueBytes);
+                } else {
+                    fieldValueHolder.set(extractJNodeValue(fieldNode));
+                }
             } else {
                 // for non-null, non-value nodes, determine what to do based on the handling strategy
                 switch (complexFieldStrategy) {
@@ -193,7 +220,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
                     case TEXT_VALUE:
                         // use toString() here because asText() is only guaranteed to be supported on value nodes
                         // some other types of nodes, like ArrayNode, provide toString implementations
-                        fieldValueHolder.set(cliSvc.toBytes(fieldNode.toString()));
+                        fieldValueHolder.set(clientService.toBytes(fieldNode.toString()));
                         break;
                     case IGNORE_VALUE:
                         // silently skip
@@ -229,21 +256,21 @@ public class PutHBaseJSON extends AbstractPutHBase {
     /*
      *Handles the conversion of the JsonNode value into it correct underlying data type in the form of a byte array as expected by the columns.add function
      */
-    private byte[] extractJNodeValue(JsonNode n){
+    private byte[] extractJNodeValue(final JsonNode n){
         if (n.isBoolean()){
             //boolean
-            return cliSvc.toBytes(n.asBoolean());
+            return clientService.toBytes(n.asBoolean());
         }else if(n.isNumber()){
             if(n.isIntegralNumber()){
                 //interpret as Long
-                return cliSvc.toBytes(n.asLong());
+                return clientService.toBytes(n.asLong());
             }else{
                 //interpret as Double
-                return cliSvc.toBytes(n.asDouble());
+                return clientService.toBytes(n.asDouble());
             }
         }else{
             //if all else fails, interpret as String
-            return cliSvc.toBytes(n.asText());
+            return clientService.toBytes(n.asText());
         }
     }
 
