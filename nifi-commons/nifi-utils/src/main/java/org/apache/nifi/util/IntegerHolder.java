@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.util;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * @deprecated As of release 1.0.1. Please use {@link AtomicInteger}
+ *
+ * Wraps an Integer value so that it can be declared <code>final</code> and still be accessed from inner classes;
+ * the functionality is similar to that of an AtomicInteger, but operations on this class
+ * are not atomic. This results in greater performance when the atomicity is not needed.
+ *
+ */
+
+@Deprecated
 public class IntegerHolder extends ObjectHolder<Integer> {
 
     public IntegerHolder(final int initialValue) {
@@ -48,7 +60,4 @@ public class IntegerHolder extends ObjectHolder<Integer> {
         return addAndGet(-1);
     }
 
-    public int getAndDecrement() {
-        return getAndAdd(-1);
-    }
 }
