@@ -72,7 +72,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
-    private volatile ProcessGroup rootGroup;
+    private final FlowController flowController;
 
     static {
         // methods that are okay to be called when the service is disabled.
@@ -86,17 +86,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         validDisabledMethods = Collections.unmodifiableSet(validMethods);
     }
 
-    public StandardControllerServiceProvider(final ProcessScheduler scheduler, final BulletinRepository bulletinRepo, final StateManagerProvider stateManagerProvider) {
-        // the following 2 maps must be updated atomically, but we do not lock around them because they are modified
-        // only in the createControllerService method, and both are modified before the method returns
+    public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
+        final StateManagerProvider stateManagerProvider) {
+
+        this.flowController = flowController;
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
     }
 
-    public void setRootProcessGroup(ProcessGroup rootGroup) {
-        this.rootGroup = rootGroup;
-    }
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
         final List<Class<?>> allIfcs = new ArrayList<>();
@@ -519,6 +517,52 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return node == null ? null : node.getProxiedControllerService();
     }
 
+    private ProcessGroup getRootGroup() {
+        return flowController.getGroup(flowController.getRootGroupId());
+    }
+
+    @Override
+    public ControllerService getControllerServiceForComponent(final String serviceIdentifier, final String componentId) {
+        final ProcessGroup rootGroup = getRootGroup();
+
+        // Find the Process Group that owns the component.
+        ProcessGroup groupOfInterest = null;
+
+        final ProcessorNode procNode = rootGroup.findProcessor(componentId);
+        if (procNode == null) {
+            final ControllerServiceNode serviceNode = getControllerServiceNode(componentId);
+            if (serviceNode == null) {
+                final ReportingTaskNode taskNode = flowController.getReportingTaskNode(componentId);
+                if (taskNode == null) {
+                    throw new IllegalStateException("Could not find any Processor, Reporting Task, or Controller Service with identifier " + componentId);
+                }
+
+                // we have confirmed that the component is a reporting task. We can only reference Controller Services
+                // that are scoped at the FlowController level in this case.
+                final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+                return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
+            } else {
+                groupOfInterest = serviceNode.getProcessGroup();
+            }
+        } else {
+            groupOfInterest = procNode.getProcessGroup();
+        }
+
+        if (groupOfInterest == null) {
+            final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+            return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
+        }
+
+        final Set<ControllerServiceNode> servicesForGroup = groupOfInterest.getControllerServices(true);
+        for (final ControllerServiceNode serviceNode : servicesForGroup) {
+            if (serviceIdentifier.equals(serviceNode.getIdentifier())) {
+                return serviceNode.getProxiedControllerService();
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public boolean isControllerServiceEnabled(final ControllerService service) {
         return isControllerServiceEnabled(service.getIdentifier());
@@ -538,26 +582,32 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public ControllerServiceNode getControllerServiceNode(final String serviceIdentifier) {
-        final ProcessGroup group = rootGroup;
-        return group == null ? null : group.findControllerService(serviceIdentifier);
+        final ControllerServiceNode rootServiceNode = flowController.getRootControllerService(serviceIdentifier);
+        if (rootServiceNode != null) {
+            return rootServiceNode;
+        }
+
+        return getRootGroup().findControllerService(serviceIdentifier);
     }
 
+
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
-        ProcessGroup group = rootGroup;
-        if (group == null) {
-            return Collections.emptySet();
-        }
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, final String groupId) {
+        final Set<ControllerServiceNode> serviceNodes;
+        if (groupId == null) {
+            serviceNodes = flowController.getRootControllerServices();
+        } else {
+            ProcessGroup group = getRootGroup();
+            if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
+                group = group.findProcessGroup(groupId);
+            }
 
-        if (!FlowController.ROOT_GROUP_ID_ALIAS.equals(groupId) && !group.getIdentifier().equals(groupId)) {
-            group = group.findProcessGroup(groupId);
-        }
+            if (group == null) {
+                return Collections.emptySet();
+            }
 
-        if (group == null) {
-            return Collections.emptySet();
+            serviceNodes = group.getControllerServices(true);
         }
-
-        final Set<ControllerServiceNode> serviceNodes = group.getControllerServices(true);
 
         final Set<String> identifiers = new HashSet<>();
         for (final ControllerServiceNode serviceNode : serviceNodes) {
@@ -579,7 +629,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         final ProcessGroup group = requireNonNull(serviceNode).getProcessGroup();
         if (group == null) {
-            throw new IllegalArgumentException("Cannot remote Controller Service " + serviceNode + " because it does not belong to any Process Group");
+            flowController.removeRootControllerService(serviceNode);
+            return;
         }
 
         group.removeControllerService(serviceNode);
@@ -587,12 +638,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public Set<ControllerServiceNode> getAllControllerServices() {
-        final ProcessGroup group = rootGroup;
-        if (group == null) {
-            return Collections.emptySet();
-        }
+        final Set<ControllerServiceNode> allServices = new HashSet<>();
+        allServices.addAll(flowController.getRootControllerServices());
+        allServices.addAll(getRootGroup().findAllControllerServices());
 
-        return group.findAllControllerServices();
+        return allServices;
     }
 
     /**
@@ -708,5 +758,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public void verifyCanStopReferencingComponents(final ControllerServiceNode serviceNode) {
         // we can always stop referencing components
+    }
+
+
+    @Override
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) throws IllegalArgumentException {
+        throw new UnsupportedOperationException("Cannot obtain Controller Service Identifiers for service type " + serviceType + " without providing a Process Group Identifier");
     }
 }

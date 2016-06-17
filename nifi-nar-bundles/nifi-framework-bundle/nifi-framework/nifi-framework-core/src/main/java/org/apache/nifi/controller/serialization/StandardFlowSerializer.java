@@ -94,8 +94,12 @@ public class StandardFlowSerializer implements FlowSerializer {
             addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
             addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup");
 
+            // Add root-level controller services
             final Element controllerServicesNode = doc.createElement("controllerServices");
             rootNode.appendChild(controllerServicesNode);
+            for (final ControllerServiceNode serviceNode : controller.getRootControllerServices()) {
+                addControllerService(controllerServicesNode, serviceNode);
+            }
 
             final Element reportingTasksNode = doc.createElement("reportingTasks");
             rootNode.appendChild(reportingTasksNode);
@@ -252,7 +256,7 @@ public class StandardFlowSerializer implements FlowSerializer {
         }
         addTextElement(element, "proxyUser", remoteRef.getProxyUser());
         if (!StringUtils.isEmpty(remoteRef.getProxyPassword())) {
-            String value = ENC_PREFIX + encryptor.encrypt(remoteRef.getProxyPassword()) + ENC_SUFFIX;
+            final String value = ENC_PREFIX + encryptor.encrypt(remoteRef.getProxyPassword()) + ENC_SUFFIX;
             addTextElement(element, "proxyPassword", value);
         }
 

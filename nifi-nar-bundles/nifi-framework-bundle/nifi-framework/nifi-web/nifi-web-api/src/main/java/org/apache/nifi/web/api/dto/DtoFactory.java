@@ -168,7 +168,7 @@ public final class DtoFactory {
     @SuppressWarnings("rawtypes")
     private final static Comparator<Class> CLASS_NAME_COMPARATOR = new Comparator<Class>() {
         @Override
-        public int compare(Class class1, Class class2) {
+        public int compare(final Class class1, final Class class2) {
             return Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
         }
     };
@@ -295,8 +295,8 @@ public final class DtoFactory {
         historyDto.setLastRefreshed(history.getLastRefreshed());
 
         if (history.getActions() != null) {
-            List<ActionDTO> actionDtos = new ArrayList<>();
-            for (Action action : history.getActions()) {
+            final List<ActionDTO> actionDtos = new ArrayList<>();
+            for (final Action action : history.getActions()) {
                 actionDtos.add(createActionDto(action));
             }
             historyDto.setActions(actionDtos);
@@ -997,7 +997,7 @@ public final class DtoFactory {
      * @param originalSnippet snippet
      * @return dto
      */
-    public FlowSnippetDTO copySnippetContents(FlowSnippetDTO originalSnippet) {
+    public FlowSnippetDTO copySnippetContents(final FlowSnippetDTO originalSnippet) {
         final FlowSnippetDTO copySnippet = new FlowSnippetDTO();
 
         if (originalSnippet.getConnections() != null) {
@@ -1112,7 +1112,7 @@ public final class DtoFactory {
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
-            public int compare(PropertyDescriptor o1, PropertyDescriptor o2) {
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
                 return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
         });
@@ -1123,7 +1123,7 @@ public final class DtoFactory {
         final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
         final List<PropertyDescriptor> descriptors = reportingTask.getPropertyDescriptors();
         if (descriptors != null && !descriptors.isEmpty()) {
-            for (PropertyDescriptor descriptor : descriptors) {
+            for (final PropertyDescriptor descriptor : descriptors) {
                 orderedProperties.put(descriptor, null);
             }
         }
@@ -1136,7 +1136,7 @@ public final class DtoFactory {
             final PropertyDescriptor descriptor = entry.getKey();
 
             // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, "root"));
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, null));
 
             // determine the property value - don't include sensitive properties
             String propertyValue = entry.getValue();
@@ -1176,7 +1176,7 @@ public final class DtoFactory {
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
-            public int compare(PropertyDescriptor o1, PropertyDescriptor o2) {
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
                 return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
         });
@@ -1187,7 +1187,7 @@ public final class DtoFactory {
         final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
         final List<PropertyDescriptor> descriptors = controllerService.getPropertyDescriptors();
         if (descriptors != null && !descriptors.isEmpty()) {
-            for (PropertyDescriptor descriptor : descriptors) {
+            for (final PropertyDescriptor descriptor : descriptors) {
                 orderedProperties.put(descriptor, null);
             }
         }
@@ -1200,7 +1200,8 @@ public final class DtoFactory {
             final PropertyDescriptor descriptor = entry.getKey();
 
             // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, controllerServiceNode.getProcessGroup().getIdentifier()));
+            final String groupId = controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier();
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, groupId));
 
             // determine the property value - don't include sensitive properties
             String propertyValue = entry.getValue();
@@ -1253,7 +1254,7 @@ public final class DtoFactory {
 
             propertyDescriptors = node.getControllerServiceImplementation().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
-            processGroupId = node.getProcessGroup().getIdentifier();
+            processGroupId = node.getProcessGroup() == null ? null : node.getProcessGroup().getIdentifier();
         } else if (component instanceof ReportingTaskNode) {
             final ReportingTaskNode node = ((ReportingTaskNode) component);
             dto.setState(node.getScheduledState().name());
@@ -1263,20 +1264,20 @@ public final class DtoFactory {
 
             propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
             validationErrors = node.getValidationErrors();
-            processGroupId = "root";
+            processGroupId = null;
         }
 
         if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
             final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
                 @Override
-                public int compare(PropertyDescriptor o1, PropertyDescriptor o2) {
+                public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
                     return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
                 }
             });
             sortedProperties.putAll(component.getProperties());
 
             final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-            for (PropertyDescriptor descriptor : propertyDescriptors) {
+            for (final PropertyDescriptor descriptor : propertyDescriptors) {
                 orderedProperties.put(descriptor, null);
             }
             orderedProperties.putAll(sortedProperties);
@@ -1706,7 +1707,7 @@ public final class DtoFactory {
         dto.setComments(group.getComments());
         dto.setName(group.getName());
 
-        ProcessGroup parentGroup = group.getParent();
+        final ProcessGroup parentGroup = group.getParent();
         if (parentGroup != null) {
             dto.setParentGroupId(parentGroup.getIdentifier());
         }
@@ -1875,7 +1876,7 @@ public final class DtoFactory {
         // sort the relationships
         Collections.sort(relationships, new Comparator<RelationshipDTO>() {
             @Override
-            public int compare(RelationshipDTO r1, RelationshipDTO r2) {
+            public int compare(final RelationshipDTO r1, final RelationshipDTO r2) {
                 return Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName());
             }
         });
@@ -1912,7 +1913,7 @@ public final class DtoFactory {
         // sort the bulletins
         Collections.sort(bulletins, new Comparator<BulletinDTO>() {
             @Override
-            public int compare(BulletinDTO bulletin1, BulletinDTO bulletin2) {
+            public int compare(final BulletinDTO bulletin1, final BulletinDTO bulletin2) {
                 if (bulletin1 == null && bulletin2 == null) {
                     return 0;
                 } else if (bulletin1 == null) {
@@ -2249,7 +2250,7 @@ public final class DtoFactory {
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
-            public int compare(PropertyDescriptor o1, PropertyDescriptor o2) {
+            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
                 return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
         });
@@ -2260,7 +2261,7 @@ public final class DtoFactory {
         final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
         final List<PropertyDescriptor> descriptors = processor.getPropertyDescriptors();
         if (descriptors != null && !descriptors.isEmpty()) {
-            for (PropertyDescriptor descriptor : descriptors) {
+            for (final PropertyDescriptor descriptor : descriptors) {
                 orderedProperties.put(descriptor, null);
             }
         }
@@ -2787,7 +2788,7 @@ public final class DtoFactory {
      * @param lastMod mod
      * @return dto
      */
-    public RevisionDTO createRevisionDTO(FlowModification lastMod) {
+    public RevisionDTO createRevisionDTO(final FlowModification lastMod) {
         final Revision revision = lastMod.getRevision();
 
         // create the dto
@@ -2806,7 +2807,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public NodeDTO createNodeDTO(NodeIdentifier nodeId, NodeConnectionStatus status, NodeHeartbeat nodeHeartbeat, List<NodeEvent> events, boolean primary) {
+    public NodeDTO createNodeDTO(final NodeIdentifier nodeId, final NodeConnectionStatus status, final NodeHeartbeat nodeHeartbeat, final List<NodeEvent> events, final boolean primary) {
         final NodeDTO nodeDto = new NodeDTO();
 
         // populate node dto
@@ -2833,7 +2834,7 @@ public final class DtoFactory {
         final List<NodeEvent> nodeEvents = new ArrayList<>(events);
         Collections.sort(nodeEvents, new Comparator<NodeEvent>() {
             @Override
-            public int compare(NodeEvent event1, NodeEvent event2) {
+            public int compare(final NodeEvent event1, final NodeEvent event2) {
                 return new Date(event2.getTimestamp()).compareTo(new Date(event1.getTimestamp()));
             }
         });
@@ -2857,15 +2858,15 @@ public final class DtoFactory {
 
 
     /* setters */
-    public void setControllerServiceProvider(ControllerServiceProvider controllerServiceProvider) {
+    public void setControllerServiceProvider(final ControllerServiceProvider controllerServiceProvider) {
         this.controllerServiceProvider = controllerServiceProvider;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public void setEntityFactory(EntityFactory entityFactory) {
+    public void setEntityFactory(final EntityFactory entityFactory) {
         this.entityFactory = entityFactory;
     }
 }

@@ -31,6 +31,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
@@ -48,7 +49,7 @@ public class ControllerServiceLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
-    public static List<ControllerServiceNode> loadControllerServices(final ControllerServiceProvider provider, final InputStream serializedStream, final ProcessGroup parentGroup,
+    public static List<ControllerServiceNode> loadControllerServices(final FlowController controller, final InputStream serializedStream, final ProcessGroup parentGroup,
         final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) throws IOException {
 
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -90,19 +91,21 @@ public class ControllerServiceLoader {
             final Document document = builder.parse(in);
             final Element controllerServices = document.getDocumentElement();
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
-            return new ArrayList<>(loadControllerServices(serviceElements, provider, parentGroup, encryptor, bulletinRepo, autoResumeState));
+            return new ArrayList<>(loadControllerServices(serviceElements, controller, parentGroup, encryptor, bulletinRepo, autoResumeState));
         } catch (SAXException | ParserConfigurationException sxe) {
             throw new IOException(sxe);
         }
     }
 
-    public static Collection<ControllerServiceNode> loadControllerServices(final List<Element> serviceElements, final ControllerServiceProvider provider, final ProcessGroup parentGroup,
+    public static Collection<ControllerServiceNode> loadControllerServices(final List<Element> serviceElements, final FlowController controller, final ProcessGroup parentGroup,
         final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) {
 
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
         for (final Element serviceElement : serviceElements) {
-            final ControllerServiceNode serviceNode = createControllerService(provider, serviceElement, encryptor);
-            if (parentGroup != null) {
+            final ControllerServiceNode serviceNode = createControllerService(controller, serviceElement, encryptor);
+            if (parentGroup == null) {
+                controller.addRootControllerService(serviceNode);
+            } else {
                 parentGroup.addControllerService(serviceNode);
             }
 
@@ -132,7 +135,7 @@ public class ControllerServiceLoader {
                 }
             }
 
-            provider.enableControllerServices(nodesToEnable);
+            controller.enableControllerServices(nodesToEnable);
         }
 
         return nodeMap.keySet();

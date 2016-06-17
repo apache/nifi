@@ -38,11 +38,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -73,7 +75,9 @@ public class TestStandardProcessScheduler {
     private StandardProcessScheduler scheduler = null;
     private ReportingTaskNode taskNode = null;
     private TestReportingTask reportingTask = null;
-    private StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
+    private final StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
+    private FlowController controller;
+    private ProcessGroup rootGroup;
 
     @Before
     public void setup() throws InitializationException {
@@ -89,6 +93,10 @@ public class TestStandardProcessScheduler {
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(null);
         taskNode = new StandardReportingTaskNode(reportingTask, UUID.randomUUID().toString(), null, scheduler, validationContextFactory);
+
+        controller = Mockito.mock(FlowController.class);
+        rootGroup = new MockProcessGroup();
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(rootGroup);
     }
 
     /**
@@ -115,20 +123,17 @@ public class TestStandardProcessScheduler {
         assertTrue("After unscheduling Reporting Task, task ran an additional " + attemptsAfterStop + " times", attemptsAfterStop <= 1);
     }
 
-    @Test(timeout = 6000)
+    @Test(timeout = 60000)
     public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
         final Processor proc = new ServiceReferencingProcessor();
-        final ProcessGroup group = new MockProcessGroup();
 
-        final StandardControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null, Mockito.mock(StateManagerProvider.class));
-        serviceProvider.setRootProcessGroup(group);
-
+        final StandardControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null, Mockito.mock(StateManagerProvider.class));
         final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service", true);
-        group.addControllerService(service);
+        rootGroup.addControllerService(service);
 
         final ProcessorNode procNode = new StandardProcessorNode(proc, UUID.randomUUID().toString(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
-        group.addProcessor(procNode);
+        rootGroup.addProcessor(procNode);
 
         procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
 
@@ -184,16 +189,16 @@ public class TestStandardProcessScheduler {
         }
 
         @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         }
     }
 
     private void refreshNiFiProperties() {
         try {
-            Field instanceField = NiFiProperties.class.getDeclaredField("instance");
+            final Field instanceField = NiFiProperties.class.getDeclaredField("instance");
             instanceField.setAccessible(true);
             instanceField.set(null, null);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
     }
@@ -206,12 +211,12 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateServiceEnablementLogicHappensOnlyOnce() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", false);
         assertFalse(serviceNode.isActive());
-        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
-        ExecutorService executor = Executors.newCachedThreadPool();
+        final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        final ExecutorService executor = Executors.newCachedThreadPool();
 
         final AtomicBoolean asyncFailed = new AtomicBoolean();
         for (int i = 0; i < 1000; i++) {
@@ -221,7 +226,7 @@ public class TestStandardProcessScheduler {
                     try {
                         scheduler.enableControllerService(serviceNode);
                         assertTrue(serviceNode.isActive());
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                         asyncFailed.set(true);
                     }
@@ -245,11 +250,11 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateDisabledServiceCantBeDisabled() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", false);
-        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
-        ExecutorService executor = Executors.newCachedThreadPool();
+        final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        final ExecutorService executor = Executors.newCachedThreadPool();
 
         final AtomicBoolean asyncFailed = new AtomicBoolean();
         for (int i = 0; i < 1000; i++) {
@@ -259,7 +264,7 @@ public class TestStandardProcessScheduler {
                     try {
                         scheduler.disableControllerService(serviceNode);
                         assertFalse(serviceNode.isActive());
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                         asyncFailed.set(true);
                     }
@@ -283,13 +288,13 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateEnabledServiceCanOnlyBeDisabledOnce() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(SimpleTestService.class.getName(),
                 "1", false);
-        SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
+        final SimpleTestService ts = (SimpleTestService) serviceNode.getControllerServiceImplementation();
         scheduler.enableControllerService(serviceNode);
         assertTrue(serviceNode.isActive());
-        ExecutorService executor = Executors.newCachedThreadPool();
+        final ExecutorService executor = Executors.newCachedThreadPool();
 
         final AtomicBoolean asyncFailed = new AtomicBoolean();
         for (int i = 0; i < 1000; i++) {
@@ -299,7 +304,7 @@ public class TestStandardProcessScheduler {
                     try {
                         scheduler.disableControllerService(serviceNode);
                         assertFalse(serviceNode.isActive());
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         e.printStackTrace();
                         asyncFailed.set(true);
                     }
@@ -317,7 +322,7 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateDisablingOfTheFailedService() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(FailingService.class.getName(),
                 "1", false);
         scheduler.enableControllerService(serviceNode);
@@ -348,8 +353,8 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateEnabledDisableMultiThread() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
-        ExecutorService executor = Executors.newCachedThreadPool();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
+        final ExecutorService executor = Executors.newCachedThreadPool();
         for (int i = 0; i < 200; i++) {
             final ControllerServiceNode serviceNode = provider
                     .createControllerService(RandomShortDelayEnablingService.class.getName(), "1", false);
@@ -391,10 +396,10 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateNeverEnablingServiceCanStillBeDisabled() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
                 "1", false);
-        LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(Long.MAX_VALUE);
         scheduler.enableControllerService(serviceNode);
         Thread.sleep(100);
@@ -416,10 +421,10 @@ public class TestStandardProcessScheduler {
     @Test
     public void validateLongEnablingServiceCanStillBeDisabled() throws Exception {
         final ProcessScheduler scheduler = createScheduler();
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateMgrProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateMgrProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(LongEnablingService.class.getName(),
                 "1", false);
-        LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
+        final LongEnablingService ts = (LongEnablingService) serviceNode.getControllerServiceImplementation();
         ts.setLimit(3000);
         scheduler.enableControllerService(serviceNode);
         Thread.sleep(2000);
@@ -440,7 +445,7 @@ public class TestStandardProcessScheduler {
 
     public static class FailingService extends AbstractControllerService {
         @OnEnabled
-        public void enable(ConfigurationContext context) {
+        public void enable(final ConfigurationContext context) {
             throw new RuntimeException("intentional");
         }
     }
@@ -449,10 +454,10 @@ public class TestStandardProcessScheduler {
         private final Random random = new Random();
 
         @OnEnabled
-        public void enable(ConfigurationContext context) {
+        public void enable(final ConfigurationContext context) {
             try {
                 Thread.sleep(random.nextInt(20));
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
@@ -464,12 +469,12 @@ public class TestStandardProcessScheduler {
         private final AtomicInteger disableCounter = new AtomicInteger();
 
         @OnEnabled
-        public void enable(ConfigurationContext context) {
+        public void enable(final ConfigurationContext context) {
             this.enableCounter.incrementAndGet();
         }
 
         @OnDisabled
-        public void disable(ConfigurationContext context) {
+        public void disable(final ConfigurationContext context) {
             this.disableCounter.incrementAndGet();
         }
 
@@ -489,13 +494,13 @@ public class TestStandardProcessScheduler {
         private volatile long limit;
 
         @OnEnabled
-        public void enable(ConfigurationContext context) throws Exception {
+        public void enable(final ConfigurationContext context) throws Exception {
             this.enableCounter.incrementAndGet();
             Thread.sleep(limit);
         }
 
         @OnDisabled
-        public void disable(ConfigurationContext context) {
+        public void disable(final ConfigurationContext context) {
             this.disableCounter.incrementAndGet();
         }
 
@@ -507,7 +512,7 @@ public class TestStandardProcessScheduler {
             return this.disableCounter.get();
         }
 
-        public void setLimit(long limit) {
+        public void setLimit(final long limit) {
             this.limit = limit;
         }
     }

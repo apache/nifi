@@ -75,8 +75,8 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
-        return serviceProvider.getControllerServiceIdentifiers(serviceType, groupId);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+        return serviceProvider.getControllerServiceIdentifiers(serviceType, null);
     }
 
     @Override

@@ -51,11 +51,12 @@ public interface ControllerServiceDAO {
     ControllerServiceNode getControllerService(String controllerServiceId);
 
     /**
-     * Gets all of the controller services.
+     * Gets all of the controller services for the group with the given ID or all
+     * controller-level services if the group id is null
      *
      * @return The controller services
      */
-    Set<ControllerServiceNode> getControllerServices();
+    Set<ControllerServiceNode> getControllerServices(String groupId);
 
     /**
      * Updates the specified controller service.

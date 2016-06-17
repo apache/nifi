@@ -86,8 +86,8 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId) {
-        return context.getControllerServiceIdentifiers(serviceType, groupId);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+        return context.getControllerServiceIdentifiers(serviceType);
     }
 
     @Override
@@ -117,7 +117,7 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
 

@@ -28,12 +28,13 @@ public interface NiFiWebConfigurationContext {
 
     /**
      * @param serviceIdentifier of the controller service
+     * @param componentId the id of the component that is referencing the controller service
      * @return the ControllerService for the specified identifier. If a
      * corresponding service cannot be found, null is returned. If this NiFi is
      * clustered, the only services available will be those those availability
      * is NCM only
      */
-    ControllerService getControllerService(String serviceIdentifier);
+    ControllerService getControllerService(String serviceIdentifier, String componentId);
 
     /**
      * Provides a mechanism for custom UIs to save actions to appear in NiFi

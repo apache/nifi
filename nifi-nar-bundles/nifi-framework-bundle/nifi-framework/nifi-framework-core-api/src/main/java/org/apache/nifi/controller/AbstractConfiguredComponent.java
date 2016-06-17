@@ -262,7 +262,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
     @Override
     public boolean isValid() {
         final Collection<ValidationResult> validationResults = validate(validationContextFactory.newValidationContext(
-            getProperties(), getAnnotationData(), getProcessGroupIdentifier()));
+            getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier()));
 
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
@@ -283,7 +283,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         lock.lock();
         try {
             final ValidationContext validationContext = validationContextFactory.newValidationContext(
-                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier());
+                serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {

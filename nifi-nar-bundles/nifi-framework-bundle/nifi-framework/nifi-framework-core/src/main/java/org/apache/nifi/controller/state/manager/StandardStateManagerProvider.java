@@ -186,7 +186,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             provider.initialize(initContext);
         }
 
-        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null);
+        final ValidationContext validationContext = new StandardValidationContext(null, propertyStringMap, null, null, null);
         final Collection<ValidationResult> results = provider.validate(validationContext);
         final StringBuilder validationFailures = new StringBuilder();
 

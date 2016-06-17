@@ -17,6 +17,13 @@
 
 package org.apache.nifi.controller.service.mock;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
@@ -34,14 +41,9 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 public class MockProcessGroup implements ProcessGroup {
-    private Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
+    private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
+    private final Map<String, ProcessorNode> processorMap = new HashMap<>();
 
     @Override
     public Authorizable getParentAuthorizable() {
@@ -59,7 +61,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void setParent(ProcessGroup group) {
+    public void setParent(final ProcessGroup group) {
 
     }
 
@@ -74,12 +76,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void setName(String name) {
+    public void setName(final String name) {
 
     }
 
     @Override
-    public void setPosition(Position position) {
+    public void setPosition(final Position position) {
 
     }
 
@@ -94,7 +96,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void setComments(String comments) {
+    public void setComments(final String comments) {
 
     }
 
@@ -114,67 +116,67 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void enableProcessor(ProcessorNode processor) {
+    public void enableProcessor(final ProcessorNode processor) {
 
     }
 
     @Override
-    public void enableInputPort(Port port) {
+    public void enableInputPort(final Port port) {
 
     }
 
     @Override
-    public void enableOutputPort(Port port) {
+    public void enableOutputPort(final Port port) {
 
     }
 
     @Override
-    public void startProcessor(ProcessorNode processor) {
+    public void startProcessor(final ProcessorNode processor) {
 
     }
 
     @Override
-    public void startInputPort(Port port) {
+    public void startInputPort(final Port port) {
 
     }
 
     @Override
-    public void startOutputPort(Port port) {
+    public void startOutputPort(final Port port) {
 
     }
 
     @Override
-    public void startFunnel(Funnel funnel) {
+    public void startFunnel(final Funnel funnel) {
 
     }
 
     @Override
-    public void stopProcessor(ProcessorNode processor) {
+    public void stopProcessor(final ProcessorNode processor) {
 
     }
 
     @Override
-    public void stopInputPort(Port port) {
+    public void stopInputPort(final Port port) {
 
     }
 
     @Override
-    public void stopOutputPort(Port port) {
+    public void stopOutputPort(final Port port) {
 
     }
 
     @Override
-    public void disableProcessor(ProcessorNode processor) {
+    public void disableProcessor(final ProcessorNode processor) {
 
     }
 
     @Override
-    public void disableInputPort(Port port) {
+    public void disableInputPort(final Port port) {
 
     }
 
     @Override
-    public void disableOutputPort(Port port) {
+    public void disableOutputPort(final Port port) {
 
     }
 
@@ -189,12 +191,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void addInputPort(Port port) {
+    public void addInputPort(final Port port) {
 
     }
 
     @Override
-    public void removeInputPort(Port port) {
+    public void removeInputPort(final Port port) {
 
     }
 
@@ -204,22 +206,22 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Port getInputPort(String id) {
+    public Port getInputPort(final String id) {
         return null;
     }
 
     @Override
-    public void addOutputPort(Port port) {
+    public void addOutputPort(final Port port) {
 
     }
 
     @Override
-    public void removeOutputPort(Port port) {
+    public void removeOutputPort(final Port port) {
 
     }
 
     @Override
-    public Port getOutputPort(String id) {
+    public Port getOutputPort(final String id) {
         return null;
     }
 
@@ -229,12 +231,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void addProcessGroup(ProcessGroup group) {
+    public void addProcessGroup(final ProcessGroup group) {
 
     }
 
     @Override
-    public ProcessGroup getProcessGroup(String id) {
+    public ProcessGroup getProcessGroup(final String id) {
         return null;
     }
 
@@ -244,28 +246,29 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void removeProcessGroup(ProcessGroup group) {
+    public void removeProcessGroup(final ProcessGroup group) {
 
     }
 
     @Override
-    public void addProcessor(ProcessorNode processor) {
+    public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
+        processorMap.put(processor.getIdentifier(), processor);
     }
 
     @Override
-    public void removeProcessor(ProcessorNode processor) {
-
+    public void removeProcessor(final ProcessorNode processor) {
+        processorMap.remove(processor.getIdentifier());
     }
 
     @Override
     public Set<ProcessorNode> getProcessors() {
-        return null;
+        return new HashSet<>(processorMap.values());
     }
 
     @Override
-    public ProcessorNode getProcessor(String id) {
-        return null;
+    public ProcessorNode getProcessor(final String id) {
+        return processorMap.get(id);
     }
 
     @Override
@@ -274,27 +277,27 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Connectable getConnectable(String id) {
+    public Connectable getConnectable(final String id) {
         return null;
     }
 
     @Override
-    public void addConnection(Connection connection) {
+    public void addConnection(final Connection connection) {
 
     }
 
     @Override
-    public void removeConnection(Connection connection) {
+    public void removeConnection(final Connection connection) {
 
     }
 
     @Override
-    public void inheritConnection(Connection connection) {
+    public void inheritConnection(final Connection connection) {
 
     }
 
     @Override
-    public Connection getConnection(String id) {
+    public Connection getConnection(final String id) {
         return null;
     }
 
@@ -304,7 +307,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Connection findConnection(String id) {
+    public Connection findConnection(final String id) {
         return null;
     }
 
@@ -314,12 +317,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Funnel findFunnel(String id) {
+    public Funnel findFunnel(final String id) {
         return null;
     }
 
     @Override
-    public ControllerServiceNode findControllerService(String id) {
+    public ControllerServiceNode findControllerService(final String id) {
         return serviceMap.get(id);
     }
 
@@ -329,17 +332,17 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void addRemoteProcessGroup(RemoteProcessGroup remoteGroup) {
+    public void addRemoteProcessGroup(final RemoteProcessGroup remoteGroup) {
 
     }
 
     @Override
-    public void removeRemoteProcessGroup(RemoteProcessGroup remoteGroup) {
+    public void removeRemoteProcessGroup(final RemoteProcessGroup remoteGroup) {
 
     }
 
     @Override
-    public RemoteProcessGroup getRemoteProcessGroup(String id) {
+    public RemoteProcessGroup getRemoteProcessGroup(final String id) {
         return null;
     }
 
@@ -349,12 +352,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void addLabel(Label label) {
+    public void addLabel(final Label label) {
 
     }
 
     @Override
-    public void removeLabel(Label label) {
+    public void removeLabel(final Label label) {
 
     }
 
@@ -364,12 +367,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Label getLabel(String id) {
+    public Label getLabel(final String id) {
         return null;
     }
 
     @Override
-    public ProcessGroup findProcessGroup(String id) {
+    public ProcessGroup findProcessGroup(final String id) {
         return null;
     }
 
@@ -379,7 +382,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public RemoteProcessGroup findRemoteProcessGroup(String id) {
+    public RemoteProcessGroup findRemoteProcessGroup(final String id) {
         return null;
     }
 
@@ -389,17 +392,17 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public ProcessorNode findProcessor(String id) {
-        return null;
+    public ProcessorNode findProcessor(final String id) {
+        return processorMap.get(id);
     }
 
     @Override
     public List<ProcessorNode> findAllProcessors() {
-        return null;
+        return new ArrayList<>(processorMap.values());
     }
 
     @Override
-    public Label findLabel(String id) {
+    public Label findLabel(final String id) {
         return null;
     }
 
@@ -409,7 +412,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Port findInputPort(String id) {
+    public Port findInputPort(final String id) {
         return null;
     }
 
@@ -419,12 +422,12 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Port getInputPortByName(String name) {
+    public Port getInputPortByName(final String name) {
         return null;
     }
 
     @Override
-    public Port findOutputPort(String id) {
+    public Port findOutputPort(final String id) {
         return null;
     }
 
@@ -434,17 +437,17 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Port getOutputPortByName(String name) {
+    public Port getOutputPortByName(final String name) {
         return null;
     }
 
     @Override
-    public void addFunnel(Funnel funnel) {
+    public void addFunnel(final Funnel funnel) {
 
     }
 
     @Override
-    public void addFunnel(Funnel funnel, boolean autoStart) {
+    public void addFunnel(final Funnel funnel, final boolean autoStart) {
 
     }
 
@@ -454,33 +457,33 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public Funnel getFunnel(String id) {
+    public Funnel getFunnel(final String id) {
         return null;
     }
 
     @Override
-    public void removeFunnel(Funnel funnel) {
+    public void removeFunnel(final Funnel funnel) {
 
     }
 
     @Override
-    public void addControllerService(ControllerServiceNode service) {
+    public void addControllerService(final ControllerServiceNode service) {
         serviceMap.put(service.getIdentifier(), service);
         service.setProcessGroup(this);
     }
 
     @Override
-    public ControllerServiceNode getControllerService(String id) {
+    public ControllerServiceNode getControllerService(final String id) {
         return serviceMap.get(id);
     }
 
     @Override
-    public Set<ControllerServiceNode> getControllerServices(boolean recursive) {
+    public Set<ControllerServiceNode> getControllerServices(final boolean recursive) {
         return new HashSet<>(serviceMap.values());
     }
 
     @Override
-    public void removeControllerService(ControllerServiceNode service) {
+    public void removeControllerService(final ControllerServiceNode service) {
         serviceMap.remove(service.getIdentifier());
     }
 
@@ -490,17 +493,17 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void remove(Snippet snippet) {
+    public void remove(final Snippet snippet) {
 
     }
 
     @Override
-    public Connectable findConnectable(String identifier) {
+    public Connectable findConnectable(final String identifier) {
         return null;
     }
 
     @Override
-    public void move(Snippet snippet, ProcessGroup destination) {
+    public void move(final Snippet snippet, final ProcessGroup destination) {
 
     }
 
@@ -510,7 +513,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(boolean ignorePortConnections) {
+    public void verifyCanDelete(final boolean ignorePortConnections) {
 
     }
 
@@ -525,31 +528,31 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanDelete(Snippet snippet) {
+    public void verifyCanDelete(final Snippet snippet) {
 
     }
 
     @Override
-    public void verifyCanMove(Snippet snippet, ProcessGroup newProcessGroup) {
+    public void verifyCanMove(final Snippet snippet, final ProcessGroup newProcessGroup) {
 
     }
 
     @Override
-    public void addTemplate(Template template) {
+    public void addTemplate(final Template template) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void removeTemplate(Template template) {
+    public void removeTemplate(final Template template) {
     }
 
     @Override
-    public Template getTemplate(String id) {
+    public Template getTemplate(final String id) {
         return null;
     }
 
     @Override
-    public Template findTemplate(String id) {
+    public Template findTemplate(final String id) {
         return null;
     }
 
@@ -564,10 +567,10 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanStart(Connectable connectable) {
+    public void verifyCanStart(final Connectable connectable) {
     }
 
     @Override
-    public void verifyCanStop(Connectable connectable) {
+    public void verifyCanStop(final Connectable connectable) {
     }
 }
