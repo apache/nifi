@@ -197,7 +197,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
                             final byte[] messageBody = JmsFactory.createByteArray(message);
                             out.write(messageBody);
                         } catch (final JMSException e) {
-                            throw new ProcessException("Failed to receive JMS Message due to {}", e);
+                            throw new ProcessException("Failed to receive JMS Message due to " + e.getMessage(), e);
                         }
                     }
                 });
