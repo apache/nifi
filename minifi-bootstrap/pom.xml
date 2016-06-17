@@ -79,6 +79,13 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core</artifactId>
             <version>0.6.0</version>
+            <exclusions>
+                <!-- excluding for IDE purposes, this jar doesn't wind up in the lib/bootstrap folder so isn't safe to use in bootstrap project -->
+                <exclusion>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-properties</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

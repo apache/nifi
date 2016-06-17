@@ -52,32 +52,32 @@ public class SecurityPropertiesSchema extends BaseSchema {
     }
 
     public SecurityPropertiesSchema(Map map) {
-        keystore = getOptionalKeyAsType(map, KEYSTORE_KEY, String.class, SECURITY_PROPS_KEY, null);
+        keystore = getOptionalKeyAsType(map, KEYSTORE_KEY, String.class, SECURITY_PROPS_KEY, "");
 
-        keystoreType = getOptionalKeyAsType(map, KEYSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, null);
-        if (keystoreType != null) {
+        keystoreType = getOptionalKeyAsType(map, KEYSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, "");
+        if (!isNullOrEmpty(keystoreType)) {
             if (validateStoreType(keystoreType)) {
                 addValidationIssue(KEYSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either PKCS12 or JKS format)");
             }
         }
 
-        keystorePassword = getOptionalKeyAsType(map, KEYSTORE_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, null);
+        keystorePassword = getOptionalKeyAsType(map, KEYSTORE_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, "");
 
-        keyPassword = getOptionalKeyAsType(map, KEY_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, null);
+        keyPassword = getOptionalKeyAsType(map, KEY_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, "");
 
-        truststore = getOptionalKeyAsType(map, TRUSTSTORE_KEY, String.class, SECURITY_PROPS_KEY, null);
+        truststore = getOptionalKeyAsType(map, TRUSTSTORE_KEY, String.class, SECURITY_PROPS_KEY, "");
 
-        truststoreType = getOptionalKeyAsType(map, TRUSTSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, null);
-        if (truststoreType != null) {
+        truststoreType = getOptionalKeyAsType(map, TRUSTSTORE_TYPE_KEY, String.class, SECURITY_PROPS_KEY, "");
+        if (!isNullOrEmpty(truststoreType)) {
             if (validateStoreType(truststoreType)) {
                 addValidationIssue(TRUSTSTORE_TYPE_KEY, SECURITY_PROPS_KEY, "it is not a supported type (must be either PKCS12 or JKS format)");
             }
         }
 
-        truststorePassword = getOptionalKeyAsType(map, TRUSTSTORE_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, null);
+        truststorePassword = getOptionalKeyAsType(map, TRUSTSTORE_PASSWORD_KEY, String.class, SECURITY_PROPS_KEY, "");
 
-        sslProtocol = getOptionalKeyAsType(map, SSL_PROTOCOL_KEY, String.class, SECURITY_PROPS_KEY, null);
-        if (sslProtocol != null) {
+        sslProtocol = getOptionalKeyAsType(map, SSL_PROTOCOL_KEY, String.class, SECURITY_PROPS_KEY, "");
+        if (!isNullOrEmpty(sslProtocol)) {
             switch (sslProtocol) {
                 case "SSL":
                     break;
@@ -97,17 +97,14 @@ public class SecurityPropertiesSchema extends BaseSchema {
                     addValidationIssue(SSL_PROTOCOL_KEY, SECURITY_PROPS_KEY, "it is not an allowable value of SSL protocol");
                     break;
             }
-        }
-
-        if (sslProtocol != null) {
-            if (keystore == null) {
+            if (isNullOrEmpty(keystore)) {
                 validationIssues.add("When the '" + SSL_PROTOCOL_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_KEY + "' must also be set");
-            } else if (keystoreType == null || keystorePassword == null || keyPassword == null) {
+            } else if (isNullOrEmpty(keystoreType) || isNullOrEmpty(keystorePassword) || isNullOrEmpty(keyPassword)) {
                 validationIssues.add("When the '" + KEYSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + KEYSTORE_TYPE_KEY + "', '" + KEYSTORE_PASSWORD_KEY +
                         "' and '" + KEY_PASSWORD_KEY + "' all must also be set");
             }
 
-            if (truststore != null && (truststoreType == null || truststorePassword == null)) {
+            if (!isNullOrEmpty(truststore) && (isNullOrEmpty(truststoreType) || isNullOrEmpty(truststorePassword))) {
                 validationIssues.add("When the '" + TRUSTSTORE_KEY + "' key of '" + SECURITY_PROPS_KEY + "' is set, the '" + TRUSTSTORE_TYPE_KEY + "' and '" +
                         TRUSTSTORE_PASSWORD_KEY + "' must also be set");
             }
@@ -123,7 +120,7 @@ public class SecurityPropertiesSchema extends BaseSchema {
     }
 
     public boolean useSSL() {
-        return sslProtocol != null && !(sslProtocol.isEmpty());
+        return !isNullOrEmpty(sslProtocol);
     }
 
     public String getKeystore() {
@@ -160,5 +157,9 @@ public class SecurityPropertiesSchema extends BaseSchema {
 
     public SensitivePropsSchema getSensitiveProps() {
         return sensitiveProps;
+    }
+
+    private static boolean isNullOrEmpty(final String string) {
+        return string == null || string.isEmpty();
     }
 }
