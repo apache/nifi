@@ -17,18 +17,32 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processors.standard.util.TestPutTCPCommon;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.ssl.StandardSSLContextService;
 
-public class TestPutTCP extends TestPutTCPCommon {
+import java.util.HashMap;
+import java.util.Map;
 
-    public TestPutTCP() {
+public class TestPutTcpSSL extends TestPutTCPCommon {
+    private static Map<String, String> sslProperties;
+
+    public TestPutTcpSSL() {
         super();
-        ssl = false;
+        ssl = true;
+
+        sslProperties = createSslProperties();
     }
 
     @Override
-    public void configureProperties(String host, int port, String outgoingMessageDelimiter, boolean connectionPerFlowFile, boolean expectValid) {
+    public void configureProperties(String host, int port, String outgoingMessageDelimiter, boolean connectionPerFlowFile, boolean expectValid) throws InitializationException {
         runner.setProperty(PutTCP.HOSTNAME, host);
         runner.setProperty(PutTCP.PORT, Integer.toString(port));
+
+        final StandardSSLContextService sslService = new StandardSSLContextService();
+        runner.addControllerService("ssl-context", sslService, sslProperties);
+        runner.enableControllerService(sslService);
+        runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, "ssl-context");
+
         if (outgoingMessageDelimiter != null) {
             runner.setProperty(PutTCP.OUTGOING_MESSAGE_DELIMITER, outgoingMessageDelimiter);
         }
@@ -37,6 +51,7 @@ public class TestPutTCP extends TestPutTCPCommon {
         } else {
             runner.setProperty(PutTCP.CONNECTION_PER_FLOWFILE, "false");
         }
+
         if (expectValid) {
             runner.assertValid();
         } else {
@@ -44,5 +59,14 @@ public class TestPutTCP extends TestPutTCPCommon {
         }
     }
 
-
+    private static Map<String, String> createSslProperties() {
+        final Map<String, String> map = new HashMap<>();
+        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
+        return map;
+    }
 }

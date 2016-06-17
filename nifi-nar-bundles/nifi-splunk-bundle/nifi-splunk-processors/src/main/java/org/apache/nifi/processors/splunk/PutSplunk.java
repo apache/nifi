@@ -60,14 +60,6 @@ import java.util.concurrent.TimeUnit;
         "the FlowFile will be sent directly to Splunk as if it were a single message.")
 public class PutSplunk extends AbstractPutEventProcessor {
 
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
-                    "messages will be sent over a secure connection.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
     public static final char NEW_LINE_CHAR = '\n';
 
     @Override

@@ -31,6 +31,7 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
 import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
+import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -126,8 +127,9 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                     + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. If it is not possible to define a delimiter "
                     + "character that is not present in the FlowFile content then the user must use another processor to change the encoding of the data e.g. Base64 "
                     + "encoding.")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("\\n")
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -137,6 +139,15 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
+                    "messages will be sent over a secure connection.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are sent out this relationship.")
