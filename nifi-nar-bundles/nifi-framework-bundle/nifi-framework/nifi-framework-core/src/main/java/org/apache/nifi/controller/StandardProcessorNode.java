@@ -233,7 +233,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public void setPosition(Position position) {
+    public void setPosition(final Position position) {
         this.position.set(position);
     }
 
@@ -373,7 +373,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @SuppressWarnings("deprecation")
     public String getProcessorDescription() {
-        CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
+        final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
         String description = null;
         if (capDesc != null) {
             description = capDesc.value();
@@ -644,7 +644,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Set<Connection> getConnections(final Relationship relationship) {
-        Set<Connection> applicableConnections = connections.get(relationship);
+        final Set<Connection> applicableConnections = connections.get(relationship);
         return (applicableConnections == null) ? Collections.<Connection> emptySet()
                 : Collections.unmodifiableSet(applicableConnections);
     }
@@ -923,7 +923,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public boolean isValid() {
         try {
             final ValidationContext validationContext = this.getValidationContextFactory()
-                    .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier());
+                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -970,7 +970,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         final List<ValidationResult> results = new ArrayList<>();
         try {
             final ValidationContext validationContext = this.getValidationContextFactory()
-                    .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier());
+                .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
             try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -1286,7 +1286,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             };
             taskScheduler.execute(startProcRunnable);
         } else {
-            String procName = this.processor.getClass().getSimpleName();
+            final String procName = this.processor.getClass().getSimpleName();
             LOG.warn("Can not start '" + procName
                     + "' since it's already in the process of being started or it is DISABLED - "
                     + scheduledState.get());
@@ -1345,7 +1345,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         } else {
                             scheduler.schedule(this, 100, TimeUnit.MILLISECONDS);
                         }
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         LOG.warn("Failed while shutting down processor " + processor, e);
                     }
                 }
@@ -1389,19 +1389,19 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * be logged (WARN) informing a user so further actions could be taken.
      * </p>
      */
-    private <T> void invokeTaskAsCancelableFuture(SchedulingAgentCallback callback, Callable<T> task) {
-        String timeoutString = NiFiProperties.getInstance().getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
-        long onScheduleTimeout = timeoutString == null ? 60000
+    private <T> void invokeTaskAsCancelableFuture(final SchedulingAgentCallback callback, final Callable<T> task) {
+        final String timeoutString = NiFiProperties.getInstance().getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
+        final long onScheduleTimeout = timeoutString == null ? 60000
                 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
-        Future<?> taskFuture = callback.invokeMonitoringTask(task);
+        final Future<?> taskFuture = callback.invokeMonitoringTask(task);
         try {
             taskFuture.get(onScheduleTimeout, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             LOG.warn("Thread was interrupted while waiting for processor '" + this.processor.getClass().getSimpleName()
                     + "' lifecycle OnScheduled operation to finish.");
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while executing one of processor's OnScheduled tasks.", e);
-        } catch (TimeoutException e) {
+        } catch (final TimeoutException e) {
             taskFuture.cancel(true);
             LOG.warn("Timed out while waiting for OnScheduled of '"
                     + this.processor.getClass().getSimpleName()
@@ -1411,7 +1411,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '"
                     + this.processor + "' that needs to be documented, reported and eventually fixed.");
             throw new RuntimeException("Timed out while executing one of processor's OnScheduled task.", e);
-        } catch (ExecutionException e){
+        } catch (final ExecutionException e){
             throw new RuntimeException("Failed while executing one of processor's OnScheduled task.", e);
         } finally {
             callback.postMonitor();

@@ -101,7 +101,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
     @Override
     public ControllerService getControllerService(final String serviceIdentifier) {
-        return controllerServiceProvider.getControllerService(serviceIdentifier);
+        return controllerServiceProvider.getControllerServiceForComponent(serviceIdentifier, procNode.getIdentifier());
     }
 
     @Override
@@ -130,11 +130,11 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         if (!serviceType.isInterface()) {
             throw new IllegalArgumentException("ControllerServices may be referenced only via their interfaces; " + serviceType + " is not an interface");
         }
-        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
+        return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, procNode.getProcessGroup().getIdentifier());
     }
 
     @Override
@@ -197,8 +197,8 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
-    public boolean hasConnection(Relationship relationship) {
-        Set<Connection> connections = procNode.getConnections(relationship);
+    public boolean hasConnection(final Relationship relationship) {
+        final Set<Connection> connections = procNode.getConnections(relationship);
         return connections != null && !connections.isEmpty();
     }
 

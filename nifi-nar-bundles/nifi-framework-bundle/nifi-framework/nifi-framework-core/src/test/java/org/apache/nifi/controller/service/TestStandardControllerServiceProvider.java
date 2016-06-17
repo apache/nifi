@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -49,7 +50,7 @@ import org.mockito.Mockito;
 public class TestStandardControllerServiceProvider {
     private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
         @Override
-        public StateManager getStateManager(String componentId) {
+        public StateManager getStateManager(final String componentId) {
             return Mockito.mock(StateManager.class);
         }
 
@@ -66,7 +67,7 @@ public class TestStandardControllerServiceProvider {
         }
 
         @Override
-        public void onComponentRemoved(String componentId) {
+        public void onComponentRemoved(final String componentId) {
         }
     };
 
@@ -81,20 +82,26 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testDisableControllerService() {
+        final ProcessGroup procGroup = new MockProcessGroup();
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
 
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B", false);
         provider.enableControllerService(serviceNode);
         provider.disableControllerService(serviceNode);
     }
 
-    @Test(timeout = 1000000)
+    @Test(timeout = 10000)
     public void testEnableDisableWithReference() {
-        final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
         final ProcessGroup group = new MockProcessGroup();
-        provider.setRootProcessGroup(group);
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(group);
+
+        final ProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
 
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B", false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A", false);
@@ -148,10 +155,12 @@ public class TestStandardControllerServiceProvider {
         }
     }
 
-    public void testEnableReferencingServicesGraph(ProcessScheduler scheduler) {
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, stateManagerProvider);
+    public void testEnableReferencingServicesGraph(final ProcessScheduler scheduler) {
         final ProcessGroup procGroup = new MockProcessGroup();
-        provider.setRootProcessGroup(procGroup);
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
 
         // build a graph of controller services with dependencies as such:
         //
@@ -199,7 +208,11 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testOrderingOfServices() {
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, stateManagerProvider);
+        final ProcessGroup procGroup = new MockProcessGroup();
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider);
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2", false);
 
@@ -354,8 +367,12 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     public void testEnableReferencingComponents() {
+        final ProcessGroup procGroup = new MockProcessGroup();
+        final FlowController controller = Mockito.mock(FlowController.class);
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider);
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1", false);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);

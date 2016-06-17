@@ -49,8 +49,8 @@ public class StandardControllerServiceInitializationContext implements Controlle
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
-        return serviceProvider.getControllerServiceIdentifiers(serviceType, groupId);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+        return serviceProvider.getControllerServiceIdentifiers(serviceType);
     }
 
     @Override
@@ -69,7 +69,7 @@ public class StandardControllerServiceInitializationContext implements Controlle
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
     }
 

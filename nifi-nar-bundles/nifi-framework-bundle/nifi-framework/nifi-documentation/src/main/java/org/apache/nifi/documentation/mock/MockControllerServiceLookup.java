@@ -32,34 +32,32 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 public class MockControllerServiceLookup implements ControllerServiceLookup {
 
     @Override
-    public ControllerService getControllerService(String serviceIdentifier) {
+    public ControllerService getControllerService(final String serviceIdentifier) {
         return null;
     }
 
     @Override
-    public boolean isControllerServiceEnabled(String serviceIdentifier) {
+    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         return false;
     }
 
     @Override
-    public boolean isControllerServiceEnabled(ControllerService service) {
+    public boolean isControllerServiceEnabled(final ControllerService service) {
         return false;
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType, String groupId)
-            throws IllegalArgumentException {
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) throws IllegalArgumentException {
         return Collections.emptySet();
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return false;
     }
 
     @Override
-    public String getControllerServiceName(String serviceIdentifier) {
+    public String getControllerServiceName(final String serviceIdentifier) {
         return serviceIdentifier;
     }
-
 }

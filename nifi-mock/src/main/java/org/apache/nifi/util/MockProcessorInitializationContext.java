@@ -47,8 +47,8 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, String groupId) {
-        return context.getControllerServiceIdentifiers(serviceType, groupId);
+    public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
+        return context.getControllerServiceIdentifiers(serviceType);
     }
 
     @Override
@@ -62,22 +62,22 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
-    public String getControllerServiceName(String serviceIdentifier) {
+    public String getControllerServiceName(final String serviceIdentifier) {
         return context.getControllerServiceName(serviceIdentifier);
     }
 
     @Override
-    public boolean isControllerServiceEnabled(String serviceIdentifier) {
+    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         return context.isControllerServiceEnabled(serviceIdentifier);
     }
 
     @Override
-    public boolean isControllerServiceEnabled(ControllerService service) {
+    public boolean isControllerServiceEnabled(final ControllerService service) {
         return context.isControllerServiceEnabled(service);
     }
 
     @Override
-    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
 }
