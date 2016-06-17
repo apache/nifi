@@ -288,7 +288,7 @@ public class GetSNMPTest {
      */
     @Test
     public void validateSnmpVersion3() throws Exception {
-        int port = SNMPTestUtil.availablePort();
+        final int port = SNMPTestUtil.availablePort();
         Thread thread= new Thread(new Runnable() {
             @Override
             public void run() {
