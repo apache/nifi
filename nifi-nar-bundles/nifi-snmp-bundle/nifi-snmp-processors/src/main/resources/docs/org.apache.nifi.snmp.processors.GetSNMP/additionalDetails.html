@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>GetSNMP</title>
+    <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This processor polls a SNMP agent to get information for a given OID (Strategy = GET) or for all the sub-tree associated to a given OID
+    (Strategy = WALK). This processors supports SNMPv1, SNMPv2c and SNMPv3. The component is based on <a href="http://www.snmp4j.org/">SNMP4J</a>.
+</p>
+<p>
+    When the processor is triggered, it sends the SNMP request and gets the information associated to request OID(s). Once response is received
+    from the SNMP agent, a FlowFile is constructed. The FlowFile content is empty, all the information is written in the FlowFile attributes.
+    In case of a single GET request, the properties associated to the received PDU are transfered into the FlowFile as attributes. In case of a
+    WALK request, only the couples "OID/value" are transferred into the FlowFile as attributes. SNMP attributes names are prefixed with
+    <i>snmp$</i> prefix.
+</p>
+<p>
+    Regarding the attributes representing the couples "OID/value", the attribute name has the following format:
+    <ul><li>snmp$<i>OID</i>$<i>SMI_Syntax_Value</i></li></ul>
+    where OID is the request OID, and SMI_Syntax_Value is the integer representing the type of the value associated to the OID. This value is
+    provided to allow the SetSNMP processor setting values in the correct type.
+</p>
+<h2>SNMP Properties</h2>
+<p>
+    In case of a single SNMP Get request, the following is the list of available standard SNMP properties which may come with the PDU:
+    <i>("snmp$errorIndex", "snmp$errorStatus", "snmp$errorStatusText", "snmp$nonRepeaters", "snmp$requestID", "snmp$type")</i>
+</p>
+<h2>Configuration Details</h2>
+<p>
+    At the time of writing this document it only defines the essential configuration properties which are suitable for most cases. 
+    Other properties will be defined later as this component progresses.
+    Configuring GetSNMP:
+</p>
+<ul>
+    <li><b>Host</b> - [REQUIRED] the name of the host where the SNMP agent is running. (default is localhost)</li>
+    <li><b>Port</b> - [REQUIRED] the port number on which the SNMP agent is listening. (default is 161)</li>
+    <li><b>OID</b> - [REQUIRED] the root OID to request.</li>
+    <li><b>Version</b> - [REQUIRED] the SNMP version to use (SNMPv1 [default], or SNMPv2c, or SNMPv3)</li>
+    <li><b>Community</b> - [REQUIRED if SNMPv1 or SNMPv2c] the SNMP community to use. (default is public)</li>
+    <li><b>Security Level</b> - [REQUIRED if SNMPv3] the security level to use. (default is authPriv)</li>
+    <li><b>Security Name</b> - [REQUIRED if SNMPv3] the security name (user name) to use.</li>
+    <li><b>Authentication Protocol</b> - [REQUIRED if SNMPv3 and authNoPriv or authPriv] the authentication protocol to use.</li>
+    <li><b>Authentication Password</b> - [REQUIRED if SNMPv3 and authNoPriv or authPriv] the authentication password to use.</li>
+    <li><b>Private Protocol</b> - [REQUIRED if SNMPv3 and authPriv] the private protocol to use.</li>
+    <li><b>Private Password</b> - [REQUIRED if SNMPv3 and authPriv] the private password to use.</li>
+    <li><b>Retries</b> - [REQUIRED] Sets the number of retries to be performed before a request is timed out. (default is 0)</li>
+    <li><b>Timeout</b> - [REQUIRED] Sets  timeout in milliseconds before a confirmed request is resent or timed out. (default is 5000)</li>
+</ul>
+
+</body>
+</html>
