@@ -98,8 +98,36 @@ public interface HBaseClientService extends ControllerService {
      */
     void scan(String tableName, Collection<Column> columns, String filterExpression, long minTime, ResultHandler handler) throws IOException;
 
+    /**
+     * Converts the given boolean to it's byte representation.
+     *
+     * @param b a boolean
+     * @return the boolean represented as bytes
+     */
     byte[] toBytes(boolean b);
+
+    /**
+     * Converts the given long to it's byte representation.
+     *
+     * @param l a long
+     * @return the long represented as bytes
+     */
     byte[] toBytes(long l);
+
+    /**
+     * Converts the given double to it's byte representation.
+     *
+     * @param d a double
+     * @return the double represented as bytes
+     */
     byte[] toBytes(double d);
+
+    /**
+     * Converts the given string to it's byte representation.
+     *
+     * @param s a string
+     * @return the string represented as bytes
+     */
     byte[] toBytes(String s);
+
 }

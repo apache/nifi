@@ -102,6 +102,8 @@ public class TestPutHBaseJSON {
     @Test
     public void testSingleJsonDocAndProvidedRowIdwithNonString() throws IOException, InitializationException {
         final TestRunner runner = getTestRunner(DEFAULT_TABLE_NAME, DEFAULT_COLUMN_FAMILY, "1");
+        runner.setProperty(PutHBaseJSON.FIELD_ENCODING_STRATEGY, PutHBaseJSON.BYTES_ENCODING_VALUE);
+
         final MockHBaseClientService hBaseClient = getHBaseClientService(runner);
         runner.setProperty(PutHBaseJSON.ROW_ID, DEFAULT_ROW);
 
