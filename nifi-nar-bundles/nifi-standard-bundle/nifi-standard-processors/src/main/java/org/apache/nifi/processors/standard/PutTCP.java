@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.StopWatch;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * <p>
@@ -57,7 +62,7 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li><b>Port</b> - The TCP port of the destination TCP server.</li>
  * </ul>
  * </p>
- * 
+ *
  * <p>
  * This processor has the following optional properties:
  * <ul>
@@ -65,7 +70,7 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li><b>Idle Connection Expiration</b> - The time threshold after which a TCP sender is deemed eligible for pruning - the associated TCP connection will be closed after this timeout.</li>
  * <li><b>Max Size of Socket Send Buffer</b> - The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System to indicate how big the socket buffer should
  * be. If this value is set too low, the buffer may fill up before the data can be read, and incoming data will be dropped.</li>
- * <li><b>Outgoing Message Delimiter/b> - A string to append to the end of each FlowFiles content to indicate the end of the message to the TCP server.</li>
+ * <li><b>Outgoing Message Delimiter</b> - A string to append to the end of each FlowFiles content to indicate the end of the message to the TCP server.</li>
  * <li><b>Timeout</b> - The timeout period for determining an error has occurred whilst connecting or sending data.</li>
  * </ul>
  * </p>
@@ -106,12 +111,19 @@ public class PutTCP extends AbstractPutEventProcessor {
         final int port = context.getProperty(PORT).asInteger();
         final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int bufferSize = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final SSLContextService sslContextService = (SSLContextService) context.getProperty(SSL_CONTEXT_SERVICE).asControllerService();
 
-        return createSender(protocol, hostname, port, timeout, bufferSize, null);
+        SSLContext sslContext = null;
+        if (sslContextService != null) {
+            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+        }
+
+        return createSender(protocol, hostname, port, timeout, bufferSize, sslContext);
     }
 
     /**
-     * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form TCP://<host>:<port> where the host and port values are taken from the configured property values.
+     * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form TCP://< host >:< port > where the host and port
+     * values are taken from the configured property values.
      *
      * @param context
      *            - the current process context.
@@ -134,7 +146,11 @@ public class PutTCP extends AbstractPutEventProcessor {
      */
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(CONNECTION_PER_FLOWFILE, OUTGOING_MESSAGE_DELIMITER, TIMEOUT);
+        return Arrays.asList(CONNECTION_PER_FLOWFILE,
+                OUTGOING_MESSAGE_DELIMITER,
+                TIMEOUT,
+                SSL_CONTEXT_SERVICE,
+                CHARSET);
     }
 
     /**
@@ -163,17 +179,20 @@ public class PutTCP extends AbstractPutEventProcessor {
         }
 
         try {
-            String delimiter = getDelimiter(context, flowFile);
+            String outgoingMessageDelimiter = getOutgoingMessageDelimiter(context, flowFile);
             ByteArrayOutputStream content = readContent(session, flowFile);
-            if (delimiter != null) {
-                content = appendDelimiter(content, delimiter);
+            if (outgoingMessageDelimiter != null) {
+                Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
+                content = appendDelimiter(content, outgoingMessageDelimiter, charset);
             }
+            StopWatch stopWatch = new StopWatch(true);
             sender.send(content.toByteArray());
+            session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commit();
         } catch (Exception e) {
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
             onFailure(context, session, flowFile);
+            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
         } finally {
             // If we are going to use this sender again, then relinquish it back to the pool.
             if (!isConnectionPerFlowFile(context)) {
@@ -185,7 +204,7 @@ public class PutTCP extends AbstractPutEventProcessor {
     }
 
     /**
-     * event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
+     * Event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
      *
      * @param context
      *            - the current process context.
@@ -225,7 +244,7 @@ public class PutTCP extends AbstractPutEventProcessor {
 
     /**
      * Helper method to append a delimiter to the message contents.
-     * 
+     *
      * @param content
      *            - the message contents.
      * @param delimiter
@@ -233,27 +252,9 @@ public class PutTCP extends AbstractPutEventProcessor {
      *
      * @return ByteArrayOutputStream object containing the new message contents.
      */
-    protected ByteArrayOutputStream appendDelimiter(final ByteArrayOutputStream content, final String delimiter) {
-        content.write(delimiter.getBytes(), 0, delimiter.length());
+    protected ByteArrayOutputStream appendDelimiter(final ByteArrayOutputStream content, final String delimiter, Charset charSet) {
+        content.write(delimiter.getBytes(charSet), 0, delimiter.length());
         return content;
-    }
-
-    /**
-     * Gets the current value of the "Outgoing Message Delimiter" property.
-     *
-     * @param context
-     *            - the current process context.
-     * @param flowFile
-     *            - the FlowFile being processed.
-     *
-     * @return String containing the Delimiter value.
-     */
-    protected String getDelimiter(final ProcessContext context, final FlowFile flowFile) {
-        String delimiter = context.getProperty(OUTGOING_MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
-        if (delimiter != null) {
-            delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        }
-        return delimiter;
     }
 
     /**

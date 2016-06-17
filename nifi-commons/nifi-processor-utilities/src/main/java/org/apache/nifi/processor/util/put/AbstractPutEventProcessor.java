@@ -31,6 +31,7 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
 import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
+import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -123,11 +124,11 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .name("Outgoing Message Delimiter")
             .description("Specifies the delimiter to use when sending messages out over the same TCP stream. The delimiter is appended to each FlowFile message "
                     + "that is transmitted over the stream so that the receiver can determine when one message ends and the next message begins. Users should "
-                    + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. If it is not possible to define a delimiter "
-                    + "character that is not present in the FlowFile content then the user must use another processor to change the encoding of the data e.g. Base64 "
-                    + "encoding.")
-            .required(false)
+                    + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. In order to use a new line character you can "
+                    + "enter '\\n'. For a tab character use '\\t'. Finally for a carriage return use '\\r'.")
+            .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("\\n")
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CONNECTION_PER_FLOWFILE = new PropertyDescriptor.Builder()
@@ -135,8 +136,17 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .description("Specifies whether to send each FlowFile's content on an individual connection.")
             .required(true)
             .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .build();
+
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
+                    "messages will be sent over a secure connection.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("FlowFiles that are sent successfully to the destination are sent out this relationship.")
@@ -543,4 +553,21 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         }
     }
 
+    /**
+     * Gets the current value of the "Outgoing Message Delimiter" property and parses the special characters.
+     *
+     * @param context
+     *            - the current process context.
+     * @param flowFile
+     *            - the FlowFile being processed.
+     *
+     * @return String containing the Delimiter value.
+     */
+    protected String getOutgoingMessageDelimiter(final ProcessContext context, final FlowFile flowFile) {
+        String delimiter = context.getProperty(OUTGOING_MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
+        if (delimiter != null) {
+            delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        }
+        return delimiter;
+    }
 }
