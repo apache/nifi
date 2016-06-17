@@ -16,6 +16,18 @@
  */
 package org.apache.nifi.util;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+/**
+ * @deprecated As of release 1.0.1. Please use {@link AtomicBoolean}
+ *
+ * Wraps an Boolean value so that it can be declared <code>final</code> and still be accessed from inner classes;
+ * the functionality is similar to that of an AtomicBoolean, but operations on this class
+ * are not atomic. This results in greater performance when the atomicity is not needed.
+ *
+ */
+
+@Deprecated
 public class BooleanHolder extends ObjectHolder<Boolean> {
 
     public BooleanHolder(final boolean initialValue) {
