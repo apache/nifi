@@ -25,14 +25,12 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -57,6 +55,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ObjectHolder;
@@ -372,98 +371,40 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        final Set<ControllerServiceNode> servicesToEnable = new HashSet<>();
-        // Ensure that all nodes are already disabled
-        for (final ControllerServiceNode serviceNode : serviceNodes) {
-            final ControllerServiceState curState = serviceNode.getState();
-            if (ControllerServiceState.DISABLED.equals(curState)) {
-                servicesToEnable.add(serviceNode);
-            } else {
-                logger.warn("Cannot enable {} because it is not disabled; current state is {}", serviceNode, curState);
+        boolean shouldStart = true;
+
+        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
+        while (serviceIter.hasNext() && shouldStart) {
+            ControllerServiceNode controllerServiceNode = serviceIter.next();
+            List<ControllerServiceNode> requiredServices = ((StandardControllerServiceNode) controllerServiceNode).getRequiredControllerServices();
+            for (ControllerServiceNode requiredService : requiredServices) {
+                if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
+                    shouldStart = false;
+                }
             }
         }
 
-        // determine the order to load the services. We have to ensure that if service A references service B, then B
-        // is enabled first, and so on.
-        final Map<String, ControllerServiceNode> idToNodeMap = new HashMap<>();
-        for (final ControllerServiceNode node : servicesToEnable) {
-            idToNodeMap.put(node.getIdentifier(), node);
-        }
-
-        // We can have many Controller Services dependent on one another. We can have many of these
-        // disparate lists of Controller Services that are dependent on one another. We refer to each
-        // of these as a branch.
-        final List<List<ControllerServiceNode>> branches = determineEnablingOrder(idToNodeMap);
-
-        if (branches.isEmpty()) {
-            logger.info("No Controller Services to enable");
-            return;
-        } else {
-            logger.info("Will enable {} Controller Services", servicesToEnable.size());
-        }
-
-        final Set<ControllerServiceNode> enabledNodes = Collections.synchronizedSet(new HashSet<ControllerServiceNode>());
-        final ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, branches.size()), new ThreadFactory() {
-            @Override
-            public Thread newThread(final Runnable r) {
-                final Thread t = Executors.defaultThreadFactory().newThread(r);
-                t.setDaemon(true);
-                t.setName("Enable Controller Services");
-                return t;
-            }
-        });
-
-        for (final List<ControllerServiceNode> branch : branches) {
-            final Runnable enableBranchRunnable = new Runnable() {
+        if (shouldStart) {
+            List<ControllerServiceNode> services = new ArrayList<>(serviceNodes);
+            Collections.sort(services, new Comparator<ControllerServiceNode>() {
                 @Override
-                public void run() {
-                    logger.debug("Enabling Controller Service Branch {}", branch);
+                public int compare(ControllerServiceNode s1, ControllerServiceNode s2) {
+                    return s2.getRequiredControllerServices().contains(s1) ? -1 : 1;
+                }
+            });
 
-                    for (final ControllerServiceNode serviceNode : branch) {
-                        try {
-                            if (!enabledNodes.contains(serviceNode)) {
-                                enabledNodes.add(serviceNode);
-
-                                logger.info("Enabling {}", serviceNode);
-                                try {
-                                    serviceNode.verifyCanEnable();
-                                    processScheduler.enableControllerService(serviceNode);
-                                } catch (final Exception e) {
-                                    logger.error("Failed to enable " + serviceNode + " due to " + e);
-                                    if (logger.isDebugEnabled()) {
-                                        logger.error("", e);
-                                    }
-
-                                    if (bulletinRepo != null) {
-                                        bulletinRepo.addBulletin(BulletinFactory.createBulletin(
-                                            "Controller Service", Severity.ERROR.name(), "Could not start " + serviceNode + " due to " + e));
-                                    }
-                                }
-                            }
-
-                            // wait for service to finish enabling.
-                            while (ControllerServiceState.ENABLING.equals(serviceNode.getState())) {
-                                try {
-                                    Thread.sleep(100L);
-                                } catch (final InterruptedException ie) {
-                                }
-                            }
-
-                            logger.info("State for {} is now {}", serviceNode, serviceNode.getState());
-                        } catch (final Exception e) {
-                            logger.error("Failed to enable {} due to {}", serviceNode, e.toString());
-                            if (logger.isDebugEnabled()) {
-                                logger.error("", e);
-                            }
-                        }
+            for (ControllerServiceNode controllerServiceNode : services) {
+                try {
+                    this.enableControllerService(controllerServiceNode);
+                } catch (Exception e) {
+                    logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
+                    if (this.bulletinRepo != null) {
+                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                                Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
                     }
                 }
-            };
-
-            executor.submit(enableBranchRunnable);
+            }
         }
-
-        executor.shutdown();
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {
