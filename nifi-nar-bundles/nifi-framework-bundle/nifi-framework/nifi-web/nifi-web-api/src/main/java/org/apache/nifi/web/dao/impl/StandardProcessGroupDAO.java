@@ -106,19 +106,19 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             final Connectable connectable = group.findConnectable(componentId);
             if (ScheduledState.RUNNING.equals(state)) {
                 if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    group.startProcessor((ProcessorNode) connectable);
+                    connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
                 } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
-                    group.startInputPort((Port) connectable);
+                    connectable.getProcessGroup().startInputPort((Port) connectable);
                 } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
-                    group.startOutputPort((Port) connectable);
+                    connectable.getProcessGroup().startOutputPort((Port) connectable);
                 }
             } else {
                 if (ConnectableType.PROCESSOR.equals(connectable.getConnectableType())) {
-                    group.stopProcessor((ProcessorNode) connectable);
+                    connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
                 } else if (ConnectableType.INPUT_PORT.equals(connectable.getConnectableType())) {
-                    group.stopInputPort((Port) connectable);
+                    connectable.getProcessGroup().stopInputPort((Port) connectable);
                 } else if (ConnectableType.OUTPUT_PORT.equals(connectable.getConnectableType())) {
-                    group.stopOutputPort((Port) connectable);
+                    connectable.getProcessGroup().stopOutputPort((Port) connectable);
                 }
             }
         }
