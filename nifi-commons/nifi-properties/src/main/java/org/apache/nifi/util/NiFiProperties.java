@@ -200,6 +200,9 @@ public class NiFiProperties extends Properties {
     public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
 
+    // expression language properties
+    public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
+
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
@@ -248,10 +251,12 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION = "0 sec";
 
     // state management defaults
+
     public static final String DEFAULT_STATE_MANAGEMENT_CONFIG_FILE = "conf/state-management.xml";
 
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
+
 
     private NiFiProperties() {
         super();
@@ -1073,4 +1078,28 @@ public class NiFiProperties extends Properties {
     public boolean isStartEmbeddedZooKeeper() {
         return Boolean.parseBoolean(getProperty(STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER));
     }
+
+    public String getVariableRegistryProperties(){
+        return getProperty(VARIABLE_REGISTRY_PROPERTIES);
+    }
+
+    public Path[] getVariableRegistryPropertiesPaths() {
+        final List<Path> vrPropertiesPaths = new ArrayList<>();
+
+        final String vrPropertiesFiles = getVariableRegistryProperties();
+        if(!StringUtils.isEmpty(vrPropertiesFiles)) {
+
+            final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
+
+            for(String propertiesFile : vrPropertiesFileList){
+                vrPropertiesPaths.add(Paths.get(propertiesFile));
+            }
+
+            return vrPropertiesPaths.toArray( new Path[vrPropertiesPaths.size()]);
+        } else {
+            return null;
+        }
+    }
+
+
 }

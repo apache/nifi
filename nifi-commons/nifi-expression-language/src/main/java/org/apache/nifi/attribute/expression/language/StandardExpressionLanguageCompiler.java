@@ -20,13 +20,20 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.registry.VariableRegistry;
 
 public class StandardExpressionLanguageCompiler implements ExpressionLanguageCompiler {
+
+    private final VariableRegistry variableRegistry;
+
+    public StandardExpressionLanguageCompiler(final VariableRegistry variableRegistry) {
+        this.variableRegistry = variableRegistry;
+    }
 
     @Override
     public AttributeExpression compile(final String expression) throws IllegalArgumentException {
         try {
-            return new StandardAttributeExpression(Query.compile(expression));
+            return new StandardAttributeExpression(Query.compile(expression),variableRegistry);
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw new IllegalArgumentException(e.getMessage());
         }

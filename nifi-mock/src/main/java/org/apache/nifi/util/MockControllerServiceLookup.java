@@ -97,4 +97,5 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
         final ControllerServiceConfiguration status = controllerServiceMap.get(serviceIdentifier);
         return status == null ? null : serviceIdentifier;
     }
+
 }

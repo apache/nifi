@@ -30,6 +30,9 @@ import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryFactory;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -54,6 +57,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+
+import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -242,6 +247,17 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
 
         return componentFacade;
+    }
+
+    @Override
+    public VariableRegistry getVariableRegistry() {
+        VariableRegistry variableRegistry = VariableRegistryUtils.createVariableRegistry();
+        try {
+            variableRegistry.addRegistry(VariableRegistryFactory.getPropertiesInstance(properties.getVariableRegistryPropertiesPaths()));
+        }catch(IOException ioe){
+            logger.error("Exception occurred loading custom properties",ioe);
+        }
+        return variableRegistry;
     }
 
     /**
@@ -848,5 +864,4 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     public void setReportingTaskProvider(ReportingTaskProvider reportingTaskProvider) {
         this.reportingTaskProvider = reportingTaskProvider;
     }
-
 }

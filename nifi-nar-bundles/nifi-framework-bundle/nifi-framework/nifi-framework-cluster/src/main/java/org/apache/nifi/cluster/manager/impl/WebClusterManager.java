@@ -181,6 +181,9 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryFactory;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.remote.RemoteResourceManager;
 import org.apache.nifi.remote.RemoteSiteListener;
 import org.apache.nifi.remote.SocketRemoteSiteListener;
@@ -382,6 +385,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private final StandardProcessScheduler processScheduler;
     private final StateManagerProvider stateManagerProvider;
     private final long componentStatusSnapshotMillis;
+    private final VariableRegistry variableRegistry;
 
 
     public WebClusterManager(final HttpRequestReplicator httpRequestReplicator, final HttpResponseMapper httpResponseMapper,
@@ -412,6 +416,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         this.optimisticLockingManager = optimisticLockingManager;
         senderListener.addHandler(this);
         senderListener.setBulletinRepository(bulletinRepository);
+        this.variableRegistry = createVariableRegistry(properties);
 
         final String snapshotFrequency = properties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
         long snapshotMillis;
@@ -446,7 +451,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         reportingTaskEngine = new FlowEngine(8, "Reporting Task Thread");
 
         try {
-            this.stateManagerProvider = StandardStateManagerProvider.create(properties);
+            this.stateManagerProvider = StandardStateManagerProvider.create(properties,variableRegistry);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
@@ -455,17 +460,19 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             @Override
             public void heartbeat() {
             }
-        }, this, encryptor, stateManagerProvider);
+        }, this, encryptor, stateManagerProvider, variableRegistry);
 
         // When we construct the scheduling agents, we can pass null for a lot of the arguments because we are only
         // going to be scheduling Reporting Tasks. Otherwise, it would not be okay.
-        processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, new TimerDrivenSchedulingAgent(null, reportingTaskEngine, null, encryptor));
-        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, new QuartzSchedulingAgent(null, reportingTaskEngine, null, encryptor));
+        processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, new TimerDrivenSchedulingAgent(null, reportingTaskEngine, null, encryptor, variableRegistry));
+        processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, new QuartzSchedulingAgent(null, reportingTaskEngine, null, encryptor, variableRegistry));
         processScheduler.setMaxThreadCount(SchedulingStrategy.TIMER_DRIVEN, 10);
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
         processScheduler.scheduleFrameworkTask(new CaptureComponentMetrics(), "Capture Component Metrics", componentStatusSnapshotMillis, componentStatusSnapshotMillis, TimeUnit.MILLISECONDS);
 
-        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider);
+        controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, stateManagerProvider, variableRegistry);
+
+
     }
 
     public void start() throws IOException {
@@ -956,6 +963,17 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         reconnectionThread.start();
     }
 
+    private VariableRegistry createVariableRegistry(NiFiProperties properties){
+        VariableRegistry variableRegistry = VariableRegistryUtils.createVariableRegistry();
+        try {
+            VariableRegistry customRegistry = VariableRegistryFactory.getPropertiesInstance(properties.getVariableRegistryPropertiesPaths());
+            variableRegistry.addRegistry(customRegistry);
+        } catch (IOException ioe){
+            logger.error("Exception thrown while attempting to add properties to registry",ioe);
+        }
+        return variableRegistry;
+    }
+
     private Map<String, ReportingTaskNode> loadReportingTasks(final byte[] serialized) {
         final Map<String, ReportingTaskNode> tasks = new HashMap<>();
 
@@ -1105,10 +1123,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
         }
 
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
         final ReportingTaskNode taskNode = new ClusteredReportingTaskNode(task, id, processScheduler,
             new ClusteredEventAccess(this, auditService), bulletinRepository, controllerServiceProvider,
-            validationContextFactory, stateManagerProvider.getStateManager(id));
+            validationContextFactory, stateManagerProvider.getStateManager(id), null);
         taskNode.setName(task.getClass().getSimpleName());
 
         reportingTasks.put(id, taskNode);
@@ -4600,6 +4618,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         return controllerServiceProvider.getControllerServiceIdentifiers(serviceType);
     }
+
 
     /**
      * Captures snapshots of components' metrics

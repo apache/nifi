@@ -22,6 +22,9 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.StandardFlowServiceTest;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryFactory;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
@@ -33,6 +36,7 @@ public class StandardControllerServiceProviderTest {
 
     private ControllerService proxied;
     private ControllerService implementation;
+    private static VariableRegistry variableRegistry;
 
     @BeforeClass
     public static void setupSuite() throws Exception {
@@ -40,6 +44,10 @@ public class StandardControllerServiceProviderTest {
         NiFiProperties properties = NiFiProperties.getInstance();
         NarClassLoaders.load(properties);
         ExtensionManager.discoverExtensions();
+        VariableRegistry propRegistry = VariableRegistryFactory.getPropertiesInstance(properties.getVariableRegistryPropertiesPaths());
+        variableRegistry = VariableRegistryUtils.createVariableRegistry();
+        variableRegistry.addRegistry(propRegistry);
+
     }
 
     @Before
@@ -67,7 +75,7 @@ public class StandardControllerServiceProviderTest {
             @Override
             public void onComponentRemoved(String componentId) {
             }
-        });
+        }, variableRegistry);
         ControllerServiceNode node = provider.createControllerService(clazz, id, true);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();

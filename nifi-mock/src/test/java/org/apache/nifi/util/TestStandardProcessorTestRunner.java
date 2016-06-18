@@ -30,6 +30,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -106,25 +107,25 @@ public class TestStandardProcessorTestRunner {
     @Test(expected = AssertionError.class)
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testFailOnDeprecatedTypeAnnotation() {
-        new StandardProcessorTestRunner(new DeprecatedAnnotation());
+        new StandardProcessorTestRunner(new DeprecatedAnnotation(), VariableRegistryUtils.createVariableRegistry());
     }
 
     @Test
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testDoesNotFailOnNonDeprecatedTypeAnnotation() {
-        new StandardProcessorTestRunner(new NewAnnotation());
+        new StandardProcessorTestRunner(new NewAnnotation(), VariableRegistryUtils.createVariableRegistry());
     }
 
     @Test(expected = AssertionError.class)
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testFailOnDeprecatedMethodAnnotation() {
-        new StandardProcessorTestRunner(new DeprecatedMethodAnnotation());
+        new StandardProcessorTestRunner(new DeprecatedMethodAnnotation(), VariableRegistryUtils.createVariableRegistry());
     }
 
     @Test
     @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
     public void testDoesNotFailOnNonDeprecatedMethodAnnotation() {
-        new StandardProcessorTestRunner(new NewMethodAnnotation());
+        new StandardProcessorTestRunner(new NewMethodAnnotation(), VariableRegistryUtils.createVariableRegistry());
     }
 
     @SuppressWarnings("deprecation")

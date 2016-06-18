@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.registry.VariableRegistry;
 
 public class StandardValidationContext implements ValidationContext {
 
@@ -44,20 +45,23 @@ public class StandardValidationContext implements ValidationContext {
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
     private final Set<String> serviceIdentifiersToNotValidate;
+    private final VariableRegistry variableRegistry;
 
-    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData) {
-        this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData);
+    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData,
+                                     final VariableRegistry variableRegistry) {
+        this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData, variableRegistry);
     }
 
     public StandardValidationContext(
             final ControllerServiceProvider controllerServiceProvider,
             final Set<String> serviceIdentifiersToNotValidate,
             final Map<PropertyDescriptor, String> properties,
-            final String annotationData) {
+            final String annotationData, VariableRegistry variableRegistry) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
         this.serviceIdentifiersToNotValidate = serviceIdentifiersToNotValidate;
+        this.variableRegistry = variableRegistry;
 
         preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -79,24 +83,24 @@ public class StandardValidationContext implements ValidationContext {
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, controllerServiceProvider, Query.prepare(rawValue));
+        return new StandardPropertyValue(rawValue, controllerServiceProvider, Query.prepare(rawValue), variableRegistry);
     }
 
     @Override
     public ExpressionLanguageCompiler newExpressionLanguageCompiler() {
-        return new StandardExpressionLanguageCompiler();
+        return new StandardExpressionLanguageCompiler(variableRegistry);
     }
 
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(controllerService.getIdentifier());
-        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData());
+        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), variableRegistry);
     }
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property));
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceProvider, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

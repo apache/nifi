@@ -20,12 +20,13 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.registry.VariableRegistryProvider;
 
 /**
  * NiFi web context providing limited access to dataflow configuration for
  * component custom UIs.
  */
-public interface NiFiWebConfigurationContext {
+public interface NiFiWebConfigurationContext extends VariableRegistryProvider {
 
     /**
      * @param serviceIdentifier of the controller service
@@ -117,4 +118,6 @@ public interface NiFiWebConfigurationContext {
      * populated or isn't appropriate for the given request
      */
     ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException;
+
+
 }
