@@ -68,6 +68,7 @@
         <module>nifi-snmp-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
         <module>nifi-ignite-bundle</module>
+        <module>nifi-email-bundle</module>
     </modules>
 
     <dependencyManagement>
