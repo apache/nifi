@@ -270,17 +270,7 @@ public final class ResourceFactory {
      * @return              The resource
      */
     public static Resource getUsersResource() {
-        return new Resource() {
-            @Override
-            public String getIdentifier() {
-                return USERS_RESOURCE.getIdentifier();
-            }
-
-            @Override
-            public String getName() {
-                return USERS_RESOURCE.getName();
-            }
-        };
+        return USERS_RESOURCE;
     }
 
     /**
@@ -289,17 +279,7 @@ public final class ResourceFactory {
      * @return              The resource
      */
     public static Resource getUserGroupsResource() {
-        return new Resource() {
-            @Override
-            public String getIdentifier() {
-                return USERGROUPS_RESOURCE.getIdentifier();
-            }
-
-            @Override
-            public String getName() {
-                return USERGROUPS_RESOURCE.getName();
-            }
-        };
+        return USERGROUPS_RESOURCE;
     }
 
     /**

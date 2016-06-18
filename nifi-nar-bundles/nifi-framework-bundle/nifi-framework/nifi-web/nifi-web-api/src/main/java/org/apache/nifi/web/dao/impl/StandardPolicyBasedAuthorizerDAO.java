@@ -36,6 +36,7 @@ import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGroupDAO, UserDAO {
 
@@ -174,7 +175,10 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     private AccessPolicy buildAccessPolicy(AccessPolicyDTO accessPolicyDTO) {
         final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                .identifier(accessPolicyDTO.getId()).addGroups(accessPolicyDTO.getGroups()).addUsers(accessPolicyDTO.getUsers()).resource(accessPolicyDTO.getResource());
+                .identifier(accessPolicyDTO.getId())
+                .addGroups(accessPolicyDTO.getUserGroups().stream().map(userGroup -> userGroup.getId()).collect(Collectors.toSet()))
+                .addUsers(accessPolicyDTO.getUsers().stream().map(user -> user.getId()).collect(Collectors.toSet()))
+                .resource(accessPolicyDTO.getResource());
         if (accessPolicyDTO.getCanRead()) {
             builder.addAction(RequestAction.READ);
         }
@@ -210,7 +214,9 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     private Group buildUserGroup(UserGroupDTO userGroupDTO) {
-        return new Group.Builder().addUsers(userGroupDTO.getUsers()).identifier(userGroupDTO.getId()).name(userGroupDTO.getName()).build();
+        return new Group.Builder()
+                .addUsers(userGroupDTO.getUsers().stream().map(userGroup -> userGroup.getId()).collect(Collectors.toSet()))
+                .identifier(userGroupDTO.getId()).name(userGroupDTO.getName()).build();
     }
 
     @Override

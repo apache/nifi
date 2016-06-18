@@ -139,6 +139,8 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
@@ -703,14 +705,14 @@ public final class DtoFactory {
      * @param userGroup user group
      * @return dto
      */
-    public UserGroupDTO createUserGroupDto(final Group userGroup) {
+    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<UserEntity> users) {
         if (userGroup == null) {
             return null;
         }
 
         final UserGroupDTO dto = new UserGroupDTO();
         dto.setId(userGroup.getIdentifier());
-        dto.setUsers(userGroup.getUsers());
+        dto.setUsers(users);
         dto.setName(userGroup.getName());
 
         return dto;
@@ -1510,14 +1512,14 @@ public final class DtoFactory {
         return dto;
     }
 
-    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy) {
+    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy, Set<UserGroupEntity> userGroups, Set<UserEntity> users) {
         if (accessPolicy == null) {
             return null;
         }
 
         final AccessPolicyDTO dto = new AccessPolicyDTO();
-        dto.setGroups(accessPolicy.getGroups());
-        dto.setUsers(accessPolicy.getUsers());
+        dto.setUserGroups(userGroups);
+        dto.setUsers(users);
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
         Set<RequestAction> accessPolicyActions = accessPolicy.getActions();

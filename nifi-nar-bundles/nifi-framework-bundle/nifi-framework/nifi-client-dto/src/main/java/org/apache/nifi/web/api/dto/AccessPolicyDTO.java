@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -28,8 +30,8 @@ import java.util.Set;
 public class AccessPolicyDTO  extends ComponentDTO {
 
     private String resource;
-    private Set<String> users;
-    private Set<String> groups;
+    private Set<UserEntity> users;
+    private Set<UserGroupEntity> userGroups;
     private Boolean canRead;
     private Boolean canWrite;
 
@@ -79,11 +81,11 @@ public class AccessPolicyDTO  extends ComponentDTO {
      * @return The set of user IDs associated with this access policy.
      */
     @ApiModelProperty(value = "The set of user IDs associated with this access policy.")
-    public Set<String> getUsers() {
+    public Set<UserEntity> getUsers() {
         return users;
     }
 
-    public void setUsers(Set<String> users) {
+    public void setUsers(Set<UserEntity> users) {
         this.users = users;
     }
 
@@ -91,11 +93,11 @@ public class AccessPolicyDTO  extends ComponentDTO {
      * @return The set of user group IDs associated with this access policy.
      */
     @ApiModelProperty(value = "The set of user group IDs associated with this access policy.")
-    public Set<String> getGroups() {
-        return groups;
+    public Set<UserGroupEntity> getUserGroups() {
+        return userGroups;
     }
 
-    public void setGroups(Set<String> groups) {
-        this.groups = groups;
+    public void setUserGroups(Set<UserGroupEntity> userGroups) {
+        this.userGroups = userGroups;
     }
 }
