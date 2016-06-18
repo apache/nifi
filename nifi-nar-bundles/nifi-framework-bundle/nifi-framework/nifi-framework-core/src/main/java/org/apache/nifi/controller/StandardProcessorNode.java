@@ -53,6 +53,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
@@ -130,6 +131,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
                                                    // ??????? NOT any more
+    private ExecutionNode executionNode;
 
     public StandardProcessorNode(final Processor processor, final String uuid,
         final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
@@ -192,6 +194,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
+        executionNode = ExecutionNode.ALL;
     }
 
     /**
@@ -436,6 +439,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         this.schedulingStrategy = schedulingStrategy;
+        // PRIMARY_NODE_ONLY is deprecated.  Isolated is also set when executionNode == PRIMARY
         setIsolated(schedulingStrategy == SchedulingStrategy.PRIMARY_NODE_ONLY);
     }
 
@@ -484,6 +488,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
 
         this.schedulingPeriod.set(schedulingPeriod);
+    }
+
+    @Override
+    public void setExecutionNode(final ExecutionNode executionNode) {
+        this.executionNode = executionNode;
+        setIsolated(executionNode == ExecutionNode.PRIMARY);
+    }
+
+    @Override
+    public ExecutionNode getExecutionNode() {
+        return this.executionNode;
     }
 
     @Override

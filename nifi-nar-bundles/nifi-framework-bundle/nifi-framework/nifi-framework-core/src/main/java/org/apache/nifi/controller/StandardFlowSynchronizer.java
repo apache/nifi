@@ -58,6 +58,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -734,6 +735,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         if (config.getSchedulingStrategy() != null) {
             procNode.setSchedulingStrategy(SchedulingStrategy.valueOf(config.getSchedulingStrategy()));
+        }
+
+        if (config.getExecutionNode() != null) {
+            procNode.setExecutionNode(ExecutionNode.valueOf(config.getExecutionNode()));
         }
 
         // must set scheduling strategy before these two

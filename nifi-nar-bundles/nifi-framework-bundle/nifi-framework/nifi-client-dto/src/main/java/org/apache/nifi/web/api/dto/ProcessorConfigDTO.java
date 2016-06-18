@@ -34,6 +34,7 @@ public class ProcessorConfigDTO {
     // settings
     private String schedulingPeriod;
     private String schedulingStrategy;
+    private String executionNode;
     private String penaltyDuration;
     private String yieldDuration;
     private String bulletinLevel;
@@ -84,6 +85,22 @@ public class ProcessorConfigDTO {
 
     public void setSchedulingStrategy(String schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
+    }
+
+    /**
+     * Indicates which node the process should run on
+     *
+     * @return execution node
+     */
+    @ApiModelProperty(
+            value = "Indicates the node where the process will execute."
+    )
+    public String getExecutionNode() {
+        return executionNode;
+    }
+
+    public void setExecutionNode(String executionNode) {
+        this.executionNode = executionNode;
     }
 
     /**

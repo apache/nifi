@@ -110,6 +110,12 @@ div.processor-enabled-container {
     line-height: 18px;
 }
 
+#execution-node-combo {
+    width: 130px;
+    height: 18px;
+    line-height: 18px;
+}
+
 #event-driven-warning {
     padding-top: 22px;
     color: #f00;
