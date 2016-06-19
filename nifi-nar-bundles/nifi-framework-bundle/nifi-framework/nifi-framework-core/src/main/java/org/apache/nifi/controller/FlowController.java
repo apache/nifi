@@ -193,6 +193,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -595,11 +596,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     private static VariableRegistry createVariableRegistry(final NiFiProperties properties){
         VariableRegistry variableRegistry = VariableRegistryUtils.createVariableRegistry();
+
+        final Path[] registryPropPaths = properties.getVariableRegistryPropertiesPaths();
         try {
-            VariableRegistry customRegistry = VariableRegistryFactory.getPropertiesInstance(properties.getVariableRegistryPropertiesPaths());
+            VariableRegistry customRegistry = VariableRegistryFactory.getPropertiesInstance(registryPropPaths);
             variableRegistry.addRegistry(customRegistry);
         } catch (IOException ioe){
-            LOG.error("Exception thrown while attempting to add properties to registry",ioe);
+            LOG.error("Failed to load Variable Registry from " + registryPropPaths, ioe);
         }
 
         return variableRegistry;

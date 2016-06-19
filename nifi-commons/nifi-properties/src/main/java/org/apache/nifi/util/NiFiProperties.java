@@ -1085,17 +1085,19 @@ public class NiFiProperties extends Properties {
 
     public Path[] getVariableRegistryPropertiesPaths() {
         final List<Path> vrPropertiesPaths = new ArrayList<>();
-
         final String vrPropertiesFiles = getVariableRegistryProperties();
-        if(!StringUtils.isEmpty(vrPropertiesFiles)) {
 
+        if(!StringUtils.isEmpty(vrPropertiesFiles)) {
             final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
 
-            for(String propertiesFile : vrPropertiesFileList){
-                vrPropertiesPaths.add(Paths.get(propertiesFile));
+            for (final String propertiesFile : vrPropertiesFileList) {
+                final String trimmed = propertiesFile.trim();
+                if (!trimmed.isEmpty()) {
+                    vrPropertiesPaths.add(Paths.get(trimmed));
+                }
             }
 
-            return vrPropertiesPaths.toArray( new Path[vrPropertiesPaths.size()]);
+            return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
         } else {
             return null;
         }

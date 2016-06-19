@@ -49,7 +49,7 @@ abstract class FileVariableRegistry extends MultiMapVariableRegistry {
 
 
     private void addVariables(Path ...paths) throws IOException{
-        if(paths != null) {
+        if (paths != null) {
             for (final Path path : paths) {
                 registry.addMap(convertFile(path.toFile()));
             }

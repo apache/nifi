@@ -26,12 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 class PropertiesVariableRegistry extends FileVariableRegistry {
-
-    private static final Logger LOG = LoggerFactory.getLogger(PropertiesVariableRegistry.class);
 
     PropertiesVariableRegistry(File... files) throws IOException{
         super(files);
@@ -56,8 +51,7 @@ class PropertiesVariableRegistry extends FileVariableRegistry {
 
     @Override
     protected Map<String,String> convertFile(File file) throws IOException{
-
-        try(final InputStream inStream = new BufferedInputStream(new FileInputStream(file))) {
+        try (final InputStream inStream = new BufferedInputStream(new FileInputStream(file))) {
             Properties properties = new Properties();
             properties.load(inStream);
             return convertToMap(properties);
