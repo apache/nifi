@@ -17,13 +17,49 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
 
 /**
  * An Authorizer that provides management of users, groups, and policies.
  */
 public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
+
+    static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
+    static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
+
+    static final String USER_ELEMENT = "user";
+    static final String USER_GROUP_ELEMENT = "userGroup";
+    static final String GROUP_ELEMENT = "group";
+    static final String POLICY_ELEMENT = "policy";
+    static final String POLICY_USER_ELEMENT = "policyUser";
+    static final String POLICY_GROUP_ELEMENT = "policyGroup";
+    static final String IDENTIFIER_ATTR = "identifier";
+    static final String IDENTITY_ATTR = "identity";
+    static final String NAME_ATTR = "name";
+    static final String RESOURCE_ATTR = "resource";
+    static final String ACTIONS_ATTR = "actions";
+
+    public static final String EMPTY_FINGERPRINT = "EMPTY";
 
     @Override
     public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
@@ -217,5 +253,262 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     public abstract UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException;
+
+    /**
+     * Parses the fingerprint and adds any users, groups, and policies to the current Authorizer.
+     *
+     * @param fingerprint the fingerprint that was obtained from calling getFingerprint() on another Authorizer.
+     */
+    public final void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        if (fingerprint == null || fingerprint.trim().isEmpty()) {
+            return;
+        }
+
+        final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
+
+        try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
+            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final Document document = docBuilder.parse(in);
+            final Element rootElement = document.getDocumentElement();
+
+            // parse all the users and add them to the current authorizer
+            NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
+            for (int i=0; i < userNodes.getLength(); i++) {
+                Node userNode = userNodes.item(i);
+                User user = parseUser((Element) userNode);
+                addUser(user);
+            }
+
+            // parse all the groups and add them to the current authorizer
+            NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
+            for (int i=0; i < groupNodes.getLength(); i++) {
+                Node groupNode = groupNodes.item(i);
+                Group group = parseGroup((Element) groupNode);
+                addGroup(group);
+            }
+
+            // parse all the policies and add them to the current authorizer
+            NodeList policyNodes = rootElement.getElementsByTagName(POLICY_ELEMENT);
+            for (int i=0; i < policyNodes.getLength(); i++) {
+                Node policyNode = policyNodes.item(i);
+                AccessPolicy policy = parsePolicy((Element) policyNode);
+                addAccessPolicy(policy);
+            }
+
+        } catch (SAXException | ParserConfigurationException | IOException e) {
+            throw new AuthorizationAccessException("Unable to parse fingerprint", e);
+        }
+    }
+
+    private User parseUser(final Element element) {
+        final User.Builder builder = new User.Builder()
+                .identifier(element.getAttribute(IDENTIFIER_ATTR))
+                .identity(element.getAttribute(IDENTITY_ATTR));
+
+        NodeList userGroups = element.getElementsByTagName(USER_GROUP_ELEMENT);
+        for (int i=0; i < userGroups.getLength(); i++) {
+            Element userGroupNode = (Element) userGroups.item(i);
+            builder.addGroup(userGroupNode.getAttribute(IDENTIFIER_ATTR));
+        }
+
+        return builder.build();
+    }
+
+    private Group parseGroup(final Element element) {
+        return new Group.Builder()
+                .identifier(element.getAttribute(IDENTIFIER_ATTR))
+                .name(element.getAttribute(NAME_ATTR))
+                .build();
+    }
+
+    private AccessPolicy parsePolicy(final Element element) {
+        final AccessPolicy.Builder builder = new AccessPolicy.Builder()
+                .identifier(element.getAttribute(IDENTIFIER_ATTR))
+                .resource(element.getAttribute(RESOURCE_ATTR));
+
+        final String actions = element.getAttribute(ACTIONS_ATTR);
+        if (actions.contains(RequestAction.READ.name())) {
+            builder.addAction(RequestAction.READ);
+        }
+        if (actions.contains(RequestAction.WRITE.name())) {
+            builder.addAction(RequestAction.WRITE);
+        }
+
+        NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
+        for (int i=0; i < policyUsers.getLength(); i++) {
+            Element policyUserNode = (Element) policyUsers.item(i);
+            builder.addUser(policyUserNode.getAttribute(IDENTIFIER_ATTR));
+        }
+
+        NodeList policyGroups = element.getElementsByTagName(POLICY_GROUP_ELEMENT);
+        for (int i=0; i < policyGroups.getLength(); i++) {
+            Element policyGroupNode = (Element) policyGroups.item(i);
+            builder.addGroup(policyGroupNode.getAttribute(IDENTIFIER_ATTR));
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Returns a fingerprint representing the authorizations managed by this authorizer. The fingerprint will be
+     * used for comparison to determine if two policy-based authorizers represent a compatible set of users,
+     * groups, and policies.
+     *
+     * @return the fingerprint for this Authorizer
+     */
+    public final String getFingerprint() throws AuthorizationAccessException {
+        final List<User> users = getSortedUsers();
+        final List<Group> groups = getSortedGroups();
+        final List<AccessPolicy> policies = getSortedAccessPolicies();
+
+        // when there are no users, groups, policies we want to always return a simple indicator so
+        // it can easily be determined when comparing fingerprints
+        if (users.isEmpty() && groups.isEmpty() && policies.isEmpty()) {
+            return EMPTY_FINGERPRINT;
+        }
+
+        XMLStreamWriter writer = null;
+        final StringWriter out = new StringWriter();
+        try {
+            writer = XML_OUTPUT_FACTORY.createXMLStreamWriter(out);
+            writer.writeStartDocument();
+            writer.writeStartElement("authorizations");
+
+            for (User user : users) {
+                writeUser(writer, user);
+            }
+            for (Group group : groups) {
+                writeGroup(writer, group);
+            }
+            for (AccessPolicy policy : policies) {
+                writePolicy(writer, policy);
+            }
+
+            writer.writeEndElement();
+            writer.writeEndDocument();
+            writer.flush();
+        } catch (XMLStreamException e) {
+            throw new AuthorizationAccessException("Unable to generate fingerprint", e);
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (XMLStreamException e) {
+                    // nothing to do here
+                }
+            }
+        }
+
+        return out.toString();
+    }
+
+    private void writeUser(final XMLStreamWriter writer, final User user) throws XMLStreamException {
+        List<String> userGroups = new ArrayList<>(user.getGroups());
+        Collections.sort(userGroups);
+
+        writer.writeStartElement(USER_ELEMENT);
+        writer.writeAttribute(IDENTIFIER_ATTR, user.getIdentifier());
+        writer.writeAttribute(IDENTITY_ATTR, user.getIdentity());
+
+        for (String userGroup : userGroups) {
+            writer.writeStartElement(USER_GROUP_ELEMENT);
+            writer.writeAttribute(IDENTIFIER_ATTR, userGroup);
+            writer.writeEndElement();
+        }
+
+        writer.writeEndElement();
+    }
+
+    private void writeGroup(final XMLStreamWriter writer, final Group group) throws XMLStreamException {
+        writer.writeStartElement(GROUP_ELEMENT);
+        writer.writeAttribute(IDENTIFIER_ATTR, group.getIdentifier());
+        writer.writeAttribute(NAME_ATTR, group.getName());
+        writer.writeEndElement();
+    }
+
+    private void writePolicy(final XMLStreamWriter writer, final AccessPolicy policy) throws XMLStreamException {
+        // build the action string in a deterministic order
+        StringBuilder actionBuilder = new StringBuilder();
+        List<RequestAction> actions = getSortedActions(policy);
+        for (RequestAction action : actions) {
+            actionBuilder.append(action);
+        }
+
+        // sort the users for the policy
+        List<String> policyUsers = new ArrayList<>(policy.getUsers());
+        Collections.sort(policyUsers);
+
+        // sort the groups for this policy
+        List<String> policyGroups = new ArrayList<>(policy.getGroups());
+        Collections.sort(policyGroups);
+
+        writer.writeStartElement(POLICY_ELEMENT);
+        writer.writeAttribute(IDENTIFIER_ATTR, policy.getIdentifier());
+        writer.writeAttribute(RESOURCE_ATTR, policy.getResource());
+        writer.writeAttribute(ACTIONS_ATTR, actionBuilder.toString());
+
+        for (String policyUser : policyUsers) {
+            writer.writeStartElement(POLICY_USER_ELEMENT);
+            writer.writeAttribute(IDENTIFIER_ATTR, policyUser);
+            writer.writeEndElement();
+        }
+
+        for (String policyGroup : policyGroups) {
+            writer.writeStartElement(POLICY_GROUP_ELEMENT);
+            writer.writeAttribute(IDENTIFIER_ATTR, policyGroup);
+            writer.writeEndElement();
+        }
+
+        writer.writeEndElement();
+    }
+
+    private List<AccessPolicy> getSortedAccessPolicies() {
+        final List<AccessPolicy> policies = new ArrayList<>(getAccessPolicies());
+
+        Collections.sort(policies, new Comparator<AccessPolicy>() {
+            @Override
+            public int compare(AccessPolicy p1, AccessPolicy p2) {
+                return p1.getIdentifier().compareTo(p2.getIdentifier());
+            }
+        });
+        return policies;
+    }
+
+    private List<Group> getSortedGroups() {
+        final List<Group> groups = new ArrayList<>(getGroups());
+
+        Collections.sort(groups, new Comparator<Group>() {
+            @Override
+            public int compare(Group g1, Group g2) {
+                return g1.getIdentifier().compareTo(g2.getIdentifier());
+            }
+        });
+        return groups;
+    }
+
+    private List<User> getSortedUsers() {
+        final List<User> users = new ArrayList<>(getUsers());
+
+        Collections.sort(users, new Comparator<User>() {
+            @Override
+            public int compare(User u1, User u2) {
+                return u1.getIdentifier().compareTo(u2.getIdentifier());
+            }
+        });
+        return users;
+    }
+
+    private List<RequestAction> getSortedActions(final AccessPolicy policy) {
+        final List<RequestAction> actions = new ArrayList<>(policy.getActions());
+
+        Collections.sort(actions, new Comparator<RequestAction>() {
+            @Override
+            public int compare(RequestAction r1, RequestAction r2) {
+                return r1.name().compareTo(r2.name());
+            }
+        });
+
+        return actions;
+    }
 
 }

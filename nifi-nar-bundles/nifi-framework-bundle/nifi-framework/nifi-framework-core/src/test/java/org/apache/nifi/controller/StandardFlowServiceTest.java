@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
@@ -59,7 +59,7 @@ public class StandardFlowServiceTest {
     private FlowController flowController;
     private NiFiProperties properties;
     private FlowFileEventRepository mockFlowFileEventRepository;
-    private KeyService mockKeyService;
+    private Authorizer authorizer;
     private AuditService mockAuditService;
     private StringEncryptor mockEncryptor;
     private RevisionManager revisionManager;
@@ -73,17 +73,17 @@ public class StandardFlowServiceTest {
     public void setup() throws Exception {
         properties = NiFiProperties.getInstance();
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
-        mockKeyService = mock(KeyService.class);
+        authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
         revisionManager = mock(RevisionManager.class);
-        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, mockKeyService, mockAuditService, mockEncryptor, new VolatileBulletinRepository());
-        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager);
+        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor, new VolatileBulletinRepository());
+        flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
     }
 
     @Test
     public void testLoadWithFlow() throws IOException {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
-        flowService.load(new StandardDataFlow(flowBytes, null));
+        flowService.load(new StandardDataFlow(flowBytes, null, null));
 
         FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -98,16 +98,16 @@ public class StandardFlowServiceTest {
     @Test(expected = FlowSerializationException.class)
     public void testLoadWithCorruptFlow() throws IOException {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-corrupt.xml"));
-        flowService.load(new StandardDataFlow(flowBytes, null));
+        flowService.load(new StandardDataFlow(flowBytes, null, null));
     }
 
     @Test
     public void testLoadExistingFlow() throws IOException {
         byte[] flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
-        flowService.load(new StandardDataFlow(flowBytes, null));
+        flowService.load(new StandardDataFlow(flowBytes, null, null));
 
         flowBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-inheritable.xml"));
-        flowService.load(new StandardDataFlow(flowBytes, null));
+        flowService.load(new StandardDataFlow(flowBytes, null, null));
 
         FlowSerializer serializer = new StandardFlowSerializer(mockEncryptor);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -121,11 +121,11 @@ public class StandardFlowServiceTest {
     @Test
     public void testLoadExistingFlowWithUninheritableFlow() throws IOException {
         byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
-        flowService.load(new StandardDataFlow(originalBytes, null));
+        flowService.load(new StandardDataFlow(originalBytes, null, null));
 
         try {
             byte[] updatedBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-uninheritable.xml"));
-            flowService.load(new StandardDataFlow(updatedBytes, null));
+            flowService.load(new StandardDataFlow(updatedBytes, null, null));
             fail("should have thrown " + UninheritableFlowException.class);
         } catch (UninheritableFlowException ufe) {
 
@@ -143,11 +143,11 @@ public class StandardFlowServiceTest {
     @Test
     public void testLoadExistingFlowWithCorruptFlow() throws IOException {
         byte[] originalBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow.xml"));
-        flowService.load(new StandardDataFlow(originalBytes, null));
+        flowService.load(new StandardDataFlow(originalBytes, null, null));
 
         try {
             byte[] updatedBytes = IOUtils.toByteArray(StandardFlowServiceTest.class.getResourceAsStream("/conf/all-flow-corrupt.xml"));
-            flowService.load(new StandardDataFlow(updatedBytes, null));
+            flowService.load(new StandardDataFlow(updatedBytes, null, null));
             fail("should have thrown " + FlowSerializationException.class);
         } catch (FlowSerializationException ufe) {
 

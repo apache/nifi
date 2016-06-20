@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.spring;
 
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderListener;
 import org.apache.nifi.controller.FlowController;
@@ -39,6 +40,7 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
     private FlowService flowService;
     private NiFiProperties properties;
     private StringEncryptor encryptor;
+    private Authorizer authorizer;
 
     @Override
     public Object getObject() throws Exception {
@@ -55,13 +57,15 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
                     nodeProtocolSenderListener,
                     clusterCoordinator,
                     encryptor,
-                    revisionManager);
+                    revisionManager,
+                    authorizer);
             } else {
                 flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     properties,
                     encryptor,
-                    revisionManager);
+                    revisionManager,
+                    authorizer);
             }
         }
 
@@ -90,4 +94,9 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
     public void setEncryptor(StringEncryptor encryptor) {
         this.encryptor = encryptor;
     }
+
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
+    }
+
 }

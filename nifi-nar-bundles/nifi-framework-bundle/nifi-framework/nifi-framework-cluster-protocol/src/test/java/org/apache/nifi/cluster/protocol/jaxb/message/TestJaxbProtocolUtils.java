@@ -46,7 +46,7 @@ public class TestJaxbProtocolUtils {
 
         final ConnectionResponseMessage msg = new ConnectionResponseMessage();
         final NodeIdentifier nodeId = new NodeIdentifier("id", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, true);
-        final DataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0]);
+        final DataFlow dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0]);
         final List<NodeConnectionStatus> nodeStatuses = Collections.singletonList(new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
         final List<ComponentRevision> componentRevisions = Collections.singletonList(ComponentRevision.fromRevision(new Revision(8L, "client-1", "component-1")));
         msg.setConnectionResponse(new ConnectionResponse(nodeId, dataFlow, 9990, 8080, false, "instance-1", nodeStatuses, componentRevisions));

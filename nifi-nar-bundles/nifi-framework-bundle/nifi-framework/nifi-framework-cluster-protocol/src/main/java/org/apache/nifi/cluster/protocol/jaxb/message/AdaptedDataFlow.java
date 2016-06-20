@@ -22,6 +22,7 @@ public class AdaptedDataFlow {
 
     private byte[] flow;
     private byte[] snippets;
+    private byte[] authorizerFingerprint;
 
     public byte[] getFlow() {
         return flow;
@@ -38,4 +39,13 @@ public class AdaptedDataFlow {
     public void setSnippets(byte[] snippets) {
         this.snippets = snippets;
     }
+
+    public byte[] getAuthorizerFingerprint() {
+        return authorizerFingerprint;
+    }
+
+    public void setAuthorizerFingerprint(byte[] authorizerFingerprint) {
+        this.authorizerFingerprint = authorizerFingerprint;
+    }
+
 }

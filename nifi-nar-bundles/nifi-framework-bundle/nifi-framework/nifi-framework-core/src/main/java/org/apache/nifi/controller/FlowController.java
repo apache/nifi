@@ -20,13 +20,13 @@ import com.sun.jersey.api.client.ClientHandlerException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -271,7 +271,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final AtomicReference<CounterRepository> counterRepositoryRef;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
-    private final KeyService keyService;
+    private final Authorizer authorizer;
     private final AuditService auditService;
     private final EventDrivenWorkerQueue eventDrivenWorkerQueue;
     private final ComponentStatusRepository componentStatusRepository;
@@ -364,14 +364,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createStandaloneInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final KeyService keyService,
+        final Authorizer authorizer,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final BulletinRepository bulletinRepo) {
         return new FlowController(
             flowFileEventRepo,
             properties,
-            keyService,
+            authorizer,
             auditService,
             encryptor,
             /* configuredForClustering */ false,
@@ -383,7 +383,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public static FlowController createClusteredInstance(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final KeyService keyService,
+        final Authorizer authorizer,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final NodeProtocolSender protocolSender,
@@ -392,7 +392,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final FlowController flowController = new FlowController(
             flowFileEventRepo,
             properties,
-            keyService,
+            authorizer,
             auditService,
             encryptor,
             /* configuredForClustering */ true,
@@ -408,7 +408,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private FlowController(
         final FlowFileEventRepository flowFileEventRepo,
         final NiFiProperties properties,
-        final KeyService keyService,
+        final Authorizer authorizer,
         final AuditService auditService,
         final StringEncryptor encryptor,
         final boolean configuredForClustering,
@@ -470,7 +470,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         startConnectablesAfterInitialization = new ArrayList<>();
         startRemoteGroupPortsAfterInitialization = new ArrayList<>();
-        this.keyService = keyService;
+        this.authorizer = authorizer;
         this.auditService = auditService;
 
         final String gracefulShutdownSecondsVal = properties.getProperty(GRACEFUL_SHUTDOWN_PERIOD);
@@ -1090,6 +1090,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return stateManagerProvider;
     }
 
+    public Authorizer getAuthorizer() {
+        return authorizer;
+    }
+
     /**
      * Creates a Port to use as an Input Port for the root Process Group, which is used for Site-to-Site communications
      *
@@ -1104,7 +1108,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.RECEIVE, ConnectableType.INPUT_PORT,
-            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**
@@ -1121,7 +1125,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         name = requireNonNull(name).intern();
         verifyPortIdDoesNotExist(id);
         return new StandardRootGroupPort(id, name, null, TransferDirection.SEND, ConnectableType.OUTPUT_PORT,
-            keyService, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
+            authorizer, getBulletinRepository(), processScheduler, Boolean.TRUE.equals(isSiteToSiteSecure));
     }
 
     /**
