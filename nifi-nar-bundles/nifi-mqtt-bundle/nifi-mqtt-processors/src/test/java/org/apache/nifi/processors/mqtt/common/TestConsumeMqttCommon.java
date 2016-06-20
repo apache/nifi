@@ -20,6 +20,7 @@ package org.apache.nifi.processors.mqtt.common;
 import io.moquette.proto.messages.AbstractMessage;
 import io.moquette.proto.messages.PublishMessage;
 import io.moquette.server.Server;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.ConsumeMQTT;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -34,6 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.BROKER_ATTRIBUTE_KEY;
@@ -398,6 +400,18 @@ public abstract class TestConsumeMqttCommon {
         Method method = ConsumeMQTT.class.getDeclaredMethod("reconnect");
         method.setAccessible(true);
         method.invoke(processor);
+    }
+
+    public static BlockingQueue<MQTTQueueMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
+        Field mqttQueueField = ConsumeMQTT.class.getDeclaredField("mqttQueue");
+        mqttQueueField.setAccessible(true);
+        return (BlockingQueue<MQTTQueueMessage>) mqttQueueField.get(consumeMQTT);
+    }
+
+    public static void transferQueue(ConsumeMQTT consumeMQTT, ProcessSession session) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method transferQueue = ConsumeMQTT.class.getDeclaredMethod("transferQueue", ProcessSession.class);
+        transferQueue.setAccessible(true);
+        transferQueue.invoke(consumeMQTT, session);
     }
 
     private void assertProvenanceEvents(int count){
