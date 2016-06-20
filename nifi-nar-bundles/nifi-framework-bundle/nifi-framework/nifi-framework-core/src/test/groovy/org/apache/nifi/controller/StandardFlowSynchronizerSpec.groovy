@@ -17,6 +17,7 @@
 package org.apache.nifi.controller
 
 import groovy.xml.XmlUtil
+import org.apache.nifi.authorization.Authorizer
 import org.apache.nifi.cluster.protocol.DataFlow
 import org.apache.nifi.connectable.*
 import org.apache.nifi.controller.label.Label
@@ -47,6 +48,7 @@ class StandardFlowSynchronizerSpec extends Specification {
         def snippetManager = Mock SnippetManager
         def bulletinRepository = Mock BulletinRepository
         def flowFileQueue = Mock FlowFileQueue
+        def authorizer = Mock Authorizer
         def flowFile = new File(StandardFlowSynchronizerSpec.getResource(filename).toURI())
         def flowControllerXml = new XmlSlurper().parse(flowFile)
         def Map<String, Position> originalPositionablePositionsById = flowControllerXml.rootGroup.'**'
@@ -73,6 +75,7 @@ class StandardFlowSynchronizerSpec extends Specification {
         _ * controller.getGroup(_) >> { String id -> positionableMocksById.get(id) }
         _ * controller.snippetManager >> snippetManager
         _ * controller.bulletinRepository >> bulletinRepository
+        _ * controller.authorizer >> authorizer
         _ * controller./set.*/(*_)
         _ * controller.createProcessGroup(_) >> { String pgId ->
             def processGroup = Mock(ProcessGroup)
@@ -191,6 +194,8 @@ class StandardFlowSynchronizerSpec extends Specification {
         _ * proposedFlow.snippets >> {
             [] as byte[]
         }
+        _ * proposedFlow.authorizerFingerprint >> null
+
         _ * flowFileQueue./set.*/(*_)
         _ * _.hashCode() >> 1
         0 * _ // no other mock calls allowed

@@ -17,6 +17,8 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.ConnectionException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
@@ -106,6 +108,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
     private final StringEncryptor encryptor;
+    private final Authorizer authorizer;
 
     // Lock is used to protect the flow.xml file.
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -143,9 +146,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final FlowController controller,
         final NiFiProperties properties,
         final StringEncryptor encryptor,
-        final RevisionManager revisionManager) throws IOException {
+        final RevisionManager revisionManager,
+        final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, properties, null, encryptor, false, null, revisionManager);
+        return new StandardFlowService(controller, properties, null, encryptor, false, null, revisionManager, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
@@ -154,9 +158,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final NodeProtocolSenderListener senderListener,
         final ClusterCoordinator coordinator,
         final StringEncryptor encryptor,
-        final RevisionManager revisionManager) throws IOException {
+        final RevisionManager revisionManager,
+        final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, properties, senderListener, encryptor, true, coordinator, revisionManager);
+        return new StandardFlowService(controller, properties, senderListener, encryptor, true, coordinator, revisionManager, authorizer);
     }
 
     private StandardFlowService(
@@ -166,7 +171,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final StringEncryptor encryptor,
         final boolean configuredForClustering,
         final ClusterCoordinator clusterCoordinator,
-        final RevisionManager revisionManager) throws IOException {
+        final RevisionManager revisionManager,
+        final Authorizer authorizer) throws IOException {
 
         this.controller = controller;
         this.encryptor = encryptor;
@@ -181,6 +187,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             clusterCoordinator.setFlowService(this);
         }
         this.revisionManager = revisionManager;
+        this.authorizer = authorizer;
 
         if (configuredForClustering) {
             this.configuredForClustering = configuredForClustering;
@@ -544,6 +551,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
+    private byte[] getAuthorizerFingerprint() {
+        final boolean isInternalAuthorizer = (authorizer instanceof AbstractPolicyBasedAuthorizer);
+        return isInternalAuthorizer ? ((AbstractPolicyBasedAuthorizer) authorizer).getFingerprint().getBytes(StandardCharsets.UTF_8) : null;
+    }
+
     @Override
     public StandardDataFlow createDataFlow() throws IOException {
         // Load the flow from disk
@@ -551,7 +563,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         dao.load(baos);
         final byte[] bytes = baos.toByteArray();
         final byte[] snippetBytes = controller.getSnippetManager().export();
-        final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes);
+        final byte[] authorizerFingerprint = getAuthorizerFingerprint();
+        final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint);
 
         // Check if the flow from disk is empty. If not, use it.
         if (!StandardFlowSynchronizer.isEmpty(fromDisk, encryptor)) {
@@ -568,7 +581,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final byte[] flowBytes = baos.toByteArray();
         baos.reset();
 
-        return new StandardDataFlow(flowBytes, snippetBytes);
+        return new StandardDataFlow(flowBytes, snippetBytes, authorizerFingerprint);
     }
 
     private NodeIdentifier getNodeId() {
@@ -648,17 +661,20 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         // resolve the given flow (null means load flow from disk)
         final DataFlow actualProposedFlow;
         final byte[] flowBytes;
+        final byte[] authorizerFingerprint;
         if (proposedFlow == null) {
             final ByteArrayOutputStream flowOnDisk = new ByteArrayOutputStream();
             copyCurrentFlow(flowOnDisk);
             flowBytes = flowOnDisk.toByteArray();
+            authorizerFingerprint = getAuthorizerFingerprint();
             logger.debug("Loaded Flow from bytes");
         } else {
             flowBytes = proposedFlow.getFlow();
+            authorizerFingerprint = proposedFlow.getAuthorizerFingerprint();
             logger.debug("Loaded flow from proposed flow");
         }
 
-        actualProposedFlow = new StandardDataFlow(flowBytes, null);
+        actualProposedFlow = new StandardDataFlow(flowBytes, null, authorizerFingerprint);
 
         if (firstControllerInitialization) {
             // load the controller services

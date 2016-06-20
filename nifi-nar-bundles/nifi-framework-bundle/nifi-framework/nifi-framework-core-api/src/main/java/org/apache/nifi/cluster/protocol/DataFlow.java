@@ -28,4 +28,10 @@ public interface DataFlow {
      */
     public byte[] getSnippets();
 
+    /**
+     * @return the raw byte array of the Authorizer's fingerprint,
+     *              null when not using a sub-class of AbstractPolicyBasedAuthorizer
+     */
+    public byte[] getAuthorizerFingerprint();
+
 }

@@ -36,7 +36,7 @@
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
-        <property name="keyService" ref="keyService" />
+        <property name="authorizer" ref="authorizer" />
         <property name="auditService" ref="auditService" />
         <property name="encryptor" ref="stringEncryptor" />
         <property name="bulletinRepository" ref="bulletinRepository" />
@@ -46,6 +46,7 @@
     <bean id="flowService" class="org.apache.nifi.spring.StandardFlowServiceFactoryBean">
         <property name="properties" ref="nifiProperties"/>
         <property name="encryptor" ref="stringEncryptor" />
+        <property name="authorizer" ref="authorizer" />
     </bean>
     
     <!-- bulletin repository -->

@@ -80,7 +80,7 @@ public class TestNodeClusterCoordinator {
         coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager);
 
         final FlowService flowService = Mockito.mock(FlowService.class);
-        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50]);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
     }
@@ -164,7 +164,7 @@ public class TestNodeClusterCoordinator {
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager);
 
         final FlowService flowService = Mockito.mock(FlowService.class);
-        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50]);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
 
@@ -228,7 +228,7 @@ public class TestNodeClusterCoordinator {
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager);
 
         final FlowService flowService = Mockito.mock(FlowService.class);
-        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50]);
+        final StandardDataFlow dataFlow = new StandardDataFlow(new byte[50], new byte[50], new byte[50]);
         Mockito.when(flowService.createDataFlow()).thenReturn(dataFlow);
         coordinator.setFlowService(flowService);
 

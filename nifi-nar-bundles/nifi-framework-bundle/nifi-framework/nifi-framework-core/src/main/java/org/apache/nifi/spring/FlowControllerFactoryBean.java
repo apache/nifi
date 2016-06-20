@@ -17,7 +17,7 @@
 package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
@@ -39,7 +39,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private ApplicationContext applicationContext;
     private FlowController flowController;
     private NiFiProperties properties;
-    private KeyService keyService;
+    private Authorizer authorizer;
     private AuditService auditService;
     private StringEncryptor encryptor;
     private BulletinRepository bulletinRepository;
@@ -55,7 +55,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                 flowController = FlowController.createClusteredInstance(
                     flowFileEventRepository,
                     properties,
-                    keyService,
+                    authorizer,
                     auditService,
                     encryptor,
                     nodeProtocolSender,
@@ -65,7 +65,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
                     properties,
-                    keyService,
+                    authorizer,
                     auditService,
                     encryptor,
                     bulletinRepository);
@@ -95,8 +95,8 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.properties = properties;
     }
 
-    public void setKeyService(final KeyService keyService) {
-        this.keyService = keyService;
+    public void setAuthorizer(final Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setEncryptor(final StringEncryptor encryptor) {
