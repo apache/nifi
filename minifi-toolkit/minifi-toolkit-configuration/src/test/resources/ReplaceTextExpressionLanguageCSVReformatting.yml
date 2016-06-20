@@ -1,0 +1,146 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+Flow Controller:
+  name: ReplaceTextExpressionLanguageCSVReformatting
+  comment: ''
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+Content Repository:
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+Provenance Repository:
+  provenance rollover time: 1 min
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key:
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+Processors:
+- name: Generate Empty File
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 3 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Batch Size:
+    Data Format:
+    File Size: 0b
+    Unique FlowFiles:
+- name: No-Op Termination
+  class: org.apache.nifi.processors.attributes.UpdateAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - success
+  Properties:
+    Delete Attributes Expression:
+- name: Reformat Date Column
+  class: org.apache.nifi.processors.standard.ReplaceText
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - failure
+  Properties:
+    Character Set:
+    Evaluation Mode: Line-by-Line
+    Maximum Buffer Size:
+    Regular Expression: (.*?),(.*?),(\d+.*)
+    Replacement Strategy:
+    Replacement Value: $1,$2,${ '$3':toDate('ddMMMyyyy'):format('yyyy/MM/dd') }
+- name: Set CSV Content
+  class: org.apache.nifi.processors.standard.ReplaceText
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - failure
+  Properties:
+    Character Set:
+    Evaluation Mode:
+    Maximum Buffer Size:
+    Regular Expression:
+    Replacement Strategy:
+    Replacement Value: |-
+      2006,10-01-2004,10may2004
+      2007,15-05-2006,10jun2005
+      2009,8-8-2008,10aug2008
+Connections:
+- name: Generate Empty File/success/Set CSV Content
+  source name: Generate Empty File
+  source relationship name: success
+  destination name: Set CSV Content
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Reformat Date Column/success/No-Op Termination
+  source name: Reformat Date Column
+  source relationship name: success
+  destination name: No-Op Termination
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Set CSV Content/success/Reformat Date Column
+  source name: Set CSV Content
+  source relationship name: success
+  destination name: Reformat Date Column
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+Remote Processing Groups: []

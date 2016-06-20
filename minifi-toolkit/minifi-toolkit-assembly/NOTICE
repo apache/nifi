@@ -21,8 +21,3 @@ The following binary components are provided under the Apache Software License v
       This product includes the following work from the Apache Hadoop project:
 
       BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
-
-  (ASLv2) Jetty
-    The following NOTICE information applies:
-       Jetty Web Container
-       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.

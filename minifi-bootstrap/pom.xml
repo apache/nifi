@@ -58,6 +58,11 @@ limitations under the License.
             <artifactId>snakeyaml</artifactId>
             <version>1.17</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-commons-schema</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

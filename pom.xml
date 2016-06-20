@@ -37,6 +37,7 @@ limitations under the License.
         <module>minifi-bootstrap</module>
         <module>minifi-nar-bundles</module>
         <module>minifi-assembly</module>
+        <module>minifi-toolkit</module>
     </modules>
 
     <url>http://nifi.apache.org</url>
@@ -328,6 +329,11 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-core</artifactId>
+                <version>${org.apache.nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
                 <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
@@ -422,11 +428,6 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-core-api</artifactId>
-                <version>${org.apache.nifi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-framework-core</artifactId>
                 <version>${org.apache.nifi.version}</version>
             </dependency>
             <dependency>

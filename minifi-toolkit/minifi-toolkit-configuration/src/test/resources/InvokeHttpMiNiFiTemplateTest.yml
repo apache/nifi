@@ -1,0 +1,262 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+Flow Controller:
+  name: InvokeHttpMiNiFiTemplateTest2
+  comment: ''
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+Content Repository:
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+Provenance Repository:
+  provenance rollover time: 1 min
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key:
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+Processors:
+- name: LogAttribute
+  class: org.apache.nifi.processors.standard.LogAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - success
+  Properties:
+    Attributes to Ignore:
+    Attributes to Log:
+    Log Level: info
+    Log Payload: 'false'
+    Log prefix:
+- name: LogAttribute2
+  class: org.apache.nifi.processors.standard.LogAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list:
+  - success
+  Properties:
+    Attributes to Ignore:
+    Attributes to Log:
+    Log Level: info
+    Log Payload: 'false'
+    Log prefix:
+- name: Route On Status Code
+  class: org.apache.nifi.processors.standard.RouteOnAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    '200': ${invokehttp.status.code:equals(200)}
+    Routing Strategy: Route to Property name
+- name: Search Google
+  class: org.apache.nifi.processors.standard.InvokeHTTP
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Add Response Headers to Request: 'false'
+    Always Output Response: 'false'
+    Attributes to Send:
+    Basic Authentication Password:
+    Basic Authentication Username:
+    Connection Timeout: 5 secs
+    Content-Type: ${mime.type}
+    Digest Authentication: 'false'
+    Follow Redirects: 'True'
+    HTTP Method: GET
+    Include Date Header: 'True'
+    Max Length To Put In Attribute: '256'
+    Penalize on "No Retry": 'false'
+    Proxy Host:
+    Proxy Port:
+    Put Response Body In Attribute:
+    Read Timeout: 15 secs
+    Remote URL: http://www.google.com/search?q=${q}&rct=j
+    SSL Context Service:
+    Trusted Hostname:
+    Use Chunked Encoding: 'false'
+    invokehttp-proxy-password:
+    invokehttp-proxy-user:
+    send-message-body: 'true'
+- name: Source
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 30 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Batch Size: '1'
+    Data Format: Binary
+    File Size: 10 b
+    Unique FlowFiles: 'false'
+- name: q=nifi
+  class: org.apache.nifi.processors.attributes.UpdateAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Delete Attributes Expression:
+    q: nifi
+Connections:
+- name: Route On Status Code/200/LogAttribute
+  source name: Route On Status Code
+  source relationship name: '200'
+  destination name: LogAttribute
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Route On Status Code/200/b23a4621-cf19-42e6-967c-ffd3716e6a24
+  source name: Route On Status Code
+  source relationship name: '200'
+  destination name: b23a4621-cf19-42e6-967c-ffd3716e6a24
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Route On Status Code/unmatched/LogAttribute2
+  source name: Route On Status Code
+  source relationship name: unmatched
+  destination name: LogAttribute2
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Route On Status Code/unmatched/b23a4621-cf19-42e6-967c-ffd3716e6a24
+  source name: Route On Status Code
+  source relationship name: unmatched
+  destination name: b23a4621-cf19-42e6-967c-ffd3716e6a24
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Search Google/Failure/Route On Status Code
+  source name: Search Google
+  source relationship name: Failure
+  destination name: Route On Status Code
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Search Google/No Retry/Route On Status Code
+  source name: Search Google
+  source relationship name: No Retry
+  destination name: Route On Status Code
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Search Google/Original/Route On Status Code
+  source name: Search Google
+  source relationship name: Original
+  destination name: Route On Status Code
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Search Google/Response/Route On Status Code
+  source name: Search Google
+  source relationship name: Response
+  destination name: Route On Status Code
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Search Google/Retry/Route On Status Code
+  source name: Search Google
+  source relationship name: Retry
+  destination name: Route On Status Code
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: Source/success/q=nifi
+  source name: Source
+  source relationship name: success
+  destination name: q=nifi
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+- name: q=nifi/success/Search Google
+  source name: q=nifi
+  source relationship name: success
+  destination name: Search Google
+  max work queue size: 0
+  max work queue data size: 0 MB
+  flowfile expiration: 0 sec
+  queue prioritizer class: org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer
+Remote Processing Groups:
+- name: http://nifi:8080/nifi
+  url: http://nifi:8080/nifi
+  comment: ''
+  timeout: 30 sec
+  yield period: 10 sec
+  Input Ports:
+  - id: b23a4621-cf19-42e6-967c-ffd3716e6a24
+    name: response
+    comment: ''
+    max concurrent tasks: 1
+    use compression: false

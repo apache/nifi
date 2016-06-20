@@ -20,26 +20,26 @@ package org.apache.nifi.minifi.bootstrap.util;
 
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
-import org.apache.nifi.minifi.bootstrap.util.schema.ComponentStatusRepositorySchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ConfigSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ConnectionSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ContentRepositorySchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.CorePropertiesSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.FlowControllerSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.FlowFileRepositorySchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ProcessorSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ProvenanceReportingSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.ProvenanceRepositorySchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.RemoteInputPortSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.RemoteProcessingGroupSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.SecurityPropertiesSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.SensitivePropsSchema;
-import org.apache.nifi.minifi.bootstrap.util.schema.SwapSchema;
+import org.apache.nifi.minifi.commons.schema.ComponentStatusRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
+import org.apache.nifi.minifi.commons.schema.ContentRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.CorePropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
+import org.apache.nifi.minifi.commons.schema.FlowFileRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
+import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
+import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
+import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
+import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
+import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
+import org.apache.nifi.minifi.commons.schema.SwapSchema;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -86,38 +86,21 @@ public final class ConfigTransformer {
     }
 
     public static void transformConfigFile(InputStream sourceStream, String destPath) throws Exception {
-        try {
-            Yaml yaml = new Yaml();
-
-            // Parse the YAML file
-            final Object loadedObject = yaml.load(sourceStream);
-
-            // Verify the parsed object is a Map structure
-            if (loadedObject instanceof Map) {
-                final Map<String, Object> loadedMap = (Map<String, Object>) loadedObject;
-                ConfigSchema configSchema = new ConfigSchema(loadedMap);
-                if (!configSchema.isValid()) {
-                    throw new InvalidConfigurationException("Failed to transform config file due to:" + configSchema.getValidationIssuesAsString());
-                }
-
-                // Create nifi.properties and flow.xml.gz in memory
-                ByteArrayOutputStream nifiPropertiesOutputStream = new ByteArrayOutputStream();
-                writeNiFiProperties(configSchema, nifiPropertiesOutputStream);
-
-                DOMSource flowXml = createFlowXml(configSchema);
-
-                // Write nifi.properties and flow.xml.gz
-                writeNiFiPropertiesFile(nifiPropertiesOutputStream, destPath);
-
-                writeFlowXmlFile(flowXml, destPath);
-            } else {
-                throw new InvalidConfigurationException("Provided YAML configuration is not a Map");
-            }
-        } finally {
-            if (sourceStream != null) {
-                sourceStream.close();
-            }
+        ConfigSchema configSchema = SchemaLoader.loadConfigSchemaFromYaml(sourceStream);
+        if (!configSchema.isValid()) {
+            throw new InvalidConfigurationException("Failed to transform config file due to:" + configSchema.getValidationIssuesAsString());
         }
+
+        // Create nifi.properties and flow.xml.gz in memory
+        ByteArrayOutputStream nifiPropertiesOutputStream = new ByteArrayOutputStream();
+        writeNiFiProperties(configSchema, nifiPropertiesOutputStream);
+
+        DOMSource flowXml = createFlowXml(configSchema);
+
+        // Write nifi.properties and flow.xml.gz
+        writeNiFiPropertiesFile(nifiPropertiesOutputStream, destPath);
+
+        writeFlowXmlFile(flowXml, destPath);
     }
 
     private static void writeNiFiPropertiesFile(ByteArrayOutputStream nifiPropertiesOutputStream, String destPath) throws IOException {

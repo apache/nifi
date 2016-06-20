@@ -24,11 +24,11 @@ limitations under the License.
         <groupId>org.apache.nifi.minifi</groupId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>minifi-commons</artifactId>
+    <artifactId>minifi-toolkit</artifactId>
     <packaging>pom</packaging>
 
     <modules>
-        <module>minifi-commons-schema</module>
-        <module>minifi-utils</module>
+        <module>minifi-toolkit-configuration</module>
+        <module>minifi-toolkit-assembly</module>
     </modules>
 </project>
