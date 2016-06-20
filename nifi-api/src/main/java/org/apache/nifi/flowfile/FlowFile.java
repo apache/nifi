@@ -53,12 +53,38 @@ public interface FlowFile extends Comparable<FlowFile> {
     long getLineageStartDate();
 
     /**
+     * Returns a 64-bit integer that indicates the order in which the FlowFile was added to the
+     * flow with respect to other FlowFiles that have the same last lineage start date.
+     * I.e., if two FlowFiles return the same value for {@link #getLineageStartDate()}, the order
+     * in which those FlowFiles were added to the flow can be determined by looking at the result of
+     * this method. However, no guarantee is made by this method about the ordering of FlowFiles
+     * that have different values for the {@link #getLineageStartDate()} method.
+     *
+     * @return the index that can be used to compare two FlowFiles with the same lineage start date
+     * to understand the order in which the two FlowFiles were enqueued.
+     */
+    long getLineageStartIndex();
+
+    /**
      * @return the time at which the FlowFile was most recently added to a
      * FlowFile queue, or {@code null} if the FlowFile has never been enqueued.
      * This value will always be populated before it is passed to a
      * {@link FlowFilePrioritizer}
      */
     Long getLastQueueDate();
+
+    /**
+     * Returns a 64-bit integer that indicates the order in which the FlowFile was added to the
+     * FlowFile queue with respect to other FlowFiles that have the same last queue date.
+     * I.e., if two FlowFiles return the same value for {@link #getLastQueueDate()}, the order
+     * in which those FlowFiles were enqueued can be determined by looking at the result of
+     * this method. However, no guarantee is made by this method about the ordering of FlowFiles
+     * that have different values for the {@link #getLastQueueDate()} method.
+     *
+     * @return the index that can be used to compare two FlowFiles with the same last queue date
+     * to understand the order in which the two FlowFiles were enqueued.
+     */
+    long getQueueDateIndex();
 
     /**
      * <p>

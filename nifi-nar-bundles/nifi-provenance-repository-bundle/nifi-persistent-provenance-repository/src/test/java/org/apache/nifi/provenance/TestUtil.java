@@ -77,6 +77,16 @@ public class TestUtil {
             public int compareTo(final FlowFile o) {
                 return 0;
             }
+
+            @Override
+            public long getLineageStartIndex() {
+                return 0;
+            }
+
+            @Override
+            public long getQueueDateIndex() {
+                return 0;
+            }
         };
     }
 }

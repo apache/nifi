@@ -92,6 +92,7 @@ import org.slf4j.LoggerFactory;
 public final class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
 
     private static final AtomicLong idGenerator = new AtomicLong(0L);
+    private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
@@ -1526,11 +1527,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return newFile;
     }
 
+    private void updateLastQueuedDate(final StandardRepositoryRecord record) {
+        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent())
+            .lastQueued(System.currentTimeMillis(), enqueuedIndex.getAndIncrement()).build();
+        record.setWorking(newFile);
+    }
+
     @Override
     public void transfer(final FlowFile flowFile, final Relationship relationship) {
         validateRecordState(flowFile);
         final StandardRepositoryRecord record = records.get(flowFile);
         record.setTransferRelationship(relationship);
+        updateLastQueuedDate(record);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -1560,6 +1568,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new IllegalArgumentException("Cannot transfer FlowFiles that are created in this Session back to self");
         }
         record.setTransferRelationship(Relationship.SELF);
+        updateLastQueuedDate(record);
     }
 
     @Override
@@ -1589,6 +1598,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (final FlowFile flowFile : flowFiles) {
             final StandardRepositoryRecord record = records.get(flowFile);
             record.setTransferRelationship(relationship);
+            updateLastQueuedDate(record);
+
             contentSize += flowFile.getSize() * multiplier;
         }
 
@@ -2482,7 +2493,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final Set<String> lineageIdentifiers = new HashSet<>(parent.getLineageIdentifiers());
         lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
         fFileBuilder.lineageIdentifiers(lineageIdentifiers);
-        fFileBuilder.lineageStartDate(parent.getLineageStartDate());
+        fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
         fFileBuilder.addAttributes(newAttributes);
 
         final FlowFileRecord fFile = fFileBuilder.build();
@@ -2516,6 +2527,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        // find the smallest lineage start index that has the same lineage start date as the one we've chosen.
+        long lineageStartIndex = 0L;
+        for (final FlowFile parent : parents) {
+            if (parent.getLineageStartDate() == lineageStartDate && parent.getLineageStartIndex() < lineageStartIndex) {
+                lineageStartIndex = parent.getLineageStartIndex();
+            }
+        }
+
         newAttributes.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()));
         newAttributes.put(CoreAttributes.PATH.key(), DEFAULT_FLOWFILE_PATH);
         newAttributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
@@ -2523,7 +2542,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
             .addAttributes(newAttributes)
             .lineageIdentifiers(lineageIdentifiers)
-            .lineageStartDate(lineageStartDate)
+            .lineageStart(lineageStartDate, lineageStartIndex)
             .build();
 
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);

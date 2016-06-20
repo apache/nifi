@@ -388,6 +388,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     private static class WriteAheadRecordSerde implements SerDe<RepositoryRecord> {
+        private static final int CURRENT_ENCODING_VERSION = 8;
 
         public static final byte ACTION_CREATE = 0;
         public static final byte ACTION_UPDATE = 1;
@@ -474,9 +475,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
 
             out.writeLong(flowFile.getLineageStartDate());
+            out.writeLong(flowFile.getLineageStartIndex());
 
             final Long queueDate = flowFile.getLastQueueDate();
             out.writeLong(queueDate == null ? System.currentTimeMillis() : queueDate);
+            out.writeLong(flowFile.getQueueDateIndex());
             out.writeLong(flowFile.getSize());
 
             if (associatedQueue == null) {
@@ -552,10 +555,26 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     lineageIdentifiers.add(in.readUTF());
                 }
                 ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                ffBuilder.lineageStartDate(in.readLong());
+
+                final long lineageStartDate = in.readLong();
+                final long lineageStartIndex;
+                if (version > 7) {
+                    lineageStartIndex = in.readLong();
+                } else {
+                    lineageStartIndex = 0L;
+                }
+                ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                 if (version > 5) {
-                    ffBuilder.lastQueueDate(in.readLong());
+                    final long lastQueueDate = in.readLong();
+                    final long queueDateIndex;
+                    if (version > 7) {
+                        queueDateIndex = in.readLong();
+                    } else {
+                        queueDateIndex = 0L;
+                    }
+
+                    ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                 }
             }
 
@@ -648,10 +667,26 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     lineageIdentifiers.add(in.readUTF());
                 }
                 ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                ffBuilder.lineageStartDate(in.readLong());
+
+                final long lineageStartDate = in.readLong();
+                final long lineageStartIndex;
+                if (version > 7) {
+                    lineageStartIndex = in.readLong();
+                } else {
+                    lineageStartIndex = 0L;
+                }
+                ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                 if (version > 5) {
-                    ffBuilder.lastQueueDate(in.readLong());
+                    final long lastQueueDate = in.readLong();
+                    final long queueDateIndex;
+                    if (version > 7) {
+                        queueDateIndex = in.readLong();
+                    } else {
+                        queueDateIndex = 0L;
+                    }
+
+                    ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                 }
             }
 
@@ -872,7 +907,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         @Override
         public int getVersion() {
-            return 7;
+            return CURRENT_ENCODING_VERSION;
         }
 
         @Override

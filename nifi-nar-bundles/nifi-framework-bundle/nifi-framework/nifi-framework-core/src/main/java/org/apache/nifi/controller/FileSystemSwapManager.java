@@ -74,7 +74,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 8;
+    public static final int SWAP_ENCODING_VERSION = 9;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
@@ -328,7 +328,9 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 }
 
                 out.writeLong(flowFile.getLineageStartDate());
+                out.writeLong(flowFile.getLineageStartIndex());
                 out.writeLong(flowFile.getLastQueueDate());
+                out.writeLong(flowFile.getQueueDateIndex());
                 out.writeLong(flowFile.getSize());
 
                 final ContentClaim claim = flowFile.getContentClaim();
@@ -447,10 +449,29 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                         lineageIdentifiers.add(in.readUTF());
                     }
                     ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                    ffBuilder.lineageStartDate(in.readLong());
+
+                    // version 9 adds in a 'lineage start index'
+                    final long lineageStartDate = in.readLong();
+                    final long lineageStartIndex;
+                    if (serializationVersion > 8) {
+                        lineageStartIndex = in.readLong();
+                    } else {
+                        lineageStartIndex = 0L;
+                    }
+
+                    ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                     if (serializationVersion > 5) {
-                        ffBuilder.lastQueueDate(in.readLong());
+                        // Version 9 adds in a 'queue date index'
+                        final long lastQueueDate = in.readLong();
+                        final long queueDateIndex;
+                        if (serializationVersion > 8) {
+                            queueDateIndex = in.readLong();
+                        } else {
+                            queueDateIndex = 0L;
+                        }
+
+                        ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                     }
                 }
 
