@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
@@ -289,8 +290,15 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             String transitUri = new StringBuilder(broker).append(mqttMessage.getTopic()).toString();
             session.getProvenanceReporter().receive(messageFlowfile, transitUri);
             session.transfer(messageFlowfile, REL_MESSAGE);
-            mqttQueue.remove(mqttMessage);
             session.commit();
+            if (!mqttQueue.remove(mqttMessage) && logger.isWarnEnabled()) {
+                logger.warn(new StringBuilder("FlowFile ")
+                        .append(messageFlowfile.getAttribute(CoreAttributes.UUID.key()))
+                        .append(" for Mqtt message ")
+                        .append(mqttMessage)
+                        .append(" had already been removed from queue, possible duplication of flow files")
+                        .toString());
+            }
         }
     }
 
