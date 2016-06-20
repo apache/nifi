@@ -46,11 +46,7 @@ public class TestPutTcpSSL extends TestPutTCPCommon {
         if (outgoingMessageDelimiter != null) {
             runner.setProperty(PutTCP.OUTGOING_MESSAGE_DELIMITER, outgoingMessageDelimiter);
         }
-        if (connectionPerFlowFile) {
-            runner.setProperty(PutTCP.CONNECTION_PER_FLOWFILE, "true");
-        } else {
-            runner.setProperty(PutTCP.CONNECTION_PER_FLOWFILE, "false");
-        }
+        runner.setProperty(PutTCP.CONNECTION_PER_FLOWFILE, String.valueOf(connectionPerFlowFile));
 
         if (expectValid) {
             runner.assertValid();

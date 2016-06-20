@@ -175,16 +175,15 @@ public class PutTCP extends AbstractPutEventProcessor {
 
         ChannelSender sender = acquireSender(context, session, flowFile);
         if (sender == null) {
-            getLogger().warn("");
             return;
         }
 
         try {
-            String delimiter = getDelimiter(context, flowFile);
+            String outgoingMessageDelimiter = getOutgoingMessageDelimiter(context, flowFile);
             ByteArrayOutputStream content = readContent(session, flowFile);
-            if (delimiter != null) {
+            if (outgoingMessageDelimiter != null) {
                 Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-                content = appendDelimiter(content, delimiter, charset);
+                content = appendDelimiter(content, outgoingMessageDelimiter, charset);
             }
             StopWatch stopWatch = new StopWatch(true);
             sender.send(content.toByteArray());
@@ -192,8 +191,8 @@ public class PutTCP extends AbstractPutEventProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             session.commit();
         } catch (Exception e) {
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
             onFailure(context, session, flowFile);
+            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
         } finally {
             // If we are going to use this sender again, then relinquish it back to the pool.
             if (!isConnectionPerFlowFile(context)) {
@@ -205,7 +204,7 @@ public class PutTCP extends AbstractPutEventProcessor {
     }
 
     /**
-     * event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
+     * Event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
      *
      * @param context
      *            - the current process context.
@@ -256,24 +255,6 @@ public class PutTCP extends AbstractPutEventProcessor {
     protected ByteArrayOutputStream appendDelimiter(final ByteArrayOutputStream content, final String delimiter, Charset charSet) {
         content.write(delimiter.getBytes(charSet), 0, delimiter.length());
         return content;
-    }
-
-    /**
-     * Gets the current value of the "Outgoing Message Delimiter" property.
-     *
-     * @param context
-     *            - the current process context.
-     * @param flowFile
-     *            - the FlowFile being processed.
-     *
-     * @return String containing the Delimiter value.
-     */
-    protected String getDelimiter(final ProcessContext context, final FlowFile flowFile) {
-        String delimiter = context.getProperty(OUTGOING_MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
-        if (delimiter != null) {
-            delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        }
-        return delimiter;
     }
 
     /**

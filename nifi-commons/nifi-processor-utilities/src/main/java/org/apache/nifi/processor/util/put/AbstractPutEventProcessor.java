@@ -124,9 +124,8 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .name("Outgoing Message Delimiter")
             .description("Specifies the delimiter to use when sending messages out over the same TCP stream. The delimiter is appended to each FlowFile message "
                     + "that is transmitted over the stream so that the receiver can determine when one message ends and the next message begins. Users should "
-                    + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. If it is not possible to define a delimiter "
-                    + "character that is not present in the FlowFile content then the user must use another processor to change the encoding of the data e.g. Base64 "
-                    + "encoding.")
+                    + "ensure that the FlowFile content does not contain the delimiter character to avoid errors. In order to use a new line character you can "
+                    + "enter '\\n'. For a tab character use '\\t'. Finally for a carriage return use '\\r'.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("\\n")
@@ -137,7 +136,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .description("Specifies whether to send each FlowFile's content on an individual connection.")
             .required(true)
             .defaultValue("false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -554,4 +553,21 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         }
     }
 
+    /**
+     * Gets the current value of the "Outgoing Message Delimiter" property and parses the special characters.
+     *
+     * @param context
+     *            - the current process context.
+     * @param flowFile
+     *            - the FlowFile being processed.
+     *
+     * @return String containing the Delimiter value.
+     */
+    protected String getOutgoingMessageDelimiter(final ProcessContext context, final FlowFile flowFile) {
+        String delimiter = context.getProperty(OUTGOING_MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
+        if (delimiter != null) {
+            delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+        }
+        return delimiter;
+    }
 }
