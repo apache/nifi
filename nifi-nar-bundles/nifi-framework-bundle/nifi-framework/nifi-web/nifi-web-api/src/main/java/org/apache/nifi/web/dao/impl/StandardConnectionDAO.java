@@ -409,6 +409,13 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 throw new ValidationException(validationErrors);
             }
 
+            // If destination is changing, ensure that current destination is not running. This check is done here, rather than
+            // in the Connection object itself because the Connection object itself does not know which updates are to occur and
+            // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
+            if (connectionDTO.getDestination() != null && connection.getDestination().isRunning()) {
+                throw new IllegalStateException("Cannot change the destination of connection because the current destination is running");
+            }
+
             // verify that this connection supports modification
             connection.verifyCanUpdate();
         }
