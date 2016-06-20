@@ -47,14 +47,6 @@ public class EventTestUtils {
         return new Event.CloseEvent("/some/path/close", 1L, 2L);
     }
 
-    public static Event.AppendEvent createAppendEvent() {
-        return new Event.AppendEvent("/some/path/append");
-    }
-
-    public static Event.RenameEvent createRenameEvent() {
-        return new Event.RenameEvent("/some/path/rename/src", "/some/path/rename/dest", 200L);
-    }
-
     public static Event.MetadataUpdateEvent createMetadataUpdateEvent() {
         return new Event.MetadataUpdateEvent.Builder()
                 .replication(0)
@@ -69,9 +61,5 @@ public class EventTestUtils {
                 .xAttrs(Collections.singletonList(new XAttr.Builder().setName("name").setNameSpace(XAttr.NameSpace.USER).setValue(new byte[0]).build()))
                 .xAttrsRemoved(false)
                 .build();
-    }
-
-    public static Event.UnlinkEvent createUnlinkEvent() {
-        return new Event.UnlinkEvent("/some/path/unlink", 300L);
     }
 }
