@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -49,13 +48,16 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -67,7 +69,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     private final ProcessScheduler processScheduler;
     private static final Set<Method> validDisabledMethods;
-    // private final BulletinRepository bulletinRepo;
+    private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
     private final FlowController flowController;
 
@@ -88,7 +90,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         this.flowController = flowController;
         this.processScheduler = scheduler;
-        // this.bulletinRepo = bulletinRepo;
+        this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
     }
 
@@ -392,7 +394,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             });
 
             for (ControllerServiceNode controllerServiceNode : services) {
-                this.enableControllerService(controllerServiceNode);
+                try {
+                    this.enableControllerService(controllerServiceNode);
+                } catch (Exception e) {
+                    logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
+                    if (this.bulletinRepo != null) {
+                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                                Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                    }
+                }
             }
         }
     }
