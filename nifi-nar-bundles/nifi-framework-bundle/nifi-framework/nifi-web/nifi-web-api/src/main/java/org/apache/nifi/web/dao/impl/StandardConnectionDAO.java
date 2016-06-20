@@ -378,6 +378,34 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         if (!validationErrors.isEmpty()) {
             throw new ValidationException(validationErrors);
         }
+
+        // Ensure that both the source and the destination for the connection exist.
+        // In the case that the source or destination is a port in a Remote Process Group,
+        // this is necessary because the ports can change in the background. It may still be
+        // possible for a port to disappear between the 'verify' stage and the creation stage,
+        // but this prevents the case where some nodes already know about the port while other
+        // nodes in the cluster do not. This is a more common case, as users may try to connect
+        // to the port as soon as the port is created.
+        final ConnectableDTO sourceDto = connectionDTO.getSource();
+        if (sourceDto == null || sourceDto.getId() == null) {
+            throw new IllegalArgumentException("Cannot create connection without specifying source");
+        }
+
+        final ConnectableDTO destinationDto = connectionDTO.getDestination();
+        if (destinationDto == null || destinationDto.getId() == null) {
+            throw new IllegalArgumentException("Cannot create connection without specifying destination");
+        }
+
+        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final Connectable sourceConnectable = rootGroup.findConnectable(sourceDto.getId());
+        if (sourceConnectable == null) {
+            throw new IllegalArgumentException("The specified source for the connection does not exist");
+        }
+
+        final Connectable destinationConnectable = rootGroup.findConnectable(destinationDto.getId());
+        if (destinationConnectable == null) {
+            throw new IllegalArgumentException("The specified destination for the connection does not exist");
+        }
     }
 
     private void verifyList(final FlowFileQueue queue) {
