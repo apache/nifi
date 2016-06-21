@@ -15,15 +15,15 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="processor-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
-    <div class="processor-configuration-tab-container">
-        <div id="processor-configuration-tabs"></div>
+<div id="processor-configuration" layout="column" class="hidden large-dialog">
+    <div class="processor-configuration-tab-container dialog-content">
+        <div id="processor-configuration-tabs" class="tab-container"></div>
         <div id="processor-configuration-tabs-content">
             <div id="processor-standard-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
                         <div class="setting-name">Name</div>
-                        <div class="setting-field">
+                        <div id="processor-name-container" class="setting-field">
                             <input type="text" id="processor-name" name="processor-name"/>
                             <div class="processor-enabled-container">
                                 <div id="processor-enabled" class="nf-checkbox checkbox-unchecked"></div>
@@ -47,7 +47,7 @@
                         <div class="penalty-duration-setting">
                             <div class="setting-name">
                                 Penalty duration
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The amount of time used when this processor penalizes a FlowFile."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The amount of time used when this processor penalizes a FlowFile."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="penalty-duration" name="penalty-duration" class="small-setting-input"/>
@@ -56,7 +56,7 @@
                         <div class="yield-duration-setting">
                             <div class="setting-name">
                                 Yield duration
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="When a processor yields, it will not be scheduled again until this amount of time elapses."/>
+                                <div class="fa fa-question-circle" alt="Info" title="When a processor yields, it will not be scheduled again until this amount of time elapses."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="yield-duration" name="yield-duration" class="small-setting-input"/>
@@ -68,7 +68,7 @@
                         <div class="bulletin-setting">
                             <div class="setting-name">
                                 Bulletin level
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The level at which this processor will generate bulletins."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The level at which this processor will generate bulletins."></div>
                             </div>
                             <div class="setting-field">
                                 <div id="bulletin-level-combo"></div>
@@ -82,7 +82,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Auto terminate relationships
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Will automatically terminate FlowFiles sent to a given relationship if it is not defined elsewhere."/>
+                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
                         </div>
                         <div class="setting-field">
                             <div id="auto-terminate-relationship-names"></div>
@@ -96,7 +96,7 @@
                         <div class="scheduling-strategy-setting">
                             <div class="setting-name">
                                 Scheduling strategy
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The strategy used to schedule this processor."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The strategy used to schedule this processor."></div>
                             </div>
                             <div class="setting-field">
                                 <div type="text" id="scheduling-strategy-combo"></div>
@@ -112,7 +112,7 @@
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
                                 Concurrent tasks
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="timer-driven-concurrently-schedulable-tasks" name="timer-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -121,7 +121,7 @@
                         <div class="scheduling-period-setting">
                             <div class="setting-name">
                                 Run schedule
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The amount of time that should elapse between task executions."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The amount of time that should elapse between task executions."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="timer-driven-scheduling-period" name="timer-driven-scheduling-period" class="small-setting-input"/>
@@ -133,7 +133,7 @@
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
                                 Concurrent tasks
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="event-driven-concurrently-schedulable-tasks" name="event-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -145,7 +145,7 @@
                         <div class="concurrently-schedulable-tasks-setting">
                             <div class="setting-name">
                                 Concurrent tasks
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this processor."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="cron-driven-concurrently-schedulable-tasks" name="cron-driven-concurrently-schedulable-tasks" class="small-setting-input"/>
@@ -154,7 +154,7 @@
                         <div class="scheduling-period-setting">
                             <div class="setting-name">
                                 Run schedule
-                                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The CRON expression that defines when this processor should run."/>
+                                <div class="fa fa-question-circle" alt="Info" title="The CRON expression that defines when this processor should run."></div>
                             </div>
                             <div class="setting-field">
                                 <input type="text" id="cron-driven-scheduling-period" name="cron-driven-scheduling-period" class="small-setting-input"/>
@@ -168,8 +168,8 @@
                     <div class="setting">
                         <div class="setting-name">
                             Run duration
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info"
-                                 title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."/>
+                            <div class="fa fa-question-circle" alt="Info"
+                                 title="When scheduled to run, the processor will continue running for up to this duration. A run duration of 0ms will execute once when scheduled."></div>
                         </div>
                         <div class="setting-field" style="overflow: visible;">
                             <div id="run-duration-container">

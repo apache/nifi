@@ -39,7 +39,7 @@
 
 /**
  * jQuery plugin for a property table.
- * 
+ *
  * @param {type} $
  */
 (function ($) {
@@ -71,29 +71,24 @@
             wrapper = $('<div></div>').addClass('slickgrid-editor').css({
                 'z-index': 100000,
                 'position': 'absolute',
-                'background': 'white',
-                'padding': '5px',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                'background-color': 'rgb(255, 255, 255)',
                 'overflow': 'hidden',
-                'border': '3px solid #365C6A',
-                'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
                 'cursor': 'move'
-            }).draggable({
-                cancel: '.button, textarea, .nf-checkbox',
-                containment: 'parent'
             }).appendTo(container);
 
             // create the input field
             input = $('<textarea hidefocus rows="5"/>').css({
-                'background': 'white',
-                'width': args.position.width + 'px',
-                'min-width': '150px',
                 'height': '80px',
-                'border-width': '0',
-                'outline': '0',
-                'overflow-y': 'auto',
-                'resize': 'both',
-                'margin-bottom': '28px'
+                'width': args.position.width + 'px',
+                'margin': '20px 20px'
             }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
+
+            wrapper.draggable({
+                cancel: '.button, textarea, .nf-checkbox',
+                containment: 'parent'
+            });
 
             // create the button panel
             var stringCheckPanel = $('<div class="string-check-container">');
@@ -102,15 +97,25 @@
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
             $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
 
-            var ok = $('<div class="button button-normal">Ok</div>').on('click', scope.save);
-            var cancel = $('<div class="button button-normal">Cancel</div>').on('click', scope.cancel);
-            $('<div></div>').css({
-                'position': 'absolute',
-                'bottom': '0',
-                'left': '0',
-                'right': '0',
-                'padding': '0 3px 5px'
-            }).append(stringCheckPanel).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
+            var ok = $('<div class="button">Ok</div>').css({
+                'color': '#fff',
+                'background': '#728E9B'
+            }).hover(
+                function () {
+                    $(this).css('background', '#004849');
+                }, function () {
+                    $(this).css('background', '#728E9B');
+                }).on('click', scope.save);
+            var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                'color': '#004849',
+                'background': '#E3E8EB'
+            }).hover(
+                function () {
+                    $(this).css('background', '#C7D2D7');
+                }, function () {
+                    $(this).css('background', '#E3E8EB');
+                }).on('click', scope.cancel);
+            $('<div></div>').append(stringCheckPanel).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
             scope.position(args.position);
@@ -279,11 +284,11 @@
             wrapper = $('<div></div>').addClass('slickgrid-nfel-editor').css({
                 'z-index': 14000,
                 'position': 'absolute',
-                'background': 'white',
-                'padding': '5px',
+                'padding': '10px 20px',
                 'overflow': 'hidden',
-                'border': '3px solid #365C6A',
-                'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                'background-color': 'rgb(255, 255, 255)',
                 'cursor': 'move'
             }).draggable({
                 cancel: 'input, textarea, pre, .nf-checkbox, .button, .' + editorClass,
@@ -313,14 +318,29 @@
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
             $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
 
-            var ok = $('<div class="button button-normal">Ok</div>').on('click', scope.save);
-            var cancel = $('<div class="button button-normal">Cancel</div>').on('click', scope.cancel);
+            var ok = $('<div class="button">Ok</div>').css({
+                'color': '#fff',
+                'background': '#728E9B'
+            }).hover(
+                function () {
+                    $(this).css('background', '#004849');
+                }, function () {
+                    $(this).css('background', '#728E9B');
+                }).on('click', scope.save);
+            var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                'color': '#004849',
+                'background': '#E3E8EB'
+            }).hover(
+                function () {
+                    $(this).css('background', '#C7D2D7');
+                }, function () {
+                    $(this).css('background', '#E3E8EB');
+                }).on('click', scope.cancel);
             $('<div></div>').css({
                 'position': 'absolute',
                 'bottom': '0',
                 'left': '0',
-                'right': '0',
-                'padding': '0 3px 5px 1px'
+                'right': '0'
             }).append(stringCheckPanel).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
@@ -457,7 +477,7 @@
             var gridContainer = $(args.grid.getContainerNode());
             var descriptors = gridContainer.data('descriptors');
             propertyDescriptor = descriptors[args.item.property];
-            
+
             // get the options
             var propertyContainer = gridContainer.closest('.property-container');
             var configurationOptions = propertyContainer.data('options');
@@ -466,11 +486,11 @@
             wrapper = $('<div class="combo-editor"></div>').css({
                 'z-index': 1999,
                 'position': 'absolute',
-                'background': 'white',
                 'padding': '5px',
                 'overflow': 'hidden',
-                'border': '3px solid #365C6A',
-                'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                'background-color': 'rgb(255, 255, 255)',
                 'cursor': 'move'
             }).draggable({
                 cancel: '.button, .combo',
@@ -508,7 +528,7 @@
                     disabled: true
                 });
             }
-            
+
             // if this descriptor identifies a controller service, provide a way to create one
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                 options.push({
@@ -531,7 +551,7 @@
                     if (typeof option.value === 'undefined') {
                         // cancel the current edit
                         scope.cancel();
-                        
+
                         // prompt for the new service type
                         promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, configurationOptions);
                     }
@@ -539,14 +559,28 @@
             }).width(position.width - 16).appendTo(wrapper);
 
             // add buttons for handling user input
-            $('<div class="button button-normal">Cancel</div>').css({
+            $('<div class="secondary-button">Cancel</div>').css({
                 'margin': '0 0 0 5px',
-                'float': 'left'
-            }).on('click', scope.cancel).appendTo(wrapper);
-            $('<div class="button button-normal">Ok</div>').css({
+                'float': 'left',
+                'color': '#004849',
+                'background': '#E3E8EB'
+            }).hover(
+                function () {
+                    $(this).css('background', '#C7D2D7');
+                }, function () {
+                    $(this).css('background', '#E3E8EB');
+                }).on('click', scope.cancel).appendTo(wrapper);
+            $('<div class="button">Ok</div>').css({
                 'margin': '0 0 0 5px',
-                'float': 'left'
-            }).on('click', scope.save).appendTo(wrapper);
+                'float': 'left',
+                'color': '#fff',
+                'background': '#728E9B'
+            }).hover(
+                function () {
+                    $(this).css('background', '#004849');
+                }, function () {
+                    $(this).css('background', '#728E9B');
+                }).on('click', scope.save).appendTo(wrapper);
 
             // position and focus
             scope.position(position);
@@ -627,9 +661,9 @@
 
     /**
      * Shows the property value for the specified row and cell.
-     * 
+     *
      * @param {type} propertyGrid
-     * @param {type} descriptors 
+     * @param {type} descriptors
      * @param {type} row
      * @param {type} cell
      */
@@ -658,11 +692,11 @@
                 var wrapper = $('<div class="property-detail"></div>').css({
                     'z-index': 1999,
                     'position': 'absolute',
-                    'background': 'white',
                     'padding': '5px',
                     'overflow': 'hidden',
-                    'border': '3px solid #365C6A',
-                    'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+                    'border-radius': '2px',
+                    'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                    'background-color': 'rgb(255, 255, 255)',
                     'cursor': 'move',
                     'top': offset.top - 5,
                     'left': offset.left - 5
@@ -710,11 +744,18 @@
                             value: property.value
                         }
                     }).appendTo(wrapper);
-                    
-                    $('<div class="button button-normal">Ok</div>').css({
+
+                    $('<div class="button">Ok</div>').css({
                         'margin': '0 0 0 5px',
-                        'float': 'left'
-                    }).on('click', function () {
+                        'float': 'left',
+                        'color': '#fff',
+                        'background': '#728E9B'
+                    }).hover(
+                        function () {
+                            $(this).css('background', '#004849');
+                        }, function () {
+                            $(this).css('background', '#728E9B');
+                        }).on('click', function () {
                         wrapper.hide().remove();
                     }).appendTo(wrapper);
                 } else {
@@ -745,21 +786,12 @@
                             }
                         });
                     } else {
-                        // prevent dragging over standard components
-                        wrapper.draggable({
-                            containment: 'parent'
-                        });
 
                         // create the input field
                         $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
-                            'background': 'white',
-                            'width': cellNode.width() + 'px',
                             'height': '80px',
-                            'border-width': '0',
-                            'outline': '0',
-                            'overflow-y': 'auto',
-                            'resize': 'both',
-                            'margin-bottom': '28px'
+                            'width': cellNode.width() + 'px',
+                            'margin': '20px 20px'
                         }).text(property.value).on('keydown', function (evt) {
                             if (evt.which === $.ui.keyCode.ESCAPE) {
                                 cleanUp();
@@ -768,6 +800,11 @@
                                 evt.preventDefault();
                             }
                         }).appendTo(wrapper);
+
+                        // prevent dragging over standard components
+                        wrapper.draggable({
+                            containment: 'parent'
+                        });
                     }
 
                     var cleanUp = function () {
@@ -781,26 +818,30 @@
                     };
 
                     // add an ok button that will remove the entire pop up
-                    var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
+                    var ok = $('<div class="button">Ok</div>').css({
+                        'margin': '0 0 0 5px',
+                        'float': 'left',
+                        'color': '#fff',
+                        'background': '#728E9B'
+                    }).hover(
+                        function () {
+                            $(this).css('background', '#004849');
+                        }, function () {
+                            $(this).css('background', '#728E9B');
+                        }).on('click', function () {
                         cleanUp();
                     });
 
-                    $('<div></div>').css({
-                        'position': 'absolute',
-                        'bottom': '0',
-                        'left': '0',
-                        'right': '0',
-                        'padding': '0 3px 5px'
-                    }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
+                    $('<div></div>').append(ok).append('<div class="clear"></div>').appendTo(wrapper);
                 }
             }
         }
     };
-    
+
     /**
      * Gets the available controller services that implement the specified type and
      * prompts the user to create one.
-     * 
+     *
      * @param {jQuery} gridContainer The grid container
      * @param {slickgrid} grid The grid
      * @param {object} item The item
@@ -824,16 +865,17 @@
                     description: nf.Common.escapeHtml(controllerServiceType.description)
                 });
             });
-            
+
             // ensure there are some applicable controller services
             if (options.length === 0) {
                 nf.Dialog.showOkDialog({
-                    dialogContent: 'No controller service types found that are applicable for this property.',
-                    overlayBackground: false
+                    headerText: 'Controller Service',
+                    dialogContent: 'No controller service types found that are applicable for this property.'
                 });
             } else {
-                var newControllerServiceDialogMarkup = 
-                        '<div class="new-inline-controller-service-dialog dialog cancellable">' +
+                var newControllerServiceDialogMarkup =
+                    '<div id="new-inline-controller-service-dialog" class="hidden dialog medium-dialog cancellable">' +
+                        '<div class="dialog-content">' +
                             '<div>' +
                                 '<div class="setting-name">Controller Service</div>' +
                                 '<div class="setting-field">' +
@@ -852,18 +894,14 @@
                                     '<div class="new-inline-controller-service-description"></div>' +
                                 '</div>' +
                             '</div>' +
-                            '<div class="new-inline-controller-service-button-container">' +
-                                '<div class="new-inline-controller-service-create button button-normal">Create</div>' +
-                                '<div class="new-inline-controller-service-cancel button button-normal">Cancel</div>' +
-                                '<div class="clear"></div>' +
-                            '</div>' +
-                        '</div>';
+                        '</div>' +
+                    '</div>';
 
                 var newControllerServiceDialog = $(newControllerServiceDialogMarkup).appendTo(configurationOptions.dialogContainer);
                 var newControllerServiceCombo = newControllerServiceDialog.find('div.new-inline-controller-service-combo');
                 var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
                 var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
-                
+
                 // build the combo field
                 newControllerServiceCombo.combo({
                     options: options,
@@ -875,13 +913,43 @@
                                 return false;
                             }
                         });
-                        
+
                         // set the service details
                         newControllerServiceTags.text(service.tags.join(', ')).ellipsis();
                         newControllerServiceDescription.text(service.description);
                     }
                 });
-                
+
+                newControllerServiceDialog.modal({
+                    headerText: 'Add Controller Service',
+                    buttons: [{
+                        buttonText: 'Create',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        handler: {
+                            click: function () {
+                                create();
+                            }
+                        }
+                    },
+                        {
+                            buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
+                            handler: {
+                                click: function () {
+                                    cancel();
+                                }
+                            }
+                        }]
+                });
+
                 var create = function () {
                     var newControllerServiceType = newControllerServiceCombo.combo('getSelectedOption').value;
 
@@ -907,7 +975,7 @@
                         contentType: 'application/json'
                     }).done(function (response) {
                         // load the descriptor and update the property
-                        configurationOptions.descriptorDeferred(item.property).done(function(descriptorResponse) {
+                        configurationOptions.descriptorDeferred(item.property).done(function (descriptorResponse) {
                             var descriptor = descriptorResponse.propertyDescriptor;
 
                             // store the descriptor for use later
@@ -923,20 +991,16 @@
                             }));
 
                             // close the dialog
-                            newControllerServiceDialog.hide();
+                            newControllerServiceDialog.modal('hide');
                         });
                     }).fail(nf.Common.handleAjaxError);
                 };
 
                 var cancel = function () {
-                    newControllerServiceDialog.hide();
+                    newControllerServiceDialog.modal('hide');
                 };
 
-                // make the new property dialog draggable
-                newControllerServiceDialog.draggable({
-                    cancel: 'input, textarea, pre, .button, .' + editorClass,
-                    containment: 'body'
-                }).on('click', 'div.new-inline-controller-service-create', create).on('click', 'div.new-inline-controller-service-cancel', cancel).modal('show');
+                newControllerServiceDialog.modal('show');
             }
         }).fail(nf.Common.handleAjaxError);
     };
@@ -944,7 +1008,7 @@
     var initPropertiesTable = function (table, options) {
         // function for formatting the property name
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-            var nameWidthOffset = 10;
+            var nameWidthOffset = 30;
             var cellContent = $('<div></div>');
 
             // format the contents
@@ -960,9 +1024,9 @@
             // show the property description if applicable
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
                 if (!nf.Common.isBlank(propertyDescriptor.description) || !nf.Common.isBlank(propertyDescriptor.defaultValue) || !nf.Common.isBlank(propertyDescriptor.supportsEl)) {
-                    $('<img class="icon-info" src="images/iconInfo.png" alt="Info" title="" style="float: right; margin-right: 6px; margin-top: 4px;" />').appendTo(cellContent);
+                    $('<div class="fa fa-question-circle" alt="Info" title="' + propertyDescriptor.description + '" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
                     $('<span class="hidden property-descriptor-name"></span>').text(dataContext.property).appendTo(cellContent);
-                    nameWidthOffset = 26; // 10 + icon width (10) + icon margin (6)
+                    nameWidthOffset = 46; // 10 + icon width (10) + icon margin (6) + padding (20)
                 }
             }
 
@@ -1018,8 +1082,25 @@
         };
 
         var propertyColumns = [
-            {id: 'property', field: 'displayName', name: 'Property', sortable: false, resizable: true, rerenderOnResize: true, formatter: nameFormatter},
-            {id: 'value', field: 'value', name: 'Value', sortable: false, resizable: true, cssClass: 'pointer', rerenderOnResize: true, formatter: valueFormatter}
+            {
+                id: 'property',
+                field: 'displayName',
+                name: 'Property',
+                sortable: false,
+                resizable: true,
+                rerenderOnResize: true,
+                formatter: nameFormatter
+            },
+            {
+                id: 'value',
+                field: 'value',
+                name: 'Value',
+                sortable: false,
+                resizable: true,
+                cssClass: 'pointer',
+                rerenderOnResize: true,
+                formatter: valueFormatter
+            }
         ];
 
         // custom formatter for the actions column
@@ -1029,17 +1110,17 @@
             // get the property descriptor
             var descriptors = table.data('descriptors');
             var propertyDescriptor = descriptors[dataContext.property];
-            
+
             var identifiesControllerService = nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService);
             var isConfigured = nf.Common.isDefinedAndNotNull(dataContext.value);
             var isOnCanvas = nf.Common.isDefinedAndNotNull(nf.Canvas);
-            
+
             // check to see if we should provide a button for going to a controller service
             if (identifiesControllerService && isConfigured && isOnCanvas) {
                 // ensure the configured value is referencing a valid service
                 $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
                     if (allowableValue.value === dataContext.value) {
-                        markup += '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
+                        markup += '<div class="pointer go-to-service fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
                         return false;
                     }
                 });
@@ -1047,7 +1128,7 @@
 
             // allow user defined properties to be removed
             if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup += '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
+                markup += '<div title="Delete" class="delete-property pointer fa fa-trash" style="margin-top: 2px" ></div>';
             }
 
             return markup;
@@ -1061,7 +1142,8 @@
             enableColumnReorder: false,
             editable: options.readOnly !== true,
             enableAddRow: false,
-            autoEdit: false
+            autoEdit: false,
+            rowHeight: 24
         };
 
         // initialize the dataview
@@ -1112,7 +1194,7 @@
                 }
             }
         };
-        
+
         var goToControllerService = function (property) {
             $.ajax({
                 type: 'GET',
@@ -1170,7 +1252,7 @@
                 e.stopImmediatePropagation();
             } else if (propertyGrid.getColumns()[args.cell].id === 'actions') {
                 var property = propertyData.getItem(args.row);
-                
+
                 var target = $(e.target);
                 if (target.hasClass('delete-property')) {
                     // mark the property in question for removal and refresh the table
@@ -1186,7 +1268,7 @@
                     } else {
                         // load the property descriptor if possible
                         if (typeof options.goToServiceDeferred === 'function') {
-                            options.goToServiceDeferred().done(function() {
+                            options.goToServiceDeferred().done(function () {
                                 goToControllerService(property);
                             });
                         }
@@ -1194,12 +1276,12 @@
                 }
             }
         });
-        propertyGrid.onKeyDown.subscribe(function(e, args) {
+        propertyGrid.onKeyDown.subscribe(function (e, args) {
             if (e.which === $.ui.keyCode.ESCAPE) {
                 var editorLock = propertyGrid.getEditorLock();
                 if (editorLock.isActive()) {
                     editorLock.cancelCurrentEdit();
-                    
+
                     // prevents standard cancel logic - standard logic does
                     // not stop propagation when escape is pressed
                     e.stopImmediatePropagation();
@@ -1220,7 +1302,7 @@
 
         // hold onto an instance of the grid and listen for mouse events to add tooltips where appropriate
         table.data('gridInstance', propertyGrid).on('mouseenter', 'div.slick-cell', function (e) {
-            var infoIcon = $(this).find('img.icon-info');
+            var infoIcon = $(this).find('div.fa-question-circle');
             if (infoIcon.length && !infoIcon.data('qtip')) {
                 var property = $(this).find('span.property-descriptor-name').text();
 
@@ -1237,7 +1319,7 @@
 
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
                     infoIcon.qtip($.extend({
-                        content: tooltip
+                        content: tooltip,
                     }, nf.Common.config.tooltipConfig));
                 }
             }
@@ -1255,7 +1337,7 @@
 
     /**
      * Performs the filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -1266,8 +1348,8 @@
 
     /**
      * Loads the specified properties.
-     * 
-     * @param {type} table 
+     *
+     * @param {type} table
      * @param {type} properties
      * @param {type} descriptors
      * @param {type} history
@@ -1331,7 +1413,7 @@
 
     /**
      * Clears the property table container.
-     * 
+     *
      * @param {jQuery} propertyTableContainer
      */
     var clear = function (propertyTableContainer) {
@@ -1341,7 +1423,7 @@
         } else {
             // clear any existing new property dialogs
             if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
-                $(options.dialogContainer).children('div.new-property-dialog').hide();
+                $('#new-property-dialog').modal("hide");
             }
         }
 
@@ -1350,7 +1432,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        nf.Common.cleanUpTooltips(table, 'img.icon-info');
+        nf.Common.cleanUpTooltips(table, 'div.fa-question-circle');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
@@ -1361,7 +1443,7 @@
     var methods = {
         /**
          * Initializes the tag cloud.
-         * 
+         *
          * @argument {object} options The options for the tag cloud
          */
         init: function (options) {
@@ -1384,23 +1466,50 @@
                     // optionally add a add new property button
                     if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
                         // build the new property dialog
-                        var newPropertyDialogMarkup = 
-                                '<div class="new-property-dialog dialog cancellable">' +
+                        var newPropertyDialogMarkup =
+                            '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
+                                '<div class="dialog-content">' +
                                     '<div>' +
                                         '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
                                             '<input class="new-property-name" type="text"/>' +
                                         '</div>' +
                                     '</div>' +
-                                    '<div class="new-property-button-container">' +
-                                        '<div class="new-property-ok button button-normal">Ok</div>' +
-                                        '<div class="new-property-cancel button button-normal">Cancel</div>' +
-                                        '<div class="clear"></div>' +
-                                    '</div>' +
-                                '</div>';
+                                '</div>' +
+                            '</div>';
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);
                         var newPropertyNameField = newPropertyDialog.find('input.new-property-name');
+
+                        newPropertyDialog.modal({
+                            headerText: 'Add Property',
+                            buttons: [{
+                                buttonText: 'Ok',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
+                                handler: {
+                                    click: function () {
+                                        add();
+                                    }
+                                }
+                            },
+                                {
+                                    buttonText: 'Cancel',
+                                    color: {
+                                        base: '#E3E8EB',
+                                        hover: '#C7D2D7',
+                                        text: '#004849'
+                                    },
+                                    handler: {
+                                        click: function () {
+                                            cancel();
+                                        }
+                                    }
+                                }]
+                        });
 
                         var add = function () {
                             var propertyName = $.trim(newPropertyNameField.val());
@@ -1409,7 +1518,7 @@
                             if (propertyName !== '') {
                                 var propertyGrid = table.data('gridInstance');
                                 var propertyData = propertyGrid.getData();
-                                
+
                                 // ensure the property name is unique
                                 var existingItem = null;
                                 $.each(propertyData.getItems(), function (_, item) {
@@ -1418,10 +1527,10 @@
                                         return false;
                                     }
                                 });
-                                
+
                                 if (existingItem === null) {
                                     // load the descriptor and add the property
-                                    options.descriptorDeferred(propertyName).done(function(response) {
+                                    options.descriptorDeferred(propertyName).done(function (response) {
                                         var descriptor = response.propertyDescriptor;
 
                                         // store the descriptor for use later
@@ -1431,7 +1540,7 @@
                                         }
 
                                         // add a row for the new property
-                                        var id = propertyData.getLength(); 
+                                        var id = propertyData.getLength();
                                         propertyData.addItem({
                                             id: id,
                                             hidden: false,
@@ -1455,17 +1564,17 @@
                                             previousValue: null,
                                             value: null
                                         }));
-                                        
+
                                         // select the new properties row
                                         var row = propertyData.getRowById(existingItem.id);
                                         propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
                                         propertyGrid.editActiveCell();
                                     } else {
                                         nf.Dialog.showOkDialog({
-                                            dialogContent: 'A property with this name already exists.',
-                                            overlayBackground: false
+                                            headerText: 'Property Exists',
+                                            dialogContent: 'A property with this name already exists.'
                                         });
-                                        
+
                                         // select the existing properties row
                                         var row = propertyData.getRowById(existingItem.id);
                                         propertyGrid.setSelectedRows([row]);
@@ -1474,25 +1583,25 @@
                                 }
                             } else {
                                 nf.Dialog.showOkDialog({
-                                    dialogContent: 'Property name must be specified.',
-                                    overlayBackground: false
+                                    headerText: 'Property Name',
+                                    dialogContent: 'Property name must be specified.'
                                 });
                             }
 
                             // close the dialog
-                            newPropertyDialog.hide();
+                            newPropertyDialog.modal('hide');
                         };
 
                         var cancel = function () {
-                            newPropertyDialog.hide();
+                            newPropertyDialog.modal('hide');
                         };
-                        
+
                         // enable enter to add
                         newPropertyNameField.on('keydown', function (e) {
                             var code = e.keyCode ? e.keyCode : e.which;
                             if (code === $.ui.keyCode.ENTER) {
                                 add();
-                                
+
                                 // prevents the enter from propagating into the field for editing the new property value
                                 e.stopImmediatePropagation();
                                 e.preventDefault();
@@ -1507,7 +1616,7 @@
 
                         // build the control to open the new property dialog
                         var addProperty = $('<div class="add-property"></div>').appendTo(header);
-                        $('<div class="add-property-icon add-icon-bg"></div>').on('click', function () {
+                        $('<button class="button fa fa-plus"></button>').on('click', function () {
                             // close all fields currently being edited
                             saveRow(table);
 
@@ -1515,16 +1624,11 @@
                             newPropertyNameField.val('');
 
                             // open the new property dialog
-                            newPropertyDialog.center().show();
+                            newPropertyDialog.modal('show');
 
                             // set the initial focus
                             newPropertyNameField.focus();
-                        }).on('mouseenter', function () {
-                            $(this).removeClass('add-icon-bg').addClass('add-icon-bg-hover');
-                        }).on('mouseleave', function () {
-                            $(this).removeClass('add-icon-bg-hover').addClass('add-icon-bg');
                         }).appendTo(addProperty);
-                        $('<div class="add-property-text">New property</div>').appendTo(addProperty);
                     }
                     $('<div class="clear"></div>').appendTo(header);
 
@@ -1533,10 +1637,10 @@
                 }
             });
         },
-        
+
         /**
          * Loads the specified properties.
-         * 
+         *
          * @argument {object} properties        The properties
          * @argument {map} descriptors          The property descriptors (property name -> property descriptor)
          * @argument {map} history
@@ -1547,7 +1651,7 @@
                 loadProperties(table, properties, descriptors, history);
             });
         },
-        
+
         /**
          * Saves the last edited row in the specified grid.
          */
@@ -1557,7 +1661,7 @@
                 saveRow(table);
             });
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -1570,7 +1674,7 @@
                 }
             });
         },
-        
+
         /**
          * Cancels the edit in the specified row.
          */
@@ -1584,7 +1688,7 @@
                 }
             });
         },
-        
+
         /**
          * Destroys the property table.
          */
@@ -1599,13 +1703,13 @@
                     
                     // clear any existing new property dialogs
                     if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
-                        $(options.dialogContainer).children('div.new-property-dialog').remove();
+                        $('#new-property-dialog').modal("hide");
                         $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
                     }
                 }
             });
         },
-        
+
         /**
          * Clears the property table.
          */
@@ -1614,7 +1718,7 @@
                 clear($(this));
             });
         },
-        
+
         /**
          * Determines if a save is required for the first matching element.
          */
@@ -1640,7 +1744,7 @@
 
             return isSaveRequired;
         },
-        
+
         /**
          * Marshalls the properties for the first matching element.
          */

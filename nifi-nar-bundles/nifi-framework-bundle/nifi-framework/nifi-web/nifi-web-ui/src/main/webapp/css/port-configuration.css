@@ -26,12 +26,12 @@
 }
 
 #port-name {
-    width: 300px;
+    width: 70%;
     float: left;
 }
 
-.port-field {
-    width: 370px;
+#port-name-container {
+    height: 32px;
 }
 
 textarea.port-field {
@@ -40,11 +40,10 @@ textarea.port-field {
 
 div.port-setting {
     margin-bottom: 15px;
-    width: 380px;
 }
 
 div.port-enabled {
-    width: 12px;
+    width: 20%;
     height: 12px;
     float: left;
     margin-right: 4px;

@@ -15,9 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="connection-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
-    <div class="connection-configuration-tab-container">
-        <div id="connection-configuration-tabs"></div>
+<div id="connection-configuration" layout="column" class="hidden large-dialog">
+    <div class="connection-configuration-tab-container dialog-content">
+        <div id="connection-configuration-tabs" class="tab-container"></div>
         <div id="connection-configuration-tabs-content">
             <div id="connection-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
@@ -36,7 +36,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             FlowFile expiration
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."></div>
                         </div>
                         <div class="setting-field">
                             <input type="text" id="flow-file-expiration" name="flow-file-expiration" class="setting-input"/>
@@ -45,7 +45,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Back pressure object threshold
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum number of objects that can be queued before back pressure is applied."></div>
                         </div>
                         <div class="setting-field">
                             <input type="text" id="back-pressure-object-threshold" name="back-pressure-object-threshold" class="setting-input"/>
@@ -54,7 +54,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Back pressure data size threshold
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."/>
+                            <div class="fa fa-question-circle" alt="Info" title="The maximum data size of objects that can be queued before back pressure is applied."></div>
                         </div>
                         <div class="setting-field">
                             <input type="text" id="back-pressure-data-size-threshold" name="back-pressure-data-size-threshold" class="setting-input"/>
@@ -66,7 +66,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Available prioritizers
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Available prioritizers that could reprioritize FlowFiles in this work queue."/>
+                            <div class="fa fa-question-circle" alt="Info" title="Available prioritizers that could reprioritize FlowFiles in this work queue."></div>
                         </div>
                         <div class="setting-field">
                             <ul id="prioritizer-available"></ul>
@@ -75,7 +75,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Selected prioritizers
-                            <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Prioritizers that have been selected to reprioritize FlowFiles in this work queue."/>
+                            <div class="fa fa-question-circle" alt="Info" title="Prioritizers that have been selected to reprioritize FlowFiles in this work queue."></div>
                         </div>
                         <div class="setting-field">
                             <ul id="prioritizer-selected"></ul>
@@ -176,5 +176,5 @@
                 </div>
             </div>
         </div>
-    </div>    
+    </div>
 </div>

@@ -35,6 +35,9 @@
         <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/angular-material/angular-material.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="js/d3/d3.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
@@ -58,12 +61,21 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="assets/angular/angular.min.js"></script>
+        <script type="text/javascript" src="assets/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="assets/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="assets/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
+        <script type="text/javascript" src="assets/angular-sanitize/angular-sanitize.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.summary.script.tags}
         <script type="text/javascript" src="js/jquery/nfeditor/languages/nfel.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/nfeditor/jquery.nfeditor.js?${project.version}"></script>
     </head>
-    <body>
+    <body ng-controller="ngSummaryAppCtrl">
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-utility.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
@@ -79,7 +91,5 @@
         <jsp:include page="/WEB-INF/partials/summary/cluster-process-group-summary-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/system-diagnostics-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/view-single-node-dialog.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
     </body>
 </html>

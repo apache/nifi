@@ -29,46 +29,19 @@
     display: none;
 }
 
-div.reporting-task-configuration-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
 #reporting-task-configuration-advanced {
     display: none;
 }
 
-#reporting-task-configuration-tabs {
-    background-color: transparent;
-    width: 778px;
-    height: 21px;
-    border-bottom: 3px solid #666;
-}
-
 #reporting-task-configuration div.configuration-tab {
-    height: 320px;
-    overflow: auto;
-    padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
     display: none;
 }
 
+.reporting-task-editable.setting-field {
+    height: 32px;
+}
+
 /* reporting-task settings */
-
-#reporting-task-configuration div.settings-left {
-    float: left;
-    width: 356px;
-}
-
-#reporting-task-configuration div.settings-right {
-    float: left;
-    width: 356px;
-}
-
-#reporting-task-configuration div.spacer {
-    float: left;
-    margin-right: 40px;
-}
 
 #reporting-task-name {
     font-size: 11px !important;
@@ -89,12 +62,6 @@ div.reporting-task-enabled-container {
     margin-left: 10px;
 }
 
-#reporting-task-scheduling-strategy-combo {
-    width: 150px;
-    height: 18px;
-    line-height: 18px;
-}
-
 input.reporting-task-scheduling-period {
     font-size: 11px !important;
     width: 150px;
@@ -106,6 +73,4 @@ input.reporting-task-scheduling-period {
 
 #reporting-task-comments {
     height: 250px;
-    width: 748px !important;
-    margin-top: 10px;
 }

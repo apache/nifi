@@ -38,7 +38,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source in the new connection dialog.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceNewConnectionDialog = function (source) {
@@ -61,29 +61,39 @@ nf.ConnectionConfiguration = (function () {
 
                         // configure the button model
                         $('#connection-configuration').modal('setButtonModel', [{
-                                buttonText: 'Add',
-                                handler: {
-                                    click: function () {
-                                        // get the selected relationships
-                                        var selectedRelationships = getSelectedRelationships();
+                            buttonText: 'Add',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
+                            handler: {
+                                click: function () {
+                                    // get the selected relationships
+                                    var selectedRelationships = getSelectedRelationships();
 
-                                        // ensure some relationships were selected
-                                        if (selectedRelationships.length > 0) {
-                                            addConnection(selectedRelationships);
-                                        } else {
-                                            // inform users that no relationships were selected
-                                            nf.Dialog.showOkDialog({
-                                                dialogContent: 'The connection must have at least one relationship selected.',
-                                                overlayBackground: false
-                                            });
-                                        }
-
-                                        // close the dialog
-                                        $('#connection-configuration').modal('hide');
+                                    // ensure some relationships were selected
+                                    if (selectedRelationships.length > 0) {
+                                        addConnection(selectedRelationships);
+                                    } else {
+                                        // inform users that no relationships were selected
+                                        nf.Dialog.showOkDialog({
+                                            dialogContent: 'The connection must have at least one relationship selected.'
+                                        });
                                     }
+
+                                    // close the dialog
+                                    $('#connection-configuration').modal('hide');
                                 }
-                            }, {
+                            }
+                        },
+                            {
                                 buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
                                 handler: {
                                     click: function () {
                                         $('#connection-configuration').modal('hide');
@@ -126,18 +136,29 @@ nf.ConnectionConfiguration = (function () {
                 connectionSourceDeferred.done(function () {
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
-                            buttonText: 'Add',
-                            handler: {
-                                click: function () {
-                                    // add the connection
-                                    addConnection();
+                        buttonText: 'Add',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        handler: {
+                            click: function () {
+                                // add the connection
+                                addConnection();
 
-                                    // close the dialog
-                                    $('#connection-configuration').modal('hide');
-                                }
+                                // close the dialog
+                                $('#connection-configuration').modal('hide');
                             }
-                        }, {
+                        }
+                    },
+                        {
                             buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
                             handler: {
                                 click: function () {
                                     $('#connection-configuration').modal('hide');
@@ -155,7 +176,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is an input port.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceInputPort = function (source) {
@@ -182,7 +203,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is an input port.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceFunnel = function (source) {
@@ -208,7 +229,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is a processor.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceProcessor = function (source) {
@@ -238,7 +259,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is a process group.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceProcessGroup = function (source) {
@@ -318,7 +339,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is a remote process group.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceRemoteProcessGroup = function (source) {
@@ -467,7 +488,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the destination when the destination is a process group.
-     * 
+     *
      * @argument {selection} destination        The destination
      */
     var initializeDestinationProcessGroup = function (destination) {
@@ -543,7 +564,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source when the source is a remote process group.
-     * 
+     *
      * @argument {selection} destination        The destination
      */
     var initializeDestinationRemoteProcessGroup = function (destination) {
@@ -620,7 +641,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source panel for groups.
-     * 
+     *
      * @argument {selection} source    The source of the connection
      */
     var initializeSourceReadOnlyGroup = function (source) {
@@ -644,7 +665,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the source in the existing connection dialog.
-     * 
+     *
      * @argument {selection} source        The source
      */
     var initializeSourceEditConnectionDialog = function (source) {
@@ -661,7 +682,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Initializes the destination in the existing connection dialog.
-     * 
+     *
      * @argument {selection} destination        The destination
      */
     var initializeDestinationEditConnectionDialog = function (destination) {
@@ -680,19 +701,19 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Creates an option for the specified relationship name.
-     * 
+     *
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
         var relationshipLabel = $('<div class="relationship-name ellipsis"></div>').text(name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(name);
         return $('<div class="available-relationship-container"><div class="available-relationship nf-checkbox checkbox-unchecked"></div>' +
-                '</div>').append(relationshipLabel).append(relationshipValue).appendTo('#relationship-names');
+            '</div>').append(relationshipLabel).append(relationshipValue).appendTo('#relationship-names');
     };
 
     /**
      * Adds a new connection.
-     * 
+     *
      * @argument {array} selectedRelationships      The selected relationships
      */
     var addConnection = function (selectedRelationships) {
@@ -740,7 +761,7 @@ nf.ConnectionConfiguration = (function () {
 
                 // if the connection is between these same components, consider it for collisions
                 if ((connectionSourceComponentId === sourceComponentId && connectionDestinationComponentId === destinationComponentId) ||
-                        (connectionDestinationComponentId === sourceComponentId && connectionSourceComponentId === destinationComponentId)) {
+                    (connectionDestinationComponentId === sourceComponentId && connectionSourceComponentId === destinationComponentId)) {
 
                     // record all connections between these two components in question
                     existingConnections.push(connectionForSourceComponent);
@@ -896,7 +917,7 @@ nf.ConnectionConfiguration = (function () {
 
     /**
      * Updates an existing connection.
-     * 
+     *
      * @argument {array} selectedRelationships          The selected relationships
      */
     var updateConnection = function (selectedRelationships) {
@@ -962,7 +983,6 @@ nf.ConnectionConfiguration = (function () {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                        overlayBackground: true
                     });
                 } else {
                     nf.Common.handleAjaxError(xhr, status, error);
@@ -1019,7 +1039,6 @@ nf.ConnectionConfiguration = (function () {
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
                 dialogContent: nf.Common.formatUnorderedList(errors),
-                overlayBackground: false,
                 headerText: 'Configuration Error'
             });
             return false;
@@ -1100,7 +1119,6 @@ nf.ConnectionConfiguration = (function () {
             // initialize the configure connection dialog
             $('#connection-configuration').modal({
                 headerText: 'Configure Connection',
-                overlayBackground: true,
                 handler: {
                     close: function () {
                         // reset the dialog on close
@@ -1114,12 +1132,12 @@ nf.ConnectionConfiguration = (function () {
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
                 tabs: [{
-                        name: 'Details',
-                        tabContentId: 'connection-details-tab-content'
-                    }, {
-                        name: 'Settings',
-                        tabContentId: 'connection-settings-tab-content'
-                    }]
+                    name: 'Details',
+                    tabContentId: 'connection-details-tab-content'
+                }, {
+                    name: 'Settings',
+                    tabContentId: 'connection-settings-tab-content'
+                }]
             });
 
             // load the processor prioritizers
@@ -1143,10 +1161,10 @@ nf.ConnectionConfiguration = (function () {
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Adds the specified prioritizer to the specified container.
-         * 
+         *
          * @argument {string} prioritizerContainer      The dom Id of the prioritizer container
          * @argument {object} prioritizerType           The type of prioritizer
          */
@@ -1160,15 +1178,15 @@ nf.ConnectionConfiguration = (function () {
 
             // add the description if applicable
             if (nf.Common.isDefinedAndNotNull(prioritizerType.description)) {
-                $('<img class="icon-info" style="float: right; margin-right: 5px;" src="images/iconInfo.png"></img>').appendTo(prioritizer).qtip($.extend({
+                $('<div class="fa fa-question-circle" style="float: right; margin-right: 5px;""></div>').appendTo(prioritizer).qtip($.extend({
                     content: nf.Common.escapeHtml(prioritizerType.description)
                 }, nf.Common.config.tooltipConfig));
             }
         },
-        
+
         /**
          * Shows the dialog for creating a new connection.
-         * 
+         *
          * @argument {string} sourceId      The source id
          * @argument {string} destinationId The destination id
          */
@@ -1210,11 +1228,11 @@ nf.ConnectionConfiguration = (function () {
                 removeTempEdge();
             });
         },
-        
+
         /**
          * Shows the configuration for the specified connection. If a destination is
          * specified it will be considered a new destination.
-         * 
+         *
          * @argument {selection} selection         The connection entry
          * @argument {selection} destination          Optional new destination
          */
@@ -1303,46 +1321,56 @@ nf.ConnectionConfiguration = (function () {
 
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
-                            buttonText: 'Apply',
-                            handler: {
-                                click: function () {
-                                    // get the selected relationships
-                                    var selectedRelationships = getSelectedRelationships();
+                        buttonText: 'Apply',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
+                        handler: {
+                            click: function () {
+                                // get the selected relationships
+                                var selectedRelationships = getSelectedRelationships();
 
-                                    // see if we're working with a processor as the source
-                                    if (nf.CanvasUtils.isProcessor(source)) {
-                                        if (selectedRelationships.length > 0) {
-                                            // if there are relationships selected update
-                                            updateConnection(selectedRelationships).done(function () {
-                                                deferred.resolve();
-                                            }).fail(function () {
-                                                deferred.reject();
-                                            });
-                                        } else {
-                                            // inform users that no relationships were selected and the source is a processor
-                                            nf.Dialog.showOkDialog({
-                                                dialogContent: 'The connection must have at least one relationship selected.',
-                                                overlayBackground: false
-                                            });
-
-                                            // reject the deferred
-                                            deferred.reject();
-                                        }
-                                    } else {
-                                        // there are no relationships, but the source wasn't a processor, so update anyway
-                                        updateConnection(undefined).done(function () {
+                                // see if we're working with a processor as the source
+                                if (nf.CanvasUtils.isProcessor(source)) {
+                                    if (selectedRelationships.length > 0) {
+                                        // if there are relationships selected update
+                                        updateConnection(selectedRelationships).done(function () {
                                             deferred.resolve();
                                         }).fail(function () {
                                             deferred.reject();
                                         });
-                                    }
+                                    } else {
+                                        // inform users that no relationships were selected and the source is a processor
+                                        nf.Dialog.showOkDialog({
+                                            dialogContent: 'The connection must have at least one relationship selected.'
+                                        });
 
-                                    // close the dialog
-                                    $('#connection-configuration').modal('hide');
+                                        // reject the deferred
+                                        deferred.reject();
+                                    }
+                                } else {
+                                    // there are no relationships, but the source wasn't a processor, so update anyway
+                                    updateConnection(undefined).done(function () {
+                                        deferred.resolve();
+                                    }).fail(function () {
+                                        deferred.reject();
+                                    });
                                 }
+
+                                // close the dialog
+                                $('#connection-configuration').modal('hide');
                             }
-                        }, {
+                        }
+                    },
+                        {
                             buttonText: 'Cancel',
+                            color: {
+                                base: '#E3E8EB',
+                                hover: '#C7D2D7',
+                                text: '#004849'
+                            },
                             handler: {
                                 click: function () {
                                     // hide the dialog

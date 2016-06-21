@@ -50,7 +50,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Downloads the content for the provenance event that is currently loaded in the specified direction.
-     * 
+     *
      * @param {string} direction
      */
     var downloadContent = function (direction) {
@@ -82,15 +82,15 @@ nf.ProvenanceTable = (function () {
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
-                dialogContent: 'Unable to generate access token for downloading content.',
-                overlayBackground: false
+                headerText: 'Provenance',
+                dialogContent: 'Unable to generate access token for downloading content.'
             });
         });
     };
 
     /**
      * Views the content for the provenance event that is currently loaded in the specified direction.
-     * 
+     *
      * @param {string} direction
      */
     var viewContent = function (direction) {
@@ -120,8 +120,8 @@ nf.ProvenanceTable = (function () {
                     deferred.resolve(uiExtensionToken, downloadToken);
                 }).fail(function () {
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'Unable to generate access token for viewing content.',
-                        overlayBackground: false
+                        headerText: 'Provenance',
+                        dialogContent: 'Unable to generate access token for viewing content.'
                     });
                     deferred.reject();
                 });
@@ -185,28 +185,32 @@ nf.ProvenanceTable = (function () {
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
             tabs: [{
-                    name: 'Details',
-                    tabContentId: 'event-details-tab-content'
-                }, {
-                    name: 'Attributes',
-                    tabContentId: 'attributes-tab-content'
-                }, {
-                    name: 'Content',
-                    tabContentId: 'content-tab-content'
-                }]
+                name: 'Details',
+                tabContentId: 'event-details-tab-content'
+            }, {
+                name: 'Attributes',
+                tabContentId: 'attributes-tab-content'
+            }, {
+                name: 'Content',
+                tabContentId: 'content-tab-content'
+            }]
         });
 
         $('#event-details-dialog').modal({
             headerText: 'Provenance Event',
-            overlayBackground: false,
             buttons: [{
-                    buttonText: 'Ok',
-                    handler: {
-                        click: function () {
-                            $('#event-details-dialog').modal('hide');
-                        }
+                buttonText: 'Ok',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        $('#event-details-dialog').modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // clear the details
@@ -275,8 +279,8 @@ nf.ProvenanceTable = (function () {
                     contentType: 'application/json'
                 }).done(function (response) {
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'Successfully submitted replay request.',
-                        overlayBackground: false
+                        headerText: 'Provenance',
+                        dialogContent: 'Successfully submitted replay request.'
                     });
                 }).fail(nf.Common.handleAjaxError);
 
@@ -290,7 +294,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Initializes the search dialog.
-     * 
+     *
      * @param {boolean} isClustered     Whether or not this NiFi clustered
      */
     var initSearchDialog = function (isClustered) {
@@ -327,9 +331,9 @@ nf.ProvenanceTable = (function () {
 
                 // create the searchable options
                 var searchableOptions = [{
-                        text: 'cluster',
-                        value: null
-                    }];
+                    text: 'cluster',
+                    value: null
+                }];
 
                 // sort the nodes
                 nodes.sort(function (a, b) {
@@ -359,65 +363,75 @@ nf.ProvenanceTable = (function () {
         // configure the search dialog
         $('#provenance-search-dialog').modal({
             headerText: 'Search Events',
-            overlayBackground: false,
             buttons: [{
-                    buttonText: 'Search',
-                    handler: {
-                        click: function () {
-                            $('#provenance-search-dialog').modal('hide');
+                buttonText: 'Search',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        $('#provenance-search-dialog').modal('hide');
 
-                            var search = {};
+                        var search = {};
 
-                            // extract the start date time
-                            var startDate = $.trim($('#provenance-search-start-date').val());
-                            var startTime = $.trim($('#provenance-search-start-time').val());
-                            if (startDate !== '') {
-                                if (startTime === '') {
-                                    startTime = config.defaultStartTime;
-                                    $('#provenance-search-start-time').val(startTime);
-                                }
-                                search['startDate'] = startDate + ' ' + startTime;
+                        // extract the start date time
+                        var startDate = $.trim($('#provenance-search-start-date').val());
+                        var startTime = $.trim($('#provenance-search-start-time').val());
+                        if (startDate !== '') {
+                            if (startTime === '') {
+                                startTime = config.defaultStartTime;
+                                $('#provenance-search-start-time').val(startTime);
                             }
-
-                            // extract the end date time
-                            var endDate = $.trim($('#provenance-search-end-date').val());
-                            var endTime = $.trim($('#provenance-search-end-time').val());
-                            if (endDate !== '') {
-                                if (endTime === '') {
-                                    endTime = config.defaultEndTime;
-                                    $('#provenance-search-end-time').val(endTime);
-                                }
-                                search['endDate'] = endDate + ' ' + endTime;
-                            }
-
-                            // extract the min/max file size
-                            var minFileSize = $.trim($('#provenance-search-minimum-file-size').val());
-                            if (minFileSize !== '') {
-                                search['minimumFileSize'] = minFileSize;
-                            }
-
-                            var maxFileSize = $.trim($('#provenance-search-maximum-file-size').val());
-                            if (maxFileSize !== '') {
-                                search['maximumFileSize'] = maxFileSize;
-                            }
-
-                            // limit search to a specific node
-                            if (isClustered) {
-                                var searchLocation = $('#provenance-search-location').combo('getSelectedOption');
-                                if (searchLocation.value !== null) {
-                                    search['clusterNodeId'] = searchLocation.value;
-                                }
-                            }
-
-                            // add the search criteria
-                            search['searchTerms'] = getSearchCriteria();
-
-                            // reload the table
-                            nf.ProvenanceTable.loadProvenanceTable(search);
+                            search['startDate'] = startDate + ' ' + startTime;
                         }
+
+                        // extract the end date time
+                        var endDate = $.trim($('#provenance-search-end-date').val());
+                        var endTime = $.trim($('#provenance-search-end-time').val());
+                        if (endDate !== '') {
+                            if (endTime === '') {
+                                endTime = config.defaultEndTime;
+                                $('#provenance-search-end-time').val(endTime);
+                            }
+                            search['endDate'] = endDate + ' ' + endTime;
+                        }
+
+                        // extract the min/max file size
+                        var minFileSize = $.trim($('#provenance-search-minimum-file-size').val());
+                        if (minFileSize !== '') {
+                            search['minimumFileSize'] = minFileSize;
+                        }
+
+                        var maxFileSize = $.trim($('#provenance-search-maximum-file-size').val());
+                        if (maxFileSize !== '') {
+                            search['maximumFileSize'] = maxFileSize;
+                        }
+
+                        // limit search to a specific node
+                        if (isClustered) {
+                            var searchLocation = $('#provenance-search-location').combo('getSelectedOption');
+                            if (searchLocation.value !== null) {
+                                search['clusterNodeId'] = searchLocation.value;
+                            }
+                        }
+
+                        // add the search criteria
+                        search['searchTerms'] = getSearchCriteria();
+
+                        // reload the table
+                        nf.ProvenanceTable.loadProvenanceTable(search);
                     }
-                }, {
+                }
+            },
+                {
                     buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             $('#provenance-search-dialog').modal('hide');
@@ -425,7 +439,7 @@ nf.ProvenanceTable = (function () {
                     }
                 }]
         });
-        
+
         return $.ajax({
             type: 'GET',
             url: config.urls.searchOptions,
@@ -450,7 +464,6 @@ nf.ProvenanceTable = (function () {
         // initialize the dialog
         $('#provenance-query-dialog').modal({
             headerText: 'Searching provenance events...',
-            overlayBackground: false,
             handler: {
                 close: function () {
                     // reset the progress bar
@@ -467,7 +480,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Appends the specified searchable field to the search dialog.
-     * 
+     *
      * @param {type} field      The searchable field
      */
     var appendSearchableField = function (field) {
@@ -508,7 +521,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Initializes the provenance table.
-     * 
+     *
      * @param {boolean} isClustered     Whether or not this instance is clustered
      */
     var initProvenanceTable = function (isClustered) {
@@ -527,15 +540,15 @@ nf.ProvenanceTable = (function () {
 
         // filter options
         var filterOptions = [{
-                text: 'by component name',
-                value: 'componentName'
-            }, {
-                text: 'by component type',
-                value: 'componentType'
-            }, {
-                text: 'by type',
-                value: 'eventType'
-            }];
+            text: 'by component name',
+            value: 'componentName'
+        }, {
+            text: 'by component type',
+            value: 'componentType'
+        }, {
+            text: 'by type',
+            value: 'eventType'
+        }];
 
         // if clustered, allowing filtering by node id
         if (isClustered) {
@@ -590,7 +603,7 @@ nf.ProvenanceTable = (function () {
         });
 
         // add hover effect and click handler for opening the dialog
-        nf.Common.addHoverEffect('#provenance-search-button', 'button-normal', 'button-over').click(function () {
+        $('#provenance-search-button').click(function () {
             $('#provenance-search-dialog').modal('show');
 
             // adjust the field width for a potential scrollbar
@@ -604,7 +617,7 @@ nf.ProvenanceTable = (function () {
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDetails.png" title="View Details" class="pointer show-event-details" style="margin-top: 4px;"/>';
+            return '<div title="View Details" class="pointer show-event-details fa fa-info-circle" style="margin-top: 4px;"></div>';
         };
 
         // define how general values are formatted
@@ -621,12 +634,12 @@ nf.ProvenanceTable = (function () {
 
             // conditionally include the cluster node id
             if (nf.Common.SUPPORTS_SVG) {
-                markup += '<img src="images/iconLineage.png" title="Show Lineage" class="pointer show-lineage" style="margin-top: 2px;"/>';
+                markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-top: 2px;"></div>';
             }
 
             // conditionally support going to the component
             if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId)) {
-                markup += '&nbsp;<img src="images/iconGoTo.png" title="Go To" class="pointer go-to" style="margin-top: 2px;"/>';
+                markup += '&nbsp;<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-top: 2px;"/>';
             }
 
             return markup;
@@ -634,23 +647,59 @@ nf.ProvenanceTable = (function () {
 
         // initialize the provenance table
         var provenanceColumns = [
-            {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-            {id: 'eventTime', name: 'Date/Time', field: 'eventTime', sortable: true, defaultSortAsc: false, resizable: true},
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'eventTime',
+                name: 'Date/Time',
+                field: 'eventTime',
+                sortable: true,
+                defaultSortAsc: false,
+                resizable: true
+            },
             {id: 'eventType', name: 'Type', field: 'eventType', sortable: true, resizable: true},
             {id: 'flowFileUuid', name: 'FlowFile Uuid', field: 'flowFileUuid', sortable: true, resizable: true},
             {id: 'fileSize', name: 'Size', field: 'fileSize', sortable: true, defaultSortAsc: false, resizable: true},
-            {id: 'componentName', name: 'Component Name', field: 'componentName', sortable: true, resizable: true, formatter: valueFormatter},
+            {
+                id: 'componentName',
+                name: 'Component Name',
+                field: 'componentName',
+                sortable: true,
+                resizable: true,
+                formatter: valueFormatter
+            },
             {id: 'componentType', name: 'Component Type', field: 'componentType', sortable: true, resizable: true}
         ];
 
         // conditionally show the cluster node identifier
         if (isClustered) {
-            provenanceColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: true, resizable: true});
+            provenanceColumns.push({
+                id: 'clusterNodeAddress',
+                name: 'Node',
+                field: 'clusterNodeAddress',
+                sortable: true,
+                resizable: true
+            });
         }
 
         // conditionally show the action column
         if (nf.Common.SUPPORTS_SVG || isInShell) {
-            provenanceColumns.push({id: 'actions', name: '&nbsp;', formatter: showLineageFormatter, resizable: false, sortable: false, width: 50, maxWidth: 50});
+            provenanceColumns.push({
+                id: 'actions',
+                name: '&nbsp;',
+                formatter: showLineageFormatter,
+                resizable: false,
+                sortable: false,
+                width: 50,
+                maxWidth: 50
+            });
         }
 
         var provenanceOptions = {
@@ -659,7 +708,8 @@ nf.ProvenanceTable = (function () {
             enableCellNavigation: true,
             enableColumnReorder: false,
             autoEdit: false,
-            multiSelect: false
+            multiSelect: false,
+            rowHeight: 24
         };
 
         // create the remote model
@@ -692,7 +742,7 @@ nf.ProvenanceTable = (function () {
                 sortAsc: args.sortAsc
             }, provenanceData);
         });
-        
+
         // configure a click listener
         provenanceGrid.onClick.subscribe(function (e, args) {
             var target = $(e.target);
@@ -771,7 +821,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Performs the provenance filtering.
-     * 
+     *
      * @param {object} item     The item subject to filtering
      * @param {object} args     Filter arguments
      * @returns {Boolean}       Whether or not to include the item
@@ -794,7 +844,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Sorts the data according to the sort details.
-     * 
+     *
      * @param {type} sortDetails
      * @param {type} data
      */
@@ -834,7 +884,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Submits a new provenance query.
-     * 
+     *
      * @argument {object} provenance The provenance query
      * @returns {deferred}
      */
@@ -859,7 +909,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Gets the results from the provenance query for the specified id.
-     * 
+     *
      * @param {object} provenance
      * @returns {deferred}
      */
@@ -867,8 +917,8 @@ nf.ProvenanceTable = (function () {
         var url = provenance.uri;
         if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
             url += '?' + $.param({
-                clusterNodeId: provenance.clusterNodeId
-            });
+                    clusterNodeId: provenance.clusterNodeId
+                });
         }
 
         return $.ajax({
@@ -880,7 +930,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Cancels the specified provenance query.
-     * 
+     *
      * @param {object} provenance
      * @return {deferred}
      */
@@ -888,8 +938,8 @@ nf.ProvenanceTable = (function () {
         var url = provenance.uri;
         if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
             url += '?' + $.param({
-                clusterNodeId: provenance.clusterNodeId
-            });
+                    clusterNodeId: provenance.clusterNodeId
+                });
         }
 
         return $.ajax({
@@ -901,7 +951,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Checks the results of the specified provenance.
-     * 
+     *
      * @param {object} provenance
      */
     var loadProvenanceResults = function (provenance) {
@@ -966,7 +1016,7 @@ nf.ProvenanceTable = (function () {
 
     /**
      * Goes to the specified component if possible.
-     * 
+     *
      * @argument {object} item       The event it
      */
     var goTo = function (item) {
@@ -988,15 +1038,15 @@ nf.ProvenanceTable = (function () {
          * The max delay between requests.
          */
         MAX_DELAY: 4,
-        
+
         /**
          * The server time offset
          */
         serverTimeOffset: null,
-        
+
         /**
          * Initializes the provenance table. Returns a deferred that will indicate when/if the table has initialized successfully.
-         * 
+         *
          * @param {boolean} isClustered     Whether or not this instance is clustered
          */
         init: function (isClustered) {
@@ -1019,7 +1069,7 @@ nf.ProvenanceTable = (function () {
                 }).fail(failure);
             }).promise();
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -1029,10 +1079,10 @@ nf.ProvenanceTable = (function () {
                 provenanceGrid.resizeCanvas();
             }
         },
-        
+
         /**
          * Updates the value of the specified progress bar.
-         * 
+         *
          * @param {jQuery}  progressBar
          * @param {integer} value
          * @returns {undefined}
@@ -1048,12 +1098,12 @@ nf.ProvenanceTable = (function () {
             }
             progressBar.progressbar('value', value).append(label);
         },
-        
+
         /**
-         * Loads the provenance table with events according to the specified optional 
+         * Loads the provenance table with events according to the specified optional
          * query. If not query is specified or it is empty, the most recent entries will
          * be returned.
-         * 
+         *
          * @param {object} query
          */
         loadProvenanceTable: function (query) {
@@ -1074,22 +1124,27 @@ nf.ProvenanceTable = (function () {
 
             // show the 'searching...' dialog
             $('#provenance-query-dialog').modal('setButtonModel', [{
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            cancelled = true;
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        cancelled = true;
 
-                            // we are waiting for the next poll attempt
-                            if (provenanceTimer !== null) {
-                                // cancel it
-                                clearTimeout(provenanceTimer);
+                        // we are waiting for the next poll attempt
+                        if (provenanceTimer !== null) {
+                            // cancel it
+                            clearTimeout(provenanceTimer);
 
-                                // cancel the provenance
-                                closeDialog();
-                            }
+                            // cancel the provenance
+                            closeDialog();
                         }
                     }
-                }]).modal('show');
+                }
+            }]).modal('show');
 
             // -----------------------------
             // determine the provenance query
@@ -1148,8 +1203,8 @@ nf.ProvenanceTable = (function () {
                     if (!nf.Common.isEmpty(provenance.results.errors)) {
                         var errors = provenance.results.errors;
                         nf.Dialog.showOkDialog({
+                            headerText: 'Provenance',
                             dialogContent: nf.Common.formatUnorderedList(errors),
-                            overlayBackground: false
                         });
                     }
 
@@ -1183,10 +1238,10 @@ nf.ProvenanceTable = (function () {
                 processProvenanceResponse(1);
             }).fail(closeDialog);
         },
-        
+
         /**
          * Shows the details for the specified action.
-         * 
+         *
          * @param {object} event
          */
         showEventDetails: function (event) {
@@ -1224,9 +1279,9 @@ nf.ProvenanceTable = (function () {
             // formats an event detail
             var formatEventDetail = function (label, value) {
                 $('<div class="event-detail"></div>').append(
-                        $('<div class="detail-name"></div>').text(label)).append(
-                        $('<div class="detail-value">' + nf.Common.formatValue(value) + '</div>').ellipsis()).append(
-                        $('<div class="clear"></div>')).appendTo('#additional-provenance-details');
+                    $('<div class="detail-name"></div>').text(label)).append(
+                    $('<div class="detail-value">' + nf.Common.formatValue(value) + '</div>').ellipsis()).append(
+                    $('<div class="clear"></div>')).appendTo('#additional-provenance-details');
             };
 
             // conditionally show RECEIVE details
@@ -1297,20 +1352,20 @@ nf.ProvenanceTable = (function () {
             $.each(event.attributes, function (_, attribute) {
                 // create the attribute record
                 var attributeRecord = $('<div class="attribute-detail"></div>')
-                        .append($('<div class="attribute-name">' + nf.Common.formatValue(attribute.name) + '</div>').ellipsis())
-                        .appendTo(attributesContainer);
+                    .append($('<div class="attribute-name">' + nf.Common.formatValue(attribute.name) + '</div>').ellipsis())
+                    .appendTo(attributesContainer);
 
                 // add the current value
                 attributeRecord
-                        .append($('<div class="attribute-value">' + nf.Common.formatValue(attribute.value) + '</div>').ellipsis())
-                        .append('<div class="clear"></div>');
+                    .append($('<div class="attribute-value">' + nf.Common.formatValue(attribute.value) + '</div>').ellipsis())
+                    .append('<div class="clear"></div>');
 
                 // show the previous value if the property has changed
                 if (attribute.value !== attribute.previousValue) {
                     attributeRecord
-                            .append('<div class="modified-attribute-label">previous</div>')
-                            .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
-                            .append('<div class="clear"></div>');
+                        .append('<div class="modified-attribute-label">previous</div>')
+                        .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                        .append('<div class="clear"></div>');
                 } else {
                     // mark this attribute as not modified
                     attributeRecord.addClass('attribute-unmodified');

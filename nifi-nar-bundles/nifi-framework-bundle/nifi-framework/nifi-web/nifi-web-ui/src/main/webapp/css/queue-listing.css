@@ -19,25 +19,11 @@
     Queue listing styles
 */
 
-#queue-listing-container {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-}
-
-#queue-listing-header-container {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
-}
-
 #queue-listing-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
 }
 
 #queue-listing-stats-container {
@@ -47,18 +33,10 @@
     -moz-user-select: none;
 }
 
-#queue-listing-refresh-button {
-    float: left;
-    height: 24px;
-    width: 26px;
-}
-
-#queue-listing-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+#queue-listing-refresh-container {
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
 }
 
 #queue-listing-last-refreshed {
@@ -87,13 +65,9 @@
 /* queue listing table */
 
 #queue-listing-table {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 80%;
+    width: 100%;
 }
 
 div.provenance-icon {
@@ -116,18 +90,6 @@ div.provenance-icon {
 
 /* flowfile details */
 
-#flowfile-details-dialog {
-    display: none;
-    width: 800px;
-    height: 450px;
-    z-index: 1301;
-}
-
-#flowfile-details-dialog-content {
-    margin-top: -10px;
-    padding: 5px 11px
-}
-
 #flowfile-details-tabs {
     background-color: transparent;
     border-bottom: 3px solid #666666;
@@ -140,21 +102,6 @@ div.provenance-icon {
     display: none;
     height: 330px;
     padding: 10px;
-}
-
-#flowfile-details-tab-content div.settings-left {
-    float: left;
-    width: 420px;
-}
-
-#flowfile-details-tab-content div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#flowfile-details-tab-content div.settings-right {
-    float: left;
-    width: 292px;
 }
 
 div.flowfile-header {

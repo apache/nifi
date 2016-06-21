@@ -15,9 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="event-details-dialog">
-    <div id="event-details-dialog-content">
-        <div id="event-details-tabs"></div>
+<div id="event-details-dialog" class="hidden large-dialog">
+    <div id="event-details-dialog-content"class="dialog-content">
+        <div id="event-details-tabs" class="tab-container"></div>
         <div id="event-details-tabs-content">
             <div id="event-details-tab-content" class="details-tab">
                 <span id="provenance-event-id" class="hidden"></span>

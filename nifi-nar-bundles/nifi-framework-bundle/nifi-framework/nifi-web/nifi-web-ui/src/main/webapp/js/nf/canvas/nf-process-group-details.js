@@ -24,16 +24,20 @@ nf.ProcessGroupDetails = (function () {
             // configure the processor details dialog
             $('#process-group-details').modal({
                 headerText: 'Process Group Details',
-                overlayBackground: true,
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                // hide the dialog
-                                $('#process-group-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            // hide the dialog
+                            $('#process-group-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the processor details
@@ -44,7 +48,7 @@ nf.ProcessGroupDetails = (function () {
                 }
             });
         },
-        
+
         showDetails: function (selection) {
             // if the specified selection is a process group
             if (nf.CanvasUtils.isProcessGroup(selection)) {

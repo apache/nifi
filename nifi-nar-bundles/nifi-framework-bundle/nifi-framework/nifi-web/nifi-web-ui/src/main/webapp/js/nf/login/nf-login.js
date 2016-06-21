@@ -125,8 +125,8 @@ nf.Login = (function () {
             });
         }).fail(function (xhr, status, error) {
             nf.Dialog.showOkDialog({
-                dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                overlayBackground: false
+                headerText: 'Login',
+                dialogContent: nf.Common.escapeHtml(xhr.responseText)
             });
 
             // update the form visibility

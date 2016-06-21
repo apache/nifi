@@ -15,9 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="flowfile-details-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
-    <div id="flowfile-details-dialog-content">
-        <div id="flowfile-details-tabs"></div>
+<div id="flowfile-details-dialog" layout="column" class="hidden large-dialog">
+    <div id="flowfile-details-dialog-content" class="dialog-content">
+        <div id="flowfile-details-tabs" class="tab-container"></div>
         <div id="flowfile-details-tabs-content">
             <div id="flowfile-details-tab-content" class="details-tab">
                 <span id="flowfile-uri" class="hidden"></span>

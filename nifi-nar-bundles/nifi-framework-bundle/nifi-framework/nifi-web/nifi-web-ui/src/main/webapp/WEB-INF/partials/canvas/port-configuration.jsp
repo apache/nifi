@@ -15,15 +15,17 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="port-configuration" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
+<div id="port-configuration" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="port-setting">
             <div class="setting-name">Port name</div>
             <div class="setting-field">
-                <input type="text" id="port-name"/>
-                <div class="port-enabled-container">
-                    <div id="port-enabled" class="port-enabled nf-checkbox checkbox-unchecked"></div>
-                    <span> Enabled</span>
+                <div id="port-name-container">
+                    <input type="text" id="port-name"/>
+                    <div class="port-enabled-container">
+                        <div id="port-enabled" class="port-enabled nf-checkbox checkbox-unchecked"></div>
+                        <span> Enabled</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,10 +40,10 @@
         <div id="port-concurrent-task-container" class="port-setting">
             <div class="setting-name">
                 Concurrent tasks
-                <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The number of tasks that should be concurrently scheduled for this port."/>
+                <div class="fa fa-question-circle" alt="Info" title="The number of tasks that should be concurrently scheduled for this port."></div>
             </div>
             <div class="setting-field">
-                <input type="text" id="port-concurrent-tasks" class="port-field"></input>
+                <input type="text" id="port-concurrent-tasks" class="port-field"></divnput>
             </div>
         </div>
         <div class="port-setting">

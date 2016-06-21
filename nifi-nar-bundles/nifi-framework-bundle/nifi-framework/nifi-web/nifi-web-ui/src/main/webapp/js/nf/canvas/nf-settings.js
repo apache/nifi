@@ -40,7 +40,8 @@ nf.Settings = (function () {
         enableCellNavigation: true,
         enableColumnReorder: false,
         autoEdit: false,
-        multiSelect: false
+        multiSelect: false,
+        rowHeight: 24
     };
 
     /**
@@ -79,8 +80,8 @@ nf.Settings = (function () {
         }).done(function (response) {
             // close the settings dialog
             nf.Dialog.showOkDialog({
-                dialogContent: 'Settings successfully applied.',
-                overlayBackground: false
+                headerText: 'Settings',
+                dialogContent: 'Settings successfully applied.'
             });
 
             // register the click listener for the save button
@@ -173,7 +174,7 @@ nf.Settings = (function () {
         if (!dataContext.accessPolicy.canRead) {
             return '<span class="blank">' + dataContext.id + '</span>';
         }
-        
+
         return dataContext.component.name;
     };
 
@@ -191,7 +192,7 @@ nf.Settings = (function () {
         if (!dataContext.accessPolicy.canRead) {
             return '';
         }
-        
+
         return nf.Common.substringAfterLast(dataContext.component.type, '.');
     };
 
@@ -341,8 +342,8 @@ nf.Settings = (function () {
         // ensure something was selected
         if (selectedTaskType === '') {
             nf.Dialog.showOkDialog({
-                dialogContent: 'The type of reporting task to create must be selected.',
-                overlayBackground: false
+                headerText: 'Settings',
+                dialogContent: 'The type of reporting task to create must be selected.'
             });
         } else {
             addReportingTask(selectedTaskType);
@@ -525,22 +526,32 @@ nf.Settings = (function () {
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
             headerText: 'Add Reporting Task',
-            overlayBackground: false,
             buttons: [{
-                buttonText: 'Add',
-                handler: {
-                    click: function () {
-                        addSelectedReportingTask();
+                    buttonText: 'Add',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            addSelectedReportingTask();
+                        }
                     }
-                }
-            }, {
-                buttonText: 'Cancel',
-                handler: {
-                    click: function () {
-                        $(this).modal('hide');
+                },
+                {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            $(this).modal('hide');
+                        }
                     }
-                }
-            }],
+                }],
             handler: {
                 close: function () {
                     // clear the selected row
@@ -576,20 +587,20 @@ nf.Settings = (function () {
                 return '';
             }
 
-            var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-reporting-task" style="margin-top: 5px; float: left;" />';
+            var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle" style="margin-top: 5px; float: left;" ></div>';
 
             // always include a button to view the usage
-            markup += '<img src="images/iconUsage.png" title="Usage" class="pointer reporting-task-usage" style="margin-left: 6px; margin-top: 3px;"/>';
+            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 6px; margin-top: 5px;"></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 3px; float: left;" />';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 6px; float: left;" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<img src="images/iconBulletin.png" class="has-bulletins" style="margin-top: 5px; margin-left: 5px; float: left;"/>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div>';
             }
 
             if (hasErrors || hasBulletins) {
@@ -634,20 +645,20 @@ nf.Settings = (function () {
 
             if (dataContext.accessPolicy.canRead && dataContext.accessPolicy.canWrite) {
                 if (dataContext.component.state === 'RUNNING') {
-                    markup += '<img src="images/iconStop.png" title="Stop" class="pointer stop-reporting-task" style="margin-top: 2px;" />';
+                    markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop" style="margin-top: 2px;" ></div>';
                 } else if (dataContext.component.state === 'STOPPED' || dataContext.component.state === 'DISABLED') {
-                    markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-reporting-task" style="margin-top: 2px;" />';
-    
+                    markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil" style="margin-top: 2px;" ></div>';
+
                     // support starting when stopped and no validation errors
                     if (dataContext.component.state === 'STOPPED' && nf.Common.isEmpty(dataContext.component.validationErrors)) {
-                        markup += '<img src="images/iconRun.png" title="Start" class="pointer start-reporting-task" style="margin-top: 2px; margin-left: 3px;"/>';
+                        markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-left: 3px;"></div>';
                     }
-    
-                    markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-reporting-task" style="margin-top: 2px; margin-left: 3px;" />';
+
+                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-left: 3px;" ></div>';
                 }
-    
+
                 if (dataContext.component.persistsState === true) {
-                    markup += '<img src="images/iconViewState.png" title="View State" class="pointer view-state-reporting-task" style="margin-top: 2px; margin-left: 3px;" />';
+                    markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks" style="margin-top: 2px; margin-left: 3px;" ></div>';
                 }
             }
 
@@ -714,16 +725,16 @@ nf.Settings = (function () {
                 if (target.hasClass('view-reporting-task')) {
                     nf.ReportingTask.showDetails(reportingTaskEntity);
                 } else if (target.hasClass('reporting-task-usage')) {
-                     // close the settings dialog
-                     $('#shell-close-button').click();
+                    // close the settings dialog
+                    $('#shell-close-button').click();
 
-                     // open the documentation for this reporting task
-                     nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
-                         select: nf.Common.substringAfterLast(reportingTaskEntity.component.type, '.')
-                     })).done(function() {
-                         nf.Settings.showSettings();
-                     });
-                 }
+                    // open the documentation for this reporting task
+                    nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
+                            select: nf.Common.substringAfterLast(reportingTaskEntity.component.type, '.')
+                        })).done(function () {
+                        nf.Settings.showSettings();
+                    });
+                }
             }
         });
 
@@ -740,7 +751,7 @@ nf.Settings = (function () {
 
         // hold onto an instance of the grid
         $('#reporting-tasks-table').data('gridInstance', reportingTasksGrid).on('mouseenter', 'div.slick-cell', function (e) {
-            var errorIcon = $(this).find('img.has-errors');
+            var errorIcon = $(this).find('div.has-errors');
             if (errorIcon.length && !errorIcon.data('qtip')) {
                 var taskId = $(this).find('span.row-id').text();
 
@@ -767,7 +778,7 @@ nf.Settings = (function () {
                 }
             }
 
-            var bulletinIcon = $(this).find('img.has-bulletins');
+            var bulletinIcon = $(this).find('div.has-bulletins');
             if (bulletinIcon.length && !bulletinIcon.data('qtip')) {
                 var taskId = $(this).find('span.row-id').text();
 
@@ -889,8 +900,8 @@ nf.Settings = (function () {
             });
 
             var reportingTasksElement = $('#reporting-tasks-table');
-            nf.Common.cleanUpTooltips(reportingTasksElement, 'img.has-errors');
-            nf.Common.cleanUpTooltips(reportingTasksElement, 'img.has-bulletins');
+            nf.Common.cleanUpTooltips(reportingTasksElement, 'div.has-errors');
+            nf.Common.cleanUpTooltips(reportingTasksElement, 'div.has-bulletins');
 
             var reportingTasksGrid = reportingTasksElement.data('gridInstance');
             var reportingTasksData = reportingTasksGrid.getData();
@@ -930,8 +941,8 @@ nf.Settings = (function () {
         init: function () {
             // initialize the settings tabs
             $('#settings-tabs').tabbs({
-                tabStyle: 'settings-tab',
-                selectedTabStyle: 'settings-selected-tab',
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'
@@ -946,14 +957,17 @@ nf.Settings = (function () {
                     var tab = $(this).text();
                     if (tab === 'General') {
                         $('#new-service-or-task').hide();
+                        $('#settings-save').show();
                     } else {
                         $('#new-service-or-task').show();
 
                         // update the tooltip on the button
                         $('#new-service-or-task').attr('title', function () {
                             if (tab === 'Controller Services') {
+                                $('#settings-save').hide();
                                 return 'Create a new controller service';
                             } else if (tab === 'Reporting Tasks') {
+                                $('#settings-save').hide();
                                 return 'Create a new reporting task';
                             }
                         });
@@ -965,13 +979,13 @@ nf.Settings = (function () {
             });
 
             // settings refresh button
-            nf.Common.addHoverEffect('#settings-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            $('#settings-refresh-button').click(function () {
                 loadSettings();
             });
 
             // create a new controller service or reporting task
             $('#new-service-or-task').on('click', function () {
-                var selectedTab = $('#settings-tabs li.settings-selected-tab').text();
+                var selectedTab = $('#settings-tabs li.selected-tab').text();
                 if (selectedTab === 'Controller Services') {
                     var controllerServicesUri = config.urls.api + '/controller/controller-services';
                     nf.ControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());
@@ -1052,10 +1066,12 @@ nf.Settings = (function () {
             // if there are some bulletins process them
             if (!nf.Common.isEmpty(reportingTaskBulletins)) {
                 var reportingTaskBulletinsBySource = d3.nest()
-                    .key(function(d) { return d.sourceId; })
+                    .key(function (d) {
+                        return d.sourceId;
+                    })
                     .map(reportingTaskBulletins, d3.map);
 
-                reportingTaskBulletinsBySource.forEach(function(sourceId, sourceBulletins) {
+                reportingTaskBulletinsBySource.forEach(function (sourceId, sourceBulletins) {
                     var reportingTask = reportingTasksData.getItemById(sourceId);
                     if (nf.Common.isDefinedAndNotNull(reportingTask)) {
                         reportingTasksData.updateItem(sourceId, $.extend(reportingTask, {
@@ -1066,7 +1082,7 @@ nf.Settings = (function () {
             } else {
                 // if there are no bulletins clear all
                 var reportingTasks = reportingTasksData.getItems();
-                $.each(reportingTasks, function(_, reportingTask) {
+                $.each(reportingTasks, function (_, reportingTask) {
                     reportingTasksData.updateItem(reportingTask.id, $.extend(reportingTask, {
                         bulletins: []
                     }));

@@ -24,36 +24,22 @@
     bottom: 0px;
     left: 0px;
     right: 0px;
-}
-
-#templates-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+    height: 90%;
+    overflow: auto;
 }
 
 #templates-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
 }
 
 #templates-refresh-container {
-    height: 26px;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#templates-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
 }
 
 #templates-loading-container {
@@ -73,12 +59,6 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
 /* filter controls */
 
 #templates-filter-controls {
@@ -86,17 +66,12 @@
 }
 
 #templates-filter-container {
-    height: 24px;
+    height: 32px;
     width: 318px;
 }
 
 #templates-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
     width: 173px;
-    border: 1px solid #ccc;
     margin-right: 3px;
     float: left;
 }
@@ -106,19 +81,12 @@ input.templates-filter-list {
 }
 
 #templates-filter-type {
-    width: 127px;
-    height: 18px;
-    line-height: 18px;
+    width: 120px;
     float: left;
 }
 
-#templates-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
+#new-template-description {
+    height: 210px;
 }
 
 /* upload */
@@ -152,25 +120,11 @@ input.templates-filter-list {
     color: #888888;
 }
 
-.template-button {
-    height: 20px;
-    line-height: 20px;
-    float: right;
-    border-top: 1px solid #d1d1d1;
-    border-right: 1px solid #a7a7a7;
-    border-bottom: 1px solid #828282;
-    border-left: 1px solid #a7a7a7;
-    cursor: pointer;
-    font-weight: bold;
-    padding: 0 10px;
-}
-
-#cancel-upload-template-button {
-    margin-right: 4px;
-}
-
 #upload-template-container {
     float: right;
+    position: relative;
+    top: -28px;
+    overflow: hidden;
 }
 
 #submit-template-container {
@@ -178,11 +132,13 @@ input.templates-filter-list {
 }
 
 #selected-template-name {
-    color: #444444;
     float: right;
     font-weight: bold;
     margin-right: 20px;
     margin-top: 6px;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #728e9b;
 }
 
 #upload-template-status {
@@ -191,13 +147,16 @@ input.templates-filter-list {
     margin-right: 20px;
     margin-top: 6px;
     line-height: normal;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #728e9b;
 }
 
-#select-template-button {
-    margin: 0;
-    width: 50px;
-    overflow: hidden;
-    position: relative;
+#upload-template-container button {
+    float: right;
+    font-size: 16px;
+    line-height: 14px;
+    margin-left: 1px;
 }
 
 #template-upload-form-container {
@@ -219,11 +178,8 @@ input.templates-filter-list {
 /* templates table */
 
 #templates-table {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 70%;
+    width: 100%;
+    top: -28px;
 }

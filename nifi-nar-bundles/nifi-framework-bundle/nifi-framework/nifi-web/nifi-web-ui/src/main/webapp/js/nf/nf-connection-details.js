@@ -21,7 +21,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source of the connection.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source        The source of the connection
@@ -40,7 +40,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source processor.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -64,7 +64,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source funnel.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -80,7 +80,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the remote source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -105,7 +105,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} source            The source of the connection
@@ -145,7 +145,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the destination of the connection.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -164,7 +164,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the destination processor.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -194,7 +194,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the source funnel.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -210,7 +210,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the remote source port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -235,7 +235,7 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Initialize the details for the destination port.
-     * 
+     *
      * @argument {string} groupId               The id of the current group
      * @argument {string} groupName             The name of the current group
      * @argument {object} destination            The destination of the connection
@@ -276,48 +276,48 @@ nf.ConnectionDetails = (function () {
 
     /**
      * Creates the relationship option for the specified relationship.
-     * 
+     *
      * @argument {string} name      The relationship name
      */
     var createRelationshipOption = function (name) {
         $('<div class="available-relationship-container"></div>').append(
-                $('<div class="relationship-name"></div>').text(name)).appendTo('#read-only-relationship-names');
+            $('<div class="relationship-name"></div>').text(name)).appendTo('#read-only-relationship-names');
     };
 
     return {
         /**
          * Initializes the connection details dialog.
-         * 
-         * @param {boolean} overlayBackground       Whether to overlay the background
          */
-        init: function (overlayBackground) {
-            overlayBackground = nf.Common.isDefinedAndNotNull(overlayBackground) ? overlayBackground : true;
-
+        init: function () {
             // initialize the details tabs
             $('#connection-details-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
                 tabs: [{
-                        name: 'Details',
-                        tabContentId: 'read-only-connection-details-tab-content'
-                    }, {
-                        name: 'Settings',
-                        tabContentId: 'read-only-connection-settings-tab-content'
-                    }]
+                    name: 'Details',
+                    tabContentId: 'read-only-connection-details-tab-content'
+                }, {
+                    name: 'Settings',
+                    tabContentId: 'read-only-connection-settings-tab-content'
+                }]
             });
 
             // configure the connection details dialog
             $('#connection-details').modal({
                 headerText: 'Connection Details',
-                overlayBackground: overlayBackground,
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                $('#connection-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#connection-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the relationship names
@@ -348,18 +348,11 @@ nf.ConnectionDetails = (function () {
                     }
                 }
             });
-            
-            if (overlayBackground) {
-                $('#connection-details').draggable({
-                    containment: 'parent',
-                    handle: '.dialog-header'
-                });
-            }
         },
-        
+
         /**
          * Shows the details for the specified edge.
-         * 
+         *
          * @argument {string} groupId           The group id
          * @argument {string} connectionId      The connection id
          */

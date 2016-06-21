@@ -20,6 +20,11 @@
 $(document).ready(function () {
     // initialize the status page
     nf.Provenance.init();
+
+    //alter styles if we're not in the shell
+    if (top === window) {
+        $('#provenance').css('margin', 40);
+    }
 });
 
 nf.Provenance = (function () {
@@ -120,7 +125,7 @@ nf.Provenance = (function () {
      */
     var initializeProvenancePage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.ProvenanceTable.loadProvenanceTable();
         });
 

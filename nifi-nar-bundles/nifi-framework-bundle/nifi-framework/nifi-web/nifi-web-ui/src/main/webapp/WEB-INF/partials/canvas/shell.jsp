@@ -15,11 +15,15 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="shell-dialog" class="dialog cancellable">
-    <div id="shell-container">
+<div id="shell-dialog" class="hidden cancellable" data-nf-dialog='{"resizable": "false", "responsive": {"x": "false", "y": "false"}}'>
+    <div id="shell-container" class="dialog-content">
         <div id="shell-close-container">
-            <div id="shell-undock-button" class="undock-normal pointer" title="Open in New Window"></div>
-            <div id="shell-close-button" class="close-normal pointer" title="Close"></div>
+            <button id="shell-undock-button" class="undock-normal pointer " title="Open in New Window">
+                <div class="fa fa-external-link-square"></div>
+            </button>
+            <button id="shell-close-button" class="close-normal pointer" title="Close">
+                <div class="fa fa-times"></div>
+            </button>
             <div class="clear"></div>
         </div>
         <div id="shell"></div>

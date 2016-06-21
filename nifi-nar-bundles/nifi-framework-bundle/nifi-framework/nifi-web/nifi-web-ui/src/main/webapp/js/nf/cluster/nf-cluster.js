@@ -20,6 +20,12 @@
 $(document).ready(function () {
     // initialize the counters page
     nf.Cluster.init();
+
+    //alter styles if we're not in the shell
+    if (top === window) {
+        $('#cluster').css('margin', 40);
+        $('#cluster-refresh-container').css('margin', 40);
+    }
 });
 
 nf.Cluster = (function () {
@@ -64,7 +70,7 @@ nf.Cluster = (function () {
      */
     var initializeClusterPage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.ClusterTable.loadClusterTable();
         });
 
@@ -153,7 +159,6 @@ nf.Cluster = (function () {
                     });
                 });
             });
-
         }
     };
 }());

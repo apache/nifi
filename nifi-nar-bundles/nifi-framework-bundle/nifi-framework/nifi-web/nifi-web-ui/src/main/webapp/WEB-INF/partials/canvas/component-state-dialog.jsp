@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="component-state-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
+<div id="component-state-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Name</div>
@@ -34,11 +34,11 @@
                 Showing partial results
             </div>
             <div id="component-state-filter-controls">
+                <div id="component-state-filter-status" class="filter-status">
+                    Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
+                </div>
                 <div id="component-state-filter-container">
                     <input type="text" id="component-state-filter"/>
-                </div>
-                <div id="component-state-filter-status">
-                    Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
                 </div>
             </div>
             <div class="clear"></div>

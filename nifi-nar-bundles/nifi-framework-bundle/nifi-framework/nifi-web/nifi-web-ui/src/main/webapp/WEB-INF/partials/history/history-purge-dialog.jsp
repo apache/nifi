@@ -15,13 +15,13 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="history-purge-dialog">
+<div id="history-purge-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting" style="margin-bottom: 0px;">
             <div class="end-date-setting">
                 <div class="setting-name">
                     End date
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="The purge end date in the format 'mm/dd/yyyy'. Must also specify end time."/>
+                    <div class="fa fa-question-circle" alt="Info" title="The purge end date in the format 'mm/dd/yyyy'. Must also specify end time."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-purge-end-date" class="history-small-input"/>
@@ -30,7 +30,7 @@
             <div class="end-time-setting">
                 <div class="setting-name">
                     End time (<span class="timezone"></span>)
-                    <img id="purge-end-time-info" class="icon-info" src="images/iconInfo.png" alt="Info" title="The end time in the format 'hh:mm:ss'. Must also specify end date."/>
+                    <div class="fa fa-question-circle" id="purge-end-time-info" alt="Info" title="The end time in the format 'hh:mm:ss'. Must also specify end date."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-purge-end-time" class="history-small-input"/>

@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="process-group-details" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
+<div id="process-group-details" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Name</div>

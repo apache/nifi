@@ -15,33 +15,40 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-processor-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
-    <div class="dialog-content">
-        <div id="processor-type-filter-controls">
-            <div id="processor-type-filter-container">
-                <input type="text" id="processor-type-filter"/>
+<div id="new-processor-dialog" layout="column" class="hidden large-dialog">
+    <div class="dialog-content" layout="column">
+        <div layout="row" style="padding-bottom:0">
+            <div flex="25" layout="row" layout-align="start center">
+                <div class="setting-name">Tag Cloud:</div>
             </div>
-            <div id="processor-type-filter-status">
-                Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span id="total-processor-types"></span>
-            </div>
-        </div>
-        <div id="processor-tag-cloud-container">
-            <div class="setting">
-                <div class="setting-name">Tags</div>
-                <div class="setting-field">
-                    <div id="processor-tag-cloud"></div>
+            <div flex layout="row" layout-align="space-between center" id="processor-type-filter-controls">
+                <div id="processor-type-filter-status" class="filter-status">
+                    Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span
+                        id="total-processor-types"></span>
+                </div>
+                <div id="processor-type-filter-container">
+                    <input type="text" placeholder="Filter processor list" id="processor-type-filter"/>
                 </div>
             </div>
         </div>
-        <div id="processor-types-container">
-            <div id="processor-types-table" class="unselectable"></div>
-            <div id="processor-description-container">
+        <div flex layout="row" style="padding-top:0">
+            <div flex="25" id="processor-tag-cloud-container">
+                <div class="setting">
+                    <div class="setting-field">
+                        <div id="processor-tag-cloud"></div>
+                    </div>
+                </div>
+            </div>
+            <div layout="column" flex id="processor-types-container">
+                <div id="processor-types-table" class="unselectable"></div>
+                <div id="processor-type-name-title" class="ellipsis">Selected Processor:</div>
                 <div id="processor-type-name" class="ellipsis"></div>
-                <div id="processor-type-description" class="ellipsis multiline"></div>
-                <span class="hidden" id="selected-processor-name"></span>
-                <span class="hidden" id="selected-processor-type"></span>
+                <div id="processor-description-container">
+                    <div id="processor-type-description" class="ellipsis multiline"></div>
+                    <span class="hidden" id="selected-processor-name"></span>
+                    <span class="hidden" id="selected-processor-type"></span>
+                </div>
             </div>
         </div>
-        <div class="clear"></div>
     </div>
 </div>

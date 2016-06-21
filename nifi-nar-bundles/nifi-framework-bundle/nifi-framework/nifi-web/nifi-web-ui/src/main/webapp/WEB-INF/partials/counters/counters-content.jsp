@@ -18,22 +18,22 @@
 <div id="counters">
     <div id="counters-header-and-filter">
         <div id="counters-header-text">NiFi Counters</div>
-        <div id="counters-filter-controls">
-            <div id="counters-filter-container">
-                <input type="text" id="counters-filter"/>
-                <div id="counters-filter-type"></div>
-            </div>
-            <div id="counters-filter-stats">
+        <div id="counters-filter-controls" class="filter-controls">
+            <div id="counters-filter-stats" class="filter-status">
                 Displaying&nbsp;<span id="displayed-counters"></span>&nbsp;of&nbsp;<span id="total-counters"></span>
             </div>
+            <div id="counters-filter-container" class="filter-container">
+                <input type="text" id="counters-filter" class="filter"/>
+                <div id="counters-filter-type" class="filter-type"></div>
+            </div>
         </div>
-    </div>
-    <div id="counters-refresh-container">
-        <div id="refresh-button" class="counters-refresh pointer" title="Refresh"></div>
-        <div id="counters-last-refreshed-container">
-            Last updated:&nbsp;<span id="counters-last-refreshed"></span>
-        </div>
-        <div id="counters-loading-container" class="loading-container"></div>
     </div>
     <div id="counters-table"></div>
+</div>
+<div id="counters-refresh-container">
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="counters-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="counters-last-refreshed" class="value-color"></span>
+    </div>
+    <div id="counters-loading-container" class="loading-container"></div>
 </div>

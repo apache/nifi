@@ -225,9 +225,13 @@ nf.ComponentState = (function () {
             // initialize the processor configuration dialog
             $('#component-state-dialog').modal({
                 headerText: 'Component State',
-                overlayBackground: false,
                 buttons: [{
                     buttonText: 'Close',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             $(this).modal('hide');
@@ -265,8 +269,7 @@ nf.ComponentState = (function () {
                         }).fail(nf.Common.handleAjaxError);
                     } else {
                         nf.Dialog.showOkDialog({
-                            dialogContent: 'This component has no state to clear.',
-                            overlayBackground: false
+                            dialogContent: 'This component has no state to clear.'
                         });
                     }
                 }
@@ -280,7 +283,13 @@ nf.ComponentState = (function () {
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                componentStateColumns.push({id: 'scope', field: 'scope', name: 'Scope', sortable: true, resizable: true});
+                componentStateColumns.push({
+                    id: 'scope',
+                    field: 'scope',
+                    name: 'Scope',
+                    sortable: true,
+                    resizable: true
+                });
             }
 
             var componentStateOptions = {
@@ -288,7 +297,8 @@ nf.ComponentState = (function () {
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,
-                autoEdit: false
+                autoEdit: false,
+                rowHeight: 24
             };
 
             // initialize the dataview

@@ -16,28 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -193,7 +172,26 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -2527,7 +2525,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public PortStatusDTO getOutputPortStatus(final String outputPortId) {
-        return revisionManager.get(outputPortId, rev -> dtoFactory.createPortStatusDto(controllerFacade.getInputPortStatus(outputPortId)));
+        return revisionManager.get(outputPortId, rev -> dtoFactory.createPortStatusDto(controllerFacade.getOutputPortStatus(outputPortId)));
     }
 
     @Override

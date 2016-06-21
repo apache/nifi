@@ -80,7 +80,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Handles the status history response.
-     * 
+     *
      * @param {string} groupId
      * @param {string} id
      * @param {object} componentStatusHistory
@@ -112,8 +112,8 @@ nf.StatusHistory = (function () {
                 snapshots: componentStatusHistory.aggregateSnapshots
             });
         } else {
-        	insufficientHistory();
-        	return;
+            insufficientHistory();
+            return;
         }
 
         // get the status for each node in the cluster if applicable
@@ -146,14 +146,14 @@ nf.StatusHistory = (function () {
     var insufficientHistory = function () {
         // notify the user
         nf.Dialog.showOkDialog({
-            dialogContent: 'Insufficient history, please try again later.',
-            overlayBackground: false
+            headerText: 'Status History',
+            dialogContent: 'Insufficient history, please try again later.'
         });
     };
 
     /**
      * Builds the chart using the statusHistory and the available fields.
-     * 
+     *
      * @param {type} statusHistory
      * @param {type} descriptors
      */
@@ -183,7 +183,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Sets the available fields.
-     * 
+     *
      * @param {type} descriptors
      * @param {type} selected
      */
@@ -237,7 +237,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Updates the chart with the specified status history and the selected field.
-     * 
+     *
      * @param {type} statusHistory
      */
     var updateChart = function (statusHistory) {
@@ -299,20 +299,36 @@ nf.StatusHistory = (function () {
                 visible: instances[instance.id] === true
             });
         });
-        
+
         // --------------------------
         // custom time axis formatter
         // --------------------------
 
         var customTimeFormat = d3.time.format.multi([
-            [':%S.%L', function (d) { return d.getMilliseconds(); }], 
-            [':%S', function (d) { return d.getSeconds(); }],
-            ['%H:%M', function (d) { return d.getMinutes(); }],
-            ['%H:%M', function (d) { return d.getHours(); }],
-            ['%a %d', function (d) { return d.getDay() && d.getDate() !== 1; }],
-            ['%b %d', function (d) { return d.getDate() !== 1; }],
-            ['%B', function (d) { return d.getMonth(); }],
-            ['%Y', function () { return true; }]
+            [':%S.%L', function (d) {
+                return d.getMilliseconds();
+            }],
+            [':%S', function (d) {
+                return d.getSeconds();
+            }],
+            ['%H:%M', function (d) {
+                return d.getMinutes();
+            }],
+            ['%H:%M', function (d) {
+                return d.getHours();
+            }],
+            ['%a %d', function (d) {
+                return d.getDay() && d.getDate() !== 1;
+            }],
+            ['%b %d', function (d) {
+                return d.getDate() !== 1;
+            }],
+            ['%B', function (d) {
+                return d.getMonth();
+            }],
+            ['%Y', function () {
+                return true;
+            }]
         ]);
 
         // ----------
@@ -331,56 +347,56 @@ nf.StatusHistory = (function () {
         if (chartContainer.hasClass('ui-resizable')) {
             chartContainer.resizable('destroy');
         }
-        
+
         // calculate the dimensions
-        var width = chartContainer.width() - margin.left - margin.right;
+        var width = chartContainer.parent().width() - margin.left - margin.right;
         var height = chartContainer.height() - margin.top - margin.bottom;
 
         // define the x axis for the main chart
         var x = d3.time.scale()
-                .range([0, width]);
+            .range([0, width]);
 
         var xAxis = d3.svg.axis()
-                .scale(x)
-                .ticks(5)
-                .tickFormat(customTimeFormat)
-                .orient('bottom');
+            .scale(x)
+            .ticks(5)
+            .tickFormat(customTimeFormat)
+            .orient('bottom');
 
         // define the y axis
         var y = d3.scale.linear()
-                .range([height, 0]);
+            .range([height, 0]);
 
         var yAxis = d3.svg.axis()
-                .scale(y)
-                .tickFormat(formatters[selectedDescriptor.formatter])
-                .orient('left');
+            .scale(y)
+            .tickFormat(formatters[selectedDescriptor.formatter])
+            .orient('left');
 
         // status line
         var line = d3.svg.line()
-                .interpolate('monotone')
-                .x(function (d) {
-                    return x(d.timestamp);
-                })
-                .y(function (d) {
-                    return y(d.value);
-                });
+            .interpolate('monotone')
+            .x(function (d) {
+                return x(d.timestamp);
+            })
+            .y(function (d) {
+                return y(d.value);
+            });
 
         // build the chart svg
         var chartSvg = d3.select('#status-history-chart-container').append('svg')
-                .attr('style', 'pointer-events: none;')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', height + margin.top + margin.bottom);
+            .attr('style', 'pointer-events: none;')
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom);
 
         // define a clip the path
         var clipPath = chartSvg.append('defs').append('clipPath')
-                .attr('id', 'clip')
-                .append('rect')
-                .attr('width', width)
-                .attr('height', height);
+            .attr('id', 'clip')
+            .append('rect')
+            .attr('width', width)
+            .attr('height', height);
 
         // build the chart
         var chart = chartSvg.append('g')
-                .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+            .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
 
         // determine the min/max date
         var minDate = d3.min(statusData, function (d) {
@@ -404,80 +420,80 @@ nf.StatusHistory = (function () {
 
         // build the x axis
         chart.append('g')
-                .attr('class', 'x axis')
-                .attr('transform', 'translate(0, ' + height + ')')
-                .call(xAxis);
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0, ' + height + ')')
+            .call(xAxis);
 
         // build the y axis
         chart.append('g')
-                .attr('class', 'y axis')
-                .call(yAxis)
-                .append('text')
-                .attr('transform', 'rotate(-90)')
-                .attr('y', 6)
-                .attr('dy', '.71em')
-                .attr('text-anchor', 'end')
-                .text(selectedDescriptor.label);
+            .attr('class', 'y axis')
+            .call(yAxis)
+            .append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 6)
+            .attr('dy', '.71em')
+            .attr('text-anchor', 'end')
+            .text(selectedDescriptor.label);
 
         // build the chart
         var status = chart.selectAll('.status')
-                .data(statusData)
-                .enter()
-                .append('g')
-                .attr('clip-path', 'url(#clip)')
-                .attr('class', 'status');
+            .data(statusData)
+            .enter()
+            .append('g')
+            .attr('clip-path', 'url(#clip)')
+            .attr('class', 'status');
 
         // draw the lines
         status.append('path')
-                .attr('class', function (d) {
-                    return 'chart-line chart-line-' + d.id;
-                })
-                .attr('d', function (d) {
-                    return line(d.values);
-                })
-                .attr('stroke', function (d) {
-                    return color(d.label);
-                })
-                .classed('hidden', function (d) {
-                    return d.visible === false;
-                })
-                .append('title')
-                .text(function (d) {
-                    return d.label;
-                });
+            .attr('class', function (d) {
+                return 'chart-line chart-line-' + d.id;
+            })
+            .attr('d', function (d) {
+                return line(d.values);
+            })
+            .attr('stroke', function (d) {
+                return color(d.label);
+            })
+            .classed('hidden', function (d) {
+                return d.visible === false;
+            })
+            .append('title')
+            .text(function (d) {
+                return d.label;
+            });
 
         // draw the control points for each line
         status.each(function (d) {
             // create a group for the control points
             var markGroup = d3.select(this).append('g')
-                    .attr('class', function () {
-                        return 'mark-group mark-group-' + d.id;
-                    })
-                    .classed('hidden', function (d) {
-                        return d.visible === false;
-                    });
+                .attr('class', function () {
+                    return 'mark-group mark-group-' + d.id;
+                })
+                .classed('hidden', function (d) {
+                    return d.visible === false;
+                });
 
             // draw the control points
             markGroup.selectAll('circle.mark')
-                    .data(d.values)
-                    .enter()
-                    .append('circle')
-                    .attr('style', 'pointer-events: all;')
-                    .attr('class', 'mark')
-                    .attr('cx', function (v) {
-                        return x(v.timestamp);
-                    })
-                    .attr('cy', function (v) {
-                        return y(v.value);
-                    })
-                    .attr('fill', function () {
-                        return color(d.label);
-                    })
-                    .attr('r', 1.5)
-                    .append('title')
-                    .text(function (v) {
-                        return d.label + ' -- ' + formatters[selectedDescriptor.formatter](v.value);
-                    });
+                .data(d.values)
+                .enter()
+                .append('circle')
+                .attr('style', 'pointer-events: all;')
+                .attr('class', 'mark')
+                .attr('cx', function (v) {
+                    return x(v.timestamp);
+                })
+                .attr('cy', function (v) {
+                    return y(v.value);
+                })
+                .attr('fill', function () {
+                    return color(d.label);
+                })
+                .attr('r', 1.5)
+                .append('title')
+                .text(function (v) {
+                    return d.label + ' -- ' + formatters[selectedDescriptor.formatter](v.value);
+                });
         });
 
         // -------------
@@ -489,41 +505,41 @@ nf.StatusHistory = (function () {
         var controlHeight = chartControlContainer.height() - margin.top - margin.bottom;
 
         var xControl = d3.time.scale()
-                .range([0, width]);
+            .range([0, width]);
 
         var xControlAxis = d3.svg.axis()
-                .scale(xControl)
-                .ticks(5)
-                .tickFormat(customTimeFormat)
-                .orient('bottom');
+            .scale(xControl)
+            .ticks(5)
+            .tickFormat(customTimeFormat)
+            .orient('bottom');
 
         var yControl = d3.scale.linear()
-                .range([controlHeight, 0]);
+            .range([controlHeight, 0]);
 
         var yControlAxis = d3.svg.axis()
-                .scale(yControl)
-                .tickValues(y.domain())
-                .tickFormat(formatters[selectedDescriptor.formatter])
-                .orient('left');
+            .scale(yControl)
+            .tickValues(y.domain())
+            .tickFormat(formatters[selectedDescriptor.formatter])
+            .orient('left');
 
         // status line
         var controlLine = d3.svg.line()
-                .interpolate('monotone')
-                .x(function (d) {
-                    return xControl(d.timestamp);
-                })
-                .y(function (d) {
-                    return yControl(d.value);
-                });
+            .interpolate('monotone')
+            .x(function (d) {
+                return xControl(d.timestamp);
+            })
+            .y(function (d) {
+                return yControl(d.value);
+            });
 
         // build the svg
         var controlChartSvg = d3.select('#status-history-chart-control-container').append('svg')
-                .attr('width', width + margin.left + margin.right)
-                .attr('height', controlHeight + margin.top + margin.bottom);
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', controlHeight + margin.top + margin.bottom);
 
         // build the control chart
         var control = controlChartSvg.append('g')
-                .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
+            .attr('transform', 'translate(' + margin.left + ', ' + margin.top + ')');
 
         // increase the y domain slightly
         var yControlDomain = y.domain();
@@ -535,40 +551,40 @@ nf.StatusHistory = (function () {
 
         // build the control x axis
         control.append('g')
-                .attr('class', 'x axis')
-                .attr('transform', 'translate(0, ' + controlHeight + ')')
-                .call(xControlAxis);
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0, ' + controlHeight + ')')
+            .call(xControlAxis);
 
         // build the control y axis
         control.append('g')
-                .attr('class', 'y axis')
-                .call(yControlAxis);
+            .attr('class', 'y axis')
+            .call(yControlAxis);
 
         // build the control chart
         var controlStatus = control.selectAll('.status')
-                .data(statusData)
-                .enter()
-                .append('g')
-                .attr('class', 'status');
+            .data(statusData)
+            .enter()
+            .append('g')
+            .attr('class', 'status');
 
         // draw the lines
         controlStatus.append('path')
-                .attr('class', function (d) {
-                    return 'chart-line chart-line-' + d.id;
-                })
-                .attr('d', function (d) {
-                    return controlLine(d.values);
-                })
-                .attr('stroke', function (d) {
-                    return color(d.label);
-                })
-                .classed('hidden', function (d) {
-                    return instances[d.id] === false;
-                })
-                .append('title')
-                .text(function (d) {
-                    return d.label;
-                });
+            .attr('class', function (d) {
+                return 'chart-line chart-line-' + d.id;
+            })
+            .attr('d', function (d) {
+                return controlLine(d.values);
+            })
+            .attr('stroke', function (d) {
+                return color(d.label);
+            })
+            .classed('hidden', function (d) {
+                return instances[d.id] === false;
+            })
+            .append('title')
+            .text(function (d) {
+                return d.label;
+            });
 
         // -------------------
         // configure the brush
@@ -576,7 +592,7 @@ nf.StatusHistory = (function () {
 
         /**
          * Updates the axis for the main chart.
-         * 
+         *
          * @param {array} xDomain   The new domain for the x axis
          * @param {array} yDomain   The new domain for the y axis
          */
@@ -587,19 +603,19 @@ nf.StatusHistory = (function () {
 
             // update the chart lines
             status.selectAll('.chart-line')
-                    .attr('d', function (d) {
-                        return line(d.values);
-                    });
+                .attr('d', function (d) {
+                    return line(d.values);
+                });
             status.selectAll('circle.mark')
-                    .attr('cx', function (v) {
-                        return x(v.timestamp);
-                    })
-                    .attr('cy', function (v) {
-                        return y(v.value);
-                    })
-                    .attr('r', function () {
-                        return brush.empty() ? 1.5 : 4;
-                    });
+                .attr('cx', function (v) {
+                    return x(v.timestamp);
+                })
+                .attr('cy', function (v) {
+                    return y(v.value);
+                })
+                .attr('r', function () {
+                    return brush.empty() ? 1.5 : 4;
+                });
 
             // update the x axis
             chart.select('.x.axis').call(xAxis);
@@ -658,9 +674,9 @@ nf.StatusHistory = (function () {
 
         // build the brush
         var brush = d3.svg.brush()
-                .x(xControl)
-                .y(yControl)
-                .on('brush', brushed);
+            .x(xControl)
+            .y(yControl)
+            .on('brush', brushed);
 
         // conditionally set the brush extent
         if (nf.Common.isDefinedAndNotNull(brushExtent)) {
@@ -669,30 +685,30 @@ nf.StatusHistory = (function () {
 
         // context area
         control.append('g')
-                .attr('class', 'brush')
-                .call(brush);
+            .attr('class', 'brush')
+            .call(brush);
 
         // add expansion to the extent
         control.select('rect.extent')
-                .attr('style', 'pointer-events: all;')
-                .on('dblclick', function () {
-                    if (!brush.empty()) {
-                        // get the current extent to get the x range
-                        var extent = brush.extent();
+            .attr('style', 'pointer-events: all;')
+            .on('dblclick', function () {
+                if (!brush.empty()) {
+                    // get the current extent to get the x range
+                    var extent = brush.extent();
 
-                        // get the y range (this value does not change from the original y domain)
-                        var yRange = yControl.domain();
+                    // get the y range (this value does not change from the original y domain)
+                    var yRange = yControl.domain();
 
-                        // expand the extent vertically
-                        brush.extent([[extent[0][0], yRange[0]], [extent[1][0], yRange[1]]]);
+                    // expand the extent vertically
+                    brush.extent([[extent[0][0], yRange[0]], [extent[1][0], yRange[1]]]);
 
-                        // update the brush control
-                        control.select('.brush').call(brush);
+                    // update the brush control
+                    control.select('.brush').call(brush);
 
-                        // run the brush to update the axes of the main chart
-                        brushed();
-                    }
-                });
+                    // run the brush to update the axes of the main chart
+                    brushed();
+                }
+            });
 
         // --------------------
         // aggregate statistics
@@ -834,7 +850,7 @@ nf.StatusHistory = (function () {
             },
             start: function (e, ui) {
                 var helperOffset = ui.helper.offset();
-                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2) + 3; // 3 for the box shadow
+                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2);
                 var chartOuter = chartContainer.outerWidth() - chartContainer.width();
 
                 // calculate the max width of the component
@@ -897,11 +913,11 @@ nf.StatusHistory = (function () {
 
                 // update the size of the chart
                 chartSvg.attr('width', width + margin.left + margin.right)
-                        .attr('height', height + margin.top + margin.bottom);
+                    .attr('height', height + margin.top + margin.bottom);
 
                 // update the size of the clipper
                 clipPath.attr('width', width)
-                        .attr('height', height);
+                    .attr('height', height);
 
                 // update the position of the x axis
                 chart.select('.x.axis').attr('transform', 'translate(0, ' + height + ')');
@@ -919,7 +935,7 @@ nf.StatusHistory = (function () {
 
                 // update the size of the control chart
                 controlChartSvg.attr('width', width + margin.left + margin.right)
-                        .attr('height', controlHeight + margin.top + margin.bottom);
+                    .attr('height', controlHeight + margin.top + margin.bottom);
 
                 // update the chart lines
                 controlStatus.selectAll('.chart-line').attr('d', function (d) {
@@ -952,7 +968,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Gets the minimum value from the specified instances.
-     * 
+     *
      * @param {type} nodeInstances
      */
     var getMinValue = function (nodeInstances) {
@@ -965,7 +981,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Gets the maximum value from the specified instances.
-     * 
+     *
      * @param {type} nodeInstances
      */
     var getMaxValue = function (nodeInstances) {
@@ -978,7 +994,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Gets the mean value from the specified instances.
-     * 
+     *
      * @param {type} nodeInstances
      */
     var getMeanValue = function (nodeInstances) {
@@ -1005,7 +1021,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Builds a details container.
-     * 
+     *
      * @param {type} label
      */
     var buildDetailsContainer = function (label) {
@@ -1016,7 +1032,7 @@ nf.StatusHistory = (function () {
 
     /**
      * Adds a detail item and specified container.
-     * 
+     *
      * @param {type} container
      * @param {type} label
      * @param {type} value
@@ -1024,8 +1040,8 @@ nf.StatusHistory = (function () {
      */
     var addDetailItem = function (container, label, value, valueElementId) {
         var detailContainer = $('<div class="detail-item"></div>').appendTo(container);
-        $('<div class="detail-item-label"></div>').text(label).appendTo(detailContainer);
-        var detailElement = $('<div class="detail-item-value"></div>').text(value).appendTo(detailContainer);
+        $('<div class="setting-name"></div>').text(label).appendTo(detailContainer);
+        var detailElement = $('<div class="setting-field"></div>').text(value).appendTo(detailContainer);
 
         if (nf.Common.isDefinedAndNotNull(valueElementId)) {
             detailElement.attr('id', valueElementId);
@@ -1035,13 +1051,13 @@ nf.StatusHistory = (function () {
     return {
         /**
          * Initializes the lineage graph.
-         * 
+         *
          * @param {integer} timeOffset The time offset of the server
          */
         init: function (timeOffset) {
             serverTimeOffset = timeOffset;
 
-            nf.Common.addHoverEffect('#status-history-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            $('#status-history-refresh-button').click(function () {
                 var statusHistory = $('#status-history-dialog').data('status-history');
                 if (statusHistory !== null) {
                     if (statusHistory.type === config.type.processor) {
@@ -1058,9 +1074,14 @@ nf.StatusHistory = (function () {
 
             // configure the dialog and make it draggable
             $('#status-history-dialog').modal({
-                overlayBackground: false,
+                headerText: "Status History",
                 buttons: [{
                     buttonText: 'Close',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             this.modal('hide');
@@ -1088,10 +1109,10 @@ nf.StatusHistory = (function () {
                 containment: 'parent'
             });
         },
-        
+
         /**
          * Shows the status history for the specified connection in this instance.
-         * 
+         *
          * @param {type} groupId
          * @param {type} connectionId
          * @param {type} selectedDescriptor
@@ -1105,10 +1126,10 @@ nf.StatusHistory = (function () {
                 handleStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows the status history for the specified processor in this instance.
-         * 
+         *
          * @param {type} groupId
          * @param {type} processorId
          * @param {type} selectedDescriptor
@@ -1122,10 +1143,10 @@ nf.StatusHistory = (function () {
                 handleStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows the status history for the specified process group in this instance.
-         * 
+         *
          * @param {type} groupId
          * @param {type} processGroupId
          * @param {type} selectedDescriptor
@@ -1139,10 +1160,10 @@ nf.StatusHistory = (function () {
                 handleStatusHistoryResponse(groupId, processGroupId, response.statusHistory, config.type.processGroup, selectedDescriptor);
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows the status history for the specified remote process group in this instance.
-         * 
+         *
          * @param {type} groupId
          * @param {type} remoteProcessGroupId
          * @param {type} selectedDescriptor

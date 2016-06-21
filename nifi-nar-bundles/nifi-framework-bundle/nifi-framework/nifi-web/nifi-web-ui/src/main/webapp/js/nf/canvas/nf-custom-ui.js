@@ -52,8 +52,8 @@ nf.CustomUi = {
                 });
             }).fail(function () {
                 nf.Dialog.showOkDialog({
-                    dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.',
-                    overlayBackground: false
+                    headerText: 'Configuration',
+                    dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
                 });
                 deferred.resolve();
             });

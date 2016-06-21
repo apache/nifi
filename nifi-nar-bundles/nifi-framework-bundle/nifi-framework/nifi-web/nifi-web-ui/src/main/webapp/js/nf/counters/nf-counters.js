@@ -20,6 +20,12 @@
 $(document).ready(function () {
     // initialize the counters page
     nf.Counters.init();
+
+    //alter styles if we're not in the shell
+    if (top === window) {
+        $('#counters').css('margin', 40);
+        $('#counters-refresh-container').css('margin', 40);
+    }
 });
 
 nf.Counters = (function () {
@@ -64,7 +70,7 @@ nf.Counters = (function () {
      */
     var initializeCountersPage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.CountersTable.loadCountersTable();
         });
 

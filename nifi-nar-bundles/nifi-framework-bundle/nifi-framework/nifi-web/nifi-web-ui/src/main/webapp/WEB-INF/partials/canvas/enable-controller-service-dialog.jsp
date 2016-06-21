@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="enable-controller-service-dialog" nf-draggable="{containment: 'parent', handle: '.dialog-header'}">
+<div id="enable-controller-service-dialog" layout="column" class="hidden large-dialog">
     <div class="dialog-content">
         <div class="settings-left">
             <div id="enable-controller-service-service-container" class="setting">
@@ -61,7 +61,7 @@
             <div class="setting">
                 <div class="setting-name">
                     Referencing Components
-                    <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="Other components referencing this controller service."/>
+                    <div class="fa fa-question-circle" alt="Info" title="Other components referencing this controller service."></div>
                 </div>
                 <div class="setting-field">
                     <div id="enable-controller-service-referencing-components"></div>

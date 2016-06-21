@@ -15,8 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="label-configuration" nf-draggable="{ containment: 'parent', cancel: 'textarea, .button, .combo'}">
-    <div id="label-configuration-contents">
+<div id="label-configuration" class="hidden medium-dialog">
+    <div id="label-configuration-contents" class="dialog-content">
         <div class="setting" style="margin-top: 5px;">
             <div class="setting-name">Label Value</div>
             <div class="setting-field">

@@ -22,15 +22,19 @@ nf.RemoteProcessGroupDetails = (function () {
         init: function () {
             $('#remote-process-group-details').modal({
                 headerText: 'Remote Process Group Details',
-                overlayBackground: true,
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                $('#remote-process-group-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#remote-process-group-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the remote process group details
@@ -48,10 +52,10 @@ nf.RemoteProcessGroupDetails = (function () {
                 }
             });
         },
-        
+
         /**
          * Shows the details for the remote process group in the specified selection.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showDetails: function (selection) {

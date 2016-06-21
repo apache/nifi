@@ -18,11 +18,51 @@
 /* global nf, top */
 
 $(document).ready(function () {
+
+    //Create Angular App
+    var app = angular.module('ngBulletinBoardApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider', 'bulletinBoardCtrl'];
+    nf.ng.BulletinBoardCtrl.$inject = ['serviceProvider'];
+    nf.ng.ServiceProvider.$inject = [];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngBulletinBoardAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('serviceProvider', nf.ng.ServiceProvider);
+    app.service('bulletinBoardCtrl', nf.ng.BulletinBoardCtrl);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngBulletinBoardApp'], { strictDi: true });
+
     // initialize the bulletin board
-    nf.BulletinBoard.init();
+    nf.ng.Bridge.injector.get('bulletinBoardCtrl').init();
+
+    //alter styles if we're not in the shell
+    if (top === window) {
+        $('#bulletin-board').css('margin', 40);
+        $('#bulletin-board-refresh-container').css({
+            "position": "absolute",
+            "width": "100%",
+            "bottom": "40px",
+            "margin": "40px"
+        });
+
+        $('#bulletin-board-status-container').css({
+            "float": "right",
+            "padding-right": "80px"
+        });
+    }
 });
 
-nf.BulletinBoard = (function () {
+nf.ng.BulletinBoardCtrl = function (serviceProvider) {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -30,22 +70,16 @@ nf.BulletinBoard = (function () {
     var config = {
         pollInterval: 3,
         maxBulletins: 1000,
-        defaultFilterText: 'Filter',
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             bulletinBoard: '../nifi-api/flow/bulletin-board'
         },
         styles: {
-            filterList: 'bulletin-board-filter-list',
-            bulletinBoardPolling: 'bulletin-board-polling',
-            bulletinBoardPollingHover: 'bulletin-board-polling-hover',
-            bulletinBoardStopped: 'bulletin-board-stopped',
-            bulletinBoardStoppedHover: 'bulletin-board-stopped-hover'
+            filterList: 'bulletin-board-filter-list'
         }
     };
 
-    var polling = null;
     var lastBulletin = null;
     var filterText = null;
     var filterType = null;
@@ -54,31 +88,8 @@ nf.BulletinBoard = (function () {
      * Initializes the bulletin board.
      */
     var initializePage = function () {
-        // define mouse over event for the pause button
-        $('#refresh-button').addClass(config.styles.bulletinBoardPolling).click(function () {
-            togglePolling();
-
-            if ($(this).hasClass(config.styles.bulletinBoardPollingHover)) {
-                $(this).removeClass(config.styles.bulletinBoardPollingHover).addClass(config.styles.bulletinBoardStoppedHover);
-            } else if ($(this).hasClass(config.styles.bulletinBoardStoppedHover)) {
-                $(this).removeClass(config.styles.bulletinBoardStoppedHover).addClass(config.styles.bulletinBoardPollingHover);
-            }
-        }).hover(function () {
-            if (polling === true) {
-                $(this).removeClass(config.styles.bulletinBoardPolling).addClass(config.styles.bulletinBoardPollingHover);
-            } else {
-                $(this).removeClass(config.styles.bulletinBoardStopped).addClass(config.styles.bulletinBoardStoppedHover);
-            }
-        }, function () {
-            if (polling === true) {
-                $(this).removeClass(config.styles.bulletinBoardPollingHover + ' ' + config.styles.bulletinBoardStoppedHover).addClass(config.styles.bulletinBoardPolling);
-            } else {
-                $(this).removeClass(config.styles.bulletinBoardStoppedHover + ' ' + config.styles.bulletinBoardPollingHover).addClass(config.styles.bulletinBoardStopped);
-            }
-        });
-
         // add hover effect and click handler for clearing the bulletins
-        nf.Common.addHoverEffect('#clear-bulletins-button', 'button-normal', 'button-over').click(function () {
+        $('#clear-bulletins-button').click(function () {
             $('#bulletin-board-container').empty();
         });
 
@@ -89,25 +100,25 @@ nf.BulletinBoard = (function () {
             }
         }).blur(function () {
             if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.defaultFilterText);
+                $(this).addClass(config.styles.filterList);
             }
-        }).addClass(config.styles.filterList).val(config.defaultFilterText);
+        }).addClass(config.styles.filterList);
 
         // filter type
         $('#bulletin-board-filter-type').combo({
             options: [{
-                    text: 'by message',
-                    value: 'message'
-                }, {
-                    text: 'by name',
-                    value: 'sourceName'
-                }, {
-                    text: 'by id',
-                    value: 'sourceId'
-                }, {
-                    text: 'by group id',
-                    value: 'groupId'
-                }]
+                text: 'by message',
+                value: 'message'
+            }, {
+                text: 'by name',
+                value: 'sourceName'
+            }, {
+                text: 'by id',
+                value: 'sourceId'
+            }, {
+                text: 'by group id',
+                value: 'groupId'
+            }]
         });
 
         // get the about details
@@ -182,18 +193,6 @@ nf.BulletinBoard = (function () {
     };
 
     /**
-     * Toggles whether the page is actively polling for new bulletins.
-     */
-    var togglePolling = function () {
-        // conditionally start or stop
-        if (polling === true) {
-            stop();
-        } else {
-            start();
-        }
-    };
-
-    /**
      * Starts polling for new bulletins.
      */
     var start = function () {
@@ -204,13 +203,7 @@ nf.BulletinBoard = (function () {
 
         // clear any error messages
         $('#bulletin-error-message').text('').hide();
-
-        // start polling again
-        polling = true;
         poll();
-
-        // update the ui
-        refreshButton.removeClass(config.styles.bulletinBoardStopped).addClass(config.styles.bulletinBoardPolling);
     };
 
     /**
@@ -222,16 +215,10 @@ nf.BulletinBoard = (function () {
 
         appendAndScroll(bulletinContainer, '<div class="bulletin-action">Auto refresh stopped</div>');
 
-        // stop polling
-        polling = false;
-
         // reset state
         lastBulletin = null;
         filterText = null;
         filterType = null;
-
-        // update the ui
-        refreshButton.removeClass(config.styles.bulletinBoardPolling).addClass(config.styles.bulletinBoardStopped);
     };
 
     /**
@@ -241,13 +228,13 @@ nf.BulletinBoard = (function () {
         // if the page is no longer open, stop polling
         var isOpen = $('body').is(':visible');
         if (!isOpen) {
-            polling = false;
+            bulletinBoardCtrl.polling = false;
         }
 
         // if polling, reload the bulletins
-        if (polling) {
-            loadBulletins().done(function () {
-                if (polling) {
+        if (bulletinBoardCtrl.polling) {
+            bulletinBoardCtrl.loadBulletins().done(function () {
+                if (bulletinBoardCtrl.polling) {
                     setTimeout(poll, config.pollInterval * 1000);
                 }
             });
@@ -255,139 +242,8 @@ nf.BulletinBoard = (function () {
     };
 
     /**
-     * Loads the bulletins since the last refresh.
-     */
-    var loadBulletins = function () {
-        var data = {};
-
-        // include the timestamp if appropriate
-        if (nf.Common.isDefinedAndNotNull(lastBulletin)) {
-            data['after'] = lastBulletin;
-        } else {
-            data['limit'] = 10;
-        }
-
-        var bulletinContainer = $('#bulletin-board-container');
-
-        // get the filter text
-        var filterField = $('#bulletin-board-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            var filter = filterField.val();
-            if (filter !== '') {
-                // determine which field to filter on
-                var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
-                data[filterOption.value] = filter;
-
-                // append filtering message if necessary
-                if (filterText !== filter || filterType !== filterOption.text) {
-                    var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
-                    appendAndScroll(bulletinContainer, filterContent.get(0));
-                    filterText = filter;
-                    filterType = filterOption.text;
-                }
-            } else if (filterText !== null) {
-                appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
-                filterText = null;
-                filterType = null;
-            }
-        }
-
-        return $.ajax({
-            type: 'GET',
-            url: config.urls.bulletinBoard,
-            data: data,
-            dataType: 'json'
-        }).done(function (response) {
-            // ensure the bulletin board was specified
-            if (nf.Common.isDefinedAndNotNull(response.bulletinBoard)) {
-                var bulletinBoard = response.bulletinBoard;
-
-                // update the stats last refreshed timestamp
-                $('#bulletin-board-last-refreshed').text(bulletinBoard.generated);
-
-                // process the bulletins
-                var bulletins = response.bulletinBoard.bulletins;
-                var content = [];
-
-                // append each bulletin
-                $.each(bulletins, function (i, bulletin) {
-                    // format the severity
-                    var severityStyle = 'bulletin-normal';
-                    if (bulletin.level === 'ERROR') {
-                        severityStyle = 'bulletin-error';
-                    } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
-                        severityStyle = 'bulletin-warn';
-                    }
-
-                    // format the source id
-                    var source;
-                    if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
-                        source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
-                            goToSource(bulletin.groupId, bulletin.sourceId);
-                        });
-                    } else {
-                        var sourceId = bulletin.sourceId;
-                        if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
-                            sourceId = '';
-                        }
-                        source = $('<div class="bulletin-source"></div>').text(sourceId);
-                    }
-
-                    // build the markup for this bulletin
-                    var bulletinMarkup = $('<div class="bulletin"></div>');
-
-                    // build the markup for this bulletins info
-                    var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
-                    $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
-                    $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
-                    source.appendTo(bulletinInfoMarkup);
-                    $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
-
-                    // format the node address if applicable
-                    if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
-                        $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
-                    }
-
-                    // add the bulletin message (treat as text)
-                    $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
-                    $('<div class="clear"></div>').appendTo(bulletinMarkup);
-
-                    // append the content
-                    content.push(bulletinMarkup.get(0));
-
-                    // record the id of the last bulletin in this request
-                    if (i + 1 === bulletins.length) {
-                        lastBulletin = bulletin.id;
-                    }
-                });
-
-                // add the content to the scroll pane
-                appendAndScroll(bulletinContainer, content);
-
-                // trim the container as necessary
-                var contents = bulletinContainer.contents();
-                var length = contents.length;
-                if (length > config.maxBulletins) {
-                    contents.slice(0, length - config.maxBulletins).remove();
-                    bulletinContainer.prepend('<div class="bulletin-action">&#8230;</div>');
-                }
-            }
-        }).fail(function (xhr, status, error) {
-            // likely caused by a invalid regex
-            if (xhr.status === 404) {
-                $('#bulletin-error-message').text(xhr.responseText).show();
-
-                // stop future polling
-                togglePolling();
-            } else {
-                nf.Common.handleAjaxError(xhr, status, error);
-            }
-        });
-    };
-
-    /**
      * Appends the specified string to the specified container and scrolls to the bottom.
-     * 
+     *
      * @argument {jQuery} bulletinContainer     The container for the bulletins
      * @argument {string} content               The content to added to the bulletin container
      */
@@ -397,7 +253,7 @@ nf.BulletinBoard = (function () {
 
     /**
      * Goes to the specified source on the graph.
-     * 
+     *
      * @argument {string} groupId   The id of the group
      * @argument {string} sourceId  The id of the source component
      */
@@ -412,16 +268,180 @@ nf.BulletinBoard = (function () {
         }
     };
 
-    return {
+    function BulletinBoardCtrl() {
+        /**
+         * Toggle state
+         */
+        this.polling = true;
+    }
+    BulletinBoardCtrl.prototype = {
+        constructor: BulletinBoardCtrl,
+
+        /**
+         *  Register the bulletin board controller.
+         */
+        register: function() {
+            if (serviceProvider.bulletinBoardCtrl === undefined) {
+                serviceProvider.register('bulletinBoardCtrl', bulletinBoardCtrl);
+            }
+        },
+
         /**
          * Initializes the bulletin board page.
          */
         init: function () {
             nf.Storage.init();
-            
+
             initializePage().done(function () {
                 start();
             });
+        },
+
+        /**
+         * Loads the bulletins since the last refresh.
+         */
+        loadBulletins: function () {
+            var data = {};
+
+            // include the timestamp if appropriate
+            if (nf.Common.isDefinedAndNotNull(lastBulletin)) {
+                data['after'] = lastBulletin;
+            } else {
+                data['limit'] = 10;
+            }
+
+            var bulletinContainer = $('#bulletin-board-container');
+
+            // get the filter text
+            var filterField = $('#bulletin-board-filter');
+            if (!filterField.hasClass(config.styles.filterList)) {
+                var filter = filterField.val();
+                if (filter !== '') {
+                    // determine which field to filter on
+                    var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
+                    data[filterOption.value] = filter;
+
+                    // append filtering message if necessary
+                    if (filterText !== filter || filterType !== filterOption.text) {
+                        var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
+                        appendAndScroll(bulletinContainer, filterContent.get(0));
+                        filterText = filter;
+                        filterType = filterOption.text;
+                    }
+                } else if (filterText !== null) {
+                    appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
+                    filterText = null;
+                    filterType = null;
+                }
+            }
+
+            return $.ajax({
+                type: 'GET',
+                url: config.urls.bulletinBoard,
+                data: data,
+                dataType: 'json'
+            }).done(function (response) {
+                // ensure the bulletin board was specified
+                if (nf.Common.isDefinedAndNotNull(response.bulletinBoard)) {
+                    var bulletinBoard = response.bulletinBoard;
+
+                    // update the stats last refreshed timestamp
+                    $('#bulletin-board-last-refreshed').text(bulletinBoard.generated);
+
+                    // process the bulletins
+                    var bulletins = response.bulletinBoard.bulletins;
+                    var content = [];
+
+                    // append each bulletin
+                    $.each(bulletins, function (i, bulletin) {
+                        // format the severity
+                        var severityStyle = 'bulletin-normal';
+                        if (bulletin.level === 'ERROR') {
+                            severityStyle = 'bulletin-error';
+                        } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
+                            severityStyle = 'bulletin-warn';
+                        }
+
+                        // format the source id
+                        var source;
+                        if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
+                            source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
+                                goToSource(bulletin.groupId, bulletin.sourceId);
+                            });
+                        } else {
+                            var sourceId = bulletin.sourceId;
+                            if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
+                                sourceId = '';
+                            }
+                            source = $('<div class="bulletin-source"></div>').text(sourceId);
+                        }
+
+                        // build the markup for this bulletin
+                        var bulletinMarkup = $('<div class="bulletin"></div>');
+
+                        // build the markup for this bulletins info
+                        var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
+                        $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
+                        $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
+                        source.appendTo(bulletinInfoMarkup);
+                        $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
+
+                        // format the node address if applicable
+                        if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
+                            $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
+                        }
+
+                        // add the bulletin message (treat as text)
+                        $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
+                        $('<div class="clear"></div>').appendTo(bulletinMarkup);
+
+                        // append the content
+                        content.push(bulletinMarkup.get(0));
+
+                        // record the id of the last bulletin in this request
+                        if (i + 1 === bulletins.length) {
+                            lastBulletin = bulletin.id;
+                        }
+                    });
+
+                    // add the content to the scroll pane
+                    appendAndScroll(bulletinContainer, content);
+
+                    // trim the container as necessary
+                    var contents = bulletinContainer.contents();
+                    var length = contents.length;
+                    if (length > config.maxBulletins) {
+                        contents.slice(0, length - config.maxBulletins).remove();
+                        bulletinContainer.prepend('<div class="bulletin-action">&#8230;</div>');
+                    }
+                }
+            }).fail(function (xhr, status, error) {
+                // likely caused by a invalid regex
+                if (xhr.status === 404) {
+                    $('#bulletin-error-message').text(xhr.responseText).show();
+
+                    // stop future polling
+                    togglePolling();
+                } else {
+                    nf.Common.handleAjaxError(xhr, status, error);
+                }
+            });
+        },
+
+        /**
+         * Toggles whether the page is actively polling for new bulletins.
+         */
+        togglePolling: function () {
+            // conditionally start or stop
+            if (bulletinBoardCtrl.polling === true) {
+                start();
+            } else {
+                stop();
+            }
         }
-    };
-}());
+    }
+
+    var bulletinBoardCtrl = new BulletinBoardCtrl();
+    bulletinBoardCtrl.register();
+    return bulletinBoardCtrl;
+};

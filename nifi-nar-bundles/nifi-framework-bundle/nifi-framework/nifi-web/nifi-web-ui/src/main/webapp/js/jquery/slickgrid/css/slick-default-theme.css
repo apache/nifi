@@ -6,130 +6,146 @@ classes should alter those!
 */
 
 .slick-header-columns {
-    /*background: url('../images/header-columns-bg.gif') repeat-x center bottom;*/
-    /*border-bottom: 1px solid silver;*/
-    background: url(../../../../images/bgTableHeader.png) repeat-x center center;
-    border-bottom: 1px solid #365C6A;
     color: #fff;
 }
 
 .slick-header-column {
-    /*background: url('../images/header-columns-bg.gif') repeat-x center bottom;*/
-    /*border-right: 1px solid silver;*/
-    background: url(../../../../images/bgTableHeader.png) repeat-x center center;
-    border-right: 1px solid #172B31 !important;
+    background: #728E9B;
     color: #fff;
     font-weight: bold;
     cursor: pointer;
 }
 
 .slick-header-column:hover, .slick-header-column-active {
-    /*background: white url('../images/header-columns-over-bg.gif') repeat-x center bottom;*/
-    background-image: url(../../../../images/bgTableHeader.png);
-    background-repeat: repeat-x;
     color: #fff;
 }
 
-.slick-headerrow {
-  background: #fafafa;
-}
-
-.slick-headerrow-column {
-  background: #fafafa;
-  border-bottom: 0;
-  height: 100%;
-}
-
-.slick-row.ui-state-active {
-  background: #F5F7D7;
-}
-
 .slick-row {
-  position: absolute;
-  background: white;
-  border: 0px;
-  line-height: 20px;
+    position: absolute;
+    background: white;
+    border: 0px;
+    line-height: 22px;
 }
 
 .slick-row:hover {
-    background-color: #d4e0e5 !important;
-}
-
-.slick-row.selected {
-  z-index: 10;
-    background: #DFE8F6 !important;
+    background-color: #dce3e6 !important;
 }
 
 .slick-cell {
-  padding-left: 4px;
-  padding-right: 4px;
-    border-style: solid !important;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .slick-group {
-  border-bottom: 2px solid silver;
+    border-bottom: 2px solid silver;
 }
 
 .slick-group-toggle {
-  width: 9px;
-  height: 9px;
-  margin-right: 5px;
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
 }
 
 .slick-group-toggle.expanded {
-  background: url(images/collapse.gif) no-repeat center center;
+    background: url(images/collapse.gif) no-repeat center center;
 }
 
 .slick-group-toggle.collapsed {
-  background: url(images/expand.gif) no-repeat center center;
+    background: url(images/expand.gif) no-repeat center center;
 }
 
 .slick-group-totals {
-  color: gray;
-  background: white;
+    color: gray;
+    background: white;
 }
 
 .slick-cell.selected {
-    /*background-color: beige;*/
-    background-color: #ffe8b3;
-}
-
-.slick-cell.active {
-    /*border-color: gray;*/
-    /*border-style: solid;*/
+    background-color: #fffbe6;
 }
 
 .slick-sortable-placeholder {
-  background: silver !important;
+    background: silver !important;
 }
 
 .slick-row.odd {
-  background: #fafafa;
-}
-
-.slick-row.ui-state-active {
-  background: #F5F7D7;
+    background: #f4f6f7;
 }
 
 .slick-row.loading {
-  opacity: 0.5;
-  filter: alpha(opacity = 50);
+    opacity: 0.5;
+    filter: alpha(opacity = 50);
 }
 
 .slick-cell.invalid {
-  border-color: red;
-  -moz-animation-duration: 0.2s;
-  -webkit-animation-duration: 0.2s;
-  -moz-animation-name: slickgrid-invalid-hilite;
-  -webkit-animation-name: slickgrid-invalid-hilite;  
+    border-color: #ba554a;
+    -moz-animation-duration: 0.2s;
+    -webkit-animation-duration: 0.2s;
+    -moz-animation-name: slickgrid-invalid-hilite;
+    -webkit-animation-name: slickgrid-invalid-hilite;
+}
+
+.slickgrid-editor > textarea {
+    resize: both;
 }
 
 @-moz-keyframes slickgrid-invalid-hilite {
-  from { box-shadow: 0 0 6px red; }
-  to { box-shadow: none; }
+    from { box-shadow: 0 0 6px red; }
+    to { box-shadow: none; }
 }
 
 @-webkit-keyframes slickgrid-invalid-hilite {
-  from { box-shadow: 0 0 6px red; }
-  to { box-shadow: none; }
+    from { box-shadow: 0 0 6px red; }
+    to { box-shadow: none; }
+}
+
+.grid-canvas *:last-child{
+    border-right: 0px !important;
+}
+
+.slick-viewport .fa {
+    color: #004849;
+    line-height: 22px;
+    margin-top: 0px !important;
+    width: 12px;
+    height: 12px;
+}
+
+.slick-viewport .icon {
+    color: #004849;
+    line-height: 24px;
+    margin-top: 0px !important;
+    width: 12px;
+    height: 12px;
+    float: left;
+}
+
+.slick-header.ui-state-default, .slick-headerrow.ui-state-default {
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 12px;
+    font-style: normal;
+}
+
+.slick-header-column.ui-state-default {
+    height: 24px;
+    line-height: 24px;
+    border-right: 1px solid #728E9B;
+}
+
+.slick-sortable-placeholder {
+    background: #728E9B;
+}
+
+.slick-row.ui-widget-content, .slick-row.ui-state-active {
+    font-family: Roboto;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: normal;
+    color: #262626;
+}
+
+.slick-cell, .slick-headerrow-column {
+    border-right: 1px solid #c7d2d7;
+    border-bottom: 1px solid #c7d2d7;
+    padding: 0px 2px 6px 10px;
 }

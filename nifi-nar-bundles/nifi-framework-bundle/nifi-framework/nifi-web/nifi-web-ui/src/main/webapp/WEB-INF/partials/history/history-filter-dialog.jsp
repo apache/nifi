@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="history-filter-dialog">
+<div id="history-filter-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Filter</div>
@@ -31,7 +31,7 @@
             <div class="start-date-setting">
                 <div class="setting-name">
                     Start date
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="The start date in the format 'mm/dd/yyyy'. Must also specify start time."/>
+                    <div class="fa fa-question-circle" alt="Info" title="The start date in the format 'mm/dd/yyyy'. Must also specify start time."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-filter-start-date" class="history-small-input"/>
@@ -40,7 +40,7 @@
             <div class="start-time-setting">
                 <div class="setting-name">
                     Start time (<span class="timezone"></span>)
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="The start time in the format 'hh:mm:ss'. Must also specify start date."/>
+                    <div class="fa fa-question-circle" alt="Info" title="The start time in the format 'hh:mm:ss'. Must also specify start date."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-filter-start-time" class="history-small-input"/>
@@ -52,7 +52,7 @@
             <div class="end-date-setting">
                 <div class="setting-name">
                     End date
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="The end date in the format 'mm/dd/yyyy'. Must also specify end time."/>
+                    <div class="fa fa-question-circle" alt="Info" title="The end date in the format 'mm/dd/yyyy'. Must also specify end time."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-filter-end-date" class="history-small-input"/>
@@ -61,7 +61,7 @@
             <div class="end-time-setting">
                 <div class="setting-name">
                     End time (<span class="timezone"></span>)
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="The end time in the format 'hh:mm:ss'. Must also specify end date."/>
+                    <div class="fa fa-question-circle" alt="Info" title="The end time in the format 'hh:mm:ss'. Must also specify end date."></div>
                 </div>
                 <div class="setting-field">
                     <input type="text" id="history-filter-end-time" class="history-small-input"/>

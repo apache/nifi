@@ -15,16 +15,11 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="queue-listing-container" class="hidden">
+<div id="queue-listing-container" class="hidden" class="hidden medium-dialog">
     <div id="queue-listing-header-container">
         <div id="queue-listing-header-text"></div>
     </div>
     <div id="queue-listing-stats-container">
-        <div id="queue-listing-refresh-button" class="pointer" title="Refresh"></div>
-        <div id="queue-listing-last-refreshed-container">
-            Last updated:&nbsp;<span id="queue-listing-last-refreshed"></span>
-        </div>
-        <div id="queue-listing-loading-container" class="loading-container"></div>
         <div id="queue-listing-stats">
             Displaying&nbsp;<span id="displayed-flowfiles"></span>&nbsp;of&nbsp;<span id="total-flowfiles-count"></span>&nbsp;(<span id="total-flowfiles-size"></span>)
         </div>
@@ -32,4 +27,11 @@
     </div>
     <div id="queue-listing-table"></div>
     <div id="queue-listing-message" class="hidden"></div>
+    <div id="queue-listing-refresh-container">
+        <button id="queue-listing-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <div id="queue-listing-last-refreshed-container" class="last-refreshed-container">
+            Last updated:&nbsp;<span id="queue-listing-last-refreshed"></span>
+        </div>
+        <div id="queue-listing-loading-container" class="loading-container"></div>
+    </div>
 </div>

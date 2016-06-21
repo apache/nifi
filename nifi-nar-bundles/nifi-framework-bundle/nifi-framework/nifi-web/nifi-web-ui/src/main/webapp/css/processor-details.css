@@ -28,43 +28,13 @@
     display: none;
 }
 
-div.processor-details-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
-#processor-details-tabs {
-    background-color: transparent;
-    width: 778px;
-    height: 21px;
-    border-bottom: 3px solid #666;
-}
-
 #processor-details div.details-tab {
     height: 330px;
-    padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
     display: none;
 }
 
 #read-only-processor-comments {
-    overflow: auto;
-    height: 260px;
-}
-
-#processor-details div.settings-left {
-    float: left;
-    width: 330px;
-}
-
-#processor-details div.settings-right {
-    float: left;
-    width: 382px;
-}
-
-#processor-details div.spacer {
-    float: left;
-    margin-right: 40px;
+    height: 100%;
 }
 
 #read-only-auto-terminate-relationship-names {
@@ -84,9 +54,9 @@ div.processor-details-tab-container {
 
 div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.penalty-duration-setting, div.yield-duration-setting, div.scheduling-strategy-setting, div.bulletin-setting {
     float: left;
-    width: 140px;
+    width: 40%;
 }
 
 div.scheduling-period-setting, div.yield-duration-setting {
-    margin-left: 36px;
+    margin-left: 20%;
 }

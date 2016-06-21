@@ -20,50 +20,54 @@
 */
 
 #new-reporting-task-dialog {
-    z-index: 1301;
-    display: none;
-    width: 800px;
-    height: 450px;
-    line-height: normal;
+    min-height:620px;
+    height: 620px;
+    width: 760px;
+    min-width: 760px;
 }
 
-#reporting-task-tag-cloud-container {
-    float: left;
-    width: 190px;
-    height: 350px;
+#new-reporting-task-dialog span.link{
+    cursor: pointer;
+    color: #004849;
+    font-weight: bold;
+    display: inline-block;
+    background-color: #E3E8EB;
+    border-radius: 2px;
+    padding: 1px 4px;
 }
 
 #reporting-task-types-container {
-    float: left;
-    width: 588px;
-    height: 350px;
+    padding: 0px;
 }
 
 #reporting-task-description-container {
-    width: 588px;
-    height: 100px;
-    margin-top: 10px;
+    padding: 0px;
 }
 
 #reporting-task-type-name {
-    font-size: 12pt;
+    font-size: 12px;
     font-weight: bold;
-    color: #527991;
-    margin-bottom: 6px;
-    width: 588px;
+    margin-bottom: 2px;
+    min-height: 15px;
+    padding: 0px 0px 5px 0px;
+}
+
+#reporting-task-type-name-title {
+    font-family: Roboto Slab;
+    padding: 20px 0px 10px 0px;
 }
 
 #reporting-task-type-description {
-    width: 588px;
     height: 62px;
-    font-size: 10px;
-    line-height: 12px;
+    font-size: 12px;
+    line-height: 16px;
 }
 
 #reporting-task-types-table {
-    width: 586px;
-    height: 249px;
-    border: 1px solid #666;
+    min-height: 150px;
+    overflow: hidden;
+    height: 80%;
+    width: 100%;
 }
 
 #reporting-task-types-table-container th {
@@ -71,55 +75,15 @@
 }
 
 /*
-    Processor tag cloud
-*/
-
-#reporting-task-tag-cloud ul.tag-cloud {
-    max-height: 257px;
-}
-
-#reporting-task-tag-cloud ul.tag-cloud li {
-    max-width: 180px;
-}
-
-#reporting-task-tag-cloud div.tag-cloud-separator {
-    width: 180px;
-}
-
-#reporting-task-tag-cloud ul.tag-filter li {
-    width: 180px;
-}
-
-#reporting-task-tag-cloud div.selected-tag-text {
-    width: 160px;
-}
-
-/*
     Processor type table filter
 */
 
 #reporting-task-type-filter-controls {
-    float: right;
-    margin-top: -35px;
-    margin-right: 2px;
-    margin-bottom: 7px;
-}
-
-#reporting-task-type-filter-status {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
+    min-height: 32px;
+    padding: 0px;
+    margin: 0px;
 }
 
 #reporting-task-type-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
-    width: 173px;
-    border: 1px solid #ccc;
-    float: left;
+    width: 200px;
 }

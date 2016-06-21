@@ -23,7 +23,6 @@ nf.CountersTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        filterText: 'Filter',
         styles: {
             filterList: 'counters-filter-list'
         },
@@ -148,9 +147,9 @@ nf.CountersTable = (function () {
                 }
             }).blur(function () {
                 if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList).val(config.filterText);
+                    $(this).addClass(config.styles.filterList);
                 }
-            }).addClass(config.styles.filterList).val(config.filterText);
+            }).addClass(config.styles.filterList);
 
             // filter type
             $('#counters-filter-type').combo({
@@ -182,7 +181,7 @@ nf.CountersTable = (function () {
             if (nf.Common.isDFM()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                    return '<img src="images/iconResetCounter.png" title="Reset" class="pointer reset-counter" style="margin-top: 2px;"/>';
+                    return '<div title="Connect" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';
                 };
 
                 // add the action column
@@ -194,7 +193,8 @@ nf.CountersTable = (function () {
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,
-                autoEdit: false
+                autoEdit: false,
+                rowHeight: 24
             };
 
             // initialize the dataview

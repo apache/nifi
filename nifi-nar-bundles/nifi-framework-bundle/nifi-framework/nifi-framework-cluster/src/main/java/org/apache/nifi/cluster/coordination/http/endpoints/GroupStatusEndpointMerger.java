@@ -17,13 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
@@ -31,6 +24,13 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public class GroupStatusEndpointMerger extends AbstractNodeStatusEndpoint<ProcessGroupStatusEntity, ProcessGroupStatusDTO> {
     public static final Pattern GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status");
@@ -73,7 +73,7 @@ public class GroupStatusEndpointMerger extends AbstractNodeStatusEndpoint<Proces
             final ProcessGroupStatusSnapshotDTO nodeSnapshot = nodeProcessGroupStatus.getAggregateSnapshot();
             for (final RemoteProcessGroupStatusSnapshotDTO remoteProcessGroupStatus : nodeSnapshot.getRemoteProcessGroupStatusSnapshots()) {
                 final List<String> nodeAuthorizationIssues = remoteProcessGroupStatus.getAuthorizationIssues();
-                if (!nodeAuthorizationIssues.isEmpty()) {
+                if (nodeAuthorizationIssues != null && !nodeAuthorizationIssues.isEmpty()) {
                     for (final ListIterator<String> iter = nodeAuthorizationIssues.listIterator(); iter.hasNext();) {
                         final String Issue = iter.next();
                         iter.set("[" + nodeId.getApiAddress() + ":" + nodeId.getApiPort() + "] -- " + Issue);

@@ -58,6 +58,16 @@ nf.ng.LabelComponent = function (serviceProvider) {
         },
 
         /**
+         * The drag icon for the toolbox component.
+         *
+         * @param event
+         * @returns {*|jQuery|HTMLElement}
+         */
+        dragIcon: function (event) {
+            return $('<div class="icon icon-label-add"></div>');
+        },
+
+        /**
          * Create the label and add to the graph.
          *
          * @argument {object} pt        The point that the label was dropped.

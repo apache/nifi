@@ -18,22 +18,22 @@
 <div id="cluster">
     <div id="cluster-header-and-filter">
         <div id="cluster-header-text">NiFi Cluster</div>
-        <div id="cluster-filter-controls">
-            <div id="cluster-filter-container">
-                <input type="text" id="cluster-filter"/>
-                <div id="cluster-filter-type"></div>
-            </div>
-            <div id="cluster-filter-stats">
+        <div id="cluster-filter-controls" class="filter-controls">
+            <div id="cluster-filter-stats" class="filter-status">
                 Displaying&nbsp;<span id="displayed-nodes"></span>&nbsp;of&nbsp;<span id="total-nodes"></span>
             </div>
+            <div id="cluster-filter-container" class="filter-container">
+                <input type="text" id="cluster-filter" class="filter"/>
+                <div id="cluster-filter-type" class="filter-type"></div>
+            </div>
         </div>
-    </div>
-    <div id="cluster-refresh-container">
-        <div id="refresh-button" class="cluster-refresh pointer" title="Refresh"></div>
-        <div id="cluster-last-refreshed-container">
-            Last updated:&nbsp;<span id="cluster-last-refreshed"></span>
-        </div>
-        <div id="cluster-loading-container" class="loading-container"></div>
     </div>
     <div id="cluster-table"></div>
+</div>
+<div id="cluster-refresh-container">
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="cluster-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="cluster-last-refreshed"></span>
+    </div>
+    <div id="cluster-loading-container" class="loading-container"></div>
 </div>

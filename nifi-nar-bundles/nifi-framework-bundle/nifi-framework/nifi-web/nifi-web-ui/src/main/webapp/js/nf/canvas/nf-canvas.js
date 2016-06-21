@@ -24,8 +24,8 @@ $(document).ready(function () {
         var app = angular.module('ngCanvasApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngSanitize', 'ngMessages']);
 
         //Define Dependency Injection Annotations
-        nf.ng.Canvas.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
-        nf.ng.Canvas.AppCtrl.$inject = ['$scope', 'serviceProvider', 'headerCtrl', 'graphControlsCtrl'];
+        nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+        nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider', '$compile', 'headerCtrl', 'graphControlsCtrl'];
         nf.ng.ServiceProvider.$inject = [];
         nf.ng.BreadcrumbsCtrl.$inject = ['serviceProvider', '$sanitize'];
         nf.ng.Canvas.HeaderCtrl.$inject = ['serviceProvider', 'toolboxCtrl', 'globalMenuCtrl', 'flowStatusCtrl'];
@@ -54,10 +54,10 @@ $(document).ready(function () {
         nf.ng.DraggableDirective.$inject = [];
 
         //Configure Angular App
-        app.config(nf.ng.Canvas.AppConfig);
+        app.config(nf.ng.AppConfig);
 
         //Define Angular App Controllers
-        app.controller('ngCanvasAppCtrl', nf.ng.Canvas.AppCtrl);
+        app.controller('ngCanvasAppCtrl', nf.ng.AppCtrl);
 
         //Define Angular App Services
         app.service('serviceProvider', nf.ng.ServiceProvider);
@@ -83,10 +83,13 @@ $(document).ready(function () {
         app.directive('nfDraggable', nf.ng.DraggableDirective);
 
         //Manually Boostrap Angular App
-        angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
+        nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngCanvasApp'], { strictDi: true });
 
         // initialize the NiFi
         nf.Canvas.init();
+
+        //initialize toolbox components tooltips
+        $('.component-button').qtip($.extend({}, nf.Common.config.tooltipConfig));
     } else {
         $('#message-title').text('Unsupported Browser');
         $('#message-content').text('Flow graphs are shown using SVG. Please use a browser that supports rendering SVG.');
@@ -501,7 +504,7 @@ nf.Canvas = (function () {
             });
 
             //breadcrumbs
-            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
+            nf.ng.Bridge.injector.get('breadcrumbsCtrl').updateBreadcrumbsCss({'bottom': bottom + 'px'});
 
             // body
             $('#canvas-body').css({
@@ -647,9 +650,9 @@ nf.Canvas = (function () {
             accessPolicy = flowResponse.accessPolicy;
             
             // update the breadcrumbs
-            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetBreadcrumbs();
-            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
-            nf.ng.Bridge.get('appCtrl.serviceProvider.breadcrumbsCtrl').resetScrollPosition();
+            nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
+            nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
+            nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
 
             // update the timestamp
             $('#stats-last-refreshed').text(processGroupFlow.lastRefreshed);
@@ -711,7 +714,7 @@ nf.Canvas = (function () {
 
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
-                var statusXhr = nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl.flowStatusCtrl').reloadFlowStatus();
+                var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
                     deferred.resolve(processGroupResult);
                 }).fail(function () {
@@ -847,7 +850,7 @@ nf.Canvas = (function () {
                         initCanvas();
                         nf.Canvas.View.init();
                         nf.ContextMenu.init();
-                        nf.ng.Bridge.get('appCtrl.serviceProvider.headerCtrl').init();
+                        nf.ng.Bridge.injector.get('headerCtrl').init();
                         nf.Settings.init();
                         nf.Actions.init();
                         nf.QueueListing.init();
@@ -881,7 +884,7 @@ nf.Canvas = (function () {
                         nf.RemoteProcessGroupDetails.init();
                         nf.GoTo.init();
                         nf.Graph.init().done(function () {
-                            nf.ng.Bridge.get('appCtrl.serviceProvider.graphControlsCtrl').init();
+                            nf.ng.Bridge.injector.get('graphControlsCtrl').init();
 
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;

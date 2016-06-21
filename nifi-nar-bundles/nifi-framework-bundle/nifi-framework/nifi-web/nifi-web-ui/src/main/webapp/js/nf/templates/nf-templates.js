@@ -20,6 +20,12 @@
 $(document).ready(function () {
     // initialize the templates page
     nf.Templates.init();
+
+    //alter styles if we're not in the shell
+    if (top === window) {
+        $('#templates').css('margin', 40);
+        $('#templates-refresh-container').css('margin', 40);
+    }
 });
 
 nf.Templates = (function () {
@@ -68,18 +74,10 @@ nf.Templates = (function () {
      * Initializes the templates table.
      */
     var initializeTemplatesPage = function () {
-        var selectStatusMessage = 'Select template to import';
-
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.TemplatesTable.loadTemplatesTable();
         });
-
-        // initialize the upload template status
-        $('#upload-template-status').text(selectStatusMessage);
-
-        // add a hover effect to the browse button
-        nf.Common.addHoverEffect('#select-template-button', 'button-normal', 'button-over');
 
         // add a handler for the change file input chain event
         $('#template-file-field').on('change', function (e) {
@@ -113,7 +111,7 @@ nf.Templates = (function () {
                 // see if the import was successful
                 if (response.documentElement.tagName === 'templateEntity') {
                     // reset the status message
-                    $('#upload-template-status').removeClass('import-status-error').addClass('import-status').text(selectStatusMessage);
+                    $('#upload-template-status').removeClass('import-status-error').addClass('import-status');
 
                     // clear the form
                     $('#cancel-upload-template-button').click();
@@ -139,12 +137,12 @@ nf.Templates = (function () {
         });
 
         // add a handler for the upload button
-        nf.Common.addHoverEffect('#upload-template-button', 'button-normal', 'button-over').click(function () {
+        $('#upload-template-button').click(function () {
             templateForm.submit();
         });
 
         // add a handler for the cancel upload button
-        nf.Common.addHoverEffect('#cancel-upload-template-button', 'button-normal', 'button-over').click(function () {
+        $('#cancel-upload-template-button').click(function () {
             // set the filename
             $('#selected-template-name').text('');
 
@@ -216,7 +214,7 @@ nf.Templates = (function () {
             groupId = $('#template-group-id').text();
             if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
                 nf.Dialog.showOkDialog({
-                    overlayBackground: false,
+                    headerText: 'Load Templates',
                     content: 'Group id not specified.'
                 });
             }

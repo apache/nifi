@@ -16,19 +16,16 @@
  */
 
 #settings {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    bottom: 0px;
-    left: 0px;
     display: none;
-    padding: 20px;
 }
 
 div.settings-header-text {
-    height: 35px;
-    font-size: 16px;
+    height: 28px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    padding-top: 28px;
+    margin-bottom: 30px;
 }
 
 div.settings-container {
@@ -37,68 +34,27 @@ div.settings-container {
 
 #new-service-or-task {
     float: right;
-    width: 19px;
-    height: 19px;
-    margin-top: 4px;
     cursor: pointer;
 }
 
-/* settings tabs */
-
-div.settings-tabs-container {
-    border-bottom: 2px solid #666;
+#settings-refresh-container {
+    height: 32px;
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
 }
+
+/* settings tabs */
 
 div.settings-tabs {
     float: left;
 }
 
-.settings-tab {
-    display: block;
-    padding: 0 5px;
-    height: 26px;
-    float: left;
-    color: #666;
-    background-color: #ccc;
-    border-left: 1px solid #b5b5b5;
-    border-top: 1px solid #b5b5b5;
-    border-right: 1px solid #b5b5b5;
-    margin-right: 5px;
-    text-align: center;
-    cursor: pointer;
-    line-height: 26px;
-    font-weight: bold;
-}
-
-.settings-selected-tab {
-    color: #fff;
-    background-color: #666;
-    border-left: 1px solid #666;
-    border-top: 1px solid #666;
-    border-right: 1px solid #666;
-}
-
-div.settings-tab-background {
-    height: 200px;
-    margin-top: 1px;
-    background-color: transparent;
-    background: linear-gradient(to bottom, #dddddd, #ffffff);
-    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#dddddd, endColorstr=#ffffff);
-}
-
-#settings div.configuration-tab, #process-group-configuration div.configuration-tab {
-    display: none;
-}
-
 div.settings-table {
-    position: absolute;
-    top: 115px;
-    left: 25px;
-    bottom: 20px;
-    right: 25px;
-    border: 1px solid #666;
+    min-height: 150px;
     overflow: hidden;
-    background-color: #fff;
+    height: 80%;
+    width: 100%;
 }
 
 span.sorted {
@@ -109,16 +65,6 @@ div.settings-refresh-button {
     height: 24px;
     width: 26px;
     float: left;
-}
-
-div.settings-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
 }
 
 #settings-loading-container {
@@ -136,11 +82,6 @@ div.settings-last-refreshed-container {
 
 /* general */
 
-#general-settings {
-    margin-top: -190px;
-    margin-left: 10px;
-}
-
 #general-settings input {
     font-size: 11px !important;
     font-family: Verdana;
@@ -149,8 +90,11 @@ div.settings-last-refreshed-container {
 }
 
 div.settings-buttons {
-    margin-left: 310px;
-    margin-top: 10px;
+    float: right;
+}
+
+.editable.settings-buttons {
+    float: left;
 }
 
 div.settings-buttons div.button {
