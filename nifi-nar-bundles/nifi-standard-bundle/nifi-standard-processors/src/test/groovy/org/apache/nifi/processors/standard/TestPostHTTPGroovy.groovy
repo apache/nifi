@@ -16,22 +16,14 @@
  */
 package org.apache.nifi.processors.standard
 
-import org.apache.nifi.util.MockFlowFile
-import org.apache.nifi.util.StopWatch
-import org.apache.nifi.util.TestRunners
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
-import java.util.concurrent.TimeUnit
-
-import static org.junit.Assert.assertNotNull
 
 @RunWith(JUnit4.class)
 class TestPostHTTPGroovy extends GroovyTestCase {
