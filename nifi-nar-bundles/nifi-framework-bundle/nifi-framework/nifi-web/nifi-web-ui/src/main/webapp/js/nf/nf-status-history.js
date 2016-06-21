@@ -850,15 +850,18 @@ nf.StatusHistory = (function () {
             },
             start: function (e, ui) {
                 var helperOffset = ui.helper.offset();
-                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2);
+                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2) + 8; //8 for the box shadow
+                var dialogContent = statusHistoryDialog.find('.dialog-content');
+                var dialogContentPaddingRight = ((dialogContent.outerWidth() - dialogContent.width()) / 2);
                 var chartOuter = chartContainer.outerWidth() - chartContainer.width();
 
                 // calculate the max width of the component
-                maxWidth = $(document).width() - helperOffset.left - dialogOuter - chartOuter;
+                maxWidth = $('body').width() - helperOffset.left - dialogOuter - dialogContentPaddingRight - chartOuter;
 
                 // calculate the max height of the component
-                var containerOuter = $('#status-history-container').outerHeight(true) - $('#status-history-container').height();
-                maxHeight = $(document).height() - helperOffset.top - dialogOuter - chartOuter - containerOuter - chartControlContainer.outerHeight(true);
+                var dialogContentPaddingBottom = ((dialogContent.outerHeight() - dialogContent.height()) / 2);
+                var dialogButtonsHeight = statusHistoryDialog.find('.dialog-buttons').height() + 5; //5 for the box shadow
+                maxHeight = $('body').height() - helperOffset.top - dialogOuter - chartOuter - dialogContentPaddingBottom - dialogButtonsHeight - chartControlContainer.outerHeight(true);
 
                 // record the current extent so it can be reset on stop
                 if (!brush.empty()) {
