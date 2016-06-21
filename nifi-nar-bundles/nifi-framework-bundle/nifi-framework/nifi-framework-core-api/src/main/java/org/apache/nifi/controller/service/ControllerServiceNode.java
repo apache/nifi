@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -36,6 +37,16 @@ public interface ControllerServiceNode extends ConfiguredComponent {
      * @return a proxied ControllerService that can be addressed outside of the framework.
      */
     ControllerService getProxiedControllerService();
+
+    /**
+     * Returns the list of services that are required to be enabled before this
+     * service is enabled. The returned list is flattened and contains both
+     * immediate and transient dependencies.
+     *
+     * @return list of services required to be enabled before this service is
+     *         enabled
+     */
+    List<ControllerServiceNode> getRequiredControllerServices();
 
     /**
      * <p>

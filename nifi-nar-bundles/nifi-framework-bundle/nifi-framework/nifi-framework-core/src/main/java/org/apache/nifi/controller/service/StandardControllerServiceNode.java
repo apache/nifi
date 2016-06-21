@@ -17,9 +17,12 @@
 package org.apache.nifi.controller.service;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +34,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -108,6 +112,21 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             writeLock.unlock();
         }
     }
+
+    @Override
+    public List<ControllerServiceNode> getRequiredControllerServices() {
+        List<ControllerServiceNode> requiredServices = new ArrayList<>();
+        for (Entry<PropertyDescriptor, String> pEntry : this.getProperties().entrySet()) {
+            PropertyDescriptor descriptor = pEntry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null && descriptor.isRequired()) {
+                ControllerServiceNode rNode = this.serviceProvider.getControllerServiceNode(pEntry.getValue());
+                requiredServices.add(rNode);
+                requiredServices.addAll(rNode.getRequiredControllerServices());
+            }
+        }
+        return requiredServices;
+    }
+
 
     @Override
     public void removeReference(final ConfiguredComponent referencingComponent) {
