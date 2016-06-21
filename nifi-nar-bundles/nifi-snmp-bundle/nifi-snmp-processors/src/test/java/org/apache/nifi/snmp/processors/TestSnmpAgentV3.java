@@ -194,7 +194,7 @@ public class TestSnmpAgentV3 extends BaseAgent {
      * @param args arguments
      */
     public static void main(String[] args) {
-        String address = args[0];
+        String address = args[0] + "/" + SNMPTestUtil.availablePort();;
         BasicConfigurator.configure();
         try {
             TestSnmpAgentV3 testAgent1 = new TestSnmpAgentV3(new File("target/SNMP4JTestAgentBC.cfg"),

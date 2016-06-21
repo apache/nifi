@@ -60,6 +60,8 @@ public class TestSnmpAgentV2c extends BaseAgent {
 
     /** address */
     private String address;
+    /** port */
+    private int port;
 
     /** constructor
      * @param address address
@@ -69,7 +71,8 @@ public class TestSnmpAgentV2c extends BaseAgent {
         // These files have to be specified
         // Read snmp4j doc for more info
         super(new File("target/conf2.agent"), new File("target/bootCounter2.agent"), new CommandProcessor(new OctetString(MPv3.createLocalEngineID())));
-        this.address = address;
+        this.port = SNMPTestUtil.availablePort();
+        this.address = address + "/" + port;
     }
 
     /**
@@ -208,5 +211,9 @@ public class TestSnmpAgentV2c extends BaseAgent {
         MOTableRow row = communityMIB.getSnmpCommunityEntry().createRow(new OctetString("public2public").toSubIndex(true), com2sec);
 
         communityMIB.getSnmpCommunityEntry().addRow(row);
+    }
+
+    public int getPort() {
+        return port;
     }
 }

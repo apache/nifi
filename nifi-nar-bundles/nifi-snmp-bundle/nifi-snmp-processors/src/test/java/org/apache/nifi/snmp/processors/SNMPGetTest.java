@@ -59,14 +59,14 @@ public class SNMPGetTest {
     public static void setUp() throws Exception {
         MOFactory factory = DefaultMOFactory.getInstance();
 
-        agentv1 = new TestSnmpAgentV1("0.0.0.0/2002");
+        agentv1 = new TestSnmpAgentV1("0.0.0.0");
         agentv1.start();
         agentv1.unregisterManagedObject(agentv1.getSnmpv2MIB());
         agentv1.registerManagedObject(factory.createScalar(sysDescr,
                 MOAccessImpl.ACCESS_READ_ONLY,
                 new OctetString(value)));
 
-        agentv2c = new TestSnmpAgentV2c("0.0.0.0/2001");
+        agentv2c = new TestSnmpAgentV2c("0.0.0.0");
         agentv2c.start();
         agentv2c.unregisterManagedObject(agentv2c.getSnmpv2MIB());
         agentv2c.registerManagedObject(factory.createScalar(sysDescr,
@@ -92,7 +92,7 @@ public class SNMPGetTest {
     @Test
     public void validateSuccessfulSnmpGetVersion2c() throws IOException, TimeoutException {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
         try (SNMPGetter getter = new SNMPGetter(snmp, target, sysDescr)) {
             ResponseEvent response = getter.get();
             if(response.getResponse() == null) {
@@ -110,7 +110,7 @@ public class SNMPGetTest {
     @Test
     public void validateSuccessfulSnmpGetVersion1() throws IOException, TimeoutException {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2002", SnmpConstants.version1);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv1.getPort(), SnmpConstants.version1);
         try (SNMPGetter getter = new SNMPGetter(snmp, target, sysDescr)) {
             ResponseEvent response = getter.get();
             if(response.getResponse() == null) {
