@@ -45,8 +45,6 @@ import com.amazonaws.services.dynamodbv2.document.TableKeysAndAttributes;
 import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchGetItemResult;
 import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
-import com.amazonaws.util.json.JSONException;
-import com.amazonaws.util.json.JSONObject;
 
 public class GetDynamoDBTest extends AbstractDynamoDBTest {
     protected GetDynamoDB getDynamoDB;
@@ -177,7 +175,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
     }
 
     @Test
-    public void testStringHashStringRangeGetJsonObjectValid() throws IOException, JSONException {
+    public void testStringHashStringRangeGetJsonObjectValid() throws IOException {
         outcome = new BatchGetItemOutcome(result);
         KeysAndAttributes kaa = new KeysAndAttributes();
         Map<String,AttributeValue> map = new HashMap<>();
@@ -190,7 +188,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         Map<String,List<Map<String,AttributeValue>>> responses = new HashMap<>();
         List<Map<String,AttributeValue>> items = new ArrayList<>();
         Map<String,AttributeValue> item = new HashMap<String,AttributeValue>();
-        String jsonDocument = new JSONObject().put("name", "john").toString();
+        String jsonDocument = "{\"name\": \"john\"}";
         item.put("j1",new AttributeValue(jsonDocument));
         item.put("hashS", new AttributeValue("h1"));
         item.put("rangeS", new AttributeValue("r1"));
