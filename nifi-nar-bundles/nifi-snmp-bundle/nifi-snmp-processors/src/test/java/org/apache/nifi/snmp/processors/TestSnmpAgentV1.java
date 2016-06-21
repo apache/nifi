@@ -19,7 +19,6 @@ package org.apache.nifi.snmp.processors;
 
 import java.io.File;
 import java.io.IOException;
-
 import org.snmp4j.TransportMapping;
 import org.snmp4j.agent.BaseAgent;
 import org.snmp4j.agent.CommandProcessor;
@@ -60,6 +59,8 @@ public class TestSnmpAgentV1 extends BaseAgent {
 
     /** address */
     private String address;
+    /** port */
+    private int port;
 
     /** constructor
      * @param address address
@@ -69,7 +70,8 @@ public class TestSnmpAgentV1 extends BaseAgent {
         // These files have to be specified
         // Read snmp4j doc for more info
         super(new File("target/conf1.agent"), new File("target/bootCounter1.agent"), new CommandProcessor(new OctetString(MPv3.createLocalEngineID())));
-        this.address = address;
+        this.port = SNMPTestUtil.availablePort();
+        this.address = address + "/" + port;
     }
 
     /**
@@ -208,5 +210,9 @@ public class TestSnmpAgentV1 extends BaseAgent {
         MOTableRow row = communityMIB.getSnmpCommunityEntry().createRow(new OctetString("public2public").toSubIndex(true), com2sec);
 
         communityMIB.getSnmpCommunityEntry().addRow(row);
+    }
+
+    public int getPort() {
+        return port;
     }
 }
