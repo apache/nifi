@@ -90,6 +90,7 @@
 
 #bulletin-button {
     background-color: #728E9B; /*base-color*/
+    cursor: default;
 }
 
 #bulletin-button.has-bulletins {
@@ -124,6 +125,7 @@ div.search-result-icon {
     background: #FFFFFF;
     border: 0px;
     padding: 0px;
+    box-shadow: none;
 }
 
 input.search-flow {

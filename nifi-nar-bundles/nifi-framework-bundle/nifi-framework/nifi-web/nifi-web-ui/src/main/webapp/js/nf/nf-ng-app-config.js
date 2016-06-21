@@ -17,7 +17,7 @@
 
 /* global nf, d3 */
 
-nf.ng.Canvas.AppConfig = function ($mdThemingProvider, $compileProvider) {
+nf.ng.AppConfig = function ($mdThemingProvider, $compileProvider) {
     //Enable production mode, to re-enable debug mode open up a
     //console and call 'angular.reloadWithDebugInfo();'
     $compileProvider.debugInfoEnabled(false);

@@ -51,9 +51,6 @@ $(document).ready(function () {
         $('div.loading-container').removeClass('ajax-loading');
     });
     
-    // initialize the tooltips
-    $('img.setting-icon').qtip(nf.Common.config.tooltipConfig);
-    
     // shows the logout link in the message-pane when appropriate and schedule token refresh
     if (nf.Storage.getItem('jwt') !== null) {
         $('#user-logout-container').css('display', 'block');
@@ -83,7 +80,7 @@ nf.Common = (function () {
     
     return {
         ANONYMOUS_USER_TEXT: 'Anonymous user',
-        
+
         config: {
             sensitiveText: 'Sensitive value set',
             tooltipConfig: {
@@ -92,14 +89,21 @@ nf.Common = (function () {
                 },
                 show: {
                     solo: true,
-                    effect: false
+                    effect: function(offset) {
+                        $(this).slideDown(100);
+                    }
                 },
                 hide: {
-                    effect: false
+                    effect: function(offset) {
+                        $(this).slideUp(100);
+                    }
                 },
                 position: {
-                    at: 'top right',
-                    my: 'bottom left'
+                    at: 'bottom center',
+                    my: 'top center',
+                    adjust: {
+                        y: 5
+                    }
                 }
             }
         },
@@ -300,8 +304,8 @@ nf.Common = (function () {
                     $('#message-pane').show();
                 } else {
                     nf.Dialog.showOkDialog({
+                        headerText: 'Session Expired',
                         dialogContent: 'Your session has expired. Please press Ok to log in again.',
-                        overlayBackground: false,
                         okHandler: function () {
                             window.location = '/nifi';
                         }
@@ -340,8 +344,8 @@ nf.Common = (function () {
             // status code 400, 403, 404, and 409 are expected response codes for common errors.
             if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
-                    dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                    overlayBackground: false
+                    headerText: 'Malformed Request',
+                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {
                 if (xhr.status < 99 || xhr.status === 12007 || xhr.status === 12029) {

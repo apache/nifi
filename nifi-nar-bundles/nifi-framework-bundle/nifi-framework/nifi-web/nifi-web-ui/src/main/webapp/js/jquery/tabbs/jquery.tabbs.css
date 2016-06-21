@@ -23,26 +23,43 @@ ul.tab-pane {
 }
 
 .tab {
-    display: block;
-    padding: 0 5px;
-    height: 20px;
     float: left;
-    color: #666;
-    background-color: #ccc;
-    border-left: 1px solid #b5b5b5;
-    border-top: 1px solid #b5b5b5;
-    border-right: 1px solid #b5b5b5;
-    margin-right: 5px;
+    background-color: #eaeef0;
+    margin-right: 2px;
     text-align: center;
     cursor: pointer;
-    line-height: 20px;
-    font-weight: bold;
+    line-height: 32px;
+    font-weight: 500;
+    height: 31px;
+    min-width: 88px;
+    padding: 0 10px;
+    border: 1px solid #CCDADB;
+    text-transform: uppercase;
+    color: #004849;
+    border-bottom: 0px;
+}
+
+.tab:hover {
+    border: 1px solid #004849;
 }
 
 .selected-tab {
-    color: #fff;
-    background-color: #666;
-    border-left: 1px solid #666;
-    border-top: 1px solid #666;
-    border-right: 1px solid #666;
+    background-color: #fff;
+    border: 1px solid #004849;
+    border-bottom-color: #fff;
+    color: #262626;
+    border-bottom: 1px solid #fff !important;
+}
+
+.tab-container {
+    background-color: transparent;
+    height: 32px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #004849;
+    width: 100%;
+}
+
+div.configuration-tab {
+    height: 320px;
+    display: none;
 }

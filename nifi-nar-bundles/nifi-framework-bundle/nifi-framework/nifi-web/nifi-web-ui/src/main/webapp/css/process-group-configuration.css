@@ -16,21 +16,20 @@
  */
 
 #process-group-configuration {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    bottom: 0px;
-    left: 0px;
     display: none;
-    padding: 20px;
 }
 
 #add-process-group-configuration-controller-service {
     float: right;
-    width: 19px;
-    height: 19px;
     margin-top: 4px;
     cursor: pointer;
+    font-size: 16px;
+    text-transform: uppercase;
+}
+
+#process-group-controller-services-table {
+    height: 100%;
+    width: 100%;
 }
 
 /* settings tabs */
@@ -39,9 +38,14 @@
     float: left;
 }
 
+#process-group-refresh-container {
+    position: absolute;
+    bottom: 10px;
+    left: 20px;
+    height: 32px;
+}
+
 #process-group-configuration-refresh-button {
-    height: 24px;
-    width: 26px;
     float: left;
 }
 
@@ -59,11 +63,6 @@
 }
 
 /* general */
-
-#general-process-group-configuration {
-    margin-top: -190px;
-    margin-left: 10px;
-}
 
 #general-process-group-configuration input, #general-process-group-configuration textarea {
     font-size: 11px !important;

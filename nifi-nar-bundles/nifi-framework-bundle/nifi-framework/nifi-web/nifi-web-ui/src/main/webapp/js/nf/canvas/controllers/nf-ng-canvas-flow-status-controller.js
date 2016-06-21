@@ -95,7 +95,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all processors
                         if (!nf.Common.isEmpty(searchResults.processorResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-processor"></i></div>Processors</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-processor"></div>Processors</li>');
                             $.each(searchResults.processorResults, function (i, processorMatch) {
                                 self._renderItem(ul, processorMatch);
                             });
@@ -103,7 +103,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all process groups
                         if (!nf.Common.isEmpty(searchResults.processGroupResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-group"></i></div>Process Groups</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-group"></div>Process Groups</li>');
                             $.each(searchResults.processGroupResults, function (i, processGroupMatch) {
                                 self._renderItem(ul, processGroupMatch);
                             });
@@ -111,7 +111,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all remote process groups
                         if (!nf.Common.isEmpty(searchResults.remoteProcessGroupResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-group-remote"></i></div>Remote Process Groups</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-group-remote"></div>Remote Process Groups</li>');
                             $.each(searchResults.remoteProcessGroupResults, function (i, remoteProcessGroupMatch) {
                                 self._renderItem(ul, remoteProcessGroupMatch);
                             });
@@ -119,7 +119,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all connections
                         if (!nf.Common.isEmpty(searchResults.connectionResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-connect"></i></div>Connections</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-connect"></div>Connections</li>');
                             $.each(searchResults.connectionResults, function (i, connectionMatch) {
                                 self._renderItem(ul, connectionMatch);
                             });
@@ -127,7 +127,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all input ports
                         if (!nf.Common.isEmpty(searchResults.inputPortResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-port-in"></i></div>Input Ports</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-in"></div>Input Ports</li>');
                             $.each(searchResults.inputPortResults, function (i, inputPortMatch) {
                                 self._renderItem(ul, inputPortMatch);
                             });
@@ -135,7 +135,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all output ports
                         if (!nf.Common.isEmpty(searchResults.outputPortResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-port-out"></i></div>Output Ports</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-port-out"></div>Output Ports</li>');
                             $.each(searchResults.outputPortResults, function (i, outputPortMatch) {
                                 self._renderItem(ul, outputPortMatch);
                             });
@@ -143,7 +143,7 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
                         // show all funnels
                         if (!nf.Common.isEmpty(searchResults.funnelResults)) {
-                            ul.append('<li class="search-header"><div class="search-result-icon"><i class="icon icon-funnel"></i></div>Funnels</li>');
+                            ul.append('<li class="search-header"><div class="search-result-icon icon icon-funnel"></div>Funnels</li>');
                             $.each(searchResults.funnelResults, function (i, funnelMatch) {
                                 self._renderItem(ul, funnelMatch);
                             });

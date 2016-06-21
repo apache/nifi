@@ -19,41 +19,52 @@
 */
 
 .combo {
-    border: 1px solid #aaa;
-    font: bold 10px/18px Verdana, Geneva, sans-serif;
-    color: #525252;
-    padding: 2px 4px; 
+    color: #262626;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    padding:0 10px;
+    height: 30px;
+    line-height: 30px;
+    border-top: 1px solid #eaeef0;
+    border-bottom: 1px solid #eaeef0;
 }
 
 .combo-options {
-    padding: 2px 4px; 
     background: #fefefe;
-    font: bold 10px/16px Verdana, Geneva, sans-serif;
-    color: #525252;
+    color: #262626;
     list-style: none;
-    border: 1px solid #aaa;
-    box-shadow: 2px 2px 2px #666;
-    -moz-box-shadow: 2px 2px 2px #666;
-    -webkit-box-shadow: 2px 2px 2px #666;
+    border: 1px solid #004849;
+    box-shadow:0 3px 6px rgba(0,0,0,0.3);
     z-index: 2000;
+    border-top: none;
+    font-size: 13px;
+}
+
+.combo-options .fa {
+    color: #004849;
+}
+
+.combo-open {
+    background: #fff !important;
+    border: 1px solid #004849 !important;
+    border-bottom: 1px solid #fff !important;
+    font-weight: bold;
+    color: #262626;
+    box-shadow:0 3px 6px rgba(0,0,0,0.3);
 }
 
 .combo-arrow {
     float: right;
     width: 10px;
-    height: 5px;
-    background-color: red;
-    margin-top: 7px;
-    background-image: url(menuArrow.png);
-    background-color: transparent;
+    margin-top: 8px;
 }
 
 .combo-text {
     float: left;
-    height: 18px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    width: 80%;
 }
 
 div.selected-disabled-option {
@@ -61,19 +72,25 @@ div.selected-disabled-option {
     color: #828282;
 }
 
+.combo-options ul > li {
+    height: 32px;
+    padding: 0px 10px;
+}
+
 .combo-option-text {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     float: left;
-    height: 16px;
+    height: 32px;
+    font-weight: normal;
+    line-height: 32px;
 }
 
 .combo-glass-pane {
     position: absolute;
-    background-image: url(../../../images/spacer.png);
-    background-repeat: repeat;
-    background-color: transparent;
+    background: #E3E8EB;
+    opacity: 0.0;
     left: 0px;
     top: 0px;
     right: 0px;
@@ -87,10 +104,6 @@ div.combo-nifi-tooltip {
     color: #454545;
 }
 
-div.button-normal {
-    background: transparent url(../../../images/bgButton.png) repeat-x center center;
-}
-
-div.button-over {
-    background: transparent url(../../../images/bgButtonOver.png) repeat-x center center;
+div.combo-button-normal {
+    background-color: #eaeef0;
 }

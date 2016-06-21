@@ -128,7 +128,14 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  * Launch the settings shell.
                  */
                 launch: function () {
-                    nf.Settings.showSettings();
+                    nf.Settings.showSettings().done(function() {
+                        $('#settings-refresh-container').width($('#shell').width());
+                        
+                        // add a shell:resize listener
+                        $('#shell').on('shell:resize', function () {
+                            $('#settings-refresh-container').width($('#shell').width());
+                        });
+                    });
                 }
             }
         };
@@ -298,9 +305,14 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     var self = this;
 
                     this.getElement().modal({
-                        overlayBackground: true,
+                        headerText: 'About Apache NiFi',
                         buttons: [{
                             buttonText: 'Ok',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
                             handler: {
                                 click: function () {
                                     self.hide();

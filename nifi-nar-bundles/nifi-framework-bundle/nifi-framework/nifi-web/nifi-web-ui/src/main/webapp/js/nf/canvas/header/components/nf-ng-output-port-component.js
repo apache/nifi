@@ -110,6 +110,7 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
             }
         };
     }
+
     OutputPortComponent.prototype = {
         constructor: OutputPortComponent,
 
@@ -118,21 +119,21 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
          *
          * @returns {*|jQuery|HTMLElement}
          */
-        getElement: function() {
+        getElement: function () {
             return $('#port-out-component');
         },
 
         /**
          * Enable the component.
          */
-        enabled: function() {
+        enabled: function () {
             this.getElement().attr('disabled', false);
         },
 
         /**
          * Disable the component.
          */
-        disabled: function() {
+        disabled: function () {
             this.getElement().attr('disabled', true);
         },
 
@@ -141,8 +142,18 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the component was dropped.
          */
-        dropHandler: function(pt) {
+        dropHandler: function (pt) {
             this.promptForOutputPortName(pt);
+        },
+
+        /**
+         * The drag icon for the toolbox component.
+         *
+         * @param event
+         * @returns {*|jQuery|HTMLElement}
+         */
+        dragIcon: function (event) {
+            return $('<div class="icon icon-port-out-add"></div>');
         },
 
         /**
@@ -150,7 +161,7 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the output port was dropped.
          */
-        promptForOutputPortName: function(pt) {
+        promptForOutputPortName: function (pt) {
             var self = this;
             var addOutputPort = function () {
                 // get the name of the output port and clear the textfield
@@ -165,17 +176,28 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
 
             this.modal.update('setButtonModel', [{
                 buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: addOutputPort
                 }
-            }, {
-                buttonText: 'Cancel',
-                handler: {
-                    click: function () {
-                        self.modal.hide();
+            },
+                {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            self.modal.hide();
+                        }
                     }
-                }
-            }]);
+                }]);
 
             // update the port type
             $('#new-port-type').text('Output');

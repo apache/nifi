@@ -57,6 +57,10 @@ md-toolbar.md-small .md-toolbar-tools {
     font-size: 12px;
 }
 
+#users-link {
+    padding-left: 7px;
+}
+
 #nifi-logo {
     height: 37px;
     margin: 0 20px 0 15px;
@@ -69,6 +73,8 @@ md-toolbar.md-small .md-toolbar-tools {
     border-top-right-radius:2px;
     margin:0 10px;
     cursor: pointer;
+    height: 40px;
+    width: 40px;
 }
 
 #global-menu-button:hover {
@@ -129,6 +135,8 @@ md-toolbar.md-small .md-toolbar-tools {
     background-color:#AABBC3; /*tint base-color 40%*/
     border-radius:2px;
     border: none;
+    height: 40px;
+    width: 40px;
 }
 
 #header .component-button:hover {

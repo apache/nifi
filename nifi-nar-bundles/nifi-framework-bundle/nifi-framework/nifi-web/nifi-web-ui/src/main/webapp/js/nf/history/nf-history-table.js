@@ -41,15 +41,19 @@ nf.HistoryTable = (function () {
     var initDetailsDialog = function () {
         $('#action-details-dialog').modal({
             headerText: 'Action Details',
-            overlayBackground: false,
             buttons: [{
-                    buttonText: 'Ok',
-                    handler: {
-                        click: function () {
-                            $('#action-details-dialog').modal('hide');
-                        }
+                buttonText: 'Ok',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        $('#action-details-dialog').modal('hide');
                     }
-                }],
+                }
+            }],
             handler: {
                 close: function () {
                     // clear the details
@@ -69,14 +73,14 @@ nf.HistoryTable = (function () {
         // filter type
         $('#history-filter-type').combo({
             options: [{
-                    text: 'by id',
-                    value: 'by id',
-                    description: 'Filters based on the id of the component that was modified'
-                }, {
-                    text: 'by user',
-                    value: 'by user',
-                    description: 'Filters based on the user that performed the action'
-                }]
+                text: 'by id',
+                value: 'by id',
+                description: 'Filters based on the id of the component that was modified'
+            }, {
+                text: 'by user',
+                value: 'by user',
+                description: 'Filters based on the user that performed the action'
+            }]
         });
 
         // configure the start and end date picker
@@ -95,59 +99,69 @@ nf.HistoryTable = (function () {
         // configure the filter dialog
         $('#history-filter-dialog').modal({
             headerText: 'Filter History',
-            overlayBackground: false,
             buttons: [{
-                    buttonText: 'Filter',
-                    handler: {
-                        click: function () {
-                            $('#history-filter-dialog').modal('hide');
+                buttonText: 'Filter',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        $('#history-filter-dialog').modal('hide');
 
-                            var filter = {};
+                        var filter = {};
 
-                            // extract the filter text
-                            var filterText = $('#history-filter').val();
-                            if (filterText !== '') {
-                                var filterType = $('#history-filter-type').combo('getSelectedOption').text;
-                                if (filterType === 'by id') {
-                                    filter['sourceId'] = filterText;
-                                } else if (filterType === 'by user') {
-                                    filter['userName'] = filterText;
-                                }
+                        // extract the filter text
+                        var filterText = $('#history-filter').val();
+                        if (filterText !== '') {
+                            var filterType = $('#history-filter-type').combo('getSelectedOption').text;
+                            if (filterType === 'by id') {
+                                filter['sourceId'] = filterText;
+                            } else if (filterType === 'by user') {
+                                filter['userName'] = filterText;
                             }
-
-                            // extract the start date time
-                            var startDate = $.trim($('#history-filter-start-date').val());
-                            var startTime = $.trim($('#history-filter-start-time').val());
-                            if (startDate !== '') {
-                                if (startTime === '') {
-                                    startTime = config.defaultStartTime;
-                                    $('#history-filter-start-time').val(startTime);
-                                }
-                                filter['startDate'] = startDate + ' ' + startTime;
-                            }
-
-                            // extract the end date time
-                            var endDate = $.trim($('#history-filter-end-date').val());
-                            var endTime = $.trim($('#history-filter-end-time').val());
-                            if (endDate !== '') {
-                                if (endTime === '') {
-                                    endTime = config.defaultEndTime;
-                                    $('#history-filter-end-time').val(endTime);
-                                }
-                                filter['endDate'] = endDate + ' ' + endTime;
-                            }
-
-                            // set the filter
-                            var historyGrid = $('#history-table').data('gridInstance');
-                            var historyModel = historyGrid.getData();
-                            historyModel.setFilterArgs(filter);
-
-                            // reload the table
-                            nf.HistoryTable.loadHistoryTable();
                         }
+
+                        // extract the start date time
+                        var startDate = $.trim($('#history-filter-start-date').val());
+                        var startTime = $.trim($('#history-filter-start-time').val());
+                        if (startDate !== '') {
+                            if (startTime === '') {
+                                startTime = config.defaultStartTime;
+                                $('#history-filter-start-time').val(startTime);
+                            }
+                            filter['startDate'] = startDate + ' ' + startTime;
+                        }
+
+                        // extract the end date time
+                        var endDate = $.trim($('#history-filter-end-date').val());
+                        var endTime = $.trim($('#history-filter-end-time').val());
+                        if (endDate !== '') {
+                            if (endTime === '') {
+                                endTime = config.defaultEndTime;
+                                $('#history-filter-end-time').val(endTime);
+                            }
+                            filter['endDate'] = endDate + ' ' + endTime;
+                        }
+
+                        // set the filter
+                        var historyGrid = $('#history-table').data('gridInstance');
+                        var historyModel = historyGrid.getData();
+                        historyModel.setFilterArgs(filter);
+
+                        // reload the table
+                        nf.HistoryTable.loadHistoryTable();
                     }
-                }, {
+                }
+            },
+                {
                     buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             $('#history-filter-dialog').modal('hide');
@@ -175,41 +189,51 @@ nf.HistoryTable = (function () {
         // configure the filter dialog
         $('#history-purge-dialog').modal({
             headerText: 'Purge History',
-            overlayBackground: false,
             buttons: [{
-                    buttonText: 'Purge',
-                    handler: {
-                        click: function () {
-                            // hide the dialog
-                            $('#history-purge-dialog').modal('hide');
+                buttonText: 'Purge',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        // hide the dialog
+                        $('#history-purge-dialog').modal('hide');
 
-                            // get the purge end date
-                            var endDate = $.trim($('#history-purge-end-date').val());
-                            var endTime = $.trim($('#history-purge-end-time').val());
-                            if (endDate !== '') {
-                                if (endTime === '') {
-                                    endTime = config.defaultStartTime;
-                                    $('#history-purge-end-time').val(endTime);
-                                }
-                                var endDateTime = endDate + ' ' + endTime;
-                                var timezone = $('.timezone:first').text();
-                                nf.Dialog.showYesNoDialog({
-                                    dialogContent: "Are you sure you want to delete all history before '" + nf.Common.escapeHtml(endDateTime) + " " + nf.Common.escapeHtml(timezone) + "'?",
-                                    overlayBackground: false,
-                                    yesHandler: function () {
-                                        purgeHistory(endDateTime);
-                                    }
-                                });
-                            } else {
-                                nf.Dialog.showOkDialog({
-                                    dialogContent: 'The end date must be specified.',
-                                    overlayBackground: false
-                                });
+                        // get the purge end date
+                        var endDate = $.trim($('#history-purge-end-date').val());
+                        var endTime = $.trim($('#history-purge-end-time').val());
+                        if (endDate !== '') {
+                            if (endTime === '') {
+                                endTime = config.defaultStartTime;
+                                $('#history-purge-end-time').val(endTime);
                             }
+                            var endDateTime = endDate + ' ' + endTime;
+                            var timezone = $('.timezone:first').text();
+                            nf.Dialog.showYesNoDialog({
+                                headerText: 'History',
+                                dialogContent: "Are you sure you want to delete all history before '" + nf.Common.escapeHtml(endDateTime) + " " + nf.Common.escapeHtml(timezone) + "'?",
+                                yesHandler: function () {
+                                    purgeHistory(endDateTime);
+                                }
+                            });
+                        } else {
+                            nf.Dialog.showOkDialog({
+                                headerText: 'History',
+                                dialogContent: 'The end date must be specified.'
+                            });
                         }
                     }
-                }, {
+                }
+            },
+                {
                     buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             $('#history-purge-dialog').modal('hide');
@@ -232,7 +256,7 @@ nf.HistoryTable = (function () {
         $('#clear-history-filter').click(function () {
             // clear the filter dialog
             $('#history-filter').val('');
-            
+
             // hide the overview
             $('#history-filter-overview').hide();
 
@@ -246,18 +270,26 @@ nf.HistoryTable = (function () {
         });
 
         // add hover effect and click handler for opening the dialog
-        nf.Common.addHoverEffect('#history-filter-button', 'button-normal', 'button-over').click(function () {
+        $('#history-filter-button').click(function () {
             $('#history-filter-dialog').modal('show');
         });
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDetails.png" title="View Details" class="pointer show-action-details" style="margin-top: 4px;"/>';
+            return '<div title="View Details" class="pointer show-action-details fa fa-info-circle" style="margin-top: 4px;"></div>';
         };
 
         // initialize the templates table
         var historyColumns = [
-            {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
+            {
+                id: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
             {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, resizable: true},
             {id: 'sourceName', name: 'Name', field: 'sourceName', sortable: true, resizable: true},
             {id: 'sourceType', name: 'Type', field: 'sourceType', sortable: true, resizable: true},
@@ -269,7 +301,8 @@ nf.HistoryTable = (function () {
             enableTextSelectionOnCells: true,
             enableCellNavigation: false,
             enableColumnReorder: false,
-            autoEdit: false
+            autoEdit: false,
+            rowHeight: 24
         };
 
         // create the remote model
@@ -334,7 +367,7 @@ nf.HistoryTable = (function () {
 
     /**
      * Purges the history up to the specified end date.
-     * 
+     *
      * @argument {string} endDateTime       The end date time
      */
     var purgeHistory = function (endDateTime) {
@@ -348,16 +381,16 @@ nf.HistoryTable = (function () {
             nf.HistoryTable.loadHistoryTable();
         }).fail(nf.Common.handleAjaxError);
     };
-    
+
     /**
      * Shows the details for the specified action.
-     * 
+     *
      * @param {object} action
      */
     var showActionDetails = function (action) {
         // create the markup for the dialog
         var detailsMarkup = $('<div></div>').append(
-                $('<div class="action-detail"><div class="history-details-name">Id</div>' + nf.Common.escapeHtml(action.sourceId) + '</div>'));
+            $('<div class="action-detail"><div class="history-details-name">Id</div>' + nf.Common.escapeHtml(action.sourceId) + '</div>'));
 
         // get any component details
         var componentDetails = action.componentDetails;
@@ -366,10 +399,10 @@ nf.HistoryTable = (function () {
         if (nf.Common.isDefinedAndNotNull(componentDetails)) {
             if (action.sourceType === 'Processor' || action.sourceType === 'ControllerService' || action.sourceType === 'ReportingTask') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">Type</div>' + nf.Common.escapeHtml(componentDetails.type) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">Type</div>' + nf.Common.escapeHtml(componentDetails.type) + '</div>'));
             } else if (action.sourceType === 'RemoteProcessGroup') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">Uri</div>' + nf.Common.formatValue(componentDetails.uri) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">Uri</div>' + nf.Common.formatValue(componentDetails.uri) + '</div>'));
             }
         }
 
@@ -380,27 +413,27 @@ nf.HistoryTable = (function () {
         if (nf.Common.isDefinedAndNotNull(actionDetails)) {
             if (action.operation === 'Configure') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">Name</div>' + nf.Common.formatValue(actionDetails.name) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Value</div>' + nf.Common.formatValue(actionDetails.value) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Previous Value</div>' + nf.Common.formatValue(actionDetails.previousValue) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">Name</div>' + nf.Common.formatValue(actionDetails.name) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Value</div>' + nf.Common.formatValue(actionDetails.value) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Previous Value</div>' + nf.Common.formatValue(actionDetails.previousValue) + '</div>'));
             } else if (action.operation === 'Connect' || action.operation === 'Disconnect') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">Source Id</div>' + nf.Common.escapeHtml(actionDetails.sourceId) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Source Name</div>' + nf.Common.formatValue(actionDetails.sourceName) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Source Type</div>' + nf.Common.escapeHtml(actionDetails.sourceType) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Relationship(s)</div>' + nf.Common.formatValue(actionDetails.relationship) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Destination Id</div>' + nf.Common.escapeHtml(actionDetails.destinationId) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Destination Name</div>' + nf.Common.formatValue(actionDetails.destinationName) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Destination Type</div>' + nf.Common.escapeHtml(actionDetails.destinationType) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">Source Id</div>' + nf.Common.escapeHtml(actionDetails.sourceId) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Source Name</div>' + nf.Common.formatValue(actionDetails.sourceName) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Source Type</div>' + nf.Common.escapeHtml(actionDetails.sourceType) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Relationship(s)</div>' + nf.Common.formatValue(actionDetails.relationship) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Destination Id</div>' + nf.Common.escapeHtml(actionDetails.destinationId) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Destination Name</div>' + nf.Common.formatValue(actionDetails.destinationName) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Destination Type</div>' + nf.Common.escapeHtml(actionDetails.destinationType) + '</div>'));
             } else if (action.operation === 'Move') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">Group</div>' + nf.Common.formatValue(actionDetails.group) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Group Id</div>' + nf.Common.escapeHtml(actionDetails.groupId) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Previous Group</div>' + nf.Common.formatValue(actionDetails.previousGroup) + '</div>')).append(
-                        $('<div class="action-detail"><div class="history-details-name">Previous Group Id</div>' + nf.Common.escapeHtml(actionDetails.previousGroupId) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">Group</div>' + nf.Common.formatValue(actionDetails.group) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Group Id</div>' + nf.Common.escapeHtml(actionDetails.groupId) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Previous Group</div>' + nf.Common.formatValue(actionDetails.previousGroup) + '</div>')).append(
+                    $('<div class="action-detail"><div class="history-details-name">Previous Group Id</div>' + nf.Common.escapeHtml(actionDetails.previousGroupId) + '</div>'));
             } else if (action.operation === 'Purge') {
                 detailsMarkup.append(
-                        $('<div class="action-detail"><div class="history-details-name">End Date</div>' + nf.Common.escapeHtml(actionDetails.endDate) + '</div>'));
+                    $('<div class="action-detail"><div class="history-details-name">End Date</div>' + nf.Common.escapeHtml(actionDetails.endDate) + '</div>'));
             }
         }
 
@@ -418,7 +451,7 @@ nf.HistoryTable = (function () {
             initPurgeDialog();
             initHistoryTable();
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -428,7 +461,7 @@ nf.HistoryTable = (function () {
                 historyGrid.resizeCanvas();
             }
         },
-        
+
         /**
          * Load the processor status table.
          */

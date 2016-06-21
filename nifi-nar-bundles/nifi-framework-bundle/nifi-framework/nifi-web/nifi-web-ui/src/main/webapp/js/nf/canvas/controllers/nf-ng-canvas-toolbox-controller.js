@@ -48,7 +48,6 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
          * Config for the toolbox
          */
         this.config = {
-            filterText: 'Filter',
             type: {
                 processor: 'Processor',
                 inputPort: 'Input Port',
@@ -113,7 +112,6 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
                 revert: true,
                 revertDuration: 0,
                 cancel: false,
-                helper: "clone",
                 containment: 'body',
                 start: function (e, ui) {
                     // hide the context menu if necessary
@@ -138,7 +136,8 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
                             y: y
                         }]);
                     }
-                }
+                },
+                helper: component.dragIcon
             }
         }
     }

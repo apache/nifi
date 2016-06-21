@@ -41,7 +41,6 @@ nf.QueueListing = (function () {
 
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
-            overlayBackground: false,
             handler: {
                 close: function () {
                     // reset the progress bar
@@ -87,8 +86,8 @@ nf.QueueListing = (function () {
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
-                dialogContent: 'Unable to generate access token for downloading content.',
-                overlayBackground: false
+                headerText: 'Queue Listing',
+                dialogContent: 'Unable to generate access token for downloading content.'
             });
         });
     };
@@ -119,8 +118,8 @@ nf.QueueListing = (function () {
                     deferred.resolve(uiExtensionToken, downloadToken);
                 }).fail(function () {
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'Unable to generate access token for viewing content.',
-                        overlayBackground: false
+                        headerText: 'Queue Listing',
+                        dialogContent: 'Unable to generate access token for viewing content.'
                     });
                     deferred.reject();
                 });
@@ -201,9 +200,13 @@ nf.QueueListing = (function () {
 
         $('#flowfile-details-dialog').modal({
             headerText: 'FlowFile',
-            overlayBackground: false,
             buttons: [{
                 buttonText: 'Ok',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: function () {
                         $('#flowfile-details-dialog').modal('hide');
@@ -250,6 +253,11 @@ nf.QueueListing = (function () {
             // update the button model of the drop request status dialog
             $('#listing-request-status-dialog').modal('setButtonModel', [{
                 buttonText: 'Stop',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: function () {
                         cancelled = true;
@@ -287,8 +295,8 @@ nf.QueueListing = (function () {
 
                             // show the dialog
                             nf.Dialog.showOkDialog({
-                                dialogContent: 'The queue has no FlowFiles.',
-                                overlayBackground: false
+                                headerText: 'Queue Listing',
+                                dialogContent: 'The queue has no FlowFiles.'
                             });
                         }
                     } else {
@@ -497,14 +505,14 @@ nf.QueueListing = (function () {
             initFlowFileDetailsDialog();
 
             // define mouse over event for the refresh button
-            nf.Common.addHoverEffect('#queue-listing-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+            $('#queue-listing-refresh-button').click(function () {
                 var connection = $('#queue-listing-table').data('connection');
                 performListing(connection);
             });
 
             // define a custom formatter for showing more processor details
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<img src="images/iconDetails.png" title="View Details" class="pointer show-flowfile-details" style="margin-top: 5px; float: left;"/>';
+                return '<div class="pointer show-flowfile-details fa fa-info" title="View Details" style="margin-top: 5px; float: left;"></div>';
             };
 
             // function for formatting data sizes
@@ -530,19 +538,73 @@ nf.QueueListing = (function () {
 
             // initialize the queue listing table
             var queueListingColumns = [
-                {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
-                {id: 'position', name: 'Position', field: 'position', sortable: false, resizable: false, width: 75, maxWidth: 75},
+                {
+                    id: 'moreDetails',
+                    field: 'moreDetails',
+                    name: '&nbsp;',
+                    sortable: false,
+                    resizable: false,
+                    formatter: moreDetailsFormatter,
+                    width: 50,
+                    maxWidth: 50
+                },
+                {
+                    id: 'position',
+                    name: 'Position',
+                    field: 'position',
+                    sortable: false,
+                    resizable: false,
+                    width: 75,
+                    maxWidth: 75
+                },
                 {id: 'uuid', name: 'UUID', field: 'uuid', sortable: false, resizable: true},
                 {id: 'filename', name: 'Filename', field: 'filename', sortable: false, resizable: true},
-                {id: 'size', name: 'File Size', field: 'size', sortable: false, resizable: true, defaultSortAsc: false, formatter: dataSizeFormatter},
-                {id: 'queuedDuration', name: 'Queued Duration', field: 'queuedDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'lineageDuration', name: 'Lineage Duration', field: 'lineageDuration', sortable: false, resizable: true, formatter: durationFormatter},
-                {id: 'penalized', name: 'Penalized', field: 'penalized', sortable: false, resizable: false, width: 100, maxWidth: 100, formatter: penalizedFormatter}
+                {
+                    id: 'size',
+                    name: 'File Size',
+                    field: 'size',
+                    sortable: false,
+                    resizable: true,
+                    defaultSortAsc: false,
+                    formatter: dataSizeFormatter
+                },
+                {
+                    id: 'queuedDuration',
+                    name: 'Queued Duration',
+                    field: 'queuedDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'lineageDuration',
+                    name: 'Lineage Duration',
+                    field: 'lineageDuration',
+                    sortable: false,
+                    resizable: true,
+                    formatter: durationFormatter
+                },
+                {
+                    id: 'penalized',
+                    name: 'Penalized',
+                    field: 'penalized',
+                    sortable: false,
+                    resizable: false,
+                    width: 100,
+                    maxWidth: 100,
+                    formatter: penalizedFormatter
+                }
             ];
 
             // conditionally show the cluster node identifier
             if (nf.Canvas.isClustered()) {
-                queueListingColumns.push({id: 'clusterNodeAddress', name: 'Node', field: 'clusterNodeAddress', sortable: false, resizable: true});
+                queueListingColumns.push({
+                    id: 'clusterNodeAddress',
+                    name: 'Node',
+                    field: 'clusterNodeAddress',
+                    sortable: false,
+                    resizable: true
+                });
             }
 
             // add an actions column when the user can access provenance
@@ -552,7 +614,15 @@ nf.QueueListing = (function () {
                     return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
                 };
 
-                queueListingColumns.push({id: 'actions', name: '&nbsp;', resizable: false, formatter: actionsFormatter, sortable: false, width: 50, maxWidth: 50});
+                queueListingColumns.push({
+                    id: 'actions',
+                    name: '&nbsp;',
+                    resizable: false,
+                    formatter: actionsFormatter,
+                    sortable: false,
+                    width: 50,
+                    maxWidth: 50
+                });
             }
 
             var queueListingOptions = {
@@ -560,7 +630,8 @@ nf.QueueListing = (function () {
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,
-                autoEdit: false
+                autoEdit: false,
+                rowHeight: 24
             };
 
             // initialize the dataview

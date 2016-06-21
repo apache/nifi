@@ -24,16 +24,20 @@ nf.PortDetails = (function () {
             // configure the processor details dialog
             $('#port-details').modal({
                 headerText: 'Port Details',
-                overlayBackground: true,
                 buttons: [{
-                        buttonText: 'Ok',
-                        handler: {
-                            click: function () {
-                                // hide the dialog
-                                $('#port-details').modal('hide');
-                            }
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            // hide the dialog
+                            $('#port-details').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         // clear the processor details
@@ -44,7 +48,7 @@ nf.PortDetails = (function () {
                 }
             });
         },
-        
+
         showDetails: function (selection) {
             // if the specified component is a processor, load its properties
             if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

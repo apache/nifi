@@ -29,46 +29,15 @@
     display: none;
 }
 
-div.controller-service-configuration-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
 #controller-service-configuration-advanced {
     display: none;
 }
 
-#controller-service-configuration-tabs {
-    background-color: transparent;
-    width: 778px;
-    height: 21px;
-    border-bottom: 3px solid #666;
-}
-
-#controller-service-configuration div.configuration-tab {
-    height: 320px;
-    overflow: auto;
-    padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
-    display: none;
+.controller-service-editable {
+    height: 32px;
 }
 
 /* controller-service settings */
-
-#controller-service-configuration div.settings-left {
-    float: left;
-    width: 330px;
-}
-
-#controller-service-configuration div.settings-right {
-    float: left;
-    width: 382px;
-}
-
-#controller-service-configuration div.spacer {
-    float: left;
-    margin-right: 40px;
-}
 
 #controller-service-configuration .setting-input {
     font-size: 11px !important;
@@ -168,36 +137,11 @@ div.controller-service-canceling {
 
 #controller-service-comments {
     height: 250px;
-    width: 748px !important;
-    margin-top: 10px;
 }
 
 /*
     Disable dialog
 */
-
-#disable-controller-service-dialog {
-    z-index: 1301;
-    display: none;
-    width: 800px;
-    height: 450px;
-    line-height: normal;
-}
-
-#disable-controller-service-dialog div.settings-left {
-    float: left;
-    width: 300px;
-}
-
-#disable-controller-service-dialog div.settings-right {
-    float: left;
-    width: 435px;
-}
-
-#disable-controller-service-dialog div.spacer {
-    float: left;
-    margin-right: 40px;
-}
 
 #disable-controller-service-name {
     float: left;
@@ -227,27 +171,8 @@ div.controller-service-canceling {
     Enable dialog
 */
 
-#enable-controller-service-dialog {
-    z-index: 1301;
-    display: none;
-    width: 800px;
-    height: 450px;
-    line-height: normal;
-}
-
-#enable-controller-service-dialog div.settings-left {
-    float: left;
-    width: 300px;
-}
-
-#enable-controller-service-dialog div.settings-right {
-    float: left;
-    width: 435px;
-}
-
-#enable-controller-service-dialog div.spacer {
-    float: left;
-    margin-right: 40px;
+#enable-controller-service-scope-container {
+    height: 48px;
 }
 
 #enable-controller-service-name {
@@ -268,8 +193,6 @@ div.controller-service-canceling {
 #enable-controller-service-scope {
     float: left;
     width: 225px;
-    height: 18px;
-    line-height: 18px;
 }
 
 #enable-controller-service-referencing-components {

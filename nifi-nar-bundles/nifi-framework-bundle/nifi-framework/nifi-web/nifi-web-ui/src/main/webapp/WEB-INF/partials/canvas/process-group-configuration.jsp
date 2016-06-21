@@ -18,17 +18,11 @@
 <div id="process-group-configuration">
     <div id="process-group-configuration-header-text" class="settings-header-text">Process Group Configuration</div>
     <div class="settings-container">
-        <div class="settings-tabs-container">
+        <div class="tab-container">
             <div id="process-group-configuration-tabs" class="settings-tabs"></div>
-            <div id="process-group-configuration-refresh-button" class="pointer settings-refresh-button" title="Refresh"></div>
-            <div class="settings-last-refreshed-container">
-                Last updated:&nbsp;<span id="process-group-configuration-last-refreshed"></span>
-            </div>
-            <div id="process-group-configuration-loading-container" class="loading-container"></div>
-            <div id="add-process-group-configuration-controller-service" class="add-icon-bg"></div>
+            <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus"></button>
             <div class="clear"></div>
         </div>
-        <div class="settings-tab-background"></div>
         <div>
             <div id="general-process-group-configuration-tab-content" class="configuration-tab">
                 <div id="general-process-group-configuration">
@@ -60,5 +54,12 @@
                 <div id="process-group-controller-services-table" class="settings-table"></div>
             </div>
         </div>
+    </div>
+    <div id="process-group-refresh-container">
+        <button id="process-group-configuration-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <div class="last-refreshed-container">
+            Last updated:&nbsp;<span id="process-group-configuration-last-refreshed" class="last-refreshed"></span>
+        </div>
+        <div id="process-group-configuration-loading-container" class="loading-container"></div>
     </div>
 </div>

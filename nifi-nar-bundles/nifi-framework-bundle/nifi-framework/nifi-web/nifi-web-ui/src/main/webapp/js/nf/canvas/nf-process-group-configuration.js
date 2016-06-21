@@ -80,8 +80,7 @@ nf.ProcessGroupConfiguration = (function () {
 
             // show the result dialog
             nf.Dialog.showOkDialog({
-                dialogContent: 'Process group configuration successfully saved.',
-                overlayBackground: false
+                dialogContent: 'Process group configuration successfully saved.'
             });
 
             // update the click listener for the updated revision
@@ -173,6 +172,12 @@ nf.ProcessGroupConfiguration = (function () {
         nf.Shell.showContent('#process-group-configuration').done(function () {
             reset();
         });
+        $('#process-group-refresh-container').width($('#shell').width());
+
+        // add a shell:resize listener
+        $('#shell').on('shell:resize', function () {
+            $('#process-group-refresh-container').width($('#shell').width());
+        });
 
         // adjust the table size
         nf.ProcessGroupConfiguration.resetTableSize();
@@ -197,8 +202,8 @@ nf.ProcessGroupConfiguration = (function () {
         init: function () {
             // initialize the process group configuration tabs
             $('#process-group-configuration-tabs').tabbs({
-                tabStyle: 'settings-tab',
-                selectedTabStyle: 'settings-selected-tab',
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-process-group-configuration-tab-content'
@@ -210,8 +215,10 @@ nf.ProcessGroupConfiguration = (function () {
                     var tab = $(this).text();
                     if (tab === 'General') {
                         $('#add-process-group-configuration-controller-service').hide();
+                        $('#process-group-configuration-save').show();
                     } else {
                         $('#add-process-group-configuration-controller-service').show();
+                        $('#process-group-configuration-save').hide();
 
                         // update the tooltip on the button
                         $('#add-process-group-configuration-controller-service').attr('title', function () {
@@ -226,14 +233,11 @@ nf.ProcessGroupConfiguration = (function () {
                 }
             });
 
-            // settings refresh button...
-            nf.Common.addHoverEffect('#process-group-configuration-refresh-button', 'button-refresh', 'button-refresh-hover');
-
             // initialize each tab
             initGeneral();
             nf.ControllerServices.init(getControllerServicesTable());
         },
-        
+
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -252,7 +256,7 @@ nf.ProcessGroupConfiguration = (function () {
 
             // update the new controller service click listener
             $('#add-process-group-configuration-controller-service').off('click').on('click', function () {
-                var selectedTab = $('#process-group-configuration-tabs li.settings-selected-tab').text();
+                var selectedTab = $('#process-group-configuration-tabs li.selected-tab').text();
                 if (selectedTab === 'Controller Services') {
                     var controllerServicesUri = config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
                     nf.ControllerServices.promptNewControllerService(controllerServicesUri, getControllerServicesTable());

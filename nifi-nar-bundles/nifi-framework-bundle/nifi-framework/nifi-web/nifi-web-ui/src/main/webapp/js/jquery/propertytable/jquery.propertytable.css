@@ -19,37 +19,20 @@
     Styles for the property table.
 */
 
-div.properties-header {
-    margin-bottom: 10px;
-    height: 19px;
-}
-
 div.required-property-note {
     font-weight: bold;
+    font-size: 12px;
     float: left;
-    height: 19px;
-    line-height: 19px;
+    height: 28px;
+    line-height: 28px;
     margin-left: 6px;
 }
 
 div.add-property {
     float: right;
-    margin-right: 20px;
-}
-
-div.add-property-icon {
-    width: 19px;
-    height: 19px;
-    cursor: pointer;
-    float: left;
-}
-
-div.add-icon-bg {
-    background: transparent url(buttonNewProperty.png) no-repeat scroll top left;
-}
-
-div.add-icon-bg-hover {
-    background: transparent url(buttonNewProperty.png) no-repeat scroll top right;
+    margin-bottom: 4px;
+    font-size: 16px;
+    text-transform: uppercase;
 }
 
 div.add-property-text {
@@ -57,70 +40,38 @@ div.add-property-text {
     margin-left: 5px;
     height: 19px;
     line-height: 19px;
+    color: #262626;
 }
 
 div.property-table {
-    width: 758px;
-    height: 290px;
-    border-bottom: 1px solid #666;
-    background-color: #fff;
+    width: 100%;
+    min-height: 150px;
+    overflow: hidden;
+    height: 80%;
+}
+
+.property-table .fa {
+    float: right;
+    color: #004849;
+    line-height: 18px;
 }
 
 /*
     New property dialog
 */
 
-div.new-property-dialog {
-    z-index: 1301;
-    display: none;
-    padding: 10px;
-    border: 3px solid #365C6A;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
-    cursor: move;
-    width: 300px;
-    height: 72px;
-}
-
-div.new-property-name-container {
-    position: absolute;
-    height: 25px;
-    left: 10px;
-    right: 10px;
-    padding-right: 10px;
-    overflow: hidden; 
-}
-
-input.new-property-name {
-    height: 14px;
-    width: 100%;
-}
-
 div.new-property-button-container {
     position: absolute;
     left: 0;
     bottom: 0;
     right: 0;
-    padding: 0 8px 10px;
 }
 
 /*
     New inline controller service dialog
 */
 
-div.new-inline-controller-service-dialog {
-    z-index: 1301;
-    display: none;
-    padding: 10px;
-    border: 3px solid #365C6A;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
-    cursor: move;
-    width: 350px;
-    height: 250px;
-}
-
-div.new-inline-controller-service-combo {
-    height: 18px;
-    width: 340px;
+div.new-inline-controller-service-combo {    width: 50%;
     margin-bottom: 10px;
 }
 
@@ -197,14 +148,9 @@ div.value pre {
     Styles for the property value combo
 */
 
-div.edit-property-value-combo {
-    height: 22px;
-}
-
 div.value-combo {
-    height: 18px;
-    margin-top: 0px;
     float: left;
+    border: 1px solid #eaeef0;
 }
 
 /*

@@ -17,20 +17,20 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="history">
     <div id="history-header-text">NiFi History</div>
-    <div id="history-refresh-container">
-        <div id="refresh-button" class="history-refresh pointer" title="Refresh"></div>
-        <div id="history-last-refreshed-container">
-            Last updated:&nbsp;<span id="history-last-refreshed"></span>
+    <div id="history-filter-container">
+        <div id="history-filter-overview">
+            A filter has been applied.&nbsp;
+            <span id="clear-history-filter" class="link">Clear filter</span>
         </div>
-        <div id="history-loading-container" class="loading-container"></div>
-        <div id="history-filter-container">
-            <div id="history-filter-overview">
-                A filter has been applied.&nbsp;
-                <span id="clear-history-filter">Clear filter</span>
-            </div>
-            <div id="history-filter-button" class="button button-normal pointer">Filter</div>
-            <div id="history-purge-button" class="button button-normal pointer hidden">Purge</div>
-        </div>
+        <button id="history-filter-button" title="Filter History" class="fa fa-filter"></button>
+        <button id="history-purge-button" title="Purge History" class="fa fa-eraser hidden"></button>
     </div>
     <div id="history-table"></div>
+</div>
+<div id="history-refresh-container">
+    <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+    <div id="history-last-refreshed-container" class="last-refreshed-container">
+        Last updated:&nbsp;<span id="history-last-refreshed" class="value-color"></span>
+    </div>
+    <div id="history-loading-container" class="loading-container"></div>
 </div>

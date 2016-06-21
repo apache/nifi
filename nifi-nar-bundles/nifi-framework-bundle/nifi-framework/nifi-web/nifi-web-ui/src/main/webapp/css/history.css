@@ -24,31 +24,22 @@
     bottom: 0px;
     left: 0px;
     right: 0px;
+    height: 90%;
+    overflow: auto;
 }
 
 #history-header-text {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    padding-bottom: 10px;
 }
 
 #history-refresh-container {
-    height: 26px;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#history-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
 }
 
 #history-loading-container {
@@ -68,81 +59,40 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
 /* history filter controls */
 
 #history-filter-container {
-    position: absolute;
-    right: 20px;
-    top: 75px;
+    float: right;
 }
 
 #history-filter-button {
-    height: 20px;
-    line-height: 20px;
-    width: 55px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #AAAAAA;
-    color: #525252;
-    float: left;
-    margin-right: 0;
-    padding: 0;
+    float: right;
+    margin-left: 1px;
 }
 
 #history-filter-overview {
-    float: left;
-    color: #9F6000;
-    font-size: 9px;
-    font-weight: bold;
-    line-height: normal;
-    float: left;
-    margin-top: 6px;
-    margin-right: 8px;
     display: none;
-}
-
-#clear-history-filter {
-    cursor: pointer;
-    color:#31849B;
-    text-decoration: underline;
+    font-family: Roboto;
+    font-size: 13px;
+    margin-bottom: 5px;
+    font-weight: normal;
 }
 
 #history-purge-button {
-    height: 20px;
-    line-height: 20px;
-    width: 55px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #AAAAAA;
-    color: #525252;
-    float: left;
-    margin-left: 5px;
-    margin-right: 0;
-    padding: 0;
+    float: right;
 }
 
 
 /* history filter dialog */
 
-#history-filter-dialog {
-    display: none;
-    width: 421px;
-    height: 250px;
-    z-index: 1301;
-}
-
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
     float: left;
+    width: 48%;
 }
 
 .start-date-setting, .end-date-setting {
-    margin-right: 15px;
+    margin-right: 4%;
+    width: 48%;
 }
 
 .history-small-input {
@@ -156,41 +106,22 @@
     margin-right: 10px;
     font-size: 11px;
     float: left;
-    width: 275px;
+    width: 70% !important;
 }
 
 #history-filter-type {
     width: 96px;
-    height: 18px;
-    line-height: 18px;
     float: left;
-}
-
-/* history purge controls */
-
-#history-purge-dialog {
-    display: none;
-    width: 422px;
-    height: 150px;
-    z-index: 1301;
 }
 
 /* action details dialog */
 
-#action-details-dialog {
-    display: none;
-    width: 400px;
-    height: 350px;
-    z-index: 1301;
-}
-
 #action-details {
-    height: 250px;
     overflow-y: auto;
 }
 
 div.action-detail {
-    margin-bottom: 2px;
+    margin-bottom: 5px;
 }
 
 div.history-details-name {
@@ -199,18 +130,14 @@ div.history-details-name {
     font-size: 10px;
     font-weight: bold;
     line-height: normal;
-    width: 115px;
+    width: 100%;
     margin-right: 10px;
 }
 
 /* history table */
 
 #history-table {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 80%;
+    width: 100%;
 }

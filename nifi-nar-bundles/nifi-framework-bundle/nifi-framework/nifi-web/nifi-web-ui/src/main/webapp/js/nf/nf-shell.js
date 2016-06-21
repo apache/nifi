@@ -20,7 +20,8 @@
 $(document).ready(function () {
     // configure the dialog
     $('#shell-dialog').modal({
-        overlayBackground: true
+        header: false,
+        footer: false
     });
 
     // register a listener when the frame is closed
@@ -40,10 +41,6 @@ $(document).ready(function () {
             $('#shell-dialog').modal('hide');
         }
     });
-
-    // add hover effects
-    nf.Common.addHoverEffect('#shell-undock-button', 'undock-normal', 'undock-hover');
-    nf.Common.addHoverEffect('#shell-close-button', 'close-normal', 'close-hover');
 });
 
 nf.Shell = (function () {
@@ -99,7 +96,7 @@ nf.Shell = (function () {
                     src: uri
                 }).css({
                     width: shell.width(),
-                    height: shell.height()
+                    height: shell.height() - 28 //subtract shell-close-container
                 }).appendTo(shell);
 
                 // remove the window resize listener
@@ -111,8 +108,9 @@ nf.Shell = (function () {
                 showPageResize = function () {
                     shellIframe.css({
                         width: shell.width(),
-                        height: shell.height()
+                        height: shell.height() - 28 //subtract shell-close-container
                     });
+                    shell.trigger("shell:resize");
                 };
 
                 // add a window resize listener
@@ -157,6 +155,9 @@ nf.Shell = (function () {
                     // hide the undock button
                     $('#shell-undock-button').hide();
 
+                    // open the shell dialog
+                    $('#shell-dialog').modal('show');
+
                     // create the content container
                     var contentContainer = $('<div>').css({
                         width: shell.width(),
@@ -169,7 +170,6 @@ nf.Shell = (function () {
                     }
                     
                     // show the content
-                    $('#shell-dialog').modal('show');
                     content.show();
 
                     // handle resizes
@@ -178,6 +178,7 @@ nf.Shell = (function () {
                             width: shell.width(),
                             height: shell.height()
                         });
+                        shell.trigger("shell:resize");
                     };
                     
                     // add a window resize listener

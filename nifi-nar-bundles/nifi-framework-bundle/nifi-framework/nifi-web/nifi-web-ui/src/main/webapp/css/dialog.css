@@ -18,77 +18,12 @@
     Specific dialog settings.
 */
 
-#new-port-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 150px;
-}
-
-#new-port-name {
-    width: 320px;
-}
-
-#new-process-group-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 150px;
-}
-
-#new-process-group-name {
-    width: 320px;
-}
-
-#new-remote-process-group-dialog {
-    z-index: 1301;
-    display: none;
-    width: 400px;
-    height: 370px;
-}
-
-#new-remote-process-group-dialog .small-setting-input {
-    width: 160px;
-}
-
 #new-remote-process-group-transport-protocol-combo {
     width: 160px;
-    height: 18px;
-    line-height: 18px;
-}
-
-#new-remote-process-group-uri {
-    width: 370px;
-}
-
-
-#new-template-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 300px;
-}
-
-.new-template-field {
-    width: 320px;
-}
-
-#alias-dialog {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 195px;
-}
-
-#fill-color-dialog {
-    z-index: 1301;
-    display: none;
-    width: 195px;
-    height: 400px;
 }
 
 #fill-color-value {
-    width: 165px;
+    width: 100%;
 }
 
 #fill-color-processor-preview {
@@ -144,13 +79,6 @@
     margin-left: 5px;
     margin-top: 5px;
     float: left;
-}
-
-#connections-dialog {
-    z-index: 1301;
-    display: none;
-    height: 365px;
-    width: 646px;
 }
 
 div.connections-component-name {
@@ -253,40 +181,6 @@ div.go-to-link {
     cursor: pointer;
 }
 
-#system-diagnostics-dialog {
-    z-index: 1301;
-    display: none;
-    height: 450px;
-    width: 420px;
-}
-
-#instantiate-template-dialog {
-    z-index: 1301;
-    display: none;
-    width: 355px;
-    height: 120px;
-}
-
-#available-templates {
-    width: 325px;
-    height: 18px;
-    line-height: 18px;
-}
-
-#remote-port-configuration {
-    z-index: 1301;
-    display: none;
-    width: 350px;
-    height: 195px;
-}
-
-#drop-request-status-dialog {
-    display: none;
-    width: 400px;
-    height: 125px;
-    z-index: 1301;
-}
-
 #drop-request-percent-complete {
     margin-top: 10px;
     width: 378px;
@@ -295,13 +189,6 @@ div.go-to-link {
 
 #drop-request-percent-complete .ui-progressbar-value {
     border-radius: 0;
-}
-
-#listing-request-status-dialog {
-    display: none;
-    width: 400px;
-    height: 125px;
-    z-index: 1301;
 }
 
 #listing-request-percent-complete {
@@ -319,35 +206,8 @@ div.progress-label {
     display: block;
     font-weight: bold;
     text-align: center;
-    width: 378px;
+    /*width: 378px;*/
     margin-top: 4px;
-}
-
-#nf-ok-dialog {
-    z-index: 1302;
-    display: none;
-    height: 225px;
-    width: 375px;
-}
-
-#nf-ok-dialog-content {
-    width: 355px;
-    height: 130px;
-    overflow: auto;
-}
-
-#nf-yes-no-dialog {
-    z-index: 1302;
-    display: none;
-    height: 175px;
-    width: 350px;
-}
-
-#nf-yes-no-dialog-content {
-    width: 330px;
-    height: 180px;
-    overflow: auto;
-    margin-top: -10px;
 }
 
 /*
@@ -368,19 +228,51 @@ ul.result li {
 }
 
 .setting-name {
-    font-size: 10px;
-    font-weight: bold;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
     padding-bottom: 4px;
-    color: #527991;
+    color: #262626;
+}
+
+.setting-name .fa {
+    color: #004849;
+    margin-left: 5px;
+}
+
+.setting-field .fa {
+    color: #004849;
+    margin-left: 5px;
 }
 
 .setting-field {
-    overflow: hidden;
     line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
 }
 
-img.icon-info {
-    position: relative;
-    left: 3px;
-    top: 1px;
+.setting-header{
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    line-height: 56px;
+    text-overflow: ellipsis;
+}
+
+.dialog-content div.settings-left {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.settings-right {
+    float: left;
+    width: 49%;
+}
+
+.dialog-content div.spacer {
+    float: left;
+    width: 2%;
 }

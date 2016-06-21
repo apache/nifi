@@ -22,18 +22,10 @@ nf.ng.Bridge = (function () {
 
     function AngularBridge() {
         this.rootScope;
+        this.injector;
     };
     AngularBridge.prototype = {
         constructor: AngularBridge,
-
-        /**
-         * Sets the root scope for the angular application being bridged.
-         *
-         * @param {object} scope    An object that refers to the application model.
-         */
-        setRootScope: function (scope) {
-            this.rootScope = scope;
-        },
 
         /**
          * Inspects the root scope of the bridged angular application to look up
@@ -74,7 +66,7 @@ nf.ng.Bridge = (function () {
          * Inspects the root scope of the bridged angular application to look up
          * and return object.
          *
-         * @param {string} name     The name of the object to lookup.
+         * @param {string} name     The (dot notation) name of the object to lookup.
          * @returns {Object|*}
          */
         get: function (name) {

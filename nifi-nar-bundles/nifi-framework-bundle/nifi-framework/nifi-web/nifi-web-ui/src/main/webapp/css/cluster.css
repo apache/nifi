@@ -48,14 +48,6 @@
     -moz-user-select: none;
 }
 
-#cluster-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
-}
-
 #cluster-loading-container {
     float: left;
     width: 16px;
@@ -124,13 +116,9 @@ input.cluster-filter-list {
 /* counters table */
 
 #cluster-table {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 80%;
+    width: 100%;
 }
 
 span.sorted {
@@ -138,13 +126,6 @@ span.sorted {
 }
 
 /* user details dialog */
-
-#node-details-dialog {
-    display: none;
-    width: 600px;
-    height: 400px;
-    z-index: 1301;
-}
 
 #node-events {
     max-height: 200px;

@@ -374,8 +374,8 @@
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-clipboard.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/nf-ng-canvas-app-config.js</include>
-                                                <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-app-controller.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-breadcrumbs-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-header-controller.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/controllers/nf-ng-canvas-toolbox-controller.js</include>
@@ -441,6 +441,10 @@
                                                 <include>${staging.dir}/js/nf/nf-processor-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-connection-details.js</include>
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-summary-table.js</include>
                                                 <include>${staging.dir}/js/nf/summary/nf-cluster-search.js</include>
@@ -498,6 +502,10 @@
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/bulletin-board/nf-bulletin-board.js</include>
                                             </includes>
                                         </aggregation>

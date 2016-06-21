@@ -58,8 +58,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create template dialog
                     this.getElement().modal({
-                        headerText: 'Create Template',
-                        overlayBackground: false
+                        headerText: 'Create Template'
                     });
                 },
 
@@ -114,10 +113,14 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create fillcolor dialog
                     this.getElement().modal({
-                        headerText: 'Fill',
-                        overlayBackground: false,
+                        headerText: 'Change Color',
                         buttons: [{
                             buttonText: 'Apply',
+                            color: {
+                                base: '#728E9B',
+                                hover: '#004849',
+                                text: '#ffffff'
+                            },
                             handler: {
                                 click: function () {
                                     var selection = nf.CanvasUtils.getSelection();
@@ -156,8 +159,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             }).fail(function (xhr, status, error) {
                                                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                                     nf.Dialog.showOkDialog({
-                                                        dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                                                        overlayBackground: true
+                                                        headerText: 'Malformed Request',
+                                                        dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                                     });
                                                 }
                                             });
@@ -168,15 +171,21 @@ nf.ng.Canvas.OperateCtrl = function () {
                                     $('#fill-color-dialog').modal('hide');
                                 }
                             }
-                        }, {
-                            buttonText: 'Cancel',
-                            handler: {
-                                click: function () {
-                                    // close the dialog
-                                    $('#fill-color-dialog').modal('hide');
+                        },
+                            {
+                                buttonText: 'Cancel',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
+                                handler: {
+                                    click: function () {
+                                        // close the dialog
+                                        $('#fill-color-dialog').modal('hide');
+                                    }
                                 }
-                            }
-                        }],
+                            }],
                         handler: {
                             close: function () {
                                 // clear the current color
@@ -257,13 +266,14 @@ nf.ng.Canvas.OperateCtrl = function () {
             }
         };
     }
+
     OperateCtrl.prototype = {
         constructor: OperateCtrl,
 
         /**
          * Initializes the canvas operate controller.
          */
-        init: function() {
+        init: function () {
             this.template.modal.init();
             this.fillcolor.modal.init();
             this.fillcolor.modal.minicolors.init();

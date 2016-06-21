@@ -176,7 +176,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
         $('#processor-tag-cloud').tagcloud('clearSelectedTags');
 
         // clear any filter strings
-        $('#processor-type-filter').addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList).val(serviceProvider.headerCtrl.toolboxCtrl.config.filterText);
+        $('#processor-type-filter').addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
 
         // reapply the filter
         applyFilter();
@@ -260,9 +260,9 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                         }
                     }).blur(function () {
                         if ($(this).val() === '') {
-                            $(this).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList).val(serviceProvider.headerCtrl.toolboxCtrl.config.filterText);
+                            $(this).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
                         }
-                    }).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList).val(serviceProvider.headerCtrl.toolboxCtrl.config.filterText);
+                    }).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
 
                     // initialize the processor type table
                     var processorTypesColumns = [
@@ -275,7 +275,8 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                         enableCellNavigation: true,
                         enableColumnReorder: false,
                         autoEdit: false,
-                        multiSelect: false
+                        multiSelect: false,
+                        rowHeight: 24
                     };
 
                     // initialize the dataview
@@ -403,12 +404,13 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
              * Initialize the modal.
              */
             init: function () {
+                var self = this;
+                
                 this.filter.init();
 
                 // configure the new processor dialog
                 this.getElement().modal({
-                    headerText: 'Add Processor',
-                    overlayBackground: false
+                    headerText: 'Add Processor'
                 });
             },
 
@@ -437,6 +439,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             }
         };
     }
+
     ProcessorComponent.prototype = {
         constructor: ProcessorComponent,
 
@@ -445,21 +448,21 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
          *
          * @returns {*|jQuery|HTMLElement}
          */
-        getElement: function() {
+        getElement: function () {
             return $('#processor-component');
         },
 
         /**
          * Enable the component.
          */
-        enabled: function() {
+        enabled: function () {
             this.getElement().attr('disabled', false);
         },
 
         /**
          * Disable the component.
          */
-        disabled: function() {
+        disabled: function () {
             this.getElement().attr('disabled', true);
         },
 
@@ -468,8 +471,18 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the component was dropped
          */
-        dropHandler: function(pt) {
+        dropHandler: function (pt) {
             this.promptForProcessorType(pt);
+        },
+
+        /**
+         * The drag icon for the toolbox component.
+         * 
+         * @param event
+         * @returns {*|jQuery|HTMLElement}
+         */
+        dragIcon: function (event) {
+            return $('<div class="icon icon-processor-add"></div>');
         },
 
         /**
@@ -477,7 +490,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the processor was dropped
          */
-        promptForProcessorType: function(pt) {
+        promptForProcessorType: function (pt) {
             var self = this;
             // handles adding the selected processor at the specified point
             var addProcessor = function () {
@@ -488,8 +501,8 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 // ensure something was selected
                 if (name === '' || processorType === '') {
                     nf.Dialog.showOkDialog({
-                        dialogContent: 'The type of processor to create must be selected.',
-                        overlayBackground: false
+                        headerText: 'Add Processor',
+                        dialogContent: 'The type of processor to create must be selected.'
                     });
                 } else {
                     // create the new processor
@@ -519,17 +532,28 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             // update the button model
             this.modal.update('setButtonModel', [{
                 buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: addProcessor
                 }
-            }, {
-                buttonText: 'Cancel',
-                handler: {
-                    click: function () {
-                        $('#new-processor-dialog').modal('hide');
+            },
+                {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#new-processor-dialog').modal('hide');
+                        }
                     }
-                }
-            }]);
+                }]);
 
             // set a new handler for closing the the dialog
             this.modal.update('setHandler', {

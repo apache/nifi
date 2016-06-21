@@ -136,8 +136,6 @@
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
-        <div id="faded-background"></div>
-        <div id="glass-pane"></div>
         <div id="context-menu" class="unselectable"></div>
         <span id="nifi-content-viewer-url" class="hidden"></span>
     </body>
