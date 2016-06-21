@@ -1030,6 +1030,13 @@ nf.Settings = (function () {
         },
 
         /**
+         * Loads the settings dialogs.
+         */
+        loadSettings: function () {
+            return loadSettings();
+        },
+
+        /**
          * Selects the specified controller service.
          * 
          * @param {string} controllerServiceId

@@ -974,7 +974,7 @@ nf.CanvasUtils = (function () {
             }
             return supportsModification;
         },
-        
+
         /**
          * Determines the connectable type for the specified source selection.
          *

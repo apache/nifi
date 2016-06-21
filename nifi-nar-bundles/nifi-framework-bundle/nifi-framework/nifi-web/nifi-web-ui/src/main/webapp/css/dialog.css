@@ -22,6 +22,12 @@
     width: 160px;
 }
 
+#fill-color-dialog {
+    display: none;
+    width: 215px;
+    height: 470px;
+}
+
 #fill-color-value {
     width: 100%;
 }

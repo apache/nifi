@@ -540,7 +540,6 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
-                groupId: nf.Canvas.getGroupId(),
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function (propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
@@ -800,7 +799,9 @@ nf.ProcessorConfiguration = (function () {
                     $('#processor-configuration').modal('setButtonModel', buttons);
 
                     // load the property table
-                    $('#processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory);
+                    $('#processor-properties')
+                        .propertytable('setGroupId', processor.parentGroupId)
+                        .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory);
 
                     // show the details
                     $('#processor-configuration').modal('show');

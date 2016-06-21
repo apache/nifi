@@ -38,6 +38,7 @@
 #graph-controls {
     position: absolute;
     left: 0;
+    top: 110px;
     z-index: 2;
 }
 
@@ -118,6 +119,54 @@ div.graph-control-header-action {
 #navigation-buttons {
     margin-bottom: 5px;
     margin-top: 10px;
+}
+
+#operation-context {
+    margin-top: 10px;
+}
+
+#operation-context-logo {
+    float: left;
+}
+
+#operation-context-logo i.icon {
+    font-size: 32px;
+    font-family: flowfont;
+    color: #ad9897;
+}
+
+#operation-context-details-container {
+    float: left;
+    padding-left: 10px;
+}
+
+#operation-context-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    width: 210px;
+    text-overflow: ellipsis;
+    overflow-x: hidden;
+    white-space: nowrap;
+}
+
+#operation-context-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+}
+
+#operation-context-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    margin-top: 10px;
+}
+
+#operation-context-type.invisible, #operation-context-id.invisible {
+    visibility: hidden;
 }
 
 #operation-buttons {

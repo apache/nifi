@@ -94,7 +94,7 @@ nf.Connectable = (function () {
                 .on('drag', function (d) {
                     // updates the location of the connection img
                     d3.select(this).attr('transform', function () {
-                        return 'translate(' + d3.event.x + ', ' + (d3.event.y + 20) + ')';
+                        return 'translate(' + d3.event.x + ', ' + (d3.event.y + 50) + ')';
                     });
 
                     // mark node's connectable if supported
@@ -205,32 +205,29 @@ nf.Connectable = (function () {
                         // ensure the current component supports connection source
                         if (nf.CanvasUtils.isValidConnectionSource(selection)) {
                             // see if theres already a connector rendered
-                            var addConnect = d3.select('image.add-connect');
+                            var addConnect = d3.select('text.add-connect');
                             if (addConnect.empty()) {
                                 var x = (d.dimensions.width / 2) - 14;
-                                var y = (d.dimensions.height / 2) - 14;
+                                var y = (d.dimensions.height / 2) + 14;
 
-                                selection.append('image')
+                                selection.append('text')
                                     .datum({
                                         origX: x,
                                         origY: y
                                     })
                                     .call(connect)
-                                    .call(nf.CanvasUtils.disableImageHref)
                                     .attr({
                                         'class': 'add-connect',
-                                        'xlink:href': 'images/addConnect.png',
-                                        'width': 28,
-                                        'height': 28,
                                         'transform': 'translate(' + x + ', ' + y + ')'
-                                    });
+                                    })
+                                    .text('\ue834');
                             }
                         }
                     }
                 })
                 .on('mouseleave.connectable', function () {
                     // conditionally remove the connector
-                    var addConnect = d3.select(this).select('image.add-connect');
+                    var addConnect = d3.select(this).select('text.add-connect');
                     if (!addConnect.empty() && !addConnect.classed('dragging')) {
                         addConnect.remove();
                     }

@@ -555,7 +555,9 @@ nf.ReportingTask = (function () {
                 $('#reporting-task-configuration').modal('setButtonModel', buttons);
 
                 // load the property table
-                $('#reporting-task-properties').propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
+                $('#reporting-task-properties')
+                    .propertytable('setGroupId', reportingTask.parentGroupId)
+                    .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details
                 $('#reporting-task-configuration').modal('show');

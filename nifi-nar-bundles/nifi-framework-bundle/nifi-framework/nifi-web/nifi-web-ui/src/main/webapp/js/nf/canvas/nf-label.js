@@ -509,7 +509,7 @@ nf.Label = (function () {
          * Returns the default color that should be used when drawing a label.
          */
         defaultColor: function () {
-            return '#ffde93';
+            return '#fff7d7';
         }
     };
 }());

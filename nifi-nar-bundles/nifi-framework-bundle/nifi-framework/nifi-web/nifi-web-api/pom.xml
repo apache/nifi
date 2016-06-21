@@ -360,10 +360,5 @@
             <artifactId>spock-core</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib-nodep</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

@@ -45,6 +45,7 @@
 (function ($) {
     var languageId = 'nfel';
     var editorClass = languageId + '-editor';
+    var groupId = null;
 
     // text editor
     var textEditor = function (args) {
@@ -962,8 +963,8 @@
 
                     // determine the appropriate uri for creating the controller service
                     var uri = '../nifi-api/controller/controller-services';
-                    if (nf.Common.isDefinedAndNotNull(configurationOptions.groupId)) {
-                        uri = '../nifi-api/process-groups/' + encodeURIComponent(configurationOptions.groupId) + '/controller-services';
+                    if (nf.Common.isDefinedAndNotNull(groupId)) {
+                        uri = '../nifi-api/process-groups/' + encodeURIComponent(groupId) + '/controller-services';
                     }
 
                     // add the new controller service
@@ -1217,7 +1218,10 @@
                         });
                     } else {
                         if ($('#settings').is(':visible')) {
-                            deferred.resolve();
+                            // reload the settings
+                            nf.Settings.loadSettings().done(function () {
+                                deferred.resolve();
+                            });
                         } else {
                             // reload the settings and show
                             nf.Settings.showSettings().done(function () {
@@ -1771,6 +1775,15 @@
             });
 
             return properties;
+        },
+
+        /**
+         * Sets the current group id.
+         */
+        setGroupId: function (currentGroupId) {
+            return this.each(function () {
+                groupId = currentGroupId;
+            });
         }
     };
 

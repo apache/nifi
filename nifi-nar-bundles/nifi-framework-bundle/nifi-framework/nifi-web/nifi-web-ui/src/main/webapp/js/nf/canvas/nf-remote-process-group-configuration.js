@@ -60,6 +60,9 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                 // refresh the remote process group component
                                 nf.RemoteProcessGroup.set(response);
 
+                                // inform Angular app values have changed
+                                nf.ng.Bridge.digest();
+                                
                                 // close the details panel
                                 $('#remote-process-group-configuration').modal('hide');
                             }).fail(function (xhr, status, error) {

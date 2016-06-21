@@ -1670,7 +1670,6 @@ nf.ControllerService = (function () {
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
-                    // groupId: controllerServiceEntity.component.parentGroupId,
                     dialogContainer: '#new-controller-service-property-container',
                     descriptorDeferred: getControllerServicePropertyDescriptor,
                     goToServiceDeferred: function () {
@@ -1813,7 +1812,9 @@ nf.ControllerService = (function () {
                 controllerServiceDialog.modal('setButtonModel', buttons);
 
                 // load the property table
-                $('#controller-service-properties').propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
+                $('#controller-service-properties')
+                    .propertytable('setGroupId', controllerService.parentGroupId)
+                    .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details
                 controllerServiceDialog.modal('show');

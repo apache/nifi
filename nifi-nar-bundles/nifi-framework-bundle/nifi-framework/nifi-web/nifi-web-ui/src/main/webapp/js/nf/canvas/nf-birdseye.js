@@ -163,32 +163,31 @@ nf.Birdseye = (function () {
         });
 
         // funnels
-        context.fillStyle = '#9f6000';
+        context.fillStyle = '#ad9897';
         $.each(components.funnels, function (_, d) {
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // ports
-        context.fillStyle = '#aaa';
+        context.fillStyle = '#bbdcde';
         $.each(components.ports, function (_, d) {
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // remote process groups
-        context.fillStyle = '#294c58';
+        context.fillStyle = '#728e9b';
         $.each(components.remoteProcessGroups, function (_, d) {
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // process groups
-        context.fillStyle = '#294c58';
         $.each(components.processGroups, function (_, d) {
             context.fillRect(d.position.x, d.position.y, d.dimensions.width, d.dimensions.height);
         });
 
         // processors
         $.each(components.processors, function (_, d) {
-            var color = nf.Processor.defaultColor();
+            var color = '#dde4eb';
 
             if (d.accessPolicy.canRead) {
                 // use the specified color if appropriate

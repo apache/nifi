@@ -81,6 +81,17 @@
             <div class="clear"></div>
         </div>
         <div class="graph-control-content hidden">
+            <div id="operation-context">
+                <div id="operation-context-logo">
+                    <i class="icon" ng-class="appCtrl.serviceProvider.graphControlsCtrl.getContextIcon()"></i>
+                </div>
+                <div id="operation-context-details-container">
+                    <div id="operation-context-name">{{appCtrl.serviceProvider.graphControlsCtrl.getContextName()}}</div>
+                    <div id="operation-context-type" ng-class="appCtrl.serviceProvider.graphControlsCtrl.hide()">{{appCtrl.serviceProvider.graphControlsCtrl.getContextType()}}</div>
+                </div>
+                <div class="clear"></div>
+                <div id="operation-context-id" ng-class="appCtrl.serviceProvider.graphControlsCtrl.hide()">{{appCtrl.serviceProvider.graphControlsCtrl.getContextId()}}</div>
+            </div>
             <div id="operation-buttons">
                 <div>
                     <div id="operate-configure" class="action-button" title="Configuration">

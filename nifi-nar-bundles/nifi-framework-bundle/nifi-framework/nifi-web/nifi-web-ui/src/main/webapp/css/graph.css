@@ -149,8 +149,11 @@ rect.selection, rect.drag-selection, rect.label-drag {
     fill: transparent;
 }
 
-image.add-connect {
+text.add-connect {
     cursor: pointer;
+    font-family: flowfont;
+    font-size: 28px;
+    fill: #004849;
 }
 
 /*
@@ -168,7 +171,6 @@ text.processor-type {
 }
 
 text.processor-icon {
-    fill: #ad9897;
     font-family: flowfont;
     font-size: 30px;
 }

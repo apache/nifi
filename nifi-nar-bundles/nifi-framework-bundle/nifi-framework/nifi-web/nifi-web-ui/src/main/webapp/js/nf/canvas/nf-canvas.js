@@ -527,8 +527,6 @@ nf.Canvas = (function () {
                 updateGraphSize();
                 updateFlowStatusContainerSize();
 
-                nf.ng.Bridge.get('appCtrl.serviceProvider.graphControlsCtrl').positionGraphControls();
-
                 // resize grids when appropriate
                 if ($('#process-group-controller-services-table').is(':visible')) {
                     nf.ProcessGroupConfiguration.resetTableSize();
@@ -646,12 +644,20 @@ nf.Canvas = (function () {
             // set the group details
             nf.Canvas.setGroupId(processGroupFlow.id);
 
+            // get the current group name from the breadcrumb
+            var breadcrumb = processGroupFlow.breadcrumb;
+            if (breadcrumb.accessPolicy.canRead) {
+                nf.Canvas.setGroupName(breadcrumb.breadcrumb.name);
+            } else {
+                nf.Canvas.setGroupName(breadcrumb.id);
+            }
+
             // update the access policies
             accessPolicy = flowResponse.accessPolicy;
             
             // update the breadcrumbs
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
-            nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(processGroupFlow.breadcrumb);
+            nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetScrollPosition();
 
             // update the timestamp
@@ -959,6 +965,19 @@ nf.Canvas = (function () {
             return parentGroupId;
         },
 
+        /**
+         * Whether the current user can write in this group.
+         *
+         * @returns {boolean}   can write
+         */
+        canRead: function () {
+            if (accessPolicy === null) {
+                return false;
+            } else {
+                return accessPolicy.canRead === true;
+            }
+        },
+        
         /**
          * Whether the current user can write in this group.
          * 

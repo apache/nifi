@@ -1203,8 +1203,8 @@ nf.ConnectionConfiguration = (function () {
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
                 $('#flow-file-expiration').val('0 sec');
-                $('#back-pressure-object-threshold').val('0');
-                $('#back-pressure-data-size-threshold').val('0 MB');
+                $('#back-pressure-object-threshold').val('10000');
+                $('#back-pressure-data-size-threshold').val('1 GB');
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();

@@ -67,6 +67,9 @@ nf.LabelConfiguration = (function () {
                             }).done(function (response) {
                                 // get the label out of the response
                                 nf.Label.set(response);
+
+                                // inform Angular app values have changed
+                                nf.ng.Bridge.digest();
                             }).fail(nf.Common.handleAjaxError);
 
                             // reset and hide the dialog

@@ -87,6 +87,9 @@ nf.ProcessGroupConfiguration = (function () {
             $('#process-group-configuration-save').off('click').on('click', function () {
                 saveConfiguration(response.revision.version, groupId);
             });
+
+            // inform Angular app values have changed
+            nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
     };
 

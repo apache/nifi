@@ -547,14 +547,15 @@ nf.Processor = (function () {
         // ---------------
 
         // update the processor color
-        updated.select('rect.body')
+        updated.select('text.processor-icon')
             .style('fill', function (d) {
-                if (!d.accessPolicy.canRead) {
-                    return null;
-                }
                 
                 // get the default color
                 var color = nf.Processor.defaultColor();
+                
+                if (!d.accessPolicy.canRead) {
+                    return color;
+                }
 
                 // use the specified color if appropriate
                 if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
@@ -923,7 +924,7 @@ nf.Processor = (function () {
          * Returns the default color that should be used when drawing a processor.
          */
         defaultColor: function () {
-            return '#ffffff';
+            return '#ad9897';
         }
     };
 }());
