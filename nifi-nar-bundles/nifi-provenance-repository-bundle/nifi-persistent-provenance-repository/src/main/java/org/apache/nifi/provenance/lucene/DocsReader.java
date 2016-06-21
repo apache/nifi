@@ -127,7 +127,7 @@ class DocsReader {
                         maxAttributeChars)) {
 
                     Iterator<Document> docIter = byStorageNameDocGroups.get(storageFileName).iterator();
-                    while (docIter.hasNext() && retrievalCount.incrementAndGet() < maxResults){
+                    while (docIter.hasNext() && retrievalCount.getAndIncrement() < maxResults) {
                         ProvenanceEventRecord eRec = this.getRecord(docIter.next(), reader);
                         if (eRec != null) {
                             matchingRecords.add(eRec);

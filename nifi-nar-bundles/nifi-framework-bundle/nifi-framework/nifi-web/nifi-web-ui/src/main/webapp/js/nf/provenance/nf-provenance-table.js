@@ -988,7 +988,7 @@ nf.ProvenanceTable = (function () {
             // update the filter message based on the request
             if (isBlankQuery(provenanceRequest)) {
                 var message = 'Showing the most recent ';
-                if (provenanceResults.totalCount > config.maxResults) {
+                if (provenanceResults.totalCount >= config.maxResults) {
                     message += (nf.Common.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events, please refine the search.');
                 } else {
                     message += ('events.');
@@ -997,7 +997,7 @@ nf.ProvenanceTable = (function () {
                 $('#clear-provenance-search').hide();
             } else {
                 var message = 'Showing ';
-                if (provenanceResults.totalCount > config.maxResults) {
+                if (provenanceResults.totalCount >= config.maxResults) {
                     message += (nf.Common.formatInteger(config.maxResults) + ' of ' + provenanceResults.total + ' events that match the specified query, please refine the search.');
                 } else {
                     message += ('the events that match the specified query.');

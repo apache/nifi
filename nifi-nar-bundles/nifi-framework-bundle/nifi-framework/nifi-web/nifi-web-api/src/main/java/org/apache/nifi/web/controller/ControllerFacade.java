@@ -964,8 +964,14 @@ public class ControllerFacade implements Authorizable {
                 events.add(createProvenanceEventDto(record));
             }
             resultsDto.setProvenanceEvents(events);
-            resultsDto.setTotalCount(queryResult.getTotalHitCount());
-            resultsDto.setTotal(FormatUtils.formatCount(queryResult.getTotalHitCount()));
+
+            if (requestDto.getMaxResults() != null && queryResult.getTotalHitCount() >= requestDto.getMaxResults()) {
+                resultsDto.setTotalCount(requestDto.getMaxResults().longValue());
+                resultsDto.setTotal(FormatUtils.formatCount(requestDto.getMaxResults().longValue()) + "+");
+            } else {
+                resultsDto.setTotalCount(queryResult.getTotalHitCount());
+                resultsDto.setTotal(FormatUtils.formatCount(queryResult.getTotalHitCount()));
+            }
 
             // include any errors
             if (queryResult.getError() != null) {

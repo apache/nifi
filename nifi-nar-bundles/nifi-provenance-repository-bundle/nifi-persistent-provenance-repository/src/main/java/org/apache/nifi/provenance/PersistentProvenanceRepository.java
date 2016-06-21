@@ -2330,10 +2330,6 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager, maxAttributeChars);
                 final StandardQueryResult queryResult = search.search(query, retrievalCount, firstEventTimestamp);
                 submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount());
-                if (queryResult.isFinished()) {
-                    logger.info("Successfully executed Query[{}] against Index {}; Search took {} milliseconds; Total Hits = {}",
-                            query, indexDir, queryResult.getQueryTime(), queryResult.getTotalHitCount());
-                }
             } catch (final Throwable t) {
                 logger.error("Failed to query Provenance Repository Index {} due to {}", indexDir, t.toString());
                 if (logger.isDebugEnabled()) {

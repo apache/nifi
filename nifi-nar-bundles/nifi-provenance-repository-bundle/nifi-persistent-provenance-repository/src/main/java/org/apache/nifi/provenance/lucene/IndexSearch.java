@@ -49,6 +49,18 @@ public class IndexSearch {
     }
 
     public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount, final long firstEventTimestamp) throws IOException {
+        if (retrievedCount.get() >= provenanceQuery.getMaxResults()) {
+            final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
+            sqr.update(Collections.<ProvenanceEventRecord> emptyList(), 0L);
+
+            logger.info("Skipping search of Provenance Index {} for {} because the max number of results ({}) has already been retrieved",
+                indexDirectory, provenanceQuery, provenanceQuery.getMaxResults());
+
+            return sqr;
+        }
+
+        final long startNanos = System.nanoTime();
+
         if (!indexDirectory.exists() && !indexDirectory.mkdirs()) {
             throw new IOException("Unable to create Indexing Directory " + indexDirectory);
         }
@@ -97,6 +109,11 @@ public class IndexSearch {
             logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);
 
             sqr.update(matchingRecords, topDocs.totalHits);
+
+            final long queryNanos = System.nanoTime() - startNanos;
+            logger.info("Successfully executed {} against Index {}; Search took {} milliseconds; Total Hits = {}",
+                provenanceQuery, indexDirectory, TimeUnit.NANOSECONDS.toMillis(queryNanos), topDocs.totalHits);
+
             return sqr;
         } catch (final FileNotFoundException e) {
             // nothing has been indexed yet, or the data has already aged off
