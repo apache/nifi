@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -28,7 +29,7 @@ import java.util.Set;
 public class UserDTO extends ComponentDTO {
 
     private String identity;
-    private Set<String> groups;
+    private Set<UserGroupEntity> groups;
 
     /**
      * @return users identity
@@ -48,11 +49,11 @@ public class UserDTO extends ComponentDTO {
      * @return groups to which the user belongs
      */
     @ApiModelProperty(value = "The groups to which the user belongs.")
-    public Set<String> getGroups() {
+    public Set<UserGroupEntity> getGroups() {
         return groups;
     }
 
-    public void setGroups(Set<String> groups) {
+    public void setGroups(Set<UserGroupEntity> groups) {
         this.groups = groups;
     }
 }

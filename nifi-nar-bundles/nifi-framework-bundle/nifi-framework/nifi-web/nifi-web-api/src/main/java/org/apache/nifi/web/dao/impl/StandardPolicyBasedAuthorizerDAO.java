@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
@@ -43,28 +44,28 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     private static final String MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER = "authorizer is not of type AbstractPolicyBasedAuthorizer";
     private final AbstractPolicyBasedAuthorizer authorizer;
 
-    public StandardPolicyBasedAuthorizerDAO(Authorizer authorizer) {
+    public StandardPolicyBasedAuthorizerDAO(final Authorizer authorizer) {
         if (authorizer instanceof AbstractPolicyBasedAuthorizer) {
             this.authorizer = (AbstractPolicyBasedAuthorizer) authorizer;
         } else {
             this.authorizer = new AbstractPolicyBasedAuthorizer() {
                 @Override
-                public Group addGroup(Group group) throws AuthorizationAccessException {
+                public Group addGroup(final Group group) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public Group getGroup(String identifier) throws AuthorizationAccessException {
+                public Group getGroup(final String identifier) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public Group updateGroup(Group group) throws AuthorizationAccessException {
+                public Group updateGroup(final Group group) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public Group deleteGroup(Group group) throws AuthorizationAccessException {
+                public Group deleteGroup(final Group group) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -74,27 +75,27 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public User addUser(User user) throws AuthorizationAccessException {
+                public User addUser(final User user) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public User getUser(String identifier) throws AuthorizationAccessException {
+                public User getUser(final String identifier) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public User getUserByIdentity(String identity) throws AuthorizationAccessException {
+                public User getUserByIdentity(final String identity) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public User updateUser(User user) throws AuthorizationAccessException {
+                public User updateUser(final User user) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public User deleteUser(User user) throws AuthorizationAccessException {
+                public User deleteUser(final User user) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -104,22 +105,22 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                public AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
+                public AccessPolicy getAccessPolicy(final String identifier) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                public AccessPolicy updateAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
                 @Override
-                public AccessPolicy deleteAccessPolicy(AccessPolicy policy) throws AuthorizationAccessException {
+                public AccessPolicy deleteAccessPolicy(final AccessPolicy policy) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -134,11 +135,11 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+                public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
                 }
 
                 @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
                 }
 
                 @Override
@@ -149,35 +150,35 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
-    public boolean hasAccessPolicy(String accessPolicyId) {
+    public boolean hasAccessPolicy(final String accessPolicyId) {
         return authorizer.getAccessPolicy(accessPolicyId) != null;
     }
 
     @Override
-    public AccessPolicy createAccessPolicy(AccessPolicyDTO accessPolicyDTO) {
+    public AccessPolicy createAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
         return authorizer.addAccessPolicy(buildAccessPolicy(accessPolicyDTO));
     }
 
     @Override
-    public AccessPolicy getAccessPolicy(String accessPolicyId) {
+    public AccessPolicy getAccessPolicy(final String accessPolicyId) {
         return authorizer.getAccessPolicy(accessPolicyId);
     }
 
     @Override
-    public AccessPolicy updateAccessPolicy(AccessPolicyDTO accessPolicyDTO) {
+    public AccessPolicy updateAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
         return authorizer.updateAccessPolicy(buildAccessPolicy(accessPolicyDTO));
     }
 
     @Override
-    public AccessPolicy deleteAccessPolicy(String accessPolicyId) {
+    public AccessPolicy deleteAccessPolicy(final String accessPolicyId) {
         return authorizer.deleteAccessPolicy(authorizer.getAccessPolicy(accessPolicyId));
     }
 
-    private AccessPolicy buildAccessPolicy(AccessPolicyDTO accessPolicyDTO) {
+    private AccessPolicy buildAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
         final AccessPolicy.Builder builder = new AccessPolicy.Builder()
                 .identifier(accessPolicyDTO.getId())
-                .addGroups(accessPolicyDTO.getUserGroups().stream().map(userGroup -> userGroup.getId()).collect(Collectors.toSet()))
-                .addUsers(accessPolicyDTO.getUsers().stream().map(user -> user.getId()).collect(Collectors.toSet()))
+                .addGroups(accessPolicyDTO.getUserGroups().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
+                .addUsers(accessPolicyDTO.getUsers().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
                 .resource(accessPolicyDTO.getResource());
         if (accessPolicyDTO.getCanRead()) {
             builder.addAction(RequestAction.READ);
@@ -189,64 +190,66 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
-    public boolean hasUserGroup(String userGroupId) {
+    public boolean hasUserGroup(final String userGroupId) {
         return authorizer.getGroup(userGroupId) != null;
     }
 
     @Override
-    public Group createUserGroup(UserGroupDTO userGroupDTO) {
+    public Group createUserGroup(final UserGroupDTO userGroupDTO) {
         return authorizer.addGroup(buildUserGroup(userGroupDTO));
     }
 
     @Override
-    public Group getUserGroup(String userGroupId) {
+    public Group getUserGroup(final String userGroupId) {
         return authorizer.getGroup(userGroupId);
     }
 
     @Override
-    public Group updateUserGroup(UserGroupDTO userGroupDTO) {
+    public Group updateUserGroup(final UserGroupDTO userGroupDTO) {
         return authorizer.updateGroup(buildUserGroup(userGroupDTO));
     }
 
     @Override
-    public Group deleteUserGroup(String userGroupId) {
+    public Group deleteUserGroup(final String userGroupId) {
         return authorizer.deleteGroup(authorizer.getGroup(userGroupId));
     }
 
-    private Group buildUserGroup(UserGroupDTO userGroupDTO) {
+    private Group buildUserGroup(final UserGroupDTO userGroupDTO) {
         return new Group.Builder()
-                .addUsers(userGroupDTO.getUsers().stream().map(userGroup -> userGroup.getId()).collect(Collectors.toSet()))
+                .addUsers(userGroupDTO.getUsers().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
                 .identifier(userGroupDTO.getId()).name(userGroupDTO.getName()).build();
     }
 
     @Override
-    public boolean hasUser(String userId) {
+    public boolean hasUser(final String userId) {
         return authorizer.getUser(userId) != null;
     }
 
     @Override
-    public User createUser(UserDTO userDTO) {
-        User user = buildUser(userDTO);
+    public User createUser(final UserDTO userDTO) {
+        final User user = buildUser(userDTO);
         return authorizer.addUser(user);
     }
 
     @Override
-    public User getUser(String userId) {
+    public User getUser(final String userId) {
         return authorizer.getUser(userId);
     }
 
     @Override
-    public User updateUser(UserDTO userDTO) {
+    public User updateUser(final UserDTO userDTO) {
         return authorizer.updateUser(buildUser(userDTO));
     }
 
     @Override
-    public User deleteUser(String userId) {
+    public User deleteUser(final String userId) {
         return authorizer.deleteUser(authorizer.getUser(userId));
     }
 
-    private User buildUser(UserDTO userDTO) {
-        return new User.Builder().addGroups(userDTO.getGroups()).identifier(userDTO.getIdentity()).identity(userDTO.getIdentity()).build();
+    private User buildUser(final UserDTO userDTO) {
+        return new User.Builder()
+                .addGroups(userDTO.getGroups().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
+                .identifier(userDTO.getIdentity()).identity(userDTO.getIdentity()).build();
     }
 
 }

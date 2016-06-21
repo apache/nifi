@@ -16,29 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.ws.rs.WebApplicationException;
-
+import com.google.common.collect.Sets;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -206,7 +184,27 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -529,8 +527,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 accessPolicyAuthorizable,
                 () -> accessPolicyDAO.updateAccessPolicy(accessPolicyDTO),
                 accessPolicy -> {
-                    final Set<UserEntity> users = accessPolicy.getUsers().stream().map(userId -> getUser(userId) ).collect(Collectors.toSet());
-                    final Set<UserGroupEntity> userGroups = accessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId) ).collect(Collectors.toSet());
+                    final Set<UserEntity> users = accessPolicy.getUsers().stream().map(userId -> getUser(userId, true) ).collect(Collectors.toSet());
+                    final Set<UserGroupEntity> userGroups = accessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true) ).collect(Collectors.toSet());
                     return dtoFactory.createAccessPolicyDto(accessPolicy, userGroups, users);
                 });
 
@@ -549,7 +547,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<UserDTO> snapshot = updateComponent(revision,
                 usersAuthorizable,
                 () -> userDAO.updateUser(userDTO),
-                user -> dtoFactory.createUserDto(user));
+                user -> dtoFactory.createUserDto(user, user.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet())));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(usersAuthorizable);
         return new UpdateResult<>(entityFactory.createUserEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -566,7 +564,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<UserGroupDTO> snapshot = updateComponent(revision,
                 userGroupsAuthorizable,
                 () -> userGroupDAO.updateUserGroup(userGroupDTO),
-                userGroup -> dtoFactory.createUserGroupDto(userGroup, userGroup.getUsers().stream().map(userId -> getUser(userId)).collect(Collectors.toSet())));
+                userGroup -> dtoFactory.createUserGroupDto(userGroup, userGroup.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet())));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(userGroupsAuthorizable);
         return new UpdateResult<>(entityFactory.createUserGroupEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), accessPolicy), false);
@@ -705,7 +703,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim revisionClaim = new StandardRevisionClaim(revisions);
 
-        RevisionUpdate<SnippetDTO> snapshot;
+        final RevisionUpdate<SnippetDTO> snapshot;
         try {
             snapshot = revisionManager.updateRevision(revisionClaim, user, new UpdateRevisionTask<SnippetDTO>() {
                 @Override
@@ -1043,38 +1041,43 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public UserEntity deleteUser(Revision revision, String userId) {
+    public UserEntity deleteUser(final Revision revision, final String userId) {
         final User user = userDAO.getUser(userId);
+        final Set<UserGroupEntity> userGroups = user != null ? user.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet()) : null;
         final UserDTO snapshot = deleteComponent(
                 revision,
                 authorizableLookup.getUsersAuthorizable(),
                 () -> userDAO.deleteUser(userId),
-                dtoFactory.createUserDto(user));
+                dtoFactory.createUserDto(user, userGroups));
 
         return entityFactory.createUserEntity(snapshot, null, null);
     }
 
     @Override
-    public UserGroupEntity deleteUserGroup(Revision revision, String userGroupId) {
+    public UserGroupEntity deleteUserGroup(final Revision revision, final String userGroupId) {
         final Group userGroup = userGroupDAO.getUserGroup(userGroupId);
+        final Set<UserEntity> users = userGroup != null ? userGroup.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet()) :
+                null;
         final UserGroupDTO snapshot = deleteComponent(
                 revision,
                 authorizableLookup.getUserGroupsAuthorizable(),
                 () -> userGroupDAO.deleteUserGroup(userGroupId),
-                dtoFactory.createUserGroupDto(userGroup, userGroup.getUsers().stream().map(userId -> getUser(userId)).collect(Collectors.toSet())));
+                dtoFactory.createUserGroupDto(userGroup, users));
 
         return entityFactory.createUserGroupEntity(snapshot, null, null);
     }
 
     @Override
-    public AccessPolicyEntity deleteAccessPolicy(Revision revision, String accessPolicyId) {
+    public AccessPolicyEntity deleteAccessPolicy(final Revision revision, final String accessPolicyId) {
         final AccessPolicy accessPolicy = accessPolicyDAO.getAccessPolicy(accessPolicyId);
+        final Set<UserGroupEntity> userGroups = accessPolicy != null ? accessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet()) : null;
+        final Set<UserEntity> users = accessPolicy != null ? accessPolicy.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet()) : null;
         final AccessPolicyDTO snapshot = deleteComponent(
                 revision,
                 authorizableLookup.getAccessPolicyAuthorizable(accessPolicyId),
                 () -> accessPolicyDAO.deleteAccessPolicy(accessPolicyId),
-                dtoFactory.createAccessPolicyDto(accessPolicy, accessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId) ).collect(Collectors.toSet()),
-                        accessPolicy.getUsers().stream().map(userId -> getUser(userId) ).collect(Collectors.toSet())));
+                dtoFactory.createAccessPolicyDto(accessPolicy, userGroups,
+                        users));
 
         return entityFactory.createAccessPolicyEntity(snapshot, null, null);
     }
@@ -1319,41 +1322,41 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public AccessPolicyEntity createAccessPolicy(Revision revision, AccessPolicyDTO accessPolicyDTO) {
+    public AccessPolicyEntity createAccessPolicy(final Revision revision, final AccessPolicyDTO accessPolicyDTO) {
         final String creator = NiFiUserUtils.getNiFiUserName();
         if (revision.getVersion() != 0) {
             throw new IllegalArgumentException("The revision must start at 0.");
         }
         final AccessPolicy newAccessPolicy = accessPolicyDAO.createAccessPolicy(accessPolicyDTO);
         final AccessPolicyDTO newAccessPolicyDto = dtoFactory.createAccessPolicyDto(newAccessPolicy,
-                newAccessPolicy.getGroups().stream().map(this::getUserGroup).collect(Collectors.toSet()),
-                newAccessPolicy.getUsers().stream().map(this::getUser).collect(Collectors.toSet()));
+                newAccessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet()),
+                newAccessPolicy.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet()));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getAccessPolicyAuthorizable(newAccessPolicy.getIdentifier()));
         return entityFactory.createAccessPolicyEntity(newAccessPolicyDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
     }
 
     @Override
-    public UserEntity createUser(Revision revision, UserDTO userDTO) {
+    public UserEntity createUser(final Revision revision, final UserDTO userDTO) {
         final String creator = NiFiUserUtils.getNiFiUserName();
         if (revision.getVersion() != 0) {
             throw new IllegalArgumentException("The revision must start at 0.");
         }
         final User newUser = userDAO.createUser(userDTO);
-        final UserDTO newUserDto = dtoFactory.createUserDto(newUser);
+        final UserDTO newUserDto = dtoFactory.createUserDto(newUser, newUser.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet()));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getUsersAuthorizable());
         return entityFactory.createUserEntity(newUserDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
     }
 
     @Override
-    public UserGroupEntity createUserGroup(Revision revision, UserGroupDTO userGroupDTO) {
+    public UserGroupEntity createUserGroup(final Revision revision, final UserGroupDTO userGroupDTO) {
         final String creator = NiFiUserUtils.getNiFiUserName();
         if (revision.getVersion() != 0) {
             throw new IllegalArgumentException("The revision must start at 0.");
         }
         final Group newUserGroup = userGroupDAO.createUserGroup(userGroupDTO);
-        final UserGroupDTO newUserGroupDto = dtoFactory.createUserGroupDto(newUserGroup, newUserGroup.getUsers().stream().map(this::getUser).collect(Collectors.toSet()));
+        final UserGroupDTO newUserGroupDto = dtoFactory.createUserGroupDto(newUserGroup, newUserGroup.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet()));
 
         final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(authorizableLookup.getUserGroupsAuthorizable());
         return entityFactory.createUserGroupEntity(newUserGroupDto, dtoFactory.createRevisionDTO(new FlowModification(revision, creator)), accessPolicy);
@@ -2440,7 +2443,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public AccessPolicyEntity getAccessPolicy(String accessPolicyId) {
+    public AccessPolicyEntity getAccessPolicy(final String accessPolicyId) {
         return revisionManager.get(accessPolicyId, rev -> {
             final Authorizable accessPolicyAuthorizable = authorizableLookup.getAccessPolicyAuthorizable(accessPolicyId);
             accessPolicyAuthorizable.authorize(authorizer, RequestAction.READ);
@@ -2450,26 +2453,42 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final AccessPolicy requestedAccessPolicy = accessPolicyDAO.getAccessPolicy(accessPolicyId);
             return entityFactory.createAccessPolicyEntity(
                     dtoFactory.createAccessPolicyDto(requestedAccessPolicy,
-                            requestedAccessPolicy.getGroups().stream().map(this::getUserGroup).collect(Collectors.toSet()),
-                            requestedAccessPolicy.getUsers().stream().map(this::getUser).collect(Collectors.toSet())),
+                            requestedAccessPolicy.getGroups().stream().map(userGroupId -> getUserGroup(userGroupId, true)).collect(Collectors.toSet()),
+                            requestedAccessPolicy.getUsers().stream().map(userId -> getUser(userId, true)).collect(Collectors.toSet())),
                     revision, accessPolicy);
         });
     }
 
     @Override
-    public UserEntity getUser(String userId) {
+    public UserEntity getUser(final String userId, final boolean prune) {
         return revisionManager.get(userId, rev -> {
             final Authorizable usersAuthorizable = authorizableLookup.getUsersAuthorizable();
             usersAuthorizable.authorize(authorizer, RequestAction.READ);
 
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(usersAuthorizable);
-            return entityFactory.createUserEntity(dtoFactory.createUserDto(userDAO.getUser(userId)), revision, accessPolicy);
+            final User user = userDAO.getUser(userId);
+            final Set<UserGroupEntity> userGroups = user.getGroups().stream()
+                    .map(userGroupId -> prune ? getUserGroupPruned(userGroupId) : getUserGroup(userGroupId, false))
+                    .collect(Collectors.toSet());
+            return entityFactory.createUserEntity(dtoFactory.createUserDto(user, userGroups), revision, accessPolicy);
+        });
+    }
+
+    private UserEntity getUserPruned(final String userId) {
+        return revisionManager.get(userId, rev -> {
+            final Authorizable usersAuthorizable = authorizableLookup.getUsersAuthorizable();
+            usersAuthorizable.authorize(authorizer, RequestAction.READ);
+
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(usersAuthorizable);
+            final User user = userDAO.getUser(userId);
+            return entityFactory.createUserEntity(dtoFactory.createUserDto(user, Collections.emptySet()), revision, accessPolicy);
         });
     }
 
     @Override
-    public UserGroupEntity getUserGroup(String userGroupId) {
+    public UserGroupEntity getUserGroup(final String userGroupId, final boolean prune) {
         return revisionManager.get(userGroupId, rev -> {
             final Authorizable userGroupsAuthorizable = authorizableLookup.getUserGroupsAuthorizable();
             userGroupsAuthorizable.authorize(authorizer, RequestAction.READ);
@@ -2477,8 +2496,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
             final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(userGroupsAuthorizable);
             final Group userGroup = userGroupDAO.getUserGroup(userGroupId);
-            return entityFactory.createUserGroupEntity(dtoFactory.createUserGroupDto(userGroup, userGroup.getUsers().stream().map(this::getUser).collect(Collectors.toSet())),
+            final Set<UserEntity> users = userGroup.getUsers().stream().map(userId -> prune ? getUserPruned(userId) : getUser(userId, false)).collect(Collectors.toSet());
+            return entityFactory.createUserGroupEntity(dtoFactory.createUserGroupDto(userGroup, users),
                     revision, accessPolicy);
+        });
+    }
+
+    private UserGroupEntity getUserGroupPruned(final String userGroupId) {
+        return revisionManager.get(userGroupId, rev -> {
+            final Authorizable userGroupsAuthorizable = authorizableLookup.getUserGroupsAuthorizable();
+            userGroupsAuthorizable.authorize(authorizer, RequestAction.READ);
+
+            final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
+            final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(userGroupsAuthorizable);
+            final Group userGroup = userGroupDAO.getUserGroup(userGroupId);
+            return entityFactory.createUserGroupEntity(dtoFactory.createUserGroupDto(userGroup, Collections.emptySet()), revision, accessPolicy);
         });
     }
 
@@ -3077,26 +3109,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.snippetUtils = snippetUtils;
     }
 
-    public void setAuthorizableLookup(AuthorizableLookup authorizableLookup) {
+    public void setAuthorizableLookup(final AuthorizableLookup authorizableLookup) {
         this.authorizableLookup = authorizableLookup;
     }
 
-    public void setAuthorizer(Authorizer authorizer) {
+    public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
     }
 
-    public void setUserDAO(UserDAO userDAO) {
+    public void setUserDAO(final UserDAO userDAO) {
         this.userDAO = userDAO;
     }
 
-    public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
+    public void setUserGroupDAO(final UserGroupDAO userGroupDAO) {
         this.userGroupDAO = userGroupDAO;
     }
 
-    public void setAccessPolicyDAO(AccessPolicyDAO accessPolicyDAO) {
+    public void setAccessPolicyDAO(final AccessPolicyDAO accessPolicyDAO) {
         this.accessPolicyDAO = accessPolicyDAO;
     }
-    public void setClusterCoordinator(ClusterCoordinator coordinator) {
+    public void setClusterCoordinator(final ClusterCoordinator coordinator) {
         this.clusterCoordinator = coordinator;
     }
 
@@ -3104,7 +3136,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.heartbeatMonitor = heartbeatMonitor;
     }
 
-    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+    public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
     }
 }

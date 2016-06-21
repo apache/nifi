@@ -216,7 +216,7 @@ public class UserGroupsResource extends ApplicationResource {
         });
 
         // get the user group
-        final UserGroupEntity entity = serviceFacade.getUserGroup(id);
+        final UserGroupEntity entity = serviceFacade.getUserGroup(id, true);
         populateRemainingUserGroupEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();

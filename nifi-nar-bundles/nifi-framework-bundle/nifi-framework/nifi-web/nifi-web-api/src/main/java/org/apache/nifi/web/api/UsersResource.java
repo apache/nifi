@@ -216,7 +216,7 @@ public class UsersResource extends ApplicationResource {
         });
 
         // get the user
-        final UserEntity entity = serviceFacade.getUser(id);
+        final UserEntity entity = serviceFacade.getUser(id, true);
         populateRemainingUserEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();

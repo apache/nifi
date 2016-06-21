@@ -686,14 +686,14 @@ public final class DtoFactory {
      * @param user user
      * @return dto
      */
-    public UserDTO createUserDto(final User user) {
+    public UserDTO createUserDto(final User user, final Set<UserGroupEntity> groups) {
         if (user == null) {
             return null;
         }
 
         final UserDTO dto = new UserDTO();
         dto.setId(user.getIdentifier());
-        dto.setGroups(user.getGroups());
+        dto.setGroups(groups);
         dto.setIdentity(user.getIdentity());
 
         return dto;

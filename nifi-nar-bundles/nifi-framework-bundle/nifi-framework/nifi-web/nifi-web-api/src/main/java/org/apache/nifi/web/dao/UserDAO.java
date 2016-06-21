@@ -30,7 +30,7 @@ public interface UserDAO {
     /**
      * Creates a user.
      *
-     * @param userDTO  The user DTO
+     * @param userDTO The user DTO
      * @return The user transfer object
      */
     User createUser(UserDTO userDTO);
@@ -46,7 +46,7 @@ public interface UserDAO {
     /**
      * Updates the specified user.
      *
-     * @param userDTO  The user DTO
+     * @param userDTO The user DTO
      * @return The user transfer object
      */
     User updateUser(UserDTO userDTO);
@@ -54,7 +54,7 @@ public interface UserDAO {
     /**
      * Deletes the specified user.
      *
-     * @param userId  The user ID
+     * @param userId The user ID
      * @return The user transfer object of the deleted user
      */
     User deleteUser(String userId);

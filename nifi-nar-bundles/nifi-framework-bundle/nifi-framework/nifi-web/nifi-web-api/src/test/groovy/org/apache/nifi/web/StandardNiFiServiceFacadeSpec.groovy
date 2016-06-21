@@ -16,14 +16,7 @@
  */
 package org.apache.nifi.web
 
-import org.apache.nifi.authorization.AccessDeniedException
-import org.apache.nifi.authorization.AccessPolicy
-import org.apache.nifi.authorization.AuthorizationResult
-import org.apache.nifi.authorization.Authorizer
-import org.apache.nifi.authorization.Group
-import org.apache.nifi.authorization.RequestAction
-import org.apache.nifi.authorization.Resource
-import org.apache.nifi.authorization.User
+import org.apache.nifi.authorization.*
 import org.apache.nifi.authorization.resource.Authorizable
 import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
@@ -34,11 +27,7 @@ import org.apache.nifi.web.controller.ControllerFacade
 import org.apache.nifi.web.dao.AccessPolicyDAO
 import org.apache.nifi.web.dao.UserDAO
 import org.apache.nifi.web.dao.UserGroupDAO
-import org.apache.nifi.web.revision.DeleteRevisionTask
-import org.apache.nifi.web.revision.ReadOnlyRevisionCallback
-import org.apache.nifi.web.revision.RevisionClaim
-import org.apache.nifi.web.revision.RevisionManager
-import org.apache.nifi.web.revision.UpdateRevisionTask
+import org.apache.nifi.web.revision.*
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -77,9 +66,9 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
 
         where:
-        userDto                                  | parentAuthorizable | resource                      | isAuthorized | authorizationResult
-        new UserDTO(id: '1', identity: 'a user') | null               | ResourceFactory.usersResource | true         | AuthorizationResult.approved()
-        new UserDTO(id: '1', identity: 'a user') | null               | ResourceFactory.usersResource | false        | AuthorizationResult.denied()
+        userDto         | parentAuthorizable | resource                      | isAuthorized | authorizationResult
+        createUserDTO() | null               | ResourceFactory.usersResource | true         | AuthorizationResult.approved()
+        createUserDTO() | null               | ResourceFactory.usersResource | false        | AuthorizationResult.denied()
     }
 
     @Unroll
@@ -102,7 +91,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
 
         when:
         try {
-            userEntity = niFiServiceFacade.getUser(userDto.id)
+            userEntity = niFiServiceFacade.getUser(userDto.id, true)
         } catch (AccessDeniedException e) {
             exception = e
         }
@@ -124,9 +113,9 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        userDto                                  | isAuthorized | authorizationResult
-        new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        userDto         | isAuthorized | authorizationResult
+        createUserDTO() | true         | AuthorizationResult.approved()
+        createUserDTO() | false        | AuthorizationResult.denied()
     }
 
     @Unroll
@@ -161,7 +150,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 callback.update()
             }
         }
-        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(userDto.id),
+        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
                 isAuthorized, authorizationResult)
         0 * _
         userEntityUpdateResult != null
@@ -175,11 +164,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        userExists | currentRevision                     | userDto                                  | isAuthorized | authorizationResult
-        false      | new Revision(0L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        false      | new Revision(0L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
-        true       | new Revision(1L, 'client1', 'root') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        userExists | currentRevision                     | userDto         | isAuthorized | authorizationResult
+        false      | new Revision(0L, 'client1', 'root') | createUserDTO() | true         | AuthorizationResult.approved()
+        true       | new Revision(1L, 'client1', 'root') | createUserDTO() | true         | AuthorizationResult.approved()
+        false      | new Revision(0L, 'client1', 'root') | createUserDTO() | false        | AuthorizationResult.denied()
+        true       | new Revision(1L, 'client1', 'root') | createUserDTO() | false        | AuthorizationResult.denied()
     }
 
     @Unroll
@@ -215,7 +204,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         1 * revisionManager.deleteRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser nifiUser, DeleteRevisionTask task ->
             task.performTask()
         }
-        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(userDto.id),
+        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource,
                 isAuthorized, authorizationResult)
         0 * _
         userEntity?.component?.id == null
@@ -226,11 +215,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        userExists | currentRevision             | userDto                                  | isAuthorized | authorizationResult
-        true       | new Revision(1L, 'client1') | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        false      | null                        | new UserDTO(id: '1', identity: 'a user') | true         | AuthorizationResult.approved()
-        true       | new Revision(1L, 'client1') | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
-        false      | null                        | new UserDTO(id: '1', identity: 'a user') | false        | AuthorizationResult.denied()
+        userExists | currentRevision             | userDto         | isAuthorized | authorizationResult
+        true       | new Revision(1L, 'client1') | createUserDTO() | true         | AuthorizationResult.approved()
+        false      | null                        | createUserDTO() | true         | AuthorizationResult.approved()
+        true       | new Revision(1L, 'client1') | createUserDTO() | false        | AuthorizationResult.denied()
+        false      | null                        | createUserDTO() | false        | AuthorizationResult.denied()
     }
 
     @Unroll
@@ -255,41 +244,50 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setControllerFacade controllerFacade
         def newUserGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name).addUsers(userGroupDto.users.collect { it.id } as Set).build()
+        def exception = null
+        def userGroupEntity = null
 
         when:
-        def userGroupEntity = niFiServiceFacade.createUserGroup(new Revision(0L, 'client-1'), userGroupDto)
+        try {
+            userGroupEntity = niFiServiceFacade.createUserGroup(new Revision(0L, 'client-1'), userGroupDto)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
+        if (isAuthorized) {
+            1 * authorizableLookup.getUserGroupsAuthorizable() >>
+                    new SimpleAuthorizable(null, ResourceFactory.userGroupsResource, isAuthorized, authorizationResult.get(ResourceFactory.userGroupsResource))
+        }
+        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource, isAuthorized, authorizationResult.get(ResourceFactory.usersResource))
         1 * userGroupDao.createUserGroup(_) >> newUserGroup
-
-
-        def result = authorizationResult.get(ResourceFactory.usersResource)
-        if (result == AuthorizationResult.approved()) {
-            1 * userDao.getUser(_) >> { userId ->
-                def userDTO = userGroupDto.users.find { it.id.equals(userId) }?.component
-                new User.Builder().identifier(userDTO.id).identity(userDTO.identity).addGroups(userDTO.groups).build()
+        if (authorizationResult.get(ResourceFactory.usersResource) == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity)
+                        .addGroups(userEntity.groups.collect { it.id } as Set)
+                        .build()
             }
         }
-        1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.userGroupsResource, isAuthorized, authorizationResult.get(ResourceFactory.userGroupsResource))
-        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource, isAuthorized, authorizationResult.get(ResourceFactory.usersResource))
         userGroupDto.users.size() * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
             assert userGroupDto.users.collect { it.id }.contains(id)
             def revisionDTO = userGroupDto.users.find { it.id.equals(id) }.revision
             callback.withRevision new Revision(revisionDTO.version, revisionDTO.clientId, id)
         }
         0 * _
-        userGroupEntity != null
         if (isAuthorized) {
             assert userGroupEntity?.component?.id == userGroupDto.id
             assert userGroupEntity?.component?.users?.equals(userGroupDto.users)
             assert userGroupEntity?.accessPolicy?.canRead
             assert userGroupEntity?.accessPolicy?.canWrite
         } else {
-            assert userGroupEntity.component == null
+            assert userGroupEntity?.component == null
+            assert exception instanceof AccessDeniedException
         }
 
 
-        where: // add more use cases, specifically with varied authorization results, and the assertions to check them? TODO isAuthorized needs to be refactored now
+        where: // TODO add more use cases, specifically with varied authorization results, and the assertions to check them, to all spec methods that use AuthorizationResult
         userGroupDto         | isAuthorized | authorizationResult
         createUserGroupDTO() | true         | [(ResourceFactory.userGroupsResource): AuthorizationResult.approved(), (ResourceFactory.usersResource): AuthorizationResult.approved()]
         createUserGroupDTO() | false        | [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
@@ -299,6 +297,7 @@ class StandardNiFiServiceFacadeSpec extends Specification {
     def "GetUserGroup: isAuthorized: #isAuthorized"() {
         given:
         def userGroupDao = Mock UserGroupDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
@@ -309,13 +308,15 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setUserGroupDAO userGroupDao
-        def requestedUserGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name).addUsers(userGroupDto.users).build()
+        niFiServiceFacade.setUserDAO userDao
+        def requestedUserGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name)
+                .addUsers(userGroupDto.users.collect { it.id } as Set).build()
         def exception = null
         def userGroupEntity = null
 
         when:
         try {
-            userGroupEntity = niFiServiceFacade.getUserGroup(userGroupDto.id)
+            userGroupEntity = niFiServiceFacade.getUserGroup(userGroupDto.id, true)
         } catch (AccessDeniedException e) {
             exception = e
         }
@@ -323,12 +324,20 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         then:
         if (isAuthorized) {
             1 * userGroupDao.getUserGroup(userGroupDto.id) >> requestedUserGroup
-        }
-        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
-            callback.withRevision(new Revision(1L, 'client1', 'root'))
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource, isAuthorized, authorizationResult)
         }
         1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUserGroupsResource(),
                 isAuthorized, authorizationResult)
+        _ * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
+        if (authorizationResult == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
         0 * _
         if (isAuthorized) {
             assert userGroupEntity?.component?.id?.equals(userGroupDto.id)
@@ -337,15 +346,16 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        userGroupDto                                                         | isAuthorized | authorizationResult
-        new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
+        userGroupDto                                                               | isAuthorized | authorizationResult
+        new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | true         | AuthorizationResult.approved()
+        new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        | AuthorizationResult.denied()
     }
 
     @Unroll
-    def "UpdateUserGroup: isAuthorized: #isAuthorized, policy exists: #hasPolicy"() {
+    def "UpdateUserGroup: isAuthorized: #isAuthorized, userGroupExists exists: #userGroupExists"() {
         given:
         def userGroupDao = Mock UserGroupDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def entityFactory = new EntityFactory()
         def dtoFactory = new DtoFactory()
@@ -358,47 +368,77 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setUserGroupDAO userGroupDao
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setControllerFacade controllerFacade
-        def userGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name).addUsers(userGroupDto.users).build()
+        niFiServiceFacade.setUserDAO userDao
+        def userGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name)
+                .addUsers(userGroupDto.users.collect { it.id } as Set).build()
+        def userGroupsEntityUpdateResult = null
+        def exception = null
 
         when:
-        def userGroupsEntityUpdateResult = niFiServiceFacade.updateUserGroup(currentRevision, userGroupDto)
+        try {
+            userGroupsEntityUpdateResult = niFiServiceFacade.updateUserGroup(currentRevision, userGroupDto)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
-        1 * userGroupDao.hasUserGroup(userGroupDto.id) >> hasPolicy
-        if (!hasPolicy) {
+        1 * userGroupDao.hasUserGroup(userGroupDto.id) >> userGroupExists
+        if (!userGroupExists) {
             1 * userGroupDao.createUserGroup(userGroupDto) >> userGroup
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
+                    isAuthorized, authorizationResult.get(ResourceFactory.getUsersResource()))
         } else {
             1 * controllerFacade.save()
             1 * userGroupDao.updateUserGroup(userGroupDto) >> userGroup
             1 * revisionManager.updateRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser niFiUser, UpdateRevisionTask callback ->
                 callback.update()
             }
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource,
+                    isAuthorized, authorizationResult.get(ResourceFactory.usersResource))
         }
-        1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(userGroupDto.id),
-                isAuthorized, authorizationResult)
+        if (isAuthorized || userGroupExists) {
+            1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.userGroupsResource,
+                    isAuthorized, authorizationResult.get(ResourceFactory.userGroupsResource))
+        }
+        _ * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
+        if (authorizationResult.get(ResourceFactory.userGroupsResource) == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
         0 * _
-        userGroupsEntityUpdateResult != null
         def userGroupEntity = userGroupsEntityUpdateResult?.result
         if (isAuthorized) {
             assert userGroupEntity?.component?.id?.equals(userGroupDto.id)
             assert userGroupEntity?.accessPolicy?.canRead
             assert userGroupEntity?.accessPolicy?.canWrite
         } else {
-            assert userGroupEntity.component == null
+            assert userGroupEntity?.component == null
+            assert exception instanceof AccessDeniedException
         }
 
         where:
-        hasPolicy | currentRevision                     | userGroupDto                                                         | isAuthorized | authorizationResult
-        false     | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        true      | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        false     | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
-        true      | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
+        userGroupExists | currentRevision                     | userGroupDto                                                               | isAuthorized |
+                authorizationResult
+        false           | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | true         |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.approved(), (ResourceFactory.usersResource): AuthorizationResult.approved()]
+        true            | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | true         |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.approved(), (ResourceFactory.usersResource): AuthorizationResult.approved()]
+        false           | new Revision(0L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
+        true            | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
     }
 
     @Unroll
-    def "DeleteUserGroup: isAuthorized: #isAuthorized, user exists: #userExists"() {
+    def "DeleteUserGroup: isAuthorized: #isAuthorized, userGroup exists: #userGroupExists"() {
         given:
         def userGroupDao = Mock UserGroupDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
@@ -411,45 +451,79 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setUserGroupDAO userGroupDao
         niFiServiceFacade.setControllerFacade controllerFacade
-        def userGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name).addUsers(userGroupDto.users).build()
+        niFiServiceFacade.setUserDAO userDao
+        def userGroup = new Group.Builder().identifier(userGroupDto.id).name(userGroupDto.name)
+                .addUsers(userGroupDto.users.collect { it.id } as Set).build()
+        def userGroupEntity = null
+        def exception = null
 
         when:
-        def userEntity = niFiServiceFacade.deleteUserGroup(currentRevision, userGroupDto.id)
+        try {
+            userGroupEntity = niFiServiceFacade.deleteUserGroup(currentRevision, userGroupDto.id)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
-        if (userExists) {
+        if (userGroupExists) {
             1 * userGroupDao.getUserGroup(userGroupDto.id) >> userGroup
-            1 * userGroupDao.deleteUserGroup(userGroupDto.id) >> userGroup
+            if (isAuthorized) {
+                1 * userGroupDao.deleteUserGroup(userGroupDto.id) >> userGroup
+            }
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
+                    isAuthorized, authorizationResult.get(ResourceFactory.getUsersResource()))
         } else {
             1 * userGroupDao.getUserGroup(userGroupDto.id) >> null
             1 * userGroupDao.deleteUserGroup(userGroupDto.id) >> null
         }
-        1 * controllerFacade.save()
-        1 * revisionManager.deleteRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser nifiUser, DeleteRevisionTask task ->
-            task.performTask()
+        if (!(!isAuthorized && userGroupExists)) {
+            1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.userGroupsResource,
+                    isAuthorized, authorizationResult.get(ResourceFactory.userGroupsResource))
+            1 * revisionManager.deleteRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser nifiUser, DeleteRevisionTask task ->
+                task.performTask()
+            }
+            1 * controllerFacade.save()
         }
-        1 * authorizableLookup.getUserGroupsAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(userGroupDto.id),
-                isAuthorized, authorizationResult)
+        _ * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
+        if (authorizationResult.get(ResourceFactory.userGroupsResource) == AuthorizationResult.approved() && userGroupExists) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = userGroupDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
         0 * _
-        userEntity?.component?.id == null
-        if (userExists) {
-            assert userEntity?.id?.equals(userGroupDto.id)
+        userGroupEntity?.component?.id == null
+        if (userGroupExists && isAuthorized) {
+            assert userGroupEntity?.id?.equals(userGroupDto.id)
         } else {
-            assert userEntity?.id == null
+            assert userGroupEntity?.id == null
+        }
+        if (authorizationResult.get(ResourceFactory.usersResource) == AuthorizationResult.denied()) {
+            assert exception instanceof AccessDeniedException
         }
 
         where:
-        userExists | currentRevision                     | userGroupDto                                                         | isAuthorized | authorizationResult
-        true       | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        false      | null                                | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | true         | AuthorizationResult.approved()
-        true       | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
-        false      | null                                | new UserGroupDTO(id: '1', name: 'test group', users: ['first user']) | false        | AuthorizationResult.denied()
+        userGroupExists | currentRevision                     | userGroupDto                                                               | isAuthorized |
+                authorizationResult
+        true            | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | true         |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.approved(), (ResourceFactory.usersResource): AuthorizationResult.approved()]
+        false           | null                                | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | true         |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.approved(), (ResourceFactory.usersResource): AuthorizationResult.approved()]
+        true            | new Revision(1L, 'client1', 'root') | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
+        false           | null                                | new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()]) | false        |
+                [(ResourceFactory.userGroupsResource): AuthorizationResult.denied(), (ResourceFactory.usersResource): AuthorizationResult.denied()]
     }
 
     @Unroll
     def "CreateAccessPolicy: #isAuthorized"() {
         given:
         def accessPolicyDao = Mock AccessPolicyDAO
+        def userDao = Mock UserDAO
+        def revisionManager = Mock RevisionManager
         def entityFactory = new EntityFactory()
         def dtoFactory = new DtoFactory()
         dtoFactory.setEntityFactory entityFactory
@@ -458,8 +532,12 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setAuthorizableLookup authorizableLookup
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
+        niFiServiceFacade.setUserDAO userDao
         niFiServiceFacade.setEntityFactory entityFactory
-        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource).addUsers(accessPolicyDto.users).addGroups(accessPolicyDto.userGroups)
+        niFiServiceFacade.setRevisionManager revisionManager
+        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource)
+                .addUsers(accessPolicyDto.users.collect { it.id } as Set)
+                .addGroups(accessPolicyDto.userGroups.collect { it.id } as Set)
         if (accessPolicyDto.canRead) {
             builder.addAction(RequestAction.READ)
         }
@@ -467,34 +545,55 @@ class StandardNiFiServiceFacadeSpec extends Specification {
             builder.addAction(RequestAction.WRITE)
         }
         def newAccessPolicy = builder.build()
+        def accessPolicyEntity = null
+        def exception = null
 
         when:
-        def accessPolicyEntity = niFiServiceFacade.createAccessPolicy(new Revision(0L, 'client-1'), accessPolicyDto)
+        try {
+            accessPolicyEntity = niFiServiceFacade.createAccessPolicy(new Revision(0L, 'client-1'), accessPolicyDto)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
         1 * accessPolicyDao.createAccessPolicy(accessPolicyDto) >> newAccessPolicy
-        1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+        if (isAuthorized) {
+            1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+                    isAuthorized, authorizationResult)
+        }
+        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
                 isAuthorized, authorizationResult)
+        if (authorizationResult == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = accessPolicyDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
+        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
         0 * _
-        accessPolicyEntity != null
         if (isAuthorized) {
             assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
             assert accessPolicyEntity?.accessPolicy?.canRead
             assert accessPolicyEntity?.accessPolicy?.canWrite
         } else {
-            assert accessPolicyEntity.component == null
+            assert accessPolicyEntity?.component == null
+            assert exception instanceof AccessDeniedException
         }
 
         where:
-        accessPolicyDto                                                                                                 | isAuthorized | authorizationResult
-        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         | AuthorizationResult.approved()
-        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        | AuthorizationResult.denied()
+        accessPolicyDto                                                                                                             | isAuthorized | authorizationResult
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         | AuthorizationResult.approved()
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        | AuthorizationResult.denied()
     }
 
     @Unroll
     def "GetAccessPolicy: isAuthorized: #isAuthorized"() {
         given:
         def accessPolicyDao = Mock AccessPolicyDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
@@ -505,8 +604,10 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setDtoFactory dtoFactory
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
-        def builder = new AccessPolicy.Builder()
-        builder.identifier(accessPolicyDto.id).resource(accessPolicyDto.resource).addUsers(accessPolicyDto.users).addGroups(accessPolicyDto.userGroups)
+        niFiServiceFacade.setUserDAO userDao
+        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource)
+                .addUsers(accessPolicyDto.users.collect { it.id } as Set)
+                .addGroups(accessPolicyDto.userGroups.collect { it.id } as Set)
         if (accessPolicyDto.canRead) {
             builder.addAction(RequestAction.READ)
         }
@@ -527,12 +628,21 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         then:
         if (isAuthorized) {
             1 * accessPolicyDao.getAccessPolicy(accessPolicyDto.id) >> requestedAccessPolicy
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
+                    isAuthorized, authorizationResult)
         }
-        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+        _ * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
             callback.withRevision(new Revision(1L, 'client1', 'root'))
         }
         1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
                 isAuthorized, authorizationResult)
+        if (authorizationResult == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = accessPolicyDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
         0 * _
         if (isAuthorized) {
             assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
@@ -541,15 +651,16 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         where:
-        accessPolicyDto                                                                                                 | isAuthorized | authorizationResult
-        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         | AuthorizationResult.approved()
-        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        | AuthorizationResult.denied()
+        accessPolicyDto                                                                                                             | isAuthorized | authorizationResult
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         | AuthorizationResult.approved()
+        new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        | AuthorizationResult.denied()
     }
 
     @Unroll
     def "UpdateAccessPolicy: isAuthorized: #isAuthorized, policy exists: #hasPolicy"() {
         given:
         def accessPolicyDao = Mock AccessPolicyDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def entityFactory = new EntityFactory()
         def dtoFactory = new DtoFactory()
@@ -562,7 +673,10 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setControllerFacade controllerFacade
-        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource).addUsers(accessPolicyDto.users).addGroups(accessPolicyDto.userGroups)
+        niFiServiceFacade.setUserDAO userDao
+        def builder = new AccessPolicy.Builder().identifier(accessPolicyDto.id).resource(accessPolicyDto.resource)
+                .addUsers(accessPolicyDto.users.collect { it.id } as Set)
+                .addGroups(accessPolicyDto.userGroups.collect { it.id } as Set)
         if (accessPolicyDto.canRead) {
             builder.addAction(RequestAction.READ)
         }
@@ -570,9 +684,15 @@ class StandardNiFiServiceFacadeSpec extends Specification {
             builder.addAction(RequestAction.WRITE)
         }
         def accessPolicy = builder.build()
+        def accessPolicyEntityUpdateResult = null
+        def exception = null
 
         when:
-        def accessPolicyEntityUpdateResult = niFiServiceFacade.updateAccessPolicy(currentRevision, accessPolicyDto)
+        try {
+            accessPolicyEntityUpdateResult = niFiServiceFacade.updateAccessPolicy(currentRevision, accessPolicyDto)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
         1 * accessPolicyDao.hasAccessPolicy(accessPolicyDto.id) >> hasPolicy
@@ -585,36 +705,51 @@ class StandardNiFiServiceFacadeSpec extends Specification {
                 callback.update()
             }
         }
-        1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+        1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.getUsersResource(),
                 isAuthorized, authorizationResult)
+        if (isAuthorized || hasPolicy) {
+            1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+                    isAuthorized, authorizationResult)
+        }
+        if (authorizationResult == AuthorizationResult.approved()) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = accessPolicyDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
+        1 * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
         0 * _
-        accessPolicyEntityUpdateResult != null
         def accessPolicyEntity = accessPolicyEntityUpdateResult?.result
         if (isAuthorized) {
             assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
             assert accessPolicyEntity?.accessPolicy?.canRead
             assert accessPolicyEntity?.accessPolicy?.canWrite
         } else {
-            assert accessPolicyEntity.component == null
+            assert accessPolicyEntity?.component == null
+            assert exception instanceof AccessDeniedException
         }
 
         where:
-        hasPolicy | currentRevision                     | accessPolicyDto                                                                                                 | isAuthorized |
+        hasPolicy | currentRevision                     | accessPolicyDto                                                                                                             | isAuthorized |
                 authorizationResult
-        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
+        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         |
                 AuthorizationResult.approved()
-        true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
+        true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         |
                 AuthorizationResult.approved()
-        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
+        false     | new Revision(0L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        |
                 AuthorizationResult.denied()
-        true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
+        true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        |
                 AuthorizationResult.denied()
     }
 
     @Unroll
-    def "DeleteAccessPolicy: isAuthorized: #isAuthorized, user exists: #userExists"() {
+    def "DeleteAccessPolicy: isAuthorized: #isAuthorized, hasPolicy: #hasPolicy"() {
         given:
         def accessPolicyDao = Mock AccessPolicyDAO
+        def userDao = Mock UserDAO
         def revisionManager = Mock RevisionManager
         def authorizableLookup = Mock AuthorizableLookup
         def dtoFactory = new DtoFactory()
@@ -627,8 +762,11 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         niFiServiceFacade.setEntityFactory entityFactory
         niFiServiceFacade.setAccessPolicyDAO accessPolicyDao
         niFiServiceFacade.setControllerFacade controllerFacade
+        niFiServiceFacade.setUserDAO userDao
         def builder = new AccessPolicy.Builder()
-        builder.identifier(accessPolicyDto.id).resource(accessPolicyDto.resource).addUsers(accessPolicyDto.users).addGroups(accessPolicyDto.userGroups)
+        builder.identifier(accessPolicyDto.id).resource(accessPolicyDto.resource)
+                .addUsers(accessPolicyDto.users.collect { it.id } as Set)
+                .addGroups(accessPolicyDto.userGroups.collect { it.id } as Set)
         if (accessPolicyDto.canRead) {
             builder.addAction(RequestAction.READ)
         }
@@ -636,51 +774,79 @@ class StandardNiFiServiceFacadeSpec extends Specification {
             builder.addAction(RequestAction.WRITE)
         }
         def accessPolicy = builder.build()
+        def accessPolicyEntity = null
+        def exception = null
 
         when:
-        def accessPolicyEntity = niFiServiceFacade.deleteAccessPolicy(currentRevision, accessPolicyDto.id)
+        try {
+            accessPolicyEntity = niFiServiceFacade.deleteAccessPolicy(currentRevision, accessPolicyDto.id)
+        } catch (AccessDeniedException e) {
+            exception = e
+        }
 
         then:
-        if (userExists) {
+        if (hasPolicy) {
             1 * accessPolicyDao.getAccessPolicy(accessPolicyDto.id) >> accessPolicy
-            1 * accessPolicyDao.deleteAccessPolicy(accessPolicyDto.id) >> accessPolicy
+            if (isAuthorized) {
+                1 * accessPolicyDao.deleteAccessPolicy(accessPolicyDto.id) >> accessPolicy
+            }
+            1 * authorizableLookup.getUsersAuthorizable() >> new SimpleAuthorizable(null, ResourceFactory.usersResource,
+                    isAuthorized, authorizationResult)
         } else {
             1 * accessPolicyDao.getAccessPolicy(accessPolicyDto.id) >> null
             1 * accessPolicyDao.deleteAccessPolicy(accessPolicyDto.id) >> null
         }
-        1 * controllerFacade.save()
-        1 * revisionManager.deleteRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser nifiUser, DeleteRevisionTask task ->
-            task.performTask()
+        if (!(!isAuthorized && hasPolicy)) {
+            1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
+                    isAuthorized, authorizationResult)
+            1 * revisionManager.deleteRevision(_, _, _) >> { RevisionClaim revisionClaim, NiFiUser nifiUser, DeleteRevisionTask task ->
+                task.performTask()
+            }
+            1 * controllerFacade.save()
         }
-        1 * authorizableLookup.getAccessPolicyAuthorizable(accessPolicyDto.id) >> new SimpleAuthorizable(null, ResourceFactory.getPolicyResource(accessPolicyDto.id),
-                isAuthorized, authorizationResult)
+        _ * revisionManager.get(_, _) >> { String id, ReadOnlyRevisionCallback callback ->
+            callback.withRevision(new Revision(1L, 'client1', 'root'))
+        }
+        if (authorizationResult == AuthorizationResult.approved() && hasPolicy) {
+            1 * userDao.getUser(_) >> { String userId ->
+                def userEntity = accessPolicyDto.users.find { it.id.equals(userId) }?.component
+                assert userEntity != null
+                new User.Builder().identifier(userEntity.id).identity(userEntity.identity).build()
+            }
+        }
         0 * _
-        accessPolicyEntity?.component?.id == null
-        if (userExists) {
+        if (hasPolicy && isAuthorized) {
             assert accessPolicyEntity?.id?.equals(accessPolicyDto.id)
         } else {
             assert accessPolicyEntity?.id == null
         }
+        if (!isAuthorized && hasPolicy) {
+            assert exception instanceof AccessDeniedException
+        }
 
         where:
-        userExists | currentRevision                     | accessPolicyDto                                                                                                 | isAuthorized |
+        hasPolicy | currentRevision                     | accessPolicyDto                                                                                                             | isAuthorized |
                 authorizationResult
-        true       | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
+        true      | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         |
                 AuthorizationResult.approved()
-        false      | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | true         |
+        false     | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | true         |
                 AuthorizationResult.approved()
-        true       | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
+        true       | new Revision(1L, 'client1', 'root') | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        |
                 AuthorizationResult.denied()
-        false      | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: ['user'], canRead: true) | false        |
+        false      | null                                | new AccessPolicyDTO(id: '1', resource: ResourceFactory.flowResource.identifier, users: [createUserEntity()], canRead: true) | false        |
                 AuthorizationResult.denied()
     }
 
     private UserGroupDTO createUserGroupDTO() {
-        new UserGroupDTO(id: '1', name: 'test group', users: [createUserEntity()] as Set)
+        new UserGroupDTO(id: 'group-1', name: 'test group', users: [createUserEntity()] as Set)
     }
 
     private UserEntity createUserEntity() {
-        new UserEntity(id: 1, component: new UserDTO(identity: 'first user'), revision: createRevisionDTO())
+        new UserEntity(id: 'user-1', component: createUserDTO(), revision: createRevisionDTO())
+    }
+
+    private UserDTO createUserDTO() {
+        new UserDTO(id: 'user-1', identity: 'user-1')
     }
 
     private RevisionDTO createRevisionDTO() {
