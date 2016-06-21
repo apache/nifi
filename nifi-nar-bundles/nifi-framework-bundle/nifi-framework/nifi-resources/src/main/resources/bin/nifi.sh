@@ -20,12 +20,12 @@
 #
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
-
+ENV_FILE=nifi-env.sh
 SCRIPT_DIR=$(dirname "$0")
 SCRIPT_NAME=$(basename "$0")
 PROGNAME=$(basename "$0")
 
-. "$SCRIPT_DIR"/nifi-env.sh
+. "$SCRIPT_DIR"/"$ENV_FILE"
 
 warn() {
     echo "${PROGNAME}: $*"
@@ -148,7 +148,10 @@ install() {
         fi
 
         SVC_FILE="/etc/init.d/${SVC_NAME}"
-        cp "$0" "${SVC_FILE}"
+        cat "${SCRIPT_DIR}/${ENV_FILE}" "$0" > "${SVC_FILE}"
+        chmod 755 "${SVC_FILE}"
+        sed -i '/ENV_FILE=/d' "${SVC_FILE}"
+        sed -i '/\$ENV_FILE/d' "${SVC_FILE}"
         sed -i s:NIFI_HOME=.*:NIFI_HOME="${NIFI_HOME}": "${SVC_FILE}"
         sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "${SVC_FILE}"
         rm -f "/etc/rc2.d/S65${SVC_NAME}"
