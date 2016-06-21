@@ -589,8 +589,8 @@ nf.Connection = (function () {
                             var destinationComponentId = nf.CanvasUtils.getConnectionDestinationComponentId(connectionData);
                             if (sourceComponentId === destinationComponentId && d.component.bends.length <= 2) {
                                 nf.Dialog.showOkDialog({
-                                    dialogContent: 'Looping connections must have at least two bend points.',
-                                    overlayBackground: false
+                                    headerText: 'Connection',
+                                    dialogContent: 'Looping connections must have at least two bend points.'
                                 });
                                 return;
                             }
@@ -1198,8 +1198,7 @@ nf.Connection = (function () {
         }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
-                    dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                    overlayBackground: true
+                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {
                 nf.Common.handleAjaxError(xhr, status, error);
@@ -1413,8 +1412,8 @@ nf.Connection = (function () {
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                     nf.Dialog.showOkDialog({
-                                        dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                                        overlayBackground: true
+                                        headerText: 'Connection',
+                                        dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                     });
 
                                     // reset the connection

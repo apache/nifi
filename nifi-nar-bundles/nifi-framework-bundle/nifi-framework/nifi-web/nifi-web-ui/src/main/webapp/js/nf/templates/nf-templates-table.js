@@ -70,8 +70,8 @@ nf.TemplatesTable = (function () {
     var promptToDeleteTemplate = function (template) {
         // prompt for deletion
         nf.Dialog.showYesNoDialog({
+            headerText: 'Delete Template',
             dialogContent: 'Delete template \'' + nf.Common.escapeHtml(template.name) + '\'?',
-            overlayBackground: false,
             yesHandler: function () {
                 deleteTemplate(template);
             }
@@ -178,8 +178,8 @@ nf.TemplatesTable = (function () {
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
-                dialogContent: 'Unable to generate access token for downloading content.',
-                overlayBackground: false
+                headerText: 'Download Template',
+                dialogContent: 'Unable to generate access token for downloading content.'
             });
         });
     };
@@ -233,11 +233,11 @@ nf.TemplatesTable = (function () {
 
             // function for formatting the actions column
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '<img src="images/iconExport.png" title="Download" class="pointer export-template" style="margin-top: 2px;"/>';
+                var markup = '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px;"></div>';
 
                 // all DFMs to remove templates
                 if (nf.Common.isDFM()) {
-                    markup += '&nbsp;<img src="images/iconDelete.png" title="Remove Template" class="pointer prompt-to-delete-template" style="margin-top: 2px;"/>';
+                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-left: 3px;"></div>';
                 }
                 return markup;
             };
@@ -254,7 +254,8 @@ nf.TemplatesTable = (function () {
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,
-                autoEdit: false
+                autoEdit: false,
+                rowHeight: 24
             };
 
             // initialize the dataview
@@ -340,7 +341,7 @@ nf.TemplatesTable = (function () {
             groupId = $('#template-group-id').text();
             if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
                 nf.Dialog.showOkDialog({
-                    overlayBackground: false,
+                    headerText: 'Load Templates',
                     content: 'Group id not specified.'
                 });
             }

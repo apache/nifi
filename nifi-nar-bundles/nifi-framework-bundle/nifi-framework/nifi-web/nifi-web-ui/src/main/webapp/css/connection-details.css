@@ -25,39 +25,10 @@
     height: 400px;
 }
 
-div.connection-details-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
-#connection-details-tabs {
-    background-color: transparent;
-    border-bottom: 3px solid #666666;
-    height: 21px;
-    width: 678px;
-}
-
 #connection-details div.configuration-tab {
-    height: 275px;
     overflow: auto;
     padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
     display: none;
-}
-
-#connection-details div.settings-left {
-    float: left;
-    width: 280px;
-}
-
-#connection-details div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#connection-details div.settings-right {
-    float: left;
-    width: 330px;
 }
 
 #read-only-relationship-names {

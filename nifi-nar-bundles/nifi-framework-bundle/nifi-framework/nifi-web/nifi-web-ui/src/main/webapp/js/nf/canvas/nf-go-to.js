@@ -31,7 +31,7 @@ nf.GoTo = (function () {
 
     /**
      * Returns a deferred for the process group.
-     * 
+     *
      * @param {string} processGroupId
      */
     var getProcessGroup = function (processGroupId) {
@@ -44,7 +44,7 @@ nf.GoTo = (function () {
 
     /**
      * Returns a deferred for the remote process group.
-     * 
+     *
      * @param {string} parentGroupId
      * @param {string} remoteProcessGroupId
      */
@@ -58,7 +58,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a connection to the connections dialog.
-     * 
+     *
      * @param {object} connection
      */
     var addConnection = function (connection) {
@@ -115,7 +115,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a destination component to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
      * @param {object} connection                   The connection to the downstream component
      */
@@ -149,7 +149,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a destination input port to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
      * @param {object} connection                   The connection to the downstream input port
      */
@@ -190,7 +190,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a destination remote input port to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
      * @param {object} connection                   The connection to the downstream remote input port
      */
@@ -225,7 +225,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a source component to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
      * @param {object} connection                   The connection to the upstream component
      */
@@ -256,9 +256,9 @@ nf.GoTo = (function () {
 
     /**
      * Adds a source output port to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
-     * @param {object} connection                   The connection 
+     * @param {object} connection                   The connection
      */
     var addSourceOutputPort = function (container, connection) {
         // get the remote process group
@@ -290,7 +290,7 @@ nf.GoTo = (function () {
 
     /**
      * Adds a source remote output port to the dialog.
-     * 
+     *
      * @param {jQuery} container                    The container to add to
      * @param {object} connection                   The connection to the downstream remote output port
      */
@@ -322,15 +322,19 @@ nf.GoTo = (function () {
          */
         init: function () {
             $('#connections-dialog').modal({
-                overlayBackground: false,
                 buttons: [{
-                        buttonText: 'Close',
-                        handler: {
-                            click: function () {
-                                $('#connections-dialog').modal('hide');
-                            }
+                    buttonText: 'Close',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#connections-dialog').modal('hide');
                         }
-                    }],
+                    }
+                }],
                 handler: {
                     close: function () {
                         $('#connections-context').empty();
@@ -339,10 +343,10 @@ nf.GoTo = (function () {
                 }
             });
         },
-        
+
         /**
          * Shows components downstream from a processor.
-         * 
+         *
          * @param {selection} selection The processor selection
          */
         showDownstreamFromProcessor: function (selection) {
@@ -357,9 +361,9 @@ nf.GoTo = (function () {
 
                 // populate the downstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon processor-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon processor-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the destination for each connection
                 $.each(connections, function (_, connection) {
@@ -378,10 +382,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components upstream from a processor.
-         * 
+         *
          * @param {selection} selection The processor selection
          */
         showUpstreamFromProcessor: function (selection) {
@@ -396,9 +400,9 @@ nf.GoTo = (function () {
 
                 // populate the upstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon processor-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon processor-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the source for each connection
                 $.each(connections, function (_, connection) {
@@ -417,10 +421,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components downstream from a process group or a remote process group.
-         * 
+         *
          * @param {selection} selection The process group or remote process group selection
          */
         showDownstreamFromGroup: function (selection) {
@@ -435,9 +439,9 @@ nf.GoTo = (function () {
 
                 // populate the downstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon process-group-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the destination for each connection
                 $.each(connections, function (_, connection) {
@@ -456,10 +460,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components upstream from a process group or a remote process group.
-         * 
+         *
          * @param {selection} selection The process group or remote process group selection
          */
         showUpstreamFromGroup: function (selection) {
@@ -474,9 +478,9 @@ nf.GoTo = (function () {
 
                 // populate the upstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon process-group-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the source for each connection
                 $.each(connections, function (_, connection) {
@@ -495,10 +499,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components downstream from an input port.
-         * 
+         *
          * @param {selection} selection The input port selection
          */
         showDownstreamFromInputPort: function (selection) {
@@ -513,9 +517,9 @@ nf.GoTo = (function () {
 
                 // populate the downstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon input-port-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon input-port-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the destination for each connection
                 $.each(connections, function (_, connection) {
@@ -534,10 +538,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components upstream from an input port.
-         * 
+         *
          * @param {selection} selection The input port selection
          */
         showUpstreamFromInputPort: function (selection) {
@@ -552,12 +556,12 @@ nf.GoTo = (function () {
 
                 // populate the upstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon process-group-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
-                        .append('<div class="clear"></div>')
-                        .append('<div class="search-result-icon input-port-small-icon" style="margin-left: 20px;"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
+                    .append('<div class="clear"></div>')
+                    .append('<div class="search-result-icon input-port-small-icon" style="margin-left: 20px;"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the source for each connection
                 $.each(connections, function (_, connection) {
@@ -576,10 +580,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components downstream from an output port.
-         * 
+         *
          * @param {selection} selection The output port selection
          */
         showDownstreamFromOutputPort: function (selection) {
@@ -594,12 +598,12 @@ nf.GoTo = (function () {
 
                 // populate the downstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon process-group-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
-                        .append('<div class="clear"></div>')
-                        .append('<div class="search-result-icon output-port-small-icon" style="margin-left: 20px;"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon process-group-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(nf.Canvas.getGroupName()))
+                    .append('<div class="clear"></div>')
+                    .append('<div class="search-result-icon output-port-small-icon" style="margin-left: 20px;"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the destination for each connection
                 $.each(connections, function (_, connection) {
@@ -618,10 +622,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components upstream from an output port.
-         * 
+         *
          * @param {selection} selection The output port selection
          */
         showUpstreamFromOutputPort: function (selection) {
@@ -636,9 +640,9 @@ nf.GoTo = (function () {
 
                 // populate the upstream dialog
                 $('#connections-context')
-                        .append('<div class="search-result-icon input-port-small-icon"></div>')
-                        .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
-                        .append('<div class="clear"></div>');
+                    .append('<div class="search-result-icon input-port-small-icon"></div>')
+                    .append($('<div class="connections-component-name"></div>').text(selectionData.component.name))
+                    .append('<div class="clear"></div>');
 
                 // add the source for each connection
                 $.each(connections, function (_, connection) {
@@ -657,10 +661,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components downstream from a funnel.
-         * 
+         *
          * @param {selection} selection The funnel selection
          */
         showDownstreamFromFunnel: function (selection) {
@@ -693,10 +697,10 @@ nf.GoTo = (function () {
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
-        
+
         /**
          * Shows components upstream from a funnel.
-         * 
+         *
          * @param {selection} selection The funnel selection
          */
         showUpstreamFromFunnel: function (selection) {

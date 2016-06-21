@@ -29,21 +29,16 @@ ul.tag-cloud {
 ul.tag-cloud li {
     float: left;
     list-style-type: none;
-    margin: 0 3px;
+    margin: 2px 2px;
     height: 20px;
-    line-height: 20px;
-    overflow: hidden;
     white-space: nowrap;
-}
-
-div.tag-cloud-separator {
-    height: 1px;
-    border-bottom: 1px solid #aaa;
-    margin: 3px 0;
+    line-height: 20px;
+    max-width: 180px;
 }
 
 ul.tag-filter {
     overflow: hidden;
+    margin-top: 10px;
 }
 
 ul.tag-filter li {
@@ -59,4 +54,17 @@ div.selected-tag-text {
 img.remove-selected-tag {
     float: right;
     margin-top: 1px;
+}
+
+ul.tag-filter li {
+    background: #004849;
+    border-radius: 2px;
+    line-height: 15px;
+    padding: 5px 10px;
+    color: #ffffff;
+    margin: 5px;
+}
+
+.tag-filter .fa {
+    color: #fff !important;
 }

@@ -24,44 +24,20 @@
     bottom: 0px;
     left: 0px;
     right: 0px;
-}
-
-div.provenance-panel {
-    bottom: 20px;
-    left: 20px;
-    overflow: hidden;
-    position: absolute;
-    right: 20px;
-    top: 55px;
-}
-
-#provenance-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+    overflow: auto;
 }
 
 #provenance-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    line-height: normal;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 15px;
 }
 
 #provenance-refresh-container {
-    height: 26px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#provenance-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    bottom: 0px;
 }
 
 #provenance-loading-container {
@@ -81,12 +57,6 @@ div.provenance-panel {
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
 /* filter controls */
 
 #provenance-filter-controls {
@@ -99,12 +69,7 @@ div.provenance-panel {
 }
 
 #provenance-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
     width: 173px;
-    border: 1px solid #ccc;
     margin-right: 3px;
     float: left;
 }
@@ -114,86 +79,47 @@ input.provenance-filter-list {
 }
 
 #provenance-filter-type {
-    width: 135px;
-    height: 18px;
-    line-height: 18px;
+    width: 128px;
     float: left;
-}
-
-#provenance-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
 }
 
 #oldest-event-message {
     display: none;
-    color: #9F6000;
-    font-weight: bold;
-    line-height: normal;
-    float: left;
-    clear: left;
-    margin-top: 4px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
 }
 
 /* provenance search controls */
 
 #provenance-search-container {
-    position: absolute;
-    right: 0px;
-    top: 20px;
+    float: right;
+    position: relative;
+    top: -38px;
 }
 
 #provenance-search-button {
-    height: 20px;
-    line-height: 20px;
-    width: 55px;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #AAAAAA;
-    color: #525252;
-    float: left;
-    margin-right: 0;
-    padding: 0;
+    float: right;
 }
 
 #provenance-search-overview {
-    float: left;
-    color: #9F6000;
-    font-size: 9px;
-    font-weight: bold;
-    line-height: normal;
-    float: left;
-    margin-top: 6px;
-    margin-right: 8px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    margin-bottom: 5px;
 }
 
 #clear-provenance-search {
-    cursor: pointer;
-    color:#31849B;
-    text-decoration: underline;
-    margin-left: 5px;
     display: none;
 }
 
 /* provenance search dialog */
 
-#provenance-search-dialog {
-    display: none;
-    width: 454px;
-    height: 515px;
-    z-index: 1301;
-}
-
 #searchable-fields-container {
-    width: 426px;
-    height: 220px;
-    border: 1px solid #aaa;
+    width: 100%;
+    min-height: 185px;
     padding: 5px;
-    padding-right: 0px;
     overflow: auto;
 }
 
@@ -202,25 +128,24 @@ div.searchable-field {
 }
 
 div.searchable-field-name {
-    width: 150px;
+    width: 25%;
     float: left;
     line-height: 26px;
 }
 
 div.searchable-field-value {
     float: left;
-}
-
-input.searchable-field-input {
-    width: 245px;
+    width: 75%;
 }
 
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
     float: left;
+    width: 49%;
 }
 
 .start-date-setting, .end-date-setting {
-    margin-right: 15px;
+    margin-right: 2%;
+    width: 49%;
 }
 
 .provenance-small-input {
@@ -243,45 +168,16 @@ input.searchable-field-input {
 
 /* event details dialog */
 
-#event-details-dialog {
-    display: none;
-    width: 800px;
-    height: 450px;
-    z-index: 1301;
-}
-
-#event-details-dialog-content {
-    margin-top: -10px;
-    padding: 5px 11px
-}
-
 #event-details-tabs {
     background-color: transparent;
-    border-bottom: 3px solid #666666;
     height: 21px;
     width: 778px;
 }
 
 #event-details-dialog div.details-tab {
-    background: url("../images/bgTabContainer.png") repeat-x scroll 0 0 #EEEEEE;
     display: none;
     height: 330px;
     padding: 10px;
-}
-
-#event-details-tab-content div.settings-left {
-    float: left;
-    width: 420px;
-}
-
-#event-details-tab-content div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#event-details-tab-content div.settings-right {
-    float: left;
-    width: 292px;
 }
 
 div.flowfile-container {
@@ -424,36 +320,13 @@ div.content-detail-value {
     white-space: nowrap;
 }
 
-#content-tab-content div.settings-left {
-    float: left;
-    width: 356px;
-}
-
-#content-tab-content div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#content-tab-content div.settings-right {
-    float: left;
-    width: 356px;
-}
-
 #replay-details {
     margin-top: 20px;
 }
 
 /* provenance/lineage query dialog */
 
-#provenance-query-dialog, #lineage-query-dialog {
-    display: none;
-    width: 400px;
-    height: 135px;
-    z-index: 1301;
-}
-
 #provenance-percent-complete, #lineage-percent-complete {
-    width: 378px;
     border-radius: 0;
 }
 
@@ -461,25 +334,13 @@ div.content-detail-value {
     border-radius: 0;
 }
 
-div.progress-label {
-    color: #000000;
-    display: block;
-    font-weight: bold;
-    text-align: center;
-    width: 378px;
-    margin-top: 4px;
-}
-
 /* provenance table */
 
 #provenance-table {
-    position: absolute;
-    top: 45px;
-    left: 0px;
-    bottom: 0px;
-    right: 0px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 80%;
+    width: 100%;
+    top: -38px;
 }
 
 /* provenance lineage */

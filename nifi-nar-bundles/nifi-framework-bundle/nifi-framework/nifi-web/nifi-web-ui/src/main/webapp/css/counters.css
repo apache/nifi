@@ -24,36 +24,26 @@
     bottom: 0px;
     left: 0px;
     right: 0px;
+    height: 90%;
+    overflow: auto;
 }
 
 #counters-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
+    height: 32px;
 }
 
 #counters-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
 }
 
 #counters-refresh-container {
-    height: 26px;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#counters-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 6px;
-    margin-left: 3px;
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
 }
 
 #counters-loading-container {
@@ -73,62 +63,10 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
-/* filter controls */
-
-#counters-filter-controls {
-    float: right;
-}
-
-#counters-filter-container {
-    height: 24px;
-    width: 318px;
-}
-
-#counters-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
-    width: 173px;
-    border: 1px solid #ccc;
-    margin-right: 3px;
-    float: left;
-}
-
-input.counters-filter-list {
-    color: #888;
-}
-
-#counters-filter-type {
-    width: 127px;
-    height: 18px;
-    line-height: 18px;
-    float: left;
-}
-
-#counters-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
-}
-
 /* counters table */
 
 #counters-table {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow: hidden;
+    height: 80%;
+    width: 100%;
 }

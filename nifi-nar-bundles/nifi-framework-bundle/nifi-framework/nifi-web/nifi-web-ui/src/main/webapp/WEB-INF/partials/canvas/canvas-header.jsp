@@ -23,42 +23,50 @@
                     id="processor-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.processorComponent);">
-                <i class="icon icon-processor"></i></button>
+                <div class="icon icon-processor"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.inputPort}}"
                     id="port-in-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.inputPortComponent);">
-                <i class="icon icon-port-in"></i></button>
+                <div class="icon icon-port-in"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.outputPort}}"
                     id="port-out-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.outputPortComponent);">
-                <i class="icon icon-port-out"></i></button>
+                <div class="icon icon-port-out"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processGroup}}"
                     id="group-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.groupComponent);">
-                <i class="icon icon-group"></i></button>
-            <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.remoteProcessGroup}}" hide
-                    show-gt-sm id="group-remote-component" class="component-button"
+                <div class="icon icon-group"></div>
+            </button>
+            <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.remoteProcessGroup}}"
+                    id="group-remote-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.remoteGroupComponent);">
-                <i class="icon icon-group-remote"></i></button>
+                <div class="icon icon-group-remote"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.funnel}}"
                     id="funnel-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
-                <i class="icon icon-funnel"></i></button>
+                <div class="icon icon-funnel"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.template}}"
                     id="template-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.templateComponent);">
-                <i class="icon icon-template"></i></button>
+                <div class="icon icon-template"></div>
+            </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
                     id="label-component" class="component-button"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.labelComponent);">
-                <i class="icon icon-label"></i></button>
+                <div class="icon icon-label"></div>
+            </button>
         </div>
         <div layout="row" layout-align="space-between center">
             <div layout-align="space-between end" layout="column">
@@ -77,71 +85,84 @@
                 </div>
             </div>
             <md-menu md-position-mode="target-right target" md-offset="-1 44">
-                <button md-menu-origin id="global-menu-button" ng-click="$mdOpenMenu()"><i class="fa fa-navicon"></i>
+                <button md-menu-origin id="global-menu-button" ng-click="$mdOpenMenu()">
+                    <div class="fa fa-navicon"></div>
                 </button>
                 <md-menu-content id="global-menu-content">
                     <md-menu-item layout-align="space-around center">
                         <a id="reporting-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.summary.shell.launch();"><i
-                                class="fa fa-table"></i>Summary</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.summary.shell.launch();">
+                            <i class="fa fa-table"></i>Summary
+                        </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="counters-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();"><i
-                                class="icon icon-counter"></i>Counters</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();">
+                            <i class="icon icon-counter"></i>Counters
+                        </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="bulletin-board-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.bulletinBoard.shell.launch();"><i
-                                class="fa fa-sticky-note-o"></i>Bulletin Board</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.bulletinBoard.shell.launch();">
+                            <i class="fa fa-sticky-note-o"></i>Bulletin Board
+                        </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item
                             ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.enabled();"
                             layout-align="space-around center">
                         <a id="provenance-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();"><i
-                                class="icon icon-provenance"></i>Data Provenance</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();">
+                            <i class="icon icon-provenance"></i>Data Provenance
+                        </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="flow-settings-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();"><i
-                                class="fa fa-wrench"></i>Controller Settings</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();">
+                            <i class="fa fa-wrench"></i>Controller Settings
+                        </a>
                     </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.enabled();"
                                   layout-align="space-around center">
                         <a id="cluster-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();"><i
-                                class="fa fa-cubes"></i>Cluster</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();">
+                            <i class="fa fa-cubes"></i>Cluster
+                        </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="history-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.flowConfigHistory.shell.launch();"><i
-                                class="fa fa-history"></i>Flow Configuration History</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.flowConfigHistory.shell.launch();">
+                            <i class="fa fa-history"></i>Flow Configuration History
+                        </a>
                     </md-menu-item>
                     <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.enabled();"
                                   layout-align="space-around center">
                         <a id="users-link" layout="row"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();;"><i
-                                class="fa fa-users"></i>Users<div id="has-pending-accounts" class="hidden"></div></a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();;">
+                            <i class="fa fa-users"></i>Users
+                            <div id="has-pending-accounts" class="hidden"></div>
+                        </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="templates-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();"><i
-                                class="icon icon-template"></i>Templates</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.templates.shell.launch();">
+                            <i class="icon icon-template"></i>Templates
+                        </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="help-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.help.shell.launch();"><i
-                                class="fa fa-question-circle"></i>Help</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.help.shell.launch();">
+                            <i class="fa fa-question-circle"></i>Help
+                        </a>
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="about-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.about.modal.show();"><i
-                                class="fa fa-info-circle"></i>About</a>
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.about.modal.show();">
+                            <i class="fa fa-info-circle"></i>About
+                        </a>
                     </md-menu-item>
                 </md-menu-content>
             </md-menu>

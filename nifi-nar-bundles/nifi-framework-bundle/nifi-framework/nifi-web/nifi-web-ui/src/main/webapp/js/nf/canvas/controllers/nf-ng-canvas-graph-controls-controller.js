@@ -49,7 +49,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
 
         // show the content of the specified graph control
         graphControl.children('div.graph-control-content').show();
-        graphControl.find('i.graph-control-expansion').removeClass('fa-plus-square-o').addClass('fa-minus-square-o');
+        graphControl.find('div.graph-control-expansion').removeClass('fa-plus-square-o').addClass('fa-minus-square-o');
 
         // handle specific actions as necessary
         if (graphControl.attr('id') === 'navigation-control') {
@@ -79,7 +79,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
     var hideGraphControl = function (graphControl) {
         // hide the content of the specified graph control
         graphControl.children('div.graph-control-content').hide();
-        graphControl.find('i.graph-control-expansion').removeClass('fa-minus-square-o').addClass('fa-plus-square-o');
+        graphControl.find('div.graph-control-expansion').removeClass('fa-minus-square-o').addClass('fa-plus-square-o');
 
         // dock if necessary
         if ($('div.graph-control-content').is(':visible') === false) {

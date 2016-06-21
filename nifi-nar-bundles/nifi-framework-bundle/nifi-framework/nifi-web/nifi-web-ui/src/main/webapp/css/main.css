@@ -18,7 +18,7 @@
     font-family: 'Roboto';
     font-style: normal;
     font-weight: 300;
-    src:    local('Roboto Light'),
+    src: local('Roboto Light'),
     local('Roboto-Light'),
     url('../fonts/Roboto/Roboto-Light.ttf') format('truetype');
 }
@@ -27,7 +27,7 @@
     font-family: 'Roboto';
     font-style: italic;
     font-weight: 300;
-    src:    local('Roboto LightItalic'),
+    src: local('Roboto LightItalic'),
     local('Roboto-LightItalic'),
     url('../fonts/Roboto/Roboto-LightItalic.ttf') format('truetype');
 }
@@ -36,7 +36,7 @@
     font-family: 'Roboto';
     font-style: normal;
     font-weight: normal;
-    src:    local('Roboto Regular'),
+    src: local('Roboto Regular'),
     local('Roboto-Regular'),
     url('../fonts/Roboto/Roboto-Regular.ttf') format('truetype');
 }
@@ -45,7 +45,7 @@
     font-family: 'Roboto';
     font-style: normal;
     font-weight: 500;
-    src:    local('Roboto Medium'),
+    src: local('Roboto Medium'),
     local('Roboto-Medium'),
     url('../fonts/Roboto/Roboto-Medium.ttf') format('truetype');
 }
@@ -54,7 +54,7 @@
     font-family: 'Roboto';
     font-style: normal;
     font-weight: bold;
-    src:    local('Roboto Bold'),
+    src: local('Roboto Bold'),
     local('Roboto-Bold'),
     url('../fonts/Roboto/Roboto-Bold.ttf') format('truetype');
 }
@@ -63,7 +63,7 @@
     font-family: 'Roboto';
     font-style: italic;
     font-weight: normal;
-    src:    local('Roboto Italic'),
+    src: local('Roboto Italic'),
     local('Roboto-Italic'),
     url('../fonts/Roboto/Roboto-Italic.ttf') format('truetype');
 }
@@ -72,7 +72,7 @@
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: normal;
-    src:    local('RobotoSlab Regular'),
+    src: local('RobotoSlab Regular'),
     local('RobotoSlab-Regular'),
     url('../fonts/Roboto_Slab/RobotoSlab-Regular.ttf') format('truetype');
 }
@@ -81,7 +81,7 @@
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    src:    local('RobotoSlab Bold'),
+    src: local('RobotoSlab Bold'),
     local('RobotoSlab-Bold'),
     url('../fonts/Roboto_Slab/RobotoSlab-Bold.ttf') format('truetype');
 }
@@ -93,10 +93,14 @@ i[class^="fa-"]:before, i[class*=" fa-"]:before {
 
 /*remove margin from flowfont*/
 i[class^="icon-"]:before, i[class*=" icon-"]:before {
-    margin: -1px;
+    margin: -2px;
 }
 
-body { 
+.value-color {
+    color: #775351;
+}
+
+body {
     display: block;
     font-family: Roboto, sans-serif;
     font-size: 62.5%;
@@ -223,9 +227,14 @@ ul.links span.header-link-over {
 }
 
 div.nifi-tooltip {
-    border: 1px solid #454545;
-    background-color: #FFFFA3;
-    color: #454545;
+    border: 0px !important;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.80) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 13px;
+    color: #fff !important;
     max-width: 500px;
     word-wrap: break-word;
 }
@@ -259,17 +268,47 @@ input.filter-list {
     background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
 }
 
-input[type=text], input[type=password], textarea {
-    background: white url(../images/bgInputText.png) repeat-x scroll top;
-    border: 1px solid #ccc;
-    font-family: Verdana;
+label {
+    font-family: 'Roboto Slab', serif;
     font-size: 12px;
-    padding: 4px;
+    color: #262626; /*base-font-color*/
+    letter-spacing: 0.05rem;
+    display: block;
+    margin-bottom: 2px;
+}
+
+input::placeholder {
+    color: #728e9b; /*base-color*/
+}
+
+input, input[type=text], input[type=password], textarea {
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    padding: 0px 0px 0px 10px;
     resize: none;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
+    color: #262626;
+}
+
+input:focus, textarea:focus {
+    background-color: #fff;
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    outline: none;
 }
 
 textarea {
     overflow: hidden;
+    padding: 10px 10px;
+    resize: vertical;
+    color: #262626;
+    font-size: 13px !important;
 }
 
 ul.property-info {
@@ -311,12 +350,8 @@ div.ajax-error {
     background-image: url(../images/iconDelete.png);
 }
 
-div.button-refresh {
-    background: transparent url(../images/buttonRefresh.png) no-repeat scroll top left;
-}
-
-div.button-refresh-hover {
-    background: transparent url(../images/buttonRefresh.png) no-repeat scroll top right;
+.refresh-button {
+    float: left;
 }
 
 .ui-draggable .dialog-header {
@@ -327,63 +362,43 @@ div.button-refresh-hover {
 
 div.disabled {
     float: left;
-    width: 16px;
-    height: 16px;
-    background: transparent url(../images/iconDisable.png) repeat scroll 0 0;
 }
 
 div.enabled {
     float: left;
-    width: 16px;
-    height: 16px;
-    background: transparent url(../images/iconEnable.png) repeat scroll 0 0;
+    margin-left: 3px;
+    margin-right: -3px;
 }
 
 div.stopped {
     float: left;
-    width: 16px;
-    height: 16px;
-    background: transparent url(../images/iconStop.png) repeat scroll 0 0;
 }
 
 div.running {
     float: left;
-    width: 16px;
-    height: 16px;
-    background: transparent url(../images/iconRun.png) repeat scroll 0 0;
 }
 
 div.has-errors, div.invalid {
     float: left;
-    width: 18px;
-    height: 16px;
-    margin-left: -2px;
-    background: transparent url(../images/iconAlert.png) repeat scroll 0 0;
+    color: #ba554a !important;
 }
 
 div.transmitting {
     float: left;
-    width: 18px;
-    height: 16px;
-    background: transparent url(../images/iconTransmissionActive.png) no-repeat center center;
 }
 
 div.not-transmitting {
     float: left;
-    width: 18px;
-    height: 16px;
-    background: transparent url(../images/iconTransmissionInactive.png) no-repeat center center;
+    margin-top: 0px !important;
 }
 
 div.valid {
     float: left;
-    width: 16px;
-    height: 16px;
     background-color: transparent;
 }
 
 div.has-bulletins {
-    background: transparent url(../images/iconBulletin.png) repeat scroll 0 0;
+    background: #ba554a;
 }
 
 /*
@@ -409,10 +424,12 @@ tr.alt-row {
 
 span.link {
     cursor: pointer;
-    color:#004849; /*link-color*/
+    color: #004849; /*link-color*/
     font-weight: normal;
     display: inline-block;
     border-bottom: 1px solid #CCDADB;
+    font-size: 13px;
+    font-family: Roboto;
 }
 
 span.link-over {
@@ -430,18 +447,171 @@ span.details-title {
     text-decoration: underline;
 }
 
+.last-refreshed-container {
+    float: left;
+    font-weight: normal;
+    margin-top: 8px;
+    margin-left: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+.refresh-toggle {
+    float: left;
+    margin: 0px 20px 0px 0px !important;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+button {
+    height: 28px;
+    width: 28px;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    background-color: rgba(249, 250, 251, 0.97);
+    color: #004849;
+}
+
+button.refresh-button {
+    font-size: 16px;
+}
+
+button:hover {
+    border: 1px solid #004849; /*link-color*/
+}
+
+button:disabled {
+    color: #CCDADB; /*tint link-color 80%*/
+    cursor: not-allowed;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+}
+
 /* angular material override */
 
 button:focus {
     outline: none;
-    border: 0;
 }
 
 div:focus {
     outline: none;
-    border: 0;
 }
 
 input:focus {
+    background-color: #fff;
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
     outline: none;
+}
+
+/* filter controls */
+
+.filter-controls {
+    width: 100%;
+}
+
+.filter-container {
+    height: 32px;
+    width: 318px;
+    float: left;
+}
+
+.filter {
+    margin-right: 3px;
+    float: left;
+}
+
+input.filter {
+    width: 173px;
+}
+
+.filter-type {
+    width: 120px;
+    float: left;
+}
+
+.filter-status {
+    margin-top: 10px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* buttons */
+
+button.fa {
+    color: #004849;
+    font-size: 16px;
+}
+
+button.icon {
+    color: #004849;
+    font-size: 16px;
+}
+
+div.button {
+    height: 32px;
+    width: 90px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 33px;
+    text-align: center;
+    border: 0px;
+    float: right;
+    position: relative;
+    background: #728E9B;
+    color: #fff;
+    cursor: pointer;
+}
+
+div.button:hover {
+    background-color: #004849;
+}
+
+div.secondary-button {
+    height: 32px;
+    width: 90px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 33px;
+    text-align: center;
+    border: 0px;
+    float: right;
+    position: relative;
+    background: #E3E8EB;
+    color: #004849;
+}
+
+div.secondary-button:hover {
+    background-color: #C7D2D7;
+}
+
+/* tooltips */
+
+.qtip-nifi {
+    border: 0px !important;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.54) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 13px;
+    color: #fff !important;
+}
+
+.scrollable {
+    background: rgba(255, 255, 255, 1);
+    background: linear-gradient(to bottom,rgba(255,255,255,1) 0,rgba(255,255,255,0.50) 95%,rgba(234,238,240,1) 100%);
+}
+
+/* progress bars */
+
+md-progress-linear > div {
+    background-color: #eaeef0 !important;
 }

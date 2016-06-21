@@ -26,35 +26,24 @@
     left: 20px;
     bottom: 20px;
     right: 20px;
-    border: 6px solid #365c6a;
-    box-shadow: 4px 4px 6px rgba(0,0,0,.9);
-    -webkit-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
-    -moz-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
 }
 
 #shell-container {
     background: #fff;
-    border: 6px solid #d4e0e5;
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    bottom: 0px;
-    right: 0px;
+    box-shadow: 0 5px 8px rgba(0,0,0,0.30);
+    padding: 20px;
 }
 
 #shell-close-container {
-    background: url(../images/bgShellClose.png) no-repeat;
-    background-color: #d4e0e5;
     float: right;
-    height: 25px;
 }
 
 #shell-undock-button {
     display: none;
     float: left;
-    height: 16px;
-    width: 16px;
-    margin: 5px -5px 0px 12px;
+    margin: 0px 5px 0px;
+    color: #004849;
+    font-size: 16px;
 }
 
 div.undock-normal {
@@ -67,9 +56,8 @@ div.undock-hover {
 
 #shell-close-button {
     float: left;
-    height: 16px;
-    width: 16px;
-    margin: 5px 5px 0 12px;
+    color: #004849;
+    font-size: 16px;
 }
 
 div.close-normal {
@@ -81,18 +69,6 @@ div.close-hover {
 }
 
 #shell {
-    position: absolute;
-    top: 30px;
-    left: 10px;
-    bottom: 10px;
-    right: 10px;
-    overflow: hidden;
-}
-
-#shell-iframe {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    bottom: 0px;
-    right: 0px;
+    width: 100%;
+    height: 100%;
 }

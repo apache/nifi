@@ -64,7 +64,7 @@ nf.Cluster = (function () {
      */
     var initializeClusterPage = function () {
         // define mouse over event for the refresh button
-        nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
+        $('#refresh-button').click(function () {
             nf.ClusterTable.loadClusterTable();
         });
 

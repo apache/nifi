@@ -29,8 +29,8 @@
         </div>
     </div>
     <div id="cluster-refresh-container">
-        <div id="refresh-button" class="cluster-refresh pointer" title="Refresh"></div>
-        <div id="cluster-last-refreshed-container">
+        <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+        <div id="cluster-last-refreshed-container" class="last-refreshed-container">
             Last updated:&nbsp;<span id="cluster-last-refreshed"></span>
         </div>
         <div id="cluster-loading-container" class="loading-container"></div>

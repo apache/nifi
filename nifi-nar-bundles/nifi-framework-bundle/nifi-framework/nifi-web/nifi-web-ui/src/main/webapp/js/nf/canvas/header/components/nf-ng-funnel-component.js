@@ -58,6 +58,16 @@ nf.ng.FunnelComponent = function (serviceProvider) {
         },
 
         /**
+         * The drag icon for the toolbox component.
+         *
+         * @param event
+         * @returns {*|jQuery|HTMLElement}
+         */
+        dragIcon: function (event) {
+            return $('<div class="icon icon-funnel-add"></div>');
+        },
+
+        /**
          * Creates a new funnel at the specified point.
          *
          * @argument {object} pt        The point that the funnel was dropped.

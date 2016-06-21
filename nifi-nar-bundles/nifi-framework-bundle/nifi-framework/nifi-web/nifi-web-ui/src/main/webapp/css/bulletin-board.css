@@ -18,43 +18,18 @@
     Bulletin Board Styles
 */
 
-#bulletin-board {
-    position: absolute;
-    top: 0px;
-    bottom: 0px;
-    left: 0px;
-    right: 0px;
-}
-
-#bulletin-board-header-and-filter {
-    height: 35px;
-    margin-top: 20px;
-    margin-left: 20px;
-    margin-right: 20px;
-}
-
 #bulletin-board-header-text {
-    float: left;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    line-height: normal;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
 }
 
 #bulletin-board-refresh-container {
-    height: 26px;
-    margin-left: 20px;
-    margin-right: 20px;
-    margin-top: 18px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-
-#bulletin-board-last-refreshed-container {
-    float: left;
-    color: #666;
-    font-weight: normal;
-    margin-top: 7px;
-    margin-left: 3px;
+    position: absolute;
+    width: 100%;
+    bottom: 0px;
 }
 
 #bulletin-board-loading-container {
@@ -74,65 +49,8 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
-div.bulletin-board-stopped {
-    background: transparent url(../images/iconAutoRefresh.png) no-repeat scroll 0 0;
-}
-
-div.bulletin-board-stopped-hover {
-    background: transparent url(../images/iconAutoRefresh.png) no-repeat scroll -52px 0;
-}
-
-div.bulletin-board-polling {
-    background: transparent url(../images/iconAutoRefresh.png) no-repeat scroll -26px 0;
-}
-
-div.bulletin-board-polling-hover {
-    background: transparent url(../images/iconAutoRefresh.png) no-repeat scroll -78px 0;
-}
-
-/* filter controls */
-
-#bulletin-board-filter-controls {
-    float: right;
-}
-
-#bulletin-board-filter-container {
-    height: 24px;
-    width: 318px;
-}
-
-#bulletin-board-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
-    width: 173px;
-    border: 1px solid #ccc;
-    margin-right: 3px;
-    float: left;
-}
-
-input.bulletin-board-filter-list {
-    color: #888;
-}
-
-#bulletin-board-filter-type {
-    width: 127px;
-    height: 18px;
-    line-height: 18px;
-    float: left;
-}
-
 #bulletin-board-status-container {
-    position: absolute;
-    right: 20px;
-    top: 75px;
+    float: right;
 }
 
 #bulletin-error-message {
@@ -147,33 +65,22 @@ input.bulletin-board-filter-list {
 }
 
 #clear-bulletins-button {
-    border: 1px solid #AAAAAA;
-    color: #525252;
-    float: left;
-    font-weight: bold;
-    height: 20px;
-    line-height: 20px;
-    text-align: center;
-    width: 55px;
+    margin-top: 8px;
 }
 
 /* bulletin board */
 
 #bulletin-board-container {
-    position: absolute;
-    top: 100px;
-    left: 20px;
-    bottom: 20px;
-    right: 20px;
-    border: 1px solid #666;
     overflow-y: auto;
-    padding: 3px;
+    width: 100%;
 }
 
 div.bulletin-action {
     font-weight: bold;
-    margin-top: 4px;
     margin-bottom: 4px;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #728e9b;
 }
 
 div.bulletin {
@@ -235,4 +142,5 @@ div.bulletin-link {
 pre.bulletin-message {
     float: left;
     white-space: pre-wrap;
+    margin-top: 2px;
 }

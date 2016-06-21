@@ -21,39 +21,14 @@
     height: 400px;
 }
 
-div.connection-configuration-tab-container {
-    margin-top: -10px;
-    padding: 5px 11px;
-}
-
-#connection-configuration-tabs {
-    background-color: transparent;
-    border-bottom: 3px solid #666666;
-    height: 21px;
-    width: 678px;
-}
-
 #connection-configuration div.configuration-tab {
-    height: 275px;
     overflow: auto;
-    padding: 10px;
-    background: #eee url(../images/bgTabContainer.png) repeat-x;
     display: none;
 }
 
 /*
     Connection details.
 */
-
-#output-port-options {
-    height: 18px;
-    width: 250px;
-}
-
-#input-port-options {
-    height: 18px;
-    width: 280px;
-}
 
 div.connection-terminal-label {
     height: 26px;
@@ -62,26 +37,6 @@ div.connection-terminal-label {
 /*
     Connection settings.
 */
-
-#connection-configuration div.settings-left {
-    float: left;
-    width: 280px;
-}
-
-#connection-configuration div.spacer {
-    float: left;
-    margin-right: 40px;
-}
-
-#connection-configuration div.settings-right {
-    float: left;
-    width: 330px;
-}
-
-#connection-configuration .setting-input {
-    font-size: 11px !important;
-    width: 270px;
-}
 
 #relationship-names-container {
     height: 160px;
@@ -126,11 +81,12 @@ div.undefined {
 #prioritizer-available, #prioritizer-selected {
     list-style-type: none;
     margin: 0px;
-    background: #eee;
+    background: #eaeef0;
     width: 325px;
-    min-height: 28px;
+    min-height: 32px;
     margin-bottom: 5px;
-    border: 1px dashed #aaa;
+    width: 100%;
+    padding: 2px;
 }
 
 #prioritizer-available li, #prioritizer-selected li {
@@ -143,25 +99,31 @@ div.undefined {
 }
 
 #prioritizer-available li {
-    background: transparent url(../images/bgButton.png) repeat-x center center;
-    border-top: 1px solid #d1d1d1;
-    border-right: 1px solid #a7a7a7;
-    border-bottom: 1px solid #828282;
-    border-left: 1px solid #a7a7a7;
-    color: #666;
-    font-weight: bold;
-}
-
-li.available-hover {
-    background: transparent url(../images/bgButtonOver.png) repeat-x center center;
+    background: #fff;
+    border-top: 1px solid #CCDADB;
+    border-right: 1px solid #CCDADB;
+    border-bottom: 1px solid #CCDADB;
+    border-left: 1px solid #CCDADB;
+    color: #004849;
+    font-weight: 500;
+    cursor: grab;
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+    box-shadow:0 1px 1px rgba(0,0,0,0.4);
 }
 
 #prioritizer-selected li {
-    background: transparent url(../images/bgButtonSelected.png) repeat-x center center;
+    background: #355B6A;
     border-top: 1px solid #AAC1CE;
     border-right: 1px solid #85A6B8;
     border-bottom: 1px solid #618BA3;
     border-left: 1px solid #85A6B8;
-    color: #355B6A;
+    color: #fff;
     font-weight: bold;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
 }

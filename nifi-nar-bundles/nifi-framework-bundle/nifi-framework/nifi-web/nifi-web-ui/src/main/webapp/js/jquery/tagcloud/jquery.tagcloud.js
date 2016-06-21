@@ -26,7 +26,7 @@
  *   select: selectHandler,
  *   remove: removeHandler
  * }
- * 
+ *
  * @param {type} $
  * @returns {undefined}
  */
@@ -54,17 +54,17 @@
         minTagFontSize: 1,
         minWidth: 20
     };
-    
+
     /**
      * Adds the specified tag filter.
-     * 
+     *
      * @argument {jQuery} cloudContainer    The tag cloud container
      * @argument {string} tag               The tag to add
      */
     var addTagFilter = function (cloudContainer, tag) {
         var config = cloudContainer.data('options');
         var tagFilter = cloudContainer.find('ul.tag-filter');
-        
+
         // ensure this tag hasn't already been added
         var tagFilterExists = false;
         tagFilter.find('li div.selected-tag-text').each(function () {
@@ -78,7 +78,7 @@
         if (!tagFilterExists) {
             // create the list item content
             var tagText = $('<div class="selected-tag-text"></div>').text(tag);
-            var removeTagIcon = $('<img src="images/iconDelete.png" class="remove-selected-tag pointer"></img>').click(function () {
+            var removeTagIcon = $('<div class="fa fa-close pointer"></div>').click(function () {
                 // remove this tag
                 $(this).closest('li').remove();
 
@@ -87,7 +87,7 @@
                     config.remove.call(cloudContainer, tag);
                 }
             });
-            var selectedTagItem = $('<div></div>').append(tagText).append(removeTagIcon);
+            var selectedTagItem = $('<div layout="row" layout-align="space-between center"></div>').append(tagText).append(removeTagIcon);
 
             // create the list item and update the tag filter list
             $('<li></li>').append(selectedTagItem).appendTo(tagFilter);
@@ -100,10 +100,10 @@
     };
 
     var methods = {
-        
+
         /**
          * Initializes the tag cloud.
-         * 
+         *
          * @argument {object} options The options for the tag cloud
          */
         init: function (options) {
@@ -112,18 +112,17 @@
                 if (isDefinedAndNotNull(options) && isDefinedAndNotNull(options.tags)) {
                     // get the tag cloud
                     var cloudContainer = $(this);
-                    
+
                     // clear any current contents, remote events, and store options
                     cloudContainer.empty().unbind().data('options', options);
 
                     // build the component
                     var cloud = $('<ul class="tag-cloud"></ul>').appendTo(cloudContainer);
-                    $('<div class="tag-cloud-separator">').appendTo(cloudContainer);
                     var filter = $('<ul class="tag-filter"></ul>').appendTo(cloudContainer);
 
                     var tagCloud = {};
                     var tags = [];
-                    
+
                     // count the frequency of each tag for this type
                     $.each(options.tags, function (i, tag) {
                         var normalizedTagName = tag.toLowerCase();
@@ -139,7 +138,7 @@
                             tagCloud[normalizedTagName] = tagCloudEntry;
                         }
                     });
-                    
+
                     // handle the case when no tags are present
                     if (tags.length > 0) {
                         // sort the tags by frequency to limit the less frequent tags
@@ -188,17 +187,17 @@
                 }
             });
         },
-        
+
         /**
          * Resets the selected tags from the tag cloud.
          */
         clearSelectedTags: function () {
-            return this.each(function() {
+            return this.each(function () {
                 var cloudContainer = $(this);
-                cloudContainer.find('img.remove-selected-tag').trigger('click');
+                cloudContainer.find('div.remove-selected-tag').trigger('click');
             });
         },
-        
+
         /**
          * Returns the selected tags of the first matching element.
          */
@@ -207,7 +206,7 @@
 
             this.each(function () {
                 var cloudContainer = $(this);
-                cloudContainer.find('div.selected-tag-text').each(function() {
+                cloudContainer.find('div.selected-tag-text').each(function () {
                     tags.push($(this).text());
                 });
             });

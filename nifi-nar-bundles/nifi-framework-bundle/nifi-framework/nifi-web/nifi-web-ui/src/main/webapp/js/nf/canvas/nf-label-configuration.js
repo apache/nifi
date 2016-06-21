@@ -28,9 +28,14 @@ nf.LabelConfiguration = (function () {
         init: function () {
             // make the new property dialog draggable
             $('#label-configuration').modal({
-                overlayBackground: true,
+                headerText: 'Configure Label',
                 buttons: [{
                     buttonText: 'Apply',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             // get the label data
@@ -68,22 +73,25 @@ nf.LabelConfiguration = (function () {
                             this.modal('hide');
                         }
                     }
-                }, {
-                    buttonText: 'Cancel',
-                    handler: {
-                        click: function () {
-                            this.modal('hide');
+                },
+                    {
+                        buttonText: 'Cancel',
+                        color: {
+                            base: '#E3E8EB',
+                            hover: '#C7D2D7',
+                            text: '#004849'
+                        },
+                        handler: {
+                            click: function () {
+                                this.modal('hide');
+                            }
                         }
-                    }
-                }],
+                    }],
                 handler: {
                     close: function () {
                         labelId = '';
                     }
                 }
-            }).draggable({
-                containment: 'parent',
-                cancel: 'textarea, .button, .combo'
             });
 
             // create the available sizes
@@ -113,10 +121,10 @@ nf.LabelConfiguration = (function () {
                 }
             });
         },
-        
+
         /**
          * Shows the configuration for the specified label.
-         * 
+         *
          * @argument {selection} selection      The selection
          */
         showConfiguration: function (selection) {

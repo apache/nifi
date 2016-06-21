@@ -85,7 +85,6 @@ nf.ng.InputPortComponent = function (serviceProvider) {
                 // configure the new port dialog
                 this.getElement().modal({
                     headerText: 'Add Port',
-                    overlayBackground: false,
                     handler: {
                         close: function () {
                             $('#new-port-name').val('');
@@ -119,6 +118,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
             }
         };
     }
+
     InputPortComponent.prototype = {
         constructor: InputPortComponent,
 
@@ -127,21 +127,21 @@ nf.ng.InputPortComponent = function (serviceProvider) {
          *
          * @returns {*|jQuery|HTMLElement}
          */
-        getElement: function() {
+        getElement: function () {
             return $('#port-in-component');
         },
 
         /**
          * Enable the component.
          */
-        enabled: function() {
+        enabled: function () {
             this.getElement().attr('disabled', false);
         },
 
         /**
          * Disable the component.
          */
-        disabled: function() {
+        disabled: function () {
             this.getElement().attr('disabled', true);
         },
 
@@ -150,8 +150,18 @@ nf.ng.InputPortComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the component was dropped.
          */
-        dropHandler: function(pt) {
+        dropHandler: function (pt) {
             this.promptForInputPortName(pt);
+        },
+
+        /**
+         * The drag icon for the toolbox component.
+         *
+         * @param event
+         * @returns {*|jQuery|HTMLElement}
+         */
+        dragIcon: function (event) {
+            return $('<div class="icon icon-port-in-add"></div>');
         },
 
         /**
@@ -159,7 +169,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
          *
          * @argument {object} pt        The point that the input port was dropped.
          */
-        promptForInputPortName: function(pt) {
+        promptForInputPortName: function (pt) {
             var self = this;
             var addInputPort = function () {
                 // get the name of the input port and clear the textfield
@@ -174,17 +184,28 @@ nf.ng.InputPortComponent = function (serviceProvider) {
 
             this.modal.update('setButtonModel', [{
                 buttonText: 'Add',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: addInputPort
                 }
-            }, {
-                buttonText: 'Cancel',
-                handler: {
-                    click: function () {
-                        self.modal.hide();
+            },
+                {
+                    buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
+                    handler: {
+                        click: function () {
+                            self.modal.hide();
+                        }
                     }
-                }
-            }]);
+                }]);
 
             // update the port type
             $('#new-port-type').text('Input');

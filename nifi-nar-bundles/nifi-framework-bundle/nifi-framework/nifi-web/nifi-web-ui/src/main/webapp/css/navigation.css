@@ -42,11 +42,14 @@
 }
 
 #graph-controls .icon {
-    font-size: 12px;
+    font-size: 18px;
+    line-height: 23px;
+    margin-left: -2px;
 }
 
 #graph-controls .fa {
-    font-size: 12px;
+    font-size: 18px;
+    margin-left: -1px;
 }
 
 #graph-controls .graph-control-icon {
@@ -71,9 +74,7 @@ div.graph-control {
 }
 
 div.graph-control button {
-    height: 24px;
-    width: 24px;
-    line-height: 19px;
+    line-height: 28px;
     border: 1px solid #CCDADB; /*tint link-color 80%*/
     background-color: rgba(249,250,251,1);
     color: #004849;
@@ -89,7 +90,7 @@ div.graph-control button:disabled {
     border: 1px solid #CCDADB; /*tint link-color 80%*/
 }
 
-div.graph-control i.graph-control-expansion {
+div.graph-control div.graph-control-expansion {
     color: #004849; /*link-color*/
 }
 
@@ -138,7 +139,7 @@ div.action-button {
     text-transform:uppercase;
  }
 
-div.graph-control i.icon-disabled {
+div.graph-control div.icon-disabled {
     color: #ddd;
 }
 

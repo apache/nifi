@@ -25,16 +25,16 @@
     <div id="navigation-control" class="graph-control">
         <div class="graph-control-docked pointer" title="Navigate"
              ng-click="appCtrl.serviceProvider.graphControlsCtrl.undock($event)">
-            <i class="graph-control-icon fa fa-compass"></i>
+            <div class="graph-control-icon fa fa-compass"></div>
         </div>
         <div class="graph-control-header-container hidden">
             <div class="graph-control-header-icon">
-                <i class="graph-control-icon fa fa-compass"></i>
+                <div class="graph-control-icon fa fa-compass"></div>
             </div>
             <div class="graph-control-header">Navigate</div>
             <div class="graph-control-header-action"
                  ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
-                <i class="graph-control-expansion fa fa-plus-square-o pointer"></i>
+                <div class="graph-control-expansion fa fa-plus-square-o pointer"></div>
             </div>
             <div class="clear"></div>
         </div>
@@ -42,22 +42,22 @@
             <div id="navigation-buttons">
                 <div id="naviagte-zoom-in" class="action-button" title="Zoom In"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomIn();">
-                    <button><i class="graph-control-action-icon fa fa-search-plus"></i></button>
+                    <button><div class="graph-control-action-icon fa fa-search-plus"></div></button>
                 </div>
                 <div class="button-spacer-small">&nbsp;</div>
                 <div id="naviagte-zoom-out" class="action-button" title="Zoom Out"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomOut();">
-                    <button><i class="graph-control-action-icon fa fa-search-minus"></i></button>
+                    <button><div class="graph-control-action-icon fa fa-search-minus"></div></button>
                 </div>
                 <div class="button-spacer-large">&nbsp;</div>
                 <div id="naviagte-zoom-fit" class="action-button" title="Fit"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomFit();">
-                    <button><i class="graph-control-action-icon icon icon-zoom-fit"></i></button>
+                    <button><div class="graph-control-action-icon icon icon-zoom-fit"></div></button>
                 </div>
                 <div class="button-spacer-small">&nbsp;</div>
                 <div id="naviagte-zoom-actual-size" class="action-button" title="Actual"
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomActualSize();">
-                    <button><i class="graph-control-action-icon icon icon-zoom-actual"></i></button>
+                    <button><div class="graph-control-action-icon icon icon-zoom-actual"></div></button>
                 </div>
                 <div class="clear"></div>
             </div>
@@ -67,16 +67,16 @@
     <div id="operation-control" class="graph-control">
         <div class="graph-control-docked pointer" title="Operate"
              ng-click="appCtrl.serviceProvider.graphControlsCtrl.undock($event)">
-            <i class="graph-control-icon fa fa-hand-o-up"></i>
+            <div class="graph-control-icon fa fa-hand-o-up"></div>
         </div>
         <div class="graph-control-header-container hidden">
             <div class="graph-control-header-icon">
-                <i class="graph-control-icon fa fa-hand-o-up"></i>
+                <div class="graph-control-icon fa fa-hand-o-up"></div>
             </div>
             <div class="graph-control-header">Operate</div>
             <div class="graph-control-header-action"
                  ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
-                <i class="graph-control-expansion fa fa-plus-square-o pointer"></i>
+                <div class="graph-control-expansion fa fa-plus-square-o pointer"></div>
             </div>
             <div class="clear"></div>
         </div>
@@ -86,37 +86,37 @@
                     <div id="operate-configure" class="action-button" title="Configuration">
                         <button ng-click="appCtrl.nf.Actions['showConfiguration'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="false">
-                            <i class="graph-control-action-icon fa fa-gear"></i></button>
+                            <div class="graph-control-action-icon fa fa-gear"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-enable" class="action-button" title="Enable">
                         <button ng-click="appCtrl.nf.Actions['enable'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.canEnable(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-flash"></i></button>
+                            <div class="graph-control-action-icon fa fa-flash"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-disable" class="action-button" title="Disable">
                         <button ng-click="appCtrl.nf.Actions['disable'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.canDisable(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon icon icon-enable-false"></i></button>
+                            <div class="graph-control-action-icon icon icon-enable-false"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-start" class="action-button" title="Start">
                         <button ng-click="appCtrl.nf.Actions['start'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-play"></i></button>
+                            <div class="graph-control-action-icon fa fa-play"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-stop" class="action-button" title="Stop">
                         <button ng-click="appCtrl.nf.Actions['stop'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-stop"></i></button>
+                            <div class="graph-control-action-icon fa fa-stop"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-template" class="action-button" title="Create Template">
                         <button ng-click="appCtrl.nf.Actions['template'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!(appCtrl.nf.Canvas.canWrite() && (appCtrl.nf.CanvasUtils.getSelection().empty() || appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection())));">
-                            <i class="graph-control-action-icon icon icon-template"></i></button>
+                            <div class="graph-control-action-icon icon icon-template"></div></button>
                     </div>
                     <div class="clear"></div>
                 </div>
@@ -124,31 +124,31 @@
                     <div id="operate-copy" class="action-button" title="Copy">
                         <button ng-click="appCtrl.nf.Actions['copy'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.isCopyable(appCtrl.nf.CanvasUtils.getSelection()) || !appCtrl.nf.CanvasUtils.canRead(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-copy"></i></button>
+                            <div class="graph-control-action-icon fa fa-copy"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-paste" class="action-button" title="Paste">
                         <button ng-click="appCtrl.nf.Actions['paste'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.Clipboard.isCopied()">
-                            <i class="graph-control-action-icon fa fa-paste"></i></button>
+                            <div class="graph-control-action-icon fa fa-paste"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-group" class="action-button" title="Group">
                         <button ng-click="appCtrl.nf.Actions['group'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.isDisconnected(appCtrl.nf.CanvasUtils.getSelection()) || !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon icon icon-group"></i></button>
+                            <div class="graph-control-action-icon icon icon-group"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-color" class="action-button" title="Fill Color">
                         <button ng-click="appCtrl.nf.Actions['fillColor'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.isColorable(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-paint-brush"></i></button>
+                            <div class="graph-control-action-icon fa fa-paint-brush"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-delete" class="action-button" title="Delete">
                         <button ng-click="appCtrl.nf.Actions['delete'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!appCtrl.nf.CanvasUtils.areDeletable(appCtrl.nf.CanvasUtils.getSelection());">
-                            <i class="graph-control-action-icon fa fa-trash"></i><span>Delete</span></button>
+                            <div class="graph-control-action-icon fa fa-trash"></div><span>Delete</span></button>
                     </div>
                     <div class="clear"></div>
                 </div>

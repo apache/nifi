@@ -17,7 +17,7 @@
 
 /* global nf, d3 */
 
-nf.ng.Canvas.AppCtrl = function ($scope, serviceProvider) {
+nf.ng.AppCtrl = function ($scope, serviceProvider) {
     'use strict';
 
     function AppCtrl(serviceProvider) {
@@ -35,5 +35,5 @@ nf.ng.Canvas.AppCtrl = function ($scope, serviceProvider) {
 
     //For production angular applications .scope() is unavailable so we set
     //the root scope of the bootstrapped app on the bridge
-    nf.ng.Bridge.setRootScope($scope);
+    nf.ng.Bridge.rootScope = $scope;
 };

@@ -18,9 +18,6 @@
 /* global nf */
 
 $(document).ready(function () {
-    // setup general button mouse behavior
-    nf.Common.addHoverEffect('div.button', 'button-normal', 'button-over');
-
     // configure the ok dialog
     $('#nf-ok-dialog').modal({
         handler: {
@@ -43,9 +40,6 @@ $(document).ready(function () {
                 $('#nf-yes-no-dialog').modal('setButtonModel', []);
             }
         }
-    }).draggable({
-        containment: 'parent',
-        handle: '.dialog-header'
     });
 });
 
@@ -55,14 +49,13 @@ nf.Dialog = (function () {
         /**
          * Shows an general dialog with an Okay button populated with the
          * specified dialog content.
-         * 
+         *
          * @argument {object} options       Dialog options
          */
         showOkDialog: function (options) {
             options = $.extend({
                 headerText: '',
-                dialogContent: '',
-                overlayBackground: true
+                dialogContent: ''
             }, options);
 
             // regardless of whether the dialog is already visible, the new content will be appended
@@ -72,6 +65,11 @@ nf.Dialog = (function () {
             // update the button model
             $('#nf-ok-dialog').modal('setButtonModel', [{
                 buttonText: 'Ok',
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
                 handler: {
                     click: function () {
                         // close the dialog
@@ -84,13 +82,13 @@ nf.Dialog = (function () {
             }]);
 
             // show the dialog
-            $('#nf-ok-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
+            $('#nf-ok-dialog').modal('setHeaderText', options.headerText).modal('show');
         },
-        
+
         /**
          * Shows an general dialog with Yes and No buttons populated with the
          * specified dialog content.
-         * 
+         *
          * @argument {object} options       Dialog options
          */
         showYesNoDialog: function (options) {
@@ -108,18 +106,29 @@ nf.Dialog = (function () {
 
             // update the button model
             $('#nf-yes-no-dialog').modal('setButtonModel', [{
-                    buttonText: options.yesText,
-                    handler: {
-                        click: function () {
-                            // close the dialog
-                            $('#nf-yes-no-dialog').modal('hide');
-                            if (typeof options.yesHandler === 'function') {
-                                options.yesHandler.call(this);
-                            }
+                buttonText: options.yesText,
+                color: {
+                    base: '#728E9B',
+                    hover: '#004849',
+                    text: '#ffffff'
+                },
+                handler: {
+                    click: function () {
+                        // close the dialog
+                        $('#nf-yes-no-dialog').modal('hide');
+                        if (typeof options.yesHandler === 'function') {
+                            options.yesHandler.call(this);
                         }
                     }
-                }, {
+                }
+            },
+                {
                     buttonText: options.noText,
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             // close the dialog
@@ -132,7 +141,7 @@ nf.Dialog = (function () {
                 }]);
 
             // show the dialog
-            $('#nf-yes-no-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
+            $('#nf-yes-no-dialog').modal('setHeaderText', options.headerText).modal('show');
         }
     };
 }());

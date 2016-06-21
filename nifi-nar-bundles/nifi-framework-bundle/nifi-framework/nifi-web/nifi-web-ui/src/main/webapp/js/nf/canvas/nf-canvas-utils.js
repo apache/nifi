@@ -197,8 +197,8 @@ nf.CanvasUtils = (function () {
                             deferred.resolve();
                         }).fail(function () {
                             nf.Dialog.showOkDialog({
-                                dialogContent: 'Unable to load the group for the specified component.',
-                                overlayBackground: false
+                                headerText: 'Process Group',
+                                dialogContent: 'Unable to load the group for the specified component.'
                             });
                             deferred.reject();
                         });
@@ -215,8 +215,8 @@ nf.CanvasUtils = (function () {
                         nf.Actions.show(component);
                     } else {
                         nf.Dialog.showOkDialog({
-                            dialogContent: 'Unable to find the specified component.',
-                            overlayBackground: false
+                            headerText: 'Process Group',
+                            dialogContent: 'Unable to find the specified component.'
                         });
                     }
                 });
@@ -1221,8 +1221,8 @@ nf.CanvasUtils = (function () {
                 }
             }).fail(function () {
                 nf.Dialog.showOkDialog({
-                    dialogContent: 'Unable to enter the selected group.',
-                    overlayBackground: false
+                    headerText: 'Process Group',
+                    dialogContent: 'Unable to enter the selected group.'
                 });
             });
         },
@@ -1402,8 +1402,8 @@ nf.CanvasUtils = (function () {
                             // ports in the root group cannot be moved
                             if (nf.Canvas.getParentGroupId() === null) {
                                 nf.Dialog.showOkDialog({
-                                    dialogContent: 'Cannot move Ports out of the root group',
-                                    overlayBackground: false
+                                    headerText: 'Port',
+                                    dialogContent: 'Cannot move Ports out of the root group'
                                 });
                                 portConnectionDeferred.reject();
                             } else {
@@ -1438,8 +1438,8 @@ nf.CanvasUtils = (function () {
                                     // inform the user of the conflicting ports
                                     if (conflictingPorts.length > 0) {
                                         nf.Dialog.showOkDialog({
-                                            dialogContent: 'The following ports are currently connected outside of this group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>',
-                                            overlayBackground: false
+                                            headerText: 'Port',
+                                            dialogContent: 'The following ports are currently connected outside of this group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>'
                                         });
                                         portConnectionDeferred.reject();
                                     } else {
@@ -1489,8 +1489,8 @@ nf.CanvasUtils = (function () {
                                 // inform the user of the conflicting ports
                                 if (conflictingPorts.length > 0) {
                                     nf.Dialog.showOkDialog({
-                                        dialogContent: 'The following ports already exist in the target process group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>',
-                                        overlayBackground: false
+                                        headerText: 'Port',
+                                        dialogContent: 'The following ports already exist in the target process group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>'
                                     });
                                     portNameDeferred.reject();
                                 } else {
