@@ -70,7 +70,7 @@ public class GetSNMPTest {
      */
     @BeforeClass
     public static void setUp() throws Exception {
-        agentv2c = new TestSnmpAgentV2c("0.0.0.0/2001");
+        agentv2c = new TestSnmpAgentV2c("0.0.0.0");
         agentv2c.start();
         agentv2c.unregisterManagedObject(agentv2c.getSnmpv2MIB());
         agentv2c.registerManagedObject(
@@ -82,7 +82,7 @@ public class GetSNMPTest {
                         MOAccessImpl.ACCESS_WRITE_ONLY,
                         new Integer32(writeOnlyValue)));
 
-        agentv1 = new TestSnmpAgentV1("0.0.0.0/2002");
+        agentv1 = new TestSnmpAgentV1("0.0.0.0");
         agentv1.start();
         agentv1.unregisterManagedObject(agentv1.getSnmpv2MIB());
         agentv1.registerManagedObject(
@@ -111,7 +111,7 @@ public class GetSNMPTest {
     @Test
     public void validateSuccessfullSnmpSetGetv2c() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
 
         try (SNMPSetter setter = new SNMPSetter(snmp, target)) {
             PDU pdu = new PDU();
@@ -128,7 +128,7 @@ public class GetSNMPTest {
 
             runner.setProperty(GetSNMP.OID, sysDescr.toString());
             runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-            runner.setProperty(GetSNMP.PORT, "2001");
+            runner.setProperty(GetSNMP.PORT, String.valueOf(agentv2c.getPort()));
             runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
             runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv2c");
 
@@ -152,7 +152,7 @@ public class GetSNMPTest {
     @Test
     public void validateSuccessfullSnmpSetGetv1() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2002", SnmpConstants.version1);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv1.getPort(), SnmpConstants.version1);
 
         try (SNMPSetter setter = new SNMPSetter(snmp, target)) {
             PDU pdu = new PDU();
@@ -168,7 +168,7 @@ public class GetSNMPTest {
             TestRunner runner = TestRunners.newTestRunner(pubProc);
             runner.setProperty(GetSNMP.OID, sysDescr.toString());
             runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-            runner.setProperty(GetSNMP.PORT, "2002");
+            runner.setProperty(GetSNMP.PORT, String.valueOf(agentv1.getPort()));
             runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
             runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv1");
 
@@ -189,14 +189,14 @@ public class GetSNMPTest {
     @Test
     public void errorUnauthorizedSnmpGet() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
 
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
 
         runner.setProperty(GetSNMP.OID, writeOnlyOID.toString());
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2001");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(agentv2c.getPort()));
         runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv2c");
 
@@ -216,14 +216,14 @@ public class GetSNMPTest {
     @Test
     public void errorTimeoutSnmpGet() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
 
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
 
         runner.setProperty(GetSNMP.OID, sysDescr.toString());
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2010");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(SNMPTestUtil.availablePort()));
         runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv2c");
 
@@ -240,14 +240,14 @@ public class GetSNMPTest {
     @Test
     public void errorNotExistingOIDSnmpGet() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
 
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
 
         runner.setProperty(GetSNMP.OID, "1.3.6.1.2.1.1.2.0");
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2001");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(agentv2c.getPort()));
         runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv2c");
 
@@ -265,14 +265,14 @@ public class GetSNMPTest {
     @Test
     public void errorCommunitySnmpGet() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("errorCommunity", "127.0.0.1/2001", SnmpConstants.version2c);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("errorCommunity", "127.0.0.1/" + agentv2c.getPort(), SnmpConstants.version2c);
 
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
 
         runner.setProperty(GetSNMP.OID, "1.3.6.1.2.1.1.2.0");
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2001");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(agentv2c.getPort()));
         runner.setProperty(GetSNMP.SNMP_COMMUNITY, "errorCommunity");
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv2c");
 
@@ -288,10 +288,11 @@ public class GetSNMPTest {
      */
     @Test
     public void validateSnmpVersion3() throws Exception {
+        int port = SNMPTestUtil.availablePort();
         Thread thread= new Thread(new Runnable() {
             @Override
             public void run() {
-                TestSnmpAgentV3.main(new String[]{"0.0.0.0/2003"});
+                TestSnmpAgentV3.main(new String[]{"0.0.0.0/" + port});
             }
         });
         thread.start();
@@ -302,14 +303,15 @@ public class GetSNMPTest {
         SecurityModels.getInstance().addSecurityModel(usm);
         transportMapping.listen();
 
-        this.executeCase(snmp, "SHADES", "authPriv", "SHA", "SHADESPassword", "DES", "SHADESPassword");
-        this.executeCase(snmp, "MD5DES", "authPriv", "MD5", "MD5DESAuthPassword", "DES", "MD5DESPrivPassword");
-        this.executeCase(snmp, "SHAAES128", "authPriv", "SHA", "SHAAES128AuthPassword", "AES128", "SHAAES128PrivPassword");
+        this.executeCase(snmp, port, "SHADES", "authPriv", "SHA", "SHADESPassword", "DES", "SHADESPassword");
+        this.executeCase(snmp, port, "MD5DES", "authPriv", "MD5", "MD5DESAuthPassword", "DES", "MD5DESPrivPassword");
+        this.executeCase(snmp, port, "SHAAES128", "authPriv", "SHA", "SHAAES128AuthPassword", "AES128", "SHAAES128PrivPassword");
     }
 
     /**
      * Method to test a specific configuration for SNMP V3
      * @param snmp SNMP
+     * @param port Port
      * @param securityName Security name
      * @param securityLevel security level
      * @param authProt authentication protocol
@@ -318,15 +320,16 @@ public class GetSNMPTest {
      * @param privPwd private password
      * @throws InterruptedException exception
      */
-    private void executeCase(Snmp snmp, String securityName, String securityLevel, String authProt, String authPwd, String privProt, String privPwd) throws InterruptedException {
-        UserTarget target = SNMPUtilsTest.prepareUser(snmp, "127.0.0.1/2003", SNMPUtils.getSecLevel(securityLevel),
+    private void executeCase(Snmp snmp, int port, String securityName, String securityLevel, String authProt, String authPwd, String privProt, String privPwd) throws InterruptedException {
+        UserTarget target = SNMPUtilsTest.prepareUser(snmp, "127.0.0.1/" + port, SNMPUtils.getSecLevel(securityLevel),
                 securityName, SNMPUtils.getAuth(authProt), SNMPUtils.getPriv(privProt), authPwd, privPwd);
-        this.testTarget(snmp, target, securityName, securityLevel, authProt, authPwd, privProt, privPwd);
+        this.testTarget(snmp, port, target, securityName, securityLevel, authProt, authPwd, privProt, privPwd);
     }
 
     /**
      * Method to test a specific configuration for SNMP V3
      * @param snmp SNMP
+     * @param port Port
      * @param target target
      * @param securityName Security name
      * @param securityLevel security level
@@ -336,13 +339,14 @@ public class GetSNMPTest {
      * @param privPwd private password
      * @throws InterruptedException exception
      */
-    private void testTarget(Snmp snmp, UserTarget target, String securityName, String securityLevel, String authProt, String authPwd, String privProt, String privPwd) throws InterruptedException {
+    private void testTarget(Snmp snmp, int port, UserTarget target, String securityName, String securityLevel,
+            String authProt, String authPwd, String privProt, String privPwd) throws InterruptedException {
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
 
         runner.setProperty(GetSNMP.OID, sysDescr.toString());
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2003");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(port));
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv3");
         runner.setProperty(GetSNMP.SNMP_SECURITY_NAME, securityName);
         runner.setProperty(GetSNMP.SNMP_SECURITY_LEVEL, securityLevel);

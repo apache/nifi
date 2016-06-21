@@ -100,12 +100,12 @@ public class SNMPUtilsTest {
      * @param securityName security name
      * @return user target
      */
-    protected static UserTarget createUserTarget(String address, int securityLevel, String securityName) {
+    private static UserTarget createUserTarget(String address, int securityLevel, String securityName) {
         UserTarget target = new UserTarget();
         target.setVersion(SnmpConstants.version3);
         target.setSecurityLevel(securityLevel);
         target.setSecurityName(new OctetString(securityName));
-        target.setAddress(new UdpAddress("127.0.0.1/2003"));
+        target.setAddress(new UdpAddress(address));
         target.setRetries(0);
         target.setTimeout(500);
         return target;

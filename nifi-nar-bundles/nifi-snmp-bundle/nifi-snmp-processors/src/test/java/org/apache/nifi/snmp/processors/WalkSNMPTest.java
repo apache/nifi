@@ -48,7 +48,7 @@ public class WalkSNMPTest {
      */
     @BeforeClass
     public static void setUp() throws Exception {
-        agentv1 = new TestSnmpAgentV1("0.0.0.0/2002");
+        agentv1 = new TestSnmpAgentV1("0.0.0.0");
         agentv1.start();
     }
 
@@ -68,7 +68,7 @@ public class WalkSNMPTest {
     @Test
     public void validateSuccessfullSnmpWalkVersion1() throws Exception {
         Snmp snmp = SNMPUtilsTest.createSnmp();
-        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/2002", SnmpConstants.version1);
+        CommunityTarget target = SNMPUtilsTest.createCommTarget("public", "127.0.0.1/" + agentv1.getPort(), SnmpConstants.version1);
 
         GetSNMP pubProc = new LocalGetSnmp(snmp, target);
         TestRunner runner = TestRunners.newTestRunner(pubProc);
@@ -76,7 +76,7 @@ public class WalkSNMPTest {
         runner.setProperty(GetSNMP.OID, root.toString());
         runner.setProperty(GetSNMP.SNMP_STRATEGY, "WALK");
         runner.setProperty(GetSNMP.HOST, "127.0.0.1");
-        runner.setProperty(GetSNMP.PORT, "2002");
+        runner.setProperty(GetSNMP.PORT, String.valueOf(agentv1.getPort()));
         runner.setProperty(GetSNMP.SNMP_COMMUNITY, "public");
         runner.setProperty(GetSNMP.SNMP_VERSION, "SNMPv1");
 

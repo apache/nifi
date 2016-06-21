@@ -54,9 +54,9 @@ public class SNMPWalkTest {
      */
     @BeforeClass
     public static void setUp() throws Exception {
-        agentv1 = new TestSnmpAgentV1("0.0.0.0/2002");
+        agentv1 = new TestSnmpAgentV1("0.0.0.0");
         agentv1.start();
-        agentv2c = new TestSnmpAgentV2c("0.0.0.0/2001");
+        agentv2c = new TestSnmpAgentV2c("0.0.0.0");
         agentv2c.start();
     }
 
@@ -84,7 +84,7 @@ public class SNMPWalkTest {
         CommunityTarget target = new CommunityTarget();
         target.setVersion(SnmpConstants.version2c);
         target.setCommunity(new OctetString("public"));
-        target.setAddress(new UdpAddress("127.0.0.1/2001"));
+        target.setAddress(new UdpAddress("127.0.0.1/" + agentv2c.getPort()));
         target.setRetries(0);
         target.setTimeout(500);
 
@@ -108,7 +108,7 @@ public class SNMPWalkTest {
         CommunityTarget target = new CommunityTarget();
         target.setVersion(SnmpConstants.version1);
         target.setCommunity(new OctetString("public"));
-        target.setAddress(new UdpAddress("127.0.0.1/2002"));
+        target.setAddress(new UdpAddress("127.0.0.1/" + agentv1.getPort()));
         target.setRetries(0);
         target.setTimeout(500);
 
