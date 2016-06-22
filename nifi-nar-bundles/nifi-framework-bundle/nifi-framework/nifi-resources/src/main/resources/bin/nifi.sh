@@ -14,10 +14,6 @@
 #    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
-#
-# chkconfig: 2345 20 80
-# description: Apache NiFi is a dataflow system based on the principles of Flow-Based Programming.
-#
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
@@ -142,22 +138,72 @@ init() {
 
 
 install() {
-        SVC_NAME=nifi
-        if [ "x$2" != "x" ] ; then
-                SVC_NAME=$2
-        fi
+    detectOS
 
-        SVC_FILE="/etc/init.d/${SVC_NAME}"
-        cp "$0" "${SVC_FILE}"
-        sed -i s:NIFI_HOME=.*:NIFI_HOME="${NIFI_HOME}": "${SVC_FILE}"
-        sed -i s:PROGNAME=.*:PROGNAME="${SCRIPT_NAME}": "${SVC_FILE}"
-        rm -f "/etc/rc2.d/S65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}"
-        rm -f "/etc/rc2.d/K65${SVC_NAME}"
-        ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}"
-        echo "Service ${SVC_NAME} installed"
+    if [ "${darwin}" = "true"  ] || [ "${cygwin}" = "true" ]; then
+        echo 'Installing Apache NiFi as a service is not supported on OS X or Cygwin.'
+        exit 1
+    fi
+
+    SVC_NAME=nifi
+    if [ "x$2" != "x" ] ; then
+        SVC_NAME=$2
+    fi
+
+    initd_dir='/etc/init.d'
+    SVC_FILE="${initd_dir}/${SVC_NAME}"
+
+    if [ ! -w  "${initd_dir}" ]; then
+        echo "Current user does not have write permissions to ${initd_dir}. Cannot install NiFi as a service."
+        exit 1
+    fi
+
+# Create the init script, overwriting anything currently present
+cat <<SERVICEDESCRIPTOR > ${SVC_FILE}
+#!/bin/sh
+
+#
+#    Licensed to the Apache Software Foundation (ASF) under one or more
+#    contributor license agreements.  See the NOTICE file distributed with
+#    this work for additional information regarding copyright ownership.
+#    The ASF licenses this file to You under the Apache License, Version 2.0
+#    (the "License"); you may not use this file except in compliance with
+#    the License.  You may obtain a copy of the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+# chkconfig: 2345 20 80
+# description: Apache NiFi is a dataflow system based on the principles of Flow-Based Programming.
+#
+
+# Make use of the configured NIFI_HOME directory and pass service requests to the nifi.sh executable
+NIFI_HOME=${NIFI_HOME}
+bin_dir=\${NIFI_HOME}/bin
+nifi_executable=\${bin_dir}/nifi.sh
+
+\${nifi_executable} "\$@"
+SERVICEDESCRIPTOR
+
+    if [ ! -f "${SVC_FILE}" ]; then
+        echo "Could not create service file ${SVC_FILE}"
+        exit 1
+    fi
+
+    # Provide the user execute access on the file
+    chmod u+x ${SVC_FILE}
+
+    rm -f "/etc/rc2.d/S65${SVC_NAME}"
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
+    rm -f "/etc/rc2.d/K65${SVC_NAME}"
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
+    echo "Service ${SVC_NAME} installed"
 }
-
 
 run() {
     BOOTSTRAP_CONF_DIR="${NIFI_HOME}/conf"
@@ -248,9 +294,9 @@ case "$1" in
         ;;
     restart)
         init
-    run "stop"
-    run "start"
-    ;;
+        run "stop"
+        run "start"
+        ;;
     *)
         echo "Usage nifi {start|stop|run|restart|status|dump|install}"
         ;;
