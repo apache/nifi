@@ -26,3 +26,4 @@ export NIFI_PID_DIR="${NIFI_HOME}/run"
 
 #The directory for NiFi log files
 export NIFI_LOG_DIR="${NIFI_HOME}/logs"
+
