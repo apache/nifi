@@ -1228,7 +1228,7 @@ nf.ProvenanceLineage = (function () {
 
         // show the lineage pane and hide the event search results
         $('#provenance-lineage').show();
-        $('#provenance-event-search, #provenance-filter-controls, #oldest-event-message').hide();
+        $('#provenance-event-search').hide();
 
         // add the initial lineage
         addLineage(lineageResults.nodes, lineageResults.links);
@@ -1247,7 +1247,7 @@ nf.ProvenanceLineage = (function () {
                 $('#provenance-lineage-slider').slider('destroy');
 
                 // view the appropriate panel
-                $('#provenance-event-search, #provenance-filter-controls, #oldest-event-message').show();
+                $('#provenance-event-search').show();
                 $('#provenance-lineage').hide();
             });
             $('#provenance-lineage-downloader').on('click', function () {

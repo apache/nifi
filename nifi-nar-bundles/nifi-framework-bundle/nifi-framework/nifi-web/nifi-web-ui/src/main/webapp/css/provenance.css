@@ -57,6 +57,15 @@
     padding-top: 10px;
 }
 
+div.provenance-panel {
+    bottom: 0px;
+    left: 0px;
+    overflow: hidden;
+    position: absolute;
+    right: 0px;
+    top: 40px;
+}
+
 /* filter controls */
 
 #provenance-filter-controls {
@@ -84,7 +93,6 @@ input.provenance-filter-list {
 }
 
 #oldest-event-message {
-    display: none;
     font-family: Roboto;
     font-size: 13px;
     font-weight: normal;
@@ -337,10 +345,13 @@ div.content-detail-value {
 /* provenance table */
 
 #provenance-table {
+    position: absolute;
+    top: 78px;
+    left: 0px;
+    bottom: 35px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
-    top: -38px;
+    background-color: #fff;
 }
 
 /* provenance lineage */
