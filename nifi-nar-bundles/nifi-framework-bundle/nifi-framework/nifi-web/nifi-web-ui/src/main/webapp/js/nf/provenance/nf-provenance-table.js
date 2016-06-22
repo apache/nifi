@@ -617,7 +617,7 @@ nf.ProvenanceTable = (function () {
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<div title="View Details" class="pointer show-event-details fa fa-info-circle" style="margin-top: 4px;"></div>';
+            return '<div title="View Details" class="pointer show-event-details fa fa-info-circle"></div>';
         };
 
         // define how general values are formatted
@@ -634,12 +634,12 @@ nf.ProvenanceTable = (function () {
 
             // conditionally include the cluster node id
             if (nf.Common.SUPPORTS_SVG) {
-                markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-top: 2px;"></div>';
+                markup += '<div title="Show Lineage" class="pointer show-lineage icon icon-lineage" style="margin-right: 3px;"></div>';
             }
 
             // conditionally support going to the component
             if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId)) {
-                markup += '&nbsp;<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-top: 2px;"/>';
+                markup += '&nbsp;<div class="pointer go-to fa fa-long-arrow-right" title="Go To"></div>';
             }
 
             return markup;
@@ -973,7 +973,6 @@ nf.ProvenanceTable = (function () {
 
             // update the oldest event available
             $('#oldest-event').html(nf.Common.formatValue(provenanceResults.oldestEvent));
-            $('#oldest-event-message').show();
 
             // set the timezone for the start and end time
             $('.timezone').text(nf.Common.substringAfterLast(provenanceResults.generated, ' '));
