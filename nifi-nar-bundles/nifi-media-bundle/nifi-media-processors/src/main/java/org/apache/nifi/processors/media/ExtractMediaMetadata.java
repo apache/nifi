@@ -37,9 +37,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -55,8 +52,8 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
-import org.apache.tika.sax.BodyContentHandler;
 import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"media", "file", "format", "metadata", "audio", "video", "image", "document", "pdf"})
@@ -112,30 +109,6 @@ public class ExtractMediaMetadata extends AbstractProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    static final PropertyDescriptor CONTENT_BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("Content Buffer Size")
-            .description("The size for media content buffer during processing, or -1 for unlimited.  If not"
-                    + " provided, the underlying parser default is used.")
-            .required(false)
-            .addValidator(new Validator() {
-                @Override
-                public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    Integer val = null;
-                    try {
-                        val = Integer.parseInt(input);
-                    } catch (NumberFormatException ignore) {
-                    }
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(val != null && val >= -1)
-                            .explanation(subject + " must be a valid integer equal to or greater than -1.")
-                            .build();
-                }
-            })
-            .expressionLanguageSupported(false)
-            .build();
-
     static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Any FlowFile that successfully has media metadata extracted will be routed to success")
@@ -161,7 +134,6 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         properties.add(MAX_ATTRIBUTE_LENGTH);
         properties.add(METADATA_KEY_FILTER);
         properties.add(METADATA_KEY_PREFIX);
-        properties.add(CONTENT_BUFFER_SIZE);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -204,7 +176,6 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         final AtomicReference<Map<String, String>> value = new AtomicReference<>(null);
         final Integer maxAttribCount = context.getProperty(MAX_NUMBER_OF_ATTRIBUTES).asInteger();
         final Integer maxAttribLength = context.getProperty(MAX_ATTRIBUTE_LENGTH).asInteger();
-        final Integer contentBufferSize = context.getProperty(CONTENT_BUFFER_SIZE).asInteger();
         final String prefix = context.getProperty(METADATA_KEY_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
@@ -212,7 +183,7 @@ public class ExtractMediaMetadata extends AbstractProcessor {
                 @Override
                 public void process(InputStream in) throws IOException {
                     try {
-                        Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength, contentBufferSize);
+                        Map<String, String> results = tika_parse(in, prefix, maxAttribCount, maxAttribLength);
                         value.set(results);
                     } catch (SAXException | TikaException e) {
                         throw new IOException(e);
@@ -235,14 +206,11 @@ public class ExtractMediaMetadata extends AbstractProcessor {
         }
     }
 
-    private Map<String, String> tika_parse(InputStream sourceStream, String prefix, Integer maxAttribs, Integer maxAttribLen,
-                                           Integer contentBufSize) throws IOException, TikaException, SAXException {
+    private Map<String, String> tika_parse(InputStream sourceStream, String prefix, Integer maxAttribs,
+                                           Integer maxAttribLen) throws IOException, TikaException, SAXException {
         final Metadata metadata = new Metadata();
         final TikaInputStream tikaInputStream = TikaInputStream.get(sourceStream);
-
-        // as of June, 2016 the default BodyContentHandler used a 100,000 byte buffer
-        final BodyContentHandler bodyContentHandler = (contentBufSize != null) ? new BodyContentHandler(contentBufSize) : new BodyContentHandler();
-        autoDetectParser.parse(tikaInputStream, bodyContentHandler, metadata);
+        autoDetectParser.parse(tikaInputStream, new DefaultHandler(), metadata);
 
         final Map<String, String> results = new HashMap<>();
         final Pattern metadataKeyFilter = metadataKeyFilterRef.get();
