@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.media;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
@@ -43,7 +42,7 @@ public class TestExtractMediaMetadata {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         ProcessContext context = runner.getProcessContext();
         Map<PropertyDescriptor, String> propertyValues = context.getProperties();
-        assertEquals(6, propertyValues.size());
+        assertEquals(5, propertyValues.size());
     }
 
     @Test
@@ -59,7 +58,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testTextBytes() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "text/.*");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
         runner.assertValid();
@@ -89,7 +87,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testNoFlowFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "text/.*");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
         runner.assertValid();
@@ -103,7 +100,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testTextFile() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "text/.*");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
         runner.assertValid();
@@ -126,6 +122,14 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeExists("txt.Content-Encoding");
         flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
         flowFile0.assertContentEquals("This file is not an image and is used for testing the image metadata extractor.".getBytes("UTF-8"));
+    }
+
+    @Test
+    public void testBadBufferSizeNotValid() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
+        runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
+        runner.setProperty(ExtractMediaMetadata.CONTENT_BUFFER_SIZE, "one hundred thousand");
+        runner.assertNotValid();
     }
 
     @Test
@@ -197,26 +201,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeExists("junk.X-Parsed-By");
         assertTrue(flowFile0.getAttribute("junk.X-Parsed-By").contains("org.apache.tika.parser.EmptyParser"));
         flowFile0.assertContentEquals(bytes);
-    }
-
-    @Test
-    public void testMimeTypeFilter() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "audio.*");
-        runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
-        runner.assertValid();
-
-        runner.enqueue(new File("target/test-classes/textFile.txt").toPath());
-        runner.run(2);
-
-        runner.assertAllFlowFilesTransferred(ExtractMediaMetadata.SUCCESS, 1);
-        runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
-
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
-        flowFile0.assertAttributeExists(CoreAttributes.FILENAME.key());
-        flowFile0.assertAttributeNotExists("txt.Content-Type");
-        flowFile0.assertAttributeNotExists("txt.X-Parsed-By");
     }
 
     @Test
@@ -371,7 +355,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testWav() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "audio/(vnd.wave|wav|wave|x-wav)");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "wav.");
         runner.assertValid();
@@ -398,7 +381,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testOgg() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "(application/ogg|audio/(vorbis|ogg|vorbis-config))");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "ogg.");
         runner.assertValid();
@@ -423,7 +405,6 @@ public class TestExtractMediaMetadata {
     @Test
     public void testMp3() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.MIME_TYPE_FILTER, "audio/.*");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "mp3.");
         runner.assertValid();
