@@ -392,7 +392,7 @@
                 //resize dialog content
                 if (!nfDialog.resizable) {
                     dialogContent.attr('style', 'height:' +
-                        (dialog.height() -
+                        (dialog.outerHeight() -
                         dialog.find('.dialog-header').height() -
                         dialog.find('.dialog-buttons').height() -
                         parseInt(dialogContent.css('padding-top'), 10) -
@@ -401,9 +401,11 @@
                     if (dialogContent[0].offsetHeight < dialogContent[0].scrollHeight) {
                         // your element have overflow
                         dialogContent.addClass('scrollable');
+                        dialog.find('.dialog-buttons').css('background', '#eaeef0');
                     } else {
                         // your element doesn't have overflow
                         dialogContent.removeClass('scrollable');
+                        dialog.find('.dialog-buttons').css('background', '#fff');
                     }
                 }
             };

@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="new-reporting-task-dialog" layout="column" class="hidden large-dialog">
-    <div class="dialog-content" layout="column">
+    <div class="dialog-content">
         <div layout="row" style="padding-bottom:0">
             <div flex="25" layout="row" layout-align="start center">
                 <div class="setting-name">Tag Cloud:</div>
