@@ -32,6 +32,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Utility methods for ORC support (conversion from Avro, conversion to Hive types, e.g.
@@ -45,186 +46,165 @@ public class OrcUtils {
             throw new IllegalArgumentException("Field type is null");
         }
 
-        if (Schema.Type.INT.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((LongColumnVector) col).vector[rowNumber] = (int) o;
-            }
-        } else if (Schema.Type.LONG.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((LongColumnVector) col).vector[rowNumber] = (long) o;
-            }
-        } else if (Schema.Type.BOOLEAN.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((LongColumnVector) col).vector[rowNumber] = ((boolean) o) ? 1 : 0;
-            }
-        } else if (Schema.Type.BYTES.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ByteBuffer byteBuffer = ((ByteBuffer) o);
-                int size = byteBuffer.remaining();
-                byte[] buf = new byte[size];
-                byteBuffer.get(buf, 0, size);
-                ((BytesColumnVector) col).setVal(rowNumber, buf);
-            }
-        } else if (Schema.Type.DOUBLE.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((DoubleColumnVector) col).vector[rowNumber] = (double) o;
-            }
-        } else if (Schema.Type.FLOAT.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((DoubleColumnVector) col).vector[rowNumber] = (float) o;
-            }
-        } else if (Schema.Type.STRING.equals(fieldType) || Schema.Type.ENUM.equals(fieldType)) {
-            if (o == null) {
-                col.isNull[rowNumber] = true;
-            } else {
-                ((BytesColumnVector) col).setVal(rowNumber, o.toString().getBytes());
-            }
-        } else if (Schema.Type.UNION.equals(fieldType)) {
-            // If the union only has one non-null type in it, it was flattened in the ORC schema
-            if (col instanceof UnionColumnVector) {
-                UnionColumnVector union = ((UnionColumnVector) col);
-                Schema.Type avroType = OrcUtils.getAvroSchemaTypeOfObject(o);
-                // Find the index in the union with the matching Avro type
-                int unionIndex = -1;
-                List<Schema> types = fieldSchema.getTypes();
-                final int numFields = types.size();
-                for (int i = 0; i < numFields && unionIndex == -1; i++) {
-                    if (avroType.equals(types.get(i).getType())) {
-                        unionIndex = i;
-                    }
-                }
-                if (unionIndex == -1) {
-                    throw new IllegalArgumentException("Object type " + avroType.getName() + " not found in union '" + fieldSchema.getName() + "'");
-                }
-
-                // Need nested vector offsets
-                MutableInt unionVectorOffset = new MutableInt(0);
-                putToRowBatch(union.fields[unionIndex], unionVectorOffset, rowNumber, fieldSchema.getTypes().get(unionIndex), o);
-            } else {
-                // Find and use the non-null type from the union
-                List<Schema> types = fieldSchema.getTypes();
-                Schema effectiveType = null;
-                for (Schema type : types) {
-                    if (!Schema.Type.NULL.equals(type.getType())) {
-                        effectiveType = type;
-                        break;
-                    }
-                }
-                putToRowBatch(col, vectorOffset, rowNumber, effectiveType, o);
-            }
-
-        } else if (Schema.Type.ARRAY.equals(fieldType)) {
-            Schema arrayType = fieldSchema.getElementType();
-            ListColumnVector array = ((ListColumnVector) col);
-            if (o instanceof int[]) {
-                int[] intArray = (int[]) o;
-                for (int i = 0; i < intArray.length; i++) {
-                    ((LongColumnVector) array.child).vector[vectorOffset.getValue() + i] = intArray[i];
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = intArray.length;
-                vectorOffset.add(intArray.length);
-            } else if (o instanceof long[]) {
-                long[] longArray = (long[]) o;
-                for (int i = 0; i < longArray.length; i++) {
-                    ((LongColumnVector) array.child).vector[vectorOffset.getValue() + i] = longArray[i];
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = longArray.length;
-                vectorOffset.add(longArray.length);
-            } else if (o instanceof float[]) {
-                float[] floatArray = (float[]) o;
-                for (int i = 0; i < floatArray.length; i++) {
-                    ((DoubleColumnVector) array.child).vector[vectorOffset.getValue() + i] = floatArray[i];
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = floatArray.length;
-                vectorOffset.add(floatArray.length);
-            } else if (o instanceof double[]) {
-                double[] doubleArray = (double[]) o;
-                for (int i = 0; i < doubleArray.length; i++) {
-                    ((DoubleColumnVector) array.child).vector[vectorOffset.getValue() + i] = doubleArray[i];
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = doubleArray.length;
-                vectorOffset.add(doubleArray.length);
-            } else if (o instanceof String[]) {
-                String[] stringArray = (String[]) o;
-                BytesColumnVector byteCol = ((BytesColumnVector) array.child);
-                for (int i = 0; i < stringArray.length; i++) {
-                    if (stringArray[i] == null) {
-                        byteCol.isNull[rowNumber] = true;
-                    } else {
-                        byteCol.setVal(vectorOffset.getValue() + i, stringArray[i].getBytes());
-                    }
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = stringArray.length;
-                vectorOffset.add(stringArray.length);
-            } else if (o instanceof Map[]) {
-                Map[] mapArray = (Map[]) o;
-                MutableInt mapVectorOffset = new MutableInt(0);
-                for (int i = 0; i < mapArray.length; i++) {
-                    if (mapArray[i] == null) {
-                        array.child.isNull[rowNumber] = true;
-                    } else {
-                        putToRowBatch(array.child, mapVectorOffset, vectorOffset.getValue() + i, arrayType, mapArray[i]);
-                    }
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = mapArray.length;
-                vectorOffset.add(mapArray.length);
-            } else if (o instanceof List) {
-                List listArray = (List) o;
-                MutableInt listVectorOffset = new MutableInt(0);
-                int numElements = listArray.size();
-                for (int i = 0; i < numElements; i++) {
-                    if (listArray.get(i) == null) {
-                        array.child.isNull[rowNumber] = true;
-                    } else {
-                        putToRowBatch(array.child, listVectorOffset, vectorOffset.getValue() + i, arrayType, listArray.get(i));
-                    }
-                }
-                array.offsets[rowNumber] = vectorOffset.longValue();
-                array.lengths[rowNumber] = numElements;
-                vectorOffset.add(numElements);
-
-            } else {
-                throw new IllegalArgumentException("Object class " + o.getClass().getName() + " not supported as an ORC list/array");
-            }
-
-        } else if (Schema.Type.MAP.equals(fieldType)) {
-            MapColumnVector map = ((MapColumnVector) col);
-
-            // Avro maps require String keys
-            @SuppressWarnings("unchecked")
-            Map<String, ?> mapObj = (Map<String, ?>) o;
-            int effectiveRowNumber = vectorOffset.getValue();
-            for (Map.Entry<String, ?> entry : mapObj.entrySet()) {
-                putToRowBatch(map.keys, vectorOffset, effectiveRowNumber, Schema.create(Schema.Type.STRING), entry.getKey());
-                putToRowBatch(map.values, vectorOffset, effectiveRowNumber, fieldSchema.getValueType(), entry.getValue());
-                effectiveRowNumber++;
-            }
-            map.offsets[rowNumber] = vectorOffset.longValue();
-            map.lengths[rowNumber] = mapObj.size();
-            vectorOffset.add(mapObj.size());
-
+        if (o == null) {
+            col.isNull[rowNumber] = true;
         } else {
-            throw new IllegalArgumentException("Field type " + fieldType.getName() + " not recognized");
-        }
 
+            switch (fieldType) {
+                case INT:
+                    ((LongColumnVector) col).vector[rowNumber] = (int) o;
+                    break;
+                case LONG:
+                    ((LongColumnVector) col).vector[rowNumber] = (long) o;
+                    break;
+                case BOOLEAN:
+                    ((LongColumnVector) col).vector[rowNumber] = ((boolean) o) ? 1 : 0;
+                    break;
+                case BYTES:
+                    ByteBuffer byteBuffer = ((ByteBuffer) o);
+                    int size = byteBuffer.remaining();
+                    byte[] buf = new byte[size];
+                    byteBuffer.get(buf, 0, size);
+                    ((BytesColumnVector) col).setVal(rowNumber, buf);
+                    break;
+                case DOUBLE:
+                    ((DoubleColumnVector) col).vector[rowNumber] = (double) o;
+                    break;
+                case FLOAT:
+                    ((DoubleColumnVector) col).vector[rowNumber] = (float) o;
+                    break;
+                case STRING:
+                case ENUM:
+                    ((BytesColumnVector) col).setVal(rowNumber, o.toString().getBytes());
+                    break;
+                case UNION:
+                    // If the union only has one non-null type in it, it was flattened in the ORC schema
+                    if (col instanceof UnionColumnVector) {
+                        UnionColumnVector union = ((UnionColumnVector) col);
+                        Schema.Type avroType = OrcUtils.getAvroSchemaTypeOfObject(o);
+                        // Find the index in the union with the matching Avro type
+                        int unionIndex = -1;
+                        List<Schema> types = fieldSchema.getTypes();
+                        final int numFields = types.size();
+                        for (int i = 0; i < numFields && unionIndex == -1; i++) {
+                            if (avroType.equals(types.get(i).getType())) {
+                                unionIndex = i;
+                            }
+                        }
+                        if (unionIndex == -1) {
+                            throw new IllegalArgumentException("Object type " + avroType.getName() + " not found in union '" + fieldSchema.getName() + "'");
+                        }
+
+                        // Need nested vector offsets
+                        MutableInt unionVectorOffset = new MutableInt(0);
+                        putToRowBatch(union.fields[unionIndex], unionVectorOffset, rowNumber, fieldSchema.getTypes().get(unionIndex), o);
+                    } else {
+                        // Find and use the non-null type from the union
+                        List<Schema> types = fieldSchema.getTypes();
+                        Schema effectiveType = null;
+                        for (Schema type : types) {
+                            if (!Schema.Type.NULL.equals(type.getType())) {
+                                effectiveType = type;
+                                break;
+                            }
+                        }
+                        putToRowBatch(col, vectorOffset, rowNumber, effectiveType, o);
+                    }
+                    break;
+                case ARRAY:
+                    Schema arrayType = fieldSchema.getElementType();
+                    ListColumnVector array = ((ListColumnVector) col);
+                    if (o instanceof int[] || o instanceof long[]) {
+                        int length = (o instanceof int[]) ? ((int[]) o).length : ((long[]) o).length;
+                        for (int i = 0; i < length; i++) {
+                            ((LongColumnVector) array.child).vector[vectorOffset.getValue() + i] =
+                                    (o instanceof int[]) ? ((int[]) o)[i] : ((long[]) o)[i];
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = length;
+                        vectorOffset.add(length);
+                    } else if (o instanceof float[]) {
+                        float[] floatArray = (float[]) o;
+                        for (int i = 0; i < floatArray.length; i++) {
+                            ((DoubleColumnVector) array.child).vector[vectorOffset.getValue() + i] = floatArray[i];
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = floatArray.length;
+                        vectorOffset.add(floatArray.length);
+                    } else if (o instanceof double[]) {
+                        double[] doubleArray = (double[]) o;
+                        for (int i = 0; i < doubleArray.length; i++) {
+                            ((DoubleColumnVector) array.child).vector[vectorOffset.getValue() + i] = doubleArray[i];
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = doubleArray.length;
+                        vectorOffset.add(doubleArray.length);
+                    } else if (o instanceof String[]) {
+                        String[] stringArray = (String[]) o;
+                        BytesColumnVector byteCol = ((BytesColumnVector) array.child);
+                        for (int i = 0; i < stringArray.length; i++) {
+                            if (stringArray[i] == null) {
+                                byteCol.isNull[rowNumber] = true;
+                            } else {
+                                byteCol.setVal(vectorOffset.getValue() + i, stringArray[i].getBytes());
+                            }
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = stringArray.length;
+                        vectorOffset.add(stringArray.length);
+                    } else if (o instanceof Map[]) {
+                        Map[] mapArray = (Map[]) o;
+                        MutableInt mapVectorOffset = new MutableInt(0);
+                        for (int i = 0; i < mapArray.length; i++) {
+                            if (mapArray[i] == null) {
+                                array.child.isNull[rowNumber] = true;
+                            } else {
+                                putToRowBatch(array.child, mapVectorOffset, vectorOffset.getValue() + i, arrayType, mapArray[i]);
+                            }
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = mapArray.length;
+                        vectorOffset.add(mapArray.length);
+                    } else if (o instanceof List) {
+                        List listArray = (List) o;
+                        MutableInt listVectorOffset = new MutableInt(0);
+                        int numElements = listArray.size();
+                        for (int i = 0; i < numElements; i++) {
+                            if (listArray.get(i) == null) {
+                                array.child.isNull[rowNumber] = true;
+                            } else {
+                                putToRowBatch(array.child, listVectorOffset, vectorOffset.getValue() + i, arrayType, listArray.get(i));
+                            }
+                        }
+                        array.offsets[rowNumber] = vectorOffset.longValue();
+                        array.lengths[rowNumber] = numElements;
+                        vectorOffset.add(numElements);
+
+                    } else {
+                        throw new IllegalArgumentException("Object class " + o.getClass().getName() + " not supported as an ORC list/array");
+                    }
+                    break;
+                case MAP:
+                    MapColumnVector map = ((MapColumnVector) col);
+
+                    // Avro maps require String keys
+                    @SuppressWarnings("unchecked")
+                    Map<String, ?> mapObj = (Map<String, ?>) o;
+                    int effectiveRowNumber = vectorOffset.getValue();
+                    for (Map.Entry<String, ?> entry : mapObj.entrySet()) {
+                        putToRowBatch(map.keys, vectorOffset, effectiveRowNumber, Schema.create(Schema.Type.STRING), entry.getKey());
+                        putToRowBatch(map.values, vectorOffset, effectiveRowNumber, fieldSchema.getValueType(), entry.getValue());
+                        effectiveRowNumber++;
+                    }
+                    map.offsets[rowNumber] = vectorOffset.longValue();
+                    map.lengths[rowNumber] = mapObj.size();
+                    vectorOffset.add(mapObj.size());
+
+                    break;
+                default:
+                    throw new IllegalArgumentException("Field type " + fieldType.getName() + " not recognized");
+            }
+        }
     }
 
     public static String normalizeHiveTableName(String name) {
@@ -233,16 +213,15 @@ public class OrcUtils {
 
     public static String generateHiveDDL(Schema avroSchema, String tableName) {
         Schema.Type schemaType = avroSchema.getType();
-        StringBuffer sb = new StringBuffer("CREATE EXTERNAL TABLE IF NOT EXISTS ");
+        StringBuilder sb = new StringBuilder("CREATE EXTERNAL TABLE IF NOT EXISTS ");
         sb.append(tableName);
         sb.append(" (");
         if (Schema.Type.RECORD.equals(schemaType)) {
             List<String> hiveColumns = new ArrayList<>();
             List<Schema.Field> fields = avroSchema.getFields();
             if (fields != null) {
-                for (Schema.Field field : fields) {
-                    hiveColumns.add(field.name() + " " + getHiveTypeFromAvroType(field.schema()));
-                }
+                hiveColumns.addAll(
+                        fields.stream().map(field -> field.name() + " " + getHiveTypeFromAvroType(field.schema())).collect(Collectors.toList()));
             }
             sb.append(StringUtils.join(hiveColumns, ", "));
             sb.append(") STORED AS ORC");
@@ -263,66 +242,54 @@ public class OrcUtils {
     public static TypeDescription getOrcField(Schema fieldSchema) throws IllegalArgumentException {
         Schema.Type fieldType = fieldSchema.getType();
 
-        if (Schema.Type.INT.equals(fieldType)
-                || Schema.Type.LONG.equals(fieldType)
-                || Schema.Type.BOOLEAN.equals(fieldType)
-                || Schema.Type.BYTES.equals(fieldType)
-                || Schema.Type.DOUBLE.equals(fieldType)
-                || Schema.Type.FLOAT.equals(fieldType)
-                || Schema.Type.STRING.equals(fieldType)) {
+        switch (fieldType) {
+            case INT:
+            case LONG:
+            case BOOLEAN:
+            case BYTES:
+            case DOUBLE:
+            case FLOAT:
+            case STRING:
+                return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
 
-            return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
-
-        } else if (Schema.Type.UNION.equals(fieldType)) {
-            List<Schema> unionFieldSchemas = fieldSchema.getTypes();
-            TypeDescription unionSchema = TypeDescription.createUnion();
-            if (unionFieldSchemas != null) {
-                List<TypeDescription> orcFields = new ArrayList<>();
-                for (Schema unionFieldSchema : unionFieldSchemas) {
-
+            case UNION:
+                List<Schema> unionFieldSchemas = fieldSchema.getTypes();
+                TypeDescription unionSchema = TypeDescription.createUnion();
+                if (unionFieldSchemas != null) {
                     // Ignore null types in union
-                    if (!Schema.Type.NULL.equals(unionFieldSchema.getType())) {
-                        orcFields.add(getOrcField(unionFieldSchema));
+                    List<TypeDescription> orcFields = unionFieldSchemas.stream().filter(
+                            unionFieldSchema -> !Schema.Type.NULL.equals(unionFieldSchema.getType())).map(OrcUtils::getOrcField).collect(Collectors.toList());
+
+
+                    // Flatten the field if the union only has one non-null element
+                    if (orcFields.size() == 1) {
+                        return orcFields.get(0);
+                    } else {
+                        orcFields.forEach(unionSchema::addUnionChild);
                     }
                 }
-                // Flatten the field if the union only has one non-null element
-                if (orcFields.size() == 1) {
-                    return orcFields.get(0);
-                } else {
-                    for (TypeDescription unionType : orcFields) {
-                        unionSchema.addUnionChild(unionType);
-                    }
+                return unionSchema;
+
+            case ARRAY:
+                return TypeDescription.createList(getOrcField(fieldSchema.getElementType()));
+
+            case MAP:
+                return TypeDescription.createMap(TypeDescription.createString(), getOrcField(fieldSchema.getValueType()));
+
+            case RECORD:
+                TypeDescription record = TypeDescription.createStruct();
+                List<Schema.Field> avroFields = fieldSchema.getFields();
+                if (avroFields != null) {
+                    avroFields.forEach(avroField -> addOrcField(record, avroField));
                 }
-            }
+                return record;
 
-            return unionSchema;
+            case ENUM:
+                // An enum value is just a String for ORC/Hive
+                return TypeDescription.createString();
 
-        } else if (Schema.Type.ARRAY.equals(fieldType)) {
-            return TypeDescription.createList(getOrcField(fieldSchema.getElementType()));
-        } else if (Schema.Type.MAP.equals(fieldType)) {
-
-            return TypeDescription.createMap(
-                    TypeDescription.createString(),
-                    getOrcField(fieldSchema.getValueType()));
-
-
-        } else if (Schema.Type.RECORD.equals(fieldType)) {
-
-            TypeDescription record = TypeDescription.createStruct();
-            List<Schema.Field> avroFields = fieldSchema.getFields();
-            if (avroFields != null) {
-                for (Schema.Field avroField : avroFields) {
-                    addOrcField(record, avroField);
-                }
-            }
-            return record;
-
-        } else if (Schema.Type.ENUM.equals(fieldType)) {
-            // An enum value is just a String for ORC/Hive
-            return TypeDescription.createString();
-
-        } else {
-            throw new IllegalArgumentException("Did not recognize Avro type " + fieldType.getName());
+            default:
+                throw new IllegalArgumentException("Did not recognize Avro type " + fieldType.getName());
         }
 
     }
@@ -358,22 +325,24 @@ public class OrcUtils {
     public static TypeDescription getPrimitiveOrcTypeFromPrimitiveAvroType(Schema.Type avroType) throws IllegalArgumentException {
         if (avroType == null) {
             throw new IllegalArgumentException("Avro type is null");
-        } else if (Schema.Type.INT.equals(avroType)) {
-            return TypeDescription.createInt();
-        } else if (Schema.Type.LONG.equals(avroType)) {
-            return TypeDescription.createLong();
-        } else if (Schema.Type.BOOLEAN.equals(avroType)) {
-            return TypeDescription.createBoolean();
-        } else if (Schema.Type.BYTES.equals(avroType)) {
-            return TypeDescription.createBinary();
-        } else if (Schema.Type.DOUBLE.equals(avroType)) {
-            return TypeDescription.createDouble();
-        } else if (Schema.Type.FLOAT.equals(avroType)) {
-            return TypeDescription.createFloat();
-        } else if (Schema.Type.STRING.equals(avroType)) {
-            return TypeDescription.createString();
-        } else {
-            throw new IllegalArgumentException("Avro type " + avroType.getName() + " is not a primitive type");
+        }
+        switch (avroType) {
+            case INT:
+                return TypeDescription.createInt();
+            case LONG:
+                return TypeDescription.createLong();
+            case BOOLEAN:
+                return TypeDescription.createBoolean();
+            case BYTES:
+                return TypeDescription.createBinary();
+            case DOUBLE:
+                return TypeDescription.createDouble();
+            case FLOAT:
+                return TypeDescription.createFloat();
+            case STRING:
+                return TypeDescription.createString();
+            default:
+                throw new IllegalArgumentException("Avro type " + avroType.getName() + " is not a primitive type");
         }
     }
 
@@ -384,58 +353,54 @@ public class OrcUtils {
 
         Schema.Type avroType = avroSchema.getType();
 
-        if (Schema.Type.INT.equals(avroType)) {
-            return "INT";
-        } else if (Schema.Type.LONG.equals(avroType)) {
-            return "BIGINT";
-        } else if (Schema.Type.BOOLEAN.equals(avroType)) {
-            return "BOOLEAN";
-        } else if (Schema.Type.BYTES.equals(avroType)) {
-            return "BINARY";
-        } else if (Schema.Type.DOUBLE.equals(avroType)) {
-            return "DOUBLE";
-        } else if (Schema.Type.FLOAT.equals(avroType)) {
-            return "FLOAT";
-        } else if (Schema.Type.STRING.equals(avroType) || Schema.Type.ENUM.equals(avroType)) {
-            return "STRING";
-        } else if (Schema.Type.UNION.equals(avroType)) {
-            List<Schema> unionFieldSchemas = avroSchema.getTypes();
-            if (unionFieldSchemas != null) {
-                List<String> hiveFields = new ArrayList<>();
-                for (Schema unionFieldSchema : unionFieldSchemas) {
-                    Schema.Type unionFieldSchemaType = unionFieldSchema.getType();
-                    // Ignore null types in union
-                    if (!Schema.Type.NULL.equals(unionFieldSchemaType)) {
-                        hiveFields.add(getHiveTypeFromAvroType(unionFieldSchema));
+        switch (avroType) {
+            case INT:
+                return "INT";
+            case LONG:
+                return "BIGINT";
+            case BOOLEAN:
+                return "BOOLEAN";
+            case BYTES:
+                return "BINARY";
+            case DOUBLE:
+                return "DOUBLE";
+            case FLOAT:
+                return "FLOAT";
+            case STRING:
+            case ENUM:
+                return "STRING";
+            case UNION:
+                List<Schema> unionFieldSchemas = avroSchema.getTypes();
+                if (unionFieldSchemas != null) {
+                    List<String> hiveFields = new ArrayList<>();
+                    for (Schema unionFieldSchema : unionFieldSchemas) {
+                        Schema.Type unionFieldSchemaType = unionFieldSchema.getType();
+                        // Ignore null types in union
+                        if (!Schema.Type.NULL.equals(unionFieldSchemaType)) {
+                            hiveFields.add(getHiveTypeFromAvroType(unionFieldSchema));
+                        }
                     }
-                }
-                // Flatten the field if the union only has one non-null element
-                if (hiveFields.size() == 1) {
-                    return hiveFields.get(0);
-                } else {
-                    StringBuilder sb = new StringBuilder("UNIONTYPE<");
-                    sb.append(StringUtils.join(hiveFields, ", "));
-                    sb.append(">");
-                    return sb.toString();
-                }
-            }
+                    // Flatten the field if the union only has one non-null element
+                    return (hiveFields.size() == 1)
+                            ? hiveFields.get(0)
+                            : "UNIONTYPE<" + StringUtils.join(hiveFields, ", ") + ">";
 
-        } else if (Schema.Type.MAP.equals(avroType)) {
-            return "MAP<STRING, " + getHiveTypeFromAvroType(avroSchema.getValueType()) + ">";
-        } else if (Schema.Type.ARRAY.equals(avroType)) {
-            return "ARRAY<" + getHiveTypeFromAvroType(avroSchema.getElementType()) + ">";
-        } else if (Schema.Type.RECORD.equals(avroType)) {
-            List<Schema.Field> recordFields = avroSchema.getFields();
-            if (recordFields != null) {
-                List<String> hiveFields = new ArrayList<>();
-                for (Schema.Field recordField : recordFields) {
-                    hiveFields.add(recordField.name() + ":" + getHiveTypeFromAvroType(recordField.schema()));
                 }
-                StringBuilder sb = new StringBuilder("STRUCT<");
-                sb.append(StringUtils.join(hiveFields, ", "));
-                sb.append(">");
-                return sb.toString();
-            }
+                break;
+            case MAP:
+                return "MAP<STRING, " + getHiveTypeFromAvroType(avroSchema.getValueType()) + ">";
+            case ARRAY:
+                return "ARRAY<" + getHiveTypeFromAvroType(avroSchema.getElementType()) + ">";
+            case RECORD:
+                List<Schema.Field> recordFields = avroSchema.getFields();
+                if (recordFields != null) {
+                    List<String> hiveFields = recordFields.stream().map(
+                            recordField -> recordField.name() + ":" + getHiveTypeFromAvroType(recordField.schema())).collect(Collectors.toList());
+                    return "STRUCT<" + StringUtils.join(hiveFields, ", ") + ">";
+                }
+                break;
+            default:
+                break;
         }
 
         throw new IllegalArgumentException("Error converting Avro type " + avroType.getName() + " to Hive type");

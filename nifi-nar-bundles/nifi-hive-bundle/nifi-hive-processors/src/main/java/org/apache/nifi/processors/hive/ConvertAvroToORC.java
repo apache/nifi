@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -104,8 +105,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
             .displayName("Stripe Size")
             .description("The size of the memory buffer (in bytes) for writing stripes to an ORC file")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("100000")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("100 KB")
             .build();
 
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
@@ -114,8 +115,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
             .description("The maximum size of the memory buffers (in bytes) used for compressing and storing a stripe in memory. This is a hint to the ORC writer, "
                     + "which may choose to use a smaller buffer size based on stripe size and number of columns for efficient stripe writing and memory utilization.")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("10000")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("10 KB")
             .build();
 
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
@@ -134,6 +135,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
                     + "If this property is not provided, the full name (including namespace) of the incoming Avro record will be normalized "
                     + "and used as the table name.")
             .required(false)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -198,8 +200,9 @@ public class ConvertAvroToORC extends AbstractProcessor {
         }
 
         try {
-            final long stripeSize = context.getProperty(STRIPE_SIZE).asLong();
-            final int bufferSize = context.getProperty(BUFFER_SIZE).asInteger();
+            long startTime = System.currentTimeMillis();
+            final long stripeSize = context.getProperty(STRIPE_SIZE).asDataSize(DataUnit.B).longValue();
+            final int bufferSize = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
             final CompressionKind compressionType = CompressionKind.valueOf(context.getProperty(COMPRESSION_TYPE).getValue());
             final AtomicReference<Schema> hiveAvroSchema = new AtomicReference<>(null);
             final AtomicInteger totalRecordCount = new AtomicInteger(0);
@@ -226,59 +229,61 @@ public class ConvertAvroToORC extends AbstractProcessor {
                                 .version(OrcFile.Version.CURRENT);
 
                         OrcFlowFileWriter orcWriter = new OrcFlowFileWriter(out, new Path(fileName), options);
-
-                        VectorizedRowBatch batch = orcSchema.createRowBatch();
-                        int recordCount = 0;
-                        int recordsInBatch = 0;
-                        GenericRecord currRecord = null;
-                        while (reader.hasNext()) {
-                            currRecord = reader.next(currRecord);
-                            List<Schema.Field> fields = currRecord.getSchema().getFields();
-                            if (fields != null) {
-                                MutableInt[] vectorOffsets = new MutableInt[fields.size()];
-                                for (int i = 0; i < fields.size(); i++) {
-                                    vectorOffsets[i] = new MutableInt(0);
-                                    Schema.Field field = fields.get(i);
-                                    Schema fieldSchema = field.schema();
-                                    Object o = currRecord.get(field.name());
-                                    try {
-                                        OrcUtils.putToRowBatch(batch.cols[i], vectorOffsets[i], recordsInBatch, fieldSchema, o);
-                                    } catch (ArrayIndexOutOfBoundsException aioobe) {
-                                        getLogger().error("Index out of bounds at record {} for column {}, type {}, and object {}",
-                                                new Object[]{recordsInBatch, i, fieldSchema.getType().getName(), o.toString()},
-                                                aioobe);
-                                        throw new IOException(aioobe);
+                        try {
+                            VectorizedRowBatch batch = orcSchema.createRowBatch();
+                            int recordCount = 0;
+                            int recordsInBatch = 0;
+                            GenericRecord currRecord = null;
+                            while (reader.hasNext()) {
+                                currRecord = reader.next(currRecord);
+                                List<Schema.Field> fields = currRecord.getSchema().getFields();
+                                if (fields != null) {
+                                    MutableInt[] vectorOffsets = new MutableInt[fields.size()];
+                                    for (int i = 0; i < fields.size(); i++) {
+                                        vectorOffsets[i] = new MutableInt(0);
+                                        Schema.Field field = fields.get(i);
+                                        Schema fieldSchema = field.schema();
+                                        Object o = currRecord.get(field.name());
+                                        try {
+                                            OrcUtils.putToRowBatch(batch.cols[i], vectorOffsets[i], recordsInBatch, fieldSchema, o);
+                                        } catch (ArrayIndexOutOfBoundsException aioobe) {
+                                            getLogger().error("Index out of bounds at record {} for column {}, type {}, and object {}",
+                                                    new Object[]{recordsInBatch, i, fieldSchema.getType().getName(), o.toString()},
+                                                    aioobe);
+                                            throw new IOException(aioobe);
+                                        }
                                     }
                                 }
-                            }
-                            recordCount++;
-                            recordsInBatch++;
+                                recordCount++;
+                                recordsInBatch++;
 
-                            if (recordsInBatch == batch.getMaxSize()) {
-                                // add batch and start a new one
+                                if (recordsInBatch == batch.getMaxSize()) {
+                                    // add batch and start a new one
+                                    batch.size = recordsInBatch;
+                                    orcWriter.addRowBatch(batch);
+                                    batch = orcSchema.createRowBatch();
+                                    recordsInBatch = 0;
+                                }
+                            }
+
+                            // If there are records in the batch, add the batch
+                            if (recordsInBatch > 0) {
                                 batch.size = recordsInBatch;
                                 orcWriter.addRowBatch(batch);
-                                batch = orcSchema.createRowBatch();
-                                recordsInBatch = 0;
                             }
-                        }
 
-                        // If there are records in the batch, add the batch
-                        if (recordsInBatch > 0) {
-                            batch.size = recordsInBatch;
-                            orcWriter.addRowBatch(batch);
+                            hiveAvroSchema.set(avroSchema);
+                            totalRecordCount.set(recordCount);
+                        } finally {
+                            // finished writing this record, close the writer (which will flush to the flow file)
+                            orcWriter.close();
                         }
-
-                        // finished writing this record, close the writer (which will flush to the flow file)
-                        orcWriter.close();
-                        hiveAvroSchema.set(avroSchema);
-                        totalRecordCount.set(recordCount);
                     }
                 }
             });
 
             final String hiveTableName = context.getProperty(HIVE_TABLE_NAME).isSet()
-                    ? context.getProperty(HIVE_TABLE_NAME).getValue()
+                    ? context.getProperty(HIVE_TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue()
                     : OrcUtils.normalizeHiveTableName(hiveAvroSchema.get().getFullName());
             String hiveDDL = OrcUtils.generateHiveDDL(hiveAvroSchema.get(), hiveTableName);
             // Add attributes and transfer to success
@@ -295,6 +300,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), ORC_MIME_TYPE);
             flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename.toString());
             session.transfer(flowFile, REL_SUCCESS);
+            session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
         } catch (final ProcessException pe) {
             getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, pe});
             session.transfer(flowFile, REL_FAILURE);
