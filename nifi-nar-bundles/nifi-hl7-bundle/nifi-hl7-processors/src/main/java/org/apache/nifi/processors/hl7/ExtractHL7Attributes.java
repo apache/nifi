@@ -101,7 +101,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
 
     public static final PropertyDescriptor PARSE_SEGMENT_FIELDS = new PropertyDescriptor.Builder()
             .name("parse-segment-fields")
-            .displayName("Parse Segment Names")
+            .displayName("Parse Segment Fields")
             .description("Whether or not to parse HL7 segment fields into attributes")
             .required(true)
             .allowableValues("true", "false")
