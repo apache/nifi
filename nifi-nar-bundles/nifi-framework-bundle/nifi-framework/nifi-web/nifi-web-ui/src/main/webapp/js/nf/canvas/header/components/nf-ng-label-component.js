@@ -74,6 +74,11 @@ nf.ng.LabelComponent = function (serviceProvider) {
          */
         createLabel: function(pt) {
             var labelEntity = {
+                'revision': nf.Client.getRevision({
+                    'revision': {
+                        'version': 0
+                    }
+                }),
                 'component': {
                     'width': nf.Label.config.width,
                     'height': nf.Label.config.height,

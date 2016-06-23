@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-
-import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
@@ -35,6 +28,13 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
+
+import java.io.File;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class MonitorMemoryTest {
 

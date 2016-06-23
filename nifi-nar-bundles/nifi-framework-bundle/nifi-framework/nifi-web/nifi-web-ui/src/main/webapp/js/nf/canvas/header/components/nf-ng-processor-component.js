@@ -202,6 +202,11 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
      */
     var createProcessor = function (name, processorType, pt) {
         var processorEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'type': processorType,
                 'name': name,

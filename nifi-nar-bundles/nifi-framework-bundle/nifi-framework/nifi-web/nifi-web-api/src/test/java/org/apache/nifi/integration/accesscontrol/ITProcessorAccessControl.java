@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Access control test for processors.
  */
-public class ProcessorAccessControlTest {
+public class ITProcessorAccessControl {
 
     private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-processors.xml";
 
@@ -472,7 +472,7 @@ public class ProcessorAccessControlTest {
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request

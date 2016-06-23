@@ -74,6 +74,11 @@ nf.ng.FunnelComponent = function (serviceProvider) {
          */
         createFunnel: function(pt) {
             var outputPortEntity = {
+                'revision': nf.Client.getRevision({
+                    'revision': {
+                        'version': 0
+                    }
+                }),
                 'component': {
                     'position': {
                         'x': pt.x,

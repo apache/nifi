@@ -28,6 +28,11 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
     var createRemoteProcessGroup = function (pt) {
 
         var remoteProcessGroupEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'targetUri': $('#new-remote-process-group-uri').val(),
                 'position': {

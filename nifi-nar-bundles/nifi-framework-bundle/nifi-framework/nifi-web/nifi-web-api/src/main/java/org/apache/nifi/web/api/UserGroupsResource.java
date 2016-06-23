@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -131,6 +130,10 @@ public class UserGroupsResource extends ApplicationResource {
 
         if (userGroupEntity == null || userGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("User group details must be specified.");
+        }
+
+        if (userGroupEntity.getRevision() == null || (userGroupEntity.getRevision().getVersion() == null || userGroupEntity.getRevision().getVersion() != 0)) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
         }
 
         if (userGroupEntity.getComponent().getId() != null) {
@@ -294,17 +297,10 @@ public class UserGroupsResource extends ApplicationResource {
                 null,
                 () -> {
                     // update the user group
-                    final UpdateResult<UserGroupEntity> updateResult = serviceFacade.updateUserGroup(revision, userGroupDTO);
-
-                    // get the results
-                    final UserGroupEntity entity = updateResult.getResult();
+                    final UserGroupEntity entity = serviceFacade.updateUserGroup(revision, userGroupDTO);
                     populateRemainingUserGroupEntityContent(entity);
 
-                    if (updateResult.isNew()) {
-                        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                    } else {
-                        return clusterContext(generateOkResponse(entity)).build();
-                    }
+                    return clusterContext(generateOkResponse(entity)).build();
                 }
         );
     }

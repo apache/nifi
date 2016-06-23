@@ -34,7 +34,7 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            cluster: '../nifi-api/cluster',
+            cluster: '../nifi-api/controller/cluster',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             authorities: '../nifi-api/flow/authorities'

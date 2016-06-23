@@ -428,8 +428,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 try {
 
                     ProcessorDTO processorDTO = buildProcessorDto(id,annotationData,properties);
-                    final UpdateResult<ProcessorEntity> entity = serviceFacade.updateProcessor(revision,processorDTO);
-                    processor = entity.getResult().getComponent();
+                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision,processorDTO);
+                    processor = entity.getComponent();
 
                 } finally {
                     // ensure the revision is canceled.. if the operation succeed, this is a noop
@@ -582,8 +582,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 serviceFacade.claimRevision(revision, user);
                 try {
                     // perform the update
-                    final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                    controllerService = updateResult.getResult().getComponent();
+                    final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                    controllerService = entity.getComponent();
                 } finally {
                     // ensure the revision is canceled.. if the operation succeed, this is a noop
                     serviceFacade.cancelRevision(revision);
@@ -749,8 +749,8 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // claim the revision
                 serviceFacade.claimRevision(revision, user);
                 try {
-                    final UpdateResult<ReportingTaskEntity> updateResult = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                    reportingTask = updateResult.getResult().getComponent();
+                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                    reportingTask = entity.getComponent();
                 } finally {
                     // ensure the revision is canceled.. if the operation succeed, this is a noop
                     serviceFacade.cancelRevision(revision);

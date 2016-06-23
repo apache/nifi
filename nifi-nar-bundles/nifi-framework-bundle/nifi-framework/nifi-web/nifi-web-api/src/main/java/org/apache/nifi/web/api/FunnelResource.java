@@ -28,7 +28,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -48,7 +47,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.util.Set;
 
 /**
@@ -231,23 +229,16 @@ public class FunnelResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable funnel = lookup.getFunnel(id);
-                funnel.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getFunnel(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             null,
             () -> {
                 // update the funnel
-                final UpdateResult<FunnelEntity> updateResult = serviceFacade.updateFunnel(revision, requestFunnelDTO);
-
-                // get the results
-                final FunnelEntity entity = updateResult.getResult();
+                final FunnelEntity entity = serviceFacade.updateFunnel(revision, requestFunnelDTO);
                 populateRemainingFunnelEntityContent(entity);
 
-                if (updateResult.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             }
         );
     }

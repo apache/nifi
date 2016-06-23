@@ -19,7 +19,12 @@ package org.apache.nifi.web.controller;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.admin.service.KeyService;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -111,6 +116,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
@@ -130,6 +136,8 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
+
 public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
@@ -137,13 +145,14 @@ public class ControllerFacade implements Authorizable {
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
-    private KeyService keyService;
     private ClusterCoordinator clusterCoordinator;
     private BulletinRepository bulletinRepository;
+    private Authorizer authorizer;
 
     // properties
     private NiFiProperties properties;
     private DtoFactory dtoFactory;
+
 
     /**
      * Creates an archive of the current flow.
@@ -264,6 +273,14 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getProcessorStatusHistory(final String processorId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessorNode processor = root.findProcessor(processorId);
+
+        // ensure the processor was found
+        if (processor == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate processor with id '%s'.", processorId));
+        }
+
         return flowController.getProcessorStatusHistory(processorId);
     }
 
@@ -274,6 +291,14 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getConnectionStatusHistory(final String connectionId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final Connection connection = root.findConnection(connectionId);
+
+        // ensure the connection was found
+        if (connection == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate connection with id '%s'.", connectionId));
+        }
+
         return flowController.getConnectionStatusHistory(connectionId);
     }
 
@@ -284,6 +309,15 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getProcessGroupStatusHistory(final String groupId) {
+        final String searchId = groupId.equals(ROOT_GROUP_ID_ALIAS) ? flowController.getRootGroupId() : groupId;
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup group = root.findProcessGroup(searchId);
+
+        // ensure the processor was found
+        if (group == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate process group with id '%s'.", groupId));
+        }
+
         return flowController.getProcessGroupStatusHistory(groupId);
     }
 
@@ -294,6 +328,14 @@ public class ControllerFacade implements Authorizable {
      * @return status history
      */
     public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String remoteProcessGroupId) {
+        final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
+        final RemoteProcessGroup remoteProcessGroup = root.findRemoteProcessGroup(remoteProcessGroupId);
+
+        // ensure the output port was found
+        if (remoteProcessGroup == null) {
+            throw new ResourceNotFoundException(String.format("Unable to locate remote process group with id '%s'.", remoteProcessGroupId));
+        }
+
         return flowController.getRemoteProcessGroupStatusHistory(remoteProcessGroupId);
     }
 
@@ -1085,9 +1127,6 @@ public class ControllerFacade implements Authorizable {
     public DownloadableContent getContent(final Long eventId, final String uri, final ContentDirection contentDirection) {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
-            if (user == null) {
-                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-            }
 
             // get the event in order to get the filename
             final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId);
@@ -1105,12 +1144,56 @@ public class ControllerFacade implements Authorizable {
 
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
+            dnChain.forEach(identity -> {
+                final String rootGroupId = flowController.getRootGroupId();
+                final ProcessGroup rootGroup = flowController.getGroup(rootGroupId);
 
-            // TODO - ensure the users in this chain are allowed to download this content
-//            final DownloadAuthorization downloadAuthorization = keyService.authorizeDownload(dnChain, attributes);
-//            if (!downloadAuthorization.isApproved()) {
-//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-//            }
+                final Resource eventResource;
+                if (rootGroupId.equals(event.getComponentId())) {
+                    eventResource = ResourceFactory.getComponentProvenanceResource(ResourceType.ProcessGroup, rootGroup.getIdentifier(), rootGroup.getName());
+                } else {
+                    final Connectable connectable = rootGroup.findConnectable(event.getComponentId());
+
+                    if (connectable == null) {
+                        throw new AccessDeniedException("The component that generated this event is no longer part of the data flow. Unable to determine access policy.");
+                    }
+
+                    switch (connectable.getConnectableType()) {
+                        case PROCESSOR:
+                            eventResource = ResourceFactory.getComponentProvenanceResource(ResourceType.Processor, connectable.getIdentifier(), connectable.getName());
+                            break;
+                        case INPUT_PORT:
+                        case REMOTE_INPUT_PORT:
+                            eventResource = ResourceFactory.getComponentProvenanceResource(ResourceType.InputPort, connectable.getIdentifier(), connectable.getName());
+                            break;
+                        case OUTPUT_PORT:
+                        case REMOTE_OUTPUT_PORT:
+                            eventResource = ResourceFactory.getComponentProvenanceResource(ResourceType.OutputPort, connectable.getIdentifier(), connectable.getName());
+                            break;
+                        case FUNNEL:
+                            eventResource = ResourceFactory.getComponentProvenanceResource(ResourceType.Funnel, connectable.getIdentifier(), connectable.getName());
+                            break;
+                        default:
+                            throw new WebApplicationException(Response.serverError().entity("An unexpected type of component generated this event.").build());
+                    }
+                }
+
+                // build the request
+                final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                        .identity(identity)
+                        .anonymous(user.isAnonymous()) // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
+                        .accessAttempt(false)
+                        .action(RequestAction.READ)
+                        .resource(eventResource)
+                        .eventAttributes(attributes)
+                        .build();
+
+                // perform the authorization
+                final AuthorizationResult result = authorizer.authorize(request);
+                if (!Result.Approved.equals(result.getResult())) {
+                    throw new AccessDeniedException(result.getExplanation());
+                }
+            });
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());
@@ -1687,8 +1770,8 @@ public class ControllerFacade implements Authorizable {
         this.properties = properties;
     }
 
-    public void setKeyService(KeyService keyService) {
-        this.keyService = keyService;
+    public void setAuthorizer(Authorizer authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setFlowService(FlowService flowService) {

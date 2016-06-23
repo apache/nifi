@@ -17,7 +17,6 @@
 package org.apache.nifi.web;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 /**
  * A model object representing a revision. Equality is defined as matching
@@ -46,15 +45,17 @@ public class Revision implements Serializable {
      */
     private final String componentId;
 
-    @Deprecated
-    public Revision(Long revision, String clientId) {
-        this(revision, clientId, "root");   // TODO: remove this constructor. This is to bridge the gap right now
-    }
+    public Revision(Long version, String clientId, String componentId) {
+        if (version == null) {
+            throw new IllegalArgumentException("The revision must be specified.");
+        }
+        if (componentId == null) {
+            throw new IllegalArgumentException("The componentId must be specified.");
+        }
 
-    public Revision(Long revision, String clientId, String componentId) {
-        this.version = revision;
+        this.version = version;
         this.clientId = clientId;
-        this.componentId = Objects.requireNonNull(componentId);
+        this.componentId = componentId;
     }
 
     public String getClientId() {
@@ -67,6 +68,16 @@ public class Revision implements Serializable {
 
     public String getComponentId() {
         return componentId;
+    }
+
+    /**
+     * Returns a new Revision that has the same Client ID and Component ID as this one
+     * but with a larger version
+     *
+     * @return the updated Revision
+     */
+    public Revision incrementRevision(final String clientId) {
+        return new Revision(version + 1, clientId, componentId);
     }
 
     @Override

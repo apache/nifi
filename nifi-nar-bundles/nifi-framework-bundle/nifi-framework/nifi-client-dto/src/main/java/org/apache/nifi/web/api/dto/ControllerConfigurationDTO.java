@@ -17,25 +17,17 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.util.Date;
 
 /**
  * Details for the controller configuration.
  */
-@XmlType(name = "config")
+@XmlType(name = "controllerConfiguration")
 public class ControllerConfigurationDTO {
 
     private Integer maxTimerDrivenThreadCount;
     private Integer maxEventDrivenThreadCount;
-
-    private Long autoRefreshIntervalSeconds;
-
-    private Date currentTime;
-    private Integer timeOffset;
 
     /**
      * @return maximum number of timer driven threads this NiFi has available
@@ -63,49 +55,5 @@ public class ControllerConfigurationDTO {
 
     public void setMaxEventDrivenThreadCount(Integer maxEventDrivenThreadCount) {
         this.maxEventDrivenThreadCount = maxEventDrivenThreadCount;
-    }
-
-    /**
-     * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
-     */
-    @ApiModelProperty(
-            value = "The interval in seconds between the automatic NiFi refresh requests.",
-            readOnly = true
-    )
-    public Long getAutoRefreshIntervalSeconds() {
-        return autoRefreshIntervalSeconds;
-    }
-
-    public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
-        this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
-    }
-
-    /**
-     * @return current time on the server
-     */
-    @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The current time on the system."
-    )
-    public Date getCurrentTime() {
-        return currentTime;
-    }
-
-    public void setCurrentTime(Date currentTime) {
-        this.currentTime = currentTime;
-    }
-
-    /**
-     * @return time offset of the server
-     */
-    @ApiModelProperty(
-            value = "The time offset of the system."
-    )
-    public Integer getTimeOffset() {
-        return timeOffset;
-    }
-
-    public void setTimeOffset(Integer timeOffset) {
-        this.timeOffset = timeOffset;
     }
 }

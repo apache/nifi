@@ -27,9 +27,9 @@ import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 
 /**
- * Contains extra rules to convenience when in component based access control tests.
+ *
  */
-public class NiFiTestAuthorizer implements Authorizer {
+public class NiFiFlowTestAuthorizer implements Authorizer {
 
     public static final String NO_POLICY_COMPONENT_NAME = "No policies";
 
@@ -45,7 +45,7 @@ public class NiFiTestAuthorizer implements Authorizer {
     /**
      * Creates a new FileAuthorizationProvider.
      */
-    public NiFiTestAuthorizer() {
+    public NiFiFlowTestAuthorizer() {
     }
 
     @Override
@@ -60,21 +60,6 @@ public class NiFiTestAuthorizer implements Authorizer {
     public AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
         // allow proxy
         if (ResourceFactory.getProxyResource().getIdentifier().equals(request.getResource().getIdentifier()) && PROXY_DN.equals(request.getIdentity())) {
-            return AuthorizationResult.approved();
-        }
-
-        // allow flow for all users unless explicitly disable
-        if (ResourceFactory.getFlowResource().getIdentifier().equals(request.getResource().getIdentifier())) {
-            return AuthorizationResult.approved();
-        }
-
-        // no policy to test inheritance
-        if (NO_POLICY_COMPONENT_NAME.equals(request.getResource().getName())) {
-            return AuthorizationResult.resourceNotFound();
-        }
-
-        // allow the token user
-        if (TOKEN_USER.equals(request.getIdentity())) {
             return AuthorizationResult.approved();
         }
 

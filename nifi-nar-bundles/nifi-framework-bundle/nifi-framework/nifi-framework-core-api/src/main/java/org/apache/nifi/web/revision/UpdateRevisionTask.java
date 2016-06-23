@@ -17,12 +17,6 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import org.apache.nifi.web.Revision;
-
 /**
  * <p>
  * A task that is responsible for updating some component(s).
@@ -35,30 +29,4 @@ public interface UpdateRevisionTask<T> {
      * @return the updated revisions for the components
      */
     RevisionUpdate<T> update();
-
-    /**
-     * Returns a new Revision that has the same Client ID and Component ID as the given one
-     * but with a larger version
-     *
-     * @param revision the revision to update
-     * @return the updated Revision
-     */
-    default Revision incrementRevision(Revision revision) {
-        return new Revision(revision.getVersion() + 1, revision.getClientId(), revision.getComponentId());
-    }
-
-    /**
-     * Returns a Collection of Revisions that contains an updated version of all Revisions passed in
-     *
-     * @param revisions the Revisions to update
-     * @return a Collection of all Revisions that are passed in
-     */
-    default Collection<Revision> incrementRevisions(Revision... revisions) {
-        final List<Revision> updated = new ArrayList<>(revisions.length);
-        for (final Revision revision : revisions) {
-            updated.add(incrementRevision(revision));
-        }
-
-        return updated;
-    }
 }

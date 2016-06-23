@@ -67,6 +67,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private AccessPolicyDAO accessPolicyDAO;
 
     @Override
+    public Authorizable getController() {
+        return controllerFacade;
+    }
+
+    @Override
     public Authorizable getProcessor(final String id) {
         return processorDAO.getProcessor(id);
     }

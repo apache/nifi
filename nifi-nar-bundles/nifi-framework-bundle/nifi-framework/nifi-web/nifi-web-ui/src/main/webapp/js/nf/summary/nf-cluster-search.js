@@ -21,7 +21,7 @@ nf.ClusterSearch = (function () {
     var config = {
         search: 'Search nodes',
         urls: {
-            clusterSearch: '../nifi-api/cluster/search-results'
+            clusterSearch: '../nifi-api/controller/cluster/search-results'
         }
     };
 

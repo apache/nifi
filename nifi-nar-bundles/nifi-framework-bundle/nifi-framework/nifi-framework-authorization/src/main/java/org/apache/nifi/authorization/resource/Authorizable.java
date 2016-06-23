@@ -65,18 +65,30 @@ public interface Authorizable {
      * @return is authorized
      */
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        return checkAuthorization(authorizer, action, NiFiUserUtils.getNiFiUser());
+    }
 
+    /**
+     * Returns the result of an authorization request for the specified user for the specified action on the specified
+     * resource. This method does not imply the user is directly attempting to access the specified resource. If the user is
+     * attempting a direct access use Authorizable.authorize().
+     *
+     * @param authorizer authorizer
+     * @param action action
+     * @param user user
+     * @return is authorized
+     */
+    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user) {
         // TODO - include user details context
 
         // build the request
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
-            .identity(user.getIdentity())
-            .anonymous(user.isAnonymous())
-            .accessAttempt(false)
-            .action(action)
-            .resource(getResource())
-            .build();
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(false)
+                .action(action)
+                .resource(getResource())
+                .build();
 
         // perform the authorization
         final AuthorizationResult result = authorizer.authorize(request);

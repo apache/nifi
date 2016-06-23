@@ -29,7 +29,7 @@ nf.SummaryTable = (function () {
             api: '../nifi-api',
             status: '../nifi-api/flow/process-groups/root/status',
             systemDiagnostics: '../nifi-api/system-diagnostics',
-            controllerConfig: '../nifi-api/controller/config'
+            flowConfig: '../nifi-api/flow/config'
         }
     };
 
@@ -2715,10 +2715,10 @@ nf.SummaryTable = (function () {
                 // get the controller config to get the server offset
                 var configRequest = $.ajax({
                     type: 'GET',
-                    url: config.urls.controllerConfig,
+                    url: config.urls.flowConfig,
                     dataType: 'json'
                 }).done(function (configResponse) {
-                    var configDetails = configResponse.config;
+                    var configDetails = configResponse.flowConfiguration;
 
                     // initialize the chart
                     nf.StatusHistory.init(configDetails.timeOffset);

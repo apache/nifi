@@ -185,10 +185,15 @@ public final class DtoFactory {
     private EntityFactory entityFactory;
     private Authorizer authorizer;
 
-    public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade, final String autoRefreshInterval) {
+    public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
         dto.setMaxTimerDrivenThreadCount(controllerFacade.getMaxTimerDrivenThreadCount());
         dto.setMaxEventDrivenThreadCount(controllerFacade.getMaxEventDrivenThreadCount());
+        return dto;
+    }
+
+    public FlowConfigurationDTO createFlowConfigurationDto(final String autoRefreshInterval) {
+        final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
         final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);

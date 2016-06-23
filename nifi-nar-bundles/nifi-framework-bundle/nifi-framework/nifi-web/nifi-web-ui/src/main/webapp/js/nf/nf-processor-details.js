@@ -187,7 +187,7 @@ nf.ProcessorDetails = (function () {
             // get the processor history
             var getProcessorHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/processors/' + encodeURIComponent(processorId),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
                 var processorHistory = response.componentHistory;

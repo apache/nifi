@@ -30,8 +30,6 @@ import java.util.Map;
  */
 public class NiFiTestUser {
 
-    public static final long REVISION = 0L;
-
     private final Client client;
     private final String proxyDn;
 
@@ -100,7 +98,7 @@ public class NiFiTestUser {
         }
 
         // get the builder
-        WebResource.Builder builder = addProxiedEntities(resource.accept(MediaType.APPLICATION_JSON));
+        WebResource.Builder builder = addProxiedEntities(resource.getRequestBuilder());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -147,7 +145,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testPostWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON));
+        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_JSON));
 
         // include the request entity
         if (entity != null) {
@@ -235,7 +233,7 @@ public class NiFiTestUser {
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED));
+        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_FORM_URLENCODED));
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -276,7 +274,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testPutWithHeaders(String url, Object entity, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON));
+        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_JSON));
 
         // include the request entity
         if (entity != null) {
@@ -323,7 +321,7 @@ public class NiFiTestUser {
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED));
+        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).type(MediaType.APPLICATION_FORM_URLENCODED));
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -362,7 +360,7 @@ public class NiFiTestUser {
      */
     public ClientResponse testDeleteWithHeaders(String url, Map<String, String> headers) throws Exception {
         // get the resource
-        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).accept(MediaType.APPLICATION_JSON));
+        WebResource.Builder resourceBuilder = addProxiedEntities(client.resource(url).getRequestBuilder());
 
         // append any headers
         if (headers != null && !headers.isEmpty()) {
@@ -395,7 +393,7 @@ public class NiFiTestUser {
         }
 
         // perform the request
-        return addProxiedEntities(resource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED)).delete(ClientResponse.class);
+        return addProxiedEntities(resource.type(MediaType.APPLICATION_FORM_URLENCODED)).delete(ClientResponse.class);
     }
 
     /**

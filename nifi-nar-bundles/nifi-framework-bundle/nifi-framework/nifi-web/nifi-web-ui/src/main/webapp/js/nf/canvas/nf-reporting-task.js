@@ -392,7 +392,7 @@ nf.ReportingTask = (function () {
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTaskEntity.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
 
@@ -595,7 +595,7 @@ nf.ReportingTask = (function () {
             // get the reporting task history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/reporting-tasks/' + encodeURIComponent(reportingTaskEntity.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(reportingTaskEntity.id),
                 dataType: 'json'
             });
 

@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletRequest;
  */
 public class HttpServletConfigurationRequestContext extends HttpServletRequestContext implements NiFiWebConfigurationRequestContext {
 
+    private static final String ID_PARAM = "id";
     private static final String CLIENT_ID_PARAM = "clientId";
     private static final String REVISION_PARAM = "revision";
 
@@ -36,7 +37,7 @@ public class HttpServletConfigurationRequestContext extends HttpServletRequestCo
 
     /**
      * @return the revision retrieved from the request parameters with keys
-     * equal to "clientId" and "revision".
+     * equal to "clientId", "revision", and "id".
      */
     @Override
     public Revision getRevision() {
@@ -49,8 +50,9 @@ public class HttpServletConfigurationRequestContext extends HttpServletRequestCo
         }
 
         final String clientId = request.getParameter(CLIENT_ID_PARAM);
+        final String componentId = request.getParameter(ID_PARAM);
 
-        return new Revision(revision, clientId);
+        return new Revision(revision, clientId, componentId);
     }
 
 }

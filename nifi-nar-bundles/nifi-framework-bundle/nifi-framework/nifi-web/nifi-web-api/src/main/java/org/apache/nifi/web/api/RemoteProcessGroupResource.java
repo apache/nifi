@@ -28,7 +28,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -492,8 +491,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable remoteProcessGroup = lookup.getRemoteProcessGroup(id);
-                remoteProcessGroup.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getRemoteProcessGroup(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateRemoteProcessGroup(requestRemoteProcessGroup),
             () -> {
@@ -530,16 +529,10 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                 }
 
                 // update the specified remote process group
-                final UpdateResult<RemoteProcessGroupEntity> updateResult = serviceFacade.updateRemoteProcessGroup(revision, requestRemoteProcessGroup);
-
-                final RemoteProcessGroupEntity entity = updateResult.getResult();
+                final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, requestRemoteProcessGroup);
                 populateRemainingRemoteProcessGroupEntityContent(entity);
 
-                if (updateResult.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             }
         );
     }

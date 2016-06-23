@@ -218,6 +218,11 @@ nf.ControllerServices = (function () {
     var addControllerService = function (controllerServicesUri, serviceTable, controllerServiceType) {
         // build the controller service entity
         var controllerServiceEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'type': controllerServiceType
             }

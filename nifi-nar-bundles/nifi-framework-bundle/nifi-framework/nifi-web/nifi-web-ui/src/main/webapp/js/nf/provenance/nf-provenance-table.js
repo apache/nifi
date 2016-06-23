@@ -35,7 +35,7 @@ nf.ProvenanceTable = (function () {
             searchOptions: '../nifi-api/provenance/search-options',
             replays: '../nifi-api/provenance/replays',
             provenance: '../nifi-api/provenance',
-            cluster: '../nifi-api/cluster',
+            cluster: '../nifi-api/controller/cluster',
             d3Script: 'js/d3/d3.min.js',
             lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
             uiExtensionToken: '../nifi-api/access/ui-extension-token',

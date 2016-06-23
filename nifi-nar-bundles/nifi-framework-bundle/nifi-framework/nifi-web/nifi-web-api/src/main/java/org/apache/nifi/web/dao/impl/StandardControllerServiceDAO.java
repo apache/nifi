@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
+
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
     private ControllerServiceProvider serviceProvider;
@@ -79,7 +81,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 flowController.addRootControllerService(controllerService);
             } else {
                 final ProcessGroup group;
-                if (groupId.equals(FlowController.ROOT_GROUP_ID_ALIAS)) {
+                if (groupId.equals(ROOT_GROUP_ID_ALIAS)) {
                     group = flowController.getGroup(flowController.getRootGroupId());
                 } else {
                     group = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(groupId);
@@ -113,7 +115,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         if (groupId == null) {
             return flowController.getRootControllerServices();
         } else {
-            final ProcessGroup procGroup = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(groupId);
+            final String searchId = groupId.equals(ROOT_GROUP_ID_ALIAS) ? flowController.getRootGroupId() : groupId;
+            final ProcessGroup procGroup = flowController.getGroup(flowController.getRootGroupId()).findProcessGroup(searchId);
             if (procGroup == null) {
                 throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
             }

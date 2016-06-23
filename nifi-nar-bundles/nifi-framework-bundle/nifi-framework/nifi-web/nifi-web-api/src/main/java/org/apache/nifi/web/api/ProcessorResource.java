@@ -31,7 +31,6 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -58,7 +57,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -383,8 +381,6 @@ public class ProcessorResource extends ApplicationResource {
                 processor.authorize(authorizer, RequestAction.WRITE);
             });
         }
-
-        // handle expects request (usually from the cluster manager)
         if (isValidationPhase) {
             serviceFacade.verifyCanClearProcessorState(id);
             return generateContinueResponse().build();
@@ -467,21 +463,16 @@ public class ProcessorResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable processor = lookup.getProcessor(id);
-                processor.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getProcessor(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
             () -> {
                 // update the processor
-                final UpdateResult<ProcessorEntity> result = serviceFacade.updateProcessor(revision, requestProcessorDTO);
-                final ProcessorEntity entity = result.getResult();
+                final ProcessorEntity entity = serviceFacade.updateProcessor(revision, requestProcessorDTO);
                 populateRemainingProcessorEntityContent(entity);
 
-                if (result.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             }
         );
     }

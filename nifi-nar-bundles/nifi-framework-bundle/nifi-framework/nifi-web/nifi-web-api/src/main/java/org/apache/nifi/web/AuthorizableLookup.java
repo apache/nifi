@@ -25,6 +25,13 @@ import org.apache.nifi.controller.Snippet;
 public interface AuthorizableLookup {
 
     /**
+     * Get the authorizable Controller.
+     *
+     * @return authorizable
+     */
+    Authorizable getController();
+
+    /**
      * Get the authorizable Processor.
      *
      * @param id processor id

@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
+import java.util.Date;
 import java.util.List;
 
 public final class EntityFactory {
@@ -49,12 +50,12 @@ public final class EntityFactory {
     public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
         entity.setRevision(revision);
+        entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
-            // TODO - remove this once contents of ControllerConfigurationEntity is updated
-//            if (accessPolicy != null && accessPolicy.getCanRead()) {
-                entity.setConfig(dto);
-//            }
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setControllerConfiguration(dto);
+            }
         }
         return entity;
     }

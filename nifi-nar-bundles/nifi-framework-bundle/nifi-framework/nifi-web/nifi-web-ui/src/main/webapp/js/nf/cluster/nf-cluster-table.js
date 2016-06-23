@@ -29,7 +29,7 @@ nf.ClusterTable = (function () {
         },
         urls: {
             cluster: '../nifi-api/cluster',
-            nodes: '../nifi-api/cluster/nodes'
+            nodes: '../nifi-api/controller/cluster/nodes'
         }
     };
 

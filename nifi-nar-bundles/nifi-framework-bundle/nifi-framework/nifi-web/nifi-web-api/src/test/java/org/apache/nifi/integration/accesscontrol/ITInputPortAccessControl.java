@@ -46,7 +46,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Access control test for input ports.
  */
-public class InputPortAccessControlTest {
+public class ITInputPortAccessControl {
 
     private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-input-ports.xml";
 
@@ -388,7 +388,7 @@ public class InputPortAccessControlTest {
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request
