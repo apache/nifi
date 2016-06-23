@@ -21,6 +21,8 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
@@ -143,6 +145,7 @@ public class FileAuthorizerTest {
     private File flow;
     private File flowNoPorts;
     private File flowWithDns;
+    private VariableRegistry variableRegistry;
 
     private AuthorizerConfigurationContext configurationContext;
 
@@ -178,8 +181,8 @@ public class FileAuthorizerTest {
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null));
-        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null,variableRegistry));
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null,variableRegistry));
 
         authorizer = new FileAuthorizer();
         authorizer.setNiFiProperties(properties);
@@ -197,7 +200,7 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvidedWithOverlappingRoles() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null,VariableRegistryUtils.createSystemVariableRegistry()));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -222,7 +225,7 @@ public class FileAuthorizerTest {
         when(properties.getFlowConfigurationFile()).thenReturn(flowNoPorts);
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null,variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -242,7 +245,7 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null,VariableRegistryUtils.createSystemVariableRegistry()));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -392,7 +395,7 @@ public class FileAuthorizerTest {
         authorizer.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null,variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -440,7 +443,7 @@ public class FileAuthorizerTest {
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null,VariableRegistryUtils.createSystemVariableRegistry()));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -450,12 +453,12 @@ public class FileAuthorizerTest {
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
-
+        final VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null,variableRegistry));
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
-                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null,variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -480,7 +483,7 @@ public class FileAuthorizerTest {
         final String adminIdentity = "admin-user";
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null,VariableRegistryUtils.createSystemVariableRegistry()));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -510,6 +513,7 @@ public class FileAuthorizerTest {
 
     @Test
     public void testOnConfiguredWhenInitialAdminProvidedAndNoFlowExists() throws Exception {
+        VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
@@ -518,7 +522,7 @@ public class FileAuthorizerTest {
 
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -549,6 +553,7 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenInitialAdminProvidedAndFlowIsNull() throws Exception {
         // setup NiFi properties to return a file that does not exist
+        VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(null);
@@ -556,7 +561,7 @@ public class FileAuthorizerTest {
 
         final String adminIdentity = "admin-user";
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null, variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -597,7 +602,7 @@ public class FileAuthorizerTest {
 
         final String adminIdentity = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null,variableRegistry));
 
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
@@ -615,7 +620,7 @@ public class FileAuthorizerTest {
         final String adminIdentity = "admin-user";
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null,VariableRegistryUtils.createSystemVariableRegistry()));
 
         final String nodeIdentity1 = "node1";
         final String nodeIdentity2 = "node2";
@@ -664,7 +669,7 @@ public class FileAuthorizerTest {
 
         final String adminIdentity = "CN=user1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
-                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+                .thenReturn(new StandardPropertyValue(adminIdentity, null,variableRegistry));
 
         final String nodeIdentity1 = "CN=node1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
         final String nodeIdentity2 = "CN=node2, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";

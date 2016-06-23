@@ -25,6 +25,7 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +73,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
 
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private VariableRegistry variableRegistry;
     private final Map<String, Authorizer> authorizers = new HashMap<>();
+
 
     @Override
     public Authorizer getAuthorizer(String identifier) {
@@ -189,8 +192,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         for (final Property property : authorizer.getProperty()) {
             authorizerProperties.put(property.getName(), property.getValue());
         }
-
-        return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties);
+        return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties, variableRegistry);
     }
 
     private void performMethodInjection(final Authorizer instance, final Class authorizerClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -483,5 +485,9 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setVariableRegistry(VariableRegistry variableRegistry) {
+        this.variableRegistry = variableRegistry;
     }
 }

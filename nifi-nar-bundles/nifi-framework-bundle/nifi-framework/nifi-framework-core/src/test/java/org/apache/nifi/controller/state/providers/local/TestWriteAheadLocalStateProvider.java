@@ -32,6 +32,8 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.wali.WriteAheadRepository;
@@ -43,9 +45,9 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
     @Before
     public void setup() throws IOException {
         provider = new WriteAheadLocalStateProvider();
-
+        final VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
         final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
-        properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue("target/local-state-provider/" + UUID.randomUUID().toString(), null));
+        properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue("target/local-state-provider/" + UUID.randomUUID().toString(), null, variableRegistry));
 
         provider.initialize(new StateProviderInitializationContext() {
             @Override
@@ -62,7 +64,7 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final PropertyValue prop = properties.get(property);
                 if (prop == null) {
-                    return new StandardPropertyValue(null, null);
+                    return new StandardPropertyValue(null, null, variableRegistry);
                 }
                 return prop;
             }

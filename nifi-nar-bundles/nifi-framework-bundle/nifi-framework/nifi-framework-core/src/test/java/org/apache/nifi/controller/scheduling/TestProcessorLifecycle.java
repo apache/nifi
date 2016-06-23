@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
@@ -661,7 +662,8 @@ public class TestProcessorLifecycle {
         properties.setProperty("nifi.remote.input.secure", "");
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository());
+            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+                VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths()));
     }
 
     /**

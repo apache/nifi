@@ -25,21 +25,26 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.registry.VariableRegistry;
 
 public class MockConfigurationContext implements ConfigurationContext {
 
     private final Map<PropertyDescriptor, String> properties;
     private final ControllerServiceLookup serviceLookup;
     private final ControllerService service;
+    private final VariableRegistry variableRegistry;
 
-    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup) {
-        this(null, properties, serviceLookup);
+    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup,
+                                    final VariableRegistry variableRegistry) {
+        this(null, properties, serviceLookup, variableRegistry);
     }
 
-    public MockConfigurationContext(final ControllerService service, final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup) {
+    public MockConfigurationContext(final ControllerService service, final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup,
+                                    final VariableRegistry variableRegistry) {
         this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -48,7 +53,7 @@ public class MockConfigurationContext implements ConfigurationContext {
         if (value == null) {
             value = getActualDescriptor(property).getDefaultValue();
         }
-        return new MockPropertyValue(value, serviceLookup);
+        return new MockPropertyValue(value, serviceLookup, variableRegistry);
     }
 
     @Override

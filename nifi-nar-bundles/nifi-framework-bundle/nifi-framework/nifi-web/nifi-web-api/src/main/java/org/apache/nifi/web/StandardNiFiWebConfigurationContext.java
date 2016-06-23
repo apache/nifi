@@ -44,6 +44,7 @@ import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -91,6 +92,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     private ReportingTaskProvider reportingTaskProvider;
     private AuditService auditService;
     private Authorizer authorizer;
+    private VariableRegistry variableRegistry;
 
     private void authorizeFlowAccess(final NiFiUser user) {
         // authorize access
@@ -286,6 +288,11 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         return componentFacade.updateComponent(requestContext, annotationData, properties);
     }
 
+
+    @Override
+    public VariableRegistry getVariableRegistry() {
+        return this.variableRegistry;
+    }
 
     private NodeResponse replicate(final String method, final URI uri, final Object entity, final Map<String, String> headers) throws InterruptedException {
         final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
@@ -884,5 +891,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
     public void setAuthorizer(final Authorizer authorizer) {
         this.authorizer = authorizer;
+    }
+
+    public void setVariableRegistry(final VariableRegistry variableRegistry){
+        this.variableRegistry = variableRegistry;
     }
 }

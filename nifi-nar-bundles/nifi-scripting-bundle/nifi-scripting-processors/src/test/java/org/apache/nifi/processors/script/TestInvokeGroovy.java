@@ -18,6 +18,8 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -37,9 +39,12 @@ import static org.junit.Assert.assertTrue;
 
 public class TestInvokeGroovy extends BaseScriptTest {
 
+    private VariableRegistry variableRegistry;
+
     @Before
     public void setup() throws Exception {
         super.setupInvokeScriptProcessor();
+        variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
     }
 
     /**
@@ -72,7 +77,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     @Test
     public void testScriptDefinedAttribute() throws Exception {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
+        MockProcessContext context = new MockProcessContext(processor, variableRegistry);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
 
         processor.initialize(initContext);
@@ -81,7 +86,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context, null, variableRegistry));
         processor.setup(context);
 
         List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
@@ -106,7 +111,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
     @Test
     public void testScriptDefinedRelationship() throws Exception {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
+        MockProcessContext context = new MockProcessContext(processor, variableRegistry);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
 
         processor.initialize(initContext);
@@ -114,7 +119,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context, null, variableRegistry));
         processor.setup(context);
 
         Set<Relationship> relationships = processor.getRelationships();

@@ -41,6 +41,8 @@ import org.apache.nifi.distributed.cache.client.exception.DeserializationExcepti
 import org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
@@ -55,6 +57,7 @@ import org.slf4j.LoggerFactory;
 public class TestServerAndClient {
 
     private static Logger LOGGER;
+    private static VariableRegistry variableRegistry;
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -64,6 +67,7 @@ public class TestServerAndClient {
         System.setProperty("org.slf4j.simpleLogger.log.nifi.distributed.cache.server.TestServerAndClient", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.remote.io.socket.ssl.SSLSocketChannel", "trace");
         LOGGER = LoggerFactory.getLogger(TestServerAndClient.class);
+        variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
     }
 
     @Test
@@ -329,7 +333,7 @@ public class TestServerAndClient {
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.PORT, String.valueOf(server.getPort()));
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), variableRegistry);
         client.cacheConfig(clientContext);
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
@@ -375,7 +379,7 @@ public class TestServerAndClient {
         client2.initialize(clientInitContext2);
 
         MockConfigurationContext clientContext2 = new MockConfigurationContext(clientProperties,
-            clientInitContext2.getControllerServiceLookup());
+            clientInitContext2.getControllerServiceLookup(), variableRegistry);
         client2.cacheConfig(clientContext2);
         assertFalse(client2.putIfAbsent("testKey", "test", keySerializer, valueSerializer));
         assertTrue(client2.containsKey("testKey", keySerializer));
@@ -408,7 +412,7 @@ public class TestServerAndClient {
         server.initialize(serverInitContext);
 
         final Map<PropertyDescriptor, String> serverProperties = new HashMap<>();
-        final MockConfigurationContext serverContext = new MockConfigurationContext(serverProperties, serverInitContext.getControllerServiceLookup());
+        final MockConfigurationContext serverContext = new MockConfigurationContext(serverProperties, serverInitContext.getControllerServiceLookup(), variableRegistry);
         server.startServer(serverContext);
 
         DistributedMapCacheClientService client = new DistributedMapCacheClientService();
@@ -418,7 +422,7 @@ public class TestServerAndClient {
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT, "360 secs");
-        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), variableRegistry);
         client.cacheConfig(clientContext);
         final Serializer<String> valueSerializer = new StringSerializer();
         final Serializer<String> keySerializer = new StringSerializer();
@@ -465,7 +469,7 @@ public class TestServerAndClient {
         final Map<PropertyDescriptor, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedSetCacheClientService.HOSTNAME, "localhost");
         clientProperties.put(DistributedSetCacheClientService.PORT, String.valueOf(port));
-        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup());
+        final MockConfigurationContext clientContext = new MockConfigurationContext(clientProperties, clientInitContext.getControllerServiceLookup(), variableRegistry);
         client.onConfigured(clientContext);
 
         return client;

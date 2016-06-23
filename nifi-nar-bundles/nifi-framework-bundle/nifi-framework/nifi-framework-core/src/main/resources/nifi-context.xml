@@ -27,6 +27,11 @@
     <!-- nifi properties created via getInstance using a file path specified as a system property -->
     <bean id="nifiProperties" class="org.apache.nifi.util.NiFiProperties" factory-method="getInstance"/>
 
+    <!-- variable registry -->
+    <bean id="variableRegistry" class="org.apache.nifi.registry.VariableRegistryUtils" factory-method="createCustomVariableRegistry">
+        <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
+    </bean>
+
     <!-- flow file event repository -->
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
@@ -41,6 +46,7 @@
         <property name="encryptor" ref="stringEncryptor" />
         <property name="bulletinRepository" ref="bulletinRepository" />
         <property name="clusterCoordinator" ref="clusterCoordinator" />
+        <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
 
     <!-- flow service -->

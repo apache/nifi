@@ -31,6 +31,8 @@ import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,6 +42,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
     private StateProvider provider;
     private TestingServer zkServer;
+    private VariableRegistry variableRegistry;
 
     private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
 
@@ -58,6 +61,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         final Map<PropertyDescriptor, String> properties = new HashMap<>(defaultProperties);
         properties.put(ZooKeeperStateProvider.CONNECTION_STRING, zkServer.getConnectString());
         this.provider = createProvider(properties);
+        variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
     }
 
     private void initializeProvider(final ZooKeeperStateProvider provider, final Map<PropertyDescriptor, String> properties) throws IOException {
@@ -71,7 +75,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             public Map<PropertyDescriptor, PropertyValue> getProperties() {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null, variableRegistry));
                 }
                 return propValueMap;
             }
@@ -79,7 +83,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             @Override
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final String prop = properties.get(property);
-                return new StandardPropertyValue(prop, null);
+                return new StandardPropertyValue(prop, null, variableRegistry);
             }
 
             @Override

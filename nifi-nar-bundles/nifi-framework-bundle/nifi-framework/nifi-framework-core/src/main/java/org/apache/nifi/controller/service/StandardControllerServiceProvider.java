@@ -55,6 +55,8 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.registry.VariableRegistry;
+
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ReflectionUtils;
@@ -69,6 +71,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     private static final Set<Method> validDisabledMethods;
     private final BulletinRepository bulletinRepo;
     private final StateManagerProvider stateManagerProvider;
+    private final VariableRegistry variableRegistry;
     private final FlowController flowController;
 
     static {
@@ -84,12 +87,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
-        final StateManagerProvider stateManagerProvider) {
+        final StateManagerProvider stateManagerProvider,final VariableRegistry variableRegistry) {
 
         this.flowController = flowController;
         this.processScheduler = scheduler;
         this.bulletinRepo = bulletinRepo;
         this.stateManagerProvider = stateManagerProvider;
+        this.variableRegistry = variableRegistry;
     }
 
 
@@ -187,9 +191,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final ComponentLog serviceLogger = new SimpleProcessLogger(id, originalService);
             originalService.initialize(new StandardControllerServiceInitializationContext(id, serviceLogger, this, getStateManager(id)));
 
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
+            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this, variableRegistry);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this);
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this, variableRegistry);
             serviceNodeHolder.set(serviceNode);
             serviceNode.setName(rawClass.getSimpleName());
 
@@ -258,7 +262,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final String componentType = "(Missing) " + simpleClassName;
 
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, proxiedService, id,
-            new StandardValidationContextFactory(this), this, componentType, type);
+            new StandardValidationContextFactory(this,variableRegistry), this, componentType, type, variableRegistry);
         return serviceNode;
     }
 

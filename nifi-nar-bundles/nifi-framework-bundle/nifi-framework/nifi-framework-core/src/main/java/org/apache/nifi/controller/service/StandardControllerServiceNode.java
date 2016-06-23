@@ -48,6 +48,7 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +60,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     private final ControllerService proxedControllerService;
     private final ControllerService implementation;
     private final ControllerServiceProvider serviceProvider;
-
+    private final VariableRegistry variableRegistry;
     private final AtomicReference<ControllerServiceState> stateRef = new AtomicReference<>(ControllerServiceState.DISABLED);
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -73,21 +74,24 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     private final AtomicBoolean active;
 
     public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
-        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
+                                         final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+                                         final VariableRegistry variableRegistry) {
 
         this(proxiedControllerService, implementation, id, validationContextFactory, serviceProvider,
-            implementation.getClass().getSimpleName(), implementation.getClass().getCanonicalName());
+            implementation.getClass().getSimpleName(), implementation.getClass().getCanonicalName(), variableRegistry);
     }
 
     public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
-        final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
-        final String componentType, final String componentCanonicalClass) {
+                                         final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
+                                         final String componentType, final String componentCanonicalClass, VariableRegistry variableRegistry) {
 
         super(implementation, id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass);
         this.proxedControllerService = proxiedControllerService;
         this.implementation = implementation;
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
+        this.variableRegistry = variableRegistry;
+
     }
 
     @Override
@@ -335,7 +339,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     public void enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis) {
         if (this.stateRef.compareAndSet(ControllerServiceState.DISABLED, ControllerServiceState.ENABLING)) {
             this.active.set(true);
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, variableRegistry);
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -398,7 +402,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         }
 
         if (this.stateRef.compareAndSet(ControllerServiceState.ENABLED, ControllerServiceState.DISABLING)) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null);
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, variableRegistry);
             scheduler.execute(new Runnable() {
                 @Override
                 public void run() {

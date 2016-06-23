@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Test;
 
 public class TestMockProcessContext {
@@ -39,7 +40,7 @@ public class TestMockProcessContext {
     @Test
     public void testRemoveProperty() {
         final DummyProcessor proc = new DummyProcessor();
-        final MockProcessContext context = new MockProcessContext(proc);
+        final MockProcessContext context = new MockProcessContext(proc, VariableRegistryUtils.createSystemVariableRegistry());
         context.setProperty(DummyProcessor.REQUIRED_PROP, "req-value");
         context.setProperty(DummyProcessor.OPTIONAL_PROP, "opt-value");
         context.setProperty(DummyProcessor.DEFAULTED_PROP, "custom-value");

@@ -26,6 +26,8 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.FormatUtils;
 
 public class StandardPropertyValue implements PropertyValue {
@@ -33,24 +35,27 @@ public class StandardPropertyValue implements PropertyValue {
     private final String rawValue;
     private final ControllerServiceLookup serviceLookup;
     private final PreparedQuery preparedQuery;
+    private final VariableRegistry variableRegistry;
 
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
-        this(rawValue, serviceLookup, Query.prepare(rawValue));
+    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final VariableRegistry variableRegistry) {
+        this(rawValue, serviceLookup, Query.prepare(rawValue), variableRegistry);
     }
 
     /**
      * Constructs a new StandardPropertyValue with the given value & service lookup and indicates whether or not the rawValue contains any NiFi Expressions. If it is unknown whether or not the value
-     * contains any NiFi Expressions, the {@link #StandardPropertyValue(String, ControllerServiceLookup)} constructor should be used or <code>true</code> should be passed. However, if it is known that
-     * the value contains no NiFi Expression, that information should be provided so that calls to {@link #evaluateAttributeExpressions()} are much more efficient
-     *
+     * contains any NiFi Expressions, the {@link #StandardPropertyValue(String, ControllerServiceLookup, VariableRegistry)} constructor should be used or <code>true</code> should be passed.
+     * However, if it is known that the value contains no NiFi Expression, that information should be provided so that calls to {@link #evaluateAttributeExpressions()} are much more efficient
      * @param rawValue value
      * @param serviceLookup lookup
      * @param preparedQuery query
+     * @param variableRegistry variableRegistry
      */
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PreparedQuery preparedQuery) {
+    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PreparedQuery preparedQuery,
+                                 final VariableRegistry variableRegistry) {
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.preparedQuery = preparedQuery;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -133,9 +138,11 @@ public class StandardPropertyValue implements PropertyValue {
         if (rawValue == null || preparedQuery == null) {
             return this;
         }
-
-        return new StandardPropertyValue(preparedQuery.evaluateExpressions(flowFile, additionalAttributes, decorator), serviceLookup, null);
+        VariableRegistry registry = VariableRegistryUtils.createFlowVariableRegistry(variableRegistry,flowFile,additionalAttributes);
+        return new StandardPropertyValue(preparedQuery.evaluateExpressions(registry,decorator), serviceLookup,null,registry);
     }
+
+
 
     @Override
     public String toString() {

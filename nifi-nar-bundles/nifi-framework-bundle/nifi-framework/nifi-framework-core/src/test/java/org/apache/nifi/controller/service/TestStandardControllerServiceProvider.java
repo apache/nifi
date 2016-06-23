@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -45,6 +46,8 @@ import org.apache.nifi.controller.service.mock.ServiceC;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -74,13 +77,15 @@ public class TestStandardControllerServiceProvider {
         }
     };
 
+    private static VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
+
     @BeforeClass
     public static void setNiFiProps() {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
     }
 
     private StandardProcessScheduler createScheduler() {
-        return new StandardProcessScheduler(null, null, stateManagerProvider);
+        return new StandardProcessScheduler(null, null, stateManagerProvider,variableRegistry);
     }
 
     @Test
@@ -90,7 +95,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider,variableRegistry);
 
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B", false);
         provider.enableControllerService(serviceNode);
@@ -104,7 +109,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(group);
 
         final ProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider,variableRegistry);
 
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B", false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A", false);
@@ -163,7 +168,7 @@ public class TestStandardControllerServiceProvider {
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider,variableRegistry);
 
         // build a graph of controller services with dependencies as such:
         //
@@ -215,7 +220,7 @@ public class TestStandardControllerServiceProvider {
         final FlowController controller = Mockito.mock(FlowController.class);
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider,variableRegistry);
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceB.class.getName(), "2", false);
 
@@ -359,9 +364,9 @@ public class TestStandardControllerServiceProvider {
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
         final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
-                new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
+                new StandardValidationContextFactory(serviceProvider, null), scheduler, serviceProvider);
 
-        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null);
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null, null, variableRegistry);
         group.addProcessor(procNode);
         procNode.setProcessGroup(group);
 
@@ -375,7 +380,7 @@ public class TestStandardControllerServiceProvider {
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
         final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider);
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, null, null, stateManagerProvider,variableRegistry);
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1", false);
 
         final ProcessorNode procNode = createProcessor(scheduler, provider);
@@ -394,7 +399,7 @@ public class TestStandardControllerServiceProvider {
     public void validateEnableServices() {
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider,variableRegistry);
         ProcessGroup procGroup = new MockProcessGroup();
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -439,7 +444,7 @@ public class TestStandardControllerServiceProvider {
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
         StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
-                stateManagerProvider);
+                stateManagerProvider, variableRegistry);
         ProcessGroup procGroup = new MockProcessGroup();
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
@@ -475,7 +480,7 @@ public class TestStandardControllerServiceProvider {
     public void validateEnableServicesWithDisabledMissingService() {
         StandardProcessScheduler scheduler = createScheduler();
         FlowController controller = Mockito.mock(FlowController.class);
-        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null, stateManagerProvider,variableRegistry);
         ProcessGroup procGroup = new MockProcessGroup();
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 

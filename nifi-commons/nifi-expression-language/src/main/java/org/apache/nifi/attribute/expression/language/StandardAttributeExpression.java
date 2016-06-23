@@ -20,13 +20,17 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 
 public class StandardAttributeExpression implements AttributeExpression {
 
     private final Query query;
+    private final VariableRegistry variableRegistry;
 
-    public StandardAttributeExpression(final Query query) {
+    public StandardAttributeExpression(final Query query, final VariableRegistry variableRegistry) {
         this.query = query;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -51,7 +55,8 @@ public class StandardAttributeExpression implements AttributeExpression {
 
     @Override
     public String evaluate(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
-        final Object evaluationResult = query.evaluate(flowFile).getValue();
+        VariableRegistry flowFileRegistry = VariableRegistryUtils.createFlowVariableRegistry(variableRegistry,flowFile,null);
+        final Object evaluationResult = query.evaluate(flowFileRegistry).getValue();
         if (evaluationResult == null) {
             return "";
         }

@@ -78,6 +78,7 @@ import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
@@ -147,7 +148,7 @@ public class ControllerFacade implements Authorizable {
     // properties
     private NiFiProperties properties;
     private DtoFactory dtoFactory;
-
+    private VariableRegistry variableRegistry;
 
     /**
      * Returns the group id that contains the specified processor.
@@ -1503,6 +1504,8 @@ public class ControllerFacade implements Authorizable {
         return dto;
     }
 
+
+
     private ComponentSearchResultDTO search(final String searchStr, final ProcessorNode procNode) {
         final List<String> matches = new ArrayList<>();
         final Processor processor = procNode.getProcessor();
@@ -1572,8 +1575,7 @@ public class ControllerFacade implements Authorizable {
         if (processor instanceof Searchable) {
             final Searchable searchable = (Searchable) processor;
 
-            // prepare the search context
-            final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController);
+            final SearchContext context = new StandardSearchContext(searchStr, procNode, flowController, variableRegistry);
 
             // search the processor using the appropriate thread context classloader
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
@@ -1780,5 +1782,9 @@ public class ControllerFacade implements Authorizable {
 
     public void setBulletinRepository(BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setVariableRegistry(VariableRegistry variableRegistry) {
+        this.variableRegistry = variableRegistry;
     }
 }

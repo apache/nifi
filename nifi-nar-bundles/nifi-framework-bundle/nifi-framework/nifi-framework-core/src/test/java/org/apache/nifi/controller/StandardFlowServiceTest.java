@@ -26,6 +26,8 @@ import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -63,6 +65,7 @@ public class StandardFlowServiceTest {
     private AuditService mockAuditService;
     private StringEncryptor mockEncryptor;
     private RevisionManager revisionManager;
+    private VariableRegistry variableRegistry;
 
     @BeforeClass
     public static void setupSuite() {
@@ -72,11 +75,13 @@ public class StandardFlowServiceTest {
     @Before
     public void setup() throws Exception {
         properties = NiFiProperties.getInstance();
+        variableRegistry = VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths());
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
         authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
         revisionManager = mock(RevisionManager.class);
-        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor, new VolatileBulletinRepository());
+        flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
+                                        new VolatileBulletinRepository(), variableRegistry);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
     }
 

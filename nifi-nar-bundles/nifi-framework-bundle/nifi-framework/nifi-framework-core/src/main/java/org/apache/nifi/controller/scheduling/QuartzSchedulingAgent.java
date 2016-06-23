@@ -38,6 +38,7 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
@@ -50,15 +51,18 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
     private final StringEncryptor encryptor;
+    private final VariableRegistry variableRegistry;
 
     private volatile String adminYieldDuration = "1 sec";
     private final Map<Object, List<AtomicBoolean>> canceledTriggers = new HashMap<>();
 
-    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor enryptor) {
+    public QuartzSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor enryptor,
+                                 final VariableRegistry variableRegistry) {
         super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
         this.encryptor = enryptor;
+        this.variableRegistry = variableRegistry;
     }
 
     private StateManager getStateManager(final String componentId) {
@@ -141,7 +145,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
 
-                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()));
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor, getStateManager(connectable.getIdentifier()), variableRegistry);
                 ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, standardProcContext);
                 continuallyRunTask = runnableTask;
             } else {
