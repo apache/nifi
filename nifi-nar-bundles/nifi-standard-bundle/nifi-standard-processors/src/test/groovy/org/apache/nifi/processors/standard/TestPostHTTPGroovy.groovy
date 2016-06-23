@@ -48,6 +48,8 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.crypto.Cipher
+import javax.net.SocketFactory
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
@@ -270,9 +272,12 @@ class TestPostHTTPGroovy extends GroovyTestCase {
                 }
         ]
 
-        SSLContext sc = SSLContext.getInstance("SSL")
+        SSLContext sc = SSLContext.getInstance(TLSv1_2)
         sc.init(null, [nullTrustManager as X509TrustManager] as TrustManager[], null)
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+        SocketFactory socketFactory = sc.getSocketFactory()
+        logger.info("Max AES key length: ${Cipher.getMaxAllowedKeyLength("AES")}")
+        logger.info("Supported client cipher suites: ${socketFactory.supportedCipherSuites}")
+        HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
         HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier as HostnameVerifier)
     }
 
@@ -351,7 +356,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldSupportTLSv1() {
+    public void testDefaultShouldSupportTLSv1() {
         // Arrange
         final String MSG = "This is a test message"
         final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
@@ -371,7 +376,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldSupportTLSv1_1() {
+    public void testDefaultShouldSupportTLSv1_1() {
         // Arrange
         final String MSG = "This is a test message"
         final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
@@ -391,7 +396,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldSupportTLSv1_2() {
+    public void testDefaultShouldSupportTLSv1_2() {
         // Arrange
         final String MSG = "This is a test message"
         final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
@@ -411,7 +416,22 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldPreferTLSv1_2() {
+    public void testDefaultShouldPreferTLSv1_2() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "${HTTPS_URL}/ReverseHandler.groovy?string=${URLEncoder.encode(MSG, "UTF-8")}"
 
+        // Configure server with all TLS protocols
+        server = createServer()
+
+        // Start server
+        server.start()
+
+        // Act
+        String response = new URL(url).text
+        logger.info("Response from ${HTTPS_URL}: ${response}")
+
+        // Assert
+        assert response == MSG.reverse()
     }
 }
