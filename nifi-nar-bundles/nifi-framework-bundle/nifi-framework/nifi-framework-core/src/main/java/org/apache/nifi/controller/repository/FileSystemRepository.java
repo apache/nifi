@@ -628,6 +628,16 @@ public class FileSystemRepository implements ContentRepository {
         } catch (final ContentNotFoundException cnfe) {
         }
 
+        // Ensure that we have no writable claim streams for this resource claim
+        final ByteCountingOutputStream bcos = writableClaimStreams.remove(claim);
+        if (bcos != null) {
+            try {
+                bcos.close();
+            } catch (final IOException e) {
+                LOG.warn("Failed to close Output Stream for {} due to {}", claim, e);
+            }
+        }
+
         final File file = path.toFile();
         if (!file.delete() && file.exists()) {
             LOG.warn("Unable to delete {} at path {}", new Object[] {claim, path});

@@ -329,10 +329,11 @@ public class TestFileSystemRepository {
     @Test
     public void testExportToOutputStream() throws IOException {
         final ContentClaim claim = repository.create(true);
-        final Path path = getPath(claim);
 
-        Files.createDirectories(path.getParent());
-        Files.copy(helloWorldFile.toPath(), path, StandardCopyOption.REPLACE_EXISTING);
+        try (final OutputStream out = repository.write(claim)) {
+            Files.copy(helloWorldFile.toPath(), out);
+        }
+
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         repository.exportTo(claim, baos);
         final byte[] data = baos.toByteArray();
@@ -342,10 +343,10 @@ public class TestFileSystemRepository {
     @Test
     public void testExportToFile() throws IOException {
         final ContentClaim claim = repository.create(true);
-        final Path path = getPath(claim);
+        try (final OutputStream out = repository.write(claim)) {
+            Files.copy(helloWorldFile.toPath(), out);
+        }
 
-        Files.createDirectories(path.getParent());
-        Files.copy(helloWorldFile.toPath(), path, StandardCopyOption.REPLACE_EXISTING);
         final File outFile = new File("target/testExportToFile");
         final Path outPath = outFile.toPath();
         Files.deleteIfExists(outPath);
