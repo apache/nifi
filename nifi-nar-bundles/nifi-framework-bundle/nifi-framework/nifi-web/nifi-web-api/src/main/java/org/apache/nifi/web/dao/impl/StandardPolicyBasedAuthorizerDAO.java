@@ -28,10 +28,13 @@ import org.apache.nifi.authorization.UsersAndAccessPolicies;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
@@ -41,7 +44,7 @@ import java.util.stream.Collectors;
 
 public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGroupDAO, UserDAO {
 
-    private static final String MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER = "authorizer is not of type AbstractPolicyBasedAuthorizer";
+    static final String MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER = "This NiFi is not configured to internally manage users, groups, and policies.  Please contact your system administrator.";
     private final AbstractPolicyBasedAuthorizer authorizer;
 
     public StandardPolicyBasedAuthorizerDAO(final Authorizer authorizer) {
@@ -156,34 +159,44 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public AccessPolicy createAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
-        return authorizer.addAccessPolicy(buildAccessPolicy(accessPolicyDTO));
+        return authorizer.addAccessPolicy(buildAccessPolicy(accessPolicyDTO.getId(), accessPolicyDTO));
     }
 
     @Override
     public AccessPolicy getAccessPolicy(final String accessPolicyId) {
-        return authorizer.getAccessPolicy(accessPolicyId);
+        final AccessPolicy accessPolicy = authorizer.getAccessPolicy(accessPolicyId);
+        if (accessPolicy == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find access policy with id '%s'.", accessPolicyId));
+        }
+        return accessPolicy;
     }
 
     @Override
     public AccessPolicy updateAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
-        return authorizer.updateAccessPolicy(buildAccessPolicy(accessPolicyDTO));
+        return authorizer.updateAccessPolicy(buildAccessPolicy(getAccessPolicy(accessPolicyDTO.getId()).getIdentifier(), accessPolicyDTO));
     }
 
     @Override
     public AccessPolicy deleteAccessPolicy(final String accessPolicyId) {
-        return authorizer.deleteAccessPolicy(authorizer.getAccessPolicy(accessPolicyId));
+        return authorizer.deleteAccessPolicy(getAccessPolicy(accessPolicyId));
     }
 
-    private AccessPolicy buildAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
+    private AccessPolicy buildAccessPolicy(final String identifier, final AccessPolicyDTO accessPolicyDTO) {
+        final Set<UserGroupEntity> userGroups = accessPolicyDTO.getUserGroups();
+        final Set<UserEntity> users = accessPolicyDTO.getUsers();
         final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                .identifier(accessPolicyDTO.getId())
-                .addGroups(accessPolicyDTO.getUserGroups().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
-                .addUsers(accessPolicyDTO.getUsers().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
+                .identifier(identifier)
                 .resource(accessPolicyDTO.getResource());
-        if (accessPolicyDTO.getCanRead()) {
+        if (userGroups != null) {
+            builder.addGroups(userGroups.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
+        }
+        if (users != null) {
+            builder.addUsers(users.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
+        }
+        if (Boolean.TRUE == accessPolicyDTO.getCanRead()) {
             builder.addAction(RequestAction.READ);
         }
-        if (accessPolicyDTO.getCanWrite()) {
+        if (Boolean.TRUE == accessPolicyDTO.getCanWrite()) {
             builder.addAction(RequestAction.WRITE);
         }
         return builder.build();
@@ -196,28 +209,40 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public Group createUserGroup(final UserGroupDTO userGroupDTO) {
-        return authorizer.addGroup(buildUserGroup(userGroupDTO));
+        return authorizer.addGroup(buildUserGroup(userGroupDTO.getId(), userGroupDTO));
     }
 
     @Override
     public Group getUserGroup(final String userGroupId) {
-        return authorizer.getGroup(userGroupId);
+        final Group userGroup = authorizer.getGroup(userGroupId);
+        if (userGroup == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find user group with id '%s'.", userGroupId));
+        }
+        return userGroup;
+    }
+
+    @Override
+    public Set<Group> getUserGroups() {
+        return authorizer.getGroups();
     }
 
     @Override
     public Group updateUserGroup(final UserGroupDTO userGroupDTO) {
-        return authorizer.updateGroup(buildUserGroup(userGroupDTO));
+        return authorizer.updateGroup(buildUserGroup(getUserGroup(userGroupDTO.getId()).getIdentifier(), userGroupDTO));
     }
 
     @Override
     public Group deleteUserGroup(final String userGroupId) {
-        return authorizer.deleteGroup(authorizer.getGroup(userGroupId));
+        return authorizer.deleteGroup(getUserGroup(userGroupId));
     }
 
-    private Group buildUserGroup(final UserGroupDTO userGroupDTO) {
-        return new Group.Builder()
-                .addUsers(userGroupDTO.getUsers().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
-                .identifier(userGroupDTO.getId()).name(userGroupDTO.getName()).build();
+    private Group buildUserGroup(final String identifier, final UserGroupDTO userGroupDTO) {
+        final Set<UserEntity> users = userGroupDTO.getUsers();
+        final Group.Builder builder = new Group.Builder().identifier(identifier).name(userGroupDTO.getName());
+        if (users != null) {
+            builder.addUsers(users.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
+        }
+        return builder.build();
     }
 
     @Override
@@ -227,29 +252,40 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public User createUser(final UserDTO userDTO) {
-        final User user = buildUser(userDTO);
-        return authorizer.addUser(user);
+        return authorizer.addUser(buildUser(userDTO.getId(), userDTO));
     }
 
     @Override
     public User getUser(final String userId) {
-        return authorizer.getUser(userId);
+        final User user = authorizer.getUser(userId);
+        if (user == null) {
+            throw new ResourceNotFoundException(String.format("Unable to find user with id '%s'.", userId));
+        }
+        return user;
+    }
+
+    @Override
+    public Set<User> getUsers() {
+        return authorizer.getUsers();
     }
 
     @Override
     public User updateUser(final UserDTO userDTO) {
-        return authorizer.updateUser(buildUser(userDTO));
+        return authorizer.updateUser(buildUser(getUser(userDTO.getId()).getIdentifier(), userDTO));
     }
 
     @Override
     public User deleteUser(final String userId) {
-        return authorizer.deleteUser(authorizer.getUser(userId));
+        return authorizer.deleteUser(getUser(userId));
     }
 
-    private User buildUser(final UserDTO userDTO) {
-        return new User.Builder()
-                .addGroups(userDTO.getGroups().stream().map(ComponentEntity::getId).collect(Collectors.toSet()))
-                .identifier(userDTO.getIdentity()).identity(userDTO.getIdentity()).build();
+    private User buildUser(final String identifier, final UserDTO userDTO) {
+        final Set<UserGroupEntity> groups = userDTO.getUserGroups();
+        final User.Builder builder = new User.Builder().identifier(identifier).identity(userDTO.getIdentity());
+        if (groups != null) {
+            builder.addGroups(groups.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
+        }
+        return builder.build();
     }
 
 }

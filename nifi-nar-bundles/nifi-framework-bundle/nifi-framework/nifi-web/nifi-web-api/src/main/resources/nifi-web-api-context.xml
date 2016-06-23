@@ -361,14 +361,7 @@
         <constructor-arg ref="clusterCoordinator"/>
         <constructor-arg ref="requestReplicator" />
     </bean>
-    <bean id="userGroupsResource" class="org.apache.nifi.web.api.UserGroupsResource" scope="singleton">
-        <constructor-arg ref="serviceFacade"/>
-        <constructor-arg ref="authorizer"/>
-        <constructor-arg ref="nifiProperties"/>
-        <constructor-arg ref="clusterCoordinator"/>
-        <constructor-arg ref="requestReplicator" />
-    </bean>
-    <bean id="usersResource" class="org.apache.nifi.web.api.UsersResource" scope="singleton">
+    <bean id="tenantsResource" class="org.apache.nifi.web.api.TenantsResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
         <constructor-arg ref="authorizer"/>
         <constructor-arg ref="nifiProperties"/>
@@ -381,6 +374,7 @@
 
     <!-- exception mapping -->
     <bean class="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.AdministrationExceptionMapper" scope="singleton"/>

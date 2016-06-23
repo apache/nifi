@@ -1221,6 +1221,13 @@ public interface NiFiServiceFacade {
     UserEntity getUser(String userId, boolean prune);
 
     /**
+     * Gets all the users.
+     * @param prune If true, the users in the groups to which the users belong will not be returned
+     * @return The user transfer objects
+     */
+    Set<UserEntity> getUsers(boolean prune);
+
+    /**
      * Updates the specified user.
      * @param revision Revision to compare with current base revision
      * @param userDTO The user DTO
@@ -1254,6 +1261,13 @@ public interface NiFiServiceFacade {
      * @return The user group transfer object
      */
     UserGroupEntity getUserGroup(String userGroupId, boolean prune);
+
+    /**
+     * Gets all user groups.
+     * @param prune If true, the user groups of the users in the user groups will not be returned
+     * @return The user group transfer objects
+     */
+    Set<UserGroupEntity> getUserGroups(boolean prune);
 
     /**
      * Updates the specified user group.

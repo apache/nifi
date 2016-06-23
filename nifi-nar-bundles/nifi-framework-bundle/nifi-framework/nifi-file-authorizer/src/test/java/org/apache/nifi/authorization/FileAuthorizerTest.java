@@ -235,7 +235,7 @@ public class FileAuthorizerTest {
 
         // verify user4's policies
         final Map<String,Set<RequestAction>> user4Policies = getResourceActions(policies, user4);
-        assertEquals(6, user4Policies.size());
+        assertEquals(5, user4Policies.size());
 
         assertTrue(user4Policies.containsKey(ResourceType.Flow.getValue()));
         assertEquals(1, user4Policies.get(ResourceType.Flow.getValue()).size());
@@ -245,11 +245,8 @@ public class FileAuthorizerTest {
         assertEquals(1, user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
         assertTrue(user4Policies.get(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).contains(RequestAction.READ));
 
-        assertTrue(user4Policies.containsKey(ResourceType.User.getValue()));
-        assertEquals(2, user4Policies.get(ResourceType.User.getValue()).size());
-
-        assertTrue(user4Policies.containsKey(ResourceType.Group.getValue()));
-        assertEquals(2, user4Policies.get(ResourceType.Group.getValue()).size());
+        assertTrue(user4Policies.containsKey(ResourceType.Tenant.getValue()));
+        assertEquals(2, user4Policies.get(ResourceType.Tenant.getValue()).size());
 
         assertTrue(user4Policies.containsKey(ResourceType.Policy.getValue()));
         assertEquals(2, user4Policies.get(ResourceType.Policy.getValue()).size());
@@ -338,7 +335,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(5, policies.size());
+        assertEquals(4, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -375,7 +372,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(4, policies.size());
+        assertEquals(3, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -412,7 +409,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(4, policies.size());
+        assertEquals(3, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 

@@ -698,7 +698,7 @@ public final class DtoFactory {
 
         final UserDTO dto = new UserDTO();
         dto.setId(user.getIdentifier());
-        dto.setGroups(groups);
+        dto.setUserGroups(groups);
         dto.setIdentity(user.getIdentity());
 
         return dto;

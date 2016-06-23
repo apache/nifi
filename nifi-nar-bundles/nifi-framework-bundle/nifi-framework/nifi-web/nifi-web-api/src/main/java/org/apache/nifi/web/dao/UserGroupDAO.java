@@ -19,6 +19,8 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 
+import java.util.Set;
+
 public interface UserGroupDAO {
 
     /**
@@ -42,6 +44,13 @@ public interface UserGroupDAO {
      * @return The user group transfer object
      */
     Group getUserGroup(String userGroupId);
+
+    /**
+     * Gets all user groups.
+     *
+     * @return The user group transfer objects
+     */
+    Set<Group> getUserGroups();
 
     /**
      * Updates the specified user group.
