@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
@@ -186,6 +185,10 @@ public class AccessPolicyResource extends ApplicationResource {
 
         if (accessPolicyEntity == null || accessPolicyEntity.getComponent() == null) {
             throw new IllegalArgumentException("Access policy details must be specified.");
+        }
+
+        if (accessPolicyEntity.getRevision() == null || (accessPolicyEntity.getRevision().getVersion() == null || accessPolicyEntity.getRevision().getVersion() != 0)) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
         }
 
         if (accessPolicyEntity.getComponent().getId() != null) {
@@ -343,23 +346,16 @@ public class AccessPolicyResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable accessPolicy = lookup.getAccessPolicyAuthorizable(id);
-                    accessPolicy.authorize(authorizer, RequestAction.WRITE);
+                    Authorizable authorizable  = lookup.getAccessPolicyAuthorizable(id);
+                    authorizable.authorize(authorizer, RequestAction.WRITE);
                 },
                 null,
                 () -> {
                     // update the access policy
-                    final UpdateResult<AccessPolicyEntity> updateResult = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
-
-                    // get the results
-                    final AccessPolicyEntity entity = updateResult.getResult();
+                    final AccessPolicyEntity entity = serviceFacade.updateAccessPolicy(revision, accessPolicyDTO);
                     populateRemainingAccessPolicyEntityContent(entity);
 
-                    if (updateResult.isNew()) {
-                        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                    } else {
-                        return clusterContext(generateOkResponse(entity)).build();
-                    }
+                    return clusterContext(generateOkResponse(entity)).build();
                 }
         );
     }

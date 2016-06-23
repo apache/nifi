@@ -17,22 +17,18 @@
 package org.apache.nifi.integration.accesscontrol;
 
 import com.sun.jersey.api.client.ClientResponse;
-import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.web.api.dto.ConnectableDTO;
-import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -48,13 +44,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Access control test for connections.
+ * Access control test for process groups.
  */
-public class ConnectionAccessControlTest {
+public class ITProcessGroupAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-connections.xml";
+    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-processors.xml";
 
     private static AccessControlHelper helper;
+    private static int count = 0;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -62,93 +59,93 @@ public class ConnectionAccessControlTest {
     }
 
     /**
-     * Ensures the READ user can get a connection.
+     * Ensures the READ user can get a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserGetConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
+    public void testReadUserGetProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ WRITE user can get a connection.
+     * Ensures the READ WRITE user can get a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserGetConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
+    public void testReadWriteUserGetProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the WRITE user can get a connection.
+     * Ensures the WRITE user can get a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserGetConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
+    public void testWriteUserGetProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the NONE user can get a connection.
+     * Ensures the NONE user can get a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserGetConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
+    public void testNoneUserGetProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ user cannot put a connection.
+     * Ensures the READ user cannot put a processor.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserPutConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
+    public void testReadUserPutProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
         entity.getRevision().setClientId(READ_CLIENT_ID);
-        entity.getComponent().setName("Updated Name");
+        entity.getComponent().setName("Updated Name" + count++);
 
         // perform the request
-        final ClientResponse response = updateConnection(helper.getReadUser(), entity);
+        final ClientResponse response = updateProcessGroup(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ_WRITE user can put a connection.
+     * Ensures the READ_WRITE user can put a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
+    public void testReadWriteUserPutProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        final String updatedName = "Updated Name";
+        final String updatedName = "Updated Name" + count++;
 
         // attempt to update the name
         final long version = entity.getRevision().getVersion();
@@ -156,13 +153,13 @@ public class ConnectionAccessControlTest {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateConnection(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateProcessGroup(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
+        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -171,15 +168,15 @@ public class ConnectionAccessControlTest {
     }
 
     /**
-     * Ensures the READ_WRITE user can put a connection.
+     * Ensures the READ_WRITE user can put a process grup.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutConnectionThroughInheritedPolicy() throws Exception {
-        final ConnectionEntity entity = createConnection(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
+    public void testReadWriteUserPutProcessGroupThroughInheritedPolicy() throws Exception {
+        final ProcessGroupEntity entity = createProcessGroup(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
 
-        final String updatedName = "Updated name";
+        final String updatedName = "Updated name" + count++;
 
         // attempt to update the name
         final long version = entity.getRevision().getVersion();
@@ -187,13 +184,13 @@ public class ConnectionAccessControlTest {
         entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateConnection(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateProcessGroup(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
+        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
 
         // verify
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -202,21 +199,21 @@ public class ConnectionAccessControlTest {
     }
 
     /**
-     * Ensures the WRITE user can put a connection.
+     * Ensures the WRITE user can put a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserPutConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
+    public void testWriteUserPutProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name";
+        final String updatedName = "Updated Name" + count++;
 
         // attempt to update the name
-        final ConnectionDTO requestDto = new ConnectionDTO();
+        final ProcessGroupDTO requestDto = new ProcessGroupDTO();
         requestDto.setId(entity.getId());
         requestDto.setName(updatedName);
 
@@ -225,19 +222,19 @@ public class ConnectionAccessControlTest {
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.WRITE_CLIENT_ID);
 
-        final ConnectionEntity requestEntity = new ConnectionEntity();
+        final ProcessGroupEntity requestEntity = new ProcessGroupEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateConnection(helper.getWriteUser(), requestEntity);
+        final ClientResponse response = updateProcessGroup(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
+        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -245,21 +242,21 @@ public class ConnectionAccessControlTest {
     }
 
     /**
-     * Ensures the NONE user cannot put a connection.
+     * Ensures the NONE user cannot put a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserPutConnection() throws Exception {
-        final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
+    public void testNoneUserPutProcessGroup() throws Exception {
+        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name";
+        final String updatedName = "Updated Name" + count++;
 
         // attempt to update the name
-        final ConnectionDTO requestDto = new ConnectionDTO();
+        final ProcessGroupDTO requestDto = new ProcessGroupDTO();
         requestDto.setId(entity.getId());
         requestDto.setName(updatedName);
 
@@ -268,62 +265,62 @@ public class ConnectionAccessControlTest {
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.NONE_CLIENT_ID);
 
-        final ConnectionEntity requestEntity = new ConnectionEntity();
+        final ProcessGroupEntity requestEntity = new ProcessGroupEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateConnection(helper.getNoneUser(), requestEntity);
+        final ClientResponse response = updateProcessGroup(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ user cannot delete a connection.
+     * Ensures the READ user cannot delete a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserDeleteConnection() throws Exception {
+    public void testReadUserDeleteProcessGroup() throws Exception {
         verifyDelete(helper.getReadUser(), AccessControlHelper.READ_CLIENT_ID, 403);
     }
 
     /**
-     * Ensures the READ WRITE user can delete a connection.
+     * Ensures the READ WRITE user can delete a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserDeleteConnection() throws Exception {
+    public void testReadWriteUserDeleteProcessGroup() throws Exception {
         verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the WRITE user can delete a connection.
+     * Ensures the WRITE user can delete a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserDeleteConnection() throws Exception {
+    public void testWriteUserDeleteProcessGroup() throws Exception {
         verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the NONE user can delete a connection.
+     * Ensures the NONE user can delete a process group.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserDeleteConnection() throws Exception {
+    public void testNoneUserDeleteProcessGroup() throws Exception {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
     }
 
-    private ConnectionEntity getRandomConnection(final NiFiTestUser user) throws Exception {
+    private ProcessGroupEntity getRandomProcessGroup(final NiFiTestUser user) throws Exception {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
-        // get the connections
+        // get the process groups
         final ClientResponse response = user.testGet(url);
 
         // ensure the response was successful
@@ -332,51 +329,32 @@ public class ConnectionAccessControlTest {
         // unmarshal
         final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
-        final Set<ConnectionEntity> connections = flowDto.getConnections();
+        final Set<ProcessGroupEntity> processGroups = flowDto.getProcessGroups();
 
-        // ensure the correct number of connection
-        assertFalse(connections.isEmpty());
+        // ensure the correct number of process groups
+        assertFalse(processGroups.isEmpty());
 
-        // use the first connection as the target
-        Iterator<ConnectionEntity> connectionIter = connections.iterator();
-        assertTrue(connectionIter.hasNext());
-        return connectionIter.next();
+        // use the first process group as the target
+        Iterator<ProcessGroupEntity> processGroupIter = processGroups.iterator();
+        assertTrue(processGroupIter.hasNext());
+        return processGroupIter.next();
     }
 
-    private ClientResponse updateConnection(final NiFiTestUser user, final ConnectionEntity entity) throws Exception {
-        final String url = helper.getBaseUrl() + "/connections/" + entity.getId();
+    private ClientResponse updateProcessGroup(final NiFiTestUser user, final ProcessGroupEntity entity) throws Exception {
+        final String url = helper.getBaseUrl() + "/process-groups/" + entity.getId();
 
         // perform the request
         return user.testPut(url, entity);
     }
 
-    private ConnectionEntity createConnection(final String name) throws Exception {
-        String url = helper.getBaseUrl() + "/process-groups/root/connections";
+    private ProcessGroupEntity createProcessGroup(final String name) throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/process-groups";
 
-        // get two processors
-        final ProcessorEntity one = ProcessorAccessControlTest.createProcessor(helper, "one");
-        final ProcessorEntity two = ProcessorAccessControlTest.createProcessor(helper, "two");
+        final String updatedName = name + count++;
 
-        // create the source connectable
-        ConnectableDTO source = new ConnectableDTO();
-        source.setId(one.getId());
-        source.setType(ConnectableType.PROCESSOR.name());
-
-        // create the target connectable
-        ConnectableDTO target = new ConnectableDTO();
-        target.setId(two.getId());
-        target.setType(ConnectableType.PROCESSOR.name());
-
-        // create the relationships
-        Set<String> relationships = new HashSet<>();
-        relationships.add("success");
-
-        // create the connection
-        ConnectionDTO connection = new ConnectionDTO();
-        connection.setName(name);
-        connection.setSource(source);
-        connection.setDestination(target);
-        connection.setSelectedRelationships(relationships);
+        // create the process group
+        ProcessGroupDTO processor = new ProcessGroupDTO();
+        processor.setName(updatedName);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -384,9 +362,9 @@ public class ConnectionAccessControlTest {
         revision.setVersion(0L);
 
         // create the entity body
-        ConnectionEntity entity = new ConnectionEntity();
+        ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
-        entity.setComponent(connection);
+        entity.setComponent(processor);
 
         // perform the request
         ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
@@ -395,22 +373,22 @@ public class ConnectionAccessControlTest {
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(ConnectionEntity.class);
+        entity = response.getEntity(ProcessGroupEntity.class);
 
         // verify creation
-        connection = entity.getComponent();
-        assertEquals(name, connection.getName());
+        processor = entity.getComponent();
+        assertEquals(updatedName, processor.getName());
 
-        // get the connection
+        // get the processor
         return entity;
     }
 
     private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
-        final ConnectionEntity entity = createConnection("Copy");
+        final ProcessGroupEntity entity = createProcessGroup("Copy");
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request

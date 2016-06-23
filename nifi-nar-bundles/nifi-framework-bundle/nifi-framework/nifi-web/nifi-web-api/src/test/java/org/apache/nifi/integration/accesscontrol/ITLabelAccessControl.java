@@ -19,10 +19,10 @@ package org.apache.nifi.integration.accesscontrol;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,14 +44,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Access control test for output ports.
+ * Access control test for labels.
  */
-public class OutputPortAccessControlTest {
+public class ITLabelAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-output-ports.xml";
+    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-labels.xml";
 
     private static AccessControlHelper helper;
-    private static int count = 0;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -59,182 +58,182 @@ public class OutputPortAccessControlTest {
     }
 
     /**
-     * Ensures the READ user can get an output port.
+     * Ensures the READ user can get a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserGetOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getReadUser());
+    public void testReadUserGetLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ WRITE user can get an output port.
+     * Ensures the READ WRITE user can get a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserGetOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getReadWriteUser());
+    public void testReadWriteUserGetLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the WRITE user can get an output port.
+     * Ensures the WRITE user can get a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserGetOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getWriteUser());
+    public void testWriteUserGetLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the NONE user can get an output port.
+     * Ensures the NONE user can get a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserGetOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getNoneUser());
+    public void testNoneUserGetLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ user cannot put an output port.
+     * Ensures the READ user cannot put a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserPutOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getReadUser());
+    public void testReadUserPutLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
         entity.getRevision().setClientId(READ_CLIENT_ID);
-        entity.getComponent().setName("Updated Name" + count++);
+        entity.getComponent().setLabel("Updated Label");
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadUser(), entity);
+        final ClientResponse response = updateLabel(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ_WRITE user can put an output port.
+     * Ensures the READ_WRITE user can put a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getReadWriteUser());
+    public void testReadWriteUserPutLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
+        final String updatedLabel = "Updated Name";
 
         // attempt to update the name
         final long version = entity.getRevision().getVersion();
         entity.getRevision().setClientId(AccessControlHelper.READ_WRITE_CLIENT_ID);
-        entity.getComponent().setName(updatedName);
+        entity.getComponent().setLabel(updatedLabel);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateLabel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
-        assertEquals(updatedName, responseEntity.getComponent().getName());
+        assertEquals(updatedLabel, responseEntity.getComponent().getLabel());
     }
 
     /**
-     * Ensures the READ_WRITE user can put an output port.
+     * Ensures the READ_WRITE user can put a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutOutputPortThroughInheritedPolicy() throws Exception {
-        final PortEntity entity = createOutputPort(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
+    public void testReadWriteUserPutLabelThroughInheritedPolicy() throws Exception {
+        final LabelEntity entity = createLabel(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
 
-        final String updatedName = "Updated name" + count++;
+        final String updatedLabel = "Updated name";
 
         // attempt to update the name
         final long version = entity.getRevision().getVersion();
         entity.getRevision().setClientId(READ_WRITE_CLIENT_ID);
-        entity.getComponent().setName(updatedName);
+        entity.getComponent().setLabel(updatedLabel);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateLabel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
 
         // verify
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
-        assertEquals(updatedName, responseEntity.getComponent().getName());
+        assertEquals(updatedLabel, responseEntity.getComponent().getLabel());
     }
 
     /**
-     * Ensures the WRITE user can put an output port.
+     * Ensures the WRITE user can put a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserPutOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getWriteUser());
+    public void testWriteUserPutLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
+        final String updatedLabel = "Updated Name";
 
-        // attempt to update the name
-        final PortDTO requestDto = new PortDTO();
+        // attempt to update the label
+        final LabelDTO requestDto = new LabelDTO();
         requestDto.setId(entity.getId());
-        requestDto.setName(updatedName);
+        requestDto.setLabel(updatedLabel);
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.WRITE_CLIENT_ID);
 
-        final PortEntity requestEntity = new PortEntity();
+        final LabelEntity requestEntity = new LabelEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getWriteUser(), requestEntity);
+        final ClientResponse response = updateLabel(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final PortEntity responseEntity = response.getEntity(PortEntity.class);
+        final LabelEntity responseEntity = response.getEntity(LabelEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -242,85 +241,85 @@ public class OutputPortAccessControlTest {
     }
 
     /**
-     * Ensures the NONE user cannot put an output port.
+     * Ensures the NONE user cannot put a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserPutOutputPort() throws Exception {
-        final PortEntity entity = getRandomOutputPort(helper.getNoneUser());
+    public void testNoneUserPutLabel() throws Exception {
+        final LabelEntity entity = getRandomLabel(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
+        final String updatedName = "Updated Name";
 
         // attempt to update the name
-        final PortDTO requestDto = new PortDTO();
+        final LabelDTO requestDto = new LabelDTO();
         requestDto.setId(entity.getId());
-        requestDto.setName(updatedName);
+        requestDto.setLabel(updatedName);
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.NONE_CLIENT_ID);
 
-        final PortEntity requestEntity = new PortEntity();
+        final LabelEntity requestEntity = new LabelEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateOutputPort(helper.getNoneUser(), requestEntity);
+        final ClientResponse response = updateLabel(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ user cannot delete an output port.
+     * Ensures the READ user cannot delete a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserDeleteOutputPort() throws Exception {
+    public void testReadUserDeleteLabel() throws Exception {
         verifyDelete(helper.getReadUser(), AccessControlHelper.READ_CLIENT_ID, 403);
     }
 
     /**
-     * Ensures the READ WRITE user can delete an output port.
+     * Ensures the READ WRITE user can delete a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserDeleteOutputPort() throws Exception {
+    public void testReadWriteUserDeleteLabel() throws Exception {
         verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the WRITE user can delete an Output port.
+     * Ensures the WRITE user can delete a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserDeleteOutputPort() throws Exception {
+    public void testWriteUserDeleteLabel() throws Exception {
         verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the NONE user can delete an Output port.
+     * Ensures the NONE user can delete a label.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserDeleteOutputPort() throws Exception {
+    public void testNoneUserDeleteLabel() throws Exception {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
     }
 
-    private PortEntity getRandomOutputPort(final NiFiTestUser user) throws Exception {
+    private LabelEntity getRandomLabel(final NiFiTestUser user) throws Exception {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
-        // get the output ports
+        // get the labels
         final ClientResponse response = user.testGet(url);
 
         // ensure the response was successful
@@ -329,32 +328,30 @@ public class OutputPortAccessControlTest {
         // unmarshal
         final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
-        final Set<PortEntity> outputPorts = flowDto.getOutputPorts();
+        final Set<LabelEntity> labels = flowDto.getLabels();
 
-        // ensure the correct number of output ports
-        assertFalse(outputPorts.isEmpty());
+        // ensure the correct number of labels
+        assertFalse(labels.isEmpty());
 
-        // use the first output port as the target
-        Iterator<PortEntity> outputPortIter = outputPorts.iterator();
-        assertTrue(outputPortIter.hasNext());
-        return outputPortIter.next();
+        // use the first label as the target
+        Iterator<LabelEntity> labelIter = labels.iterator();
+        assertTrue(labelIter.hasNext());
+        return labelIter.next();
     }
 
-    private ClientResponse updateOutputPort(final NiFiTestUser user, final PortEntity entity) throws Exception {
-        final String url = helper.getBaseUrl() + "/output-ports/" + entity.getId();
+    private ClientResponse updateLabel(final NiFiTestUser user, final LabelEntity entity) throws Exception {
+        final String url = helper.getBaseUrl() + "/labels/" + entity.getId();
 
         // perform the request
         return user.testPut(url, entity);
     }
 
-    private PortEntity createOutputPort(final String name) throws Exception {
-        String url = helper.getBaseUrl() + "/process-groups/root/output-ports";
+    private LabelEntity createLabel(final String name) throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/labels";
 
-        final String updatedName = name + count++;
-
-        // create the output port
-        PortDTO outputPort = new PortDTO();
-        outputPort.setName(updatedName);
+        // create the label
+        LabelDTO label = new LabelDTO();
+        label.setLabel(name);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -362,9 +359,9 @@ public class OutputPortAccessControlTest {
         revision.setVersion(0L);
 
         // create the entity body
-        PortEntity entity = new PortEntity();
+        LabelEntity entity = new LabelEntity();
         entity.setRevision(revision);
-        entity.setComponent(outputPort);
+        entity.setComponent(label);
 
         // perform the request
         ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
@@ -373,22 +370,22 @@ public class OutputPortAccessControlTest {
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(PortEntity.class);
+        entity = response.getEntity(LabelEntity.class);
 
         // verify creation
-        outputPort = entity.getComponent();
-        assertEquals(updatedName, outputPort.getName());
+        label = entity.getComponent();
+        assertEquals(name, label.getLabel());
 
-        // get the output port
+        // get the label id
         return entity;
     }
 
     private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
-        final PortEntity entity = createOutputPort("Copy");
+        final LabelEntity entity = createLabel("Copy");
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request

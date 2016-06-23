@@ -70,7 +70,8 @@ public class RevisionDTO {
      * @return The user that last modified the flow
      */
     @ApiModelProperty(
-            value = "The user that last modified the flow."
+            value = "The user that last modified the flow.",
+            readOnly = true
     )
     public String getLastModifier() {
         return lastModifier;

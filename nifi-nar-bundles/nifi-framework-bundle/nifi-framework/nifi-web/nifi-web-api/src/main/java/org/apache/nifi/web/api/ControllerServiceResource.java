@@ -33,7 +33,6 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -64,7 +63,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -371,12 +369,10 @@ public class ControllerServiceResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable controllerService = lookup.getControllerService(id);
-                controllerService.authorize(authorizer, RequestAction.WRITE);
+                final Authorizable processor = lookup.getControllerService(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
             });
         }
-
-        // handle expects request (usually from the cluster manager)
         if (validationPhase) {
             serviceFacade.verifyCanClearControllerServiceState(id);
             return generateContinueResponse().build();
@@ -624,23 +620,16 @@ public class ControllerServiceResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable controllerService = lookup.getControllerService(id);
-                controllerService.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getControllerService(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
             () -> {
                 // update the controller service
-                final UpdateResult<ControllerServiceEntity> updateResult = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
-
-                // build the response entity
-                final ControllerServiceEntity entity = updateResult.getResult();
+                final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
                 populateRemainingControllerServiceContent(entity.getComponent());
 
-                if (updateResult.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             }
         );
     }

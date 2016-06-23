@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
+import com.sun.jersey.api.client.ClientResponse;
 import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestServer;
@@ -25,6 +26,8 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Access control test for the dfm user.
@@ -48,6 +51,10 @@ public class AccessControlHelper {
     private String baseUrl;
 
     public AccessControlHelper(final String flowXmlPath) throws Exception {
+        this(flowXmlPath, null);
+    }
+
+    public AccessControlHelper(final String flowXmlPath, final String overrideAuthorizer) throws Exception {
         this.flowXmlPath = flowXmlPath;
 
         // look for the flow.xml and toss it
@@ -63,6 +70,10 @@ public class AccessControlHelper {
         // update the flow.xml property
         NiFiProperties props = NiFiProperties.getInstance();
         props.setProperty(NiFiProperties.FLOW_CONFIGURATION_FILE, flowXmlPath);
+
+        if (overrideAuthorizer != null) {
+            props.setProperty(NiFiProperties.SECURITY_USER_AUTHORIZER, overrideAuthorizer);
+        }
 
         // load extensions
         NarClassLoaders.load(props);
@@ -100,6 +111,26 @@ public class AccessControlHelper {
 
     public NiFiTestUser getNoneUser() {
         return noneUser;
+    }
+
+    public void testGenericGetUri(final String uri) throws Exception {
+        ClientResponse response;
+
+        // read
+        response = getReadUser().testGet(uri);
+        assertEquals(200, response.getStatus());
+
+        // read/write
+        response = getReadWriteUser().testGet(uri);
+        assertEquals(200, response.getStatus());
+
+        // write
+        response = getWriteUser().testGet(uri);
+        assertEquals(403, response.getStatus());
+
+        // none
+        response = getNoneUser().testGet(uri);
+        assertEquals(403, response.getStatus());
     }
 
     public String getBaseUrl() {

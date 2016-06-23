@@ -31,7 +31,6 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -57,7 +56,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
@@ -359,12 +357,10 @@ public class ReportingTaskResource extends ApplicationResource {
         if (isValidationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable reportingTask = lookup.getReportingTask(id);
-                reportingTask.authorize(authorizer, RequestAction.WRITE);
+                final Authorizable processor = lookup.getReportingTask(id);
+                processor.authorize(authorizer, RequestAction.WRITE);
             });
         }
-
-        // handle expects request (usually from the cluster manager)
         if (isValidationPhase) {
             serviceFacade.verifyCanClearReportingTaskState(id);
             return generateContinueResponse().build();
@@ -446,23 +442,16 @@ public class ReportingTaskResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable reportingTask = lookup.getReportingTask(id);
-                reportingTask.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getReportingTask(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
             () -> {
                 // update the reporting task
-                final UpdateResult<ReportingTaskEntity> controllerResponse = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
-
-                // get the results
-                final ReportingTaskEntity entity = controllerResponse.getResult();
+                final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
                 populateRemainingReportingTaskEntityContent(entity);
 
-                if (controllerResponse.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             }
         );
     }

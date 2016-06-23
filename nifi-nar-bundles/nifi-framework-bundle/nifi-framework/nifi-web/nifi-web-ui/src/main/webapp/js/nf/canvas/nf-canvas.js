@@ -131,8 +131,8 @@ nf.Canvas = (function () {
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
-            controllerConfig: '../nifi-api/controller/config',
-            cluster: '../nifi-api/cluster'
+            flowConfig: '../nifi-api/flow/config',
+            cluster: '../nifi-api/controller/cluster'
         }
     };
     
@@ -811,7 +811,7 @@ nf.Canvas = (function () {
                 // get the controller config to register the status poller
                 var configXhr = $.ajax({
                     type: 'GET',
-                    url: config.urls.controllerConfig,
+                    url: config.urls.flowConfig,
                     dataType: 'json'
                 });
 
@@ -842,7 +842,7 @@ nf.Canvas = (function () {
                     nf.Canvas.CANVAS_OFFSET = canvasContainer.offset().top;
 
                     // get the config details
-                    var configDetails = configResponse.config;
+                    var configDetails = configResponse.flowConfiguration;
 
                     // when both request complete, load the application
                     isClusteredRequest.done(function () {

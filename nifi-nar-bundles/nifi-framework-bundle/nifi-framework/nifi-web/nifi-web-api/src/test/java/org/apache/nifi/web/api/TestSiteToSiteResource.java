@@ -83,7 +83,7 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = new SiteToSiteResource();
         resource.setProperties(NiFiProperties.getInstance());
         resource.setServiceFacade(serviceFacade);
-        final Response response = resource.getController(req);
+        final Response response = resource.getSiteToSite(req);
 
         ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
 
@@ -110,7 +110,7 @@ public class TestSiteToSiteResource {
         final SiteToSiteResource resource = new SiteToSiteResource();
         resource.setProperties(NiFiProperties.getInstance());
         resource.setServiceFacade(serviceFacade);
-        final Response response = resource.getController(req);
+        final Response response = resource.getSiteToSite(req);
 
         ControllerEntity resultEntity = (ControllerEntity)response.getEntity();
 

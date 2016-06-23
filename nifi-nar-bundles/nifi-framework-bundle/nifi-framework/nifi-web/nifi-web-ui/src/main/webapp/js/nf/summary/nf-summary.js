@@ -68,7 +68,7 @@ nf.Summary = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            cluster: '../nifi-api/cluster'
+            cluster: '../nifi-api/controller/cluster'
         }
     };
 

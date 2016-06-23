@@ -17,12 +17,12 @@
 package org.apache.nifi.integration.accesscontrol;
 
 import com.sun.jersey.api.client.ClientResponse;
-import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.FunnelDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,14 +44,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Access control test for process groups.
+ * Access control test for funnels.
  */
-public class ProcessGroupAccessControlTest {
+public class ITFunnelAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-processors.xml";
+    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-funnels.xml";
 
     private static AccessControlHelper helper;
-    private static int count = 0;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -59,182 +58,151 @@ public class ProcessGroupAccessControlTest {
     }
 
     /**
-     * Ensures the READ user can get a process group.
+     * Ensures the READ user can get a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserGetProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
+    public void testReadUserGetFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ WRITE user can get a process group.
+     * Ensures the READ WRITE user can get a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserGetProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
+    public void testReadWriteUserGetFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the WRITE user can get a process group.
+     * Ensures the WRITE user can get a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserGetProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
+    public void testWriteUserGetFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the NONE user can get a process group.
+     * Ensures the NONE user can get a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserGetProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
+    public void testNoneUserGetFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ user cannot put a processor.
+     * Ensures the READ user cannot put a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserPutProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
+    public void testReadUserPutFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        // attempt update the name
+        // attempt update the position
         entity.getRevision().setClientId(READ_CLIENT_ID);
-        entity.getComponent().setName("Updated Name" + count++);
+        entity.getComponent().setPosition(new PositionDTO(0.0, 10.0));
 
         // perform the request
-        final ClientResponse response = updateProcessGroup(helper.getReadUser(), entity);
+        final ClientResponse response = updateFunnel(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ_WRITE user can put a process group.
+     * Ensures the READ_WRITE user can put a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
+    public void testReadWriteUserPutFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
+        final double y = 15.0;
 
-        // attempt to update the name
+        // attempt to update the position
         final long version = entity.getRevision().getVersion();
         entity.getRevision().setClientId(AccessControlHelper.READ_WRITE_CLIENT_ID);
-        entity.getComponent().setName(updatedName);
+        entity.getComponent().setPosition(new PositionDTO(0.0, y));
 
         // perform the request
-        final ClientResponse response = updateProcessGroup(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateFunnel(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
+        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
-        assertEquals(updatedName, responseEntity.getComponent().getName());
+        assertEquals(y, responseEntity.getComponent().getPosition().getY().doubleValue(), 0);
     }
 
     /**
-     * Ensures the READ_WRITE user can put a process grup.
+     * Ensures the WRITE user can put a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutProcessGroupThroughInheritedPolicy() throws Exception {
-        final ProcessGroupEntity entity = createProcessGroup(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
-
-        final String updatedName = "Updated name" + count++;
-
-        // attempt to update the name
-        final long version = entity.getRevision().getVersion();
-        entity.getRevision().setClientId(READ_WRITE_CLIENT_ID);
-        entity.getComponent().setName(updatedName);
-
-        // perform the request
-        final ClientResponse response = updateProcessGroup(helper.getReadWriteUser(), entity);
-
-        // ensure successful response
-        assertEquals(200, response.getStatus());
-
-        // get the response
-        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
-
-        // verify
-        assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
-        assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
-        assertEquals(updatedName, responseEntity.getComponent().getName());
-    }
-
-    /**
-     * Ensures the WRITE user can put a process group.
-     *
-     * @throws Exception ex
-     */
-    @Test
-    public void testWriteUserPutProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
+    public void testWriteUserPutFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
+        final double y = 15.0;
 
-        // attempt to update the name
-        final ProcessGroupDTO requestDto = new ProcessGroupDTO();
+        // attempt to update the position
+        final FunnelDTO requestDto = new FunnelDTO();
         requestDto.setId(entity.getId());
-        requestDto.setName(updatedName);
+        requestDto.setPosition(new PositionDTO(0.0, y));
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.WRITE_CLIENT_ID);
 
-        final ProcessGroupEntity requestEntity = new ProcessGroupEntity();
+        final FunnelEntity requestEntity = new FunnelEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateProcessGroup(helper.getWriteUser(), requestEntity);
+        final ClientResponse response = updateFunnel(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final ProcessGroupEntity responseEntity = response.getEntity(ProcessGroupEntity.class);
+        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -242,85 +210,83 @@ public class ProcessGroupAccessControlTest {
     }
 
     /**
-     * Ensures the NONE user cannot put a process group.
+     * Ensures the NONE user cannot put a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserPutProcessGroup() throws Exception {
-        final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
+    public void testNoneUserPutFunnel() throws Exception {
+        final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final String updatedName = "Updated Name" + count++;
-
-        // attempt to update the name
-        final ProcessGroupDTO requestDto = new ProcessGroupDTO();
+        // attempt to update the position
+        final FunnelDTO requestDto = new FunnelDTO();
         requestDto.setId(entity.getId());
-        requestDto.setName(updatedName);
+        requestDto.setPosition(new PositionDTO(0.0, 15.0));
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.NONE_CLIENT_ID);
 
-        final ProcessGroupEntity requestEntity = new ProcessGroupEntity();
+        final FunnelEntity requestEntity = new FunnelEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateProcessGroup(helper.getNoneUser(), requestEntity);
+        final ClientResponse response = updateFunnel(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ user cannot delete a process group.
+     * Ensures the READ user cannot delete a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserDeleteProcessGroup() throws Exception {
+    public void testReadUserDeleteFunnel() throws Exception {
         verifyDelete(helper.getReadUser(), AccessControlHelper.READ_CLIENT_ID, 403);
     }
 
     /**
-     * Ensures the READ WRITE user can delete a process group.
+     * Ensures the READ WRITE user can delete a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserDeleteProcessGroup() throws Exception {
+    public void testReadWriteUserDeleteFunnel() throws Exception {
         verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the WRITE user can delete a process group.
+     * Ensures the WRITE user can delete a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserDeleteProcessGroup() throws Exception {
+    public void testWriteUserDeleteFunnel() throws Exception {
         verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the NONE user can delete a process group.
+     * Ensures the NONE user can delete a funnel.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserDeleteProcessGroup() throws Exception {
+    public void testNoneUserDeleteFunnel() throws Exception {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
     }
 
-    private ProcessGroupEntity getRandomProcessGroup(final NiFiTestUser user) throws Exception {
+    private FunnelEntity getRandomFunnel(final NiFiTestUser user) throws Exception {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
-        // get the process groups
+        // get the flow
         final ClientResponse response = user.testGet(url);
 
         // ensure the response was successful
@@ -329,32 +295,29 @@ public class ProcessGroupAccessControlTest {
         // unmarshal
         final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
-        final Set<ProcessGroupEntity> processGroups = flowDto.getProcessGroups();
+        final Set<FunnelEntity> funnels = flowDto.getFunnels();
 
-        // ensure the correct number of process groups
-        assertFalse(processGroups.isEmpty());
+        // ensure the correct number of funnels
+        assertFalse(funnels.isEmpty());
 
-        // use the first process group as the target
-        Iterator<ProcessGroupEntity> processGroupIter = processGroups.iterator();
-        assertTrue(processGroupIter.hasNext());
-        return processGroupIter.next();
+        // use the first funnel as the target
+        Iterator<FunnelEntity> funnelIter = funnels.iterator();
+        assertTrue(funnelIter.hasNext());
+        return funnelIter.next();
     }
 
-    private ClientResponse updateProcessGroup(final NiFiTestUser user, final ProcessGroupEntity entity) throws Exception {
-        final String url = helper.getBaseUrl() + "/process-groups/" + entity.getId();
+    private ClientResponse updateFunnel(final NiFiTestUser user, final FunnelEntity entity) throws Exception {
+        final String url = helper.getBaseUrl() + "/funnels/" + entity.getId();
 
         // perform the request
         return user.testPut(url, entity);
     }
 
-    private ProcessGroupEntity createProcessGroup(final String name) throws Exception {
-        String url = helper.getBaseUrl() + "/process-groups/root/process-groups";
+    private FunnelEntity createFunnel() throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/funnels";
 
-        final String updatedName = name + count++;
-
-        // create the process group
-        ProcessGroupDTO processor = new ProcessGroupDTO();
-        processor.setName(updatedName);
+        // create the funnel
+        FunnelDTO funnel = new FunnelDTO();
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -362,9 +325,9 @@ public class ProcessGroupAccessControlTest {
         revision.setVersion(0L);
 
         // create the entity body
-        ProcessGroupEntity entity = new ProcessGroupEntity();
+        FunnelEntity entity = new FunnelEntity();
         entity.setRevision(revision);
-        entity.setComponent(processor);
+        entity.setComponent(funnel);
 
         // perform the request
         ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
@@ -373,22 +336,15 @@ public class ProcessGroupAccessControlTest {
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        entity = response.getEntity(ProcessGroupEntity.class);
-
-        // verify creation
-        processor = entity.getComponent();
-        assertEquals(updatedName, processor.getName());
-
-        // get the processor
-        return entity;
+        return response.getEntity(FunnelEntity.class);
     }
 
     private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
-        final ProcessGroupEntity entity = createProcessGroup("Copy");
+        final FunnelEntity entity = createFunnel();
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request

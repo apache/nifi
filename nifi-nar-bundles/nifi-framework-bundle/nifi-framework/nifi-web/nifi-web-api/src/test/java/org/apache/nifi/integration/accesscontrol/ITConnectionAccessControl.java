@@ -17,18 +17,22 @@
 package org.apache.nifi.integration.accesscontrol;
 
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.integration.util.NiFiTestAuthorizer;
 import org.apache.nifi.integration.util.NiFiTestUser;
-import org.apache.nifi.web.api.dto.FunnelDTO;
-import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.dto.ConnectableDTO;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
-import org.apache.nifi.web.api.entity.FunnelEntity;
+import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -44,11 +48,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Access control test for funnels.
+ * Access control test for connections.
  */
-public class FunnelAccessControlTest {
+public class ITConnectionAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-funnels.xml";
+    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-connections.xml";
 
     private static AccessControlHelper helper;
 
@@ -58,151 +62,182 @@ public class FunnelAccessControlTest {
     }
 
     /**
-     * Ensures the READ user can get a funnel.
+     * Ensures the READ user can get a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserGetFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
+    public void testReadUserGetConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ WRITE user can get a funnel.
+     * Ensures the READ WRITE user can get a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserGetFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
+    public void testReadWriteUserGetConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
     /**
-     * Ensures the WRITE user can get a funnel.
+     * Ensures the WRITE user can get a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserGetFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
+    public void testWriteUserGetConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the NONE user can get a funnel.
+     * Ensures the NONE user can get a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserGetFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
+    public void testNoneUserGetConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
     }
 
     /**
-     * Ensures the READ user cannot put a funnel.
+     * Ensures the READ user cannot put a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserPutFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
+    public void testReadUserPutConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        // attempt update the position
+        // attempt update the name
         entity.getRevision().setClientId(READ_CLIENT_ID);
-        entity.getComponent().setPosition(new PositionDTO(0.0, 10.0));
+        entity.getComponent().setName("Updated Name");
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getReadUser(), entity);
+        final ClientResponse response = updateConnection(helper.getReadUser(), entity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ_WRITE user can put a funnel.
+     * Ensures the READ_WRITE user can put a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserPutFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
+    public void testReadWriteUserPutConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
         assertTrue(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNotNull(entity.getComponent());
 
-        final double y = 15.0;
+        final String updatedName = "Updated Name";
 
-        // attempt to update the position
+        // attempt to update the name
         final long version = entity.getRevision().getVersion();
         entity.getRevision().setClientId(AccessControlHelper.READ_WRITE_CLIENT_ID);
-        entity.getComponent().setPosition(new PositionDTO(0.0, y));
+        entity.getComponent().setName(updatedName);
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getReadWriteUser(), entity);
+        final ClientResponse response = updateConnection(helper.getReadWriteUser(), entity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
+        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
 
         // verify
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
-        assertEquals(y, responseEntity.getComponent().getPosition().getY().doubleValue(), 0);
+        assertEquals(updatedName, responseEntity.getComponent().getName());
     }
 
     /**
-     * Ensures the WRITE user can put a funnel.
+     * Ensures the READ_WRITE user can put a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserPutFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
+    public void testReadWriteUserPutConnectionThroughInheritedPolicy() throws Exception {
+        final ConnectionEntity entity = createConnection(NiFiTestAuthorizer.NO_POLICY_COMPONENT_NAME);
+
+        final String updatedName = "Updated name";
+
+        // attempt to update the name
+        final long version = entity.getRevision().getVersion();
+        entity.getRevision().setClientId(READ_WRITE_CLIENT_ID);
+        entity.getComponent().setName(updatedName);
+
+        // perform the request
+        final ClientResponse response = updateConnection(helper.getReadWriteUser(), entity);
+
+        // ensure successful response
+        assertEquals(200, response.getStatus());
+
+        // get the response
+        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
+
+        // verify
+        assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
+        assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
+        assertEquals(updatedName, responseEntity.getComponent().getName());
+    }
+
+    /**
+     * Ensures the WRITE user can put a connection.
+     *
+     * @throws Exception ex
+     */
+    @Test
+    public void testWriteUserPutConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertTrue(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        final double y = 15.0;
+        final String updatedName = "Updated Name";
 
-        // attempt to update the position
-        final FunnelDTO requestDto = new FunnelDTO();
+        // attempt to update the name
+        final ConnectionDTO requestDto = new ConnectionDTO();
         requestDto.setId(entity.getId());
-        requestDto.setPosition(new PositionDTO(0.0, y));
+        requestDto.setName(updatedName);
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.WRITE_CLIENT_ID);
 
-        final FunnelEntity requestEntity = new FunnelEntity();
+        final ConnectionEntity requestEntity = new ConnectionEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getWriteUser(), requestEntity);
+        final ClientResponse response = updateConnection(helper.getWriteUser(), requestEntity);
 
         // ensure successful response
         assertEquals(200, response.getStatus());
 
         // get the response
-        final FunnelEntity responseEntity = response.getEntity(FunnelEntity.class);
+        final ConnectionEntity responseEntity = response.getEntity(ConnectionEntity.class);
 
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
@@ -210,83 +245,85 @@ public class FunnelAccessControlTest {
     }
 
     /**
-     * Ensures the NONE user cannot put a funnel.
+     * Ensures the NONE user cannot put a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserPutFunnel() throws Exception {
-        final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
+    public void testNoneUserPutConnection() throws Exception {
+        final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
         assertFalse(entity.getAccessPolicy().getCanRead());
         assertFalse(entity.getAccessPolicy().getCanWrite());
         assertNull(entity.getComponent());
 
-        // attempt to update the position
-        final FunnelDTO requestDto = new FunnelDTO();
+        final String updatedName = "Updated Name";
+
+        // attempt to update the name
+        final ConnectionDTO requestDto = new ConnectionDTO();
         requestDto.setId(entity.getId());
-        requestDto.setPosition(new PositionDTO(0.0, 15.0));
+        requestDto.setName(updatedName);
 
         final long version = entity.getRevision().getVersion();
         final RevisionDTO requestRevision = new RevisionDTO();
         requestRevision.setVersion(version);
         requestRevision.setClientId(AccessControlHelper.NONE_CLIENT_ID);
 
-        final FunnelEntity requestEntity = new FunnelEntity();
+        final ConnectionEntity requestEntity = new ConnectionEntity();
         requestEntity.setId(entity.getId());
         requestEntity.setRevision(requestRevision);
         requestEntity.setComponent(requestDto);
 
         // perform the request
-        final ClientResponse response = updateFunnel(helper.getNoneUser(), requestEntity);
+        final ClientResponse response = updateConnection(helper.getNoneUser(), requestEntity);
 
         // ensure forbidden response
         assertEquals(403, response.getStatus());
     }
 
     /**
-     * Ensures the READ user cannot delete a funnel.
+     * Ensures the READ user cannot delete a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadUserDeleteFunnel() throws Exception {
+    public void testReadUserDeleteConnection() throws Exception {
         verifyDelete(helper.getReadUser(), AccessControlHelper.READ_CLIENT_ID, 403);
     }
 
     /**
-     * Ensures the READ WRITE user can delete a funnel.
+     * Ensures the READ WRITE user can delete a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testReadWriteUserDeleteFunnel() throws Exception {
+    public void testReadWriteUserDeleteConnection() throws Exception {
         verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the WRITE user can delete a funnel.
+     * Ensures the WRITE user can delete a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testWriteUserDeleteFunnel() throws Exception {
+    public void testWriteUserDeleteConnection() throws Exception {
         verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
     }
 
     /**
-     * Ensures the NONE user can delete a funnel.
+     * Ensures the NONE user can delete a connection.
      *
      * @throws Exception ex
      */
     @Test
-    public void testNoneUserDeleteFunnel() throws Exception {
+    public void testNoneUserDeleteConnection() throws Exception {
         verifyDelete(helper.getNoneUser(), NONE_CLIENT_ID, 403);
     }
 
-    private FunnelEntity getRandomFunnel(final NiFiTestUser user) throws Exception {
+    private ConnectionEntity getRandomConnection(final NiFiTestUser user) throws Exception {
         final String url = helper.getBaseUrl() + "/flow/process-groups/root";
 
-        // get the flow
+        // get the connections
         final ClientResponse response = user.testGet(url);
 
         // ensure the response was successful
@@ -295,29 +332,51 @@ public class FunnelAccessControlTest {
         // unmarshal
         final ProcessGroupFlowEntity flowEntity = response.getEntity(ProcessGroupFlowEntity.class);
         final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
-        final Set<FunnelEntity> funnels = flowDto.getFunnels();
+        final Set<ConnectionEntity> connections = flowDto.getConnections();
 
-        // ensure the correct number of funnels
-        assertFalse(funnels.isEmpty());
+        // ensure the correct number of connection
+        assertFalse(connections.isEmpty());
 
-        // use the first funnel as the target
-        Iterator<FunnelEntity> funnelIter = funnels.iterator();
-        assertTrue(funnelIter.hasNext());
-        return funnelIter.next();
+        // use the first connection as the target
+        Iterator<ConnectionEntity> connectionIter = connections.iterator();
+        assertTrue(connectionIter.hasNext());
+        return connectionIter.next();
     }
 
-    private ClientResponse updateFunnel(final NiFiTestUser user, final FunnelEntity entity) throws Exception {
-        final String url = helper.getBaseUrl() + "/funnels/" + entity.getId();
+    private ClientResponse updateConnection(final NiFiTestUser user, final ConnectionEntity entity) throws Exception {
+        final String url = helper.getBaseUrl() + "/connections/" + entity.getId();
 
         // perform the request
         return user.testPut(url, entity);
     }
 
-    private FunnelEntity createFunnel() throws Exception {
-        String url = helper.getBaseUrl() + "/process-groups/root/funnels";
+    private ConnectionEntity createConnection(final String name) throws Exception {
+        String url = helper.getBaseUrl() + "/process-groups/root/connections";
 
-        // create the funnel
-        FunnelDTO funnel = new FunnelDTO();
+        // get two processors
+        final ProcessorEntity one = ITProcessorAccessControl.createProcessor(helper, "one");
+        final ProcessorEntity two = ITProcessorAccessControl.createProcessor(helper, "two");
+
+        // create the source connectable
+        ConnectableDTO source = new ConnectableDTO();
+        source.setId(one.getId());
+        source.setType(ConnectableType.PROCESSOR.name());
+
+        // create the target connectable
+        ConnectableDTO target = new ConnectableDTO();
+        target.setId(two.getId());
+        target.setType(ConnectableType.PROCESSOR.name());
+
+        // create the relationships
+        Set<String> relationships = new HashSet<>();
+        relationships.add("success");
+
+        // create the connection
+        ConnectionDTO connection = new ConnectionDTO();
+        connection.setName(name);
+        connection.setSource(source);
+        connection.setDestination(target);
+        connection.setSelectedRelationships(relationships);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -325,9 +384,9 @@ public class FunnelAccessControlTest {
         revision.setVersion(0L);
 
         // create the entity body
-        FunnelEntity entity = new FunnelEntity();
+        ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(revision);
-        entity.setComponent(funnel);
+        entity.setComponent(connection);
 
         // perform the request
         ClientResponse response = helper.getReadWriteUser().testPost(url, entity);
@@ -336,15 +395,22 @@ public class FunnelAccessControlTest {
         assertEquals(201, response.getStatus());
 
         // get the entity body
-        return response.getEntity(FunnelEntity.class);
+        entity = response.getEntity(ConnectionEntity.class);
+
+        // verify creation
+        connection = entity.getComponent();
+        assertEquals(name, connection.getName());
+
+        // get the connection
+        return entity;
     }
 
     private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
-        final FunnelEntity entity = createFunnel();
+        final ConnectionEntity entity = createConnection("Copy");
 
         // create the entity body
         final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("revision", String.valueOf(entity.getRevision().getVersion()));
+        queryParams.put("version", String.valueOf(entity.getRevision().getVersion()));
         queryParams.put("clientId", clientId);
 
         // perform the request

@@ -35,10 +35,6 @@ public class NiFiUser implements Serializable {
         this(identity, identity, null);
     }
 
-    public NiFiUser(String identity, String userName) {
-        this(identity, userName, null);
-    }
-
     public NiFiUser(String identity, NiFiUser chain) {
         this(identity, identity, chain);
     }

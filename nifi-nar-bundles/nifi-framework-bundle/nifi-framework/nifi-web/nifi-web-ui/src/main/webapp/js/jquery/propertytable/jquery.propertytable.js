@@ -956,6 +956,11 @@
 
                     // build the controller service entity
                     var controllerServiceEntity = {
+                        'revision': nf.Client.getRevision({
+                            'revision': {
+                                'version': 0,
+                            }
+                        }),
                         'component': {
                             'type': newControllerServiceType
                         }

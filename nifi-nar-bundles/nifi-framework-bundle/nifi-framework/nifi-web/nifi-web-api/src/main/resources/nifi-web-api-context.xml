@@ -116,7 +116,7 @@
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
         <property name="clusterCoordinator" ref="clusterCoordinator" />
-        <property name="keyService" ref="keyService"/>
+        <property name="authorizer" ref="authorizer"/>
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
     </bean>
@@ -157,7 +157,6 @@
         <property name="userGroupDAO" ref="policyBasedAuthorizerDAO"/>
         <property name="userDAO" ref="policyBasedAuthorizerDAO"/>
         <property name="auditService" ref="auditService"/>
-        <property name="keyService" ref="keyService"/>
         <property name="snippetUtils" ref="snippetUtils"/>
         <property name="revisionManager" ref="revisionManager" />
         <property name="dtoFactory" ref="dtoFactory"/>
@@ -219,6 +218,7 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="snippetResource" class="org.apache.nifi.web.api.SnippetResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
@@ -320,12 +320,6 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer" />
     </bean>
-    <bean id="historyResource" class="org.apache.nifi.web.api.HistoryResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterCoordinator" ref="clusterCoordinator"/>
-        <property name="requestReplicator" ref="requestReplicator" />
-    </bean>
     <bean id="provenanceResource" class="org.apache.nifi.web.api.ProvenanceResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
@@ -333,17 +327,12 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
     </bean>
-    <bean id="clusterResource" class="org.apache.nifi.web.api.ClusterResource" scope="singleton">
+    <bean id="countersResource" class="org.apache.nifi.web.api.CountersResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
-    </bean>
-    <bean id="nodeResource" class="org.apache.nifi.web.api.NodeResource" scope="singleton">
-        <property name="serviceFacade" ref="serviceFacade"/>
-        <property name="properties" ref="nifiProperties"/>
-        <property name="clusterCoordinator" ref="clusterCoordinator"/>
-        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="systemDiagnosticsResource" class="org.apache.nifi.web.api.SystemDiagnosticsResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>

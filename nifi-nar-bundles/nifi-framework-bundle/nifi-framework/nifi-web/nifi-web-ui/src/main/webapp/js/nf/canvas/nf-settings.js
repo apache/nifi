@@ -67,7 +67,7 @@ nf.Settings = (function () {
                     'version': version
                 }
             }),
-            'config': configuration
+            'controllerConfiguration': configuration
         };
 
         // save the new configuration details
@@ -358,6 +358,11 @@ nf.Settings = (function () {
     var addReportingTask = function (reportingTaskType) {
         // build the reporting task entity
         var reportingTaskEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'type': reportingTaskType
             }
@@ -836,12 +841,12 @@ nf.Settings = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 // update the current time
-                $('#settings-last-refreshed').text(response.config.currentTime);
+                $('#settings-last-refreshed').text(response.currentTime);
 
                 if (response.accessPolicy.canWrite) {
                     // populate the settings
-                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.config.maxTimerDrivenThreadCount);
-                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.config.maxEventDrivenThreadCount);
+                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxTimerDrivenThreadCount);
+                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxEventDrivenThreadCount);
 
                     setEditable(true);
 
@@ -852,8 +857,8 @@ nf.Settings = (function () {
                 } else {
                     if (response.accessPolicy.canRead) {
                         // populate the settings
-                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.config.maxTimerDrivenThreadCount);
-                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.config.maxEventDrivenThreadCount);
+                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxTimerDrivenThreadCount);
+                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxEventDrivenThreadCount);
                     } else {
                         setUnauthorizedText();
                     }

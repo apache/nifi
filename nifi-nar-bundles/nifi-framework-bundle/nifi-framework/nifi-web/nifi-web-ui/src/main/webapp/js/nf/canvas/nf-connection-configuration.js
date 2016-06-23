@@ -864,6 +864,11 @@ nf.ConnectionConfiguration = (function () {
 
         if (validateSettings()) {
             var connectionEntity = {
+                'revision': nf.Client.getRevision({
+                    'revision': {
+                        'version': 0
+                    }
+                }),
                 'component': {
                     'name': connectionName,
                     'source': {

@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
-    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
+    public static final String REPORTING_TASKS_URI = "/nifi-api/flow/reporting-tasks";
 
     @Override
     public boolean canHandle(URI uri, String method) {

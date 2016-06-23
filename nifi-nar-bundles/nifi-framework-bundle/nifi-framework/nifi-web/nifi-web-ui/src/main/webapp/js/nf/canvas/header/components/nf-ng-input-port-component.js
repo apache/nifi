@@ -28,6 +28,11 @@ nf.ng.InputPortComponent = function (serviceProvider) {
      */
     var createInputPort = function (portName, pt) {
         var inputPortEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'name': portName,
                 'position': {

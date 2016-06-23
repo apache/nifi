@@ -28,6 +28,11 @@ nf.ng.GroupComponent = function (serviceProvider) {
      */
     var createGroup = function (groupName, pt) {
         var processGroupEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'name': groupName,
                 'position': {

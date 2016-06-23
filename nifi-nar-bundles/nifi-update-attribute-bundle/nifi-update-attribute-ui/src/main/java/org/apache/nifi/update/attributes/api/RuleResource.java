@@ -660,7 +660,7 @@ public class RuleResource {
 
             @Override
             public Revision getRevision() {
-                return new Revision(revision, clientId);
+                return new Revision(revision, clientId, processorId);
             }
         };
     }

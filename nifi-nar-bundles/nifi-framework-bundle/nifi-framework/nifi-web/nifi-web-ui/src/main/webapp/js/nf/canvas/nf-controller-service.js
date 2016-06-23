@@ -1691,7 +1691,7 @@ nf.ControllerService = (function () {
             // get the controller service history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/controller-services/' + encodeURIComponent(controllerServiceEntity.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(controllerServiceEntity.id),
                 dataType: 'json'
             });
 
@@ -1856,7 +1856,7 @@ nf.ControllerService = (function () {
             // get the controller service history
             var loadHistory = $.ajax({
                 type: 'GET',
-                url: '../nifi-api/history/controller-services/' + encodeURIComponent(controllerServiceEntity.id),
+                url: '../nifi-api/flow/history/components/' + encodeURIComponent(controllerServiceEntity.id),
                 dataType: 'json'
             });
 

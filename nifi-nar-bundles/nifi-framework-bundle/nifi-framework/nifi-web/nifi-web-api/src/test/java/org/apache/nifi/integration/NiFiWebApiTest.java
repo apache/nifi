@@ -48,10 +48,6 @@ import java.util.Set;
 @Ignore
 public class NiFiWebApiTest {
 
-    public static void populateFlow(Client client, String baseUrl, String clientId) throws Exception {
-
-    }
-
     public static void populateFlow(Client client, String baseUrl, NiFiTestUser user, String clientId) throws Exception {
 
         // -----------------------------------------------
@@ -66,7 +62,7 @@ public class NiFiWebApiTest {
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId);
-        revision.setVersion(NiFiTestUser.REVISION);
+        revision.setVersion(0l);
 
         // create the local selection processor entity
         ProcessorEntity processorEntity = new ProcessorEntity();

@@ -27,7 +27,7 @@ nf.CountersTable = (function () {
             filterList: 'counters-filter-list'
         },
         urls: {
-            counters: '../nifi-api/controller/counters'
+            counters: '../nifi-api/counters'
         }
     };
 

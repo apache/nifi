@@ -21,4 +21,8 @@
         <identifier>test-provider</identifier>
         <class>org.apache.nifi.integration.util.NiFiTestAuthorizer</class>
     </authorizer>
+    <authorizer>
+        <identifier>flow-test-provider</identifier>
+        <class>org.apache.nifi.integration.util.NiFiFlowTestAuthorizer</class>
+    </authorizer>
 </authorizers>

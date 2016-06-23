@@ -69,6 +69,10 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nar-utils</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-properties</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.entity.UserEntity;
@@ -131,6 +130,10 @@ public class UsersResource extends ApplicationResource {
 
         if (userEntity == null || userEntity.getComponent() == null) {
             throw new IllegalArgumentException("User details must be specified.");
+        }
+
+        if (userEntity.getRevision() == null || (userEntity.getRevision().getVersion() == null || userEntity.getRevision().getVersion() != 0)) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
         }
 
         if (userEntity.getComponent().getId() != null) {
@@ -294,17 +297,10 @@ public class UsersResource extends ApplicationResource {
                 null,
                 () -> {
                     // update the user
-                    final UpdateResult<UserEntity> updateResult = serviceFacade.updateUser(revision, userDTO);
-
-                    // get the results
-                    final UserEntity entity = updateResult.getResult();
+                    final UserEntity entity = serviceFacade.updateUser(revision, userDTO);
                     populateRemainingUserEntityContent(entity);
 
-                    if (updateResult.isNew()) {
-                        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                    } else {
-                        return clusterContext(generateOkResponse(entity)).build();
-                    }
+                    return clusterContext(generateOkResponse(entity)).build();
                 }
         );
     }

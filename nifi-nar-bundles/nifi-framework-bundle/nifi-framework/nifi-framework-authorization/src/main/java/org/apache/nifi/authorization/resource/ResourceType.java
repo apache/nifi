@@ -38,6 +38,7 @@ public enum ResourceType {
     System("/system"),
     Template("/templates"),
     Token("/token"),
+    Counters("/counters"),
     User("/users");
 
     final String value;

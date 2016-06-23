@@ -28,6 +28,11 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
      */
     var createOutputPort = function (portName, pt) {
         var outputPortEntity = {
+            'revision': nf.Client.getRevision({
+                'revision': {
+                    'version': 0
+                }
+            }),
             'component': {
                 'name': portName,
                 'position': {

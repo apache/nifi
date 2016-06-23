@@ -28,7 +28,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.UpdateResult;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -50,7 +49,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.URI;
 import java.util.Set;
 
 /**
@@ -271,23 +269,16 @@ public class ConnectionResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable conn = lookup.getConnection(id);
-                conn.authorize(authorizer, RequestAction.WRITE);
+                Authorizable authorizable = lookup.getConnection(id);
+                authorizable.authorize(authorizer, RequestAction.WRITE);
             },
             () -> serviceFacade.verifyUpdateConnection(connection),
             () -> {
-                // update the relationship target
-                final UpdateResult<ConnectionEntity> updateResult = serviceFacade.updateConnection(revision, connection);
-
-                final ConnectionEntity entity = updateResult.getResult();
+                final ConnectionEntity entity = serviceFacade.updateConnection(revision, connection);
                 populateRemainingConnectionEntityContent(entity);
 
                 // generate the response
-                if (updateResult.isNew()) {
-                    return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
-                } else {
-                    return clusterContext(generateOkResponse(entity)).build();
-                }
+                return clusterContext(generateOkResponse(entity)).build();
             });
     }
 

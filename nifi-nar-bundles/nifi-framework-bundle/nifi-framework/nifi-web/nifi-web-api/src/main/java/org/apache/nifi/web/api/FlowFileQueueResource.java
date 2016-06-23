@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -339,15 +338,16 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(id);
-            connection.authorize(authorizer, RequestAction.WRITE);
-        });
-
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable connection = lookup.getConnection(id);
+                connection.authorize(authorizer, RequestAction.WRITE);
+            });
+        }
+        if (validationPhase) {
             serviceFacade.verifyListQueue(id);
             return generateContinueResponse().build();
         }
@@ -476,16 +476,17 @@ public class FlowFileQueueResource extends ApplicationResource {
         }
 
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable connection = lookup.getConnection(connectionId);
+                connection.authorize(authorizer, RequestAction.WRITE);
+            });
+        }
+        if (validationPhase) {
             return generateContinueResponse().build();
         }
-
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
-        });
 
         // delete the listing request
         final ListingRequestDTO listingRequest = serviceFacade.deleteFlowFileListingRequest(connectionId, listingRequestId);
@@ -544,15 +545,16 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.POST);
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(id);
-            connection.authorize(authorizer, RequestAction.WRITE);
-        });
-
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable connection = lookup.getConnection(id);
+                connection.authorize(authorizer, RequestAction.WRITE);
+            });
+        }
+        if (validationPhase) {
             return generateContinueResponse().build();
         }
 
@@ -679,15 +681,16 @@ public class FlowFileQueueResource extends ApplicationResource {
             return replicate(HttpMethod.DELETE);
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
-        });
-
         // handle expects request (usually from the cluster manager)
-        final String expects = httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER);
-        if (expects != null) {
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(lookup -> {
+                final Authorizable connection = lookup.getConnection(connectionId);
+                connection.authorize(authorizer, RequestAction.WRITE);
+            });
+        }
+        if (validationPhase) {
             return generateContinueResponse().build();
         }
 

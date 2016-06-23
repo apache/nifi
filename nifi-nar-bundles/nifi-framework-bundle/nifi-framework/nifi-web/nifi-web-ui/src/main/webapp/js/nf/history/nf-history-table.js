@@ -31,7 +31,7 @@ nf.HistoryTable = (function () {
             hidden: 'hidden'
         },
         urls: {
-            history: '../nifi-api/history'
+            history: '../nifi-api/controller/history'
         }
     };
 

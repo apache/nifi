@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationRequest;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -579,9 +583,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     public DownloadableContent getContent(String id, String flowFileUuid, String requestUri) {
         try {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
-            if (user == null) {
-                throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-            }
 
             final Connection connection = locateConnection(id);
             final FlowFileQueue queue = connection.getFlowFileQueue();
@@ -591,15 +592,27 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
 
+            final Map<String, String> attributes = flowFile.getAttributes();
+
             // calculate the dn chain
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
+            dnChain.forEach(identity -> {
+                // build the request
+                final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                        .identity(identity)
+                        .anonymous(user.isAnonymous())
+                        .accessAttempt(false)
+                        .action(RequestAction.WRITE)
+                        .resource(connection.getResource())
+                        .eventAttributes(attributes)
+                        .build();
 
-            // TODO - ensure the users in this chain are allowed to download this content
-            final Map<String, String> attributes = flowFile.getAttributes();
-//            final DownloadAuthorization downloadAuthorization = keyService.authorizeDownload(dnChain, attributes);
-//            if (!downloadAuthorization.isApproved()) {
-//                throw new AccessDeniedException(downloadAuthorization.getExplanation());
-//            }
+                // perform the authorization
+                final AuthorizationResult result = authorizer.authorize(request);
+                if (!Result.Approved.equals(result.getResult())) {
+                    throw new AccessDeniedException(result.getExplanation());
+                }
+            });
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());

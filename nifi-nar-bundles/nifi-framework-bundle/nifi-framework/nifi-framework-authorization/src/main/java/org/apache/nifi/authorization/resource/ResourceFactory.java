@@ -169,6 +169,18 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource COUNTERS_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Counters.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Counters";
+        }
+    };
+
     private final static Resource PROVENANCE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -437,6 +449,15 @@ public final class ResourceFactory {
     }
 
     /**
+     * Gets the Resource for accessing the Counters..
+     *
+     * @return  The resource for accessing the Controller
+     */
+    public static Resource getCountersResource() {
+        return COUNTERS_RESOURCE;
+    }
+
+    /**
      * Gets the Resource for accessing provenance. Access to this Resource allows the user to access data provenance. However, additional authorization
      * is required based on the component that generated the event and the attributes of the event.
      *
@@ -526,6 +547,29 @@ public final class ResourceFactory {
      */
     public static Resource getUserResource() {
         return USER_RESOURCE;
+    }
+
+    /**
+     * Gets a Resource for performing site to site on a port.
+     *
+     * @param identifier    The identifier of the component being accessed
+     * @param name          The name of the component being accessed
+     * @return              The resource
+     */
+    public static Resource getSiteToSiteResource(final String identifier, final String name) {
+        Objects.requireNonNull(identifier, "The component identifier must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s/%s", ResourceType.SiteToSite.getValue(), identifier);
+            }
+
+            @Override
+            public String getName() {
+                return name;
+            }
+        };
     }
 
     /**

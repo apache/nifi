@@ -47,7 +47,7 @@ import java.util.Map;
 /**
  * Access token endpoint test.
  */
-public class AccessTokenEndpointTest {
+public class ITAccessTokenEndpoint {
 
     private static final String CLIENT_ID = "token-endpoint-id";
     private static final String CONTEXT_PATH = "/nifi-api";
@@ -159,7 +159,7 @@ public class AccessTokenEndpointTest {
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(CLIENT_ID);
-        revision.setVersion(NiFiTestUser.REVISION);
+        revision.setVersion(0l);
 
         // create the entity body
         ProcessorEntity entity = new ProcessorEntity();
