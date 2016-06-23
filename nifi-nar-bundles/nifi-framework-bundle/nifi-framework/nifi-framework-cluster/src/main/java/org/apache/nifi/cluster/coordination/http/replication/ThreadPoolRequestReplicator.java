@@ -43,6 +43,8 @@ import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
@@ -57,9 +59,9 @@ import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,7 +74,7 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
-    private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ThreadPoolRequestReplicator.class));
+    private static final Logger logger = LoggerFactory.getLogger(ThreadPoolRequestReplicator.class);
     private static final int MAX_CONCURRENT_REQUESTS = 100;
 
     private final Client client; // the client to use for issuing requests
@@ -210,6 +212,15 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
         updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
         updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+
+        // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
+        // it knows that we are acting as a proxy on behalf of the current user.
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user != null && !user.isAnonymous()) {
+            final String proxiedEntitiesChain = ProxiedEntitiesUtils.buildProxiedEntitiesChainString(user);
+            updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
+        }
+
         return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
     }
 

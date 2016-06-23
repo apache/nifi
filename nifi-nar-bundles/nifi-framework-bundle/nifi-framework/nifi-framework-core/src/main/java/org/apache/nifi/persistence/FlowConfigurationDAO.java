@@ -33,6 +33,11 @@ import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 public interface FlowConfigurationDAO {
 
     /**
+     * @return <code>true</code> if a file containing the flow is present, <code>false</code> otherwise
+     */
+    boolean isFlowPresent();
+
+    /**
      * Loads the given controller with the values from the given proposed flow. If loading the proposed flow configuration would cause the controller to orphan flow files, then an
      * UninheritableFlowException is thrown.
      *

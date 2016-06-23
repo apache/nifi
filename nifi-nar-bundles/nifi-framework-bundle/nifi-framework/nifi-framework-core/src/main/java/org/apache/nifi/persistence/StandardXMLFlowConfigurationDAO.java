@@ -67,6 +67,13 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         this.encryptor = encryptor;
     }
 
+
+    @Override
+    public boolean isFlowPresent() {
+        final File flowXmlFile = flowXmlPath.toFile();
+        return flowXmlFile.exists() && flowXmlFile.length() > 0;
+    }
+
     @Override
     public synchronized void load(final FlowController controller, final DataFlow dataFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
@@ -78,8 +85,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
     @Override
     public synchronized void load(final OutputStream os) throws IOException {
-        final File file = flowXmlPath.toFile();
-        if (!file.exists() || file.length() == 0) {
+        if (!isFlowPresent()) {
             return;
         }
 

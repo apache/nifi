@@ -558,25 +558,24 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     @Override
     public StandardDataFlow createDataFlow() throws IOException {
-        // Load the flow from disk
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        dao.load(baos);
-        final byte[] bytes = baos.toByteArray();
         final byte[] snippetBytes = controller.getSnippetManager().export();
         final byte[] authorizerFingerprint = getAuthorizerFingerprint();
-        final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint);
 
-        // Check if the flow from disk is empty. If not, use it.
-        if (!StandardFlowSynchronizer.isEmpty(fromDisk, encryptor)) {
+        // Load the flow from disk if the file exists.
+        if (dao.isFlowPresent()) {
+            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            dao.load(baos);
+            final byte[] bytes = baos.toByteArray();
+            final StandardDataFlow fromDisk = new StandardDataFlow(bytes, snippetBytes, authorizerFingerprint);
             return fromDisk;
         }
 
-        // Flow from disk is empty, so serialize the Flow Controller and use that.
+        // Flow from disk does not exist, so serialize the Flow Controller and use that.
         // This is done because on startup, if there is no flow, the Flow Controller
         // will automatically create a Root Process Group, and we need to ensure that
         // we replicate that Process Group to all nodes in the cluster, so that they all
         // end up with the same ID for the root Process Group.
-        baos.reset();
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         dao.save(controller, baos);
         final byte[] flowBytes = baos.toByteArray();
         baos.reset();
