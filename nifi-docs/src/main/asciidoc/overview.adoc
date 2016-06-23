@@ -150,16 +150,8 @@ NiFi is also able to operate within a cluster.
 
 image::nifi-arch-cluster.png["NiFi Cluster Architecture Diagram"]
 
-A NiFi cluster is comprised of one or more 'NiFi Nodes' (Node) controlled
-by a single NiFi Cluster Manager (NCM).  The design of clustering is a simple
-master/slave model where the NCM is the master and the Nodes are the slaves.
-The NCM's reason for existence is to keep track of which Nodes are in the cluster,
-their status, and to replicate requests to modify or observe the 
-flow.  Fundamentally, then, the NCM keeps the state of the cluster consistent.  
-While the model is that of master and slave, if the master dies the Nodes are all
-instructed to continue operating as they were to ensure the data flow remains live.
-The absence of the NCM simply means new nodes cannot join the cluster and cluster flow changes
-cannot occur until the NCM is restored.
+Starting from 1.0, NiFi employs a Zero-Master Clustering paradigm. Each of the nodes in a NiFi cluster performs the same tasks on the data but each operates on a different set of data. One of the nodes is automatically elected (via Apache ZooKeeper) as the Cluster Coordinator, whose failover is handled automatically by ZooKeeper. All nodes in the cluster will report heartbeat/status information to the Cluster Coordinator, which will be responsible for disconnecting/connecting nodes. From an end user perspective, DataFlow Managers are able to interact with the NiFi cluster through the User Interface of any node in the cluster. Any change made is replicated to all nodes in the cluster, allowing for multiple entry points to the cluster. 
+
 
 Performance Expectations and Characteristics of NiFi
 ----------------------------------------------------
