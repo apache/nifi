@@ -51,9 +51,9 @@ public class MonitorMemoryTest {
 
     @After
     public void after() throws Exception {
+        fc.shutdown(true);
         FileUtils.deleteDirectory(new File("./target/test-repo"));
         FileUtils.deleteDirectory(new File("./target/content_repository"));
-        fc.shutdown(true);
     }
 
     @Test(expected = IllegalStateException.class)
