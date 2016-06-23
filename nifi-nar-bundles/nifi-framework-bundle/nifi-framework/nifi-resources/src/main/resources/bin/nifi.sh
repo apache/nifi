@@ -147,15 +147,15 @@ install() {
 
     SVC_NAME=nifi
     if [ "x$2" != "x" ] ; then
-            SVC_NAME=$2
+        SVC_NAME=$2
     fi
 
     initd_dir='/etc/init.d'
     SVC_FILE="${initd_dir}/${SVC_NAME}"
 
     if [ ! -w  "${initd_dir}" ]; then
-            echo "Current user does not have write permissions to ${initd_dir}. Cannot install NiFi as a service."
-            exit 1
+        echo "Current user does not have write permissions to ${initd_dir}. Cannot install NiFi as a service."
+        exit 1
     fi
 
 # Create the init script, overwriting anything currently present
@@ -191,17 +191,17 @@ nifi_executable=\${bin_dir}/nifi.sh
 SERVICEDESCRIPTOR
 
     if [ ! -f "${SVC_FILE}" ]; then
-            echo "Could not create service file ${SVC_FILE}"
-            exit 1
+        echo "Could not create service file ${SVC_FILE}"
+        exit 1
     fi
 
     # Provide the user execute access on the file
     chmod u+x ${SVC_FILE}
 
     rm -f "/etc/rc2.d/S65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1 }
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/S65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/S65${SVC_NAME}"; exit 1; }
     rm -f "/etc/rc2.d/K65${SVC_NAME}"
-    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1 }
+    ln -s "/etc/init.d/${SVC_NAME}" "/etc/rc2.d/K65${SVC_NAME}" || { echo "Could not create link /etc/rc2.d/K65${SVC_NAME}"; exit 1; }
     echo "Service ${SVC_NAME} installed"
 }
 
