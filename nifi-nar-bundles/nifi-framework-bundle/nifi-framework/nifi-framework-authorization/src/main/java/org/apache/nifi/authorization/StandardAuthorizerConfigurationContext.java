@@ -18,6 +18,7 @@ package org.apache.nifi.authorization;
 
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.registry.VariableRegistry;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,10 +31,12 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
 
     private final String identifier;
     private final Map<String, String> properties;
+    final VariableRegistry variableRegistry;
 
-    public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties) {
+    public StandardAuthorizerConfigurationContext(String identifier, Map<String, String> properties, VariableRegistry variableRegistry) {
         this.identifier = identifier;
         this.properties = Collections.unmodifiableMap(new HashMap<String, String>(properties));
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -48,7 +51,7 @@ public class StandardAuthorizerConfigurationContext implements AuthorizerConfigu
 
     @Override
     public PropertyValue getProperty(String property) {
-        return new StandardPropertyValue(properties.get(property), null);
+        return new StandardPropertyValue(properties.get(property), null,variableRegistry);
     }
 
 }

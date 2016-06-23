@@ -29,15 +29,19 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Test;
+
 
 public class TestStandardPropertyValue {
 
     private final ControllerServiceLookup lookup = new TestControllerServiceLookup();
+    private final VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
 
     @Test
     public void testSubstituteAttributesWithOneMatchingArg() {
-        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("audience", "World");
         assertEquals("Hello, World!", value.evaluateAttributeExpressions(createFlowFile(attributes)).getValue());
@@ -45,7 +49,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testMissingEndBraceEvaluatesToStringLiteral() {
-        final PropertyValue value = new StandardPropertyValue("Hello, ${audience!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, ${audience!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("audience", "World");
         assertEquals("Hello, ${audience!", value.evaluateAttributeExpressions(createFlowFile(attributes)).getValue());
@@ -53,7 +57,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testEscaped() {
-        final PropertyValue value = new StandardPropertyValue("Hello, $${audience}!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, $${audience}!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("audience", "World");
         assertEquals("Hello, ${audience}!", value.evaluateAttributeExpressions(createFlowFile(attributes)).getValue());
@@ -61,7 +65,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testSubstituteAttributesWithMultipleMatchingArgs() {
-        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}${comma}${question}!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}${comma}${question}!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("audience", "World");
         attributes.put("comma", ",");
@@ -71,14 +75,14 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testSubstituteAttributesWithNoMatch() {
-        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}${comma}${question:replaceNull('')}!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, ${audience}${comma}${question:replaceNull('')}!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         assertEquals("Hello, !", value.evaluateAttributeExpressions(createFlowFile(attributes)).getValue());
     }
 
     @Test
     public void testSubstituteAttributesRecursively() {
-        final PropertyValue value = new StandardPropertyValue("Hello, ${'${a}${b}'}!", lookup);
+        final PropertyValue value = new StandardPropertyValue("Hello, ${'${a}${b}'}!", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a", "b");
         attributes.put("b", "World");
@@ -88,7 +92,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testGetValueAsIntegerAfterSubstitute() {
-        final PropertyValue value = new StandardPropertyValue("1${value}", lookup);
+        final PropertyValue value = new StandardPropertyValue("1${value}", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "39");
         assertEquals(139, value.evaluateAttributeExpressions(createFlowFile(attributes)).asInteger().intValue());
@@ -96,7 +100,7 @@ public class TestStandardPropertyValue {
 
     @Test(expected = NumberFormatException.class)
     public void testGetValueAsIntegerAfterSubstitutingWithNonInteger() {
-        final PropertyValue value = new StandardPropertyValue("1${value}", lookup);
+        final PropertyValue value = new StandardPropertyValue("1${value}", lookup, variableRegistry);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("value", "Yes");
         final PropertyValue substituted = value.evaluateAttributeExpressions(createFlowFile(attributes));
@@ -105,7 +109,7 @@ public class TestStandardPropertyValue {
 
     @Test
     public void testFileSize() {
-        final PropertyValue value = new StandardPropertyValue("${fileSize}", lookup);
+        final PropertyValue value = new StandardPropertyValue("${fileSize}", lookup, variableRegistry);
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().size(1024 * 1024L).build();
         final long val = value.evaluateAttributeExpressions(flowFile).asLong().longValue();
         assertEquals(1024 * 1024L, val);
@@ -115,7 +119,7 @@ public class TestStandardPropertyValue {
     public void testFlowFileEntryYear() {
         final Calendar now = Calendar.getInstance();
         final int year = now.get(Calendar.YEAR);
-        final PropertyValue value = new StandardPropertyValue("${entryDate:toNumber():toDate():format('yyyy')}", lookup);
+        final PropertyValue value = new StandardPropertyValue("${entryDate:toNumber():toDate():format('yyyy')}", lookup, variableRegistry);
         final FlowFile flowFile = new StandardFlowFileRecord.Builder().entryDate(now.getTimeInMillis()).build();
         final int val = value.evaluateAttributeExpressions(flowFile).asInteger().intValue();
         assertEquals(year, val);
@@ -125,7 +129,7 @@ public class TestStandardPropertyValue {
     public void testSystemProperty() {
         System.setProperty("Prop1", "Foo");
         System.setProperty("Prop2", "Bar");
-        final PropertyValue value = new StandardPropertyValue("${Prop1}${Prop2}${abc}", lookup);
+        final PropertyValue value = new StandardPropertyValue("${Prop1}${Prop2}${abc}", lookup, VariableRegistryUtils.createSystemVariableRegistry());
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "Baz");
         final FlowFile flowFile = createFlowFile(attributes);
@@ -171,5 +175,6 @@ public class TestStandardPropertyValue {
         public boolean isControllerServiceEnabling(final String serviceIdentifier) {
             return false;
         }
+
     }
 }

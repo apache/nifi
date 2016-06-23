@@ -21,5 +21,5 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-api</artifactId>
-    <packaging>jar</packaging>    
-</project>
+    <packaging>jar</packaging>
+ </project>

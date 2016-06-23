@@ -158,6 +158,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
@@ -286,6 +287,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final ConcurrentMap<String, ReportingTaskNode> reportingTasks = new ConcurrentHashMap<>();
+    private final VariableRegistry variableRegistry;
     private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
 
     private volatile ZooKeeperStateServer zooKeeperStateServer;
@@ -368,12 +370,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private static final Logger heartbeatLogger = LoggerFactory.getLogger("org.apache.nifi.cluster.heartbeat");
 
     public static FlowController createStandaloneInstance(
-        final FlowFileEventRepository flowFileEventRepo,
-        final NiFiProperties properties,
-        final Authorizer authorizer,
-        final AuditService auditService,
-        final StringEncryptor encryptor,
-        final BulletinRepository bulletinRepo) {
+            final FlowFileEventRepository flowFileEventRepo,
+            final NiFiProperties properties,
+            final Authorizer authorizer,
+            final AuditService auditService,
+            final StringEncryptor encryptor,
+            final BulletinRepository bulletinRepo, VariableRegistry variableRegistry) {
+
         return new FlowController(
             flowFileEventRepo,
             properties,
@@ -384,19 +387,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             /* NodeProtocolSender */ null,
             bulletinRepo,
             /* cluster coordinator */ null,
-            /* heartbeat monitor */ null);
+            /* heartbeat monitor */ null, variableRegistry);
     }
 
     public static FlowController createClusteredInstance(
-        final FlowFileEventRepository flowFileEventRepo,
-        final NiFiProperties properties,
-        final Authorizer authorizer,
-        final AuditService auditService,
-        final StringEncryptor encryptor,
-        final NodeProtocolSender protocolSender,
-        final BulletinRepository bulletinRepo,
-        final ClusterCoordinator clusterCoordinator,
-        final HeartbeatMonitor heartbeatMonitor) {
+            final FlowFileEventRepository flowFileEventRepo,
+            final NiFiProperties properties,
+            final Authorizer authorizer,
+            final AuditService auditService,
+            final StringEncryptor encryptor,
+            final NodeProtocolSender protocolSender,
+            final BulletinRepository bulletinRepo,
+            final ClusterCoordinator clusterCoordinator,
+            final HeartbeatMonitor heartbeatMonitor,
+            VariableRegistry variableRegistry) {
+
         final FlowController flowController = new FlowController(
             flowFileEventRepo,
             properties,
@@ -407,22 +412,23 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             protocolSender,
             bulletinRepo,
             clusterCoordinator,
-            heartbeatMonitor);
+            heartbeatMonitor, variableRegistry);
 
         return flowController;
     }
 
     private FlowController(
-        final FlowFileEventRepository flowFileEventRepo,
-        final NiFiProperties properties,
-        final Authorizer authorizer,
-        final AuditService auditService,
-        final StringEncryptor encryptor,
-        final boolean configuredForClustering,
-        final NodeProtocolSender protocolSender,
-        final BulletinRepository bulletinRepo,
-        final ClusterCoordinator clusterCoordinator,
-        final HeartbeatMonitor heartbeatMonitor) {
+            final FlowFileEventRepository flowFileEventRepo,
+            final NiFiProperties properties,
+            final Authorizer authorizer,
+            final AuditService auditService,
+            final StringEncryptor encryptor,
+            final boolean configuredForClustering,
+            final NodeProtocolSender protocolSender,
+            final BulletinRepository bulletinRepo,
+            final ClusterCoordinator clusterCoordinator,
+            final HeartbeatMonitor heartbeatMonitor,
+            VariableRegistry variableRegistry) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
         maxEventDrivenThreads = new AtomicInteger(5);
@@ -443,6 +449,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         counterRepositoryRef = new AtomicReference<CounterRepository>(new StandardCounterRepository());
 
         bulletinRepository = bulletinRepo;
+        this.variableRegistry = variableRegistry;
+
 
         try {
             this.provenanceRepository = createProvenanceRepository(properties);
@@ -458,20 +466,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            this.stateManagerProvider = StandardStateManagerProvider.create(properties);
+            this.stateManagerProvider = StandardStateManagerProvider.create(properties, this.variableRegistry);
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
 
-        processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider);
+        processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider, this.variableRegistry);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
         final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, new EventDrivenSchedulingAgent(
-            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor));
+            eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor, this.variableRegistry));
 
-        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor);
-        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor);
+        final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry);
+        final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), contextFactory, encryptor, this.variableRegistry);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.PRIMARY_NODE_ONLY, timerDrivenAgent);
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, quartzSchedulingAgent);
@@ -507,11 +515,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.snippetManager = new SnippetManager();
 
-        rootGroup = new StandardProcessGroup(UUID.randomUUID().toString(), this, processScheduler, properties, encryptor, this);
+        rootGroup = new StandardProcessGroup(UUID.randomUUID().toString(), this, processScheduler, properties, encryptor, this, this.variableRegistry);
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
         instanceId = UUID.randomUUID().toString();
 
-        controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider);
+        controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider, this.variableRegistry);
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
@@ -971,7 +979,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws NullPointerException if the argument is null
      */
     public ProcessGroup createProcessGroup(final String id) {
-        return new StandardProcessGroup(requireNonNull(id).intern(), this, processScheduler, properties, encryptor, this);
+        return new StandardProcessGroup(requireNonNull(id).intern(), this, processScheduler, properties, encryptor, this, variableRegistry);
     }
 
     /**
@@ -1018,7 +1026,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             creationSuccessful = false;
         }
 
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider, variableRegistry);
         final ProcessorNode procNode;
         if (creationSuccessful) {
             procNode = new StandardProcessorNode(processor, id, validationContextFactory, processScheduler, controllerServiceProvider);
@@ -1295,7 +1303,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // invoke any methods annotated with @OnShutdown on Controller Services
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                    final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
+                    final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, variableRegistry);
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
                 }
             }
@@ -2785,15 +2793,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
+        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider,variableRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, variableRegistry);
         } else {
             final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
             final String componentType = "(Missing) " + simpleClassName;
 
-            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type);
+            taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory, componentType, type,variableRegistry);
         }
 
         taskNode.setName(task.getClass().getSimpleName());
@@ -3018,7 +3026,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         service.verifyCanDelete();
 
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(service, controllerServiceProvider, null,variableRegistry);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, service.getControllerServiceImplementation(), configurationContext);
         }
 

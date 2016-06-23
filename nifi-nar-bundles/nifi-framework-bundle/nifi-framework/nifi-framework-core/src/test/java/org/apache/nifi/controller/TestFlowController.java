@@ -33,6 +33,8 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -61,6 +63,7 @@ public class TestFlowController {
     private StringEncryptor encryptor;
     private NiFiProperties properties;
     private BulletinRepository bulletinRepo;
+    private VariableRegistry variableRegistry;
 
     @Before
     public void setup() {
@@ -111,9 +114,10 @@ public class TestFlowController {
         policies1.add(policy2);
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
+        variableRegistry = VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo,variableRegistry);
 
         standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor());
     }
@@ -165,7 +169,7 @@ public class TestFlowController {
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         controller.shutdown(true);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo,variableRegistry);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }

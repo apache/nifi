@@ -21,6 +21,7 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.CapturingLogger;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -136,6 +137,6 @@ public class MonitorMemoryTest {
         properties.setProperty("nifi.remote.input.secure", "");
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-                mock(Authorizer.class), mock(AuditService.class), null, null);
+                mock(Authorizer.class), mock(AuditService.class), null, null, VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths()));
     }
 }

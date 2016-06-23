@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.search.SearchContext;
 
 /**
@@ -33,11 +34,13 @@ public class StandardSearchContext implements SearchContext {
     private final String searchTerm;
     private final ProcessorNode processorNode;
     private final ControllerServiceLookup controllerServiceLookup;
+    private final VariableRegistry variableRegistry;
 
-    public StandardSearchContext(final String searchTerm, final ProcessorNode processorNode, final ControllerServiceLookup controllerServiceLookup) {
+    public StandardSearchContext(final String searchTerm, final ProcessorNode processorNode, final ControllerServiceLookup controllerServiceLookup, VariableRegistry variableRegistry) {
         this.searchTerm = searchTerm;
         this.processorNode = processorNode;
         this.controllerServiceLookup = controllerServiceLookup;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -53,7 +56,7 @@ public class StandardSearchContext implements SearchContext {
     @Override
     public PropertyValue getProperty(PropertyDescriptor property) {
         final String configuredValue = processorNode.getProperty(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, null);
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup,variableRegistry);
     }
 
     @Override
