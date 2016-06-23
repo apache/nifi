@@ -316,6 +316,7 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestSplitText/6.txt</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/input.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/chainrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformJson/customChainrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/chainrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/cardrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformJson/cardrOutput.json</exclude>

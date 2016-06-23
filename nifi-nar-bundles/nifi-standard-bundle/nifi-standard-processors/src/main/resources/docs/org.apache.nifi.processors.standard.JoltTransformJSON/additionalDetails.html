@@ -28,6 +28,9 @@
     The Jolt utilities processing JSON are not not stream based therefore large JSON document
     transformation may consume large amounts of memory. Currently UTF-8 FlowFile content and Jolt specifications are supported.
 
+    Custom Jolt Transformations (that implement the Transform interface) are supported.  Modules containing custom libraries which do not
+    existing on the current class path can be included via the custom module directory property.
+
     <Strong>Note:</Strong> When configuring a processor if user selects of the Default transformation yet provides a
     Chain specification the system does not alert that the specification is invalid and and will produce failed flow files.
     This is a known issue identified within the Jolt library.

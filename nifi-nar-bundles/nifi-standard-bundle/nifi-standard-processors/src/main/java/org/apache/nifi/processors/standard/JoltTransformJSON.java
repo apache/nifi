@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -51,6 +51,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.processors.standard.util.TransformFactory;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -77,13 +78,14 @@ public class JoltTransformJSON extends AbstractProcessor {
     public static final AllowableValue REMOVR = new AllowableValue("jolt-transform-remove", "Remove", " Remove values from input data to create the output JSON.");
     public static final AllowableValue CARDINALITY = new AllowableValue("jolt-transform-card", "Cardinality", "Change the cardinality of input elements to create the output JSON.");
     public static final AllowableValue SORTR = new AllowableValue("jolt-transform-sort", "Sort", "Sort input json key values alphabetically. Any specification set is ignored.");
+    public static final AllowableValue CUSTOMR = new AllowableValue("jolt-transform-custom", "Custom", "Custom Transformation. Requires Custom Transformation Class Name");
 
     public static final PropertyDescriptor JOLT_TRANSFORM = new PropertyDescriptor.Builder()
             .name("jolt-transform")
             .displayName("Jolt Transformation DSL")
             .description("Specifies the Jolt Transformation that should be used with the provided specification.")
             .required(true)
-            .allowableValues(CARDINALITY, CHAINR, DEFAULTR, REMOVR, SHIFTR, SORTR)
+            .allowableValues(CARDINALITY, CHAINR, DEFAULTR, REMOVR, SHIFTR, SORTR,CUSTOMR)
             .defaultValue(CHAINR.getValue())
             .build();
 
@@ -93,6 +95,24 @@ public class JoltTransformJSON extends AbstractProcessor {
             .description("Jolt Specification for transform of JSON data. This value is ignored if the Jolt Sort Transformation is selected.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor CUSTOM_CLASS = new PropertyDescriptor.Builder()
+            .name("jolt-custom-class")
+            .displayName("Custom Transformation Class Name")
+            .description("Fully Qualified Class Name for Custom Transformation")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MODULES = new PropertyDescriptor.Builder()
+            .name("jolt-custom-modules")
+            .displayName("Custom Module Directory")
+            .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
+            .required(false)
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -107,12 +127,15 @@ public class JoltTransformJSON extends AbstractProcessor {
     private final static List<PropertyDescriptor> properties;
     private final static Set<Relationship> relationships;
     private volatile Transform transform;
+    private volatile ClassLoader customClassLoader;
     private final static String DEFAULT_CHARSET = "UTF-8";
 
     static{
 
         final List<PropertyDescriptor> _properties = new ArrayList<>();
         _properties.add(JOLT_TRANSFORM);
+        _properties.add(CUSTOM_CLASS);
+        _properties.add(MODULES);
         _properties.add(JOLT_SPEC);
         properties = Collections.unmodifiableList(_properties);
 
@@ -137,8 +160,10 @@ public class JoltTransformJSON extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
-        String specValue = validationContext.getProperty(JOLT_SPEC).isSet() ? validationContext.getProperty(JOLT_SPEC).getValue() : null;
+        final String transform = validationContext.getProperty(JOLT_TRANSFORM).getValue();
+        final String specValue = validationContext.getProperty(JOLT_SPEC).isSet() ? validationContext.getProperty(JOLT_SPEC).getValue() : null;
+        final String customTransform = validationContext.getProperty(CUSTOM_CLASS).getValue();
+        final String modulePath = validationContext.getProperty(MODULES).isSet()? validationContext.getProperty(MODULES).getValue() : null;
 
         if(StringUtils.isEmpty(specValue)){
             if(!SORTR.getValue().equals(transform)) {
@@ -147,10 +172,35 @@ public class JoltTransformJSON extends AbstractProcessor {
                         .explanation(message)
                         .build());
             }
+
         } else {
+
+            final ClassLoader customClassLoader;
             try {
+
+                if(modulePath != null) {
+                    customClassLoader = ClassLoaderUtils.getCustomClassLoader(modulePath, this.getClass().getClassLoader(), getJarFilenameFilter());
+                }else{
+                    customClassLoader =  this.getClass().getClassLoader();
+                }
+
                 Object specJson = SORTR.getValue().equals(transform) ? null : JsonUtils.jsonToObject(specValue, DEFAULT_CHARSET);
-                TransformFactory.getTransform(transform, specJson);
+
+                if(CUSTOMR.getValue().equals(transform)){
+
+                    if (StringUtils.isEmpty(customTransform)){
+                        final String customMessage = "A custom transformation class should be provided. ";
+                        results.add(new ValidationResult.Builder().valid(false)
+                                .explanation(customMessage)
+                                .build());
+                    }else{
+                        TransformFactory.getCustomTransform(customClassLoader,customTransform, specJson);
+                    }
+
+                }else {
+                    TransformFactory.getTransform(customClassLoader, transform, specJson);
+                }
+
             } catch (final Exception e) {
                 getLogger().info("Processor is not valid - " + e.toString());
                 String message = "Specification not valid for the selected transformation." ;
@@ -182,8 +232,14 @@ public class JoltTransformJSON extends AbstractProcessor {
         });
 
         final String jsonString;
+        final ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
+
+            if(customClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(customClassLoader);
+            }
+
             final ByteArrayInputStream bais = new ByteArrayInputStream(originalContent);
             final Object inputJson = JsonUtils.jsonToObject(bais);
             final Object transformedJson = transform.transform(inputJson);
@@ -193,6 +249,11 @@ public class JoltTransformJSON extends AbstractProcessor {
             logger.error("Unable to transform {} due to {}", new Object[]{original, re});
             session.transfer(original, REL_FAILURE);
             return;
+
+        }finally {
+            if(customClassLoader != null && originalContextClassLoader != null) {
+                Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+            }
         }
 
         FlowFile transformed = session.write(original, new OutputStreamCallback() {
@@ -212,12 +273,34 @@ public class JoltTransformJSON extends AbstractProcessor {
 
     @OnScheduled
     public void setup(final ProcessContext context) {
-        Object specJson = null;
-        if(context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
-            specJson = JsonUtils.jsonToObject(context.getProperty(JOLT_SPEC).getValue(), DEFAULT_CHARSET);
+
+        try{
+            Object specJson = null;
+
+            if(context.getProperty(MODULES).isSet()){
+                customClassLoader = ClassLoaderUtils.getCustomClassLoader(context.getProperty(MODULES).getValue(),this.getClass().getClassLoader(),getJarFilenameFilter());
+            }else{
+                customClassLoader = this.getClass().getClassLoader();
+            }
+
+            if(context.getProperty(JOLT_SPEC).isSet() && !SORTR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
+                specJson = JsonUtils.jsonToObject(context.getProperty(JOLT_SPEC).getValue(), DEFAULT_CHARSET);
+            }
+
+            if(CUSTOMR.getValue().equals(context.getProperty(JOLT_TRANSFORM).getValue())){
+                transform = TransformFactory.getCustomTransform(customClassLoader,context.getProperty(CUSTOM_CLASS).getValue(), specJson);
+            }else {
+                transform = TransformFactory.getTransform(customClassLoader, context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+            }
+
+        } catch (Exception ex){
+            getLogger().error("Unable to setup processor",ex);
         }
-        transform = TransformFactory.getTransform(context.getProperty(JOLT_TRANSFORM).getValue(), specJson);
+
     }
 
+    protected FilenameFilter getJarFilenameFilter(){
+        return (dir, name) -> (name != null && name.endsWith(".jar"));
+    }
 
 }
