@@ -20,9 +20,9 @@ public enum ResourceType {
     Connection("/connections"),
     Controller("/controller"),
     ControllerService("/controller-services"),
+    Counters("/counters"),
     Funnel("/funnel"),
     Flow("/flow"),
-    Group("/groups"),
     InputPort("/input-ports"),
     Label("/labels"),
     OutputPort("/output-ports"),
@@ -37,9 +37,8 @@ public enum ResourceType {
     SiteToSite("/site-to-site"),
     System("/system"),
     Template("/templates"),
-    Token("/token"),
-    Counters("/counters"),
-    User("/users");
+    Tenant("/tenants"),
+    Token("/token");
 
     final String value;
 

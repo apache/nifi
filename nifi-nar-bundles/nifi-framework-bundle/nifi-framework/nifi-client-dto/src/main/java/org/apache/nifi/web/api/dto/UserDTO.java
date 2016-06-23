@@ -29,7 +29,7 @@ import java.util.Set;
 public class UserDTO extends ComponentDTO {
 
     private String identity;
-    private Set<UserGroupEntity> groups;
+    private Set<UserGroupEntity> userGroups;
 
     /**
      * @return users identity
@@ -49,11 +49,11 @@ public class UserDTO extends ComponentDTO {
      * @return groups to which the user belongs
      */
     @ApiModelProperty(value = "The groups to which the user belongs.")
-    public Set<UserGroupEntity> getGroups() {
-        return groups;
+    public Set<UserGroupEntity> getUserGroups() {
+        return userGroups;
     }
 
-    public void setGroups(Set<UserGroupEntity> groups) {
-        this.groups = groups;
+    public void setUserGroups(Set<UserGroupEntity> userGroups) {
+        this.userGroups = userGroups;
     }
 }

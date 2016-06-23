@@ -79,8 +79,7 @@ public final class RoleAccessPolicy {
         if (rootGroupId != null) {
             adminPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
         }
-        adminPolicies.add(new RoleAccessPolicy(ResourceType.User.getValue(), READ_WRITE_ACTION));
-        adminPolicies.add(new RoleAccessPolicy(ResourceType.Group.getValue(), READ_WRITE_ACTION));
+        adminPolicies.add(new RoleAccessPolicy(ResourceType.Tenant.getValue(), READ_WRITE_ACTION));
         adminPolicies.add(new RoleAccessPolicy(ResourceType.Policy.getValue(), READ_WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_ADMIN, Collections.unmodifiableSet(adminPolicies));
 

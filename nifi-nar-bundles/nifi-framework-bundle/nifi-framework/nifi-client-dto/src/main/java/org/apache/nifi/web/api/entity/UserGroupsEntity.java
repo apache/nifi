@@ -14,20 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization.resource;
+package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.authorization.Resource;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collection;
 
-public class UsersAuthorizable implements Authorizable {
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of
+ * UserGroupEntity objects.
+ */
+@XmlRootElement(name = "userGroupsEntity")
+public class UserGroupsEntity {
 
-    @Override
-    public Authorizable getParentAuthorizable() {
-        return null;
+    private Collection<UserGroupEntity> userGroups;
+
+    /**
+     * The collection of UserGroupEntity objects that are being serialized.
+     *
+     * @return The UserGroupEntity objects
+     */
+    public Collection<UserGroupEntity> getUserGroups() {
+        return userGroups;
     }
 
-    @Override
-    public Resource getResource() {
-        return ResourceFactory.getUsersResource();
+    public void setUserGroups(Collection<UserGroupEntity> userGroups) {
+        this.userGroups = userGroups;
     }
 
 }

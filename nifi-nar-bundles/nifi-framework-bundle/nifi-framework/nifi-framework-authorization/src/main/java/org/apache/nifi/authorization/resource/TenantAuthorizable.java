@@ -18,7 +18,8 @@ package org.apache.nifi.authorization.resource;
 
 import org.apache.nifi.authorization.Resource;
 
-public class UserGroupsAuthorizable implements Authorizable {
+public class TenantAuthorizable implements Authorizable {
+
     @Override
     public Authorizable getParentAuthorizable() {
         return null;
@@ -26,6 +27,7 @@ public class UserGroupsAuthorizable implements Authorizable {
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getUserGroupsResource();
+        return ResourceFactory.getTenantResource();
     }
+
 }
