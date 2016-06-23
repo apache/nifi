@@ -17,6 +17,9 @@
 
 package org.apache.nifi.web.standard.api.transformjson;
 
+import java.io.File;
+import java.io.FilenameFilter;
+
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -24,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.processors.standard.util.TransformFactory;
 import org.apache.nifi.web.standard.api.AbstractStandardResource;
 import org.apache.nifi.web.standard.api.transformjson.dto.JoltSpecificationDTO;
@@ -53,10 +57,8 @@ public class TransformJSONResource extends AbstractStandardResource {
     @Path("/validate")
     public Response validateSpec(JoltSpecificationDTO specificationDTO) {
 
-        Object specJson = getSpecificationJsonObject(specificationDTO.getSpecification());
-
         try {
-            TransformFactory.getTransform(specificationDTO.getTransform(), specJson);
+            getTransformation(specificationDTO);
         }catch(final Exception e){
             logger.error("Validation Failed - " + e.toString());
             return Response.ok(new ValidationDTO(false,"Validation Failed - Please verify the provided specification.")).build();
@@ -70,10 +72,8 @@ public class TransformJSONResource extends AbstractStandardResource {
     @Path("/execute")
     public Response executeSpec(JoltSpecificationDTO specificationDTO) {
 
-        Object specJson = getSpecificationJsonObject(specificationDTO.getSpecification());
-
         try {
-            Transform transform  = TransformFactory.getTransform(specificationDTO.getTransform(), specJson);
+            Transform transform = getTransformation(specificationDTO);
             Object inputJson = JsonUtils.jsonToObject(specificationDTO.getInput());
             return Response.ok(JsonUtils.toJsonString(transform.transform(inputJson))).build();
 
@@ -84,6 +84,37 @@ public class TransformJSONResource extends AbstractStandardResource {
 
     }
 
+    protected Transform getTransformation(JoltSpecificationDTO specificationDTO) throws Exception{
 
+        Object specJson = getSpecificationJsonObject(specificationDTO.getSpecification());
+        String transformName = specificationDTO.getTransform();
+        String modules = specificationDTO.getModules();
+
+        ClassLoader classLoader = null;
+        Transform transform ;
+
+        if(modules != null && !modules.isEmpty()){
+            classLoader = ClassLoaderUtils.getCustomClassLoader(specificationDTO.getModules(),this.getClass().getClassLoader(), getJarFilenameFilter());
+        } else{
+            classLoader = this.getClass().getClassLoader();
+        }
+
+        if(transformName.equals("jolt-transform-custom")) {
+            transform = TransformFactory.getCustomTransform(classLoader,specificationDTO.getCustomClass(), specJson);
+        }else{
+            transform = TransformFactory.getTransform(classLoader,specificationDTO.getTransform(), specJson);
+        }
+
+        return transform;
+    }
+
+    protected FilenameFilter getJarFilenameFilter(){
+        return  new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return (name != null && name.endsWith(".jar"));
+            }
+        };
+    }
 
 }
