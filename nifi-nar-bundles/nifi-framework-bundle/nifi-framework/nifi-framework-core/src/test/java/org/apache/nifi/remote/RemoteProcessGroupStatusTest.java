@@ -19,7 +19,9 @@ package org.apache.nifi.remote;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.ServerSocket;
 import java.net.URL;
 import java.util.Collections;
 
@@ -58,12 +60,18 @@ public class RemoteProcessGroupStatusTest {
     }
 
     @Before
-    public void before() {
+    public void before() throws IOException {
+        int port;
+        try (ServerSocket socket = new ServerSocket(0)) {
+            socket.setReuseAddress(true);
+            port = socket.getLocalPort();
+        }
         NiFiProperties properties = NiFiProperties.getInstance();
         properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceEventRepository.class.getName());
         properties.setProperty(NiFiProperties.STATE_MANAGEMENT_CONFIG_FILE, "src/test/resources/state-management.xml");
         properties.setProperty(NiFiProperties.STATE_MANAGEMENT_LOCAL_PROVIDER_ID, "local-provider");
         properties.setProperty(NiFiProperties.REMOTE_INPUT_HOST, "localhost");
+        properties.setProperty(NiFiProperties.REMOTE_INPUT_PORT, String.valueOf(port));
         properties.setProperty("nifi.remote.input.secure", "false");
 
         RingBufferEventRepository repository = new RingBufferEventRepository(1);
