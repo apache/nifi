@@ -56,7 +56,7 @@ import java.util.Map;
 @WritesAttributes({
         @WritesAttribute(attribute = "aws.iot.mqtt.exception", description = "Error details")
 })
-public class PutAWSIoT extends AbstractAWSIoTProcessor {
+public class PublishAWSIoTMqtt extends AbstractAWSIoTProcessor {
     private final static String PROP_NAME_RETAINED = "aws.iot.mqtt.retained";
     private final static String ATTR_NAME_TOPIC = PROP_NAME_TOPIC + ".override";
     private final static String ATTR_NAME_QOS = PROP_NAME_QOS + ".override";
@@ -128,13 +128,11 @@ public class PutAWSIoT extends AbstractAWSIoTProcessor {
 
         try {
             // publish messages to mqtt-topic(s)
-            mqttClient.publish(topic, fileContentStream.toByteArray(), qos, retained);
+            mqttClient.publish(topic, fileContentStream.toByteArray(), qos, retained).waitForCompletion();
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, awsEndpoint + "(" + awsClientId + ")");
         } catch (MqttException e) {
-            getLogger().error("Error while initially subscribing to topics with client " + mqttClient.getClientId() + " caused by " + e.getMessage());
-            flowFile = session.putAttribute(flowFile, ATTR_NAME_EXCEPTION, e.getMessage());
-            session.transfer(flowFile, REL_FAILURE);
+            getLogger().error("Error while publishing to topics with client " + mqttClient.getClientId() + " caused by " + e.getMessage());
             context.yield();
         }
     }

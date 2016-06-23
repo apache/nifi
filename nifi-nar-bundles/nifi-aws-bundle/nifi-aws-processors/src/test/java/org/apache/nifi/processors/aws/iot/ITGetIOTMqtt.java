@@ -34,8 +34,8 @@ public class ITGetIOTMqtt {
     @Test
     public void testSimpleGetUsingCredentialsProviderService() throws Throwable {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        final TestRunner runner = TestRunners.newTestRunner(new GetAWSIoT());
-        final String clientId = GetAWSIoT.class.getSimpleName();
+        final TestRunner runner = TestRunners.newTestRunner(new ConsumeAWSIoTMqtt());
+        final String clientId = ConsumeAWSIoTMqtt.class.getSimpleName();
         final String endpoint = "A1B71MLXKNXXXX";
         final String topic = "$aws/things/nifiConsumer/shadow/update";
         final String qos = "0";
@@ -43,12 +43,12 @@ public class ITGetIOTMqtt {
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(GetAWSIoT.PROP_CLIENT, clientId);
-        runner.setProperty(GetAWSIoT.PROP_ENDPOINT, endpoint);
-        runner.setProperty(GetAWSIoT.PROP_TOPIC, topic);
-        runner.setProperty(GetAWSIoT.PROP_QOS, qos);
-        runner.setProperty(GetAWSIoT.REGION, region.getName());
-        runner.setProperty(GetAWSIoT.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.setProperty(ConsumeAWSIoTMqtt.PROP_CLIENT, clientId);
+        runner.setProperty(ConsumeAWSIoTMqtt.PROP_ENDPOINT, endpoint);
+        runner.setProperty(ConsumeAWSIoTMqtt.PROP_TOPIC, topic);
+        runner.setProperty(ConsumeAWSIoTMqtt.PROP_QOS, qos);
+        runner.setProperty(ConsumeAWSIoTMqtt.REGION, region.getName());
+        runner.setProperty(ConsumeAWSIoTMqtt.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
         runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
 
@@ -61,12 +61,12 @@ public class ITGetIOTMqtt {
         // trigger once
         runner.run(1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetAWSIoT.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeAWSIoTMqtt.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {
-            mff.assertAttributeEquals(GetAWSIoT.PROP_NAME_ENDPOINT, endpoint);
-            mff.assertAttributeEquals(GetAWSIoT.PROP_NAME_CLIENT, clientId);
-            mff.assertAttributeEquals(GetAWSIoT.PROP_NAME_TOPIC, topic);
-            mff.assertAttributeEquals(GetAWSIoT.PROP_NAME_QOS, qos);
+            mff.assertAttributeEquals(ConsumeAWSIoTMqtt.PROP_NAME_ENDPOINT, endpoint);
+            mff.assertAttributeEquals(ConsumeAWSIoTMqtt.PROP_NAME_CLIENT, clientId);
+            mff.assertAttributeEquals(ConsumeAWSIoTMqtt.PROP_NAME_TOPIC, topic);
+            mff.assertAttributeEquals(ConsumeAWSIoTMqtt.PROP_NAME_QOS, qos);
         }
     }
 }

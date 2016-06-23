@@ -96,6 +96,10 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
         return awsQueuedMqttMessages;
     }
 
+    public void setAwsQueuedMqttMessages(LinkedBlockingQueue<IoTMessage> queue) {
+        awsQueuedMqttMessages = queue;
+    }
+
     @Override
     public void connectionLost(Throwable t) {
         logger.error("Connection to " + this.getServerURI() + " lost with cause: " + t.getMessage());
@@ -107,7 +111,7 @@ public class MqttWebSocketAsyncClient extends MqttAsyncClient implements MqttCal
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        logger.info("Message arrived from topic: " + topic);
+        logger.debug("Message arrived from topic: " + topic);
         awsQueuedMqttMessages.add(new IoTMessage(message, topic));
     }
 }

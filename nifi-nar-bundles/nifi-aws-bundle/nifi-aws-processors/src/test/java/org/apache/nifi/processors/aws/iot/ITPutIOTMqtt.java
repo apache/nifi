@@ -35,8 +35,8 @@ public class ITPutIOTMqtt {
     @Test
     public void testSimplePutUsingCredentialsProviderService() throws Throwable {
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
-        final TestRunner runner = TestRunners.newTestRunner(new PutAWSIoT());
-        final String clientId = PutAWSIoT.class.getSimpleName();
+        final TestRunner runner = TestRunners.newTestRunner(new PublishAWSIoTMqtt());
+        final String clientId = PublishAWSIoTMqtt.class.getSimpleName();
         final String endpoint = "A1B71MLXKNXXXX";
         final String topic = "$aws/things/nifiConsumer/shadow/update";
         final String qos = "0";
@@ -45,12 +45,12 @@ public class ITPutIOTMqtt {
 
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
 
-        runner.setProperty(PutAWSIoT.PROP_CLIENT, clientId);
-        runner.setProperty(PutAWSIoT.PROP_ENDPOINT, endpoint);
-        runner.setProperty(PutAWSIoT.PROP_TOPIC, topic);
-        runner.setProperty(PutAWSIoT.PROP_QOS, qos);
-        runner.setProperty(PutAWSIoT.REGION, region.getName());
-        runner.setProperty(PutAWSIoT.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
+        runner.setProperty(PublishAWSIoTMqtt.PROP_CLIENT, clientId);
+        runner.setProperty(PublishAWSIoTMqtt.PROP_ENDPOINT, endpoint);
+        runner.setProperty(PublishAWSIoTMqtt.PROP_TOPIC, topic);
+        runner.setProperty(PublishAWSIoTMqtt.PROP_QOS, qos);
+        runner.setProperty(PublishAWSIoTMqtt.REGION, region.getName());
+        runner.setProperty(PublishAWSIoTMqtt.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentialsProvider");
 
         runner.setProperty(serviceImpl, AbstractAWSCredentialsProviderProcessor.CREDENTIALS_FILE, CREDENTIALS_FILE);
 
@@ -65,9 +65,9 @@ public class ITPutIOTMqtt {
         runner.run(1);
 
         // validate that the FlowFiles went where they were expected to go
-        runner.assertAllFlowFilesTransferred(PutAWSIoT.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(PublishAWSIoTMqtt.REL_SUCCESS, 1);
 
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutAWSIoT.REL_SUCCESS);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PublishAWSIoTMqtt.REL_SUCCESS);
         for (final MockFlowFile mff : flowFiles) {
             mff.assertContentEquals(message);
         }

@@ -59,6 +59,8 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
     String awsEndpoint;
     String awsClientId;
 
+    static final Integer mqttActionTimeout = -1;
+
     private String awsRegion;
     private Integer awsKeepAliveSeconds;
     private Date dtLastConnect;
@@ -73,7 +75,7 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
     public static final PropertyDescriptor PROP_CLIENT = new PropertyDescriptor
             .Builder().name(PROP_NAME_CLIENT)
             .description("MQTT client ID to use. Under the cover your input will be extended by a random " +
-                    "string to ensure a unique id among all conntected clients.")
+                    "string to ensure a unique id among all connected clients.")
             .required(false)
             .defaultValue(PROP_DEFAULT_CLIENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -106,7 +108,7 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
                     "is " + DEFAULT_QOS + ".")
             .required(false)
             .allowableValues("0", "1")
-            .defaultValue("0")
+            .defaultValue(DEFAULT_QOS.toString())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -218,7 +220,7 @@ public abstract class AbstractAWSIoTProcessor extends AbstractAWSCredentialsProv
         try {
             _mqttClient = new MqttWebSocketAsyncClient(strEndpointAddress, clientId, getLogger());
             // start connecting and wait for completion
-            _mqttClient.connect(options).waitForCompletion();
+            _mqttClient.connect(options).waitForCompletion(mqttActionTimeout);
         } catch (MqttException e) {
             getLogger().error("Error while connecting to AWS websocket-endpoint caused by " + e.getMessage());
         }

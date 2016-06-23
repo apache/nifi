@@ -21,7 +21,7 @@ org.apache.nifi.processors.aws.sqs.PutSQS
 org.apache.nifi.processors.aws.sqs.DeleteSQS
 org.apache.nifi.processors.aws.lambda.PutLambda
 org.apache.nifi.processors.aws.kinesis.firehose.PutKinesisFirehose
-org.apache.nifi.processors.aws.iot.GetAWSIoT
-org.apache.nifi.processors.aws.iot.PutAWSIoT
+org.apache.nifi.processors.aws.iot.ConsumeAWSIoTMqtt
+org.apache.nifi.processors.aws.iot.PublishAWSIoTMqtt
 org.apache.nifi.processors.aws.iot.GetAWSIoTShadow
 org.apache.nifi.processors.aws.iot.PutAWSIoTShadow

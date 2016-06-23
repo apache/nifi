@@ -49,9 +49,9 @@ import java.util.Map;
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Gets last persisted state of a thing in AWS IoT by reading out the shadow. " +
         "A shadow might change more often than you get triggered. In order to get every message send " +
-        "out by a thing you better use GetAWSIoT processor. You can dynamically set a thing-name " +
+        "out by a thing you better use ConsumeAWSIoTMqtt processor. You can dynamically set a thing-name " +
         "when overriding the processor-configuration with a message-attribute \"aws.iot.thing.override\".")
-@SeeAlso({ GetAWSIoT.class })
+@SeeAlso({ ConsumeAWSIoTMqtt.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })

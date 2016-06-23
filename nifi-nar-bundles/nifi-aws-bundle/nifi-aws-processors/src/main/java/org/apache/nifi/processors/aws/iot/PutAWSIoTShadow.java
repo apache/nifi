@@ -44,7 +44,7 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sets state of a thing in AWS IoT by updating the shadow. You can dynamically set a thing-name " +
         "when overriding the processor-configuration with a message-attribute \"aws.iot.thing.override\".")
-@SeeAlso({ PutAWSIoT.class })
+@SeeAlso({ PublishAWSIoTMqtt.class })
 @ReadsAttributes({
         @ReadsAttribute(attribute = "aws.iot.thing.override", description = "Overrides the processor configuration for topic."),
 })
