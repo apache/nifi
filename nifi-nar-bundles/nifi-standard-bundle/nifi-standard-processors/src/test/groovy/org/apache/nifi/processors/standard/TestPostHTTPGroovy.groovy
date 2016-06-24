@@ -379,6 +379,9 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
     }
 
     @Ignore
@@ -490,7 +493,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -526,7 +529,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.1")
         runner.enableControllerService(sslContextService)
@@ -566,7 +569,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -600,7 +603,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         final SSLContextService sslContextService = new StandardSSLContextService()
         runner.addControllerService("ssl-context", sslContextService)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
         runner.enableControllerService(sslContextService)
 
@@ -628,6 +631,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
     }
 
+    @Ignore("Runs a server temporarily until stopped for testing with s_client")
     @Test
     public void runServer() {
 
