@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -47,6 +48,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -138,7 +140,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             // get the authorizations file and ensure it exists
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
-                throw new AuthorizerCreationException("The authorizations file must exist.");
+                logger.info("Creating new authorizations file at {}", new Object[] {authorizationsFile.getAbsolutePath()});
+                saveAndRefreshHolder(new Authorizations());
             }
 
             final File authorizationsFileDirectory = authorizationsFile.getAbsoluteFile().getParentFile();
@@ -172,9 +175,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(PROP_LEGACY_AUTHORIZED_USERS_FILE);
             legacyAuthorizedUsersFile = legacyAuthorizedUsersProp == null ? null : legacyAuthorizedUsersProp.getValue();
 
-            // try to extract the root group id from the flow configuration file specified in nifi.properties
-            rootGroupId = getRootGroupId();
-
             // load the authorizations
             load();
 
@@ -187,66 +187,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
-        }
-    }
-
-    /**
-     * Extracts the root group id from the flow configuration file provided in nifi.properties.
-     *
-     * @return the root group id, or null if the files doesn't exist, was empty, or could not be parsed
-     */
-    private String getRootGroupId() {
-        final File flowFile = properties.getFlowConfigurationFile();
-        if (flowFile == null) {
-            logger.debug("Flow Configuration file was null");
-            return null;
-        }
-
-        // if the flow doesn't exist or is 0 bytes, then return null
-        final Path flowPath = flowFile.toPath();
-        try {
-            if (!Files.exists(flowPath) || Files.size(flowPath) == 0) {
-                logger.debug("Flow Configuration does not exist or was empty");
-                return null;
-            }
-        } catch (IOException e) {
-            logger.debug("An error occurred determining the size of the Flow Configuration file");
-            return null;
-        }
-
-        // otherwise create the appropriate input streams to read the file
-        try (final InputStream in = Files.newInputStream(flowPath, StandardOpenOption.READ);
-             final InputStream gzipIn = new GZIPInputStream(in)) {
-
-            // create validating document builder
-            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            docFactory.setNamespaceAware(true);
-            docFactory.setSchema(flowSchema);
-
-            // parse the flow
-            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            final Document document = docBuilder.parse(gzipIn);
-
-            // extract the root group id
-            final Element rootElement = document.getDocumentElement();
-
-            final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-            if (rootGroupElement == null) {
-                logger.debug("rootGroup element not found in Flow Configuration file");
-                return null;
-            }
-
-            final Element rootGroupIdElement = (Element) rootGroupElement.getElementsByTagName("id").item(0);
-            if (rootGroupIdElement == null) {
-                logger.debug("id element not found under rootGroup in Flow Configuration file");
-                return null;
-            }
-
-            return rootGroupIdElement.getTextContent();
-
-        } catch (final SAXException | ParserConfigurationException | IOException ex) {
-            logger.error("Unable to find root group id in {} due to {}", new Object[] { flowPath.toAbsolutePath(), ex });
-            return null;
         }
     }
 
@@ -282,14 +222,16 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // if we are starting fresh then we might need to populate an initial admin or convert legacy users
         if (emptyAuthorizations) {
+            // try to extract the root group id from the flow configuration file specified in nifi.properties
+            rootGroupId = getRootGroupId();
 
             if (hasInitialAdminIdentity && hasLegacyAuthorizedUsers) {
                 throw new AuthorizerCreationException("Cannot provide an Initial Admin Identity and a Legacy Authorized Users File");
             } else if (hasInitialAdminIdentity) {
-                logger.debug("Populating authorizations for Initial Admin: " + initialAdminIdentity);
+                logger.info("Populating authorizations for Initial Admin: " + initialAdminIdentity);
                 populateInitialAdmin(authorizations);
             } else if (hasLegacyAuthorizedUsers) {
-                logger.debug("Converting " + legacyAuthorizedUsersFile + " to new authorizations model");
+                logger.info("Converting " + legacyAuthorizedUsersFile + " to new authorizations model");
                 convertLegacyAuthorizedUsers(authorizations);
             }
 
@@ -297,6 +239,72 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             saveAndRefreshHolder(authorizations);
         } else {
             this.authorizationsHolder.set(authorizationsHolder);
+        }
+    }
+
+    /**
+     * Extracts the root group id from the flow configuration file provided in nifi.properties.
+     *
+     * @return the root group id, or null if the files doesn't exist, was empty, or could not be parsed
+     */
+    private String getRootGroupId() {
+        final File flowFile = properties.getFlowConfigurationFile();
+        if (flowFile == null) {
+            logger.debug("Flow Configuration file was null");
+            return null;
+        }
+
+        // if the flow doesn't exist or is 0 bytes, then return null
+        final Path flowPath = flowFile.toPath();
+        try {
+            if (!Files.exists(flowPath) || Files.size(flowPath) == 0) {
+                logger.debug("Flow Configuration does not exist or was empty");
+                return null;
+            }
+        } catch (IOException e) {
+            logger.debug("An error occurred determining the size of the Flow Configuration file");
+            return null;
+        }
+
+        // otherwise create the appropriate input streams to read the file
+        try (final InputStream in = Files.newInputStream(flowPath, StandardOpenOption.READ);
+             final InputStream gzipIn = new GZIPInputStream(in)) {
+
+            final byte[] flowBytes = IOUtils.toByteArray(gzipIn);
+            if (flowBytes == null || flowBytes.length == 0) {
+                logger.debug("Could not extract root group id because Flow Configuration File was empty");
+                return null;
+            }
+
+            // create validating document builder
+            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            docFactory.setNamespaceAware(true);
+            docFactory.setSchema(flowSchema);
+
+            // parse the flow
+            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            final Document document = docBuilder.parse(new ByteArrayInputStream(flowBytes));
+
+            // extract the root group id
+            final Element rootElement = document.getDocumentElement();
+
+            final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+            if (rootGroupElement == null) {
+                logger.debug("rootGroup element not found in Flow Configuration file");
+                return null;
+            }
+
+            final Element rootGroupIdElement = (Element) rootGroupElement.getElementsByTagName("id").item(0);
+            if (rootGroupIdElement == null) {
+                logger.debug("id element not found under rootGroup in Flow Configuration file");
+                return null;
+            }
+
+            return rootGroupIdElement.getTextContent();
+
+        } catch (final SAXException | ParserConfigurationException | IOException ex) {
+            logger.error("Unable to find root group id in {} due to {}", new Object[] { flowPath.toAbsolutePath(), ex });
+            return null;
         }
     }
 
