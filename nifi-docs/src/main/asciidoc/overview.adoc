@@ -192,7 +192,7 @@ For RAM::
 NiFi lives within the JVM and is thus generally limited to the memory space it 
 is afforded by the JVM.  Garbage collection of the JVM becomes a very important
 factor to both restricting the total practical size the heap can be as well as
-how well the application will run over time.  
+how well the application will run over time. Notice that NiFi jobs can be I/O intensive when reading the same content regularly. Configuring a large enough disk cache would be key to optimize performance.
 
 High Level Overview of Key NiFi Features
 ----------------------------------------
