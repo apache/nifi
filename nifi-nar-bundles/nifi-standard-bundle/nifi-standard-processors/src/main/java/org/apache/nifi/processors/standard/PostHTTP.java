@@ -392,6 +392,7 @@ public class PostHTTP extends AbstractProcessor {
             final SSLContext sslContext;
             try {
                 sslContext = createSSLContext(sslContextService);
+                getLogger().info("PostHTTP supports protocol: " + sslContext.getProtocol());
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
@@ -423,7 +424,6 @@ public class PostHTTP extends AbstractProcessor {
             // (sslContext, new String[]{"TLSv1"}, supportedCipherSuites,
             // SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
             final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
-
             // Also use a plain socket factory for regular http connections (especially proxies)
             final Registry<ConnectionSocketFactory> socketFactoryRegistry =
                     RegistryBuilder.<ConnectionSocketFactory>create()
@@ -462,6 +462,8 @@ public class PostHTTP extends AbstractProcessor {
             }
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
+
+        builder = builder.useProtocol(service.getSslAlgorithm());
 
         final SSLContext sslContext = builder.build();
         return sslContext;
