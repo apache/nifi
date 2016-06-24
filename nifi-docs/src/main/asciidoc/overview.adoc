@@ -256,8 +256,8 @@ Security::
         a user's access and at particular levels (read-only, dataflow manager, admin).  If a user enters a 
         sensitive property like a password into the flow, it is immediately encrypted server side and never again exposed
         on the client side even in its encrypted form.
-        
     Multi-tenant Authorization;;
+        The authority level of a given dataflow applies to each component, allowing the admin user to have fine grained level of access control. This in turn means each NiFi cluster is capable of handling the requirements of one or more organizations. Comparing to completely isolated topologies, multi-tenant authorization enables a self-service model for dataflow management, allowing each team/organization to manage their dataflows with a full awareness for the rest of the flow that they don't have access to. 
     
     
 
