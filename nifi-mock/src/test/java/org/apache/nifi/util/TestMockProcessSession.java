@@ -36,7 +36,7 @@ public class TestMockProcessSession {
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
 
-        protected static final Relationship REL_FAILURE = new Relationship.Builder()
+        private static final Relationship REL_FAILURE = new Relationship.Builder()
                 .name("failure")
                 .build();
 
