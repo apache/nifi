@@ -268,12 +268,16 @@ Designed for Extension::
         ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result, extensions can be built with little concern for whether 
         they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and will be discussed in greater detail 
         in the developer's guide.
+        
 Clustering (scale-out)::
     NiFi is designed to scale-out through the use of clustering many nodes together as described above.  If a single node is provisioned and configured
     to handle hundreds of MB/s then a modest cluster could be configured to handle GB/s.  This then brings about interesting challenges of load balancing
     and fail-over between NiFi and the systems from which it gets data.  Use of asynchronous queuing based protocols like messaging services, Kafka, etc., can
     help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (could be another NiFi cluster) to talk to each other, share information
     about loading, and to exchange data on specific authorized ports.
+    
+Clustering (scale-up & down)::
+    NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This will allow more processes to execute simultaneously providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable of running on edge devices where a small footprint is highly desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: https://cwiki.apache.org/confluence/display/NIFI/MiNiFi regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
 
 References
 ----------
