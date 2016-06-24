@@ -196,6 +196,7 @@ how well the application will run over time. Notice that NiFi jobs can be I/O in
 
 High Level Overview of Key NiFi Features
 ----------------------------------------
+The goal of this paragraph is to provide a 20,000 foot view of NiFi's cornerstones, allowing readers to efficiently understand the big picture of Apache NiFi, and in the meantime, pointing out the most interesting focal points for readers to zoom in as needed. The key features are categorized as: flow management, ease of use, security, extensible architecture, and flexible scaling model.
 
 Flow Management::
     Guaranteed Delivery;;
@@ -237,50 +238,53 @@ Ease of Use::
         objects flow through the system even across fan-in, fan-out, transformations, and
         more.  This information becomes extremely critical in supporting compliance, 
         troubleshooting, optimization, and other scenarios.
+    Recovery / Recording a rolling buffer of fine-grained history;;
+        NiFi's content repository is designed to act as a rolling buffer of history.  Data
+        is removed only as it ages off the content repository or as space is needed.  This
+        combined with the data provenance capability makes for an incredibly useful basis
+        to enable click-to-content, download of content, and replay, all at a specific 
+        point in an object's lifecycle which can even span generations.
 
 Security::
-    System to system;;
+    System to System;;
         A dataflow is only as good as it is secure.  NiFi at every point in a dataflow offers secure
         exchange through the use of protocols with encryption such as 2-way SSL.  In addition
         NiFi enables the flow to encrypt and decrypt content and use shared-keys or other mechanisms on 
         either side of the sender/recipient equation.
-    User to system;;
+    User to System;;
         NiFi enables 2-Way SSL authentication and provides pluggable authorization so that it can properly control
         a user's access and at particular levels (read-only, dataflow manager, admin).  If a user enters a 
         sensitive property like a password into the flow, it is immediately encrypted server side and never again exposed
         on the client side even in its encrypted form.
+        
+    Multi-tenant Authorization;;
+    
+    
 
 Extensible Architecture::
-    NiFi is at its core built for extension and as such it is a platform on which dataflow processes can execute and interact in a predictable and repeatable manner.
-    Points of extension;;
-        Processors, Controller Services, Reporting Tasks, Prioritizers, Customer User Interfaces
+    Extension;;
+        NiFi is at its core built for extension and as such it is a platform on which dataflow processes can execute and interact in a predictable and repeatable manner. Points of extension include: processors, Controller Services, Reporting Tasks, Prioritizers, and Customer User Interfaces
     Classloader Isolation;;
         For any component-based system, dependency nightmares can quickly occur.  NiFi addresses this by providing a custom class loader model,
         ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result, extensions can be built with little concern for whether 
         they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and will be discussed in greater detail 
         in the developer's guide.
+    Site-to-Site Communication Protocol;;
+        The preferred communication protocol between NiFi instances, is the NiFi Site-to-Site (S2S) Protocol. S2S makes it easy to transfer data from one NiFi instance to another easily, efficiently, and securely. NiFi client libraries can be easily built/bundled into other applications/devices to communicate back to NiFi via S2S. Both the socket based protocol and HTTP(S) protocol are supported in S2S as the underlying transport protocol, making it possible to embed a proxy server into the S2S communication. 
 
-
-  
-
-Recovery / Recording a rolling buffer of fine-grained history::
-NiFi's content repository is designed to act as a rolling buffer of history.  Data
-is removed only as it ages off the content repository or as space is needed.  This
-combined with the data provenance capability makes for an incredibly useful basis
-to enable click-to-content, download of content, and replay, all at a specific 
-point in an object's lifecycle which can even span generations.
-
-
-Clustering (scale-out)::
-    NiFi is designed to scale-out through the use of clustering many nodes together as described above.  If a single node is provisioned and configured
-    to handle hundreds of MB/s then a modest cluster could be configured to handle GB/s.  This then brings about interesting challenges of load balancing
-    and fail-over between NiFi and the systems from which it gets data.  Use of asynchronous queuing based protocols like messaging services, Kafka, etc., can
-    help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (could be another NiFi cluster) to talk to each other, share information
-    about loading, and to exchange data on specific authorized ports.
+Flexible Scaling Model::
+    Scale-out (Clustering);;
+        NiFi is designed to scale-out through the use of clustering many nodes together as described above.  If a single node is provisioned and configured
+        to handle hundreds of MB/s then a modest cluster could be configured to handle GB/s.  This then brings about interesting challenges of load balancing
+        and fail-over between NiFi and the systems from which it gets data.  Use of asynchronous queuing based protocols like messaging services, Kafka, etc., can
+        help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (could be another NiFi cluster) to talk to each other, share information
+        about loading, and to exchange data on specific authorized ports.
+    Scale-up & down;;
+        NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This will allow more processes to execute simultaneously providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable of running on edge devices where a small footprint is highly desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: https://cwiki.apache.org/confluence/display/NIFI/MiNiFi regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
     
-Clustering (scale-up & down)::
-    NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This will allow more processes to execute simultaneously providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable of running on edge devices where a small footprint is highly desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: https://cwiki.apache.org/confluence/display/NIFI/MiNiFi regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
 
+    
+    
 References
 ----------
 [bibliography]
