@@ -106,6 +106,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static KeyStore truststore
     private static String keystorePath
     private static String truststorePath
+
+    private static String   keystorePassword = DEFAULT_KEYSTORE_PASSWORD
+    private static String truststorePassword = DEFAULT_KEYSTORE_PASSWORD
+
     private static Server server
 
     private static TestRunner runner
@@ -350,8 +354,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
         contextFactory.setKeyStorePath(keystorePath)
         contextFactory.setKeyStoreType(KEYSTORE_TYPE)
-        contextFactory.setKeyStorePassword(DEFAULT_KEYSTORE_PASSWORD)
-        contextFactory.setKeyManagerPassword(DEFAULT_KEY_PASSWORD)
+        contextFactory.setKeyStorePassword(keystorePassword)
+//        contextFactory.setKeyManagerPassword(DEFAULT_KEY_PASSWORD)
 
         contextFactory.setIncludeProtocols(supportedProtocols as String[])
         contextFactory
@@ -359,8 +363,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
     @AfterClass
     public static void tearDownOnce() {
-        new File(keystorePath).delete()
-        new File(truststorePath).delete()
+//        new File(keystorePath).delete()
+//        new File(truststorePath).delete()
     }
 
     @Before
@@ -495,6 +499,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
 
         // Configure server with TLSv1 only
+        keystorePath = "src/test/resources/localhost-ks.jks"
+        keystorePassword = "localtest"
+        truststorePath = "src/test/resources/localhost-ts.jks"
+        truststorePassword = "localtest"
         server = createServer([TLSv1])
 
         // Start server
@@ -520,6 +528,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
         runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
+        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.1")
         runner.enableControllerService(sslContextService)
 
         logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
@@ -530,6 +539,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 //        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "false")
 
         // Configure server with TLSv1.1 only
+        keystorePath = "src/test/resources/localhost-ks.jks"
+        keystorePassword = "localtest"
+        truststorePath = "src/test/resources/localhost-ts.jks"
+        truststorePassword = "localtest"
         server = createServer([TLSv1_1])
 
         // Start server
@@ -598,6 +611,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
 
         // Configure server with all TLS protocols
+        keystorePath = "src/test/resources/localhost-ks.jks"
+        keystorePassword = "localtest"
+        truststorePath = "src/test/resources/localhost-ts.jks"
+        truststorePassword = "localtest"
         server = createServer()
 
         // Start server
@@ -609,5 +626,27 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
         // Assert
         runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+    }
+
+    @Test
+    public void runServer() {
+
+        keystorePath = "src/test/resources/localhost-ks.jks"
+        keystorePassword = "localtest"
+        truststorePath = "src/test/resources/localhost-ts.jks"
+        truststorePassword = "localtest"
+
+        // Configure server with TLSv1 only
+        server = createServer()
+
+        // Start server
+        server.start()
+
+        boolean exit = false
+
+        while (!exit) {
+            sleep(5000)
+            logger.info("Still running")
+        }
     }
 }
