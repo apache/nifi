@@ -17,6 +17,10 @@
 package org.apache.nifi.processors.standard
 
 import groovy.servlet.GroovyServlet
+import org.apache.nifi.ssl.SSLContextService
+import org.apache.nifi.ssl.StandardSSLContextService
+import org.apache.nifi.util.TestRunner
+import org.apache.nifi.util.TestRunners
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage
 import org.bouncycastle.asn1.x509.KeyPurposeId
@@ -42,6 +46,7 @@ import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -85,6 +90,8 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String DEFAULT_KEYSTORE_PASSWORD = "thisIsABadKeystorePassword"
     private static final String DEFAULT_KEY_PASSWORD = "thisIsABadKeyPassword"
     private static final String DEFAULT_KEY_ALIAS = "jetty-host-private"
+    private static final String DEFAULT_CERTIFICATE_ALIAS = "jetty-host"
+    static private final String KEYSTORE_TYPE = "JKS"
 
     private static final String TLSv1 = "TLSv1"
     private static final String TLSv1_1 = "TLSv1.1"
@@ -96,9 +103,12 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     private static final String HTTPS_URL = "https://${DEFAULT_HOSTNAME}:${DEFAULT_TLS_PORT}"
 
     private static KeyStore keystore
+    private static KeyStore truststore
     private static String keystorePath
+    private static String truststorePath
     private static Server server
-    static private final String KEYSTORE_TYPE = "JKS"
+
+    private static TestRunner runner
 
     /**
      * Generates a public/private RSA keypair using the default key size.
@@ -235,7 +245,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     }
 
     public
-    static KeyStore prepareKeyStore(KeyPair keyPair = generateKeyPair(), String dn = SUBJECT_DN, String keystorePassword = DEFAULT_KEYSTORE_PASSWORD) {
+    static KeyStore prepareKeyStoreAndTrustStore(KeyPair keyPair = generateKeyPair(), String dn = SUBJECT_DN, String keystorePassword = DEFAULT_KEYSTORE_PASSWORD) {
         X509Certificate certificate = generateCertificate(dn, keyPair)
         keystore = KeyStore.getInstance(KEYSTORE_TYPE)
         keystore.load(null, null)
@@ -243,6 +253,15 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
         keystorePath = "src/test/resources/TestPostHTTP/${System.currentTimeMillis()}.jks"
         keystore.store(new FileOutputStream(keystorePath), keystorePassword.chars)
+        
+        // Also prepare a truststore for the client
+        truststore = KeyStore.getInstance(KEYSTORE_TYPE)
+        truststore.load(null, null)
+        truststore.setCertificateEntry(DEFAULT_CERTIFICATE_ALIAS, certificate as Certificate)
+
+        truststorePath = "src/test/resources/TestPostHTTP/${System.currentTimeMillis()}-trust.jks"
+        truststore.store(new FileOutputStream(truststorePath), DEFAULT_KEYSTORE_PASSWORD.chars)
+        
         keystore
     }
 
@@ -254,10 +273,10 @@ class TestPostHTTPGroovy extends GroovyTestCase {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        keystore = prepareKeyStore()
+        keystore = prepareKeyStoreAndTrustStore()
         server = createServer()
 
-        // Set the default trust manager for the test (the outgoing Groovy call) to ignore certificate path verification for localhost
+        // Set the default trust manager for the "default" tests (the outgoing Groovy call) to ignore certificate path verification for localhost
 
         def nullTrustManager = [
                 checkClientTrusted: { chain, authType ->  },
@@ -275,10 +294,12 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         SSLContext sc = SSLContext.getInstance(TLSv1_2)
         sc.init(null, [nullTrustManager as X509TrustManager] as TrustManager[], null)
         SocketFactory socketFactory = sc.getSocketFactory()
-        logger.info("Max AES key length: ${Cipher.getMaxAllowedKeyLength("AES")}")
+        logger.info("JCE unlimited strength installed: ${Cipher.getMaxAllowedKeyLength("AES") > 128}")
         logger.info("Supported client cipher suites: ${socketFactory.supportedCipherSuites}")
         HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
         HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier as HostnameVerifier)
+
+        runner = TestRunners.newTestRunner(PostHTTP.class)
     }
 
     private static Server createServer(List supportedProtocols = DEFAULT_PROTOCOLS) {
@@ -339,6 +360,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
     @AfterClass
     public static void tearDownOnce() {
         new File(keystorePath).delete()
+        new File(truststorePath).delete()
     }
 
     @Before
@@ -355,6 +377,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         }
     }
 
+    @Ignore
     @Test
     public void testDefaultShouldSupportTLSv1() {
         // Arrange
@@ -375,6 +398,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         assert response == MSG.reverse()
     }
 
+    @Ignore
     @Test
     public void testDefaultShouldSupportTLSv1_1() {
         // Arrange
@@ -395,6 +419,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         assert response == MSG.reverse()
     }
 
+    @Ignore
     @Test
     public void testDefaultShouldSupportTLSv1_2() {
         // Arrange
@@ -415,6 +440,22 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         assert response == MSG.reverse()
     }
 
+    @Ignore
+    @Test
+    public void testDefaultClient() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "https://www.ssllabs.com/ssltest/viewMyClient.html"
+
+        // Act
+        String response = new URL(url).text
+        logger.info("Response from ${url}: ${response}")
+
+        // Assert
+        assert response
+    }
+
+    @Ignore
     @Test
     public void testDefaultShouldPreferTLSv1_2() {
         // Arrange
@@ -433,5 +474,140 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
         // Assert
         assert response == MSG.reverse()
+    }
+
+    @Test
+    public void testPostHTTPShouldSupportTLSv1() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "${HTTPS_URL}/PostHandler.groovy"
+
+        // Configure the test runner
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService("ssl-context", sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        runner.setProperty(PostHTTP.URL, url)
+        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+
+        // Configure server with TLSv1 only
+        server = createServer([TLSv1])
+
+        // Start server
+        server.start()
+
+        // Act
+        runner.enqueue(MSG.getBytes())
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+    }
+
+    @Test
+    public void testPostHTTPShouldSupportTLSv1_1() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "${HTTPS_URL}/PostHandler.groovy"
+
+        // Configure the test runner
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService("ssl-context", sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+
+        runner.setProperty(PostHTTP.URL, url)
+        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+//        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "false")
+
+        // Configure server with TLSv1.1 only
+        server = createServer([TLSv1_1])
+
+        // Start server
+        server.start()
+
+        // Act
+        runner.enqueue(MSG.getBytes())
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+    }
+
+    @Test
+    public void testPostHTTPShouldSupportTLSv1_2() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "${HTTPS_URL}/PostHandler.groovy"
+
+        // Configure the test runner
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService("ssl-context", sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+
+        runner.setProperty(PostHTTP.URL, url)
+        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+
+        // Configure server with TLSv1.2 only
+        server = createServer([TLSv1_2])
+
+        // Start server
+        server.start()
+
+        // Act
+        runner.enqueue(MSG.getBytes())
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+    }
+
+    @Test
+    public void testPostHTTPShouldPreferTLSv1_2() {
+        // Arrange
+        final String MSG = "This is a test message"
+        final String url = "${HTTPS_URL}/PostHandler.groovy"
+
+        // Configure the test runner
+        final SSLContextService sslContextService = new StandardSSLContextService()
+        runner.addControllerService("ssl-context", sslContextService)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, DEFAULT_KEYSTORE_PASSWORD)
+        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
+        runner.enableControllerService(sslContextService)
+
+        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
+
+        runner.setProperty(PostHTTP.URL, url)
+        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
+        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
+
+        // Configure server with all TLS protocols
+        server = createServer()
+
+        // Start server
+        server.start()
+
+        // Act
+        runner.enqueue(MSG.getBytes())
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
     }
 }
