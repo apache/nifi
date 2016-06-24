@@ -123,7 +123,7 @@ A few of these benefits include:
 
 NiFi Architecture
 -----------------
-image::nifi-arch.png["NiFi Architecture Diagram"]
+image::zero-master-node.png["NiFi Architecture Diagram"]
 
 NiFi executes within a JVM living within a host operating system.  The primary
 components of NiFi then living within the JVM are as follows:
@@ -148,7 +148,7 @@ The Provenance Repository is where all provenance event data is stored.  The rep
 
 NiFi is also able to operate within a cluster.
 
-image::nifi-arch-cluster.png["NiFi Cluster Architecture Diagram"]
+image::zero-master-cluster.png["NiFi Cluster Architecture Diagram"]
 
 Starting from 1.0, NiFi employs a Zero-Master Clustering paradigm. Each of the nodes in a NiFi cluster performs the same tasks on the data but each operates on a different set of data. One of the nodes is automatically elected (via Apache ZooKeeper) as the Cluster Coordinator, whose failover is handled automatically by ZooKeeper. All nodes in the cluster will report heartbeat/status information to the Cluster Coordinator, which will be responsible for disconnecting/connecting nodes. From an end user perspective, DataFlow Managers are able to interact with the NiFi cluster through the User Interface of any node in the cluster. Any change made is replicated to all nodes in the cluster, allowing for multiple entry points to the cluster. 
 
