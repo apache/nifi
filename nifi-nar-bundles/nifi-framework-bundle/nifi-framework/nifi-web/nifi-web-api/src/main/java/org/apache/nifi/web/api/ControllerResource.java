@@ -58,7 +58,6 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
-import javax.ws.rs.HEAD;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -440,24 +439,6 @@ public class ControllerResource extends ApplicationResource {
     // -------
     // cluster
     // -------
-
-    /**
-     * Returns a 200 OK response to indicate this is a valid cluster endpoint.
-     *
-     * @return An OK response with an empty entity body.
-     */
-    @HEAD
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
-    @Path("cluster")
-    public Response getClusterHead() {
-        // TODO - remove once cluster detection is part of /flow
-        if (isConnectedToCluster()) {
-            return Response.ok().build();
-        } else {
-            return Response.status(Response.Status.NOT_FOUND).entity("NiFi instance is not clustered").build();
-        }
-    }
 
     /**
      * Gets the contents of this NiFi cluster. This includes all nodes and their status.

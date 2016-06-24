@@ -815,24 +815,6 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
-                // create the deferred cluster request
-                var isClusteredRequest = $.Deferred(function (deferred) {
-                    $.ajax({
-                        type: 'HEAD',
-                        url: config.urls.cluster
-                    }).done(function (response, status, xhr) {
-                        clustered = true;
-                        deferred.resolve(response, status, xhr);
-                    }).fail(function (xhr, status, error) {
-                        if (xhr.status === 404) {
-                            clustered = false;
-                            deferred.resolve('', 'success', xhr);
-                        } else {
-                            deferred.reject(xhr, status, error);
-                        }
-                    });
-                }).promise();
-
                 // ensure the config requests are loaded
                 $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
                     var configResponse = configResult[0];
@@ -844,65 +826,65 @@ nf.Canvas = (function () {
                     // get the config details
                     var configDetails = configResponse.flowConfiguration;
 
-                    // when both request complete, load the application
-                    isClusteredRequest.done(function () {
-                        // get the auto refresh interval
-                        var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
+                    // update the clustered flag
+                    clustered = configDetails.clustered;
 
-                        // init storage
-                        nf.Storage.init();
+                    // get the auto refresh interval
+                    var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
-                        // initialize the application
-                        initCanvas();
-                        nf.Canvas.View.init();
-                        nf.ContextMenu.init();
-                        nf.ng.Bridge.injector.get('headerCtrl').init();
-                        nf.Settings.init();
-                        nf.Actions.init();
-                        nf.QueueListing.init();
-                        nf.ComponentState.init();
+                    // init storage
+                    nf.Storage.init();
 
-                        // initialize the component behaviors
-                        nf.Draggable.init();
-                        nf.Selectable.init();
-                        nf.Connectable.init();
+                    // initialize the application
+                    initCanvas();
+                    nf.Canvas.View.init();
+                    nf.ContextMenu.init();
+                    nf.ng.Bridge.injector.get('headerCtrl').init();
+                    nf.Settings.init();
+                    nf.Actions.init();
+                    nf.QueueListing.init();
+                    nf.ComponentState.init();
 
-                        // initialize the chart
-                        nf.StatusHistory.init(configDetails.timeOffset);
+                    // initialize the component behaviors
+                    nf.Draggable.init();
+                    nf.Selectable.init();
+                    nf.Connectable.init();
 
-                        // initialize the birdseye
-                        nf.Birdseye.init();
+                    // initialize the chart
+                    nf.StatusHistory.init(configDetails.timeOffset);
 
-                        // initialize components
-                        nf.ConnectionConfiguration.init();
-                        nf.ControllerService.init();
-                        nf.ReportingTask.init();
-                        nf.ProcessorConfiguration.init();
-                        nf.ProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupPorts.init();
-                        nf.PortConfiguration.init();
-                        nf.LabelConfiguration.init();
-                        nf.ProcessorDetails.init();
-                        nf.ProcessGroupDetails.init();
-                        nf.PortDetails.init();
-                        nf.ConnectionDetails.init();
-                        nf.RemoteProcessGroupDetails.init();
-                        nf.GoTo.init();
-                        nf.Graph.init().done(function () {
-                            nf.ng.Bridge.injector.get('graphControlsCtrl').init();
+                    // initialize the birdseye
+                    nf.Birdseye.init();
 
-                            // determine the split between the polling
-                            var pollingSplit = autoRefreshIntervalSeconds / 2;
+                    // initialize components
+                    nf.ConnectionConfiguration.init();
+                    nf.ControllerService.init();
+                    nf.ReportingTask.init();
+                    nf.ProcessorConfiguration.init();
+                    nf.ProcessGroupConfiguration.init();
+                    nf.RemoteProcessGroupConfiguration.init();
+                    nf.RemoteProcessGroupPorts.init();
+                    nf.PortConfiguration.init();
+                    nf.LabelConfiguration.init();
+                    nf.ProcessorDetails.init();
+                    nf.ProcessGroupDetails.init();
+                    nf.PortDetails.init();
+                    nf.ConnectionDetails.init();
+                    nf.RemoteProcessGroupDetails.init();
+                    nf.GoTo.init();
+                    nf.Graph.init().done(function () {
+                        nf.ng.Bridge.injector.get('graphControlsCtrl').init();
 
-                            // register the polling
-                            setTimeout(function () {
-                                startPolling(autoRefreshIntervalSeconds);
-                            }, pollingSplit * 1000);
+                        // determine the split between the polling
+                        var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                            // hide the splash screen
-                            nf.Canvas.hideSplash();
-                        }).fail(nf.Common.handleAjaxError);
+                        // register the polling
+                        setTimeout(function () {
+                            startPolling(autoRefreshIntervalSeconds);
+                        }, pollingSplit * 1000);
+
+                        // hide the splash screen
+                        nf.Canvas.hideSplash();
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);

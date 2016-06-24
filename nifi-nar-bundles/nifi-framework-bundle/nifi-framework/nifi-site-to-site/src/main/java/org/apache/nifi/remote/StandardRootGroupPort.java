@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -345,16 +343,6 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     }
 
     @Override
-    public Authorizable getParentAuthorizable() {
-        return null;
-    }
-
-    @Override
-    public Resource getResource() {
-        return ResourceFactory.getSiteToSiteResource(getIdentifier(), getName());
-    }
-
-    @Override
     public PortAuthorizationResult checkUserAuthorization(final String dn) {
         if (!secure) {
             return new StandardPortAuthorizationResult(true, "Site-to-Site is not Secure");
@@ -367,8 +355,17 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
-        // attempt to authorize the specified user
-        final AuthorizationResult result = checkAuthorization(authorizer, RequestAction.WRITE, new NiFiUser(dn));
+        // build the request
+        final AuthorizationRequest request = new AuthorizationRequest.Builder()
+                .identity(dn)
+                .anonymous(false)
+                .accessAttempt(true)
+                .action(RequestAction.WRITE)
+                .resource(ResourceFactory.getSiteToSiteResource(getIdentifier(), getName()))
+                .build();
+
+        // perform the authorization
+        final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
             final String message = String.format("%s authorization failed for user %s because %s", this, dn, result.getExplanation());
             logger.warn(message);
