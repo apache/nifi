@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.storm;
 
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.tuple.Tuple;
 
 /**
  * Converts a Tuple into a NiFiDataPacket.
