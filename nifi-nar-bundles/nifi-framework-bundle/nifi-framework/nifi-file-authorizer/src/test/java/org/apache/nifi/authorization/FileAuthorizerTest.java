@@ -427,6 +427,11 @@ public class FileAuthorizerTest {
         assertFalse(foundRootGroupPolicy);
     }
 
+    @Test
+    public void testOnConfiguredWhenAuthorizationsFileDoesNotExist() {
+        authorizer.onConfigured(configurationContext);
+        assertEquals(0, authorizer.getAccessPolicies().size());
+    }
 
     @Test
     public void testOnConfiguredWhenRestoreDoesNotExist() throws Exception {
