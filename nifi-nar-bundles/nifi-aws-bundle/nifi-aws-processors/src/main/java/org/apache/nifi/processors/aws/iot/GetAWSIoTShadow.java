@@ -19,11 +19,7 @@ package org.apache.nifi.processors.aws.iot;
 import com.amazonaws.services.iotdata.AWSIotDataClient;
 import com.amazonaws.services.iotdata.model.GetThingShadowRequest;
 import com.amazonaws.services.iotdata.model.GetThingShadowResult;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -44,7 +40,7 @@ import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
 
-
+@EventDriven
 @Tags({"Amazon", "AWS", "IOT", "Shadow", "Get"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @CapabilityDescription("Gets last persisted state of a thing in AWS IoT by reading out the shadow. " +
@@ -99,18 +95,18 @@ public class GetAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
 
-        FlowFile flowFileOut = session.create();
+        //FlowFile flowFileOut = session.create();
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(PROP_NAME_THING, thingName);
-        flowFileOut = session.putAllAttributes(flowFileOut, attributes);
+        flowFile = session.putAllAttributes(flowFile, attributes);
 
-        flowFileOut = session.write(flowFileOut, new OutputStreamCallback() {
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream out) throws IOException {
                 out.write(iotResponse.getPayload().array());
             }
         });
-        session.transfer(flowFileOut, REL_SUCCESS);
+        session.transfer(flowFile, REL_SUCCESS);
         session.commit();
     }
 }

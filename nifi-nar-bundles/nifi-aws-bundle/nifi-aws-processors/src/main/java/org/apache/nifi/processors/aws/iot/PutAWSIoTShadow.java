@@ -97,14 +97,11 @@ public class PutAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
 
         try {
             iotClient.updateThingShadow(iotRequest);
+            session.transfer(flowFile, REL_SUCCESS);
+            session.commit();
         } catch (final Exception e) {
             getLogger().error("Error while updating thing shadow {}; routing to failure", new Object[]{e});
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_FAILURE);
-            return;
+            session.penalize(flowFile);
         }
-
-        session.transfer(flowFile, REL_SUCCESS);
-        session.commit();
     }
 }
