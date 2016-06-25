@@ -91,6 +91,8 @@ public class GetAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
                         ? flowFile.getAttribute(ATTR_NAME_THING)
                         : context.getProperty(PROP_NAME_THING).getValue();
 
+        FlowFile flowFileOut = flowFile == null ? session.create() : session.create(flowFile);
+
         // ask shadow of the thing for last reported state by requesting the API of AWS
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
         final GetThingShadowResult iotResponse = iotClient.getThingShadow(iotRequest);
@@ -98,15 +100,15 @@ public class GetAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
         //FlowFile flowFileOut = session.create();
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(PROP_NAME_THING, thingName);
-        flowFile = session.putAllAttributes(flowFile, attributes);
+        flowFileOut = session.putAllAttributes(flowFileOut, attributes);
 
-        flowFile = session.write(flowFile, new OutputStreamCallback() {
+        flowFileOut = session.write(flowFileOut, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream out) throws IOException {
                 out.write(iotResponse.getPayload().array());
             }
         });
-        session.transfer(flowFile, REL_SUCCESS);
+        session.transfer(flowFileOut, REL_SUCCESS);
         session.commit();
     }
 }
