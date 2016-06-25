@@ -62,6 +62,14 @@ public class TestMockProcessSession {
         TestRunners.newTestRunner(NonExistentRelationTestProcessor.class).run();
     }
 
+    /**
+     * Uses a relationship that had never been defined.
+     * {@link #onTrigger(ProcessContext, ProcessSession)} This processor will
+     * try to forward a {@link FlowFile} to a {@link Relationship} that has
+     * never been added or inherited
+     * {@link AbstractProcessor#getRelationships()}.
+     *
+     */
     protected static class NonExistentRelationTestProcessor extends PoorlyBehavedProcessor {
 
             static final Relationship REL_NON_EXISTENT = new Relationship.Builder()
