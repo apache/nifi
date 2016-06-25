@@ -91,7 +91,7 @@ public class GetAWSIoTShadow extends AbstractAWSIoTShadowProcessor {
                         ? flowFile.getAttribute(ATTR_NAME_THING)
                         : context.getProperty(PROP_NAME_THING).getValue();
 
-        FlowFile flowFileOut = flowFile == null ? session.create() : session.create(flowFile);
+        FlowFile flowFileOut = flowFile == null ? session.create() : flowFile;
 
         // ask shadow of the thing for last reported state by requesting the API of AWS
         final GetThingShadowRequest iotRequest = new GetThingShadowRequest().withThingName(thingName);
