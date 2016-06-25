@@ -32,33 +32,32 @@ Apache NiFi fue creado para flujo de datos. Apoya configuracion directamente par
 Algunos de las Características incluye:
 
 - Interfaz basado en un web.
-  - Experencia sin costura para desagnos, control y monitoriar.
-- Alta configuracionHighly.
+  - Experencia sin costura para disenos, control y monitoriar.
+- Alta configuracion.
   - Tolerante a las perdidas vs entrega garantisada
-  - Low latency vs high throughput
-  - Dynamic prioritization
-  - Flows can be modified at runtime
+  - Baja latencia vs alta produccion
+  - priorización dinamica
+  - Los flows pueden sen modificado cuando corre.
   - Back pressure
-- Data Provenance
-  - Track dataflow from beginning to end
-- Designed for extension
-  - Build your own processors and more
+- Origen de la data
+  - Seguir  flujo de datos desde el principio y al final.
+- Designado para extensiones
+  - Creat tu propio procesor y mas.
   - Enables rapid development and effective testing
-- Secure
-  - SSL, SSH, HTTPS, encrypted content, etc...
+- Segurida
+  - SSL, SSH, HTTPS,  encriptación de el contenido etc...
   - Pluggable role-based authentication/authorization
 
-## Requirements
-* JDK 1.7 or higher
-* Apache Maven 3.1.0 or higher
+## requisitos
+* JDK 1.7 o mas alto
+* Apache Maven 3.1.0 o mas alto
 
-## Getting Started
+## Como Empesar.
 
-- Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
-  It will include information on getting a local copy of the source, give pointers on issue
-  tracking, and provide some warnings about common problems with development environments.
-- For a more comprehensive guide to development and information about contributing to the project
-  read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
+- lee el  [quickstart guide for development](http://nifi.apache.org/quickstart.html).
+  Va a incluir informacion en como cojer una copia local de el programa, como dar consejos para problemas, y dar avisos con problemas comunes cuando estas programando.
+
+- Para mas detalles en programar y informacion para contribuir para el projecto lea. [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
 
 To build:
 - Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
