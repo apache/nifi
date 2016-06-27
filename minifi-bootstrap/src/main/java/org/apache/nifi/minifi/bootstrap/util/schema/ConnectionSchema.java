@@ -44,9 +44,6 @@ public class ConnectionSchema extends BaseSchema {
     private String flowfileExpiration = "0 sec";
     private String queuePrioritizerClass = "";
 
-    public ConnectionSchema() {
-    }
-
     public ConnectionSchema(Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, CONNECTIONS_KEY);
         sourceName = getRequiredKeyAsType(map, SOURCE_NAME_KEY, String.class, CONNECTIONS_KEY);

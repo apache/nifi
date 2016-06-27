@@ -16,7 +16,7 @@
 Flow Controller:
     name: MiNiFi Flow
 
-# When creating the Flow (not doing the transform) these processors will be invalid due to not having the necesary properties/auto-terminated relationships
+# When running the Flow (not just doing the transform) these processors will be invalid due to not having the necesary properties/auto-terminated relationships
 Processors:
     - name: TailAppLog
       class: org.apache.nifi.processors.standard.TailFile

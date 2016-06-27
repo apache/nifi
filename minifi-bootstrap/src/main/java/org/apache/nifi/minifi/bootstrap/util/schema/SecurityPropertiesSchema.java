@@ -37,14 +37,14 @@ public class SecurityPropertiesSchema extends BaseSchema {
     public static final String TRUSTSTORE_PASSWORD_KEY = "truststore password";
     public static final String SSL_PROTOCOL_KEY = "ssl protocol";
 
-    private String keystore;
-    private String keystoreType;
-    private String keystorePassword;
-    private String keyPassword;
-    private String truststore;
-    private String truststoreType;
-    private String truststorePassword;
-    private String sslProtocol;
+    private String keystore = "";
+    private String keystoreType = "";
+    private String keystorePassword = "";
+    private String keyPassword = "";
+    private String truststore = "";
+    private String truststoreType = "";
+    private String truststorePassword = "";
+    private String sslProtocol = "";
     private SensitivePropsSchema sensitiveProps;
 
     public SecurityPropertiesSchema() {

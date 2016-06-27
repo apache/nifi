@@ -91,27 +91,35 @@ public class BaseSchema {
 
     public <T> T getMapAsType(Map valueMap, String key, Class targetClass, String wrapperName, boolean required) {
         Object obj = valueMap.get(key);
-        return interpretValueAsType(obj, key, targetClass, wrapperName, required);
+        return interpretValueAsType(obj, key, targetClass, wrapperName, required, true);
+    }
+
+    public <T> T getMapAsType(Map valueMap, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {
+        Object obj = valueMap.get(key);
+        return interpretValueAsType(obj, key, targetClass, wrapperName, required, instantiateIfNull);
     }
 
     public void transformListToType(List list, String simpleListType, Class targetClass, String wrapperName){
         for (int i = 0; i < list.size(); i++) {
-            Object obj = interpretValueAsType(list.get(i), simpleListType + " number " + i, targetClass, wrapperName, false);
+            Object obj = interpretValueAsType(list.get(i), simpleListType + " number " + i, targetClass, wrapperName, false, false);
             if (obj != null) {
                 list.set(i, obj);
             }
         }
     }
 
-    private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required) {
+    private <T> T interpretValueAsType(Object obj, String key, Class targetClass, String wrapperName, boolean required, boolean instantiateIfNull) {
         if (obj == null) {
             if (required){
                 addValidationIssue(key, wrapperName, "it is a required property but was not found");
             } else {
-                try {
-                    return (T) targetClass.newInstance();
-                } catch (InstantiationException | IllegalAccessException e) {
-                    addValidationIssue(key, wrapperName, "it is optional and when attempting to create it the following exception was thrown:" + e.getMessage());
+                if(instantiateIfNull) {
+                    try {
+                        return (T) targetClass.newInstance();
+                    } catch (InstantiationException | IllegalAccessException e) {
+                        addValidationIssue(key, wrapperName, "no value was given, and it is supposed to be created with default values as a default, and when attempting to create it the following " +
+                                "exception was thrown:" + e.getMessage());
+                    }
                 }
             }
         } else if (obj instanceof Map) {

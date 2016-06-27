@@ -41,9 +41,6 @@ public class RemoteProcessingGroupSchema extends BaseSchema {
     private String yieldPeriod = "10 sec";
     private List<RemoteInputPortSchema> inputPorts;
 
-    public RemoteProcessingGroupSchema() {
-    }
-
     public RemoteProcessingGroupSchema(Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, REMOTE_PROCESSING_GROUPS_KEY);
         url = getRequiredKeyAsType(map, URL_KEY, String.class, REMOTE_PROCESSING_GROUPS_KEY);

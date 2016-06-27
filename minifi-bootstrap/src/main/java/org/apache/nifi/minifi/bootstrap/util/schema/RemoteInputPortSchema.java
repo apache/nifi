@@ -38,9 +38,6 @@ public class RemoteInputPortSchema extends BaseSchema {
     private Number maxConcurrentTasks = 1;
     private Boolean useCompression = true;
 
-    public RemoteInputPortSchema() {
-    }
-
     public RemoteInputPortSchema(Map map) {
         id = getRequiredKeyAsType(map, ID_KEY, String.class, INPUT_PORTS_KEY);
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, INPUT_PORTS_KEY);

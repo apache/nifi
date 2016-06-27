@@ -52,9 +52,6 @@ public class ProcessorSchema extends BaseSchema {
     private List<String> autoTerminatedRelationshipsList = Collections.emptyList();
     private Map<String, Object> properties = Collections.emptyMap();
 
-    public ProcessorSchema() {
-    }
-
     public ProcessorSchema(Map map) {
         name = getRequiredKeyAsType(map, NAME_KEY, String.class, PROCESSORS_KEY);
         processorClass = getRequiredKeyAsType(map, CLASS_KEY, String.class, PROCESSORS_KEY);

@@ -47,9 +47,6 @@ public class ProvenanceReportingSchema extends BaseSchema {
     private String timeout = "30 secs";
     private Number batchSize = 1000;
 
-    public ProvenanceReportingSchema() {
-    }
-
     public ProvenanceReportingSchema(Map map) {
         comment = getOptionalKeyAsType(map, COMMENT_KEY, String.class, PROVENANCE_REPORTING_KEY, null);
 
