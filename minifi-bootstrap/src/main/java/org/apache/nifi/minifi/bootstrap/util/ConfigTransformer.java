@@ -68,6 +68,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
 public final class ConfigTransformer {
@@ -367,7 +368,7 @@ public final class ConfigTransformer {
 
             List<RemoteProcessingGroupSchema> remoteProcessingGroups = configSchema.getRemoteProcessingGroups();
             if (remoteProcessingGroups != null) {
-                for (RemoteProcessingGroupSchema remoteProcessingGroupSchema: remoteProcessingGroups) {
+                for (RemoteProcessingGroupSchema remoteProcessingGroupSchema : remoteProcessingGroups) {
                     addRemoteProcessGroup(element, remoteProcessingGroupSchema);
                 }
             }
@@ -491,7 +492,7 @@ public final class ConfigTransformer {
             addTextElement(element, "transmitting", "true");
 
             List<RemoteInputPortSchema> remoteInputPorts = remoteProcessingGroupProperties.getInputPorts();
-            for(RemoteInputPortSchema remoteInputPortSchema: remoteInputPorts) {
+            for (RemoteInputPortSchema remoteInputPortSchema : remoteInputPorts) {
                 addRemoteGroupPort(element, remoteInputPortSchema);
             }
 
@@ -538,10 +539,11 @@ public final class ConfigTransformer {
             addTextElement(element, "sourceGroupId", "Root-Group");
             addTextElement(element, "sourceType", "PROCESSOR");
 
-            addTextElement(element, "destinationId", connectionProperties.getDestinationName());
-
-            if (isInputPortId(connectionProperties.getDestinationName(), configSchema)) {
-                addTextElement(element, "destinationGroupId", "Remote-Process-Group");
+            final String connectionDestinationId = connectionProperties.getDestinationName();
+            addTextElement(element, "destinationId", connectionDestinationId);
+            final Optional<String> parentGroup = findInputPortParentGroup(connectionDestinationId, configSchema);
+            if (parentGroup.isPresent()) {
+                addTextElement(element, "destinationGroupId", parentGroup.get());
                 addTextElement(element, "destinationType", "REMOTE_INPUT_PORT");
             } else {
                 addTextElement(element, "destinationGroupId", "Root-Group");
@@ -562,25 +564,22 @@ public final class ConfigTransformer {
         }
     }
 
-    private static boolean isInputPortId(String id, ConfigSchema configSchema) {
-        boolean isInputPortId = false;
-        try {
-            List<RemoteProcessingGroupSchema> remoteProcessingGroups = configSchema.getRemoteProcessingGroups();
-            if (remoteProcessingGroups != null) {
-                for (RemoteProcessingGroupSchema remoteProcessingGroupSchema: remoteProcessingGroups) {
-                    List<RemoteInputPortSchema> remoteInputPorts = remoteProcessingGroupSchema.getInputPorts();
-                    for (RemoteInputPortSchema remoteInputPortSchema: remoteInputPorts) {
-                        if (remoteInputPortSchema != null && id.equals(remoteInputPortSchema.getId())) {
-                            isInputPortId = true;
-                            break;
-                        }
+    // Locate the associated parent group for a given input port by its id
+    private static Optional<String> findInputPortParentGroup(String inputPortId, ConfigSchema configSchema) {
+        final List<RemoteProcessingGroupSchema> remoteProcessingGroups = configSchema.getRemoteProcessingGroups();
+        if (remoteProcessingGroups != null) {
+            for (final RemoteProcessingGroupSchema remoteProcessingGroupSchema : remoteProcessingGroups) {
+                final List<RemoteInputPortSchema> remoteInputPorts = remoteProcessingGroupSchema.getInputPorts();
+                for (final RemoteInputPortSchema remoteInputPortSchema : remoteInputPorts) {
+                    if (remoteInputPortSchema != null && inputPortId.equals(remoteInputPortSchema.getId())) {
+                        return Optional.of(remoteProcessingGroupSchema.getName());
+
                     }
                 }
             }
-        } catch (Exception e) {
-            // If an exception was thrown then it isn't the InputPort
         }
-        return isInputPortId;
+
+        return Optional.empty();
     }
 
     private static void addPosition(final Element parentElement) {
