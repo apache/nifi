@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -271,7 +272,7 @@ public class UnpackContent extends AbstractProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
             session.getProvenanceReporter().fork(flowFile, unpacked);
             logger.info("Unpacked {} into {} and transferred to success", new Object[]{flowFile, unpacked});
-        } catch (final ProcessException e) {
+        } catch (final ProcessException | InvalidPathException e) {
             logger.error("Unable to unpack {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             session.remove(unpacked);
