@@ -60,6 +60,17 @@ ul.tab-pane {
 }
 
 div.configuration-tab {
-    height: 320px;
     display: none;
+}
+
+div[id$=-tabs-content] {
+    height: 85%;
+}
+
+div[id$=-tab-content] {
+    height: 100%;
+}
+
+div[id$=-properties] {
+    height: 100%;
 }

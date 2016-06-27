@@ -43,7 +43,7 @@
             <button id="provenance-search-button" class="fa fa-search"></button>
         </div>
         <div id="provenance-table"></div>
-        <div id="provenance-refresh-container" class="last-refreshed-container">
+        <div id="provenance-refresh-container">
             <button id="refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
             <div id="provenance-last-refreshed-container" class="last-refreshed-container">
                 Last updated:&nbsp;<span id="provenance-last-refreshed" class="value-color"></span>

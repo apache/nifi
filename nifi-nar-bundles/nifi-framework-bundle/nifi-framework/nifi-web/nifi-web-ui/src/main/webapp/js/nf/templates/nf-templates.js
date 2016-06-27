@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the templates page
     nf.Templates.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#templates').css('margin', 40);
-        $('#templates-refresh-container').css('margin', 40);
-    }
 });
 
 nf.Templates = (function () {
@@ -229,8 +223,22 @@ nf.Templates = (function () {
                 nf.TemplatesTable.loadTemplatesTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeTemplatesPage().done(function () {
-                        // configure the initial grid height
-                        nf.TemplatesTable.resetTableSize();
+                        var setBodySize = function () {
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+
+                                $('#templates').css('margin', 40);
+                                $('#templates-table').css('bottom', 127);
+                                $('#templates-refresh-container').css('margin', 40);
+                            }
+
+                            // configure the initial grid height
+                            nf.TemplatesTable.resetTableSize();
+                        };
 
                         // get the about details
                         $.ajax({
@@ -244,7 +252,13 @@ nf.Templates = (function () {
                             // set the document title and the about title
                             document.title = templatesTitle;
                             $('#templates-header-text').text(templatesTitle);
+
+                            // set the initial size
+                            setBodySize();
                         }).fail(nf.Common.handleAjaxError);
+
+                        // listen for browser resize events to reset the body size
+                        $(window).resize(setBodySize);
                     });
                 });
             });

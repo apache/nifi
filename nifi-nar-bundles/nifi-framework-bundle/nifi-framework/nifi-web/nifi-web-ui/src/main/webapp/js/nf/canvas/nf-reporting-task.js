@@ -561,6 +561,8 @@ nf.ReportingTask = (function () {
 
                 // show the details
                 $('#reporting-task-configuration').modal('show');
+
+                $('#reporting-task-properties').propertytable('resetTableSize');
             }).fail(nf.Common.handleAjaxError);
         },
 
@@ -673,6 +675,8 @@ nf.ReportingTask = (function () {
 
                 // show the details
                 reportingTaskDialog.modal('show');
+
+                $('#reporting-task-properties').propertytable('resetTableSize');
             });
         },
 

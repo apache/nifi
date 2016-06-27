@@ -252,6 +252,7 @@ nf.QueueListing = (function () {
 
             // update the button model of the drop request status dialog
             $('#listing-request-status-dialog').modal('setButtonModel', [{
+                headerText: 'Queue Listing',
                 buttonText: 'Stop',
                 color: {
                     base: '#728E9B',
@@ -318,10 +319,8 @@ nf.QueueListing = (function () {
                             } else if (listingRequest.destinationRunning === true) {
                                 queueListingMessage.text('The destination of this queue is currently running. This listing may no longer be accurate.').show();
                             }
-                            queueListingTable.css('bottom', '35px');
                         } else {
                             queueListingMessage.text('').hide();
-                            queueListingTable.css('bottom', '20px');
                         }
 
                         // get the grid to load the data
@@ -611,7 +610,7 @@ nf.QueueListing = (function () {
             if (nf.Common.canAccessProvenance()) {
                 // function for formatting actions
                 var actionsFormatter = function () {
-                    return '<div title="Provenance" class="pointer provenance-icon view-provenance"></div>';
+                    return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
                 };
 
                 queueListingColumns.push({

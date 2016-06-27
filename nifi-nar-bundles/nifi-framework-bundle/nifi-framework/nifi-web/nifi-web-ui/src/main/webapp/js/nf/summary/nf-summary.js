@@ -40,23 +40,6 @@ $(document).ready(function () {
 
     // initialize the summary page
     nf.Summary.init();
-    
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#summary').css('margin', 40);
-        $('#flow-summary-refresh-container').css({
-            "position": "absolute",
-            "width": "100%",
-            "bottom": "0px",
-            "margin": "40px"
-        });
-
-        $('#system-diagnostics-link-container').css({
-            "float": "right",
-            "margin-top": "8px",
-            "padding-right": "80px"
-        });
-    }
 });
 
 nf.Summary = (function () {
@@ -175,10 +158,21 @@ nf.Summary = (function () {
                     initializeSummaryPage().done(function () {
 
                         var setBodySize = function () {
-                            $('body').css({
-                                'height': $(window).height() + 'px',
-                                'width': $(window).width() + 'px'
-                            });
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+                                
+                                $('#summary').css('margin', 40);
+                                $('div.summary-table').css('bottom', 127);
+                                $('#flow-summary-refresh-container').css({
+                                    "position": "absolute",
+                                    "bottom": "0px",
+                                    "margin": "40px"
+                                });
+                            }
 
                             nf.SummaryTable.resetTableSize();
                         };

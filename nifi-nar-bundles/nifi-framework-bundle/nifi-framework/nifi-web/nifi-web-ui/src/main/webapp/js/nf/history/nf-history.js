@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the status page
     nf.History.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#history').css('margin', 40);
-        $('#history-refresh-container').css('margin', 40);
-    }
 });
 
 nf.History = (function () {
@@ -142,8 +136,21 @@ nf.History = (function () {
 
                 // once the table is initialized, finish initializing the page
                 initializeHistoryPage().done(function () {
-                    // configure the initial grid height
-                    nf.HistoryTable.resetTableSize();
+                    var setBodySize = function () {
+                        //alter styles if we're not in the shell
+                        if (top === window) {
+                            $('body').css({
+                                'height': $(window).height() + 'px',
+                                'width': $(window).width() + 'px'
+                            });
+                            
+                            $('#history').css('margin', 40);
+                            $('#history-refresh-container').css('margin', 40);
+                        }
+
+                        // configure the initial grid height
+                        nf.HistoryTable.resetTableSize();
+                    };
 
                     // get the about details
                     $.ajax({
@@ -157,7 +164,13 @@ nf.History = (function () {
                         // set the document title and the about title
                         document.title = historyTitle;
                         $('#history-header-text').text(historyTitle);
+
+                        // set the initial size
+                        setBodySize();
                     }).fail(nf.Common.handleAjaxError);
+
+                    // listen for browser resize events to reset the body size
+                    $(window).resize(setBodySize);
                 });
             });
         }
