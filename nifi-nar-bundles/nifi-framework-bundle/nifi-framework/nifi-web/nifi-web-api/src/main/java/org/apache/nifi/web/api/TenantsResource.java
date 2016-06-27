@@ -165,7 +165,7 @@ public class TenantsResource extends ApplicationResource {
         }
 
         if (userEntity.getRevision() == null || (userEntity.getRevision().getVersion() == null || userEntity.getRevision().getVersion() != 0)) {
-            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new User.");
         }
 
         if (userEntity.getComponent().getId() != null) {
@@ -251,7 +251,7 @@ public class TenantsResource extends ApplicationResource {
         });
 
         // get the user
-        final UserEntity entity = serviceFacade.getUser(id, true);
+        final UserEntity entity = serviceFacade.getUser(id);
         populateRemainingUserEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
@@ -298,7 +298,7 @@ public class TenantsResource extends ApplicationResource {
         });
 
         // get all the users
-        final Set<UserEntity> users = serviceFacade.getUsers(true);
+        final Set<UserEntity> users = serviceFacade.getUsers();
 
         // create the response entity
         final UsersEntity entity = new UsersEntity();
@@ -550,7 +550,7 @@ public class TenantsResource extends ApplicationResource {
         }
 
         if (userGroupEntity.getRevision() == null || (userGroupEntity.getRevision().getVersion() == null || userGroupEntity.getRevision().getVersion() != 0)) {
-            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new User Group.");
         }
 
         if (userGroupEntity.getComponent().getId() != null) {
@@ -636,7 +636,7 @@ public class TenantsResource extends ApplicationResource {
         });
 
         // get the user group
-        final UserGroupEntity entity = serviceFacade.getUserGroup(id, true);
+        final UserGroupEntity entity = serviceFacade.getUserGroup(id);
         populateRemainingUserGroupEntityContent(entity);
 
         return clusterContext(generateOkResponse(entity)).build();
@@ -683,7 +683,7 @@ public class TenantsResource extends ApplicationResource {
         });
 
         // get all the user groups
-        final Set<UserGroupEntity> users = serviceFacade.getUserGroups(true);
+        final Set<UserGroupEntity> users = serviceFacade.getUserGroups();
 
         // create the response entity
         final UserGroupsEntity entity = new UserGroupsEntity();

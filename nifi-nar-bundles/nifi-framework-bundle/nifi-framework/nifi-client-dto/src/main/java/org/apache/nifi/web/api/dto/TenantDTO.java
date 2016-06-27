@@ -17,28 +17,27 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.entity.TenantEntity;
 
 import javax.xml.bind.annotation.XmlType;
-import java.util.Set;
 
 /**
- * A user of this NiFi.
+ * A tenant of this NiFi.
  */
-@XmlType(name = "user")
-public class UserDTO extends TenantDTO {
-
-    private Set<TenantEntity> userGroups;
+@XmlType(name = "tenant")
+public class TenantDTO extends ComponentDTO {
+    private String identity;
 
     /**
-     * @return groups to which the user belongs
+     * @return tenant's identity
      */
-    @ApiModelProperty(value = "The groups to which the user belongs.")
-    public Set<TenantEntity> getUserGroups() {
-        return userGroups;
+    @ApiModelProperty(value = "The identity of the tenant.")
+    public String getIdentity() {
+        return identity;
     }
 
-    public void setUserGroups(Set<TenantEntity> userGroups) {
-        this.userGroups = userGroups;
+    public void setIdentity(String identity) {
+        this.identity = identity;
     }
+
+
 }

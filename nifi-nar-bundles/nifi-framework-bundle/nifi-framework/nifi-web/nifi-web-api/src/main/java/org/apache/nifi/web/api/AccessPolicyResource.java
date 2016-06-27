@@ -188,7 +188,7 @@ public class AccessPolicyResource extends ApplicationResource {
         }
 
         if (accessPolicyEntity.getRevision() == null || (accessPolicyEntity.getRevision().getVersion() == null || accessPolicyEntity.getRevision().getVersion() != 0)) {
-            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Processor.");
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Policy.");
         }
 
         if (accessPolicyEntity.getComponent().getId() != null) {

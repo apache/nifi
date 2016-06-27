@@ -33,8 +33,7 @@ import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.entity.UserEntity;
-import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.UserDAO;
 import org.apache.nifi.web.dao.UserGroupDAO;
@@ -182,8 +181,8 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     private AccessPolicy buildAccessPolicy(final String identifier, final AccessPolicyDTO accessPolicyDTO) {
-        final Set<UserGroupEntity> userGroups = accessPolicyDTO.getUserGroups();
-        final Set<UserEntity> users = accessPolicyDTO.getUsers();
+        final Set<TenantEntity> userGroups = accessPolicyDTO.getUserGroups();
+        final Set<TenantEntity> users = accessPolicyDTO.getUsers();
         final AccessPolicy.Builder builder = new AccessPolicy.Builder()
                 .identifier(identifier)
                 .resource(accessPolicyDTO.getResource());
@@ -237,8 +236,8 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     private Group buildUserGroup(final String identifier, final UserGroupDTO userGroupDTO) {
-        final Set<UserEntity> users = userGroupDTO.getUsers();
-        final Group.Builder builder = new Group.Builder().identifier(identifier).name(userGroupDTO.getName());
+        final Set<TenantEntity> users = userGroupDTO.getUsers();
+        final Group.Builder builder = new Group.Builder().identifier(identifier).name(userGroupDTO.getIdentity());
         if (users != null) {
             builder.addUsers(users.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
         }
@@ -280,7 +279,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     private User buildUser(final String identifier, final UserDTO userDTO) {
-        final Set<UserGroupEntity> groups = userDTO.getUserGroups();
+        final Set<TenantEntity> groups = userDTO.getUserGroups();
         final User.Builder builder = new User.Builder().identifier(identifier).identity(userDTO.getIdentity());
         if (groups != null) {
             builder.addGroups(groups.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
