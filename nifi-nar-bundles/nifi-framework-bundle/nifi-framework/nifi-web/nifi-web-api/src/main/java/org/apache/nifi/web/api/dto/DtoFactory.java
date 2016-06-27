@@ -139,8 +139,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
-import org.apache.nifi.web.api.entity.UserEntity;
-import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
 
@@ -691,7 +690,7 @@ public final class DtoFactory {
      * @param user user
      * @return dto
      */
-    public UserDTO createUserDto(final User user, final Set<UserGroupEntity> groups) {
+    public UserDTO createUserDto(final User user, final Set<TenantEntity> groups) {
         if (user == null) {
             return null;
         }
@@ -705,12 +704,30 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates a {@link TenantDTO} from the specified {@link User}.
+     *
+     * @param user user
+     * @return dto
+     */
+    public TenantDTO createTenantDTO(User user) {
+        if (user == null) {
+            return null;
+        }
+
+        final TenantDTO dto = new TenantDTO();
+        dto.setId(user.getIdentifier());
+        dto.setIdentity(user.getIdentity());
+
+        return dto;
+    }
+
+    /**
      * Creates a {@link UserGroupDTO} from the specified {@link Group}.
      *
      * @param userGroup user group
      * @return dto
      */
-    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<UserEntity> users) {
+    public UserGroupDTO createUserGroupDto(final Group userGroup, Set<TenantEntity> users) {
         if (userGroup == null) {
             return null;
         }
@@ -718,7 +735,25 @@ public final class DtoFactory {
         final UserGroupDTO dto = new UserGroupDTO();
         dto.setId(userGroup.getIdentifier());
         dto.setUsers(users);
-        dto.setName(userGroup.getName());
+        dto.setIdentity(userGroup.getName());
+
+        return dto;
+    }
+
+    /**
+     * Creates a {@link TenantDTO} from the specified {@link User}.
+     *
+     * @param userGroup user
+     * @return dto
+     */
+    public TenantDTO createTenantDTO(Group userGroup) {
+        if (userGroup == null) {
+            return null;
+        }
+
+        final TenantDTO dto = new TenantDTO();
+        dto.setId(userGroup.getIdentifier());
+        dto.setIdentity(userGroup.getName());
 
         return dto;
     }
@@ -1517,7 +1552,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy, Set<UserGroupEntity> userGroups, Set<UserEntity> users) {
+    public AccessPolicyDTO createAccessPolicyDto(final AccessPolicy accessPolicy, Set<TenantEntity> userGroups, Set<TenantEntity> users) {
         if (accessPolicy == null) {
             return null;
         }
