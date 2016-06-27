@@ -566,11 +566,6 @@ nf.ProvenanceTable = (function () {
             }
         });
 
-        // listen for browser resize events to update the page size
-        $(window).resize(function () {
-            nf.ProvenanceTable.resetTableSize();
-        });
-
         // clear the current search
         $('#clear-provenance-search').click(function () {
             // clear each searchable field

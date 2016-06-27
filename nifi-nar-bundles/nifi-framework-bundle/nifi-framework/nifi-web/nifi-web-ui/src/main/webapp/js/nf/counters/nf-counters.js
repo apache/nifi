@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the counters page
     nf.Counters.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#counters').css('margin', 40);
-        $('#counters-refresh-container').css('margin', 40);
-    }
 });
 
 nf.Counters = (function () {
@@ -140,8 +134,22 @@ nf.Counters = (function () {
                 nf.CountersTable.loadCountersTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeCountersPage().done(function () {
-                        // configure the initial grid height
-                        nf.CountersTable.resetTableSize();
+                        var setBodySize = function () {
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+                                
+                                $('#counters').css('margin', 40);
+                                $('#counters-table').css('bottom', 127);
+                                $('#counters-refresh-container').css('margin', 40);
+                            }
+
+                            // configure the initial grid height
+                            nf.CountersTable.resetTableSize();
+                        };
 
                         // get the about details
                         $.ajax({
@@ -155,7 +163,13 @@ nf.Counters = (function () {
                             // set the document title and the about title
                             document.title = countersTitle;
                             $('#counters-header-text').text(countersTitle);
+
+                            // set the initial size
+                            setBodySize();
                         }).fail(nf.Common.handleAjaxError);
+
+                        // listen for browser resize events to reset the body size
+                        $(window).resize(setBodySize);
                     });
                 });
             });

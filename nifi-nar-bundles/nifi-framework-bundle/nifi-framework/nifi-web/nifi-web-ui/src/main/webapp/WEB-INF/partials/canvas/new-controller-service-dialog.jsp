@@ -30,7 +30,7 @@
                 </div>
             </div>
         </div>
-        <div flex layout="row" style="padding-top:0">
+        <div flex layout="row" style="padding-top:0;height: 90%;">
             <div flex="25" id="controller-service-tag-cloud-container">
                 <div class="setting">
                     <div class="setting-field">

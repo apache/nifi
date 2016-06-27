@@ -20,11 +20,6 @@
 $(document).ready(function () {
     // initialize the status page
     nf.Provenance.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#provenance').css('margin', 40);
-    }
 });
 
 nf.Provenance = (function () {
@@ -223,11 +218,34 @@ nf.Provenance = (function () {
                         });
                     }
 
-                    // once the table is initialized, finish initializing the page
-                    initializeProvenancePage().done(function () {
+                    var setBodySize = function () {
+                        //alter styles if we're not in the shell
+                        if (top === window) {
+                            $('body').css({
+                                'height': $(window).height() + 'px',
+                                'width': $(window).width() + 'px'
+                            });
+                            
+                            $('#provenance').css('margin', 40);
+                            $('#provenance-table').css('bottom', 127);
+                            $('#provenance-refresh-container').css({
+                                'margin': '0px 0px 40px 0px',
+                                'bottom': '40px'
+                            });
+                        }
+
                         // configure the initial grid height
                         nf.ProvenanceTable.resetTableSize();
+                    };
+
+                    // once the table is initialized, finish initializing the page
+                    initializeProvenancePage().done(function () {
+                        // set the initial size
+                        setBodySize();
                     });
+
+                    // listen for browser resize events to reset the body size
+                    $(window).resize(setBodySize);
                 });
             });
         }

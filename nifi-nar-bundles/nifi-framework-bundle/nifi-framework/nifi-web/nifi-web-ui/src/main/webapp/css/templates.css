@@ -22,10 +22,14 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
-    height: 90%;
+    left: 20px;
+    right: 20px;
+    height: 100%;
     overflow: auto;
+}
+
+#templates-header-and-filter {
+    height: 108px;
 }
 
 #templates-header-text {
@@ -40,6 +44,7 @@
     position: absolute;
     width: 100%;
     bottom: 0px;
+    left: 20px;
 }
 
 #templates-loading-container {
@@ -178,8 +183,9 @@ input.templates-filter-list {
 /* templates table */
 
 #templates-table {
-    overflow: hidden;
-    height: 70%;
-    width: 100%;
-    top: -28px;
+    position: absolute;
+    top: 108px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
 }

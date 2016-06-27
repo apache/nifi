@@ -528,12 +528,13 @@ nf.Canvas = (function () {
                 updateFlowStatusContainerSize();
 
                 // resize grids when appropriate
-                if ($('#process-group-controller-services-table').is(':visible')) {
-                    nf.ProcessGroupConfiguration.resetTableSize();
-                } else if ($('#controller-services-table').is(':visible') || $('#reporting-tasks-table').is(':visible')) {
-                    nf.Settings.resetTableSize();
-                } else if ($('#queue-listing-table').is(':visible')) {
-                    nf.QueueListing.resetTableSize();
+                var gridElements = $('*[class*="slickgrid_"]');
+                for (var i = 0, len = gridElements.length; i < len; i++) {
+                    if ($(gridElements[i]).is(':visible')){
+                        setTimeout(function(gridElement){
+                            gridElement.data('gridInstance').resizeCanvas();
+                        }, 50, $(gridElements[i]));
+                    }
                 }
             }
         }).on('keydown', function (evt) {

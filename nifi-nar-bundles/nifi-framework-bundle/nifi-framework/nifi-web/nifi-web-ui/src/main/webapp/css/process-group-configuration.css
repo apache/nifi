@@ -17,6 +17,12 @@
 
 #process-group-configuration {
     display: none;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
 }
 
 #add-process-group-configuration-controller-service {
@@ -27,11 +33,6 @@
     text-transform: uppercase;
 }
 
-#process-group-controller-services-table {
-    height: 100%;
-    width: 100%;
-}
-
 /* settings tabs */
 
 #process-group-configuration-tabs {
@@ -40,8 +41,8 @@
 
 #process-group-refresh-container {
     position: absolute;
-    bottom: 10px;
-    left: 20px;
+    bottom: 20px;
+    left: 0px;
     height: 32px;
 }
 
