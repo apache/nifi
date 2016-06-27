@@ -38,21 +38,21 @@ Algunos de las Características incluye:
   - Baja latencia vs alta produccion
   - priorización dinamica
   - Los flows pueden sen modificado cuando corre.
-  - Back pressure
+  - Menos presión
 - Origen de la data
   - Seguir  flujo de datos desde el principio y al final.
 - Designado para extensiones
-  - Creat tu propio procesor y mas.
+  - Crea tu propio procesor y mas.
   - Enables rapid development and effective testing
 - Segurida
   - SSL, SSH, HTTPS,  encriptación de el contenido etc...
   - Pluggable role-based authentication/authorization
 
-## requisitos
+## Requisitos:
 * JDK 1.7 o ultima version
 * Apache Maven 3.1.0 o ultima version
 
-## Como Empesar.
+## Como Empesar:
 
 - lee el  [quickstart guide for development](http://nifi.apache.org/quickstart.html).
   Va a incluir informacion en como cojer una copia local de el programa, como dar consejos para problemas, y dar avisos con problemas comunes cuando estas programando.
@@ -60,9 +60,8 @@ Algunos de las Características incluye:
 - Para mas detalles en programar y informacion para contribuir para el projecto lea. [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
 
 Para crear:
-- Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
-  modest development laptop that is a couple of years old, the latter build takes a bit under ten
-  minutes. After a large amount of output you should eventually see a success message.
+- Ejecuta `mvn clean install` o  crear paralelo ejecuta `mvn -T 2.0C clean install`. En una laptop modesta de unos cuantos
+años se tarda como diez minutos. Despues de tantos mensajes vas a ver otro mensaje de éxito.
 
         laptop:nifi fhampton$ mvn -T 2.0C clean install
         [INFO] Scanning for projects...
@@ -76,8 +75,8 @@ Para crear:
         [INFO] Final Memory: 173M/1359M
         [INFO] ------------------------------------------------------------------------
 
-To deploy:
-- Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
+Para Utilizar:
+- Cambia de directoria a 'nifi-assembly'. En directoria q escojistes, deveria ver una versión de nifi.
 
         laptop:nifi fhampton$ cd nifi-assembly
         laptop:nifi-assembly fhampton$ ls -lhd target/nifi*
@@ -85,10 +84,10 @@ To deploy:
         -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.tar.gz
         -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.zip
 
-- For testing ongoing development you could use the already unpacked build present in the directory
-  named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
-  location make use of either the tarball or zipfile and unpack them wherever you like. The
-  distribution will be within a common parent directory named for the version.
+- Para testiar el desarrollo puedes usar los build que estan presente en el directorio que se llaman
+  "nifi-*version*-bin", donde *version* es la version disponible en el projecto. Para implementar en otro lugar puedes usar
+  el tar o el zip y sacarlos donde quieras. La distribución va a estar en una directoria común a el padre con el nombre de la version.
+
 
         laptop:nifi-assembly fhampton$ mkdir ~/example-nifi-deploy
         laptop:nifi-assembly fhampton$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
@@ -96,31 +95,31 @@ To deploy:
         total 0
         drwxr-xr-x  10 fhampton  staff   340B Apr 30 01:06 nifi-0.1.0-SNAPSHOT
 
-To run NiFi:
-- Change directory to the location where you installed NiFi and run it.
+Para corre:
+- Cambia la directoria a el sitio donde instalastes a NIFI y corelo.
 
         laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
         laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh start
 
-- Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
+- Vete a tu browser a http://localhost:8080/nifi/ y deverias ver una pantalla como esta screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
 
-- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html)
+- Para ayuda en crear tu primer flujo de datos por favor ve [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html)
 
-- If you are testing ongoing development, you will likely want to stop your instance.
+- Si sigues testiando If you are testing ongoing development, you will likely want to stop your instance.
 
         laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
         laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh stop
 
-## Getting Help
-If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
+## Conseguir Ayuda
+Si tienes preguntas puedes mandar un mensaje a: dev@nifi.apache.org
 ([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
-We're also often available in IRC: #nifi on
+Tambien estamos a veces en IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
 
-## Documentation
+## documentación
 
-See http://nifi.apache.org/ for the latest documentation.
+  para ver la ultima version de la documentación ve a http://nifi.apache.org/ 
 
 ## License
 
