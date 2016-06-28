@@ -61,9 +61,6 @@ public class Group { // TODO rename to UserGroup
     }
 
     /**
-     * NOTE: This set of users is populated when retrieving an existing group and  will be ignored when adding a new Group.
-     * To add a User to a group, it should be done by adding or updating a User with the appropriate Group id.
-     *
      * @return an unmodifiable set of user identifiers that belong to this group
      */
     public Set<String> getUsers() {

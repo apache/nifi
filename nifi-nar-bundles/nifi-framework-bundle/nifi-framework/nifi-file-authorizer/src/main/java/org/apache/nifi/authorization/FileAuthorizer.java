@@ -59,6 +59,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -642,12 +643,28 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
+        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+
+        // determine that all users in the group exist before doing anything, throw an exception if they don't
+        final Set<org.apache.nifi.authorization.file.generated.User> jaxbUsers = checkGroupUsers(group, authorizations.getUsers().getUser());
+
         // create a new JAXB Group based on the incoming Group
         final org.apache.nifi.authorization.file.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.generated.Group();
         jaxbGroup.setIdentifier(group.getIdentifier());
         jaxbGroup.setName(group.getName());
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        // find each user and add the group to that user
+        for (String groupUser : group.getUsers()) {
+            for (org.apache.nifi.authorization.file.generated.User jaxbUser : jaxbUsers) {
+                if (jaxbUser.getIdentifier().equals(groupUser)) {
+                    final org.apache.nifi.authorization.file.generated.User.Group jaxbUserGroup = new org.apache.nifi.authorization.file.generated.User.Group();
+                    jaxbUserGroup.setIdentifier(group.getIdentifier());
+                    jaxbUser.getGroup().add(jaxbUserGroup);
+                    break;
+                }
+            }
+        }
+
         authorizations.getGroups().getGroup().add(jaxbGroup);
         saveAndRefreshHolder(authorizations);
 
@@ -670,11 +687,13 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         }
 
         final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
-        final List<org.apache.nifi.authorization.file.generated.Group> groups = authorizations.getGroups().getGroup();
+
+        // determine that all users in the group exist before doing anything, throw an exception if they don't
+        final Set<org.apache.nifi.authorization.file.generated.User> jaxbUsers = checkGroupUsers(group, authorizations.getUsers().getUser());
 
         // find the group that needs to be update
         org.apache.nifi.authorization.file.generated.Group updateGroup = null;
-        for (org.apache.nifi.authorization.file.generated.Group jaxbGroup : groups) {
+        for (org.apache.nifi.authorization.file.generated.Group jaxbGroup : authorizations.getGroups().getGroup()) {
             if (jaxbGroup.getIdentifier().equals(group.getIdentifier())) {
                 updateGroup = jaxbGroup;
                 break;
@@ -684,6 +703,43 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         // if the group wasn't found return null, otherwise update the group and save changes
         if (updateGroup == null) {
             return null;
+        }
+
+        // now we know group and all users exist so perform the updates
+
+        // first find each user and add the group to that user
+        for (String groupUser : group.getUsers()) {
+            for (org.apache.nifi.authorization.file.generated.User jaxbUser : jaxbUsers) {
+                if (jaxbUser.getIdentifier().equals(groupUser)) {
+                    final org.apache.nifi.authorization.file.generated.User.Group jaxbUserGroup = new org.apache.nifi.authorization.file.generated.User.Group();
+                    jaxbUserGroup.setIdentifier(group.getIdentifier());
+                    jaxbUser.getGroup().add(jaxbUserGroup);
+                    break;
+                }
+            }
+        }
+
+        // now go through every user, check each group in the user to see if it still
+        for (org.apache.nifi.authorization.file.generated.User jaxbUser : authorizations.getUsers().getUser()) {
+            Iterator<org.apache.nifi.authorization.file.generated.User.Group> userGroupIter = jaxbUser.getGroup().iterator();
+            while (userGroupIter.hasNext()) {
+                final org.apache.nifi.authorization.file.generated.User.Group userGroup = userGroupIter.next();
+
+                // we only care about finding the group that is currently being updated
+                if (userGroup.getIdentifier().equals(group.getIdentifier())) {
+                    boolean stillInGroup = false;
+                    for (String groupUser : group.getUsers()) {
+                        if (groupUser.equals(jaxbUser.getIdentifier())) {
+                            stillInGroup = true;
+                            break;
+                        }
+                    }
+
+                    if (!stillInGroup) {
+                        userGroupIter.remove();
+                    }
+                }
+            }
         }
 
         updateGroup.setName(group.getName());
@@ -745,6 +801,25 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     @Override
     public Set<Group> getGroups() throws AuthorizationAccessException {
         return authorizationsHolder.get().getAllGroups();
+    }
+
+    private Set<org.apache.nifi.authorization.file.generated.User> checkGroupUsers(final Group group, final List<org.apache.nifi.authorization.file.generated.User> users) {
+        final Set<org.apache.nifi.authorization.file.generated.User> jaxbUsers = new HashSet<>();
+        for (String groupUser : group.getUsers()) {
+            boolean found = false;
+            for (org.apache.nifi.authorization.file.generated.User jaxbUser : users) {
+                if (jaxbUser.getIdentifier().equals(groupUser)) {
+                    jaxbUsers.add(jaxbUser);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                throw new IllegalStateException("Unable to add group because user " + groupUser + " does not exist");
+            }
+        }
+        return jaxbUsers;
     }
 
     // ------------------ Users ------------------
