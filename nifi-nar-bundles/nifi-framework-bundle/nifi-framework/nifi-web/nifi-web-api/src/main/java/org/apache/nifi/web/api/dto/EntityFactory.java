@@ -39,6 +39,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
@@ -151,6 +152,20 @@ public final class EntityFactory {
     public UserEntity createUserEntity(final UserDTO dto, final RevisionDTO revision, final AccessPolicyDTO accessPolicy) {
         final UserEntity entity = new UserEntity();
         entity.setRevision(revision);
+        if (dto != null) {
+            entity.setAccessPolicy(accessPolicy);
+            entity.setId(dto.getId());
+
+            if (accessPolicy != null && accessPolicy.getCanRead()) {
+                entity.setComponent(dto);
+            }
+        }
+        return entity;
+    }
+
+    public TenantEntity createTenantEntity(final TenantDTO dto, final RevisionDTO revsion, final AccessPolicyDTO accessPolicy) {
+        final TenantEntity entity = new TenantEntity();
+        entity.setRevision(revsion);
         if (dto != null) {
             entity.setAccessPolicy(accessPolicy);
             entity.setId(dto.getId());
