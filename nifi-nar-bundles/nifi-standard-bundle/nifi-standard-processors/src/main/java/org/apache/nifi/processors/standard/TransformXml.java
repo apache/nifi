@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -28,7 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Templates;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
@@ -41,6 +45,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -60,6 +65,10 @@ import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -76,13 +85,43 @@ public class TransformXml extends AbstractProcessor {
             .name("XSLT file name")
             .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content.")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor INDENT_OUTPUT = new PropertyDescriptor.Builder()
+            .name("indent-output")
+            .displayName("Indent")
+            .description("Whether or not to indent the output.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("cache-size")
+            .displayName("Cache size")
+            .description("Maximum size of the stylesheet cache.")
+            .required(true)
+            .defaultValue("100")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CACHE_DURATION = new PropertyDescriptor.Builder()
+            .name("cache-duration")
+            .displayName("Cache duration")
+            .description("How long to keep stylesheets in the cache.")
+            .required(true)
+            .defaultValue("60 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The FlowFile with transformed content will be routed to this relationship")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship")
@@ -90,11 +129,15 @@ public class TransformXml extends AbstractProcessor {
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
+    private LoadingCache<String, Templates> cache;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(XSLT_FILE_NAME);
+        properties.add(INDENT_OUTPUT);
+        properties.add(CACHE_SIZE);
+        properties.add(CACHE_DURATION);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -124,6 +167,28 @@ public class TransformXml extends AbstractProcessor {
                 .build();
     }
 
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) {
+        final Long cacheSize = context.getProperty(CACHE_SIZE).asLong();
+        final Long cacheDuration = context.getProperty(CACHE_DURATION).asTimePeriod(TimeUnit.SECONDS);
+
+        CacheBuilder cacheBuilder = CacheBuilder.newBuilder();
+        if (cacheSize > 0) {
+            cacheBuilder = cacheBuilder.maximumSize(cacheSize);
+            if (cacheDuration > 0) {
+                cacheBuilder = cacheBuilder.expireAfterAccess(cacheDuration, TimeUnit.SECONDS);
+            }
+        }
+
+        cache = cacheBuilder.build(
+           new CacheLoader<String, Templates>() {
+               public Templates load(String path) throws TransformerConfigurationException {
+                   TransformerFactory factory = TransformerFactory.newInstance();
+                   return factory.newTemplates(new StreamSource(path));
+               }
+           });
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final FlowFile original = session.get();
@@ -133,17 +198,19 @@ public class TransformXml extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
         final StopWatch stopWatch = new StopWatch(true);
+        final String xsltFileName = context.getProperty(XSLT_FILE_NAME)
+            .evaluateAttributeExpressions(original)
+            .getValue();
+        final Boolean indentOutput = context.getProperty(INDENT_OUTPUT).asBoolean();
 
         try {
             FlowFile transformed = session.write(original, new StreamCallback() {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream out) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-
-                        File stylesheet = new File(context.getProperty(XSLT_FILE_NAME).getValue());
-                        StreamSource styleSource = new StreamSource(stylesheet);
-                        TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
-                        Transformer transformer = tfactory.newTransformer(styleSource);
+                        final Templates templates = cache.get(xsltFileName);
+                        final Transformer transformer = templates.newTransformer();
+                        transformer.setOutputProperty(OutputKeys.INDENT, (indentOutput ? "yes" : "no"));
 
                         // pass all dynamic properties to the transformer
                         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
