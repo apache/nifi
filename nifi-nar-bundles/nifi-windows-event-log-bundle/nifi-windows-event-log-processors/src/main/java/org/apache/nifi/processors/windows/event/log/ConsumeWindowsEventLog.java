@@ -103,7 +103,8 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             .displayName("Maximum queue size")
             .required(true)
             .defaultValue(Integer.toString(DEFAULT_MAX_QUEUE_SIZE))
-            .description("Maximum number of events to queue for transformation into FlowFiles.")
+            .description("Events are received asynchronously and must be output as FlowFiles when the processor is triggered." +
+                    "  This specifies the maximum number of events to queue for transformation into FlowFiles.")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
