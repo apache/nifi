@@ -54,5 +54,21 @@
 &lt;/Event&gt;
              </pre>
         </p>
+        <h2>Permissions:</h2>
+        <p>
+            Your Windows User must have permissions to read the given Event Log.  This can be achieved through the following steps (Windows 2008 and newer):
+            <ol>
+                <li>Open a command prompt as your user.  Enter the command: wmic useraccount get name,sid</li>
+                <li>Note the SID of the user or group you'd like to allow to read a given channel</li>
+                <li>Open a command prompt as Administrator.  enter the command: wevtutil gl CHANNEL_NAME</li>
+                <li>Take the channelAccess Attribute starting with O:BAG, copy it into a text editor, and add (A;;0x1;;;YOUR_SID_FROM_BEFORE) to the end</li>
+                <li>Take that text and run the following command in your admin prompt: wevtutil sl CHANNEL_NAME /ca:TEXT_FROM_PREVIOUS_STEP</li>
+            </ol>
+
+            <p>The following command is the exact one I used to add read access to the Security log for my user. (You can see all the possible channels with: wevtutil el):</p>
+            <p>wevtutil sl Security /ca:O:BAG:SYD:(A;;0xf0005;;;SY)(A;;0x5;;;BA)(A;;0x1;;;S-1-5-32-573)(A;;0x1;;;S-1-5-21-3589080292-3448680409-2446571098-1001)</p>
+
+            <p>These steps were adapted from <a href="https://blogs.technet.microsoft.com/janelewis/2010/04/30/giving-non-administrators-permission-to-read-event-logs-windows-2003-and-windows-2008/">this guide.</a></p>
+        </p>
 </body>
 </html>
