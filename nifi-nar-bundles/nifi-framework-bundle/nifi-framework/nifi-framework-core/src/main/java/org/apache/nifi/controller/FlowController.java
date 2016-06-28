@@ -16,7 +16,39 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
@@ -29,7 +61,9 @@ import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ProvenanceEventAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -151,6 +185,7 @@ import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -178,6 +213,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -198,39 +234,9 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import com.sun.jersey.api.client.ClientHandlerException;
 
-import static java.util.Objects.requireNonNull;
-
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -437,7 +443,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         try {
             this.provenanceEventRepository = createProvenanceRepository(properties);
-            this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository));
+            this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository), authorizer, this);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
         }
@@ -3575,17 +3581,17 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return null;
     }
 
-    public ProvenanceEventRecord replayFlowFile(final long provenanceEventRecordId, final String requestor) throws IOException {
-        final ProvenanceEventRecord record = provenanceEventRepository.getEvent(provenanceEventRecordId);
+    public ProvenanceEventRecord replayFlowFile(final long provenanceEventRecordId, final NiFiUser user) throws IOException {
+        final ProvenanceEventRecord record = provenanceEventRepository.getEvent(provenanceEventRecordId, user);
         if (record == null) {
             throw new IllegalStateException("Cannot find Provenance Event with ID " + provenanceEventRecordId);
         }
 
-        return replayFlowFile(record, requestor);
+        return replayFlowFile(record, user);
     }
 
     @SuppressWarnings("deprecation")
-    public ProvenanceEventRecord replayFlowFile(final ProvenanceEventRecord event, final String requestor) throws IOException {
+    public ProvenanceEventRecord replayFlowFile(final ProvenanceEventRecord event, final NiFiUser user) throws IOException {
         if (event == null) {
             throw new NullPointerException();
         }
@@ -3684,7 +3690,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .setFlowFileUUID(parentUUID)
             .setAttributes(Collections.<String, String> emptyMap(), flowFileRecord.getAttributes())
             .setCurrentContentClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
-            .setDetails("Replay requested by " + requestor)
+            .setDetails("Replay requested by " + user.getIdentity())
             .setEventTime(System.currentTimeMillis())
             .setFlowFileEntryDate(System.currentTimeMillis())
             .setLineageStartDate(event.getLineageStartDate())
@@ -3844,6 +3850,29 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public List<ProvenanceEventRecord> getProvenanceEvents(final long firstEventId, final int maxRecords) throws IOException {
         return new ArrayList<>(provenanceEventRepository.getEvents(firstEventId, maxRecords));
+    }
+
+    @Override
+    public Authorizable createProvenanceAuthorizable(final String componentId) {
+        final String rootGroupId = getRootGroupId();
+
+        // Provenance Events are generated only by connectable components, with the exception of DOWNLOAD events,
+        // which have the root process group's identifier assigned as the component ID. So, we check if the component ID
+        // is set to the root group and otherwise assume that the ID is that of a component.
+        final ProvenanceEventAuthorizable authorizable;
+        if (rootGroupId.equals(componentId)) {
+            authorizable = new ProvenanceEventAuthorizable(rootGroup);
+        } else {
+            final Connectable connectable = rootGroup.findConnectable(componentId);
+
+            if (connectable == null) {
+                throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");
+            }
+
+            authorizable = new ProvenanceEventAuthorizable(connectable);
+        }
+
+        return authorizable;
     }
 
     @Override

@@ -179,6 +179,18 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource PROVENANCE_EVENT_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.ProvenanceEvent.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Provenance Event";
+        }
+    };
+
     private final static Resource PROXY_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -581,22 +593,19 @@ public final class ResourceFactory {
     /**
      * Gets a Resource for accessing a component's provenance events.
      *
-     * @param resourceType  The type of resource being accessed
-     * @param identifier    The identifier of the component being accessed
-     * @param name          The name of the component being accessed
-     * @return              The resource
+     * @param resource The resource for the component being accessed
+     * @return The resource for the provenance of the component being accessed
      */
-    public static Resource getComponentProvenanceResource(final ResourceType resourceType, final String identifier, final String name) {
-        final Resource componentResource = getComponentResource(resourceType, identifier, name);
+    public static Resource getProvenanceEventResource(final Resource resource) {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", componentResource.getIdentifier(), "provenance");
+                return String.format("%s%s", PROVENANCE_EVENT_RESOURCE.getIdentifier(), resource.getIdentifier());
             }
 
             @Override
             public String getName() {
-                return componentResource.getName() + " provenance";
+                return "Provenance Events for " + resource.getName();
             }
         };
     }

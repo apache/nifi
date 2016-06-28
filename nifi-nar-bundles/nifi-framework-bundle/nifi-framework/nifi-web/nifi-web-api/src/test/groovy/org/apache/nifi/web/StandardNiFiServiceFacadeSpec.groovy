@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.*
 import org.apache.nifi.authorization.resource.Authorizable
 import org.apache.nifi.authorization.resource.ResourceFactory
 import org.apache.nifi.authorization.user.NiFiUser
+import org.apache.nifi.authorization.user.StandardNiFiUser
 import org.apache.nifi.authorization.user.NiFiUserDetails
 import org.apache.nifi.controller.service.ControllerServiceProvider
 import org.apache.nifi.web.api.dto.*
@@ -39,7 +40,7 @@ import spock.lang.Unroll
 class StandardNiFiServiceFacadeSpec extends Specification {
 
     def setup() {
-        final NiFiUser user = new NiFiUser("nifi-user");
+        final NiFiUser user = new StandardNiFiUser("nifi-user");
         final NiFiAuthenticationToken auth = new NiFiAuthenticationToken(new NiFiUserDetails(user));
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -867,17 +868,17 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         }
 
         @Override
-        boolean isAuthorized(Authorizer authorzr, RequestAction action) {
+        boolean isAuthorized(Authorizer authorzr, RequestAction action, NiFiUser user) {
             return isAuthorized
         }
 
         @Override
-        AuthorizationResult checkAuthorization(Authorizer authorzr, RequestAction action) {
+        AuthorizationResult checkAuthorization(Authorizer authorzr, RequestAction action, NiFiUser user) {
             return authorizationResult
         }
 
         @Override
-        void authorize(Authorizer authorzr, RequestAction action) throws AccessDeniedException {
+        void authorize(Authorizer authorzr, RequestAction action, NiFiUser user) throws AccessDeniedException {
             if (!isAuthorized) {
                 throw new AccessDeniedException("test exception, access denied")
             }

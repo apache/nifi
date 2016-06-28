@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
@@ -54,7 +56,8 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     }
 
     @Override
-    public void initialize(EventReporter reporter) throws IOException {
+    public void initialize(EventReporter eventReporter, Authorizer authorizer, ProvenanceAuthorizableFactory resourceFactory) throws IOException {
+
     }
 
     @Override
@@ -67,32 +70,37 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     }
 
     @Override
+    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords, NiFiUser user) throws IOException {
+        return getEvents(firstRecordId, maxRecords);
+    }
+
+    @Override
     public Long getMaxEventId() {
         return Long.valueOf(records.size() - 1);
     }
 
     @Override
-    public QuerySubmission submitQuery(Query query) {
+    public QuerySubmission submitQuery(Query query, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support querying");
     }
 
     @Override
-    public QuerySubmission retrieveQuerySubmission(String queryIdentifier) {
+    public QuerySubmission retrieveQuerySubmission(String queryIdentifier, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support querying");
     }
 
     @Override
-    public ComputeLineageSubmission submitLineageComputation(String flowFileUuid) {
+    public ComputeLineageSubmission submitLineageComputation(String flowFileUuid, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support Lineage Computation");
     }
 
     @Override
-    public ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier) {
+    public ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support Lineage Computation");
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id) throws IOException {
+    public ProvenanceEventRecord getEvent(long id, NiFiUser user) throws IOException {
         if (id > records.size()) {
             return null;
         }
@@ -101,12 +109,12 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     }
 
     @Override
-    public ComputeLineageSubmission submitExpandParents(long eventId) {
+    public ComputeLineageSubmission submitExpandParents(long eventId, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support Lineage Computation");
     }
 
     @Override
-    public ComputeLineageSubmission submitExpandChildren(long eventId) {
+    public ComputeLineageSubmission submitExpandChildren(long eventId, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceEventRepository does not support Lineage Computation");
     }
 

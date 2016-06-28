@@ -2812,7 +2812,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         // perform the authorization
-        final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ);
+        final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         return Result.Approved.equals(result.getResult());
     }
 

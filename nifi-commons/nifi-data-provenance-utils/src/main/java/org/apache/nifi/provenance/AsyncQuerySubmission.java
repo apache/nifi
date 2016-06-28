@@ -31,6 +31,7 @@ public class AsyncQuerySubmission implements QuerySubmission {
 
     private volatile boolean canceled = false;
     private final StandardQueryResult queryResult;
+    private final String submitterId;
 
     /**
      * Constructs an AsyncQuerySubmission with the given query and the given
@@ -40,9 +41,15 @@ public class AsyncQuerySubmission implements QuerySubmission {
      * @param query the query to execute
      * @param numSteps how many steps to include
      */
-    public AsyncQuerySubmission(final Query query, final int numSteps) {
+    public AsyncQuerySubmission(final Query query, final int numSteps, final String submitterId) {
         this.query = query;
+        this.submitterId = submitterId;
         queryResult = new StandardQueryResult(query, numSteps);
+    }
+
+    @Override
+    public String getSubmitterIdentity() {
+        return submitterId;
     }
 
     @Override

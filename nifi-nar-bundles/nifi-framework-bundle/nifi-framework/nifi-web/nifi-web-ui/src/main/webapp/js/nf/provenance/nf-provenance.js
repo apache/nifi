@@ -29,7 +29,7 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            cluster: '../nifi-api/controller/cluster',
+            flowConfig: '../nifi-api/flow/config',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             authorities: '../nifi-api/flow/authorities'
@@ -45,23 +45,12 @@ nf.Provenance = (function () {
      * Determines if this NiFi is clustered.
      */
     var detectedCluster = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                isClustered = true;
-                deferred.resolve();
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    isClustered = false;
-                    deferred.resolve();
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
-        }).promise();
+        return $.ajax({
+                type: 'GET',
+                url: config.urls.flowConfig
+            }).done(function (response) {
+                isClustered = response.flowConfiguration.clustered;
+            }).fail(nf.Common.handleAjaxError);
     };
 
     /**
