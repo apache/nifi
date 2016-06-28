@@ -78,9 +78,8 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         }
 
         for (AccessPolicy policy : policies) {
-            final boolean containsAction = policy.getActions().contains(request.getAction());
             final boolean containsUser = policy.getUsers().contains(user.getIdentifier());
-            if (containsAction && (containsUser || containsGroup(user, policy)) ) {
+            if (policy.getAction() == request.getAction() && (containsUser || containsGroup(user, policy)) ) {
                 return AuthorizationResult.approved();
             }
         }
@@ -327,11 +326,12 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
                 .resource(element.getAttribute(RESOURCE_ATTR));
 
         final String actions = element.getAttribute(ACTIONS_ATTR);
-        if (actions.contains(RequestAction.READ.name())) {
-            builder.addAction(RequestAction.READ);
-        }
-        if (actions.contains(RequestAction.WRITE.name())) {
-            builder.addAction(RequestAction.WRITE);
+        if (actions.equals(RequestAction.READ.name())) {
+            builder.action(RequestAction.READ);
+        } else if (actions.equals(RequestAction.WRITE.name())) {
+            builder.action(RequestAction.WRITE);
+        } else {
+            throw new IllegalStateException("Unknown Policy Action: " + actions);
         }
 
         NodeList policyUsers = element.getElementsByTagName(POLICY_USER_ELEMENT);
@@ -427,13 +427,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     }
 
     private void writePolicy(final XMLStreamWriter writer, final AccessPolicy policy) throws XMLStreamException {
-        // build the action string in a deterministic order
-        StringBuilder actionBuilder = new StringBuilder();
-        List<RequestAction> actions = getSortedActions(policy);
-        for (RequestAction action : actions) {
-            actionBuilder.append(action);
-        }
-
         // sort the users for the policy
         List<String> policyUsers = new ArrayList<>(policy.getUsers());
         Collections.sort(policyUsers);
@@ -445,7 +438,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         writer.writeStartElement(POLICY_ELEMENT);
         writer.writeAttribute(IDENTIFIER_ATTR, policy.getIdentifier());
         writer.writeAttribute(RESOURCE_ATTR, policy.getResource());
-        writer.writeAttribute(ACTIONS_ATTR, actionBuilder.toString());
+        writer.writeAttribute(ACTIONS_ATTR, policy.getAction().name());
 
         for (String policyUser : policyUsers) {
             writer.writeStartElement(POLICY_USER_ELEMENT);
@@ -496,19 +489,6 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
             }
         });
         return users;
-    }
-
-    private List<RequestAction> getSortedActions(final AccessPolicy policy) {
-        final List<RequestAction> actions = new ArrayList<>(policy.getActions());
-
-        Collections.sort(actions, new Comparator<RequestAction>() {
-            @Override
-            public int compare(RequestAction r1, RequestAction r2) {
-                return r1.name().compareTo(r2.name());
-            }
-        });
-
-        return actions;
     }
 
 }

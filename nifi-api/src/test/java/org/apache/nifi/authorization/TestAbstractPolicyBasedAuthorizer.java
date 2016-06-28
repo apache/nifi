@@ -58,7 +58,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addUser(userIdentifier)
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build());
 
         when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
@@ -96,7 +96,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addGroup(groupIdentifier)
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build());
 
         when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
@@ -134,7 +134,7 @@ public class TestAbstractPolicyBasedAuthorizer {
                 .identifier("1")
                 .resource(TEST_RESOURCE.getIdentifier())
                 .addUser("NOT_USER_1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build());
 
         when(usersAndAccessPolicies.getAccessPolicies(TEST_RESOURCE.getIdentifier())).thenReturn(policiesForResource);
@@ -189,7 +189,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
                 .resource("resource1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .addUser(user1.getIdentifier())
                 .addUser(user2.getIdentifier())
                 .build();
@@ -197,8 +197,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         AccessPolicy policy2 = new AccessPolicy.Builder()
                 .identifier("policy-id-2")
                 .resource("resource2")
-                .addAction(RequestAction.READ)
-                .addAction(RequestAction.WRITE)
+                .action(RequestAction.READ)
                 .addGroup(group1.getIdentifier())
                 .addGroup(group2.getIdentifier())
                 .addUser(user1.getIdentifier())
@@ -261,7 +260,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
                 .resource("resource1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .addUser(user1.getIdentifier())
                 .addUser(user2.getIdentifier())
                 .build();
@@ -269,8 +268,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         AccessPolicy policy2 = new AccessPolicy.Builder()
                 .identifier("policy-id-2")
                 .resource("resource2")
-                .addAction(RequestAction.READ)
-                .addAction(RequestAction.WRITE)
+                .action(RequestAction.READ)
                 .addGroup(group1.getIdentifier())
                 .addGroup(group2.getIdentifier())
                 .addUser(user1.getIdentifier())

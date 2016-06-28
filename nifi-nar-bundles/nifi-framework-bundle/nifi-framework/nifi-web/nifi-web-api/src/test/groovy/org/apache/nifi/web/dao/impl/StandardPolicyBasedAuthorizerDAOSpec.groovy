@@ -79,7 +79,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         where:
         accessPolicy                                                                  | _
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .addAction(RequestAction.READ).addAction(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | _
         null                                                                          | _
     }
 
@@ -107,7 +107,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         where:
         accessPolicy                                                                  | _
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .addAction(RequestAction.READ).addAction(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | _
     }
 
     @Unroll
@@ -127,7 +127,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         where:
         accessPolicy                                                                  | _
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .addAction(RequestAction.READ).addAction(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | _
     }
 
     @Unroll
@@ -167,7 +167,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         where:
         accessPolicy                                                                  | _
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .addAction(RequestAction.READ).addAction(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | _
     }
 
     @Unroll
@@ -207,7 +207,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         where:
         accessPolicy                                                                  | _
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .addAction(RequestAction.READ).addAction(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | _
     }
 
     @Unroll

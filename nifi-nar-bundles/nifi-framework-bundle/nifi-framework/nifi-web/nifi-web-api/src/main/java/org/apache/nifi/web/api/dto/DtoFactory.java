@@ -1562,9 +1562,11 @@ public final class DtoFactory {
         dto.setUsers(users);
         dto.setId(accessPolicy.getIdentifier());
         dto.setResource(accessPolicy.getResource());
-        Set<RequestAction> accessPolicyActions = accessPolicy.getActions();
-        dto.setCanRead(accessPolicyActions.contains(RequestAction.READ));
-        dto.setCanWrite(accessPolicyActions.contains(RequestAction.WRITE));
+        if (accessPolicy.getAction() == RequestAction.WRITE) {
+            dto.setCanWrite(Boolean.TRUE);
+        } else {
+            dto.setCanRead(Boolean.TRUE);
+        }
 
         return dto;
 

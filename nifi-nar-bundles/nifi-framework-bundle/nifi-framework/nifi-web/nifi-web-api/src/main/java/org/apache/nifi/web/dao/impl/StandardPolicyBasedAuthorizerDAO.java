@@ -192,11 +192,10 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
         if (users != null) {
             builder.addUsers(users.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
         }
-        if (Boolean.TRUE == accessPolicyDTO.getCanRead()) {
-            builder.addAction(RequestAction.READ);
-        }
         if (Boolean.TRUE == accessPolicyDTO.getCanWrite()) {
-            builder.addAction(RequestAction.WRITE);
+            builder.action(RequestAction.WRITE);
+        } else {
+            builder.action(RequestAction.READ);
         }
         return builder.build();
     }

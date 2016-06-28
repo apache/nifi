@@ -24,7 +24,6 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestAccessPolicy {
 
@@ -42,7 +41,7 @@ public class TestAccessPolicy {
                 .resource(TEST_RESOURCE)
                 .addUser(user1)
                 .addUser(user2)
-                .addAction(action)
+                .action(action)
                 .build();
 
         assertEquals(identifier, policy.getIdentifier());
@@ -55,9 +54,8 @@ public class TestAccessPolicy {
         assertTrue(policy.getUsers().contains(user1));
         assertTrue(policy.getUsers().contains(user2));
 
-        assertNotNull(policy.getActions());
-        assertEquals(1, policy.getActions().size());
-        assertTrue(policy.getActions().contains(action));
+        assertNotNull(policy.getAction());
+        assertEquals(RequestAction.READ, policy.getAction());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -65,7 +63,7 @@ public class TestAccessPolicy {
         new AccessPolicy.Builder()
                 .resource(TEST_RESOURCE)
                 .addUser("user1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build();
     }
 
@@ -74,7 +72,7 @@ public class TestAccessPolicy {
         new AccessPolicy.Builder()
                 .identifier("1")
                 .addUser("user1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build();
     }
 
@@ -83,7 +81,7 @@ public class TestAccessPolicy {
         final AccessPolicy policy = new AccessPolicy.Builder()
                 .identifier("1")
                 .resource(TEST_RESOURCE)
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build();
 
         assertNotNull(policy);
@@ -114,7 +112,7 @@ public class TestAccessPolicy {
                 .addUser(user2)
                 .addGroup(group1)
                 .addGroup(group2)
-                .addAction(action)
+                .action(action)
                 .build();
 
         assertEquals(identifier, policy.getIdentifier());
@@ -132,15 +130,14 @@ public class TestAccessPolicy {
         assertTrue(policy.getGroups().contains(group1));
         assertTrue(policy.getGroups().contains(group2));
 
-        assertNotNull(policy.getActions());
-        assertEquals(1, policy.getActions().size());
-        assertTrue(policy.getActions().contains(action));
+        assertNotNull(policy.getAction());
+        assertEquals(RequestAction.READ, policy.getAction());
 
         final AccessPolicy policy2 = new AccessPolicy.Builder(policy).build();
         assertEquals(policy.getIdentifier(), policy2.getIdentifier());
         assertEquals(policy.getResource(), policy2.getResource());
         assertEquals(policy.getUsers(), policy2.getUsers());
-        assertEquals(policy.getActions(), policy2.getActions());
+        assertEquals(policy.getAction(), policy2.getAction());
     }
 
     @Test(expected = IllegalStateException.class)
@@ -149,7 +146,7 @@ public class TestAccessPolicy {
                 .identifier("1")
                 .resource(TEST_RESOURCE)
                 .addUser("user1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .build();
 
         new AccessPolicy.Builder(policy).identifier("2").build();
@@ -161,7 +158,7 @@ public class TestAccessPolicy {
                 .identifier("1")
                 .resource(TEST_RESOURCE)
                 .addUser("user1")
-                .addAction(RequestAction.READ);
+                .action(RequestAction.READ);
 
         final AccessPolicy policy1 = builder.build();
         assertEquals(1, policy1.getUsers().size());
@@ -204,7 +201,7 @@ public class TestAccessPolicy {
                 .identifier("1")
                 .resource(TEST_RESOURCE)
                 .addGroup("group1")
-                .addAction(RequestAction.READ);
+                .action(RequestAction.READ);
 
         final AccessPolicy policy1 = builder.build();
         assertEquals(1, policy1.getGroups().size());
@@ -238,34 +235,6 @@ public class TestAccessPolicy {
 
         final AccessPolicy policy5 = builder.clearGroups().build();
         assertEquals(0, policy5.getUsers().size());
-    }
-
-    @Test
-    public void testAddRemoveClearActions() {
-        final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                .identifier("1")
-                .resource(TEST_RESOURCE)
-                .addUser("user1")
-                .addAction(RequestAction.READ);
-
-        final AccessPolicy policy1 = builder.build();
-        assertEquals(1, policy1.getActions().size());
-        assertTrue(policy1.getActions().contains(RequestAction.READ));
-
-        final AccessPolicy policy2 = builder
-                .removeAction(RequestAction.READ)
-                .addAction(RequestAction.WRITE)
-                .build();
-
-        assertEquals(1, policy2.getActions().size());
-        assertTrue(policy2.getActions().contains(RequestAction.WRITE));
-
-        try {
-            builder.clearActions().build();
-            fail("should have thrown exception");
-        } catch (IllegalArgumentException e) {
-
-        }
     }
 
 }

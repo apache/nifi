@@ -30,7 +30,7 @@ import java.util.Set;
 public final class RoleAccessPolicy {
 
     static final String READ_ACTION = "R";
-    static final String READ_WRITE_ACTION = "RW";
+    static final String WRITE_ACTION = "W";
 
     private final String resource;
     private final String actions;
@@ -66,10 +66,10 @@ public final class RoleAccessPolicy {
 
         final Set<RoleAccessPolicy> dfmPolicies = new HashSet<>();
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.Flow.getValue(), READ_ACTION));
-        dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_WRITE_ACTION));
+        dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), WRITE_ACTION));
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.System.getValue(), READ_ACTION));
         if (rootGroupId != null) {
-            dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_WRITE_ACTION));
+            dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));
         }
         roleAccessPolicies.put(Role.ROLE_DFM, Collections.unmodifiableSet(dfmPolicies));
 
@@ -79,17 +79,17 @@ public final class RoleAccessPolicy {
         if (rootGroupId != null) {
             adminPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
         }
-        adminPolicies.add(new RoleAccessPolicy(ResourceType.Tenant.getValue(), READ_WRITE_ACTION));
-        adminPolicies.add(new RoleAccessPolicy(ResourceType.Policy.getValue(), READ_WRITE_ACTION));
+        adminPolicies.add(new RoleAccessPolicy(ResourceType.Tenant.getValue(), WRITE_ACTION));
+        adminPolicies.add(new RoleAccessPolicy(ResourceType.Policy.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_ADMIN, Collections.unmodifiableSet(adminPolicies));
 
         final Set<RoleAccessPolicy> proxyPolicies = new HashSet<>();
-        proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), READ_WRITE_ACTION));
+        proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_PROXY, Collections.unmodifiableSet(proxyPolicies));
 
         final Set<RoleAccessPolicy> nifiPolicies = new HashSet<>();
         nifiPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_ACTION));
-        nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), READ_WRITE_ACTION));
+        nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_NIFI, Collections.unmodifiableSet(nifiPolicies));
 
         return roleAccessPolicies;
