@@ -196,7 +196,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         }, context.getProperty(MAX_BUFFER_SIZE).asInteger(), wEvtApi, kernel32, errorLookup);
 
         subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
-                evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE);
+                evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
         if (subscriptionHandle == null || subscriptionHandle.getPointer() == null) {
             throw new Exception("Unable to subscribe with provided parameters, received the following error code: "
                     + errorLookup.getLastError());

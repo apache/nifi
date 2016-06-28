@@ -34,6 +34,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
     public static final String RECEIVED_THE_FOLLOWING_WIN32_ERROR = "Received the following Win32 error: ";
     public static final int INITIAL_BUFFER_SIZE = 1024;
     public static final String EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE = "EvtRender returned the following error code ";
+    public static final String MISSING_EVENT_MESSAGE = "Received missing event notification.  Consider triggering processor more frequently or increasing queue size.";
 
     private final ComponentLog logger;
     private final Consumer<String> consumer;
@@ -65,8 +66,13 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
         if (logger.isDebugEnabled()) {
             logger.debug("onEvent(" + evtSubscribeNotifyAction + ", " + userContext + ", " + eventHandle);
         }
+
         if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.ERROR) {
-            logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + eventHandle.getPointer().getInt(0));
+            if (eventHandle.getPointer().getInt(0) == WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE) {
+                logger.error(MISSING_EVENT_MESSAGE);
+            } else {
+                logger.error(RECEIVED_THE_FOLLOWING_WIN32_ERROR + eventHandle.getPointer().getInt(0));
+            }
         } else if (evtSubscribeNotifyAction == WEvtApi.EvtSubscribeNotifyAction.DELIVER) {
             wEvtApi.EvtRender(null, eventHandle, WEvtApi.EvtRenderFlags.EVENT_XML, size, buffer, used, propertyCount);
 

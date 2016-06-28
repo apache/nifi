@@ -78,6 +78,16 @@ public class EventSubscribeXmlRenderingCallbackTest {
     }
 
     @Test
+    public void testMissingRecordLog() {
+        Pointer pointer = mock(Pointer.class);
+        when(handle.getPointer()).thenReturn(pointer);
+        when(pointer.getInt(0)).thenReturn(WEvtApi.EvtSubscribeErrors.ERROR_EVT_QUERY_RESULT_STALE);
+
+        eventSubscribeXmlRenderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.ERROR, null, handle);
+        verify(logger).error(EventSubscribeXmlRenderingCallback.MISSING_EVENT_MESSAGE);
+    }
+
+    @Test
     public void testSuccessfulRender() {
         String small = "abc";
         handle = ConsumeWindowsEventLogTest.mockEventHandles(wEvtApi, kernel32, Arrays.asList(small + "\u0000")).get(0);

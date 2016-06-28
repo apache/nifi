@@ -103,7 +103,7 @@ public class ConsumeWindowsEventLogTest {
 
         when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
                 isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
-                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE)))
+                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
                 .thenReturn(subscriptionHandle);
 
         testRunner = TestRunners.newTestRunner(evtSubscribe);
@@ -186,7 +186,7 @@ public class ConsumeWindowsEventLogTest {
         ArgumentCaptor<EventSubscribeXmlRenderingCallback> callbackArgumentCaptor = ArgumentCaptor.forClass(EventSubscribeXmlRenderingCallback.class);
         verify(wEvtApi).EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
                 isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), callbackArgumentCaptor.capture(),
-                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE));
+                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT));
         return callbackArgumentCaptor.getValue();
     }
 
