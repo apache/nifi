@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.util.NiFiProperties;
@@ -205,7 +206,7 @@ public class AccessPolicyResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable accessPolicies = lookup.getAccessPoliciesAuthorizable();
-                accessPolicies.authorize(authorizer, RequestAction.WRITE);
+                accessPolicies.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -270,7 +271,7 @@ public class AccessPolicyResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable accessPolicy = lookup.getAccessPolicyAuthorizable(id);
-            accessPolicy.authorize(authorizer, RequestAction.READ);
+            accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the access policy
@@ -347,7 +348,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     Authorizable authorizable  = lookup.getAccessPolicyAuthorizable(id);
-                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -422,7 +423,7 @@ public class AccessPolicyResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable accessPolicy = lookup.getAccessPolicyAuthorizable(id);
-                    accessPolicy.authorize(authorizer, RequestAction.READ);
+                accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 () -> {
                 },

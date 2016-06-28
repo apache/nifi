@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -177,7 +178,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
+            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the flowfile
@@ -265,7 +266,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
+            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the uri of the request
@@ -344,7 +345,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connection = lookup.getConnection(id);
-                connection.authorize(authorizer, RequestAction.WRITE);
+                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -415,7 +416,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
+            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the listing request
@@ -481,7 +482,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connection = lookup.getConnection(connectionId);
-                connection.authorize(authorizer, RequestAction.WRITE);
+                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -551,7 +552,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connection = lookup.getConnection(id);
-                connection.authorize(authorizer, RequestAction.WRITE);
+                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -621,7 +622,7 @@ public class FlowFileQueueResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE);
+            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the drop request
@@ -687,7 +688,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable connection = lookup.getConnection(connectionId);
-                connection.authorize(authorizer, RequestAction.WRITE);
+                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {

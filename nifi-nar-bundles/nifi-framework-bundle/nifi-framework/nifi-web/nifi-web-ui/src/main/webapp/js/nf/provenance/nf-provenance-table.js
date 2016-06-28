@@ -384,7 +384,7 @@ nf.ProvenanceTable = (function () {
                                 startTime = config.defaultStartTime;
                                 $('#provenance-search-start-time').val(startTime);
                             }
-                            search['startDate'] = startDate + ' ' + startTime;
+                            search['startDate'] = startDate + ' ' + startTime + ' ' + $('.timezone:first').text();
                         }
 
                         // extract the end date time
@@ -395,7 +395,7 @@ nf.ProvenanceTable = (function () {
                                 endTime = config.defaultEndTime;
                                 $('#provenance-search-end-time').val(endTime);
                             }
-                            search['endDate'] = endDate + ' ' + endTime;
+                            search['endDate'] = endDate + ' ' + endTime + ' ' + $('.timezone:first').text();
                         }
 
                         // extract the min/max file size

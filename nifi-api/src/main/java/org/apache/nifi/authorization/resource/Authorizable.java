@@ -24,7 +24,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 
 public interface Authorizable {
 
@@ -51,21 +50,8 @@ public interface Authorizable {
      * @param action action
      * @return is authorized
      */
-    default boolean isAuthorized(Authorizer authorizer, RequestAction action) {
-        return Result.Approved.equals(checkAuthorization(authorizer, action).getResult());
-    }
-
-    /**
-     * Returns the result of an authorization request for the current user for the specified action on the specified
-     * resource. This method does not imply the user is directly attempting to access the specified resource. If the user is
-     * attempting a direct access use Authorizable.authorize().
-     *
-     * @param authorizer authorizer
-     * @param action action
-     * @return is authorized
-     */
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action) {
-        return checkAuthorization(authorizer, action, NiFiUserUtils.getNiFiUser());
+    default boolean isAuthorized(Authorizer authorizer, RequestAction action, NiFiUser user) {
+        return Result.Approved.equals(checkAuthorization(authorizer, action, user).getResult());
     }
 
     /**
@@ -99,7 +85,7 @@ public interface Authorizable {
             if (parent == null) {
                 return AuthorizationResult.denied();
             } else {
-                return parent.checkAuthorization(authorizer, action);
+                return parent.checkAuthorization(authorizer, action, user);
             }
         } else {
             return result;
@@ -113,9 +99,7 @@ public interface Authorizable {
      * @param authorizer authorizer
      * @param action action
      */
-    default void authorize(Authorizer authorizer, RequestAction action) throws AccessDeniedException {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
+    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user) throws AccessDeniedException {
         // TODO - include user details context
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -132,7 +116,7 @@ public interface Authorizable {
             if (parent == null) {
                 throw new AccessDeniedException("Access is denied");
             } else {
-                parent.authorize(authorizer, action);
+                parent.authorize(authorizer, action, user);
             }
         } else if (Result.Denied.equals(result.getResult())) {
             throw new AccessDeniedException(result.getExplanation());

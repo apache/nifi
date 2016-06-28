@@ -59,6 +59,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
@@ -68,6 +69,13 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.expiration.ExpirationAction;
@@ -99,6 +107,7 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,7 +172,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     // we keep the last 1000 records on hand so that when the UI is opened and it asks for the last 1000 records we don't need to
     // read them. Since this is a very cheap operation to keep them, it's worth the tiny expense for the improved user experience.
     private final RingBuffer<ProvenanceEventRecord> latestRecords = new RingBuffer<>(1000);
-    private EventReporter eventReporter;
+    private EventReporter eventReporter; // effectively final
+    private Authorizer authorizer;  // effectively final
+    private ProvenanceAuthorizableFactory resourceFactory;  // effectively final
 
     public PersistentProvenanceRepository() throws IOException {
         this(createRepositoryConfiguration(), 10000);
@@ -207,7 +218,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public void initialize(final EventReporter eventReporter) throws IOException {
+    public void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory) throws IOException {
         writeLock.lock();
         try {
             if (initialized.getAndSet(true)) {
@@ -215,6 +226,8 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             this.eventReporter = eventReporter;
+            this.authorizer = authorizer;
+            this.resourceFactory = resourceFactory;
 
             recover();
 
@@ -391,8 +404,46 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         persistRecord(events);
     }
 
+    public boolean isAuthorized(final ProvenanceEventRecord event, final NiFiUser user) {
+        if (authorizer == null || user == null) {
+            return true;
+        }
+
+        final Authorizable eventAuthorizable;
+        try {
+            eventAuthorizable = resourceFactory.createProvenanceAuthorizable(event.getComponentId());
+        } catch (final ResourceNotFoundException rnfe) {
+            return false;
+        }
+
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
+        return Result.Approved.equals(result.getResult());
+    }
+
+    protected void authorize(final ProvenanceEventRecord event, final NiFiUser user) {
+        if (authorizer == null) {
+            return;
+        }
+
+        final Authorizable eventAuthorizable = resourceFactory.createProvenanceAuthorizable(event.getComponentId());
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
+    }
+
+    private List<ProvenanceEventRecord> filterUnauthorizedEvents(final List<ProvenanceEventRecord> events, final NiFiUser user) {
+        return events.stream().filter(event -> isAuthorized(event, user)).collect(Collectors.<ProvenanceEventRecord> toList());
+    }
+
+    private Set<ProvenanceEventRecord> replaceUnauthorizedWithPlaceholders(final Set<ProvenanceEventRecord> events, final NiFiUser user) {
+        return events.stream().map(event -> isAuthorized(event, user) ? event : new PlaceholderProvenanceEvent(event)).collect(Collectors.toSet());
+    }
+
     @Override
     public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
+        return getEvents(firstRecordId, maxRecords, null);
+    }
+
+    @Override
+    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords, final NiFiUser user) throws IOException {
         final List<ProvenanceEventRecord> records = new ArrayList<>(maxRecords);
 
         final List<Path> paths = getPathsForId(firstRecordId);
@@ -417,7 +468,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 StandardProvenanceEventRecord record;
                 while (records.size() < maxRecords && (record = reader.nextRecord()) != null) {
-                    if (record.getEventId() >= firstRecordId) {
+                    if (record.getEventId() >= firstRecordId && isAuthorized(record, user)) {
                         records.add(record);
                     }
                 }
@@ -1807,8 +1858,8 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         return new ArrayList<>(configuration.getSearchableAttributes());
     }
 
-    QueryResult queryEvents(final Query query) throws IOException {
-        final QuerySubmission submission = submitQuery(query);
+    QueryResult queryEvents(final Query query, final NiFiUser user) throws IOException {
+        final QuerySubmission submission = submitQuery(query, user);
         final QueryResult result = submission.getResult();
         while (!result.isFinished()) {
             try {
@@ -1826,8 +1877,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public QuerySubmission submitQuery(final Query query) {
+    public QuerySubmission submitQuery(final Query query, final NiFiUser user) {
+        final String userId = user.getIdentity();
         final int numQueries = querySubmissionMap.size();
+
         if (numQueries > MAX_UNDELETED_QUERY_RESULTS) {
             throw new IllegalStateException("Cannot process query because there are currently " + numQueries + " queries whose results have not "
                     + "been deleted due to poorly behaving clients not issuing DELETE requests. Please try again later.");
@@ -1838,10 +1891,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         }
 
         if (query.getSearchTerms().isEmpty() && query.getStartDate() == null && query.getEndDate() == null) {
-            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1);
+            final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1, userId);
 
             if (latestRecords.getSize() >= query.getMaxResults()) {
-                final List<ProvenanceEventRecord> latestList = latestRecords.asList();
+                final List<ProvenanceEventRecord> latestList = filterUnauthorizedEvents(latestRecords.asList(), user);
                 final List<ProvenanceEventRecord> trimmed;
                 if (latestList.size() > query.getMaxResults()) {
                     trimmed = latestList.subList(latestList.size() - query.getMaxResults(), latestList.size());
@@ -1863,7 +1916,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 result.getResult().update(trimmed, totalNumDocs);
             } else {
-                queryExecService.submit(new GetMostRecentRunnable(query, result));
+                queryExecService.submit(new GetMostRecentRunnable(query, result, user));
             }
 
             querySubmissionMap.put(query.getIdentifier(), result);
@@ -1874,14 +1927,14 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         final List<File> indexDirectories = indexConfig.getIndexDirectories(
                 query.getStartDate() == null ? null : query.getStartDate().getTime(),
                         query.getEndDate() == null ? null : query.getEndDate().getTime());
-        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, indexDirectories.size());
+        final AsyncQuerySubmission result = new AsyncQuerySubmission(query, indexDirectories.size(), userId);
         querySubmissionMap.put(query.getIdentifier(), result);
 
         if (indexDirectories.isEmpty()) {
             result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
         } else {
             for (final File indexDir : indexDirectories) {
-                queryExecService.submit(new QueryRunnable(query, result, indexDir, retrievalCount));
+                queryExecService.submit(new QueryRunnable(query, result, user, indexDir, retrievalCount));
             }
         }
 
@@ -2054,13 +2107,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         };
     }
 
-    Lineage computeLineage(final String flowFileUuid) throws IOException {
-        return computeLineage(Collections.<String>singleton(flowFileUuid), LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
+    Lineage computeLineage(final String flowFileUuid, final NiFiUser user) throws IOException {
+        return computeLineage(Collections.<String> singleton(flowFileUuid), user, LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
     }
 
-    private Lineage computeLineage(final Collection<String> flowFileUuids, final LineageComputationType computationType, final Long eventId, final Long startTimestamp,
+    private Lineage computeLineage(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType, final Long eventId, final Long startTimestamp,
             final Long endTimestamp) throws IOException {
-        final AsyncLineageSubmission submission = submitLineageComputation(flowFileUuids, computationType, eventId, startTimestamp, endTimestamp);
+        final AsyncLineageSubmission submission = submitLineageComputation(flowFileUuids, user, computationType, eventId, startTimestamp, endTimestamp);
         final StandardLineageResult result = submission.getResult();
         while (!result.isFinished()) {
             try {
@@ -2077,29 +2130,31 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public AsyncLineageSubmission submitLineageComputation(final String flowFileUuid) {
-        return submitLineageComputation(Collections.singleton(flowFileUuid), LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
+    public AsyncLineageSubmission submitLineageComputation(final String flowFileUuid, final NiFiUser user) {
+        return submitLineageComputation(Collections.singleton(flowFileUuid), user, LineageComputationType.FLOWFILE_LINEAGE, null, 0L, Long.MAX_VALUE);
     }
 
-    private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final LineageComputationType computationType,
+    private AsyncLineageSubmission submitLineageComputation(final Collection<String> flowFileUuids, final NiFiUser user, final LineageComputationType computationType,
             final Long eventId, final long startTimestamp, final long endTimestamp) {
         final List<File> indexDirs = indexConfig.getIndexDirectories(startTimestamp, endTimestamp);
-        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size());
+        final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, indexDirs.size(), user.getIdentity());
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
         for (final File indexDir : indexDirs) {
-            queryExecService.submit(new ComputeLineageRunnable(flowFileUuids, result, indexDir));
+            queryExecService.submit(new ComputeLineageRunnable(flowFileUuids, user, result, indexDir));
         }
 
         return result;
     }
 
     @Override
-    public AsyncLineageSubmission submitExpandChildren(final long eventId) {
+    public AsyncLineageSubmission submitExpandChildren(final long eventId, final NiFiUser user) {
+        final String userId = user.getIdentity();
+
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
             if (event == null) {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1, userId);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                 submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
                 return submission;
@@ -2110,15 +2165,15 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 case FORK:
                 case JOIN:
                 case REPLAY:
-                    return submitLineageComputation(event.getChildUuids(), LineageComputationType.EXPAND_CHILDREN, eventId, event.getEventTime(), Long.MAX_VALUE);
+                    return submitLineageComputation(event.getChildUuids(), user, LineageComputationType.EXPAND_CHILDREN, eventId, event.getEventTime(), Long.MAX_VALUE);
                 default:
-                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1, userId);
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
                     return submission;
             }
         } catch (final IOException ioe) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             if (ioe.getMessage() == null) {
@@ -2132,11 +2187,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public AsyncLineageSubmission submitExpandParents(final long eventId) {
+    public AsyncLineageSubmission submitExpandParents(final long eventId, final NiFiUser user) {
+        final String userId = user.getIdentity();
+
         try {
             final ProvenanceEventRecord event = getEvent(eventId);
             if (event == null) {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String> emptyList(), 1, userId);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                 submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
                 return submission;
@@ -2147,16 +2204,16 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 case FORK:
                 case CLONE:
                 case REPLAY:
-                    return submitLineageComputation(event.getParentUuids(), LineageComputationType.EXPAND_PARENTS, eventId, event.getLineageStartDate(), event.getEventTime());
+                    return submitLineageComputation(event.getParentUuids(), user, LineageComputationType.EXPAND_PARENTS, eventId, event.getLineageStartDate(), event.getEventTime());
                 default: {
-                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1, userId);
                     lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
                     submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
                     return submission;
                 }
             }
         } catch (final IOException ioe) {
-            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+            final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String> emptyList(), 1, userId);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
 
             if (ioe.getMessage() == null) {
@@ -2170,17 +2227,47 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier) {
-        return lineageSubmissionMap.get(lineageIdentifier);
+    public AsyncLineageSubmission retrieveLineageSubmission(final String lineageIdentifier, final NiFiUser user) {
+        final AsyncLineageSubmission submission = lineageSubmissionMap.get(lineageIdentifier);
+        final String userId = submission.getSubmitterIdentity();
+
+        if (user == null && userId == null) {
+            return submission;
+        }
+
+        if (user == null) {
+            throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because no user id was provided");
+        }
+
+        if (userId == null || userId.equals(user.getIdentity())) {
+            return submission;
+        }
+
+        throw new AccessDeniedException("Cannot retrieve Provenance Lineage Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
     @Override
-    public QuerySubmission retrieveQuerySubmission(final String queryIdentifier) {
-        return querySubmissionMap.get(queryIdentifier);
+    public QuerySubmission retrieveQuerySubmission(final String queryIdentifier, final NiFiUser user) {
+        final QuerySubmission submission = querySubmissionMap.get(queryIdentifier);
+
+        final String userId = submission.getSubmitterIdentity();
+
+        if (user == null && userId == null) {
+            return submission;
+        }
+
+        if (user == null) {
+            throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because no user id was provided");
+        }
+
+        if (userId == null || userId.equals(user.getIdentity())) {
+            return submission;
+        }
+
+        throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
-    @Override
-    public ProvenanceEventRecord getEvent(final long id) throws IOException {
+    private ProvenanceEventRecord getEvent(final long id) throws IOException {
         final List<ProvenanceEventRecord> records = getEvents(id, 1);
         if (records.isEmpty()) {
             return null;
@@ -2190,6 +2277,17 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             return null;
         }
         return record;
+    }
+
+    @Override
+    public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) throws IOException {
+        final ProvenanceEventRecord event = getEvent(id);
+        if (event == null) {
+            return null;
+        }
+
+        authorize(event, user);
+        return event;
     }
 
     private boolean needToRollover() {
@@ -2268,10 +2366,12 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
         private final Query query;
         private final AsyncQuerySubmission submission;
+        private final NiFiUser user;
 
-        public GetMostRecentRunnable(final Query query, final AsyncQuerySubmission submission) {
+        public GetMostRecentRunnable(final Query query, final AsyncQuerySubmission submission, final NiFiUser user) {
             this.query = query;
             this.submission = submission;
+            this.user = user;
         }
 
         @Override
@@ -2293,7 +2393,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 }
                 final long totalNumDocs = maxEventId - minIndexedId;
 
-                final List<ProvenanceEventRecord> mostRecent = getEvents(startIndex, maxResults);
+                final List<ProvenanceEventRecord> mostRecent = getEvents(startIndex, maxResults, user);
                 submission.getResult().update(mostRecent, totalNumDocs);
             } catch (final IOException ioe) {
                 logger.error("Failed to retrieve records from Provenance Repository: " + ioe.toString());
@@ -2314,12 +2414,14 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
         private final Query query;
         private final AsyncQuerySubmission submission;
+        private final NiFiUser user;
         private final File indexDir;
         private final AtomicInteger retrievalCount;
 
-        public QueryRunnable(final Query query, final AsyncQuerySubmission submission, final File indexDir, final AtomicInteger retrievalCount) {
+        public QueryRunnable(final Query query, final AsyncQuerySubmission submission, final NiFiUser user, final File indexDir, final AtomicInteger retrievalCount) {
             this.query = query;
             this.submission = submission;
+            this.user = user;
             this.indexDir = indexDir;
             this.retrievalCount = retrievalCount;
         }
@@ -2328,7 +2430,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         public void run() {
             try {
                 final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager, maxAttributeChars);
-                final StandardQueryResult queryResult = search.search(query, retrievalCount, firstEventTimestamp);
+                final StandardQueryResult queryResult = search.search(query, user, retrievalCount, firstEventTimestamp);
                 submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount());
             } catch (final Throwable t) {
                 logger.error("Failed to query Provenance Repository Index {} due to {}", indexDir, t.toString());
@@ -2348,11 +2450,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private class ComputeLineageRunnable implements Runnable {
 
         private final Collection<String> flowFileUuids;
+        private final NiFiUser user;
         private final File indexDir;
         private final AsyncLineageSubmission submission;
 
-        public ComputeLineageRunnable(final Collection<String> flowFileUuids, final AsyncLineageSubmission submission, final File indexDir) {
+        public ComputeLineageRunnable(final Collection<String> flowFileUuids, final NiFiUser user, final AsyncLineageSubmission submission, final File indexDir) {
             this.flowFileUuids = flowFileUuids;
+            this.user = user;
             this.submission = submission;
             this.indexDir = indexDir;
         }
@@ -2368,7 +2472,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     indexManager, indexDir, null, flowFileUuids, maxAttributeChars);
 
                 final StandardLineageResult result = submission.getResult();
-                result.update(matchingRecords);
+                result.update(replaceUnauthorizedWithPlaceholders(matchingRecords, user));
 
                 logger.info("Successfully created Lineage for FlowFiles with UUIDs {} in {} milliseconds; Lineage contains {} nodes and {} edges",
                         flowFileUuids, result.getComputationTime(TimeUnit.MILLISECONDS), result.getNodes().size(), result.getEdges().size());

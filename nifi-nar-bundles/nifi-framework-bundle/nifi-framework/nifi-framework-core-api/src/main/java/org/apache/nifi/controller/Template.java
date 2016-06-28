@@ -30,7 +30,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.groups.ProcessGroup;
@@ -139,8 +138,8 @@ public class Template implements Authorizable {
     }
 
     @Override
-    public void authorize(final Authorizer authorizer, final RequestAction action) throws AccessDeniedException {
-        final AuthorizationResult result = checkAuthorization(authorizer, action, true);
+    public void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user) throws AccessDeniedException {
+        final AuthorizationResult result = checkAuthorization(authorizer, action, true, user);
         if (Result.Denied.equals(result)) {
             final String explanation = result.getExplanation() == null ? "Access is denied" : result.getExplanation();
             throw new AccessDeniedException(explanation);
@@ -148,13 +147,11 @@ public class Template implements Authorizable {
     }
 
     @Override
-    public AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action) {
-        return checkAuthorization(authorizer, action, false);
+    public AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
+        return checkAuthorization(authorizer, action, false, user);
     }
 
-    private AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final boolean accessAttempt) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
+    private AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final boolean accessAttempt, final NiFiUser user) {
         // TODO - include user details context
 
         // build the request
@@ -172,7 +169,7 @@ public class Template implements Authorizable {
         // verify the results
         if (Result.ResourceNotFound.equals(result.getResult())) {
             for (final Authorizable child : getAuthorizableComponents()) {
-                final AuthorizationResult childResult = child.checkAuthorization(authorizer, action);
+                final AuthorizationResult childResult = child.checkAuthorization(authorizer, action, user);
                 if (Result.Denied.equals(childResult)) {
                     return childResult;
                 }
