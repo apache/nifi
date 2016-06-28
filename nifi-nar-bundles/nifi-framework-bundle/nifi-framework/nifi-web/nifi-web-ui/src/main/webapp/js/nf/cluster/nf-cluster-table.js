@@ -28,7 +28,7 @@ nf.ClusterTable = (function () {
             filterList: 'cluster-filter-list'
         },
         urls: {
-            cluster: '../nifi-api/cluster',
+            cluster: '../nifi-api/controller/cluster',
             nodes: '../nifi-api/controller/cluster/nodes'
         }
     };

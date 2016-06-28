@@ -748,7 +748,6 @@ public class FileAuthorizerTest {
         final Group group = new Group.Builder()
                 .identifier("group-id-1")
                 .name("group-name-1")
-                .addUser("user1") // should be ignored
                 .build();
 
         final Group addedGroup = authorizer.addGroup(group);
@@ -759,6 +758,48 @@ public class FileAuthorizerTest {
 
         final Set<Group> groups = authorizer.getGroups();
         assertEquals(1, groups.size());
+    }
+
+    @Test
+    public void testAddGroupWithUser() throws Exception {
+        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        authorizer.onConfigured(configurationContext);
+        assertEquals(2, authorizer.getGroups().size());
+
+        final Group group = new Group.Builder()
+                .identifier("group-id-XXX")
+                .name("group-name-XXX")
+                .addUser("user-1")
+                .build();
+
+        final Group addedGroup = authorizer.addGroup(group);
+        assertNotNull(addedGroup);
+        assertEquals(group.getIdentifier(), addedGroup.getIdentifier());
+        assertEquals(group.getName(), addedGroup.getName());
+        assertEquals(1, addedGroup.getUsers().size());
+
+        final Set<Group> groups = authorizer.getGroups();
+        assertEquals(3, groups.size());
+
+        final User user = authorizer.getUser("user-1");
+        assertNotNull(user);
+        assertTrue(user.getGroups().contains(group.getIdentifier()));
+    }
+
+
+    @Test(expected = IllegalStateException.class)
+    public void testAddGroupWhenUserDoesNotExist() throws Exception {
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        authorizer.onConfigured(configurationContext);
+        assertEquals(0, authorizer.getGroups().size());
+
+        final Group group = new Group.Builder()
+                .identifier("group-id-1")
+                .name("group-name-1")
+                .addUser("user1")
+                .build();
+
+        authorizer.addGroup(group);
     }
 
     @Test
@@ -847,14 +888,31 @@ public class FileAuthorizerTest {
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
+        // verify user-1 is in group-1 before the update
+        final User user1Before = authorizer.getUser("user-1");
+        assertTrue(user1Before.getGroups().contains("group-1"));
+
+        // verify user-2 is NOT in group-1 before the update
+        final User user2Before = authorizer.getUser("user-2");
+        assertFalse(user2Before.getGroups().contains("group-1"));
+
         final Group group = new Group.Builder()
                 .identifier("group-1")
                 .name("new-name")
+                .addUser("user-2")
                 .build();
 
         final Group updatedGroup = authorizer.updateGroup(group);
         assertEquals(group.getIdentifier(), updatedGroup.getIdentifier());
         assertEquals(group.getName(), updatedGroup.getName());
+
+        // user-1 should no longer be in group-1
+        final User user1After = authorizer.getUser("user-1");
+        assertFalse(user1After.getGroups().contains("group-1"));
+
+        // user-2 should now be in group-1
+        final User user2After = authorizer.getUser("user-2");
+        assertTrue(user2After.getGroups().contains("group-1"));
     }
 
     @Test
