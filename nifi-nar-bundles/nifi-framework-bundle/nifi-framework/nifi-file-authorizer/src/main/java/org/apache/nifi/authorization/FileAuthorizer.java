@@ -103,7 +103,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
-    static final String PROP_ROOT_GROUP_ID = "Root Group ID";
 
     private Schema flowSchema;
     private Schema usersSchema;
@@ -325,14 +324,14 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // grant the user read access to the root process group resource
         if (rootGroupId != null) {
-            addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), READ_CODE + WRITE_CODE);
+            addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), WRITE_CODE);
         }
 
         // grant the user read/write access to the /tenants resource
-        addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), adminUser.getIdentifier(), READ_CODE + WRITE_CODE);
+        addAccessPolicy(authorizations, ResourceType.Tenant.getValue(), adminUser.getIdentifier(), WRITE_CODE);
 
         // grant the user read/write access to the /policies resource
-        addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), READ_CODE + WRITE_CODE);
+        addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), WRITE_CODE);
     }
 
     /**
@@ -578,9 +577,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      * @param authorizations the Authorizations instance to add the policy to
      * @param resource the resource for the policy
      * @param identity the identity for the policy
-     * @param actions the actions for the policy
+     * @param action the action for the policy
      */
-    private void addAccessPolicy(final Authorizations authorizations, final String resource, final String identity, final String actions) {
+    private void addAccessPolicy(final Authorizations authorizations, final String resource, final String identity, final String action) {
         final String uuidSeed = resource + identity;
         final UUID policyIdentifier = UUID.nameUUIDFromBytes(uuidSeed.getBytes(StandardCharsets.UTF_8));
 
@@ -589,12 +588,12 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 .resource(resource)
                 .addUser(identity);
 
-        if (actions.contains(READ_CODE)) {
-            builder.addAction(RequestAction.READ);
-        }
-
-        if (actions.contains(WRITE_CODE)) {
-            builder.addAction(RequestAction.WRITE);
+        if (action.equals(READ_CODE)) {
+            builder.action(RequestAction.READ);
+        } else if (action.equals(WRITE_CODE)) {
+            builder.action(RequestAction.WRITE);
+        } else {
+            throw new IllegalStateException("Unknown Policy Action: " + action);
         }
 
         final AccessPolicy accessPolicy = builder.build();
@@ -1093,13 +1092,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             policy.getGroup().add(policyGroup);
         }
 
-        // add the action to the policy
-        boolean containsRead = accessPolicy.getActions().contains(RequestAction.READ);
-        boolean containsWrite = accessPolicy.getActions().contains(RequestAction.WRITE);
-
-        if (containsRead && containsWrite) {
-            policy.setAction(READ_CODE + WRITE_CODE);
-        } else if (containsRead) {
+        // add the action to the access policy
+        if (accessPolicy.getAction() == RequestAction.READ) {
             policy.setAction(READ_CODE);
         } else {
             policy.setAction(WRITE_CODE);

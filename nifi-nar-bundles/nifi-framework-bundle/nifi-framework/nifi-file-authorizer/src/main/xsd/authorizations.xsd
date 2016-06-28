@@ -131,7 +131,7 @@
             <xs:simpleType>
                 <xs:restriction base="xs:string">
                     <xs:enumeration value="R"/>
-                    <xs:enumeration value="RW"/>
+                    <xs:enumeration value="W"/>
                 </xs:restriction>
             </xs:simpleType>
         </xs:attribute>
