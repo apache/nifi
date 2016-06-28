@@ -33,63 +33,43 @@ a cualquier sección que te aplica más.
 
 Esta guía si anticipa que el usuario entienda que lo que NIFI es y lo que no es. Este tipo de información puede
 ser encontrada en la documentación link:overview.html[Overview]
-This guide is not intended to be an exhaustive instruction manual or a reference guide. The
-link:user-guide.html[User Guide] provides a great deal of information
-and is intended to be a much more exhaustive resource and is very useful as a reference guide, as well.
-This guide, in comparison, is intended to provide users with just the information needed in order
-to understand how to work with NiFi in order to quickly and easily build powerful and agile dataflows.
-
-Because some of the information in this guide is applicable only for first-time users while other
-information may be applicable for those who have used NiFi a bit, this guide is broken up into
-several different sections, some of which may not be useful for some readers. Feel free to jump to
-the sections that are most appropriate for you.
-
-This guide does expect that the user has a basic understanding of what NiFi is and does not
-delve into this level of detail. This level of information can be found in the
-link:overview.html[Overview] documentation.
 
 
-
-
-Terminology Used in This Guide
+terminología usada en esta guía
 ------------------------------
 
-In order to talk about NiFi, there are a few key terms that readers should be familiar with.
-We will explain those NiFi-specific terms here, at a high level.
+Para poder hablar sobre NIFI, ahi algunos términos que el usuario deveria aprender. Vamos a explicar que esos términos más especificos a NIFI aqui.
 
 
-*FlowFile*: Each piece of "User Data" (i.e., data that the user brings into NiFi for processing and distribution) is
-referred to as a FlowFile. A FlowFile is made up of two parts: Attributes and Content. The Content is the User Data
-itself. Attributes are key-value pairs that are associated with the User Data.
+*FlowFile*: Cada piesa de "datos de el usuario" (ejemplo: los datos que el usuario trae a NIFI para procesar y distribuir) es referido como un FlowFile.
+Un FlowFile esta hecho de dos partes: Atributos y contenido. El contenido son los datos de el usuario mismo. Los atributos son valores importantes que son
+asociados con los datos de el usuario.
 
-*Processor*: The Processor is the NiFi component that is responsible for creating, sending, receiving, transforming, routing,
-splitting, merging, and processing FlowFiles. It is the most important building block available to NiFi users to build their
-dataflows.
+*Processor*: El procesor es el componente de NIFI que es responsable por crear, mandar, recivir, transformar, asignación de ruta, dividir,
+juntar y procesar FlowFiles. Es la parte más importante disponible a los usuarios de NIFI para construir sus flujo de datos.
 
-
-Downloading and Installing NiFi
+Descargar y Instalar NIFI
 -------------------------------
 
-NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page]. There are two packaging options
-available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OSX users
-may also use the tarball or can install via Homebrew.
+NIFI puede ser descargado de:http://nifi.apache.org/download.html[NiFi Downloads Page]. Ahi dos opciones con los empaque: el:
+ "tarball" que es más para Linux y el zip es más para los usuarios de Windows. Usuarios de MAC OSX pueden usar el tarball o pueden
+ instalar usando Homebrew.
 
-To install via Homebrew, simply run the command `brew install nifi`.
+Para instalar usando Homebrew, core este comando 'brew install nifi'.
 
-For users who are not running OSX or do not have Homebrew installed, after downloading the version of NiFi that you
-would like to use simply extract the archive to the location that you wish to run the application from.
+Para usuarios que no estan usando OSX o no tienen Homebrew instalado, despues de descargar la version de NiFi que seas usar, puedes
+extractar los archivos en el sitio donde quieres corer el programa.
 
-For information on how to configure the instance of NiFi (for instance, to configure security, data storage
-configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
+Para más información como configurar NIFI (Por ejemplo, seguridad, donde vas a guardar los datos o el porte donde NIFI va a correr) ve a:administration-guide.html[Admin Guide].
 
 
-Starting NiFi
+Empesando NiFi
 -------------
 
-Once NiFi has been downloaded and installed as described above, it can be started by using the mechanism
-appropriate for your operating system.
+Despues que descargastes y instalastes NIFI como explicado anteriormente, puede ser empesado
+usando el mechanismo más apropiado para tu sistema operativo.
 
-=== For Windows Users
+=== Para Los Usuarios de Windows
 
 For Windows users, navigate to the folder where NiFi was installed. Within this folder is a subfolder
 named `bin`. Navigate to this subfolder and double-click the `run-nifi.bat` file.
@@ -98,7 +78,7 @@ This will launch NiFi and leave it running in the foreground. To shut down NiFi,
 was launched and hold the Ctrl key while pressing C.
 
 
-=== For Linux/Mac OSX users
+=== Para los usuarios de Linux/Mac OSX
 
 For Linux and OSX users, use a Terminal window to navigate to the directory where NiFi was installed.
 To run NiFi in the foreground, run `bin/nifi.sh run`. This will leave the application running until
@@ -109,7 +89,7 @@ begin running. To check the status and see if NiFi is currently running, execute
 NiFi can be shutdown by executing the command `bin/nifi.sh stop`.
 
 
-=== Installing as a Service
+=== Instalando como un servicio
 
 Currently, installing NiFi as a service is supported only for Linux and Mac OSX users. To install the application
 as a service, navigate to the installation directory in a Terminal window and execute the command `bin/nifi.sh install`
@@ -122,7 +102,7 @@ and `sudo service nifi stop`. Additionally, the running status can be checked vi
 
 
 
-I Started NiFi. Now What?
+¿Empese NIFI. Ahora que?
 -------------------------
 
 Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
@@ -138,7 +118,7 @@ Near the top of the UI are a few toolbars that will be very important to create 
 image:nifi-toolbar-components.png["Toolbar Components"]
 
 
-=== Adding a Processor
+=== añadir un Procesor
 
 We can now begin creating our dataflow by adding a Processor to our canvas. To do this, drag the Processor icon
 (image:iconProcessor.png["Processor"]) from the top-left of the screen into the middle of the canvas (the graph paper-like
@@ -158,7 +138,7 @@ the Processor does. The description of the *GetFile* Processor tells us that it 
 into NiFi and then removes the local file. We can then double-click the Processor type or select it and choose the
 `Add` button. The Processor will be added to the canvas in the location that it was dropped.
 
-=== Configuring a Processor
+=== Configurar un Procesor
 
 Now that we have added the GetFile Processor, we can configure it by right-clicking on the Processor and choosing
 the `Configure` menu item. The provided dialog allows us to configure many different options that can be read about
@@ -181,7 +161,7 @@ In order for this property to be valid, create a directory named `data-in` in th
 click the `Ok` button to close the dialog.
 
 
-=== Connecting Processors
+=== Conectar un Procesor
 
 Each Processor has a set of defined "Relationships" that it is able to send data to. When a Processor finishes handling
 a FlowFile, it transfers it to one of these Relationships. This allows a user to configure how to handle FlowFiles based
@@ -240,7 +220,7 @@ LogAttribute Processor. On the Settings tab, in the right-hand side we can check
 to Auto Terminate the data. Clicking `OK` will close the dialog and show that both Processors are now stopped.
 
 
-=== Starting and Stopping Processors
+=== Empesar y parar un Procesor
 
 At this point, we have two Processors on our graph, but nothing is happening. In order to start the Processors, we can
 click on each one individually and then right-click and choose the `Start` menu item. Alternatively, we can select the first
@@ -257,7 +237,7 @@ wait for any tasks that may be executing to finish. The number of tasks currentl
 corner of the Processor, but nothing is shown there if there are currently no tasks.
 
 
-=== Getting More Info for a Processor
+=== Sacar más  información de un Procesor
 
 With each Processor having the ability to expose multiple different Properties and Relationships, it can become quite
 difficult to remember how all of the different pieces work for each Processor. To address this, you are able to right-click
@@ -267,7 +247,7 @@ Properties that are exposed by the Processor and their documentation, as well as
 expected on incoming FlowFiles and which Attributes (if any) are added to outgoing FlowFiles.
 
 
-=== Other Components
+=== Otros componentos
 
 The toolbar that provides users the ability to drag and drop Processors onto the graph includes several other components
 that can be used to build a dataflow. These components include Input and Output Ports, Funnels, Process Groups, and Remote
@@ -277,7 +257,7 @@ link:user-guide.html[User Guide].
 
 
 
-What Processors are Available
+Que Procesores estan disponible
 -----------------------------
 
 In order to create an effective dataflow, the users must understand what types of Processors are available to them.

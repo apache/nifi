@@ -18,13 +18,13 @@ Apache NiFi es facil de usar, poderoso y un sistema de confianza para procesar y
 
 ## Tabla de contentos
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Getting Started](#getting-started)
-- [Getting Help](#getting-help)
-- [Documentation](#documentation)
-- [License](#license)
-- [Export Control] (#export-control)
+- [Características](#features)
+- [Requisitos](#requirements)
+- [Como Empesar](#getting-started)
+- [Conseguir Ayuda](#getting-help)
+- [documentación](#documentation)
+- [Licensia](#license)
+- [Control de exportación] (#export-control)
 
 ## Características
 
@@ -43,10 +43,10 @@ Algunos de las Características incluye:
   - Seguir  flujo de datos desde el principio y al final.
 - Designado para extensiones
   - Crea tu propio procesor y mas.
-  - Enables rapid development and effective testing
+  - Deja dearollo rapido y testiar effectivamente
 - Segurida
-  - SSL, SSH, HTTPS,  encriptación de el contenido etc...
-  - Pluggable role-based authentication/authorization
+  - SSL, SSH, HTTPS, encriptación de el contenido etc...
+  - Conectar usando autenticación/autorización
 
 ## Requisitos:
 * JDK 1.7 o ultima version
@@ -119,9 +119,9 @@ Tambien estamos a veces en IRC: #nifi on
 
 ## documentación
 
-  para ver la ultima version de la documentación ve a http://nifi.apache.org/ 
+  para ver la ultima version de la documentación ve a http://nifi.apache.org/
 
-## License
+## Licensia
 
 Except as otherwise noted this software is licensed under the
 [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
@@ -138,7 +138,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## Export Control
+## Control de exportación
 
 This distribution includes cryptographic software. The country in which you
 currently reside may have restrictions on the import, possession, use, and/or
