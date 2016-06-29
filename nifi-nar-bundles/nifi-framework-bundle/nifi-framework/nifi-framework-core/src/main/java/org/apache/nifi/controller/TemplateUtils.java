@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -147,6 +148,15 @@ public class TemplateUtils {
     private static void scrubProcessGroups(final Set<ProcessGroupDTO> processGroups) {
         // go through each process group
         for (final ProcessGroupDTO processGroupDTO : processGroups) {
+            processGroupDTO.setActiveRemotePortCount(null);
+            processGroupDTO.setDisabledCount(null);
+            processGroupDTO.setInactiveRemotePortCount(null);
+            processGroupDTO.setInputPortCount(null);
+            processGroupDTO.setInvalidCount(null);
+            processGroupDTO.setOutputPortCount(null);
+            processGroupDTO.setRunningCount(null);
+            processGroupDTO.setStoppedCount(null);
+
             scrubSnippet(processGroupDTO.getContents());
         }
     }
@@ -179,11 +189,25 @@ public class TemplateUtils {
                 }
 
                 processorConfig.setCustomUiUrl(null);
+                processorConfig.setDefaultConcurrentTasks(null);
+                processorConfig.setDefaultSchedulingPeriod(null);
+                processorConfig.setDescriptors(null);
+                processorConfig.setAutoTerminatedRelationships(null);
             }
 
-            // remove validation errors
+            for (final RelationshipDTO relationship : processorDTO.getRelationships()) {
+                relationship.setDescription(null);
+            }
+
             processorDTO.setValidationErrors(null);
             processorDTO.setInputRequirement(null);
+            processorDTO.setDescription(null);
+            processorDTO.setInputRequirement(null);
+            processorDTO.setPersistsState(null);
+            processorDTO.setState(null);
+            processorDTO.setSupportsBatching(null);
+            processorDTO.setSupportsEventDriven(null);
+            processorDTO.setSupportsParallelProcessing(null);
         }
     }
 
@@ -200,6 +224,7 @@ public class TemplateUtils {
                 }
             }
 
+            serviceDTO.setDescriptors(null);
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
         }
@@ -248,6 +273,15 @@ public class TemplateUtils {
             remoteProcessGroupDTO.setOutputPortCount(null);
             remoteProcessGroupDTO.setTransmitting(null);
             remoteProcessGroupDTO.setProxyPassword(null);
+            remoteProcessGroupDTO.setActiveRemoteInputPortCount(null);
+            remoteProcessGroupDTO.setInactiveRemoteInputPortCount(null);
+            remoteProcessGroupDTO.setActiveRemoteOutputPortCount(null);
+            remoteProcessGroupDTO.setInactiveRemoteOutputPortCount(null);
+            remoteProcessGroupDTO.setAuthorizationIssues(null);
+            remoteProcessGroupDTO.setFlowRefreshed(null);
+            remoteProcessGroupDTO.setName(null);
+            remoteProcessGroupDTO.setTargetSecure(null);
+            remoteProcessGroupDTO.setTransmitting(null);
 
             // if this remote process group has contents
             if (remoteProcessGroupDTO.getContents() != null) {
@@ -283,6 +317,10 @@ public class TemplateUtils {
 
             remotePortDTO.setExists(null);
             remotePortDTO.setTargetRunning(null);
+            remotePortDTO.setConnected(null);
+            remotePortDTO.setExists(null);
+            remotePortDTO.setTargetRunning(null);
+            remotePortDTO.setTransmitting(null);
         }
     }
 }

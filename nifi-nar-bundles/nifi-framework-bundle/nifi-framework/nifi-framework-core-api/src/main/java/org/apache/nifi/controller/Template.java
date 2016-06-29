@@ -130,7 +130,7 @@ public class Template implements Authorizable {
         for (final ProcessGroupDTO groupDto : snippet.getProcessGroups()) {
             final ProcessGroup group = processGroup.getProcessGroup(groupDto.getId());
             if (group != null) {
-                authComponents.addAll(getAuthorizableComponents(processGroup));
+                authComponents.addAll(getAuthorizableComponents(group));
             }
         }
 
