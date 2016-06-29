@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -179,11 +180,25 @@ public class TemplateUtils {
                 }
 
                 processorConfig.setCustomUiUrl(null);
+                processorConfig.setDefaultConcurrentTasks(null);
+                processorConfig.setDefaultSchedulingPeriod(null);
+                processorConfig.setDescriptors(null);
+                processorConfig.setAutoTerminatedRelationships(null);
             }
 
-            // remove validation errors
+            for (final RelationshipDTO relationship : processorDTO.getRelationships()) {
+                relationship.setDescription(null);
+            }
+
             processorDTO.setValidationErrors(null);
             processorDTO.setInputRequirement(null);
+            processorDTO.setDescription(null);
+            processorDTO.setInputRequirement(null);
+            processorDTO.setPersistsState(null);
+            processorDTO.setState(null);
+            processorDTO.setSupportsBatching(null);
+            processorDTO.setSupportsEventDriven(null);
+            processorDTO.setSupportsParallelProcessing(null);
         }
     }
 
@@ -200,6 +215,7 @@ public class TemplateUtils {
                 }
             }
 
+            serviceDTO.setDescriptors(null);
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
         }
