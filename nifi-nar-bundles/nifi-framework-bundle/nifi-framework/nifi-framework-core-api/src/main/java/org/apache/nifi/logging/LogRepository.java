@@ -76,4 +76,12 @@ public interface LogRepository {
      * @return the current logger for the component
      */
     ComponentLog getLogger();
+
+    boolean isDebugEnabled();
+
+    boolean isInfoEnabled();
+
+    boolean isWarnEnabled();
+
+    boolean isErrorEnabled();
 }
