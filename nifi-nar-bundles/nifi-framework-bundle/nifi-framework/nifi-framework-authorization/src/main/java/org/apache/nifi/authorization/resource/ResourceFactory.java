@@ -17,9 +17,7 @@
 package org.apache.nifi.authorization.resource;
 
 import org.apache.nifi.authorization.AccessPolicy;
-import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.User;
 
 import java.util.Objects;
 
@@ -82,18 +80,6 @@ public final class ResourceFactory {
         @Override
         public String getName() {
             return "NiFi Flow";
-        }
-    };
-
-    private final static Resource GROUP_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Group.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Group";
         }
     };
 
@@ -277,6 +263,18 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource TENANT_RESOURCE = new Resource() {
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Tenant.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Tenant";
+        }
+    };
+
     private final static Resource TOKEN_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -286,18 +284,6 @@ public final class ResourceFactory {
         @Override
         public String getName() {
             return "API access token";
-        }
-    };
-
-    private final static Resource USER_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.User.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "User";
         }
     };
 
@@ -311,32 +297,6 @@ public final class ResourceFactory {
         @Override
         public String getName() {
             return "Access Policies";
-        }
-    };
-
-    private final static Resource USERS_RESOURCE = new Resource() {
-
-        @Override
-        public String getIdentifier() {
-            return "/users";
-        }
-
-        @Override
-        public String getName() {
-            return "Users";
-        }
-    };
-
-    private final static Resource USERGROUPS_RESOURCE = new Resource() {
-
-        @Override
-        public String getIdentifier() {
-            return "/user-groups";
-        }
-
-        @Override
-        public String getName() {
-            return "User Groups";
         }
     };
 
@@ -383,15 +343,6 @@ public final class ResourceFactory {
      */
     public static Resource getFlowResource() {
         return FLOW_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Groups which allows management of user groups.
-     *
-     * @return The resource for accessing Groups
-     */
-    public static Resource getGroupResource() {
-        return GROUP_RESOURCE;
     }
 
     /**
@@ -541,12 +492,12 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for accessing Users which includes creating, modifying, and deleting Users.
+     * Gets the Resource for accessing Tenants which includes creating, modifying, and deleting Users and UserGroups.
      *
-     * @return The Resource for accessing Users
+     * @return The Resource for accessing Tenants
      */
-    public static Resource getUserResource() {
-        return USER_RESOURCE;
+    public static Resource getTenantResource() {
+        return TENANT_RESOURCE;
     }
 
     /**
@@ -600,24 +551,6 @@ public final class ResourceFactory {
                 return identifier;
             }
         };
-    }
-
-    /**
-     * Gets a Resource for accessing {@link User} configurations.
-     *
-     * @return              The resource
-     */
-    public static Resource getUsersResource() {
-        return USERS_RESOURCE;
-    }
-
-    /**
-     * Gets a Resource for accessing {@link Group}s configuration.
-     *
-     * @return              The resource
-     */
-    public static Resource getUserGroupsResource() {
-        return USERGROUPS_RESOURCE;
     }
 
     /**

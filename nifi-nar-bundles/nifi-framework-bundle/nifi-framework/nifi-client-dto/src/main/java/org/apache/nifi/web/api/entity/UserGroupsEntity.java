@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.dto;
+package org.apache.nifi.web.api.entity;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.entity.TenantEntity;
-
-import javax.xml.bind.annotation.XmlType;
-import java.util.Set;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Collection;
 
 /**
- * A user of this NiFi.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of
+ * UserGroupEntity objects.
  */
-@XmlType(name = "user")
-public class UserDTO extends TenantDTO {
+@XmlRootElement(name = "userGroupsEntity")
+public class UserGroupsEntity {
 
-    private Set<TenantEntity> userGroups;
+    private Collection<UserGroupEntity> userGroups;
 
     /**
-     * @return groups to which the user belongs
+     * The collection of UserGroupEntity objects that are being serialized.
+     *
+     * @return The UserGroupEntity objects
      */
-    @ApiModelProperty(value = "The groups to which the user belongs.")
-    public Set<TenantEntity> getUserGroups() {
+    public Collection<UserGroupEntity> getUserGroups() {
         return userGroups;
     }
 
-    public void setUserGroups(Set<TenantEntity> userGroups) {
+    public void setUserGroups(Collection<UserGroupEntity> userGroups) {
         this.userGroups = userGroups;
     }
+
 }

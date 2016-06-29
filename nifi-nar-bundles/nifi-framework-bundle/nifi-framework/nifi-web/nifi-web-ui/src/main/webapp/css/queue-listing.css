@@ -19,6 +19,14 @@
     Queue listing styles
 */
 
+#queue-listing-container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+}
+
 #queue-listing-header-text {
     font-size: 18px;
     font-weight: bold;
@@ -27,7 +35,6 @@
 }
 
 #queue-listing-stats-container {
-    margin-left: 20px;
     margin-top: 18px;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -35,8 +42,8 @@
 
 #queue-listing-refresh-container {
     position: absolute;
-    bottom: 10px;
-    left: 20px;
+    bottom: 20px;
+    left: 0px;
 }
 
 #queue-listing-last-refreshed {
@@ -52,113 +59,86 @@
     margin-left: 3px;
 }
 
-#queue-listing-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    float: right;
-    line-height: normal;
-    margin-right: 20px;
-    margin-top: 6px;
-}
-
 /* queue listing table */
 
 #queue-listing-table {
-    overflow: hidden;
-    height: 80%;
-    width: 100%;
-}
-
-div.provenance-icon {
-    background-image: url(../images/iconProvenance.png);
-    background-position: top left;
-    background-size: cover;
-    width: 20px;
-    height: 20px;
+    position: absolute;
+    top: 53px;
+    left: 0px;
+    bottom: 68px;
+    right: 0px;
 }
 
 /* queue listing table */
 
 #queue-listing-message {
     position: absolute;
-    left: 20px;
-    bottom: 20px;
-    color: #f00;
-    font-size: 10px;
+    top: 36px;
+    color: #ba554a;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 500;
+    right: 0px;
+    max-width: 40%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* flowfile details */
 
-#flowfile-details-tabs {
-    background-color: transparent;
-    border-bottom: 3px solid #666666;
-    height: 21px;
-    width: 778px;
-}
-
-#flowfile-details-dialog div.details-tab {
-    background: url("../images/bgTabContainer.png") repeat-x scroll 0 0 #EEEEEE;
-    display: none;
-    height: 330px;
-    padding: 10px;
-}
-
 div.flowfile-header {
-    color: #264C58;
-    font-size: 11px;
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
     font-weight: bold;
-    margin-bottom: 5px;
+    line-height: 56px;
+    text-overflow: ellipsis;
 }
 
 #flowfile-attributes-container {
     height: 290px;
     overflow: auto;
-    border: 1px solid #aaa;
     padding: 5px;
 }
 
 div.detail-name {
-    float: left;
-    width: 145px;
-    color: #527991;
-    font-size: 10px;
-    font-weight: bold;
-    overflow: hidden;
-    white-space: nowrap;
-    line-height: normal;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.detail-value {
-    float: left;
-    width: 270px;
-    overflow: hidden;
-    white-space: nowrap;
     line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: bold;
 }
 
 div.attribute-detail {
-    margin-bottom: 5px;
+    margin-bottom: 15px;
 }
 
 div.attribute-name {
-    float: left;
-    width: 225px;
-    color: #527991;
-    font-size: 10px;
-    font-weight: bold;
-    overflow: hidden;
-    white-space: nowrap;
-    line-height: normal;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.attribute-value {
-    float: left;
-    width: 490px;
-    margin-left: 10px;
-    overflow: hidden;
-    white-space: nowrap;
     line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: bold;
 }
 
 #flowfile-attributes-header {
@@ -166,7 +146,7 @@ div.attribute-value {
 }
 
 div.flowfile-detail {
-    margin-bottom: 4px;
+    margin-bottom: 15px;
 }
 
 #content-download {
@@ -180,20 +160,18 @@ div.flowfile-detail {
 }
 
 div.content-detail-name {
-    color: #527991;
-    float: left;
-    font-size: 10px;
-    font-weight: bold;
-    line-height: normal;
-    overflow: hidden;
-    white-space: nowrap;
-    width: 90px;
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 div.content-detail-value {
-    width: 200px;
-    float: left;
     line-height: normal;
-    overflow: hidden;
-    white-space: nowrap;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: bold;
 }

@@ -247,18 +247,13 @@ nf.HistoryTable = (function () {
      * Initializes the history table.
      */
     var initHistoryTable = function () {
-        // listen for browser resize events to update the page size
-        $(window).resize(function () {
-            nf.HistoryTable.resetTableSize();
-        });
-
         // clear the current filter
         $('#clear-history-filter').click(function () {
             // clear the filter dialog
             $('#history-filter').val('');
 
             // hide the overview
-            $('#history-filter-overview').hide();
+            $('#history-filter-overview').css('visibility', 'hidden');
 
             // clear the filter
             var historyGrid = $('#history-table').data('gridInstance');

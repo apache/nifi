@@ -16,7 +16,12 @@
  */
 
 #settings {
-    display: none;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
 }
 
 div.settings-header-text {
@@ -24,12 +29,12 @@ div.settings-header-text {
     font-size: 18px;
     font-weight: bold;
     color: #728E9B;
-    padding-top: 28px;
     margin-bottom: 30px;
 }
 
 div.settings-container {
     margin-top: 18px;
+    height: 85%;
 }
 
 #new-service-or-task {
@@ -38,10 +43,8 @@ div.settings-container {
 }
 
 #settings-refresh-container {
-    height: 32px;
     position: absolute;
-    bottom: 10px;
-    left: 20px;
+    bottom: 20px;
 }
 
 /* settings tabs */
@@ -51,10 +54,11 @@ div.settings-tabs {
 }
 
 div.settings-table {
-    min-height: 150px;
-    overflow: hidden;
-    height: 80%;
-    width: 100%;
+    position: absolute;
+    top: 111px;
+    left: 0px;
+    bottom: 72px;
+    right: 0px;
 }
 
 span.sorted {

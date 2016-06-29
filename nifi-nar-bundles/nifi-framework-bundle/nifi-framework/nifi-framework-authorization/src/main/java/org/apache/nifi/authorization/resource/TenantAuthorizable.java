@@ -14,54 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.authorization.resource;
 
-/*
-    Component state filter
-*/
+import org.apache.nifi.authorization.Resource;
 
-#component-state-partial-results-container {
-    float: left;
-    color: #9f6000;
-    font-size: 9px;
-    font-weight: bold;
-    line-height: normal;
-    margin-top: 34px;
-}
+public class TenantAuthorizable implements Authorizable {
 
-#component-state-filter-controls {
-    margin-top: 10px;
-}
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return null;
+    }
 
-#component-state-filter {
-    width: 173px;
-}
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getTenantResource();
+    }
 
-/*
-    Component state table
-*/
-
-#component-state-table {
-    overflow: hidden;
-    position: absolute;
-    top: 208px;
-    left: 20px;
-    right: 20px;
-    bottom: 52px;
-}
-
-/*
-    Clear
-*/
-
-#clear-link-container {
-    position: absolute;
-    top: 186px;
-    right: 20px;
-}
-
-#clear-link.disabled {
-    color: #bbb;
-    font-style: italic;
-    text-decoration: none !important;
-    cursor: default !important;
 }

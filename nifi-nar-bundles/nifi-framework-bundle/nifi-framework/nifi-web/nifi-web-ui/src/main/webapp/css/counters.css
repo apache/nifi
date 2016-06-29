@@ -22,14 +22,14 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
-    height: 90%;
+    left: 20px;
+    right: 20px;
+    height: 100%;
     overflow: auto;
 }
 
 #counters-header-and-filter {
-    height: 32px;
+    height: 98px;
 }
 
 #counters-header-text {
@@ -44,6 +44,7 @@
     position: absolute;
     width: 100%;
     bottom: 0px;
+    left: 20px;
 }
 
 #counters-loading-container {
@@ -66,7 +67,9 @@
 /* counters table */
 
 #counters-table {
-    overflow: hidden;
-    height: 80%;
-    width: 100%;
+    position: absolute;
+    top: 98px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
 }

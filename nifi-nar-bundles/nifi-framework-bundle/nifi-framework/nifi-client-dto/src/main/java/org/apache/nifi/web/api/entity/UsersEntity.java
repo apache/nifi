@@ -16,45 +16,28 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Collection;
-import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.UserDTO;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Collection;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of UserDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of UserEntity
+ * objects.
  */
 @XmlRootElement(name = "usersEntity")
 public class UsersEntity extends Entity {
 
-    private Collection<UserDTO> users;
-    private Date generated;
+    private Collection<UserEntity> users;
 
     /**
-     * The collection of UserDTOs that are being serialized.
+     * The collection of UserEntity objects that are being serialized.
      *
-     * @return The UserDTO object
+     * @return The UserEntity objects
      */
-    public Collection<UserDTO> getUsers() {
+    public Collection<UserEntity> getUsers() {
         return users;
     }
 
-    public void setUsers(Collection<UserDTO> users) {
+    public void setUsers(Collection<UserEntity> users) {
         this.users = users;
     }
-
-    /**
-     * @return When this content was generated
-     */
-    @XmlJavaTypeAdapter(TimeAdapter.class)
-    public Date getGenerated() {
-        return generated;
-    }
-
-    public void setGenerated(Date generated) {
-        this.generated = generated;
-    }
-
 }

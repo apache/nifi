@@ -80,7 +80,7 @@ public class TestFlowController {
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
                 .resource("resource1")
-                .addAction(RequestAction.READ)
+                .action(RequestAction.READ)
                 .addUser(user1.getIdentifier())
                 .addUser(user2.getIdentifier())
                 .build();
@@ -88,8 +88,7 @@ public class TestFlowController {
         AccessPolicy policy2 = new AccessPolicy.Builder()
                 .identifier("policy-id-2")
                 .resource("resource2")
-                .addAction(RequestAction.READ)
-                .addAction(RequestAction.WRITE)
+                .action(RequestAction.READ)
                 .addGroup(group1.getIdentifier())
                 .addGroup(group2.getIdentifier())
                 .addUser(user1.getIdentifier())

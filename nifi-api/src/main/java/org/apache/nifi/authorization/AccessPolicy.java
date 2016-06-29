@@ -34,14 +34,14 @@ public class AccessPolicy {
 
     private final Set<String> groups;
 
-    private final Set<RequestAction> actions;
+    private final RequestAction action;
 
     private AccessPolicy(final Builder builder) {
         this.identifier = builder.identifier;
         this.resource = builder.resource;
+        this.action = builder.action;
         this.users = Collections.unmodifiableSet(new HashSet<>(builder.users));
         this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
-        this.actions = Collections.unmodifiableSet(new HashSet<>(builder.actions));
 
         if (this.identifier == null || this.identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
@@ -51,8 +51,8 @@ public class AccessPolicy {
             throw new IllegalArgumentException("Resource can not be null");
         }
 
-        if (this.actions == null || this.actions.isEmpty()) {
-            throw new IllegalArgumentException("Actions can not be null or empty");
+        if (this.action == null) {
+            throw new IllegalArgumentException("Action can not be null");
         }
     }
 
@@ -85,10 +85,10 @@ public class AccessPolicy {
     }
 
     /**
-     * @return an unmodifiable set of actions for this policy
+     * @return the action for this policy
      */
-    public Set<RequestAction> getActions() {
-        return actions;
+    public RequestAction getAction() {
+        return action;
     }
 
     @Override
@@ -112,7 +112,7 @@ public class AccessPolicy {
     @Override
     public String toString() {
         return String.format("identifier[%s], resource[%s], users[%s], groups[%s], action[%s]",
-                getIdentifier(), getResource(), getUsers(), getGroups(), getActions());
+                getIdentifier(), getResource(), getUsers(), getGroups(), getAction());
     }
 
     /**
@@ -122,9 +122,9 @@ public class AccessPolicy {
 
         private String identifier;
         private String resource;
+        private RequestAction action;
         private Set<String> users = new HashSet<>();
         private Set<String> groups = new HashSet<>();
-        private Set<RequestAction> actions = new HashSet<>();
         private final boolean fromPolicy;
 
         /**
@@ -148,12 +148,11 @@ public class AccessPolicy {
 
             this.identifier = other.getIdentifier();
             this.resource = other.getResource();
+            this.action = other.getAction();
             this.users.clear();
             this.users.addAll(other.getUsers());
             this.groups.clear();
             this.groups.addAll(other.getGroups());
-            this.actions.clear();
-            this.actions.addAll(other.getActions());
             this.fromPolicy = true;
         }
 
@@ -310,34 +309,13 @@ public class AccessPolicy {
         }
 
         /**
-         * Adds the provided action to the builder's set of actions.
+         * Sets the action for this builder.
          *
-         * @param action the action to add
+         * @param action the action to set
          * @return the builder
          */
-        public Builder addAction(final RequestAction action) {
-            this.actions.add(action);
-            return this;
-        }
-
-        /**
-         * Removes the provided action from the builder's set of actions.
-         *
-         * @param action the action to remove
-         * @return the builder
-         */
-        public Builder removeAction(final RequestAction action) {
-            this.actions.remove(action);
-            return this;
-        }
-
-        /**
-         * Clears the builder's set of actions so that it is non-null and size == 0.
-         *
-         * @return the builder
-         */
-        public Builder clearActions() {
-            this.actions.clear();
+        public Builder action(final RequestAction action) {
+            this.action = action;
             return this;
         }
 

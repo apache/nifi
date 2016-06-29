@@ -165,11 +165,6 @@ nf.CountersTable = (function () {
                 }
             });
 
-            // listen for browser resize events to update the page size
-            $(window).resize(function () {
-                nf.CountersTable.resetTableSize();
-            });
-
             // initialize the templates table
             var countersColumns = [
                 {id: 'context', name: 'Context', field: 'context', sortable: true, resizable: true},

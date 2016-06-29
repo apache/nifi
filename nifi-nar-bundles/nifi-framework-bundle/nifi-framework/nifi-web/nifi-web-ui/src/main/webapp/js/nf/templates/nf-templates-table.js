@@ -216,11 +216,6 @@ nf.TemplatesTable = (function () {
                 }
             });
 
-            // listen for browser resize events to update the page size
-            $(window).resize(function () {
-                nf.TemplatesTable.resetTableSize();
-            });
-
             // enable template uploading if DFM
             if (nf.Common.isDFM()) {
                 $('#upload-template-container').show();

@@ -19,8 +19,7 @@ package org.apache.nifi.web;
 import org.apache.nifi.authorization.resource.AccessPoliciesAuthorizable;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.UserGroupsAuthorizable;
-import org.apache.nifi.authorization.resource.UsersAuthorizable;
+import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -44,8 +43,7 @@ import org.apache.nifi.web.dao.TemplateDAO;
 
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
-    private static final UsersAuthorizable USERS_AUTHORIZABLE = new UsersAuthorizable();
-    private static final UserGroupsAuthorizable USER_GROUPS_AUTHORIZABLE = new UserGroupsAuthorizable();
+    private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
     private static final Authorizable ACCESS_POLICIES_AUTHORIZABLE = new AccessPoliciesAuthorizable();
 
     // nifi core components
@@ -159,13 +157,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getUsersAuthorizable() {
-        return USERS_AUTHORIZABLE;
-    }
-
-    @Override
-    public Authorizable getUserGroupsAuthorizable() {
-        return USER_GROUPS_AUTHORIZABLE;
+    public Authorizable getTenantAuthorizable() {
+        return TENANT_AUTHORIZABLE;
     }
 
     @Override

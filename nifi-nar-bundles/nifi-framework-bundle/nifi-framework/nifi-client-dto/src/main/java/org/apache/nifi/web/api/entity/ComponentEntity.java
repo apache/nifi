@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A base type for request/response entities.
@@ -117,7 +118,7 @@ public class ComponentEntity extends Entity {
 
     @Override
     public int hashCode() {
-        return id.hashCode();
+        return Objects.hash(id);
     }
 
     @Override
@@ -134,6 +135,6 @@ public class ComponentEntity extends Entity {
             return false;
         }
 
-        return id.equals(((ComponentEntity) obj).getId());
+        return Objects.equals(id, ((ComponentEntity)obj).id);
     }
 }

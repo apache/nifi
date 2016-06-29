@@ -20,7 +20,7 @@
         <div id="queue-listing-header-text"></div>
     </div>
     <div id="queue-listing-stats-container">
-        <div id="queue-listing-stats">
+        <div id="queue-listing-stats" class="filter-status">
             Displaying&nbsp;<span id="displayed-flowfiles"></span>&nbsp;of&nbsp;<span id="total-flowfiles-count"></span>&nbsp;(<span id="total-flowfiles-size"></span>)
         </div>
         <div class="clear"></div>

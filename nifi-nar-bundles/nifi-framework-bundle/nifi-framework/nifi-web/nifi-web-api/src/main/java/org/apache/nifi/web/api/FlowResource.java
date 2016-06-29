@@ -282,6 +282,10 @@ public class FlowResource extends ApplicationResource {
         }
 
         final FlowConfigurationEntity entity = serviceFacade.getFlowConfiguration();
+
+        // include details about cluster state
+        entity.getFlowConfiguration().setClustered(isConnectedToCluster());
+
         return clusterContext(generateOkResponse(entity)).build();
     }
 

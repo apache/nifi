@@ -14,18 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization.resource;
+package org.apache.nifi.web.api.dto;
 
-import org.apache.nifi.authorization.Resource;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
-public class UserGroupsAuthorizable implements Authorizable {
-    @Override
-    public Authorizable getParentAuthorizable() {
-        return null;
+import javax.xml.bind.annotation.XmlType;
+
+/**
+ * A tenant of this NiFi.
+ */
+@XmlType(name = "tenant")
+public class TenantDTO extends ComponentDTO {
+    private String identity;
+
+    /**
+     * @return tenant's identity
+     */
+    @ApiModelProperty(value = "The identity of the tenant.")
+    public String getIdentity() {
+        return identity;
     }
 
-    @Override
-    public Resource getResource() {
-        return ResourceFactory.getUserGroupsResource();
+    public void setIdentity(String identity) {
+        this.identity = identity;
     }
+
+
 }
