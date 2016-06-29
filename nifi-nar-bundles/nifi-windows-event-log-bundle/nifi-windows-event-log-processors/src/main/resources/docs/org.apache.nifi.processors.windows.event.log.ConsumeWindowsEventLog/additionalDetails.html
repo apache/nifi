@@ -62,7 +62,7 @@
                 <li>Note the SID of the user or group you'd like to allow to read a given channel</li>
                 <li>Open a command prompt as Administrator.  enter the command: wevtutil gl CHANNEL_NAME</li>
                 <li>Take the channelAccess Attribute starting with O:BAG, copy it into a text editor, and add (A;;0x1;;;YOUR_SID_FROM_BEFORE) to the end</li>
-                <li>Take that text and run the following command in your admin prompt: wevtutil sl CHANNEL_NAME /ca:TEXT_FROM_PREVIOUS_STEP</li>
+                <li>Take that text and run the following command in your admin prompt (see below for example): wevtutil sl CHANNEL_NAME /ca:TEXT_FROM_PREVIOUS_STEP</li>
             </ol>
 
             <p>The following command is the exact one I used to add read access to the Security log for my user. (You can see all the possible channels with: wevtutil el):</p>
