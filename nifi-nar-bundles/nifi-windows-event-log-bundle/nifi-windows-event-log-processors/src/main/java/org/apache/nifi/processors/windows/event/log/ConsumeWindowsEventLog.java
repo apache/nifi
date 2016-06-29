@@ -211,9 +211,9 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) throws Exception {
+    public void onScheduled(ProcessContext context) throws AlreadySubscribedException, URISyntaxException {
         if (isSubscribed()) {
-            throw new Exception(PROCESSOR_ALREADY_SUBSCRIBED);
+            throw new AlreadySubscribedException(PROCESSOR_ALREADY_SUBSCRIBED);
         }
         String errorMessage = subscribe(context);
         if (errorMessage != null) {
