@@ -30,6 +30,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.windows.event.log.jna.EventSubscribeXmlRenderingCallback;
 import org.apache.nifi.processors.windows.event.log.jna.WEvtApi;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.MockSessionFactory;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,15 +43,15 @@ import org.mockito.Mock;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
@@ -198,7 +200,7 @@ public class ConsumeWindowsEventLogTest {
     }
 
     @Test
-    public void testScheduleError() throws InvocationTargetException, IllegalAccessException {
+    public void testScheduleError() throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
 
         when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
@@ -210,13 +212,8 @@ public class ConsumeWindowsEventLogTest {
 
         testRunner = TestRunners.newTestRunner(evtSubscribe);
 
-        try {
-            testRunner.run(1);
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-            assertEquals(ConsumeWindowsEventLog.UNABLE_TO_SUBSCRIBE + "ERROR_ACCESS_DENIED(" + WinError.ERROR_ACCESS_DENIED + ")", e.getCause().getMessage());
-        }
+        testRunner.run(1);
+        assertEquals(0, getCreatedSessions(testRunner).size());
         verify(wEvtApi, never()).EvtClose(any(WinNT.HANDLE.class));
     }
 
@@ -260,5 +257,12 @@ public class ConsumeWindowsEventLogTest {
     @Test
     public void testGetRelationships() {
         assertEquals(ConsumeWindowsEventLog.RELATIONSHIPS, evtSubscribe.getRelationships());
+    }
+
+    private static Set<MockProcessSession> getCreatedSessions(TestRunner testRunner) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        MockSessionFactory processSessionFactory = (MockSessionFactory) testRunner.getProcessSessionFactory();
+        Method getCreatedSessions = processSessionFactory.getClass().getDeclaredMethod("getCreatedSessions");
+        getCreatedSessions.setAccessible(true);
+        return (Set<MockProcessSession>) getCreatedSessions.invoke(processSessionFactory);
     }
 }

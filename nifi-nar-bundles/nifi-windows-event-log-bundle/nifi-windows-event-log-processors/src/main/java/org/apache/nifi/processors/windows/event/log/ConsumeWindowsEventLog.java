@@ -255,12 +255,14 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             try {
                 errorMessage = subscribe(context);
             } catch (URISyntaxException e) {
+                getLogger().error(e.getMessage(), e);
                 context.yield();
-                throw new ProcessException(e);
+                return;
             }
             if (errorMessage != null) {
                 context.yield();
-                throw new ProcessException(errorMessage);
+                getLogger().error(errorMessage);
+                return;
             }
         }
         processQueue(sessionFactory.createSession());
