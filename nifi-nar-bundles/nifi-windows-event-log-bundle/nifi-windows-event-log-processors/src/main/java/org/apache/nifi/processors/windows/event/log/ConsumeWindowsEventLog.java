@@ -46,6 +46,7 @@ import org.apache.nifi.processors.windows.event.log.jna.EventSubscribeXmlRenderi
 import org.apache.nifi.processors.windows.event.log.jna.WEvtApi;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -117,6 +118,9 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
 
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS)));
     public static final String APPLICATION_XML = "application/xml";
+    public static final String UNABLE_TO_SUBSCRIBE = "Unable to subscribe with provided parameters, received the following error code: ";
+    public static final String PROCESSOR_ALREADY_SUBSCRIBED = "Processor already subscribed to Event Log, expected cleanup to unsubscribe.";
+
     private final WEvtApi wEvtApi;
     private final Kernel32 kernel32;
     private final ErrorLookup errorLookup;
@@ -148,7 +152,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         this.wEvtApi = wEvtApi == null ? loadWEvtApi() : wEvtApi;
         this.kernel32 = kernel32 == null ? loadKernel32() : kernel32;
         this.errorLookup = new ErrorLookup(this.kernel32);
-        if (kernel32 != null) {
+        if (this.kernel32 != null) {
             name = Kernel32Util.getComputerName();
         } else {
             // Won't be able to use the processor anyway because native libraries didn't load
@@ -179,8 +183,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      *
      * @param context the process context
      */
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws Exception {
+    private String subscribe(ProcessContext context) throws URISyntaxException {
         String channel = context.getProperty(CHANNEL).getValue();
         String query = context.getProperty(QUERY).getValue();
 
@@ -197,9 +200,24 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
 
         subscriptionHandle = wEvtApi.EvtSubscribe(null, null, channel, query, null, null,
                 evtSubscribeCallback, WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT);
-        if (subscriptionHandle == null || subscriptionHandle.getPointer() == null) {
-            throw new Exception("Unable to subscribe with provided parameters, received the following error code: "
-                    + errorLookup.getLastError());
+        if (!isSubscribed()) {
+            return UNABLE_TO_SUBSCRIBE + errorLookup.getLastError();
+        }
+        return null;
+    }
+
+    private boolean isSubscribed() {
+        return subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+    }
+
+    @OnScheduled
+    public void onScheduled(ProcessContext context) throws Exception {
+        if (isSubscribed()) {
+            throw new Exception(PROCESSOR_ALREADY_SUBSCRIBED);
+        }
+        String errorMessage = subscribe(context);
+        if (errorMessage != null) {
+            getLogger().error(errorMessage);
         }
     }
 
@@ -208,7 +226,9 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      */
     @OnStopped
     public void stop() {
-        wEvtApi.EvtClose(subscriptionHandle);
+        if (isSubscribed()) {
+            wEvtApi.EvtClose(subscriptionHandle);
+        }
         subscriptionHandle = null;
         evtSubscribeCallback = null;
         if (!renderedXMLs.isEmpty()) {
@@ -230,6 +250,17 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         this.sessionFactory = sessionFactory;
+        if (!isSubscribed()) {
+            String errorMessage;
+            try {
+                errorMessage = subscribe(context);
+            } catch (URISyntaxException e) {
+                throw new ProcessException(e);
+            }
+            if (errorMessage != null) {
+                throw new ProcessException(errorMessage);
+            }
+        }
         processQueue(sessionFactory.createSession());
     }
 

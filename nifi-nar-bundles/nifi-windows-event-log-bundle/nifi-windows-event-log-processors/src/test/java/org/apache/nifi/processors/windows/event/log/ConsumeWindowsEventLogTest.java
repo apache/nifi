@@ -21,6 +21,7 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
 import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinError;
 import com.sun.jna.platform.win32.WinNT;
 import org.apache.commons.io.Charsets;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -46,12 +47,17 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -163,6 +169,58 @@ public class ConsumeWindowsEventLogTest {
     }
 
     @Test
+    public void testScheduleErrorThenTriggerSubscribe() throws InvocationTargetException, IllegalAccessException {
+        evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
+
+
+        when(subscriptionHandle.getPointer()).thenReturn(subscriptionPointer);
+
+        when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
+                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
+                .thenReturn(null).thenReturn(subscriptionHandle);
+
+        testRunner = TestRunners.newTestRunner(evtSubscribe);
+
+
+        testRunner.run(1, false, true);
+
+        WinNT.HANDLE handle = mockEventHandles(wEvtApi, kernel32, Arrays.asList("test")).get(0);
+        List<EventSubscribeXmlRenderingCallback> renderingCallbacks = getRenderingCallbacks(2);
+        EventSubscribeXmlRenderingCallback subscribeRenderingCallback = renderingCallbacks.get(0);
+        EventSubscribeXmlRenderingCallback renderingCallback = renderingCallbacks.get(1);
+        renderingCallback.onEvent(WEvtApi.EvtSubscribeNotifyAction.DELIVER, null, handle);
+
+        testRunner.run(1, true, false);
+
+        assertNotEquals(subscribeRenderingCallback, renderingCallback);
+        verify(wEvtApi).EvtClose(subscriptionHandle);
+    }
+
+    @Test
+    public void testScheduleError() throws InvocationTargetException, IllegalAccessException {
+        evtSubscribe = new ConsumeWindowsEventLog(wEvtApi, kernel32);
+
+        when(wEvtApi.EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+                isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), isA(EventSubscribeXmlRenderingCallback.class),
+                eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT)))
+                .thenReturn(null);
+
+        when(kernel32.GetLastError()).thenReturn(WinError.ERROR_ACCESS_DENIED);
+
+        testRunner = TestRunners.newTestRunner(evtSubscribe);
+
+        try {
+            testRunner.run(1);
+            fail();
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+            assertEquals(ConsumeWindowsEventLog.UNABLE_TO_SUBSCRIBE + "ERROR_ACCESS_DENIED(" + WinError.ERROR_ACCESS_DENIED + ")", e.getCause().getMessage());
+        }
+        verify(wEvtApi, never()).EvtClose(any(WinNT.HANDLE.class));
+    }
+
+    @Test
     public void testStopClosesHandle() {
         testRunner.run(1);
         verify(wEvtApi).EvtClose(subscriptionHandle);
@@ -183,11 +241,15 @@ public class ConsumeWindowsEventLogTest {
     }
 
     public EventSubscribeXmlRenderingCallback getRenderingCallback() {
+        return getRenderingCallbacks(1).get(0);
+    }
+
+    public List<EventSubscribeXmlRenderingCallback> getRenderingCallbacks(int times) {
         ArgumentCaptor<EventSubscribeXmlRenderingCallback> callbackArgumentCaptor = ArgumentCaptor.forClass(EventSubscribeXmlRenderingCallback.class);
-        verify(wEvtApi).EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
+        verify(wEvtApi, times(times)).EvtSubscribe(isNull(WinNT.HANDLE.class), isNull(WinNT.HANDLE.class), eq(ConsumeWindowsEventLog.DEFAULT_CHANNEL), eq(ConsumeWindowsEventLog.DEFAULT_XPATH),
                 isNull(WinNT.HANDLE.class), isNull(WinDef.PVOID.class), callbackArgumentCaptor.capture(),
                 eq(WEvtApi.EvtSubscribeFlags.SUBSCRIBE_TO_FUTURE | WEvtApi.EvtSubscribeFlags.EVT_SUBSCRIBE_STRICT));
-        return callbackArgumentCaptor.getValue();
+        return callbackArgumentCaptor.getAllValues();
     }
 
     @Test
