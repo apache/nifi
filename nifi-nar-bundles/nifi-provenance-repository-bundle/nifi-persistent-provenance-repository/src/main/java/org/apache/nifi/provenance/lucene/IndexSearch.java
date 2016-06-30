@@ -28,9 +28,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardQueryResult;
+import org.apache.nifi.provenance.authorization.AuthorizationCheck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +50,8 @@ public class IndexSearch {
         this.maxAttributeChars = maxAttributeChars;
     }
 
-    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount, final long firstEventTimestamp) throws IOException {
+    public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final NiFiUser user, final AtomicInteger retrievedCount,
+        final long firstEventTimestamp) throws IOException {
         if (retrievedCount.get() >= provenanceQuery.getMaxResults()) {
             final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
             sqr.update(Collections.<ProvenanceEventRecord> emptyList(), 0L);
@@ -102,7 +105,10 @@ public class IndexSearch {
             }
 
             final DocsReader docsReader = new DocsReader();
-            matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount,
+
+            final AuthorizationCheck authCheck = event -> repository.isAuthorized(event, user);
+
+            matchingRecords = docsReader.read(topDocs, authCheck, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount,
                 provenanceQuery.getMaxResults(), maxAttributeChars);
 
             final long readRecordsNanos = System.nanoTime() - finishSearch;

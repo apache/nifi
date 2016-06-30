@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.security.anonymous;
 
-import org.apache.nifi.authorization.user.NiFiUser;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-
-import javax.servlet.http.HttpServletRequest;
 
 public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
@@ -34,7 +34,7 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
 
     @Override
     protected Authentication createAuthentication(HttpServletRequest request) {
-        return new NiFiAuthenticationToken(new NiFiUserDetails(NiFiUser.ANONYMOUS));
+        return new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
     }
 
 }

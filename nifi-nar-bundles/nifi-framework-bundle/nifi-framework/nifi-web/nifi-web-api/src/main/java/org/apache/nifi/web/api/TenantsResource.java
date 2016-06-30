@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.util.NiFiProperties;
@@ -182,7 +183,7 @@ public class TenantsResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable users = lookup.getTenantAuthorizable();
-                users.authorize(authorizer, RequestAction.WRITE);
+                users.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -247,7 +248,7 @@ public class TenantsResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable users = lookup.getTenantAuthorizable();
-            users.authorize(authorizer, RequestAction.READ);
+            users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the user
@@ -294,7 +295,7 @@ public class TenantsResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable users = lookup.getTenantAuthorizable();
-            users.authorize(authorizer, RequestAction.READ);
+            users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the users
@@ -375,7 +376,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable users = lookup.getTenantAuthorizable();
-                    users.authorize(authorizer, RequestAction.WRITE);
+                users.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -450,7 +451,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable users = lookup.getTenantAuthorizable();
-                    users.authorize(authorizer, RequestAction.READ);
+                users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -567,7 +568,7 @@ public class TenantsResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable userGroups = lookup.getTenantAuthorizable();
-                userGroups.authorize(authorizer, RequestAction.WRITE);
+                userGroups.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -632,7 +633,7 @@ public class TenantsResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable userGroups = lookup.getTenantAuthorizable();
-            userGroups.authorize(authorizer, RequestAction.READ);
+            userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the user group
@@ -679,7 +680,7 @@ public class TenantsResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable userGroups = lookup.getTenantAuthorizable();
-            userGroups.authorize(authorizer, RequestAction.READ);
+            userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the user groups
@@ -760,7 +761,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable userGroups = lookup.getTenantAuthorizable();
-                    userGroups.authorize(authorizer, RequestAction.WRITE);
+                userGroups.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -835,7 +836,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable userGroups = lookup.getTenantAuthorizable();
-                    userGroups.authorize(authorizer, RequestAction.READ);
+                userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {

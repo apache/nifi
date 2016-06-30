@@ -36,6 +36,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.authorization.AuthorizationCheck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,8 +94,12 @@ public class LineageQuery {
                 final TopDocs uuidQueryTopDocs = searcher.search(query, MAX_QUERY_RESULTS);
                 final long searchEnd = System.nanoTime();
 
+                // Always authorized. We do this because we need to pull back the event, regardless of whether or not
+                // the user is truly authorized, because instead of ignoring unauthorized events, we want to replace them.
+                final AuthorizationCheck authCheck = event -> true;
+
                 final DocsReader docsReader = new DocsReader();
-                final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, searcher.getIndexReader(), repo.getAllLogFiles(),
+                final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, authCheck, searcher.getIndexReader(), repo.getAllLogFiles(),
                     new AtomicInteger(0), Integer.MAX_VALUE, maxAttributeChars);
 
                 final long readDocsEnd = System.nanoTime();

@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
@@ -64,7 +65,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
         }
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
-            return new NiFiAuthenticationToken(new NiFiUserDetails(new NiFiUser(authenticationResponse.getIdentity(), authenticationResponse.getUsername(), null)));
+            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(authenticationResponse.getIdentity(), authenticationResponse.getUsername(), null)));
         } else {
             // build the entire proxy chain if applicable - <end-user><proxy1><proxy2>
             final List<String> proxyChain = new ArrayList<>(ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(request.getProxiedEntitiesChain()));
@@ -91,7 +92,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
                     }
                 }
 
-                proxy = new NiFiUser(chainIter.previous(), proxy);
+                proxy = new StandardNiFiUser(chainIter.previous(), proxy);
             }
 
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));

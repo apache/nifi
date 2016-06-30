@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization;
+package org.apache.nifi.authorization.resource;
 
-/**
- * Represents any error that might occur while authorizing user requests.
- */
-public class AccessDeniedException extends RuntimeException {
+import org.apache.nifi.authorization.Resource;
 
-    public AccessDeniedException(Throwable cause) {
-        super(cause);
+public class ProvenanceEventAuthorizable implements Authorizable {
+    final Authorizable authorizable;
+
+    public ProvenanceEventAuthorizable(final Authorizable authorizable) {
+        this.authorizable = authorizable;
     }
 
-    public AccessDeniedException(String message, Throwable cause) {
-        super(message, cause);
+    @Override
+    public Authorizable getParentAuthorizable() {
+        if (authorizable.getParentAuthorizable() == null) {
+            return null;
+        } else {
+            return new ProvenanceEventAuthorizable(authorizable.getParentAuthorizable());
+        }
     }
 
-    public AccessDeniedException(String message) {
-        super(message);
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getProvenanceEventResource(authorizable.getResource());
     }
-
-    public AccessDeniedException() {
-    }
-
 }
