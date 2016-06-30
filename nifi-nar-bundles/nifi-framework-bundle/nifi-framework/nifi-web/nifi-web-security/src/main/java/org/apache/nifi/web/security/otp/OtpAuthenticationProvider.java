@@ -18,6 +18,7 @@ package org.apache.nifi.web.security.otp;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -46,7 +47,7 @@ public class OtpAuthenticationProvider implements AuthenticationProvider {
             } else {
                 otpPrincipal = otpService.getAuthenticationFromUiExtensionToken(request.getToken());
             }
-            final NiFiUser user = new NiFiUser(otpPrincipal);
+            final NiFiUser user = new StandardNiFiUser(otpPrincipal);
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (OtpAuthenticationException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);

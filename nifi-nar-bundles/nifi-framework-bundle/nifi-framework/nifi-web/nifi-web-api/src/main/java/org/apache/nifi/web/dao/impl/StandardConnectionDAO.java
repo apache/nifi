@@ -298,7 +298,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
 
         // ensure the user has write access to the source component
-        source.authorize(authorizer, RequestAction.WRITE);
+        source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // find the destination
         final Connectable destination;
@@ -324,7 +324,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
 
         // ensure the user has write access to the source component
-        destination.authorize(authorizer, RequestAction.WRITE);
+        destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // determine the relationships
         final Set<String> relationships = new HashSet<>();

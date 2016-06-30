@@ -51,7 +51,7 @@ nf.Summary = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            cluster: '../nifi-api/controller/cluster'
+            flowConfig: '../nifi-api/flow/config'
         }
     };
 
@@ -61,26 +61,15 @@ nf.Summary = (function () {
     var initializeSummaryTable = function () {
         return $.Deferred(function (deferred) {
             $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                nf.SummaryTable.init(true).done(function () {
+                type: 'GET',
+                url: config.urls.flowConfig
+            }).done(function (response) {
+                nf.SummaryTable.init(response.flowConfiguration.clustered).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
                 });
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    nf.SummaryTable.init(false).done(function () {
-                        deferred.resolve();
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
+            }).fail(nf.Common.handleAjaxError);
         }).promise();
     };
 

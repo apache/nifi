@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
@@ -49,7 +50,7 @@ import org.junit.Test;
 public class TestNaiveRevisionManager {
     private static final String CLIENT_1 = "client-1";
     private static final String COMPONENT_1 = "component-1";
-    private static final NiFiUser USER_1 = new NiFiUser("user-1");
+    private static final NiFiUser USER_1 = new StandardNiFiUser("user-1");
 
     private RevisionUpdate<Object> components(final Revision revision) {
         return new StandardRevisionUpdate<Object>(null, new FlowModification(revision, null));
@@ -302,7 +303,7 @@ public class TestNaiveRevisionManager {
         final RevisionClaim firstClaim = revisionManager.requestClaim(firstRevision, USER_1);
         assertNotNull(firstClaim);
 
-        final NiFiUser user2 = new NiFiUser("user-2");
+        final NiFiUser user2 = new StandardNiFiUser("user-2");
         try {
             revisionManager.updateRevision(firstClaim, user2, () -> null);
             Assert.fail("Expected updateRevision to fail with a different user but it succeeded");
@@ -318,7 +319,7 @@ public class TestNaiveRevisionManager {
         final RevisionClaim firstClaim = revisionManager.requestClaim(firstRevision, USER_1);
         assertNotNull(firstClaim);
 
-        final NiFiUser user2 = new NiFiUser("user-2");
+        final NiFiUser user2 = new StandardNiFiUser("user-2");
         try {
             revisionManager.deleteRevision(firstClaim, user2, () -> null);
             Assert.fail("Expected deleteRevision to fail with a different user but it succeeded");

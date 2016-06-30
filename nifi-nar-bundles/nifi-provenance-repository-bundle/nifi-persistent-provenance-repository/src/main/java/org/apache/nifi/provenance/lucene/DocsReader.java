@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.authorization.AuthorizationCheck;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -47,7 +48,7 @@ import org.slf4j.LoggerFactory;
 class DocsReader {
     private final Logger logger = LoggerFactory.getLogger(DocsReader.class);
 
-    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
+    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final AuthorizationCheck authCheck, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
             final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
@@ -65,7 +66,7 @@ class DocsReader {
 
         final long readDocuments = System.nanoTime() - start;
         logger.debug("Reading {} Lucene Documents took {} millis", docs.size(), TimeUnit.NANOSECONDS.toMillis(readDocuments));
-        return read(docs, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
+        return read(docs, authCheck, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
     }
 
 
@@ -104,7 +105,7 @@ class DocsReader {
         return record;
     }
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles,
+    public Set<ProvenanceEventRecord> read(final List<Document> docs, final AuthorizationCheck authCheck, final Collection<Path> allProvenanceLogFiles,
             final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
 
         if (retrievalCount.get() >= maxResults) {
@@ -128,9 +129,9 @@ class DocsReader {
 
                     Iterator<Document> docIter = byStorageNameDocGroups.get(storageFileName).iterator();
                     while (docIter.hasNext() && retrievalCount.getAndIncrement() < maxResults) {
-                        ProvenanceEventRecord eRec = this.getRecord(docIter.next(), reader);
-                        if (eRec != null) {
-                            matchingRecords.add(eRec);
+                        ProvenanceEventRecord event = this.getRecord(docIter.next(), reader);
+                        if (event != null && authCheck.isAuthorized(event)) {
+                            matchingRecords.add(event);
                             eventsReadThisFile++;
                         }
                     }

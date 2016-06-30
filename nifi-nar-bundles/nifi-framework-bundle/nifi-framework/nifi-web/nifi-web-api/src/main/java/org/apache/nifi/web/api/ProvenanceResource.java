@@ -780,14 +780,14 @@ public class ProvenanceResource extends ApplicationResource {
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
-            if (lineageDto.getClusterNodeId() == null) {
+            if (requestDto.getClusterNodeId() == null) {
                 throw new IllegalArgumentException("The cluster node identifier must be specified.");
             }
 
             // change content type to JSON for serializing entity
             final Map<String, String> headersToOverride = new HashMap<>();
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
-            return replicate(HttpMethod.POST, lineageEntity, lineageDto.getClusterNodeId(), headersToOverride);
+            return replicate(HttpMethod.POST, lineageEntity, requestDto.getClusterNodeId(), headersToOverride);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -798,7 +798,7 @@ public class ProvenanceResource extends ApplicationResource {
 
         // get the provenance event
         final LineageDTO dto = serviceFacade.submitLineage(lineageDto);
-        dto.setClusterNodeId(lineageDto.getClusterNodeId());
+        dto.getRequest().setClusterNodeId(requestDto.getClusterNodeId());
         populateRemainingLineageContent(dto);
 
         // create a response entity
@@ -858,7 +858,7 @@ public class ProvenanceResource extends ApplicationResource {
 
         // get the lineage
         final LineageDTO dto = serviceFacade.getLineage(id);
-        dto.setClusterNodeId(clusterNodeId);
+        dto.getRequest().setClusterNodeId(clusterNodeId);
         populateRemainingLineageContent(dto);
 
         // create the response entity

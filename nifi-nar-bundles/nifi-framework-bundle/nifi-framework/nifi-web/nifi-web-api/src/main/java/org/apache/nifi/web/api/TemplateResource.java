@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.entity.TemplateEntity;
@@ -123,7 +124,7 @@ public class TemplateResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable template = lookup.getTemplate(id);
-            template.authorize(authorizer, RequestAction.READ);
+            template.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the template
@@ -190,7 +191,7 @@ public class TemplateResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable template = lookup.getTemplate(id);
-                template.authorize(authorizer, RequestAction.WRITE);
+                template.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
             return generateContinueResponse().build();
         }

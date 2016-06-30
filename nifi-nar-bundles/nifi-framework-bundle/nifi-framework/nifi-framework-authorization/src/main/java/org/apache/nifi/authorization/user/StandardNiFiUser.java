@@ -20,45 +20,48 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * An NiFiUser.
+ * An implementation of NiFiUser.
  */
-public class NiFiUser implements Serializable {
+public class StandardNiFiUser implements NiFiUser, Serializable {
+    private static final long serialVersionUID = -5503790026187817496L;
 
-    public static final NiFiUser ANONYMOUS = new NiFiUser("anonymous");
+    public static final StandardNiFiUser ANONYMOUS = new StandardNiFiUser("anonymous");
 
-    private String identity;
-    private String userName;
+    private final String identity;
+    private final String userName;
+    private final NiFiUser chain;
 
-    private NiFiUser chain;
-
-    public NiFiUser(String identity) {
+    public StandardNiFiUser(String identity) {
         this(identity, identity, null);
     }
 
-    public NiFiUser(String identity, NiFiUser chain) {
+    public StandardNiFiUser(String identity, NiFiUser chain) {
         this(identity, identity, chain);
     }
 
-    public NiFiUser(String identity, String userName, NiFiUser chain) {
+    public StandardNiFiUser(String identity, String userName, NiFiUser chain) {
         this.identity = identity;
         this.userName = userName;
         this.chain = chain;
     }
 
-    /* getters / setters */
 
+    @Override
     public String getIdentity() {
         return identity;
     }
 
+    @Override
     public String getUserName() {
         return userName;
     }
 
+    @Override
     public NiFiUser getChain() {
         return chain;
     }
 
+    @Override
     public boolean isAnonymous() {
         return this == ANONYMOUS;
     }
@@ -68,14 +71,13 @@ public class NiFiUser implements Serializable {
         if (obj == null) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
+
+        if (!(obj instanceof NiFiUser)) {
             return false;
         }
+
         final NiFiUser other = (NiFiUser) obj;
-        if (!Objects.equals(this.identity, other.identity)) {
-            return false;
-        }
-        return true;
+        return Objects.equals(this.identity, other.getIdentity());
     }
 
     @Override
@@ -89,5 +91,4 @@ public class NiFiUser implements Serializable {
     public String toString() {
         return String.format("identity[%s], userName[%s]", getIdentity(), getUserName(), ", ");
     }
-
 }

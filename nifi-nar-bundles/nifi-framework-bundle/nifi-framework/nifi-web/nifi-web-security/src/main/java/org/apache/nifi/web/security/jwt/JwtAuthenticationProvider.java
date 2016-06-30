@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.web.security.jwt;
 
-import io.jsonwebtoken.JwtException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+
+import io.jsonwebtoken.JwtException;
 
 /**
  *
@@ -42,7 +44,7 @@ public class JwtAuthenticationProvider implements AuthenticationProvider {
 
         try {
             final String jwtPrincipal = jwtService.getAuthenticationFromToken(request.getToken());
-            final NiFiUser user = new NiFiUser(jwtPrincipal);
+            final NiFiUser user = new StandardNiFiUser(jwtPrincipal);
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
         } catch (JwtException e) {
             throw new InvalidAuthenticationException(e.getMessage(), e);
