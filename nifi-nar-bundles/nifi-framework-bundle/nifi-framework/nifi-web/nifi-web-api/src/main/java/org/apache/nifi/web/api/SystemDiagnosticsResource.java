@@ -122,7 +122,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
             throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
         }
 
-        if (isConnectedToCluster()) {
+        if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
                 final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
