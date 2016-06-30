@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ParseEvtx</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor is used listen to Windows Event Log events. It has a success output that will contain an XML representation of the event.
+         </p>
+         <h2>Output XML Example:</h2>
+         <p>
+             <pre>
+&lt;Event xmlns=&quot;http://schemas.microsoft.com/win/2004/08/events/event&quot;&gt;
+  &lt;System&gt;
+    &lt;Provider Name=&quot;Service Control Manager&quot; Guid=&quot;{555908d1-a6d7-4695-8e1e-26931d2012f4}&quot; EventSourceName=&quot;Service Control Manager&quot;/&gt;
+    &lt;EventID Qualifiers=&quot;16384&quot;&gt;7036&lt;/EventID&gt;
+    &lt;Version&gt;0&lt;/Version&gt;
+    &lt;Level&gt;4&lt;/Level&gt;
+    &lt;Task&gt;0&lt;/Task&gt;
+    &lt;Opcode&gt;0&lt;/Opcode&gt;
+    &lt;Keywords&gt;0x8080000000000000&lt;/Keywords&gt;
+    &lt;TimeCreated SystemTime=&quot;2016-06-10T22:28:53.905233700Z&quot;/&gt;
+    &lt;EventRecordID&gt;34153&lt;/EventRecordID&gt;
+    &lt;Correlation/&gt;
+    &lt;Execution ProcessID=&quot;684&quot; ThreadID=&quot;3504&quot;/&gt;
+    &lt;Channel&gt;System&lt;/Channel&gt;
+    &lt;Computer&gt;WIN-O05CNUCF16M.hdf.local&lt;/Computer&gt;
+    &lt;Security/&gt;
+  &lt;/System&gt;
+  &lt;EventData&gt;
+    &lt;Data Name=&quot;param1&quot;&gt;Smart Card Device Enumeration Service&lt;/Data&gt;
+    &lt;Data Name=&quot;param2&quot;&gt;running&lt;/Data&gt;
+    &lt;Binary&gt;5300630044006500760069006300650045006E0075006D002F0034000000&lt;/Binary&gt;
+  &lt;/EventData&gt;
+&lt;/Event&gt;
+             </pre>
+        </p>
+        <h2>Permissions:</h2>
+        <p>
+            Your Windows User must have permissions to read the given Event Log.  This can be achieved through the following steps (Windows 2008 and newer):
+            <ol>
+                <li>Open a command prompt as your user.  Enter the command: wmic useraccount get name,sid</li>
+                <li>Note the SID of the user or group you'd like to allow to read a given channel</li>
+                <li>Open a command prompt as Administrator.  enter the command: wevtutil gl CHANNEL_NAME</li>
+                <li>Take the channelAccess Attribute starting with O:BAG, copy it into a text editor, and add (A;;0x1;;;YOUR_SID_FROM_BEFORE) to the end</li>
+                <li>Take that text and run the following command in your admin prompt (see below for example): wevtutil sl CHANNEL_NAME /ca:TEXT_FROM_PREVIOUS_STEP</li>
+            </ol>
+
+            <p>The following command is the exact one I used to add read access to the Security log for my user. (You can see all the possible channels with: wevtutil el):</p>
+            <p>wevtutil sl Security /ca:O:BAG:SYD:(A;;0xf0005;;;SY)(A;;0x5;;;BA)(A;;0x1;;;S-1-5-32-573)(A;;0x1;;;S-1-5-21-3589080292-3448680409-2446571098-1001)</p>
+
+            <p>These steps were adapted from <a href="https://blogs.technet.microsoft.com/janelewis/2010/04/30/giving-non-administrators-permission-to-read-event-logs-windows-2003-and-windows-2008/">this guide.</a></p>
+        </p>
+</body>
+</html>
