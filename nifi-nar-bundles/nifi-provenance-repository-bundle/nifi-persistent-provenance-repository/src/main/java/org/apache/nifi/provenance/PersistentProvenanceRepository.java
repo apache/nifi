@@ -45,6 +45,7 @@ import org.apache.nifi.provenance.lucene.IndexSearch;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.lucene.LineageQuery;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -262,7 +263,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     }
                 }, rolloverCheckMillis, rolloverCheckMillis, TimeUnit.MILLISECONDS);
 
-                expirationActions.add(new DeleteIndexAction(this, indexConfig, indexManager));
+                expirationActions.add(new UpdateMinimumEventId(indexConfig));
                 expirationActions.add(new FileRemovalAction());
 
                 scheduledExecService.scheduleWithFixedDelay(new RemoveExpiredQueryResults(), 30L, 3L, TimeUnit.SECONDS);
@@ -1041,13 +1042,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         try (final RecordReader reader = RecordReaders.newRecordReader(firstLogFile, null, Integer.MAX_VALUE)) {
             final StandardProvenanceEventRecord event = reader.nextRecord();
             earliestEventTime = event.getEventTime();
-
-            try {
-                maxEventId = reader.getMaxEventId();
-            } catch (final IOException ioe) {
-                logger.warn("Unable to determine the maximum ID for Provenance Event Log File {}; values reported for the number of "
-                    + "events in the Provenance Repository may be inaccurate.", firstLogFile);
-            }
+            maxEventId = reader.getMaxEventId();
+        } catch (final IOException ioe) {
+            logger.warn("Unable to determine the maximum ID for Provenance Event Log File {}; values reported for the number of "
+                + "events in the Provenance Repository may be inaccurate.", firstLogFile);
         }
 
         // check if we can delete the index safely.
