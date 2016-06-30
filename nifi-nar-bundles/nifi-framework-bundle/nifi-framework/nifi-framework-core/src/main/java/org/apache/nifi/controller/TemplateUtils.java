@@ -148,6 +148,15 @@ public class TemplateUtils {
     private static void scrubProcessGroups(final Set<ProcessGroupDTO> processGroups) {
         // go through each process group
         for (final ProcessGroupDTO processGroupDTO : processGroups) {
+            processGroupDTO.setActiveRemotePortCount(null);
+            processGroupDTO.setDisabledCount(null);
+            processGroupDTO.setInactiveRemotePortCount(null);
+            processGroupDTO.setInputPortCount(null);
+            processGroupDTO.setInvalidCount(null);
+            processGroupDTO.setOutputPortCount(null);
+            processGroupDTO.setRunningCount(null);
+            processGroupDTO.setStoppedCount(null);
+
             scrubSnippet(processGroupDTO.getContents());
         }
     }
@@ -264,6 +273,15 @@ public class TemplateUtils {
             remoteProcessGroupDTO.setOutputPortCount(null);
             remoteProcessGroupDTO.setTransmitting(null);
             remoteProcessGroupDTO.setProxyPassword(null);
+            remoteProcessGroupDTO.setActiveRemoteInputPortCount(null);
+            remoteProcessGroupDTO.setInactiveRemoteInputPortCount(null);
+            remoteProcessGroupDTO.setActiveRemoteOutputPortCount(null);
+            remoteProcessGroupDTO.setInactiveRemoteOutputPortCount(null);
+            remoteProcessGroupDTO.setAuthorizationIssues(null);
+            remoteProcessGroupDTO.setFlowRefreshed(null);
+            remoteProcessGroupDTO.setName(null);
+            remoteProcessGroupDTO.setTargetSecure(null);
+            remoteProcessGroupDTO.setTransmitting(null);
 
             // if this remote process group has contents
             if (remoteProcessGroupDTO.getContents() != null) {
@@ -299,6 +317,10 @@ public class TemplateUtils {
 
             remotePortDTO.setExists(null);
             remotePortDTO.setTargetRunning(null);
+            remotePortDTO.setConnected(null);
+            remotePortDTO.setExists(null);
+            remotePortDTO.setTargetRunning(null);
+            remotePortDTO.setTransmitting(null);
         }
     }
 }
