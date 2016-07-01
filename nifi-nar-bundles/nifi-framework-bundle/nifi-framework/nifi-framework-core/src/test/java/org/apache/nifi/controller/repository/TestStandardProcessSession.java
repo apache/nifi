@@ -20,10 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.notNull;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -50,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.connectable.Connectable;
@@ -79,7 +80,6 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.ObjectHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -318,7 +318,7 @@ public class TestStandardProcessSession {
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
-        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
         flowFile = session.append(flowFile, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream outputStream) throws IOException {
@@ -374,7 +374,7 @@ public class TestStandardProcessSession {
         flowFileQueue.put(flowFileRecord);
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
-        final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
+        final AtomicReference<InputStream> inputStreamHolder = new AtomicReference<>(null);
         session.read(flowFile, true , new InputStreamCallback() {
             @Override
             public void process(final InputStream inputStream) throws IOException {
@@ -395,8 +395,8 @@ public class TestStandardProcessSession {
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
-        final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
-        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        final AtomicReference<InputStream> inputStreamHolder = new AtomicReference<>(null);
+        final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
         flowFile = session.write(flowFile, new StreamCallback() {
             @Override
             public void process(final InputStream input, final OutputStream output) throws IOException {
@@ -419,7 +419,7 @@ public class TestStandardProcessSession {
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
-        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        final AtomicReference<OutputStream> outputStreamHolder = new AtomicReference<>(null);
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(final OutputStream out) throws IOException {
@@ -1178,6 +1178,76 @@ public class TestStandardProcessSession {
 
         final ProvenanceEventRecord event = events.get(0);
         assertEquals(ProvenanceEventType.ATTRIBUTES_MODIFIED, event.getEventType());
+    }
+
+    @Test
+    public void testReadFromInputStream() throws IOException {
+        FlowFile flowFile = session.create();
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                out.write("hello, world".getBytes());
+            }
+        });
+
+        try (InputStream in = session.read(flowFile)) {
+            final byte[] buffer = new byte[12];
+            StreamUtils.fillBuffer(in, buffer);
+            assertEquals("hello, world", new String(buffer));
+        }
+
+        session.remove(flowFile);
+        session.commit();
+    }
+
+    @Test
+    public void testReadFromInputStreamWithoutClosingThenRemove() throws IOException {
+        FlowFile flowFile = session.create();
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                out.write("hello, world".getBytes());
+            }
+        });
+
+        InputStream in = session.read(flowFile);
+        final byte[] buffer = new byte[12];
+        StreamUtils.fillBuffer(in, buffer);
+        assertEquals("hello, world", new String(buffer));
+
+        session.remove(flowFile);
+        session.commit(); // This should generate a WARN log message. We can't really test this in a unit test but can verify manually.
+    }
+
+    @Test
+    public void testOpenMultipleInputStreamsToFlowFile() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        try (final OutputStream out = contentRepo.write(claim)) {
+            out.write("hello, world".getBytes());
+        }
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(claim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .size(12L)
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        final FlowFile flowFile = session.get();
+        InputStream in = session.read(flowFile);
+        final byte[] buffer = new byte[12];
+        StreamUtils.fillBuffer(in, buffer);
+        assertEquals("hello, world", new String(buffer));
+
+        InputStream in2 = session.read(flowFile);
+        StreamUtils.fillBuffer(in2, buffer);
+        assertEquals("hello, world", new String(buffer));
+
+        in.close();
+        in2.close();
+        session.remove(flowFile);
+        session.commit();
     }
 
     private static class MockFlowFileRepository implements FlowFileRepository {

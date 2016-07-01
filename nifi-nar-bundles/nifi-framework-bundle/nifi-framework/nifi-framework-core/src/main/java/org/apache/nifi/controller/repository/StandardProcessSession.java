@@ -129,6 +129,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private ByteCountingInputStream currentReadClaimStream = null;
     private long processingStartTime;
 
+    // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
+    private final List<InputStream> openInputStreams = new ArrayList<>();
+
     // maps a FlowFile to all Provenance Events that were generated for that FlowFile.
     // we do this so that if we generate a Fork event, for example, and then remove the event in the same
     // Session, we will not send that event to the Provenance Repository
@@ -183,6 +186,18 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     public void checkpoint() {
         resetWriteClaims(false);
+
+        final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final InputStream openStream : openStreamCopy) {
+            LOG.warn("{} closing {} for {} because the session was committed without the stream being closed.", this, openStream, this.connectableDescription);
+
+            try {
+                openStream.close();
+            } catch (final Exception e) {
+                LOG.warn("{} Attempted to close {} for {} due to session commit but close failed", this, openStream, this.connectableDescription);
+                LOG.warn("", e);
+            }
+        }
 
         if (!recursionSet.isEmpty()) {
             throw new IllegalStateException();
@@ -869,6 +884,17 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
 
         deleteOnCommit.clear();
+
+        final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final InputStream openStream : openStreamCopy) {
+            LOG.debug("{} closing {} for {} due to session rollback", this, openStream, this.connectableDescription);
+            try {
+                openStream.close();
+            } catch (final Exception e) {
+                LOG.warn("{} Attempted to close {} for {} due to session rollback but close failed", this, openStream, this.connectableDescription);
+                LOG.warn("", e);
+            }
+        }
 
         final Set<StandardRepositoryRecord> recordsToHandle = new HashSet<>();
         recordsToHandle.addAll(records.values());
@@ -1761,7 +1787,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     }
 
-    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset) throws ContentNotFoundException {
+    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset, final boolean allowCachingOfStream) throws ContentNotFoundException {
         // If there's no content, don't bother going to the Content Repository because it is generally expensive and we know
         // that there is no actual content.
         if (flowFile.getSize() == 0L) {
@@ -1772,7 +1798,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             // If the recursion set is empty, we can use the same input stream that we already have open. However, if
             // the recursion set is NOT empty, we can't do this because we may be reading the input of FlowFile 1 while in the
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
-            if (recursionSet.isEmpty()) {
+            if (allowCachingOfStream && recursionSet.isEmpty()) {
                 if (currentReadClaim == claim) {
                     if (currentReadClaimStream != null && currentReadClaimStream.getStreamLocation() <= offset) {
                         final long bytesToSkip = offset - currentReadClaimStream.getStreamLocation();
@@ -1832,7 +1858,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }
 
-        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
             final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
             final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
             final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
@@ -1871,6 +1897,102 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         } catch (final IOException ex) {
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ex.toString(), ex);
         }
+    }
+
+    @Override
+    public InputStream read(final FlowFile source) {
+        validateRecordState(source);
+        final StandardRepositoryRecord record = records.get(source);
+
+        try {
+            ensureNotAppending(record.getCurrentClaim());
+        } catch (final IOException e) {
+            throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
+        }
+
+        final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), false);
+        final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
+        final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn, this.bytesRead);
+        final FlowFileAccessInputStream ffais = new FlowFileAccessInputStream(countingStream, source, record.getCurrentClaim());
+
+        final InputStream errorHandlingStream = new InputStream() {
+
+            @Override
+            public int read() throws IOException {
+                try {
+                    return ffais.read();
+                } catch (final ContentNotFoundException cnfe) {
+                    handleContentNotFound(cnfe, record);
+                    close();
+                    throw cnfe;
+                } catch (final FlowFileAccessException ffae) {
+                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    rollback(true);
+                    close();
+                    throw ffae;
+                }
+            }
+
+            @Override
+            public int read(final byte[] b) throws IOException {
+                return read(b, 0, b.length);
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) throws IOException {
+                try {
+                    return ffais.read(b, off, len);
+                } catch (final ContentNotFoundException cnfe) {
+                    handleContentNotFound(cnfe, record);
+                    close();
+                    throw cnfe;
+                } catch (final FlowFileAccessException ffae) {
+                    LOG.error("Failed to read content from " + source + "; rolling back session", ffae);
+                    rollback(true);
+                    close();
+                    throw ffae;
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                ffais.close();
+                openInputStreams.remove(this);
+            }
+
+            @Override
+            public int available() throws IOException {
+                return ffais.available();
+            }
+
+            @Override
+            public long skip(long n) throws IOException {
+                return ffais.skip(n);
+            }
+
+            @Override
+            public boolean markSupported() {
+                return ffais.markSupported();
+            }
+
+            @Override
+            public synchronized void mark(int readlimit) {
+                ffais.mark(readlimit);
+            }
+
+            @Override
+            public synchronized void reset() throws IOException {
+                ffais.reset();
+            }
+
+            @Override
+            public String toString() {
+                return "ErrorHandlingInputStream[FlowFile=" + source + "]";
+            }
+        };
+
+        openInputStreams.add(errorHandlingStream);
+        return errorHandlingStream;
     }
 
     @Override
@@ -2193,7 +2315,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             ensureNotAppending(newClaim);
 
-            try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset());
+            try (final InputStream is = getInputStream(source, currClaim, record.getCurrentClaimOffset(), true);
                 final InputStream limitedIn = new LimitedInputStream(is, source.getSize());
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
                 final InputStream countingIn = new ByteCountingInputStream(disableOnCloseIn, bytesRead);
@@ -2362,7 +2484,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new FlowFileAccessException("Failed to access ContentClaim for " + source.toString(), e);
         }
 
-        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
+        try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset(), true);
                 final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
                 final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
                 final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
@@ -2428,7 +2550,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     private void validateRecordState(final FlowFile... flowFiles) {
         for (final FlowFile file : flowFiles) {
             if (recursionSet.contains(file)) {
-                throw new IllegalStateException(file + " already in use for an active callback");
+                throw new IllegalStateException(file + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
             }
             final StandardRepositoryRecord record = records.get(file);
             if (record == null) {

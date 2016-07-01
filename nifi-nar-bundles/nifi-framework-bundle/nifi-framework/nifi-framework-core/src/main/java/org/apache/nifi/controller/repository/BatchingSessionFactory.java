@@ -193,6 +193,11 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
+        public InputStream read(FlowFile flowFile) {
+            return session.read(flowFile);
+        }
+
+        @Override
         public FlowFile merge(Collection<FlowFile> sources, FlowFile destination) {
             return session.merge(sources, destination);
         }
