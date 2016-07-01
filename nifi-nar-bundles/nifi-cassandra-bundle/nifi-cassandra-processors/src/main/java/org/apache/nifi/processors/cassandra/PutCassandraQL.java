@@ -55,6 +55,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -318,7 +319,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     if (mainType.equals(DataType.ascii())
                             || mainType.equals(DataType.text())
                             || mainType.equals(DataType.varchar())
-                            || mainType.equals(DataType.timestamp())
                             || mainType.equals(DataType.timeuuid())
                             || mainType.equals(DataType.uuid())
                             || mainType.equals(DataType.inet())
@@ -345,6 +345,8 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     } else if (mainType.equals(DataType.blob())) {
                         statement.setBytes(paramIndex, (ByteBuffer) typeCodec.parse(paramValue));
 
+                    } else if (mainType.equals(DataType.timestamp())) {
+                        statement.setTimestamp(paramIndex, (Date) typeCodec.parse(paramValue));
                     }
                     return;
                 } else {
