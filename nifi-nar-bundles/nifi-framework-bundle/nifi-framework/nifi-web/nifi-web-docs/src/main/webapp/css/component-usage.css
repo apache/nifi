@@ -23,7 +23,6 @@ html, html a {
 }
 
 body {
-    width: 62.5em;
     margin: 0 auto;
     display: block;
     font-family: "Open Sans","DejaVu Sans",sans-serif;
@@ -114,7 +113,6 @@ table tr:last-child td:last-child {
 }
 
 td#allowable-values, td#default-value, td#name, td#value {
-	white-space:nowrap;
 }
 
 /* links */
