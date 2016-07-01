@@ -131,6 +131,8 @@ $(document).ready(function () {
     };
 
     // get the banners if we're not in the shell
+    var bannerHeaderHeight = 0;
+    var bannerFooterHeight = 0;
     var banners = $.Deferred(function (deferred) {
         if (top === window) {
             $.ajax({
@@ -143,32 +145,13 @@ $(document).ready(function () {
                     if (isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                         // update the header text
                         var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
-
-                        // show the banner
-                        var updateTop = function (elementId) {
-                            var element = $('#' + elementId);
-                            element.css('top', (parseInt(bannerHeader.css('height')) + parseInt(element.css('top'))) + 'px');
-                        };
-
-                        // update the position of elements affected by top banners
-                        updateTop('documentation-header');
-                        updateTop('component-listing');
-                        updateTop('component-usage-container');
+                        bannerHeaderHeight = bannerHeader.height();
                     }
 
                     if (isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                         // update the footer text and show it
                         var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
-
-                        var updateBottom = function (elementId) {
-                            var element = $('#' + elementId);
-                            element.css('bottom', parseInt(bannerFooter.css('height')) + parseInt(element.css('bottom')) + 'px');
-                        };
-
-                        // update the position of elements affected by bottom banners
-                        updateBottom('component-filter-controls');
-                        updateBottom('component-listing');
-                        updateBottom('component-usage-container');
+                        bannerFooterHeight = bannerFooter.height();
                     }
                 }
 
@@ -208,25 +191,111 @@ $(document).ready(function () {
             }
         }).addClass('component-filter-list').val('Filter');
 
-        // get the component usage container to install the window listener
-        var componentUsageContainer = $('#component-usage-container');
+        // get the component containers to install the window listener
+        var documentationHeader = $('#documentation-header');
+        var componentRootContainer = $('#component-root-container');
+        var componentListingContainer = $('#component-listing-container', componentRootContainer);
+        var componentListing = $('#component-listing', componentListingContainer);
+        var componentFilterControls = $('#component-filter-controls', componentRootContainer);
+        var componentUsageContainer = $('#component-usage-container', componentUsageContainer);
+        var componentUsage = $('#component-usage', componentUsageContainer);
 
-        // size the iframe accordingly
-        var componentUsage = $('#component-usage').css({
-            width: componentUsageContainer.width(),
-            height: componentUsageContainer.height()
-        });
+        var componentListingContainerPaddingX = 0;
+        componentListingContainerPaddingX += parseInt(componentListingContainer.css("padding-right"), 10);
+        componentListingContainerPaddingX += parseInt(componentListingContainer.css("padding-left"), 10);
+
+        var componentListingContainerPaddingY = 0;
+        componentListingContainerPaddingY += parseInt(componentListingContainer.css("padding-top"), 10);
+        componentListingContainerPaddingY += parseInt(componentListingContainer.css("padding-bottom"), 10);
+
+        var componentUsageContainerPaddingX = 0;
+        componentUsageContainerPaddingX += parseInt(componentUsageContainer.css("padding-right"), 10);
+        componentUsageContainerPaddingX += parseInt(componentUsageContainer.css("padding-left"), 10);
+
+        var componentUsageContainerPaddingY = 0;
+        componentUsageContainerPaddingY += parseInt(componentUsageContainer.css("padding-top"), 10);
+        componentUsageContainerPaddingY += parseInt(componentUsageContainer.css("padding-bottom"), 10);
+
+        var componentListingContainerMinWidth = parseInt(componentListingContainer.css("min-width"), 10) + componentListingContainerPaddingX;
+        var componentUsageContainerMinWidth = parseInt(componentUsageContainer.css("min-width"), 10) + componentUsageContainerPaddingX;
+        var smallDisplayBoundary = componentListingContainerMinWidth + componentUsageContainerMinWidth;
+
+        var cssComponentListingNormal = { backgroundColor: "#ffffff" };
+        var cssComponentListingSmall = { backgroundColor: "#fbfbfb" };
 
         // add a window resize listener
         $(window).resize(function () {
-            componentUsage.css({
-                width: componentUsageContainer.width(),
-                height: componentUsageContainer.height()
+            // This -1 is the border-top of #component-usage-container
+            var baseHeight = window.innerHeight - 1;
+            baseHeight -= bannerHeaderHeight;
+            baseHeight -= bannerFooterHeight;
+            baseHeight -= documentationHeader.height();
+
+            // resize component list accordingly
+            if (smallDisplayBoundary > window.innerWidth) {
+                // screen is not wide enough to display content usage
+                // within the same row.
+                componentListingContainer.css(cssComponentListingSmall);
+                componentListingContainer.css({
+                    borderBottom: "1px solid #ddddd8"
+                });
+                componentListing.css({
+                    height: "200px"
+                });
+                // resize the iframe accordingly
+                var componentUsageHeight = baseHeight;
+                if (componentListingContainer.is(":visible")) {
+                    componentUsageHeight -= componentListingContainer.height();
+                    componentUsageHeight -= 1; // border-bottom
+                }
+                componentUsageHeight -= componentListingContainerPaddingY;
+                componentUsageHeight -= componentUsageContainerPaddingY;
+                componentUsage.css({
+                    width: componentUsageContainer.width(),
+                    height: componentUsageHeight
+                });
+                componentUsageContainer.css({
+                    height: componentUsage.height()
+                });
+            } else {
+                componentListingContainer.css(cssComponentListingNormal);
+
+                var componentListingHeight = baseHeight;
+                componentListingHeight -= componentFilterControls.height();
+                componentListingHeight -= componentListingContainerPaddingY;
+                componentListing.css({
+                    height: componentListingHeight
+                });
+
+                // resize the iframe accordingly
+                componentUsage.css({
+                    width: componentUsageContainer.width(),
+                    height: baseHeight - componentUsageContainerPaddingY
+                });
+                componentUsageContainer.css({
+                    height: componentUsage.height()
+                });
+                componentListingContainer.css({
+                    borderBottom: "0px"
+                });
+            }
+        });
+
+
+        var toggleComponentListing = $('#component-list-toggle-link');
+        toggleComponentListing.click(function(){
+            componentListingContainer.toggle(0, function(){
+                toggleComponentListing.text($(this).is(":visible") ? "-" : "+");
+                $(window).resize();
             });
         });
 
         // listen for loading of the iframe to update the title
         $('#component-usage').on('load', function () {
+
+            // resize window accordingly.
+            $(window).resize();
+
             var componentName = '';
             var href = $(this).contents().get(0).location.href;
 
