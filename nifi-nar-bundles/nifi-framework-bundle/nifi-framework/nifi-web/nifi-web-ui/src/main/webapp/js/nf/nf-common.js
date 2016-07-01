@@ -114,17 +114,17 @@ nf.Common = (function () {
         SUPPORTS_SVG: !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', 'svg').createSVGRect,
 
         /**
-         * The authorities for the current user.
+         * The current user.
          */
-        authorities: undefined,
+        currentUser: undefined,
 
         /**
-         * Sets the authorities for the current user.
+         * Sets the current user.
          * 
-         * @argument {array} roles      The current users authorities
+         * @param currentUser
          */
-        setAuthorities: function (roles) {
-            nf.Common.authorities = roles;
+        setCurrentUser: function (currentUser) {
+            nf.Common.currentUser = currentUser;
         },
 
         /**
@@ -226,48 +226,89 @@ nf.Common = (function () {
          * @returns {boolean}
          */
         canAccessProvenance: function () {
-            var canAccessProvenance = false;
-            if (nf.Common.isDefinedAndNotNull(nf.Common.authorities)) {
-                $.each(nf.Common.authorities, function (i, authority) {
-                    if (authority === 'ROLE_PROVENANCE') {
-                        canAccessProvenance = true;
-                        return false;
-                    }
-                });
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.provenancePermissions.canRead === true;
+            } else {
+                return false;
             }
-            return canAccessProvenance;
         },
 
         /**
-         * Returns whether or not the current user is a DFM.
+         * Determines whether the current user can access counters.
+         * 
+         * @returns {boolean}
          */
-        isDFM: function () {
-            var dfm = false;
-            if (nf.Common.isDefinedAndNotNull(nf.Common.authorities)) {
-                $.each(nf.Common.authorities, function (i, authority) {
-                    if (authority === 'ROLE_DFM') {
-                        dfm = true;
-                        return false;
-                    }
-                });
+        canAccessCounters: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.countersPermissions.canRead === true;
+            } else {
+                return false;
             }
-            return dfm;
         },
 
         /**
-         * Returns whether or not the current user is a DFM.
+         * Determines whether the current user can modify counters.
+         * 
+         * @returns {boolean}
          */
-        isAdmin: function () {
-            var admin = false;
-            if (nf.Common.isDefinedAndNotNull(nf.Common.authorities)) {
-                $.each(nf.Common.authorities, function (i, authority) {
-                    if (authority === 'ROLE_ADMIN') {
-                        admin = true;
-                        return false;
-                    }
-                });
+        canModifyCounters: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.countersPermissions.canRead === true && nf.Common.currentUser.countersPermissions.canWrite === true;
+            } else {
+                return false;
             }
-            return admin;
+        },
+
+        /**
+         * Determines whether the current user can access tenants.
+         *
+         * @returns {boolean}
+         */
+        canAccessTenants: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.tenantsPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify tenants.
+         *
+         * @returns {boolean}
+         */
+        canModifyTenants: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.tenantsPermissions.canRead === true && nf.Common.currentUser.tenantsPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can access the controller.
+         *
+         * @returns {boolean}
+         */
+        canAccessController: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.controllerPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify the controller.
+         *
+         * @returns {boolean}
+         */
+        canModifyController: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.controllerPermissions.canRead === true && nf.Common.currentUser.controllerPermissions.canWrite === true;
+            } else {
+                return false;
+            }
         },
 
         /**
@@ -508,7 +549,7 @@ nf.Common = (function () {
                 if (!nf.Common.isEmpty(propertyHistory.previousValues)) {
                     var history = [];
                     $.each(propertyHistory.previousValues, function (_, previousValue) {
-                        history.push('<li>' + nf.Common.escapeHtml(previousValue.previousValue) + ' - ' + nf.Common.escapeHtml(previousValue.timestamp) + ' (' + nf.Common.escapeHtml(previousValue.userName) + ')</li>');
+                        history.push('<li>' + nf.Common.escapeHtml(previousValue.previousValue) + ' - ' + nf.Common.escapeHtml(previousValue.timestamp) + ' (' + nf.Common.escapeHtml(previousValue.userIdentity) + ')</li>');
                     });
                     tipContent.push('<b>History:</b><ul class="property-info">' + history.join('') + '</ul>');
                 }

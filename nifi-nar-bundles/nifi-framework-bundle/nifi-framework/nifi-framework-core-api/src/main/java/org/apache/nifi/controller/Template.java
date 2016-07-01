@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -32,6 +29,7 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -42,6 +40,9 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Template implements Authorizable {
 
@@ -84,53 +85,68 @@ public class Template implements Authorizable {
         return ResourceFactory.getComponentResource(ResourceType.Template, dto.getId(), dto.getName());
     }
 
-    private Set<Authorizable> getAuthorizableComponents() {
-        return getAuthorizableComponents(processGroup);
+    private ProcessGroup getRootGroup(final ProcessGroup currentGroup) {
+        if (currentGroup.getParent() == null) {
+            return currentGroup;
+        } else {
+            return getRootGroup(currentGroup.getParent());
+        }
     }
 
-    private Set<Authorizable> getAuthorizableComponents(final ProcessGroup processGroup) {
+    private Set<Authorizable> getAuthorizableComponents() {
+        return getAuthorizableComponents(processGroup.getIdentifier(), dto.getSnippet());
+    }
+
+    private Set<Authorizable> getAuthorizableComponents(final String currentGroupId, final FlowSnippetDTO snippet) {
         final Set<Authorizable> authComponents = new HashSet<>();
-        final FlowSnippetDTO snippet = dto.getSnippet();
 
-        authComponents.add(processGroup);
+        // If there is any component in the DTO that still exists in the flow, check its authorizations...
+        // need to go to the root group in case a sensitive processor was moved out of this processGroup
+        final ProcessGroup root = getRootGroup(processGroup);
 
-        // If there is any component in the DTO that still exists in the flow, check its authorizations
+        // include the current group
+        final ProcessGroup currentGroup = root.findProcessGroup(currentGroupId);
+        authComponents.add(currentGroup);
+
         for (final ConnectionDTO connectionDto : snippet.getConnections()) {
-            final Connection connection = processGroup.getConnection(connectionDto.getId());
+            final Connection connection = root.findConnection(connectionDto.getId());
             if (connection != null) {
                 authComponents.add(connection);
             }
         }
 
-        // TODO: Authorize Controller Services
         for (final ControllerServiceDTO service : snippet.getControllerServices()) {
+            final ControllerServiceNode controllerService = root.findControllerService(service.getId());
+            if (controllerService != null) {
+                authComponents.add(controllerService);
+            }
         }
 
         for (final LabelDTO labelDto : snippet.getLabels()) {
-            final Label label = processGroup.getLabel(labelDto.getId());
+            final Label label = root.findLabel(labelDto.getId());
             if (label != null) {
                 authComponents.add(label);
             }
         }
 
         for (final ProcessorDTO processorDto : snippet.getProcessors()) {
-            final ProcessorNode procNode = processGroup.getProcessor(processorDto.getId());
+            final ProcessorNode procNode = root.findProcessor(processorDto.getId());
             if (procNode != null) {
                 authComponents.add(procNode);
             }
         }
 
         for (final RemoteProcessGroupDTO groupDto : snippet.getRemoteProcessGroups()) {
-            final RemoteProcessGroup rpg = processGroup.getRemoteProcessGroup(groupDto.getId());
+            final RemoteProcessGroup rpg = root.findRemoteProcessGroup(groupDto.getId());
             if (rpg != null) {
                 authComponents.add(rpg);
             }
         }
 
         for (final ProcessGroupDTO groupDto : snippet.getProcessGroups()) {
-            final ProcessGroup group = processGroup.getProcessGroup(groupDto.getId());
+            final ProcessGroup group = root.findProcessGroup(groupDto.getId());
             if (group != null) {
-                authComponents.addAll(getAuthorizableComponents(group));
+                authComponents.addAll(getAuthorizableComponents(groupDto.getId(), groupDto.getContents()));
             }
         }
 
@@ -170,12 +186,15 @@ public class Template implements Authorizable {
         if (Result.ResourceNotFound.equals(result.getResult())) {
             for (final Authorizable child : getAuthorizableComponents()) {
                 final AuthorizationResult childResult = child.checkAuthorization(authorizer, action, user);
-                if (Result.Denied.equals(childResult)) {
+
+                // if the authoriable in this template explicitly says no, respect it
+                if (Result.Denied.equals(childResult.getResult())) {
                     return childResult;
                 }
             }
 
-            return AuthorizationResult.denied();
+            // if all authorizables are approved or no longer have a policy, approve it
+            return AuthorizationResult.approved();
         } else {
             return result;
         }

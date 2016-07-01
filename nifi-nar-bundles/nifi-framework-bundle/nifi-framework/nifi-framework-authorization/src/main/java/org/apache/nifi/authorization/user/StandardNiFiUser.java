@@ -16,32 +16,24 @@
  */
 package org.apache.nifi.authorization.user;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * An implementation of NiFiUser.
  */
-public class StandardNiFiUser implements NiFiUser, Serializable {
-    private static final long serialVersionUID = -5503790026187817496L;
+public class StandardNiFiUser implements NiFiUser {
 
     public static final StandardNiFiUser ANONYMOUS = new StandardNiFiUser("anonymous");
 
     private final String identity;
-    private final String userName;
     private final NiFiUser chain;
 
     public StandardNiFiUser(String identity) {
-        this(identity, identity, null);
+        this(identity, null);
     }
 
     public StandardNiFiUser(String identity, NiFiUser chain) {
-        this(identity, identity, chain);
-    }
-
-    public StandardNiFiUser(String identity, String userName, NiFiUser chain) {
         this.identity = identity;
-        this.userName = userName;
         this.chain = chain;
     }
 
@@ -49,11 +41,6 @@ public class StandardNiFiUser implements NiFiUser, Serializable {
     @Override
     public String getIdentity() {
         return identity;
-    }
-
-    @Override
-    public String getUserName() {
-        return userName;
     }
 
     @Override
@@ -89,6 +76,6 @@ public class StandardNiFiUser implements NiFiUser, Serializable {
 
     @Override
     public String toString() {
-        return String.format("identity[%s], userName[%s]", getIdentity(), getUserName(), ", ");
+        return String.format("identity[%s]", getIdentity());
     }
 }

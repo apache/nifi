@@ -16,27 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -63,6 +42,27 @@ import org.apache.nifi.util.RingBuffer.Filter;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.apache.nifi.util.RingBuffer.IterationDirection;
 import org.apache.nifi.web.ResourceNotFoundException;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
@@ -246,7 +246,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             return false;
         }
 
-        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user);
+        final AuthorizationResult result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, event.getAttributes());
         return Result.Approved.equals(result.getResult());
     }
 
@@ -256,7 +256,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         }
 
         final Authorizable eventAuthorizable = resourceFactory.createProvenanceAuthorizable(event.getComponentId());
-        eventAuthorizable.authorize(authorizer, RequestAction.READ, user);
+        eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
     }
 
     private Filter<ProvenanceEventRecord> createFilter(final Query query, final NiFiUser user) {

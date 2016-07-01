@@ -73,6 +73,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -86,6 +87,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
@@ -440,7 +442,7 @@ public interface NiFiServiceFacade {
      *
      * @return templates
      */
-    Set<TemplateDTO> getTemplates();
+    Set<TemplateEntity> getTemplates();
 
     /**
      * Deletes the specified template.
@@ -832,9 +834,16 @@ public interface NiFiServiceFacade {
      */
     PortEntity deleteOutputPort(Revision revision, String outputPortId);
 
+    // ------------
+    // Current user
+    // ------------
+
+    CurrentUserEntity getCurrentUser();
+
     // ----------------------------------------
     // Flow methods
     // ----------------------------------------
+
     /**
      * Returns the flow.
      *

@@ -922,6 +922,12 @@ nf.Settings = (function () {
      * Shows the process group configuration.
      */
     var showSettings = function () {
+        if (nf.Common.canModifyController()) {
+            $('#new-service-or-task').show();
+        } else {
+            $('#new-service-or-task').hide();
+        }
+
         // show the settings dialog
         nf.Shell.showContent('#settings').done(function () {
             reset();
@@ -964,18 +970,20 @@ nf.Settings = (function () {
                         $('#new-service-or-task').hide();
                         $('#settings-save').show();
                     } else {
-                        $('#new-service-or-task').show();
+                        if (nf.Common.canModifyController()) {
+                            $('#new-service-or-task').show();
 
-                        // update the tooltip on the button
-                        $('#new-service-or-task').attr('title', function () {
-                            if (tab === 'Controller Services') {
-                                $('#settings-save').hide();
-                                return 'Create a new controller service';
-                            } else if (tab === 'Reporting Tasks') {
-                                $('#settings-save').hide();
-                                return 'Create a new reporting task';
-                            }
-                        });
+                            // update the tooltip on the button
+                            $('#new-service-or-task').attr('title', function () {
+                                if (tab === 'Controller Services') {
+                                    $('#settings-save').hide();
+                                    return 'Create a new controller service';
+                                } else if (tab === 'Reporting Tasks') {
+                                    $('#settings-save').hide();
+                                    return 'Create a new reporting task';
+                                }
+                            });
+                        }
 
                         // resize the table
                         nf.Settings.resetTableSize();

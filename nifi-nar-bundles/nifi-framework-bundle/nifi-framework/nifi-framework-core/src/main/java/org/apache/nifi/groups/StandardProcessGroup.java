@@ -2249,6 +2249,10 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childGroup.verifyCanDelete(true);
             }
 
+            if (!templates.isEmpty()) {
+                throw new IllegalStateException(String.format("Cannot delete Process Group because it contains %s Templates. The Templates must be deleted first.", templates.size()));
+            }
+
             if (!ignoreConnections) {
                 for (final Port port : inputPorts.values()) {
                     for (final Connection connection : port.getIncomingConnections()) {

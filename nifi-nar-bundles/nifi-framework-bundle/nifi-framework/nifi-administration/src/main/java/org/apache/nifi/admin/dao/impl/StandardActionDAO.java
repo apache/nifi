@@ -16,18 +16,7 @@
  */
 package org.apache.nifi.admin.dao.impl;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -52,7 +41,19 @@ import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.history.PreviousValue;
-import org.apache.commons.lang3.StringUtils;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -63,15 +64,14 @@ public class StandardActionDAO implements ActionDAO {
     // action table
     // ------------
     private static final String INSERT_ACTION = "INSERT INTO ACTION ("
-            + "IDENTITY, USER_NAME, SOURCE_ID, SOURCE_NAME, SOURCE_TYPE, OPERATION, ACTION_TIMESTAMP"
+            + "IDENTITY, SOURCE_ID, SOURCE_NAME, SOURCE_TYPE, OPERATION, ACTION_TIMESTAMP"
             + ") VALUES ("
             + "?, "
             + "?, "
             + "?, "
             + "?, "
             + "?, "
-            + "?, "
-            + "?, "
+            + "? "
             + ")";
 
     // -----------------
@@ -178,7 +178,7 @@ public class StandardActionDAO implements ActionDAO {
 
     private static final String SELECT_PREVIOUS_VALUES = "SELECT CD.VALUE, "
             + "A.ACTION_TIMESTAMP, "
-            + "A.USER_NAME "
+            + "A.IDENTITY "
             + "FROM CONFIGURE_DETAILS CD "
             + "INNER JOIN ACTION A "
             + "ON CD.ACTION_ID = A.ID "
@@ -198,7 +198,7 @@ public class StandardActionDAO implements ActionDAO {
         this.columnMap.put("sourceName", "SOURCE_NAME");
         this.columnMap.put("sourceType", "SOURCE_TYPE");
         this.columnMap.put("operation", "OPERATION");
-        this.columnMap.put("userName", "USER_NAME");
+        this.columnMap.put("userIdentity", "IDENTITY");
     }
 
     @Override
@@ -217,19 +217,17 @@ public class StandardActionDAO implements ActionDAO {
             // obtain a statement to insert to the action table
             statement = connection.prepareStatement(INSERT_ACTION, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, StringUtils.left(action.getUserIdentity(), 4096));
-            statement.setString(2, StringUtils.left(action.getUserName(), 4096));
-            statement.setString(3, action.getSourceId());
-            statement.setString(4, StringUtils.left(action.getSourceName(), 1000));
-            statement.setString(5, action.getSourceType().toString());
-            statement.setString(6, action.getOperation().toString());
-            statement.setTimestamp(7, new java.sql.Timestamp(action.getTimestamp().getTime()));
+            statement.setString(2, action.getSourceId());
+            statement.setString(3, StringUtils.left(action.getSourceName(), 1000));
+            statement.setString(4, action.getSourceType().toString());
+            statement.setString(5, action.getOperation().toString());
+            statement.setTimestamp(6, new java.sql.Timestamp(action.getTimestamp().getTime()));
 
             // insert the action
             int updateCount = statement.executeUpdate();
 
             final FlowChangeAction createdAction = new FlowChangeAction();
             createdAction.setUserIdentity(action.getUserIdentity());
-            createdAction.setUserName(action.getUserName());
             createdAction.setSourceId(action.getSourceId());
             createdAction.setSourceName(action.getSourceName());
             createdAction.setSourceType(action.getSourceType());
@@ -458,8 +456,8 @@ public class StandardActionDAO implements ActionDAO {
             }
 
             // append the user id as necessary
-            if (historyQuery.getUserName() != null) {
-                where.add("UPPER(USER_NAME) LIKE ?");
+            if (historyQuery.getUserIdentity() != null) {
+                where.add("UPPER(IDENTITY) LIKE ?");
             }
 
             // append the source id as necessary
@@ -487,8 +485,8 @@ public class StandardActionDAO implements ActionDAO {
             }
 
             // set the user id as necessary
-            if (historyQuery.getUserName() != null) {
-                statement.setString(paramIndex++, "%" + historyQuery.getUserName().toUpperCase() + "%");
+            if (historyQuery.getUserIdentity() != null) {
+                statement.setString(paramIndex++, "%" + historyQuery.getUserIdentity().toUpperCase() + "%");
             }
 
             // set the source id as necessary
@@ -535,8 +533,8 @@ public class StandardActionDAO implements ActionDAO {
             }
 
             // set the user id as necessary
-            if (historyQuery.getUserName() != null) {
-                statement.setString(paramIndex++, "%" + historyQuery.getUserName().toUpperCase() + "%");
+            if (historyQuery.getUserIdentity() != null) {
+                statement.setString(paramIndex++, "%" + historyQuery.getUserIdentity().toUpperCase() + "%");
             }
 
             // set the source id as necessary
@@ -562,7 +560,6 @@ public class StandardActionDAO implements ActionDAO {
                 FlowChangeAction action = new FlowChangeAction();
                 action.setId(actionId);
                 action.setUserIdentity(rs.getString("IDENTITY"));
-                action.setUserName(rs.getString("USER_NAME"));
                 action.setOperation(Operation.valueOf(rs.getString("OPERATION")));
                 action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
                 action.setSourceId(rs.getString("SOURCE_ID"));
@@ -636,7 +633,6 @@ public class StandardActionDAO implements ActionDAO {
                 action = new FlowChangeAction();
                 action.setId(rs.getInt("ID"));
                 action.setUserIdentity(rs.getString("IDENTITY"));
-                action.setUserName(rs.getString("USER_NAME"));
                 action.setOperation(operation);
                 action.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
                 action.setSourceId(rs.getString("SOURCE_ID"));
@@ -907,7 +903,7 @@ public class StandardActionDAO implements ActionDAO {
                 final PreviousValue previousValue = new PreviousValue();
                 previousValue.setPreviousValue(rs.getString("VALUE"));
                 previousValue.setTimestamp(new Date(rs.getTimestamp("ACTION_TIMESTAMP").getTime()));
-                previousValue.setUserName(rs.getString("USER_NAME"));
+                previousValue.setUserIdentity(rs.getString("IDENTITY"));
                 previousValues.add(previousValue);
             }
         } catch (SQLException sqle) {

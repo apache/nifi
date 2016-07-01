@@ -1170,6 +1170,13 @@ nf.Actions = (function () {
         },
 
         /**
+         * Uploads a new template.
+         */
+        uploadTemplate: function () {
+            $('#upload-template-dialog').modal('show');
+        },
+
+        /**
          * Creates a new template based off the currently selected components. If no components
          * are selected, a template of the entire canvas is made.
          */

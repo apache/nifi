@@ -52,21 +52,6 @@ public class AccessStatusDTO {
     }
 
     /**
-     * @return the username
-     */
-    @ApiModelProperty(
-            value = "The username.",
-            readOnly = true
-    )
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    /**
      * @return the user access status
      */
     @ApiModelProperty(

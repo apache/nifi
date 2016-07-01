@@ -97,7 +97,8 @@
                     </md-menu-item>
                     <md-menu-item layout-align="space-around center">
                         <a id="counters-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.counters.shell.launch();"
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessCounters()}">
                             <i class="icon icon-counter"></i>Counters
                         </a>
                     </md-menu-item>
@@ -109,24 +110,26 @@
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item
-                            ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.enabled();"
                             layout-align="space-around center">
                         <a id="provenance-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.dataProvenance.shell.launch();"
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessProvenance()}">
                             <i class="icon icon-provenance"></i>Data Provenance
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="flow-settings-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();"
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessController()}">
                             <i class="fa fa-wrench"></i>Controller Settings
                         </a>
                     </md-menu-item>
-                    <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.enabled();"
+                    <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.visible();"
                                   layout-align="space-around center">
                         <a id="cluster-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.cluster.shell.launch();"
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessController()}">
                             <i class="fa fa-cubes"></i>Cluster
                         </a>
                     </md-menu-item>
@@ -136,10 +139,10 @@
                             <i class="fa fa-history"></i>Flow Configuration History
                         </a>
                     </md-menu-item>
-                    <md-menu-item ng-if="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.enabled();"
-                                  layout-align="space-around center">
+                    <md-menu-item layout-align="space-around center">
                         <a id="users-link" layout="row"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();;">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessTenants()}">
                             <i class="fa fa-users"></i>Users
                             <div id="has-pending-accounts" class="hidden"></div>
                         </a>

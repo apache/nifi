@@ -69,7 +69,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Provides identity checks and grants authorities.
+ * Provides authorizes requests to resources using policies persisted in a file.
  */
 public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 

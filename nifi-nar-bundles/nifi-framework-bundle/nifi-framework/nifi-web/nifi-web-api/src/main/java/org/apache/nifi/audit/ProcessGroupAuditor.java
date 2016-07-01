@@ -143,7 +143,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
                     // create the port action for updating the name
                     FlowChangeAction processGroupAction = new FlowChangeAction();
                     processGroupAction.setUserIdentity(user.getIdentity());
-                    processGroupAction.setUserName(user.getUserName());
                     processGroupAction.setOperation(operation);
                     processGroupAction.setTimestamp(timestamp);
                     processGroupAction.setSourceId(updatedProcessGroup.getIdentifier());
@@ -188,7 +187,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         // if the user was starting/stopping this process group
         FlowChangeAction action = new FlowChangeAction();
         action.setUserIdentity(user.getIdentity());
-        action.setUserName(user.getUserName());
         action.setSourceId(processGroup.getIdentifier());
         action.setSourceName(processGroup.getName());
         action.setSourceType(Component.ProcessGroup);
@@ -264,7 +262,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             // create the process group action for adding this process group
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(processGroup.getIdentifier());

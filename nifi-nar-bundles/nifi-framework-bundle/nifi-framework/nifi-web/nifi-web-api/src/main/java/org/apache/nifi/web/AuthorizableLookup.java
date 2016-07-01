@@ -38,6 +38,20 @@ public interface AuthorizableLookup {
     Authorizable getProcessor(String id);
 
     /**
+     * Get the authorizable for querying Provenance.
+     *
+     * @return authorizable
+     */
+    Authorizable getProvenance();
+
+    /**
+     * Get the authorizable for viewing/reseting Counters.
+     *
+     * @return authorizable
+     */
+    Authorizable getCounters();
+
+    /**
      * Get the authorizable InputPort.
      *
      * @param id input port id

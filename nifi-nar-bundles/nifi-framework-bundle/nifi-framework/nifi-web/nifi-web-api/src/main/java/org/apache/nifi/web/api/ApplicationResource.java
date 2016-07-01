@@ -25,7 +25,6 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
@@ -41,12 +40,8 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -58,7 +53,6 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import javax.ws.rs.core.UriInfo;
-import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -80,13 +74,10 @@ public abstract class ApplicationResource {
 
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
-    public static final String CLUSTER_CONTEXT_HTTP_HEADER = "X-ClusterContext";
     public static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme";
     public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
     public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
-    public static final String PROXIED_ENTITIES_CHAIN_HTTP_HEADER = "X-ProxiedEntitiesChain";
-    public static final String PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER = "X-ProxiedEntityUserDetails";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
@@ -324,24 +315,6 @@ public abstract class ApplicationResource {
             result.put(PROXY_SCHEME_HTTP_HEADER, httpServletRequest.getScheme());
         }
 
-        if (httpServletRequest.isSecure()) {
-
-            // add the user's authorities (if any) to the headers
-            final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null) {
-                final Object userDetailsObj = authentication.getPrincipal();
-                if (userDetailsObj instanceof NiFiUserDetails) {
-                    // serialize user details object
-                    final String hexEncodedUserDetails = WebUtils.serializeObjectToHex((Serializable) userDetailsObj);
-
-                    // put serialized user details in header
-                    result.put(PROXIED_ENTITY_USER_DETAILS_HTTP_HEADER, hexEncodedUserDetails);
-
-                    // remove the access token if present, since the user is already authenticated/authorized
-                    result.remove(JwtAuthenticationFilter.AUTHORIZATION);
-                }
-            }
-        }
         return result;
     }
 

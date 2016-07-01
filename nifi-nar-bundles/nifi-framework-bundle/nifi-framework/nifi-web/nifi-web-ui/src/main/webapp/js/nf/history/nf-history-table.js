@@ -119,7 +119,7 @@ nf.HistoryTable = (function () {
                             if (filterType === 'by id') {
                                 filter['sourceId'] = filterText;
                             } else if (filterType === 'by user') {
-                                filter['userName'] = filterText;
+                                filter['userIdentity'] = filterText;
                             }
                         }
 
@@ -274,6 +274,11 @@ nf.HistoryTable = (function () {
             return '<div title="View Details" class="pointer show-action-details fa fa-info-circle" style="margin-top: 4px;"></div>';
         };
 
+        // define how general values are formatted
+        var valueFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nf.Common.formatValue(value);
+        };
+
         // initialize the templates table
         var historyColumns = [
             {
@@ -285,11 +290,11 @@ nf.HistoryTable = (function () {
                 width: 50,
                 maxWidth: 50
             },
-            {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, resizable: true},
-            {id: 'sourceName', name: 'Name', field: 'sourceName', sortable: true, resizable: true},
-            {id: 'sourceType', name: 'Type', field: 'sourceType', sortable: true, resizable: true},
-            {id: 'operation', name: 'Operation', field: 'operation', sortable: true, resizable: true},
-            {id: 'userName', name: 'User', field: 'userName', sortable: true, resizable: true}
+            {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, resizable: true, formatter: valueFormatter},
+            {id: 'sourceName', name: 'Name', field: 'sourceName', sortable: true, resizable: true, formatter: valueFormatter},
+            {id: 'sourceType', name: 'Type', field: 'sourceType', sortable: true, resizable: true, formatter: valueFormatter},
+            {id: 'operation', name: 'Operation', field: 'operation', sortable: true, resizable: true, formatter: valueFormatter},
+            {id: 'userIdentity', name: 'User', field: 'userIdentity', sortable: true, resizable: true, formatter: valueFormatter}
         ];
         var historyOptions = {
             forceFitColumns: true,
@@ -353,7 +358,7 @@ nf.HistoryTable = (function () {
         $('#history-table').data('gridInstance', historyGrid);
 
         // add the purge button if appropriate
-        if (nf.Common.isAdmin()) {
+        if (nf.Common.canModifyController()) {
             $('#history-purge-button').on('click', function () {
                 $('#history-purge-dialog').modal('show');
             }).show();

@@ -73,7 +73,6 @@ public class ComponentStateAuditor extends NiFiAuditor {
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(processor.getIdentifier());
@@ -120,7 +119,6 @@ public class ComponentStateAuditor extends NiFiAuditor {
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(controllerService.getIdentifier());
@@ -167,7 +165,6 @@ public class ComponentStateAuditor extends NiFiAuditor {
             // create the clear action
             FlowChangeAction configAction = new FlowChangeAction();
             configAction.setUserIdentity(user.getIdentity());
-            configAction.setUserName(user.getUserName());
             configAction.setOperation(Operation.ClearState);
             configAction.setTimestamp(new Date());
             configAction.setSourceId(reportingTask.getIdentifier());

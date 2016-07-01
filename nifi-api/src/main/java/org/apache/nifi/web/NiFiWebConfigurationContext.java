@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.controller.ControllerService;
+
 import java.util.Collection;
 import java.util.Map;
-
-import org.apache.nifi.controller.ControllerService;
 
 /**
  * NiFi web context providing limited access to dataflow configuration for
@@ -58,12 +58,7 @@ public interface NiFiWebConfigurationContext {
     /**
      * @return the current user identity. The value may be a DN, an email, a username, or any string that identities the user. Returns null if no user is found
      */
-    String getCurrentUserDn();
-
-    /**
-     * @return the current user name. Returns null if no user is found
-     */
-    String getCurrentUserName();
+    String getCurrentUserIdentity();
 
     /**
      * Sets the annotation data for the underlying component.

@@ -31,37 +31,21 @@ nf.Templates = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/flow/authorities'
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
     /**
-     * the current group id
+     * Loads the current users.
      */
-    var groupId;
-
-    /**
-     * Loads the current users authorities.
-     */
-    var loadAuthorities = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve();
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -71,81 +55,6 @@ nf.Templates = (function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
             nf.TemplatesTable.loadTemplatesTable();
-        });
-
-        // add a handler for the change file input chain event
-        $('#template-file-field').on('change', function (e) {
-            var filename = $(this).val();
-            if (!nf.Common.isBlank(filename)) {
-                filename = filename.replace(/^.*[\\\/]/, '');
-            }
-
-            // set the filename
-            $('#selected-template-name').text(filename);
-
-            // update the container visibility
-            $('#select-template-container').hide();
-            $('#submit-template-container').show();
-        });
-
-        // handles any uploading error - could be an error response or a successful response with an encoded error
-        var handleError = function (error) {
-            // show any errors
-            $('#upload-template-status').removeClass('import-status').addClass('import-status-error').text(error);
-
-            // clear the form
-            $('#cancel-upload-template-button').click();
-        };
-
-        // initialize the form
-        var templateForm = $('#template-upload-form').ajaxForm({
-            url: '../nifi-api/process-groups/' + encodeURIComponent(groupId) + '/templates/upload',
-            dataType: 'xml',
-            success: function (response, statusText, xhr, form) {
-                // see if the import was successful
-                if (response.documentElement.tagName === 'templateEntity') {
-                    // reset the status message
-                    $('#upload-template-status').removeClass('import-status-error').addClass('import-status');
-
-                    // clear the form
-                    $('#cancel-upload-template-button').click();
-
-                    // reload the templates table
-                    nf.TemplatesTable.loadTemplatesTable();
-                } else {
-                    // import failed
-                    var status = 'Unable to import template. Please check the log for errors.';
-                    if (response.documentElement.tagName === 'errorResponse') {
-                        // if a more specific error was given, use it
-                        var errorMessage = response.documentElement.getAttribute('statusText');
-                        if (!nf.Common.isBlank(errorMessage)) {
-                            status = errorMessage;
-                        }
-                    }
-                    handleError(status);
-                }
-            },
-            error: function (xhr, statusText, error) {
-                handleError(error);
-            }
-        });
-
-        // add a handler for the upload button
-        $('#upload-template-button').click(function () {
-            templateForm.submit();
-        });
-
-        // add a handler for the cancel upload button
-        $('#cancel-upload-template-button').click(function () {
-            // set the filename
-            $('#selected-template-name').text('');
-
-            // reset the form to ensure that the change fire will fire
-            templateForm.resetForm();
-
-            // update the container visibility
-            $('#select-template-container').show();
-            $('#submit-template-container').hide();
         });
 
         // get the banners if we're not in the shell
@@ -204,17 +113,8 @@ nf.Templates = (function () {
         init: function () {
             nf.Storage.init();
 
-            // ensure the group id is specified
-            groupId = $('#template-group-id').text();
-            if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
-                nf.Dialog.showOkDialog({
-                    headerText: 'Load Templates',
-                    content: 'Group id not specified.'
-                });
-            }
-            
-            // load the users authorities
-            loadAuthorities().done(function () {
+            // load the current user
+            loadCurrentUser().done(function () {
 
                 // create the templates table
                 nf.TemplatesTable.init();

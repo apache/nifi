@@ -16,7 +16,21 @@
  */
 package org.apache.nifi.web;
 
-import java.io.Serializable;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.ClientResponse.Status;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.util.NiFiProperties;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -25,27 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.util.WebUtils;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.ClientResponse.Status;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 /**
  *
@@ -85,19 +78,6 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final Map<String, String> headers = new HashMap<>();
             if (StringUtils.isNotBlank(request.getProxiedEntitiesChain())) {
                 headers.put("X-ProxiedEntitiesChain", request.getProxiedEntitiesChain());
-            }
-
-            // add the user's authorities (if any) to the headers
-            final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null) {
-                final Object userDetailsObj = authentication.getPrincipal();
-                if (userDetailsObj instanceof NiFiUserDetails) {
-                    // serialize user details object
-                    final String hexEncodedUserDetails = WebUtils.serializeObjectToHex((Serializable) userDetailsObj);
-
-                    // put serialized user details in header
-                    headers.put("X-ProxiedEntityUserDetails", hexEncodedUserDetails);
-                }
             }
 
             // ensure we were able to detect the cluster node id

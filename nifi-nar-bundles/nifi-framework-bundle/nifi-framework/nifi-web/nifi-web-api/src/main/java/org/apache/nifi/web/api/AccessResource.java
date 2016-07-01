@@ -16,21 +16,11 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.security.cert.X509Certificate;
-import java.util.concurrent.TimeUnit;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import io.jsonwebtoken.JwtException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.authentication.AuthenticationResponse;
@@ -75,12 +65,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
-import io.jsonwebtoken.JwtException;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.TimeUnit;
 
 /**
  * RESTful endpoint for managing access.
@@ -207,7 +204,6 @@ public class AccessResource extends ApplicationResource {
 
                         // set the user identity
                         accessStatus.setIdentity(nifiUser.getIdentity());
-                        accessStatus.setUsername(nifiUser.getUserName());
 
                         // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
@@ -226,7 +222,6 @@ public class AccessResource extends ApplicationResource {
 
                     // set the user identity
                     accessStatus.setIdentity(nifiUser.getIdentity());
-                    accessStatus.setUsername(nifiUser.getUserName());
 
                     // attempt authorize to /flow
                     accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
