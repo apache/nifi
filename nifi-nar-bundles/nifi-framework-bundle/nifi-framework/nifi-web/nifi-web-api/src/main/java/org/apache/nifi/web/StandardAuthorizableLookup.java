@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.AccessPoliciesAuthorizable;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Snippet;
@@ -45,6 +47,30 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
     private static final Authorizable ACCESS_POLICIES_AUTHORIZABLE = new AccessPoliciesAuthorizable();
+
+    private static final Authorizable PROVENANCE_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getProvenanceResource();
+        }
+    };
+
+    private static final Authorizable COUNTERS_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getCountersResource();
+        }
+    };
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -124,6 +150,16 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     @Override
     public Authorizable getControllerService(final String id) {
         return controllerServiceDAO.getControllerService(id);
+    }
+
+    @Override
+    public Authorizable getProvenance() {
+        return PROVENANCE_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getCounters() {
+        return COUNTERS_AUTHORIZABLE;
     }
 
     @Override

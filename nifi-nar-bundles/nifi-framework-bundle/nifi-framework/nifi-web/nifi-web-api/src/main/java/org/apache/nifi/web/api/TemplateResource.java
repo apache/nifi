@@ -16,7 +16,20 @@
  */
 package org.apache.nifi.web.api;
 
-import java.util.Set;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -29,22 +42,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.entity.TemplateEntity;
-
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing a Template.
@@ -58,6 +56,34 @@ public class TemplateResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
+
+    /**
+     * Populate the uri's for the specified templates.
+     *
+     * @param templateEntities templates
+     * @return templates
+     */
+    public Set<TemplateEntity> populateRemainingTemplateEntitiesContent(Set<TemplateEntity> templateEntities) {
+        for (TemplateEntity templateEntity : templateEntities) {
+            if (templateEntity.getTemplate() != null) {
+                populateRemainingTemplateContent(templateEntity.getTemplate());
+            }
+        }
+        return templateEntities;
+    }
+
+    /**
+     * Populate the uri's for the specified templates.
+     *
+     * @param templateEntity templates
+     * @return templates
+     */
+    public TemplateEntity populateRemainingTemplateEntityContent(TemplateEntity templateEntity) {
+        if (templateEntity.getTemplate() != null) {
+            populateRemainingTemplateContent(templateEntity.getTemplate());
+        }
+        return templateEntity;
+    }
 
     /**
      * Populates the uri for the specified templates.

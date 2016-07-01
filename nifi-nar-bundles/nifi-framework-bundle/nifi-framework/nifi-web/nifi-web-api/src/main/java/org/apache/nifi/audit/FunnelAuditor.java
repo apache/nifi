@@ -16,23 +16,22 @@
  */
 package org.apache.nifi.audit;
 
-import java.util.Date;
-
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.ActionDetails;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Funnel;
-import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.dao.FunnelDAO;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Date;
 
 @Aspect
 public class FunnelAuditor extends NiFiAuditor {
@@ -121,7 +120,6 @@ public class FunnelAuditor extends NiFiAuditor {
             // create the action for adding this funnel
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(funnel.getIdentifier());

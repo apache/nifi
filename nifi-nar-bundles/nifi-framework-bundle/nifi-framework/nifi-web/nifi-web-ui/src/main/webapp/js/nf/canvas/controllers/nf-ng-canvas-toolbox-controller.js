@@ -76,26 +76,13 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
          * Initialize the toolbox controller.
          */
         init: function() {
-            // ensure the user can create graph components
-            if (nf.Common.isDFM()) {
-                // initialize modal dialogs
-                processorComponent.modal.init();
-                inputPortComponent.modal.init();
-                outputPortComponent.modal.init();
-                groupComponent.modal.init();
-                remoteGroupComponent.modal.init();
-                templateComponent.modal.init();
-            } else {
-                // disable components
-                processorComponent.disabled();
-                inputPortComponent.disabled();
-                outputPortComponent.disabled();
-                groupComponent.disabled();
-                remoteGroupComponent.disabled();
-                funnelComponent.disabled();
-                templateComponent.disabled();
-                labelComponent.disabled();
-            }
+            // initialize modal dialogs
+            processorComponent.modal.init();
+            inputPortComponent.modal.init();
+            outputPortComponent.modal.init();
+            groupComponent.modal.init();
+            remoteGroupComponent.modal.init();
+            templateComponent.modal.init();
         },
 
         /**

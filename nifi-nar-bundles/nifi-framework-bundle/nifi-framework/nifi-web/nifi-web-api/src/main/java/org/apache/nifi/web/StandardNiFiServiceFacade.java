@@ -143,6 +143,7 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -156,6 +157,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -639,7 +641,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final D dto = dtoCreation.apply(component);
 
                     final Revision updatedRevision = revisionManager.getRevision(revision.getComponentId()).incrementRevision(revision.getClientId());
-                    final FlowModification lastModification = new FlowModification(updatedRevision, user.getUserName());
+                    final FlowModification lastModification = new FlowModification(updatedRevision, user.getIdentity());
                     return new StandardRevisionUpdate<>(dto, lastModification);
                 }
             });
@@ -1243,7 +1245,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
 
                     final D dto = dtoCreation.apply(component);
-                    final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getUserName());
+                    final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
                     return new StandardRevisionUpdate<D>(dto, lastMod);
                 });
             } finally {
@@ -1271,7 +1273,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public AccessPolicyEntity createAccessPolicy(final Revision revision, final AccessPolicyDTO accessPolicyDTO) {
         // TODO read lock on users and groups (and resource+action?) while the policy is being created?
         final Authorizable tenantAuthorizable = authorizableLookup.getTenantAuthorizable();
-        final String creator = NiFiUserUtils.getNiFiUserName();
+        final String creator = NiFiUserUtils.getNiFiUserIdentity();
         final AccessPolicy newAccessPolicy = accessPolicyDAO.createAccessPolicy(accessPolicyDTO);
         final AccessPolicyDTO newAccessPolicyDto = dtoFactory.createAccessPolicyDto(newAccessPolicy,
                 newAccessPolicy.getGroups().stream().map(mapUserGroupIdToTenantEntity()).collect(Collectors.toSet()),
@@ -1288,7 +1290,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public UserEntity createUser(final Revision revision, final UserDTO userDTO) {
         final Authorizable tenantAuthorizable = authorizableLookup.getTenantAuthorizable();
-        final String creator = NiFiUserUtils.getNiFiUserName();
+        final String creator = NiFiUserUtils.getNiFiUserIdentity();
         final User newUser = userDAO.createUser(userDTO);
         final UserDTO newUserDto = dtoFactory.createUserDto(newUser, newUser.getGroups().stream()
                 .map(mapUserGroupIdToTenantEntity()).collect(Collectors.toSet()));
@@ -1300,7 +1302,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public UserGroupEntity createUserGroup(final Revision revision, final UserGroupDTO userGroupDTO) {
         final Authorizable tenantAuthorizable = authorizableLookup.getTenantAuthorizable();
-        final String creator = NiFiUserUtils.getNiFiUserName();
+        final String creator = NiFiUserUtils.getNiFiUserIdentity();
         final Group newUserGroup = userGroupDAO.createUserGroup(userGroupDTO);
         final UserGroupDTO newUserGroupDto = dtoFactory.createUserGroupDto(newUserGroup, newUserGroup.getUsers().stream()
                 .map(userId -> {
@@ -1615,7 +1617,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                     controllerFacade.save();
 
-                    final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getUserName());
+                    final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
                     return new StandardRevisionUpdate<ControllerServiceDTO>(dto, lastMod);
                 });
             } finally {
@@ -1631,7 +1633,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                         controllerFacade.save();
 
-                        final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getUserName());
+                        final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
                         return new StandardRevisionUpdate<ControllerServiceDTO>(dto, lastMod);
                     });
                 } finally {
@@ -1759,7 +1761,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private ControllerServiceReferencingComponentsEntity createControllerServiceReferencingComponentsEntity(
             final ControllerServiceReference reference, final Map<String, Revision> revisions, final Set<ControllerServiceNode> visited) {
 
-        final String modifier = NiFiUserUtils.getNiFiUserName();
+        final String modifier = NiFiUserUtils.getNiFiUserIdentity();
         final Set<ConfiguredComponent> referencingComponents = reference.getReferencingComponents();
 
         final Set<ControllerServiceReferencingComponentEntity> componentEntities = new HashSet<>();
@@ -1827,7 +1829,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 controllerFacade.save();
 
                 final ReportingTaskDTO dto = dtoFactory.createReportingTaskDto(reportingTask);
-                final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getUserName());
+                final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
                 return new StandardRevisionUpdate<ReportingTaskDTO>(dto, lastMod);
             });
 
@@ -1882,7 +1884,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // create a purge action to record that records are being removed
         final FlowChangeAction purgeAction = new FlowChangeAction();
         purgeAction.setUserIdentity(user.getIdentity());
-        purgeAction.setUserName(user.getUserName());
         purgeAction.setOperation(Operation.Purge);
         purgeAction.setTimestamp(new Date());
         purgeAction.setSourceId("Flow Controller");
@@ -2127,12 +2128,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<TemplateDTO> getTemplates() {
-        final Set<TemplateDTO> templateDtos = new LinkedHashSet<>();
-        for (final Template template : templateDAO.getTemplates()) {
-            templateDtos.add(dtoFactory.createTemplateDTO(template));
-        }
-        return templateDtos;
+    public Set<TemplateEntity> getTemplates() {
+        return templateDAO.getTemplates().stream()
+                .map(template -> {
+                    final TemplateDTO dto = dtoFactory.createTemplateDTO(template);
+                    final AccessPolicyDTO accessPolicy = dtoFactory.createAccessPolicyDto(template);
+
+                    final TemplateEntity entity = new TemplateEntity();
+                    entity.setId(dto.getId());
+                    entity.setAccessPolicy(accessPolicy);
+                    entity.setTemplate(dto);
+                    return entity;
+                }).collect(Collectors.toSet());
     }
 
     @Override
@@ -2599,6 +2606,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public CurrentUserEntity getCurrentUser() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final CurrentUserEntity entity = new CurrentUserEntity();
+        entity.setIdentity(user.getIdentity());
+        entity.setAnonymous(user.isAnonymous());
+        entity.setProvenancePermissions(dtoFactory.createAccessPolicyDto(authorizableLookup.getProvenance()));
+        entity.setCountersPermissions(dtoFactory.createAccessPolicyDto(authorizableLookup.getCounters()));
+        entity.setTenantsPermissions(dtoFactory.createAccessPolicyDto(authorizableLookup.getTenantAuthorizable()));
+        entity.setControllerPermissions(dtoFactory.createAccessPolicyDto(authorizableLookup.getController()));
+        return entity;
+    }
+
+    @Override
     public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId, final boolean recurse) {
         return revisionManager.get(groupId,
                 rev -> {
@@ -2823,7 +2843,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         historyQuery.setStartDate(historyQueryDto.getStartDate());
         historyQuery.setEndDate(historyQueryDto.getEndDate());
         historyQuery.setSourceId(historyQueryDto.getSourceId());
-        historyQuery.setUserName(historyQueryDto.getUserName());
+        historyQuery.setUserIdentity(historyQueryDto.getUserIdentity());
         historyQuery.setOffset(historyQueryDto.getOffset());
         historyQuery.setCount(historyQueryDto.getCount());
         historyQuery.setSortColumn(historyQueryDto.getSortColumn());
@@ -2833,10 +2853,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final History history = auditService.getActions(historyQuery);
 
         // only retain authorized actions
-        history.getActions().stream().filter(action -> authorizeAction(action)).collect(Collectors.toList());
+        final HistoryDTO historyDto = dtoFactory.createHistoryDto(history);
+        if (history.getActions() != null) {
+            final List<ActionDTO> actionDtos = new ArrayList<>();
+            for (final Action action : history.getActions()) {
+                if (authorizeAction(action)) {
+                    actionDtos.add(dtoFactory.createActionDto(action));
+                } else {
+                    final ActionDTO actionDto = new ActionDTO();
+                    actionDto.setTimestamp(action.getTimestamp());
+                    actionDto.setId(action.getId());
+                    actionDto.setSourceId(action.getSourceId());
+                    actionDtos.add(actionDto);
+                }
+            }
+            historyDto.setActions(actionDtos);
+        }
 
         // create the response
-        return dtoFactory.createHistoryDto(history);
+        return historyDto;
     }
 
     @Override
@@ -2869,7 +2904,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final PreviousValueDTO dto = new PreviousValueDTO();
                 dto.setPreviousValue(previousValue.getPreviousValue());
                 dto.setTimestamp(previousValue.getTimestamp());
-                dto.setUserName(previousValue.getUserName());
+                dto.setUserIdentity(previousValue.getUserIdentity());
                 previousValueDtos.add(dto);
             }
 

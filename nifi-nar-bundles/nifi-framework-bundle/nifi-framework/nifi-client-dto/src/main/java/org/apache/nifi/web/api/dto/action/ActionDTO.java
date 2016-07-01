@@ -17,12 +17,13 @@
 package org.apache.nifi.web.api.dto.action;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
-import javax.xml.bind.annotation.XmlType;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ActionDetailsDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 
 /**
  * An action performed in this NiFi.
@@ -32,7 +33,6 @@ public class ActionDTO {
 
     private Integer id;
     private String userDn;
-    private String userName;
     private Date timestamp;
 
     private String sourceId;
@@ -69,20 +69,6 @@ public class ActionDTO {
 
     public void setUserDn(String userDn) {
         this.userDn = userDn;
-    }
-
-    /**
-     * @return user name who perform this action
-     */
-    @ApiModelProperty(
-            value = "The name of the user that performed the action."
-    )
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     /**

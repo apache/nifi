@@ -615,3 +615,78 @@ div.secondary-button:hover {
 md-progress-linear > div {
     background-color: #eaeef0 !important;
 }
+
+/* new template */
+
+#new-template-description {
+    height: 210px;
+}
+
+/* upload */
+
+#select-template-container {
+}
+
+#template-browse-container {
+    display: block;
+    height: 20px;
+}
+
+#select-template-label {
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 28px;
+}
+
+#select-template-button {
+    position: absolute;
+    top: 66px;
+    left: 135px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+#template-file-field {
+    height: 28px;
+    display: inline;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    filter: alpha(opacity = 0);
+    z-index: 3000;
+    cursor: pointer;
+}
+
+#submit-template-container {
+    margin-top: 20px;
+}
+
+#selected-template-name {
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+#upload-template-status {
+    margin-top: 10px;
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #ba554a;
+}
+
+#upload-template-container button {
+    float: right;
+    font-size: 16px;
+    line-height: 14px;
+    margin-left: 1px;
+}
+
+#template-file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 300px;
+}

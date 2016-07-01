@@ -17,10 +17,11 @@
 package org.apache.nifi.web.api.dto.action;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+import java.util.Date;
 
 /**
  * A history query to find desired actions.
@@ -28,7 +29,7 @@ import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 @XmlType(name = "historyQuery")
 public class HistoryQueryDTO {
 
-    private String userName;
+    private String userIdentity;
     private String sourceId;
     private Date startDate;
     private Date endDate;
@@ -38,17 +39,17 @@ public class HistoryQueryDTO {
     private String sortOrder;
 
     /**
-     * @return user name
+     * @return user identity
      */
     @ApiModelProperty(
-            value = "The name of the source component."
+            value = "The user identity."
     )
-    public String getUserName() {
-        return userName;
+    public String getUserIdentity() {
+        return userIdentity;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public void setUserIdentity(String userIdentity) {
+        this.userIdentity = userIdentity;
     }
 
     /**

@@ -69,9 +69,9 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.setProperty(ExecuteScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy")
         runner.setProperty(ExecuteScript.MODULES, TEST_RESOURCE_LOCATION + "groovy")
 
-        // Override context value
+        // Override userContext value
         runner.processContext.maxConcurrentTasks = poolSize
-        logger.info("Overrode context max concurrent tasks to ${runner.processContext.maxConcurrentTasks}")
+        logger.info("Overrode userContext max concurrent tasks to ${runner.processContext.maxConcurrentTasks}")
     }
 
     @Test

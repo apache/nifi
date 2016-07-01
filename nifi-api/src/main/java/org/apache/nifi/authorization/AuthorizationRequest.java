@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents an authorization request for a given user/entity performing an action against a resource within some context.
+ * Represents an authorization request for a given user/entity performing an action against a resource within some userContext.
  */
 public class AuthorizationRequest {
 
@@ -31,8 +31,8 @@ public class AuthorizationRequest {
     private final RequestAction action;
     private final boolean isAccessAttempt;
     private final boolean isAnonymous;
-    private final Map<String, String> context;
-    private final Map<String, String> eventAttributes;
+    private final Map<String, String> userContext;
+    private final Map<String, String> resourceContext;
 
     private AuthorizationRequest(final Builder builder) {
         Objects.requireNonNull(builder.resource, "The resource is required when creating an authorization request");
@@ -45,8 +45,8 @@ public class AuthorizationRequest {
         this.action = builder.action;
         this.isAccessAttempt = builder.isAccessAttempt;
         this.isAnonymous = builder.isAnonymous;
-        this.context = builder.context == null ? null : Collections.unmodifiableMap(builder.context);
-        this.eventAttributes = builder.context == null ? null : Collections.unmodifiableMap(builder.eventAttributes);
+        this.userContext = builder.userContext == null ? null : Collections.unmodifiableMap(builder.userContext);
+        this.resourceContext = builder.resourceContext == null ? null : Collections.unmodifiableMap(builder.resourceContext);
     }
 
     /**
@@ -95,12 +95,12 @@ public class AuthorizationRequest {
     }
 
     /**
-     * The context of the user request to make additional access decisions. May be null.
+     * The userContext of the user request to make additional access decisions. May be null.
      *
-     * @return  The context of the user request
+     * @return  The userContext of the user request
      */
-    public Map<String, String> getContext() {
-        return context;
+    public Map<String, String> getUserContext() {
+        return userContext;
     }
 
     /**
@@ -108,8 +108,8 @@ public class AuthorizationRequest {
      *
      * @return  The event attributes
      */
-    public Map<String, String> getEventAttributes() {
-        return eventAttributes;
+    public Map<String, String> getResourceContext() {
+        return resourceContext;
     }
 
     /**
@@ -122,8 +122,8 @@ public class AuthorizationRequest {
         private Boolean isAnonymous;
         private Boolean isAccessAttempt;
         private RequestAction action;
-        private Map<String, String> context;
-        private Map<String, String> eventAttributes;
+        private Map<String, String> userContext;
+        private Map<String, String> resourceContext;
 
         public Builder resource(final Resource resource) {
             this.resource = resource;
@@ -150,13 +150,17 @@ public class AuthorizationRequest {
             return this;
         }
 
-        public Builder context(final Map<String, String> context) {
-            this.context = new HashMap<>(context);
+        public Builder userContext(final Map<String, String> userContext) {
+            if (userContext != null) {
+                this.userContext = new HashMap<>(userContext);
+            }
             return this;
         }
 
-        public Builder eventAttributes(final Map<String, String> eventAttributes) {
-            this.eventAttributes = new HashMap<>(eventAttributes);
+        public Builder resourceContext(final Map<String, String> resourceContext) {
+            if (resourceContext != null) {
+                this.resourceContext = new HashMap<>(resourceContext);
+            }
             return this;
         }
 

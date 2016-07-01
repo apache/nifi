@@ -204,7 +204,6 @@ public class PortAuditor extends NiFiAuditor {
                     // create the port action for updating the name
                     FlowChangeAction portAction = new FlowChangeAction();
                     portAction.setUserIdentity(user.getIdentity());
-                    portAction.setUserName(user.getUserName());
                     portAction.setOperation(Operation.Configure);
                     portAction.setTimestamp(timestamp);
                     portAction.setSourceId(updatedPort.getIdentifier());
@@ -224,7 +223,6 @@ public class PortAuditor extends NiFiAuditor {
                 // create a processor action
                 FlowChangeAction processorAction = new FlowChangeAction();
                 processorAction.setUserIdentity(user.getIdentity());
-                processorAction.setUserName(user.getUserName());
                 processorAction.setTimestamp(new Date());
                 processorAction.setSourceId(updatedPort.getIdentifier());
                 processorAction.setSourceName(updatedPort.getName());
@@ -321,7 +319,6 @@ public class PortAuditor extends NiFiAuditor {
             // create the port action for adding this processor
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(port.getIdentifier());

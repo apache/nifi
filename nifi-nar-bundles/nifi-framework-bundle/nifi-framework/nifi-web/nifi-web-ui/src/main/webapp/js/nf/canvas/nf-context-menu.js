@@ -172,7 +172,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components
      */
     var isPastable = function (selection) {
-        return nf.Common.isDFM() && nf.CanvasUtils.isPastable();
+        return nf.Canvas.canWrite() && nf.CanvasUtils.isPastable();
     };
 
     /**

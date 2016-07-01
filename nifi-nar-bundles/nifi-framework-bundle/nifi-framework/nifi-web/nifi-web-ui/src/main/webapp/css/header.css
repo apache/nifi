@@ -104,12 +104,21 @@ md-toolbar.md-small .md-toolbar-tools {
     margin-bottom: 3px;
 }
 
-#global-menu-content a{
+#global-menu-content a {
     height: 28px;
     padding: 6px 16px;
     cursor: pointer;
     padding-left: 10px;
     padding-right: 10px;
+}
+
+#global-menu-content a.disabled {
+    color: #a8a8a8;
+    cursor: not-allowed;
+}
+
+#global-menu-content a.disabled i {
+    color: #bebebe;
 }
 
 #global-menu-content a:hover{

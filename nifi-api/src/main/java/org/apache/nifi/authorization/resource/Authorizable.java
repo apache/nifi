@@ -25,6 +25,8 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.user.NiFiUser;
 
+import java.util.Map;
+
 public interface Authorizable {
 
     /**
@@ -64,7 +66,7 @@ public interface Authorizable {
      * @param user user
      * @return is authorized
      */
-    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user) {
+    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
         // TODO - include user details context
 
         // build the request
@@ -74,6 +76,7 @@ public interface Authorizable {
                 .accessAttempt(false)
                 .action(action)
                 .resource(getResource())
+                .resourceContext(resourceContext)
                 .build();
 
         // perform the authorization
@@ -93,22 +96,39 @@ public interface Authorizable {
     }
 
     /**
+     * Returns the result of an authorization request for the specified user for the specified action on the specified
+     * resource. This method does not imply the user is directly attempting to access the specified resource. If the user is
+     * attempting a direct access use Authorizable.authorize().
+     *
+     * @param authorizer authorizer
+     * @param action action
+     * @param user user
+     * @return is authorized
+     */
+    default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user) {
+        return checkAuthorization(authorizer, action, user, null);
+    }
+
+    /**
      * Authorizes the current user for the specified action on the specified resource. This method does imply the user is
      * directly accessing the specified resource.
      *
      * @param authorizer authorizer
      * @param action action
+     * @param user user
+     * @param resourceContext resource context
      */
-    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user) throws AccessDeniedException {
+    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
         // TODO - include user details context
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
-            .identity(user.getIdentity())
-            .anonymous(user.isAnonymous())
-            .accessAttempt(true)
-            .action(action)
-            .resource(getResource())
-            .build();
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(true)
+                .action(action)
+                .resource(getResource())
+                .resourceContext(resourceContext)
+                .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (Result.ResourceNotFound.equals(result.getResult())) {
@@ -121,5 +141,17 @@ public interface Authorizable {
         } else if (Result.Denied.equals(result.getResult())) {
             throw new AccessDeniedException(result.getExplanation());
         }
+    }
+
+    /**
+     * Authorizes the current user for the specified action on the specified resource. This method does imply the user is
+     * directly accessing the specified resource.
+     *
+     * @param authorizer authorizer
+     * @param action action
+     * @param user user
+     */
+    default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user) throws AccessDeniedException {
+        authorize(authorizer, action, user, null);
     }
 }

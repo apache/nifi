@@ -220,7 +220,6 @@ public final class DtoFactory {
         actionDto.setSourceType(action.getSourceType().name());
         actionDto.setTimestamp(action.getTimestamp());
         actionDto.setUserDn(action.getUserIdentity());
-        actionDto.setUserName(action.getUserName());
         actionDto.setOperation(action.getOperation().name());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
         actionDto.setComponentDetails(createComponentDetailsDto(action.getComponentDetails()));
@@ -305,15 +304,6 @@ public final class DtoFactory {
         final HistoryDTO historyDto = new HistoryDTO();
         historyDto.setTotal(history.getTotal());
         historyDto.setLastRefreshed(history.getLastRefreshed());
-
-        if (history.getActions() != null) {
-            final List<ActionDTO> actionDtos = new ArrayList<>();
-            for (final Action action : history.getActions()) {
-                actionDtos.add(createActionDto(action));
-            }
-            historyDto.setActions(actionDtos);
-        }
-
         return historyDto;
     }
 
@@ -830,6 +820,7 @@ public final class DtoFactory {
 
         final TemplateDTO copy = new TemplateDTO();
         copy.setId(original.getId());
+        copy.setGroupId(template.getProcessGroup().getIdentifier());
         copy.setName(original.getName());
         copy.setDescription(original.getDescription());
         copy.setTimestamp(original.getTimestamp());

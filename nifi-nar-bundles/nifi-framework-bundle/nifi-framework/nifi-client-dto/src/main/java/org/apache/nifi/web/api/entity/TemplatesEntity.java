@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Date;
-import java.util.Set;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Date;
+import java.util.Set;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a set of TemplateDTOs.
@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.util.TimeAdapter;
 @XmlRootElement(name = "templatesEntity")
 public class TemplatesEntity extends Entity {
 
-    private Set<TemplateDTO> templates;
+    private Set<TemplateEntity> templates;
     private Date generated;
 
     /**
@@ -37,11 +37,11 @@ public class TemplatesEntity extends Entity {
      *
      * @return The TemplateDTO object
      */
-    public Set<TemplateDTO> getTemplates() {
+    public Set<TemplateEntity> getTemplates() {
         return templates;
     }
 
-    public void setTemplates(Set<TemplateDTO> templates) {
+    public void setTemplates(Set<TemplateEntity> templates) {
         this.templates = templates;
     }
 

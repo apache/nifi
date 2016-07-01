@@ -26,7 +26,7 @@ nf.ProvenanceLineage = (function () {
         sliderTickCount: 75,
         urls: {
             lineage: '../nifi-api/provenance/lineage',
-            events: '../nifi-api/provenance/events/'
+            events: '../nifi-api/provenance-events/'
         }
     };
 

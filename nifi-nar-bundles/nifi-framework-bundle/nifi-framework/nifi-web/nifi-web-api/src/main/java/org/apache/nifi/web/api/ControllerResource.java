@@ -33,7 +33,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -41,9 +40,7 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
 import org.apache.nifi.web.api.entity.ClusterEntity;
-import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
@@ -69,8 +66,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -485,81 +480,6 @@ public class ControllerResource extends ApplicationResource {
 
         // generate the response
         return generateOkResponse(entity).build();
-    }
-
-    /**
-     * Searches the cluster for a node with a given address.
-     *
-     * @param value Search value that will be matched against a node's address
-     * @return Nodes that match the specified criteria
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("cluster/search-results")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-            value = "Searches the cluster for a node with the specified address",
-            response = ClusterSearchResultsEntity.class,
-            authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "DFM", type = "ROLE_DFM"),
-                    @Authorization(value = "Admin", type = "ROLE_ADMIN")
-            }
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-            }
-    )
-    public Response searchCluster(
-            @ApiParam(
-                    value = "Node address to search for.",
-                    required = true
-            )
-            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
-
-        authorizeController(RequestAction.READ);
-
-        // ensure connected to the cluster
-        if (!isConnectedToCluster()) {
-            throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
-        }
-
-        final List<NodeSearchResultDTO> nodeMatches = new ArrayList<>();
-
-        // get the nodes in the cluster
-        final ClusterDTO cluster = serviceFacade.getCluster();
-
-        // check each to see if it matches the search term
-        for (NodeDTO node : cluster.getNodes()) {
-            // ensure the node is connected
-            if (!NodeConnectionState.CONNECTED.name().equals(node.getStatus())) {
-                continue;
-            }
-
-            // determine the current nodes address
-            final String address = node.getAddress() + ":" + node.getApiPort();
-
-            // count the node if there is no search or it matches the address
-            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(address, value)) {
-                final NodeSearchResultDTO nodeMatch = new NodeSearchResultDTO();
-                nodeMatch.setId(node.getNodeId());
-                nodeMatch.setAddress(address);
-                nodeMatches.add(nodeMatch);
-            }
-        }
-
-        // build the response
-        ClusterSearchResultsEntity results = new ClusterSearchResultsEntity();
-        results.setNodeResults(nodeMatches);
-
-        // generate an 200 - OK response
-        return noCache(Response.ok(results)).build();
     }
 
     /**

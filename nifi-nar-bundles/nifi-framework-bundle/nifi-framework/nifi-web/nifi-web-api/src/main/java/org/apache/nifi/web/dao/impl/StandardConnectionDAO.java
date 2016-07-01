@@ -604,7 +604,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                         .accessAttempt(false)
                         .action(RequestAction.WRITE)
                         .resource(connection.getResource())
-                        .eventAttributes(attributes)
+                        .resourceContext(attributes)
                         .build();
 
                 // perform the authorization

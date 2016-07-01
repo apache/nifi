@@ -580,11 +580,6 @@ nf.ProcessorConfiguration = (function () {
                     dataType: 'json'
                 }));
 
-                // get the processor state if we're a DFM
-                if (nf.Common.isDFM()) {
-                    requests.push();
-                }
-
                 // once everything is loaded, show the dialog
                 $.when.apply(window, requests).done(function (processorResult, historyResult) {
                     // get the updated processor'

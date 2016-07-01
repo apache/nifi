@@ -30,7 +30,7 @@ public interface Authorizer {
      *
      * @param   request The authorization request
      * @return  the authorization result
-     * @throws  AuthorizationAccessException if unable to access the authorities
+     * @throws  AuthorizationAccessException if unable to access the policies
      */
     AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException;
 
