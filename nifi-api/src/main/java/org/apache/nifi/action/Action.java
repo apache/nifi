@@ -33,8 +33,6 @@ public interface Action extends Serializable {
 
     String getUserIdentity();
 
-    String getUserName();
-
     String getSourceId();
 
     String getSourceName();

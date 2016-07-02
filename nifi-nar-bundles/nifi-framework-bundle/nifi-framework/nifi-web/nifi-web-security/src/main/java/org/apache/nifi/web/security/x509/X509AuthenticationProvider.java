@@ -65,7 +65,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
         }
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
-            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(authenticationResponse.getIdentity(), authenticationResponse.getUsername(), null)));
+            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(authenticationResponse.getIdentity())));
         } else {
             // build the entire proxy chain if applicable - <end-user><proxy1><proxy2>
             final List<String> proxyChain = new ArrayList<>(ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(request.getProxiedEntitiesChain()));

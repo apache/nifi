@@ -28,11 +28,6 @@ public interface NiFiUser {
     String getIdentity();
 
     /**
-     * @return the user name for this user
-     */
-    String getUserName();
-
-    /**
      * @return the next user in the proxied entities chain, or <code>null</code> if no more users exist in the chain.
      */
     NiFiUser getChain();

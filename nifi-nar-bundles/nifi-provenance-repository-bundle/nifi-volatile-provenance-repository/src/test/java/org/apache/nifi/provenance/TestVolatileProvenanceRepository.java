@@ -16,7 +16,14 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchTerms;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,15 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchTerms;
-import org.apache.nifi.util.NiFiProperties;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -181,11 +180,6 @@ public class TestVolatileProvenanceRepository {
             @Override
             public String getIdentity() {
                 return "unit-test";
-            }
-
-            @Override
-            public String getUserName() {
-                return "Unit Test";
             }
 
             @Override

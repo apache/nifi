@@ -32,7 +32,7 @@ nf.Provenance = (function () {
             flowConfig: '../nifi-api/flow/config',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/flow/authorities'
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -81,27 +81,16 @@ nf.Provenance = (function () {
     };
 
     /**
-     * Loads the current users authorities.
+     * Loads the current user.
      */
-    var loadAuthorities = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve(response);
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -170,8 +159,8 @@ nf.Provenance = (function () {
         init: function () {
             nf.Storage.init();
             
-            // load the users authorities and detect if the NiFi is clustered
-            $.when(loadAbout(), loadAuthorities(), detectedCluster()).done(function () {
+            // load the user and detect if the NiFi is clustered
+            $.when(loadAbout(), loadCurrentUser(), detectedCluster()).done(function () {
                 // create the provenance table
                 nf.ProvenanceTable.init(isClustered).done(function () {
                     var searchTerms = {};

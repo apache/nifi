@@ -28,15 +28,10 @@ nf.TemplatesTable = (function () {
             filterList: 'templates-filter-list'
         },
         urls: {
-            api: '../nifi-api',
+            templates: '../nifi-api/flow/templates',
             downloadToken: '../nifi-api/access/download-token'
         }
     };
-
-    /**
-     * the current group id
-     */
-    var groupId;
 
     /**
      * Sorts the specified data using the specified sort details.
@@ -52,8 +47,8 @@ nf.TemplatesTable = (function () {
                 var bDate = nf.Common.parseDateTime(b[sortDetails.columnId]);
                 return aDate.getTime() - bDate.getTime();
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+                var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
+                var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
             }
         };
@@ -65,15 +60,15 @@ nf.TemplatesTable = (function () {
     /**
      * Prompts the user before attempting to delete the specified template.
      * 
-     * @argument {object} template     The template
+     * @argument {object} templateEntity     The template
      */
-    var promptToDeleteTemplate = function (template) {
+    var promptToDeleteTemplate = function (templateEntity) {
         // prompt for deletion
         nf.Dialog.showYesNoDialog({
             headerText: 'Delete Template',
-            dialogContent: 'Delete template \'' + nf.Common.escapeHtml(template.name) + '\'?',
+            dialogContent: 'Delete template \'' + nf.Common.escapeHtml(templateEntity.template.name) + '\'?',
             yesHandler: function () {
-                deleteTemplate(template);
+                deleteTemplate(templateEntity);
             }
         });
     };
@@ -81,17 +76,17 @@ nf.TemplatesTable = (function () {
     /**
      * Deletes the template with the specified id.
      * 
-     * @argument {string} template     The template
+     * @argument {string} templateEntity     The template
      */
-    var deleteTemplate = function (template) {
+    var deleteTemplate = function (templateEntity) {
         $.ajax({
             type: 'DELETE',
-            url: template.uri,
+            url: templateEntity.template.uri,
             dataType: 'json'
         }).done(function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
             var templatesData = templatesGrid.getData();
-            templatesData.deleteItem(template.id);
+            templatesData.deleteItem(templateEntity.id);
             
             // update the total number of templates
             $('#total-templates').text(templatesData.getItems().length);
@@ -153,15 +148,15 @@ nf.TemplatesTable = (function () {
         }
 
         // perform the filter
-        return item[args.property].search(filterExp) >= 0;
+        return item.template[args.property].search(filterExp) >= 0;
     };
 
     /**
      * Downloads the specified template.
      *
-     * @param {object} template     The template
+     * @param {object} templateEntity     The template
      */
-    var downloadTemplate = function (template) {
+    var downloadTemplate = function (templateEntity) {
         nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
             var parameters = {};
 
@@ -172,9 +167,9 @@ nf.TemplatesTable = (function () {
 
             // open the url
             if ($.isEmptyObject(parameters)) {
-                window.open(template.uri + '/download');
+                window.open(templateEntity.template.uri + '/download');
             } else {
-                window.open(template.uri + '/download' + '?' + $.param(parameters));
+                window.open(templateEntity.template.uri + '/download' + '?' + $.param(parameters));
             }
         }).fail(function () {
             nf.Dialog.showOkDialog({
@@ -216,22 +211,48 @@ nf.TemplatesTable = (function () {
                 }
             });
 
-            // enable template uploading if DFM
-            if (nf.Common.isDFM()) {
-                $('#upload-template-container').show();
-            }
+            var timestampFormatter = function (row, cell, value, columnDef, dataContext) {
+                if (!dataContext.accessPolicy.canRead) {
+                    return '';
+                }
 
-            // function for formatting the last accessed time
-            var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nf.Common.formatValue(value);
+                return dataContext.template.timestamp;
+            };
+
+            var nameFormatter = function (row, cell, value, columnDef, dataContext) {
+                if (!dataContext.accessPolicy.canRead) {
+                    return '<span class="blank">' + dataContext.id + '</span>';
+                }
+
+                return dataContext.template.name;
+            };
+
+            var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
+                if (!dataContext.accessPolicy.canRead) {
+                    return '';
+                }
+
+                return nf.Common.formatValue(dataContext.template.description);
+            };
+
+            var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
+                if (!dataContext.accessPolicy.canRead) {
+                    return '';
+                }
+
+                return dataContext.template.groupId;
             };
 
             // function for formatting the actions column
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px;"></div>';
+                var markup = '';
+
+                if (dataContext.accessPolicy.canRead === true) {
+                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px;"></div>';
+                }
 
                 // all DFMs to remove templates
-                if (nf.Common.isDFM()) {
+                if (dataContext.accessPolicy.canWrite === true) {
                     markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-left: 3px;"></div>';
                 }
                 return markup;
@@ -239,9 +260,10 @@ nf.TemplatesTable = (function () {
 
             // initialize the templates table
             var templatesColumns = [
-                {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, defaultSortAsc: false, resizable: false, formatter: valueFormatter, width: 225, maxWidth: 225},
-                {id: 'name', name: 'Name', field: 'name', sortable: true, resizable: true},
-                {id: 'description', name: 'Description', field: 'description', sortable: true, resizable: true, formatter: valueFormatter},
+                {id: 'timestamp', name: 'Date/Time', sortable: true, defaultSortAsc: false, resizable: false, formatter: timestampFormatter, width: 225, maxWidth: 225},
+                {id: 'name', name: 'Name', sortable: true, resizable: true, formatter: nameFormatter},
+                {id: 'description', name: 'Description', sortable: true, resizable: true, formatter: descriptionFormatter},
+                {id: 'groupId', name: 'Process Group Id', sortable: true, resizable: true, formatter: groupIdFormatter},
                 {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
             ];
             var templatesOptions = {
@@ -277,7 +299,7 @@ nf.TemplatesTable = (function () {
             templatesGrid.setSortColumn('timestamp', false);
             templatesGrid.onSort.subscribe(function (e, args) {
                 sort({
-                    columnId: args.sortCol.field,
+                    columnId: args.sortCol.id,
                     sortAsc: args.sortAsc
                 }, templatesData);
             });
@@ -333,17 +355,9 @@ nf.TemplatesTable = (function () {
          * Load the processor templates table.
          */
         loadTemplatesTable: function () {
-            groupId = $('#template-group-id').text();
-            if (nf.Common.isUndefined(groupId) || nf.Common.isNull(groupId)) {
-                nf.Dialog.showOkDialog({
-                    headerText: 'Load Templates',
-                    content: 'Group id not specified.'
-                });
-            }
-
             return $.ajax({
                 type: 'GET',
-                url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId) + '/templates',
+                url: config.urls.templates,
                 data: {
                     verbose: false
                 },

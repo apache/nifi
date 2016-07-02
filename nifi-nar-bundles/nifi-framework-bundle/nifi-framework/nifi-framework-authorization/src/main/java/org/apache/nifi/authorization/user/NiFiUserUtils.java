@@ -47,13 +47,13 @@ public final class NiFiUserUtils {
         return user;
     }
 
-    public static String getNiFiUserName() {
+    public static String getNiFiUserIdentity() {
         // get the nifi user to extract the username
         NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
             return "unknown";
         } else {
-            return user.getUserName();
+            return user.getIdentity();
         }
     }
 }

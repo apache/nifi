@@ -156,12 +156,13 @@ nf.RemoteProcessGroupPorts = (function () {
                 },
                 handler: {
                     click: function () {
-                        // if this is a DFM, the over status of this node may have changed
-                        if (nf.Common.isDFM()) {
-                            // get the component in question
-                            var remoteProcessGroupId = $('#remote-process-group-ports-id').text();
-                            var remoteProcessGroupData = d3.select('#id-' + remoteProcessGroupId).datum();
+                        // get the component in question
+                        var remoteProcessGroupId = $('#remote-process-group-ports-id').text();
+                        var remoteProcessGroup = d3.select('#id-' + remoteProcessGroupId);
+                        var remoteProcessGroupData = remoteProcessGroup.datum();
 
+                        // if can modify, the over status of this node may have changed
+                        if (nf.CanvasUtils.canModify(remoteProcessGroup)) {
                             // reload the remote process group
                             nf.RemoteProcessGroup.reload(remoteProcessGroupData.component);
                         }
@@ -204,8 +205,12 @@ nf.RemoteProcessGroupPorts = (function () {
         var portContainerEditContainer = $('<div class="remote-port-edit-container"></div>').appendTo(portContainer);
         var portContainerDetailsContainer = $('<div class="remote-port-details-container"></div>').appendTo(portContainer);
 
-        // only DFMs can update the remote group port
-        if (nf.Common.isDFM()) {
+        // get the component in question
+        var remoteProcessGroupId = $('#remote-process-group-ports-id').text();
+        var remoteProcessGroup = d3.select('#id-' + remoteProcessGroupId);
+
+        // if can modify, support updating the remote group port
+        if (nf.CanvasUtils.canModify(remoteProcessGroup)) {
             // show the enabled transmission switch
             var transmissionSwitch;
             if (port.connected === true) {

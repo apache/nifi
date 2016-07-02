@@ -232,7 +232,6 @@ public class SnippetAuditor extends NiFiAuditor {
             // create the action for adding this funnel
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(timestamp);
             action.setSourceId(id);

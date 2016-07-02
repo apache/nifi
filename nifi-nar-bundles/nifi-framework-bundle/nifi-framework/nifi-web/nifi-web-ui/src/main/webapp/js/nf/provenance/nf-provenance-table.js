@@ -33,9 +33,10 @@ nf.ProvenanceTable = (function () {
         },
         urls: {
             searchOptions: '../nifi-api/provenance/search-options',
-            replays: '../nifi-api/provenance/replays',
+            replays: '../nifi-api/provenance-events/replays',
             provenance: '../nifi-api/provenance',
-            cluster: '../nifi-api/controller/cluster',
+            provenanceEvents: '../nifi-api/provenance-events',
+            clusterSearch: '../nifi-api/flow/cluster/search-results',
             d3Script: 'js/d3/d3.min.js',
             lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
             uiExtensionToken: '../nifi-api/access/ui-extension-token',
@@ -57,7 +58,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the url
-        var dataUri = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // perform the request once we've received a token
         nf.Common.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
@@ -98,7 +99,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the uri to the data
-        var dataUri = controllerUri + 'provenance/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -258,38 +259,35 @@ nf.ProvenanceTable = (function () {
         }
 
         // handle the replay and downloading
-        if (nf.Common.isDFM()) {
-            // replay
-            $('#replay-content').on('click', function () {
-                var replayEntity = {
-                    'eventId': $('#provenance-event-id').text()
-                };
+        $('#replay-content').on('click', function () {
+            var replayEntity = {
+                'eventId': $('#provenance-event-id').text()
+            };
 
-                // conditionally include the cluster node id
-                var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!nf.Common.isBlank(clusterNodeId)) {
-                    replayEntity['clusterNodeId'] = clusterNodeId;
-                }
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nf.Common.isBlank(clusterNodeId)) {
+                replayEntity['clusterNodeId'] = clusterNodeId;
+            }
 
-                $.ajax({
-                    type: 'POST',
-                    url: config.urls.replays,
-                    data: JSON.stringify(replayEntity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    nf.Dialog.showOkDialog({
-                        headerText: 'Provenance',
-                        dialogContent: 'Successfully submitted replay request.'
-                    });
-                }).fail(nf.Common.handleAjaxError);
+            $.ajax({
+                type: 'POST',
+                url: config.urls.replays,
+                data: JSON.stringify(replayEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                nf.Dialog.showOkDialog({
+                    headerText: 'Provenance',
+                    dialogContent: 'Successfully submitted replay request.'
+                });
+            }).fail(nf.Common.handleAjaxError);
 
-                $('#event-details-dialog').modal('hide');
-            });
+            $('#event-details-dialog').modal('hide');
+        });
 
-            // show the replay panel
-            $('#replay-details').show();
-        }
+        // show the replay panel
+        $('#replay-details').show();
     };
 
     /**
@@ -323,11 +321,10 @@ nf.ProvenanceTable = (function () {
             // get the nodes in the cluster
             $.ajax({
                 type: 'GET',
-                url: config.urls.cluster,
+                url: config.urls.clusterSearch,
                 dataType: 'json'
             }).done(function (response) {
-                var cluster = response.cluster;
-                var nodes = cluster.nodes;
+                var nodeResults = response.nodeResults;
 
                 // create the searchable options
                 var searchableOptions = [{
@@ -336,17 +333,17 @@ nf.ProvenanceTable = (function () {
                 }];
 
                 // sort the nodes
-                nodes.sort(function (a, b) {
-                    var compA = (a.address + ':' + a.apiPort).toUpperCase();
-                    var compB = (b.address + ':' + b.apiPort).toUpperCase();
+                nodeResults.sort(function (a, b) {
+                    var compA = a.address.toUpperCase();
+                    var compB = b.address.toUpperCase();
                     return (compA < compB) ? -1 : (compA > compB) ? 1 : 0;
                 });
 
                 // add each node
-                $.each(nodes, function (_, node) {
+                $.each(nodeResults, function (_, nodeResult) {
                     searchableOptions.push({
-                        text: node.address + ':' + node.apiPort,
-                        value: node.nodeId
+                        text: nodeResult.address,
+                        value: nodeResult.id
                     });
                 });
 
@@ -1430,15 +1427,13 @@ nf.ProvenanceTable = (function () {
                 $('#output-content-view').hide();
             }
 
-            if (nf.Common.isDFM()) {
-                if (event.replayAvailable === true) {
-                    $('#replay-content, #replay-content-connection').show();
-                    formatContentValue($('#replay-connection-id'), event.sourceConnectionIdentifier);
-                    $('#replay-content-message').hide();
-                } else {
-                    $('#replay-content, #replay-content-connection').hide();
-                    $('#replay-content-message').text(event.replayExplanation).show();
-                }
+            if (event.replayAvailable === true) {
+                $('#replay-content, #replay-content-connection').show();
+                formatContentValue($('#replay-connection-id'), event.sourceConnectionIdentifier);
+                $('#replay-content-message').hide();
+            } else {
+                $('#replay-content, #replay-content-connection').hide();
+                $('#replay-content-message').text(event.replayExplanation).show();
             }
 
             // show the dialog

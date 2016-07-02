@@ -426,7 +426,7 @@ nf.ClusterTable = (function () {
             ];
 
             // only allow the admin to modify the cluster
-            if (nf.Common.isAdmin()) {
+            if (nf.Common.canModifyController()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                     var canDisconnect = false;
@@ -477,7 +477,7 @@ nf.ClusterTable = (function () {
 
             // initialize the sort
             sort({
-                columnId: 'userName',
+                columnId: 'node',
                 sortAsc: true
             }, clusterData);
 
@@ -487,7 +487,7 @@ nf.ClusterTable = (function () {
             clusterGrid.setSortColumn('node', true);
             clusterGrid.onSort.subscribe(function (e, args) {
                 sort({
-                    columnId: args.sortCol.field,
+                    columnId: args.sortCol.id,
                     sortAsc: args.sortAsc
                 }, clusterData);
             });
