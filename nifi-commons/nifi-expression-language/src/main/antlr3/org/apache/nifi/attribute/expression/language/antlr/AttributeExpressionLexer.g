@@ -41,7 +41,7 @@ lexer grammar AttributeExpressionLexer;
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
   }
 
@@ -58,9 +58,9 @@ lexer grammar AttributeExpressionLexer;
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
-  } 
+  }
 }
 
 
@@ -117,6 +117,7 @@ URL_DECODE : 'urlDecode';
 NOT : 'not';
 COUNT : 'count';
 RANDOM : 'random';
+ESCAPE_JSON : 'escapeJson';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -174,7 +175,7 @@ STRING_LITERAL
 			'"'
 				(
 					escaped=ESC {lBuf.append(getText());} |
-				  	normal = ~( '"' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);} 
+				  	normal = ~( '"' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);}
 				)*
 			'"'
 		)
@@ -186,7 +187,7 @@ STRING_LITERAL
 			'\''
 				(
 					escaped=ESC {lBuf.append(getText());} |
-				  	normal = ~( '\'' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);} 
+				  	normal = ~( '\'' | '\\' | '\n' | '\r' | '\t' ) { lBuf.appendCodePoint(normal);}
 				)*
 			'\''
 		)
@@ -206,7 +207,7 @@ ESC
 			|	'n'		{ setText("\n"); }
 			|	't'		{ setText("\t"); }
 			|	'\\'	{ setText("\\\\"); }
-			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')		
+			|	nextChar = ~('"' | '\'' | 'r' | 'n' | 't' | '\\')
 				{
 					StringBuilder lBuf = new StringBuilder(); lBuf.append("\\\\").appendCodePoint(nextChar); setText(lBuf.toString());
 				}
