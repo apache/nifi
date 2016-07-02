@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ReportingTaskEntityMerger {
+public class ReportingTaskEntityMerger implements ComponentEntityMerger<ReportingTaskEntity> {
 
     /**
      * Merges the ReportingTaskEntity responses.
@@ -32,7 +32,7 @@ public class ReportingTaskEntityMerger {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
-    public static void mergeReportingTasks(final ReportingTaskEntity clientEntity, final Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
+    public void mergeComponents(final ReportingTaskEntity clientEntity, final Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
         final ReportingTaskDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ReportingTaskDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
@@ -40,8 +40,6 @@ public class ReportingTaskEntityMerger {
             final ReportingTaskDTO nodeReportingTaskDto = nodeReportingTaskEntity.getComponent();
             dtoMap.put(entry.getKey(), nodeReportingTaskDto);
         }
-
-        ComponentEntityMerger.mergeComponents(clientEntity, entityMap);
 
         mergeDtos(clientDto, dtoMap);
     }

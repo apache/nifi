@@ -34,6 +34,7 @@ public class PortEndpointMerger extends AbstractSingleEntityEndpoint<PortEntity>
 
     public static final Pattern OUTPUT_PORTS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/output-ports");
     public static final Pattern OUTPUT_PORT_URI_PATTERN = Pattern.compile("/nifi-api/output-ports/[a-f0-9\\-]{36}");
+    private final PortEntityMerger portEntityMerger = new PortEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -65,11 +66,10 @@ public class PortEndpointMerger extends AbstractSingleEntityEndpoint<PortEntity>
         return PortEntity.class;
     }
 
-
     @Override
     protected void mergeResponses(final PortEntity clientEntity, final Map<NodeIdentifier, PortEntity> entityMap,
                                   final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
-        PortEntityMerger.mergePorts(clientEntity, entityMap);
+        portEntityMerger.merge(clientEntity, entityMap);
     }
 }

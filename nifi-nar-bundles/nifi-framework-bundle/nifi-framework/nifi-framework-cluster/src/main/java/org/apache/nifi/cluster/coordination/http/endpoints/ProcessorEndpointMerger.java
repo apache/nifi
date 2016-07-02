@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorEntity> implements EndpointResponseMerger {
     public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
     public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}");
+    private final ProcessorEntityMerger processorEntityMerger = new ProcessorEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -48,11 +49,10 @@ public class ProcessorEndpointMerger extends AbstractSingleEntityEndpoint<Proces
         return ProcessorEntity.class;
     }
 
-
     @Override
     protected void mergeResponses(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap, final Set<NodeResponse> successfulResponses,
         final Set<NodeResponse> problematicResponses) {
 
-        ProcessorEntityMerger.mergeProcessors(clientEntity, entityMap);
+        processorEntityMerger.merge(clientEntity, entityMap);
     }
 }

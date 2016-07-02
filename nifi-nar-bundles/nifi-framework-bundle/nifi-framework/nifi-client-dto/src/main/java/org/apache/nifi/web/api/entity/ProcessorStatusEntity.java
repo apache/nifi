@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,9 +25,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessorStatusDTO.
  */
 @XmlRootElement(name = "processorStatusEntity")
-public class ProcessorStatusEntity extends Entity {
+public class ProcessorStatusEntity extends Entity implements ReadablePermission {
 
     private ProcessorStatusDTO processorStatus;
+    private Boolean canRead;
 
     /**
      * The ProcessorStatusDTO that is being serialized.
@@ -41,4 +43,13 @@ public class ProcessorStatusEntity extends Entity {
         this.processorStatus = processorStatus;
     }
 
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 }

@@ -23,6 +23,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMer
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpiontMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ControllerConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceReferenceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
@@ -33,8 +34,12 @@ import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpiontMe
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowSnippetEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FunnelEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FunnelsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.GroupStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.InputPortsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.LabelEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.LabelsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ListFlowFilesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.OutputPortsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
@@ -107,9 +112,14 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
+        endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());
         endpointMergers.add(new FlowConfigurationEndpointMerger());
         endpointMergers.add(new TemplatesEndpointMerger());
+        endpointMergers.add(new LabelEndpointMerger());
+        endpointMergers.add(new LabelsEndpointMerger());
+        endpointMergers.add(new FunnelEndpointMerger());
+        endpointMergers.add(new FunnelsEndpointMerger());
     }
 
     public StandardHttpResponseMerger() {
@@ -141,10 +151,17 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         final Set<NodeResponse> successResponses = nodeResponses.stream().filter(p -> p.is2xx()).collect(Collectors.toSet());
         final Set<NodeResponse> problematicResponses = nodeResponses.stream().filter(p -> !p.is2xx()).collect(Collectors.toSet());
 
-        // Choose any of the successful responses to be the 'chosen one'.
-        final NodeResponse clientResponse = successResponses.iterator().next();
-
-        final EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
+        final NodeResponse clientResponse;
+        if ("GET".equalsIgnoreCase(httpMethod) && problematicResponses.size() > 0) {
+            // If there are problematic responses, at least one of the nodes couldn't complete the request
+            clientResponse = problematicResponses.stream().filter(p -> p.getStatus() >= 400 && p.getStatus() < 500).findFirst().orElse(
+                    problematicResponses.stream().filter(p -> p.getStatus() > 500).findFirst().orElse(problematicResponses.iterator().next()));
+            return clientResponse;
+        } else {
+            // Choose any of the successful responses to be the 'chosen one'.
+            clientResponse = successResponses.iterator().next();
+        }
+        EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
         if (merger == null) {
             return clientResponse;
         }

@@ -16,16 +16,19 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a StatusHistoryDTO.
  */
 @XmlRootElement(name = "statusHistoryEntity")
-public class StatusHistoryEntity extends Entity {
+public class StatusHistoryEntity extends Entity implements ReadablePermission {
 
     private StatusHistoryDTO statusHistory;
+    private Boolean canRead;
 
     /**
      * The StatusHistoryDTO that is being serialized.
@@ -40,4 +43,13 @@ public class StatusHistoryEntity extends Entity {
         this.statusHistory = statusHistory;
     }
 
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 }

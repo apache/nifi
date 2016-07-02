@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import javax.xml.bind.annotation.XmlType;
-
 import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import javax.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the status of a processor.

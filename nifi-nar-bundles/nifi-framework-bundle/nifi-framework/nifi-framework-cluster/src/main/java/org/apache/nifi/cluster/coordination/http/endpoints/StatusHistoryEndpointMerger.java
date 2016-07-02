@@ -21,6 +21,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -111,10 +112,15 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
         StatusHistoryDTO lastStatusHistory = null;
         final List<NodeStatusSnapshotsDTO> nodeStatusSnapshots = new ArrayList<>(successfulResponses.size());
+        LinkedHashMap<String, String> noReadPermissionsComponentDetails = null;
         for (final NodeResponse nodeResponse : successfulResponses) {
             final StatusHistoryEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
             final StatusHistoryDTO nodeStatus = nodeResponseEntity.getStatusHistory();
             lastStatusHistory = nodeStatus;
+            if (noReadPermissionsComponentDetails == null && !nodeResponseEntity.getCanRead()) {
+                // If component details from a history with no read permissions is encountered for the first time, hold on to them to be used in the merged response
+                noReadPermissionsComponentDetails = nodeStatus.getComponentDetails();
+            }
 
             final NodeIdentifier nodeId = nodeResponse.getNodeId();
             final NodeStatusSnapshotsDTO nodeStatusSnapshot = new NodeStatusSnapshotsDTO();
@@ -130,12 +136,13 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         clusterStatusHistory.setGenerated(new Date());
         clusterStatusHistory.setNodeSnapshots(nodeStatusSnapshots);
         if (lastStatusHistory != null) {
-            clusterStatusHistory.setComponentDetails(lastStatusHistory.getComponentDetails());
+            clusterStatusHistory.setComponentDetails(noReadPermissionsComponentDetails == null ? lastStatusHistory.getComponentDetails() : noReadPermissionsComponentDetails);
             clusterStatusHistory.setFieldDescriptors(lastStatusHistory.getFieldDescriptors());
         }
 
         final StatusHistoryEntity clusterEntity = new StatusHistoryEntity();
         clusterEntity.setStatusHistory(clusterStatusHistory);
+        clusterEntity.setCanRead(noReadPermissionsComponentDetails == null);
 
         return new NodeResponse(clientResponse, clusterEntity);
     }

@@ -30,7 +30,7 @@ import java.util.Date;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ControllerConfigurationDTO.
  */
 @XmlRootElement(name = "controllerConfigurationEntity")
-public class ControllerConfigurationEntity extends Entity {
+public class ControllerConfigurationEntity extends Entity implements Permissible<ControllerConfigurationDTO> {
 
     private Date currentTime;
     private ControllerConfigurationDTO controllerConfiguration;
@@ -63,11 +63,11 @@ public class ControllerConfigurationEntity extends Entity {
     @ApiModelProperty(
         value = "The controller configuration."
     )
-    public ControllerConfigurationDTO getControllerConfiguration() {
+    public ControllerConfigurationDTO getComponent() {
         return controllerConfiguration;
     }
 
-    public void setControllerConfiguration(ControllerConfigurationDTO controllerConfiguration) {
+    public void setComponent(ControllerConfigurationDTO controllerConfiguration) {
         this.controllerConfiguration = controllerConfiguration;
     }
 

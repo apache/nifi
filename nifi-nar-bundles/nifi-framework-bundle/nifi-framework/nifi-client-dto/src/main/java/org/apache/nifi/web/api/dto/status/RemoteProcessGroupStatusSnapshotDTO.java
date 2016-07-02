@@ -31,7 +31,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     private String name;
     private String targetUri;
     private String transmissionStatus;
-    private Integer activeThreadCount;
+    private Integer activeThreadCount = 0;
 
     private Integer flowFilesSent = 0;
     private Long bytesSent = 0L;
@@ -174,7 +174,6 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesReceived = bytesReceived;
     }
 
-
     @Override
     public RemoteProcessGroupStatusSnapshotDTO clone() {
         final RemoteProcessGroupStatusSnapshotDTO other = new RemoteProcessGroupStatusSnapshotDTO();
@@ -193,5 +192,4 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
 
         return other;
     }
-
 }

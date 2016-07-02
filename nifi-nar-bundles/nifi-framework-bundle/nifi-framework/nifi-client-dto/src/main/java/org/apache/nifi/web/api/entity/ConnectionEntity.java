@@ -28,7 +28,7 @@ import java.util.List;
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a ConnectionDTO.
  */
 @XmlRootElement(name = "connectionEntity")
-public class ConnectionEntity extends ComponentEntity {
+public class ConnectionEntity extends ComponentEntity implements Permissible<ConnectionDTO> {
 
     private ConnectionDTO component;
     private ConnectionStatusDTO status;

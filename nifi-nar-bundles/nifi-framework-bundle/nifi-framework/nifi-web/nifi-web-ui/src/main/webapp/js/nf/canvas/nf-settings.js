@@ -62,7 +62,7 @@ nf.Settings = (function () {
                     'version': version
                 }
             }),
-            'controllerConfiguration': configuration
+            'component': configuration
         };
 
         // save the new configuration details
@@ -860,8 +860,8 @@ nf.Settings = (function () {
 
                 if (response.permissions.canWrite) {
                     // populate the settings
-                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxEventDrivenThreadCount);
+                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.component.maxTimerDrivenThreadCount);
+                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.component.maxEventDrivenThreadCount);
 
                     setEditable(true);
 
@@ -872,8 +872,8 @@ nf.Settings = (function () {
                 } else {
                     if (response.permissions.canRead) {
                         // populate the settings
-                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxEventDrivenThreadCount);
+                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.component.maxTimerDrivenThreadCount);
+                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.component.maxEventDrivenThreadCount);
                     } else {
                         setUnauthorizedText();
                     }

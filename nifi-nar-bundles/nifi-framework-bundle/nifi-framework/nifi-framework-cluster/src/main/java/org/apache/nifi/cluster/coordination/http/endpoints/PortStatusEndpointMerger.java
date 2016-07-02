@@ -17,18 +17,21 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.cluster.manager.ComponentEntityStatusMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.NodePortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 
-public class PortStatusEndpointMerger extends AbstractNodeStatusEndpoint<PortStatusEntity, PortStatusDTO> {
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+public class PortStatusEndpointMerger extends AbstractSingleEntityEndpoint<PortStatusEntity> implements ComponentEntityStatusMerger<PortStatusDTO> {
     public static final Pattern INPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/input-ports/[a-f0-9\\-]{36}/status");
     public static final Pattern OUTPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/output-ports/[a-f0-9\\-]{36}/status");
 
@@ -43,17 +46,21 @@ public class PortStatusEndpointMerger extends AbstractNodeStatusEndpoint<PortSta
     }
 
     @Override
-    protected PortStatusDTO getDto(PortStatusEntity entity) {
-        return entity.getPortStatus();
-    }
+    protected void mergeResponses(PortStatusEntity clientEntity, Map<NodeIdentifier, PortStatusEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+        final PortStatusDTO mergedPortStatus = clientEntity.getPortStatus();
+        mergedPortStatus.setNodeSnapshots(new ArrayList<>());
 
-    @Override
-    protected void mergeResponses(PortStatusDTO clientDto, Map<NodeIdentifier, PortStatusDTO> dtoMap, NodeIdentifier selectedNodeId) {
-        final PortStatusDTO mergedPortStatus = clientDto;
-        mergedPortStatus.setNodeSnapshots(new ArrayList<NodePortStatusSnapshotDTO>());
+        final NodeIdentifier selectedNodeId = entityMap.entrySet().stream()
+                .filter(e -> e.getValue() == clientEntity)
+                .map(e -> e.getKey())
+                .findFirst()
+                .orElse(null);
 
+        if (selectedNodeId == null) {
+            throw new IllegalArgumentException("Attempted to merge Status request but could not find the appropriate Node Identifier");
+        }
         final NodePortStatusSnapshotDTO selectedNodeSnapshot = new NodePortStatusSnapshotDTO();
-        selectedNodeSnapshot.setStatusSnapshot(clientDto.getAggregateSnapshot().clone());
+        selectedNodeSnapshot.setStatusSnapshot(mergedPortStatus.getAggregateSnapshot().clone());
         selectedNodeSnapshot.setAddress(selectedNodeId.getApiAddress());
         selectedNodeSnapshot.setApiPort(selectedNodeId.getApiPort());
         selectedNodeSnapshot.setNodeId(selectedNodeId.getId());
@@ -61,15 +68,22 @@ public class PortStatusEndpointMerger extends AbstractNodeStatusEndpoint<PortSta
         mergedPortStatus.getNodeSnapshots().add(selectedNodeSnapshot);
 
         // merge the other nodes
-        for (final Map.Entry<NodeIdentifier, PortStatusDTO> entry : dtoMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, PortStatusEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final PortStatusDTO nodePortStatus = entry.getValue();
-            if (nodePortStatus == clientDto) {
+            final PortStatusEntity nodePortStatusEntity = entry.getValue();
+            final PortStatusDTO nodePortStatus = nodePortStatusEntity.getPortStatus();
+            if (nodePortStatus == mergedPortStatus) {
                 continue;
             }
 
-            StatusMerger.merge(mergedPortStatus, nodePortStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            mergeStatus(mergedPortStatus, clientEntity.getCanRead(), nodePortStatus, nodePortStatusEntity.getCanRead(), nodeId);
         }
     }
 
+    @Override
+    public void mergeStatus(PortStatusDTO clientStatus, boolean clientStatusReadablePermission, PortStatusDTO status, boolean statusReadablePermission,
+                            NodeIdentifier statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
+    }
 }

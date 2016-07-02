@@ -18,13 +18,25 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ProcessorEntityMerger {
+public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEntity>, ComponentEntityStatusMerger<ProcessorStatusDTO> {
+    @Override
+    public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final ProcessorEntity entityStatus = entry.getValue();
+            if (entityStatus != clientEntity) {
+                mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
+            }
+        }
+    }
 
     /**
      * Merges the ProcessorEntity responses.
@@ -32,7 +44,7 @@ public class ProcessorEntityMerger {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
-    public static void mergeProcessors(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
+    public void mergeComponents(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
         final ProcessorDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ProcessorDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
@@ -41,17 +53,14 @@ public class ProcessorEntityMerger {
             dtoMap.put(entry.getKey(), nodeProcDto);
         }
 
-        for (final Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final ProcessorEntity entity = entry.getValue();
-            if (entity != clientEntity) {
-                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
-            }
-        }
-
-        ComponentEntityMerger.mergeComponents(clientEntity, entityMap);
-
         mergeDtos(clientDto, dtoMap);
+    }
+
+    @Override
+    public void mergeStatus(ProcessorStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessorStatusDTO status, boolean statusReadablePermission, NodeIdentifier
+            statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 
     private static void mergeDtos(final ProcessorDTO clientDto, final Map<NodeIdentifier, ProcessorDTO> dtoMap) {

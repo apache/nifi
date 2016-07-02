@@ -110,7 +110,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.PropertyDescriptorDTO.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
@@ -141,7 +140,12 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -900,73 +904,86 @@ public final class DtoFactory {
         return processGroupStatusDto;
     }
 
-    public ProcessGroupStatusDTO createProcessGroupStatusDto(final ProcessGroupStatus processGroupStatus) {
+    public ProcessGroupStatusDTO createProcessGroupStatusDto(final ProcessGroup processGroup, final ProcessGroupStatus processGroupStatus) {
         final ProcessGroupStatusDTO processGroupStatusDto = createConciseProcessGroupStatusDto(processGroupStatus);
         final ProcessGroupStatusSnapshotDTO snapshot = processGroupStatusDto.getAggregateSnapshot();
 
         // processor status
-        final Collection<ProcessorStatusSnapshotDTO> processorStatDtoCollection = new ArrayList<>();
-        snapshot.setProcessorStatusSnapshots(processorStatDtoCollection);
+        final Collection<ProcessorStatusSnapshotEntity> processorStatusSnapshotEntities = new ArrayList<>();
+        snapshot.setProcessorStatusSnapshots(processorStatusSnapshotEntities);
         final Collection<ProcessorStatus> processorStatusCollection = processGroupStatus.getProcessorStatus();
         if (processorStatusCollection != null) {
             for (final ProcessorStatus processorStatus : processorStatusCollection) {
                 final ProcessorStatusDTO processorStatusDto = createProcessorStatusDto(processorStatus);
-                processorStatDtoCollection.add(processorStatusDto.getAggregateSnapshot());
+                final ProcessorNode processor = processGroup.findProcessor(processorStatusDto.getId());
+                final PermissionsDTO processorPermissions = createPermissionsDto(processor);
+                processorStatusSnapshotEntities.add(entityFactory.createProcessorStatusSnapshotEntity(processorStatusDto.getAggregateSnapshot(), processorPermissions));
             }
         }
 
         // connection status
-        final Collection<ConnectionStatusSnapshotDTO> connectionStatusDtoCollection = new ArrayList<>();
+        final Collection<ConnectionStatusSnapshotEntity> connectionStatusDtoCollection = new ArrayList<>();
         snapshot.setConnectionStatusSnapshots(connectionStatusDtoCollection);
         final Collection<ConnectionStatus> connectionStatusCollection = processGroupStatus.getConnectionStatus();
         if (connectionStatusCollection != null) {
             for (final ConnectionStatus connectionStatus : connectionStatusCollection) {
                 final ConnectionStatusDTO connectionStatusDto = createConnectionStatusDto(connectionStatus);
-                connectionStatusDtoCollection.add(connectionStatusDto.getAggregateSnapshot());
+                final Connection connection = processGroup.findConnection(connectionStatusDto.getId());
+                final PermissionsDTO connectionPermissions = createPermissionsDto(connection);
+                connectionStatusDtoCollection.add(entityFactory.createConnectionStatusSnapshotEntity(connectionStatusDto.getAggregateSnapshot(), connectionPermissions));
             }
         }
 
         // local child process groups
-        final Collection<ProcessGroupStatusSnapshotDTO> childProcessGroupStatusDtoCollection = new ArrayList<>();
+        final Collection<ProcessGroupStatusSnapshotEntity> childProcessGroupStatusDtoCollection = new ArrayList<>();
         snapshot.setProcessGroupStatusSnapshots(childProcessGroupStatusDtoCollection);
         final Collection<ProcessGroupStatus> childProcessGroupStatusCollection = processGroupStatus.getProcessGroupStatus();
         if (childProcessGroupStatusCollection != null) {
             for (final ProcessGroupStatus childProcessGroupStatus : childProcessGroupStatusCollection) {
-                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(childProcessGroupStatus);
-                childProcessGroupStatusDtoCollection.add(childProcessGroupStatusDto.getAggregateSnapshot());
+                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(processGroup, childProcessGroupStatus);
+                final ProcessGroup childProcessGroup = processGroup.findProcessGroup(childProcessGroupStatusDto.getId());
+                final PermissionsDTO childProcessGroupPermissions = createPermissionsDto(childProcessGroup);
+                childProcessGroupStatusDtoCollection.add(entityFactory.createProcessGroupStatusSnapshotEntity(childProcessGroupStatusDto.getAggregateSnapshot(), childProcessGroupPermissions));
             }
         }
 
         // remote child process groups
-        final Collection<RemoteProcessGroupStatusSnapshotDTO> childRemoteProcessGroupStatusDtoCollection = new ArrayList<>();
+        final Collection<RemoteProcessGroupStatusSnapshotEntity> childRemoteProcessGroupStatusDtoCollection = new ArrayList<>();
         snapshot.setRemoteProcessGroupStatusSnapshots(childRemoteProcessGroupStatusDtoCollection);
         final Collection<RemoteProcessGroupStatus> childRemoteProcessGroupStatusCollection = processGroupStatus.getRemoteProcessGroupStatus();
         if (childRemoteProcessGroupStatusCollection != null) {
             for (final RemoteProcessGroupStatus childRemoteProcessGroupStatus : childRemoteProcessGroupStatusCollection) {
                 final RemoteProcessGroupStatusDTO childRemoteProcessGroupStatusDto = createRemoteProcessGroupStatusDto(childRemoteProcessGroupStatus);
-                childRemoteProcessGroupStatusDtoCollection.add(childRemoteProcessGroupStatusDto.getAggregateSnapshot());
+                final RemoteProcessGroup remoteProcessGroup = processGroup.findRemoteProcessGroup(childRemoteProcessGroupStatusDto.getId());
+                final PermissionsDTO remoteProcessGroupPermissions = createPermissionsDto(remoteProcessGroup);
+                childRemoteProcessGroupStatusDtoCollection.add(entityFactory.createRemoteProcessGroupStatusSnapshotEntity(childRemoteProcessGroupStatusDto.getAggregateSnapshot(),
+                        remoteProcessGroupPermissions));
             }
         }
 
         // input ports
-        final Collection<PortStatusSnapshotDTO> inputPortStatusDtoCollection = new ArrayList<>();
+        final Collection<PortStatusSnapshotEntity> inputPortStatusDtoCollection = new ArrayList<>();
         snapshot.setInputPortStatusSnapshots(inputPortStatusDtoCollection);
         final Collection<PortStatus> inputPortStatusCollection = processGroupStatus.getInputPortStatus();
         if (inputPortStatusCollection != null) {
             for (final PortStatus portStatus : inputPortStatusCollection) {
                 final PortStatusDTO portStatusDto = createPortStatusDto(portStatus);
-                inputPortStatusDtoCollection.add(portStatusDto.getAggregateSnapshot());
+                final Port inputPort = processGroup.findInputPort(portStatus.getId());
+                final PermissionsDTO inputPortPermissions = createPermissionsDto(inputPort);
+                inputPortStatusDtoCollection.add(entityFactory.createPortStatusSnapshotEntity(portStatusDto.getAggregateSnapshot(), inputPortPermissions));
             }
         }
 
         // output ports
-        final Collection<PortStatusSnapshotDTO> outputPortStatusDtoCollection = new ArrayList<>();
+        final Collection<PortStatusSnapshotEntity> outputPortStatusDtoCollection = new ArrayList<>();
         snapshot.setOutputPortStatusSnapshots(outputPortStatusDtoCollection);
         final Collection<PortStatus> outputPortStatusCollection = processGroupStatus.getOutputPortStatus();
         if (outputPortStatusCollection != null) {
             for (final PortStatus portStatus : outputPortStatusCollection) {
                 final PortStatusDTO portStatusDto = createPortStatusDto(portStatus);
-                outputPortStatusDtoCollection.add(portStatusDto.getAggregateSnapshot());
+                final Port outputPort = processGroup.findOutputPort(portStatus.getId());
+                final PermissionsDTO outputPortPermissions = createPermissionsDto(outputPort);
+                outputPortStatusDtoCollection.add(entityFactory.createPortStatusSnapshotEntity(portStatusDto.getAggregateSnapshot(), outputPortPermissions));
             }
         }
 
