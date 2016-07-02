@@ -1314,6 +1314,14 @@ public class TestQuery {
         verifyEquals("${line:getDelimitedField(2)}", attributes, " 32");
     }
 
+    @Test
+    public void testEscapeJson() {
+        final Map<String, String> attributes = new HashMap<>();
+
+        attributes.put("string", "making air \"QUOTES\".");
+        verifyEquals("${string:escapeJson()}", attributes, "making air \\\"QUOTES\\\".");
+      }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));

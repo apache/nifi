@@ -93,6 +93,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUppe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.EscapeJsonEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.NumberLiteralEvaluator;
@@ -191,6 +192,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_JSON;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
@@ -921,6 +923,10 @@ public class Query {
             case URL_DECODE: {
                 verifyArgCount(argEvaluators, 0, "urlDecode");
                 return addToken(new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
+            }
+            case ESCAPE_JSON: {
+                verifyArgCount(argEvaluators, 0, "escapeJson");
+                return addToken(new EscapeJsonEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
