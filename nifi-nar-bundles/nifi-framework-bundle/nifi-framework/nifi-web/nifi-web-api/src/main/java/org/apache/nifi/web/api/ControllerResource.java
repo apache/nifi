@@ -184,7 +184,7 @@ public class ControllerResource extends ApplicationResource {
                     required = true
             ) final ControllerConfigurationEntity configEntity) {
 
-        if (configEntity == null || configEntity.getControllerConfiguration() == null) {
+        if (configEntity == null || configEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller configuration must be specified");
         }
 
@@ -205,7 +205,7 @@ public class ControllerResource extends ApplicationResource {
                 },
                 null,
                 () -> {
-                    final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getControllerConfiguration());
+                    final ControllerConfigurationEntity entity = serviceFacade.updateControllerConfiguration(revision, configEntity.getComponent());
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );

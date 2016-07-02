@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class ReportingTasksEntityMerger {
 
+    private static final ReportingTaskEntityMerger reportingTaskEntityMerger = new ReportingTaskEntityMerger();
+
     /**
      * Merges multiple ReportingTaskEntity responses.
      *
@@ -32,7 +34,7 @@ public class ReportingTasksEntityMerger {
      */
     public static void mergeReportingTasks(final Set<ReportingTaskEntity> reportingTaskEntities, final Map<String, Map<NodeIdentifier, ReportingTaskEntity>> entityMap) {
         for (final ReportingTaskEntity entity : reportingTaskEntities) {
-            ReportingTaskEntityMerger.mergeReportingTasks(entity, entityMap.get(entity.getId()));
+            reportingTaskEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

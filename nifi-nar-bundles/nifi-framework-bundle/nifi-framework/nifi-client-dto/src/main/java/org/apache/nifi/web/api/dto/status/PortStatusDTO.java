@@ -24,16 +24,18 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 @XmlType(name = "portStatus")
-public class PortStatusDTO {
+public class PortStatusDTO implements ReadablePermission {
     private String id;
     private String groupId;
     private String name;
     private Boolean transmitting;
     private String runStatus;
     private Date statsLastRefreshed;
+    private Boolean canRead;
 
     private PortStatusSnapshotDTO aggregateSnapshot;
     private List<NodePortStatusSnapshotDTO> nodeSnapshots;
@@ -122,5 +124,15 @@ public class PortStatusDTO {
 
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
+    }
+
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
     }
 }

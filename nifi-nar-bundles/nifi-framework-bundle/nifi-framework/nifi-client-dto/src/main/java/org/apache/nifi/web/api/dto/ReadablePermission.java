@@ -18,48 +18,12 @@ package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
-import javax.xml.bind.annotation.XmlType;
-
-/**
- * Details for the access configuration.
- */
-@XmlType(name = "permission")
-public class PermissionsDTO implements ReadablePermission, WritablePermission {
-
-    private Boolean canRead;
-    private Boolean canWrite;
-
-    /**
-     * @return Indicates whether the user can read a given resource.
-     */
+public interface ReadablePermission {
     @ApiModelProperty(
             value = "Indicates whether the user can read a given resource.",
             readOnly = true
     )
-    @Override
-    public Boolean getCanRead() {
-        return canRead;
-    }
+    Boolean getCanRead();
 
-    @Override
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
-    }
-
-    /**
-     * @return Indicates whether the user can write a given resource.
-     */
-    @ApiModelProperty(
-            value = "Indicates whether the user can write a given resource.",
-            readOnly = true
-    )
-    @Override
-    public Boolean getCanWrite() {
-        return canWrite;
-    }
-
-    @Override
-    public void setCanWrite(Boolean canWrite) {
-        this.canWrite = canWrite;
-    }
+    void setCanRead(Boolean canRead);
 }

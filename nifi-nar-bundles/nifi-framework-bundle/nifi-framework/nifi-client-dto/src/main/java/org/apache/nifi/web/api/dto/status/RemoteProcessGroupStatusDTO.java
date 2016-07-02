@@ -18,6 +18,7 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -26,13 +27,14 @@ import java.util.Date;
 import java.util.List;
 
 @XmlType(name = "remoteProcessGroupStatus")
-public class RemoteProcessGroupStatusDTO {
+public class RemoteProcessGroupStatusDTO implements ReadablePermission {
     private String groupId;
     private String id;
     private String name;
     private String targetUri;
     private String transmissionStatus;
     private Date statsLastRefreshed;
+    private Boolean canRead;
 
     private RemoteProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeRemoteProcessGroupStatusSnapshotDTO> nodeSnapshots;
@@ -117,5 +119,15 @@ public class RemoteProcessGroupStatusDTO {
 
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
+    }
+
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
     }
 }

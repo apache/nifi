@@ -24,13 +24,15 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 @XmlType(name = "processGroupStatus")
-public class ProcessGroupStatusDTO implements Cloneable {
+public class ProcessGroupStatusDTO implements Cloneable, ReadablePermission {
     private String id;
     private String name;
     private Date statsLastRefreshed;
+    private Boolean canRead;
 
     private ProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots;
@@ -44,7 +46,7 @@ public class ProcessGroupStatusDTO implements Cloneable {
         this.id = id;
     }
 
-    @ApiModelProperty("The name of the PRocess Group")
+    @ApiModelProperty("The name of the Process Group")
     public String getName() {
         return name;
     }
@@ -87,5 +89,15 @@ public class ProcessGroupStatusDTO implements Cloneable {
 
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
+    }
+
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
     }
 }

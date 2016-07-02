@@ -25,21 +25,24 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 @XmlType(name = "connectionStatus")
-public class ConnectionStatusDTO implements Cloneable {
+public class ConnectionStatusDTO implements Cloneable, ReadablePermission {
     private String id;
     private String groupId;
     private String name;
     private Date statsLastRefreshed;
+    private Boolean canRead;
 
     private String sourceId;
     private String sourceName;
     private String destinationId;
-    private String destinationName;
 
+    private String destinationName;
     private ConnectionStatusSnapshotDTO aggregateSnapshot;
+
     private List<NodeConnectionStatusSnapshotDTO> nodeSnapshots;
 
     @ApiModelProperty("The ID of the connection")
@@ -134,6 +137,16 @@ public class ConnectionStatusDTO implements Cloneable {
     }
 
     @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
+
+    @Override
     public ConnectionStatusDTO clone() {
         final ConnectionStatusDTO other = new ConnectionStatusDTO();
         other.setDestinationId(getDestinationId());
@@ -144,6 +157,8 @@ public class ConnectionStatusDTO implements Cloneable {
         other.setSourceId(getSourceId());
         other.setSourceName(getSourceName());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
+        other.setCanRead(getCanRead());
+
 
         final List<NodeConnectionStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
         final List<NodeConnectionStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());

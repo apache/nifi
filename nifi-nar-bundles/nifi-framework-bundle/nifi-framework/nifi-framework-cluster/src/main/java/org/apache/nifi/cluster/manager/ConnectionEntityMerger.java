@@ -17,24 +17,32 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
-public class ConnectionEntityMerger {
+public class ConnectionEntityMerger implements ComponentEntityMerger<ConnectionEntity>, ComponentEntityStatusMerger<ConnectionStatusDTO> {
+    @Override
+    public void merge(ConnectionEntity clientEntity, Map<NodeIdentifier, ConnectionEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+    }
 
     /**
-     * Merges the ConnectionEntity responses.
+     * Merges the ConnectionEntity status responses.
      *
-     * @param clientEntity the entity being returned to the client
-     * @param entityMap all node responses
+     * @param clientEntityStatus the entity status being returned to the client
+     * @param entityStatusMap all node response statuses
      */
-    public static void mergeConnections(final ConnectionEntity clientEntity, final Map<NodeIdentifier, ConnectionEntity> entityMap) {
-        for (final Map.Entry<NodeIdentifier, ConnectionEntity> entry : entityMap.entrySet()) {
+    @Override
+    public void merge(ConnectionStatusDTO clientEntityStatus, Map<NodeIdentifier, ConnectionStatusDTO> entityStatusMap) {
+        for (final Map.Entry<NodeIdentifier, ConnectionStatusDTO> entry : entityStatusMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final ConnectionEntity entity = entry.getValue();
-            if (entity != clientEntity) {
-                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            final ConnectionStatusDTO entityStatus = entry.getValue();
+            if (entityStatus != clientEntityStatus) {
+                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
             }
         }
     }

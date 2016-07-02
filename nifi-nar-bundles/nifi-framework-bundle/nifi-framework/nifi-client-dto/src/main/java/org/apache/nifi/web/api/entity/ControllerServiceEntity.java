@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.ControllerServiceDTO;
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a controller service.
  */
 @XmlRootElement(name = "controllerServiceEntity")
-public class ControllerServiceEntity extends ComponentEntity {
+public class ControllerServiceEntity extends ComponentEntity implements Permissible<ControllerServiceDTO> {
 
     private ControllerServiceDTO component;
 

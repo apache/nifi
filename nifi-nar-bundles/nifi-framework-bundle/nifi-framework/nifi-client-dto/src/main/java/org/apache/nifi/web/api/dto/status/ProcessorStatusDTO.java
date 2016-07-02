@@ -25,19 +25,21 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
  * DTO for serializing the status of a processor.
  */
 @XmlType(name = "processorStatus")
-public class ProcessorStatusDTO implements Cloneable {
+public class ProcessorStatusDTO implements Cloneable, ReadablePermission {
     private String groupId;
     private String id;
     private String name;
     private String type;
     private String runStatus;
     private Date statsLastRefreshed;
+    private boolean canRead;
 
     private ProcessorStatusSnapshotDTO aggregateSnapshot;
     private List<NodeProcessorStatusSnapshotDTO> nodeSnapshots;
@@ -118,6 +120,16 @@ public class ProcessorStatusDTO implements Cloneable {
     }
 
     @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
+
+    @Override
     public ProcessorStatusDTO clone() {
         final ProcessorStatusDTO other = new ProcessorStatusDTO();
         other.setGroupId(getGroupId());
@@ -127,6 +139,7 @@ public class ProcessorStatusDTO implements Cloneable {
         other.setType(getType());
         other.setStatsLastRefreshed(getStatsLastRefreshed());
         other.setAggregateSnapshot(getAggregateSnapshot().clone());
+        other.setCanRead(getCanRead());
 
         final List<NodeProcessorStatusSnapshotDTO> nodeStatuses = getNodeSnapshots();
         final List<NodeProcessorStatusSnapshotDTO> nodeStatusClones = new ArrayList<>(nodeStatuses.size());

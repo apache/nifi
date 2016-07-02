@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<ReportingTaskEntity> implements EndpointResponseMerger {
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
     public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}");
+    private final ReportingTaskEntityMerger reportingTaskEntityMerger = new ReportingTaskEntityMerger();
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -50,6 +51,6 @@ public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<R
 
     @Override
     protected void mergeResponses(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        ReportingTaskEntityMerger.mergeReportingTasks(clientEntity, entityMap);
+        reportingTaskEntityMerger.merge(clientEntity, entityMap);
     }
 }

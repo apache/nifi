@@ -19,16 +19,18 @@ package org.apache.nifi.web.api.dto.status;
 import javax.xml.bind.annotation.XmlType;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 
 /**
  * The status for a port in this NiFi.
  */
 @XmlType(name = "portStatusSnapshot")
-public class PortStatusSnapshotDTO implements Cloneable {
+public class PortStatusSnapshotDTO implements Cloneable, ReadablePermission {
 
     private String id;
     private String groupId;
     private String name;
+    private Boolean canRead;
 
     private Integer activeThreadCount = 0;
     private Integer flowFilesIn = 0;
@@ -174,6 +176,16 @@ public class PortStatusSnapshotDTO implements Cloneable {
     }
 
     @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
+
+    @Override
     public PortStatusSnapshotDTO clone() {
         final PortStatusSnapshotDTO other = new PortStatusSnapshotDTO();
         other.setId(getId());
@@ -188,6 +200,7 @@ public class PortStatusSnapshotDTO implements Cloneable {
         other.setRunStatus(getRunStatus());
         other.setInput(getInput());
         other.setOutput(getOutput());
+        other.setCanRead(getCanRead());
 
         return other;
     }

@@ -107,6 +107,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
+        endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());
         endpointMergers.add(new FlowConfigurationEndpointMerger());
         endpointMergers.add(new TemplatesEndpointMerger());
@@ -141,10 +142,17 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         final Set<NodeResponse> successResponses = nodeResponses.stream().filter(p -> p.is2xx()).collect(Collectors.toSet());
         final Set<NodeResponse> problematicResponses = nodeResponses.stream().filter(p -> !p.is2xx()).collect(Collectors.toSet());
 
-        // Choose any of the successful responses to be the 'chosen one'.
-        final NodeResponse clientResponse = successResponses.iterator().next();
-
-        final EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
+        final NodeResponse clientResponse;
+        if ("GET".equalsIgnoreCase(httpMethod) && problematicResponses.size() > 0) {
+            // If there are problematic responses, at least one of the nodes couldn't complete the request
+            clientResponse = problematicResponses.stream().filter(p -> p.getStatus() >= 400 && p.getStatus() < 500).findFirst().orElse(
+                    problematicResponses.stream().filter(p -> p.getStatus() > 500).findFirst().orElse(problematicResponses.iterator().next()));
+            return clientResponse;
+        } else {
+            // Choose any of the successful responses to be the 'chosen one'.
+            clientResponse = successResponses.iterator().next();
+        }
+        EndpointResponseMerger merger = getEndpointResponseMerger(uri, httpMethod);
         if (merger == null) {
             return clientResponse;
         }

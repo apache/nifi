@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 
 import javax.xml.bind.annotation.XmlType;
 
@@ -24,14 +25,15 @@ import javax.xml.bind.annotation.XmlType;
  * The status of a remote process group in this NiFi.
  */
 @XmlType(name = "remoteProcessGroupStatusSnapshot")
-public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
+public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable, ReadablePermission {
 
     private String id;
     private String groupId;
     private String name;
     private String targetUri;
     private String transmissionStatus;
-    private Integer activeThreadCount;
+    private Integer activeThreadCount = 0;
+    private Boolean canRead;
 
     private Integer flowFilesSent = 0;
     private Long bytesSent = 0L;
@@ -174,6 +176,15 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         this.bytesReceived = bytesReceived;
     }
 
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 
     @Override
     public RemoteProcessGroupStatusSnapshotDTO clone() {
@@ -190,6 +201,7 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         other.setBytesReceived(getBytesReceived());
         other.setReceived(getReceived());
         other.setSent(getSent());
+        other.setCanRead(getCanRead());
 
         return other;
     }

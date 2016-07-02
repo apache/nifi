@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class ControllerServiceEntityMerger {
+public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
     /**
      * Merges the ControllerServiceEntity responses.
@@ -35,7 +35,8 @@ public class ControllerServiceEntityMerger {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
-    public static void mergeControllerServices(final ControllerServiceEntity clientEntity, final Map<NodeIdentifier, ControllerServiceEntity> entityMap) {
+    @Override
+    public void mergeComponents(final ControllerServiceEntity clientEntity, final Map<NodeIdentifier, ControllerServiceEntity> entityMap) {
         final ControllerServiceDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, ControllerServiceDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ControllerServiceEntity> entry : entityMap.entrySet()) {
@@ -43,8 +44,6 @@ public class ControllerServiceEntityMerger {
             final ControllerServiceDTO nodeControllerServiceDto = nodeControllerServiceEntity.getComponent();
             dtoMap.put(entry.getKey(), nodeControllerServiceDto);
         }
-
-        ComponentEntityMerger.mergeComponents(clientEntity, entityMap);
 
         mergeDtos(clientDto, dtoMap);
     }

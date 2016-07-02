@@ -20,14 +20,21 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class RemoteProcessGroupEntityMerger {
+public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<RemoteProcessGroupEntity>, ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
+    @Override
+    public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+    }
 
     /**
      * Merges the RemoteProcessGroupEntity responses.
@@ -35,7 +42,7 @@ public class RemoteProcessGroupEntityMerger {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
-    public static void mergeRemoteProcessGroups(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
+    public void mergeComponents(final RemoteProcessGroupEntity clientEntity, final Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         final RemoteProcessGroupDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
@@ -44,17 +51,18 @@ public class RemoteProcessGroupEntityMerger {
             dtoMap.put(entry.getKey(), nodeProcDto);
         }
 
-        for (final Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
+        mergeDtos(clientDto, dtoMap);
+    }
+
+    @Override
+    public void merge(RemoteProcessGroupStatusDTO clientEntityStatus, Map<NodeIdentifier, RemoteProcessGroupStatusDTO> entityStatusMap) {
+        for (final Map.Entry<NodeIdentifier, RemoteProcessGroupStatusDTO> entry : entityStatusMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final RemoteProcessGroupEntity entity = entry.getValue();
-            if (entity != clientEntity) {
-                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            final RemoteProcessGroupStatusDTO entityStatus = entry.getValue();
+            if (entityStatus != clientEntityStatus) {
+                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
             }
         }
-
-        ComponentEntityMerger.mergeComponents(clientEntity, entityMap);
-
-        mergeDtos(clientDto, dtoMap);
     }
 
     private static void mergeDtos(final RemoteProcessGroupDTO clientDto, final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap) {

@@ -73,6 +73,12 @@ public class StatusMerger {
     }
 
     public static void merge(final ProcessGroupStatusDTO target, final ProcessGroupStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+        }
+
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());
 
         if (target.getNodeSnapshots() != null) {
@@ -89,6 +95,12 @@ public class StatusMerger {
     public static void merge(final ProcessGroupStatusSnapshotDTO target, final ProcessGroupStatusSnapshotDTO toMerge) {
         if (target == null || toMerge == null) {
             return;
+        }
+
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
         }
 
         target.setBytesIn(target.getBytesIn() + toMerge.getBytesIn());
@@ -251,6 +263,14 @@ public class StatusMerger {
     }
 
     public static void merge(final RemoteProcessGroupStatusDTO target, final RemoteProcessGroupStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setTargetUri(toMerge.getTargetUri());
+        }
+
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());
 
         if (target.getNodeSnapshots() != null) {
@@ -265,6 +285,13 @@ public class StatusMerger {
     }
 
     public static void merge(final PortStatusDTO target, final PortStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+        }
+
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());
 
         if (target.getNodeSnapshots() != null) {
@@ -279,6 +306,17 @@ public class StatusMerger {
     }
 
     public static void merge(final ConnectionStatusDTO target, final ConnectionStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setSourceId(toMerge.getSourceId());
+            target.setSourceName(toMerge.getSourceName());
+            target.setDestinationId(toMerge.getDestinationId());
+            target.setDestinationName(toMerge.getDestinationName());
+        }
+
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());
 
         if (target.getNodeSnapshots() != null) {
@@ -293,6 +331,14 @@ public class StatusMerger {
     }
 
     public static void merge(final ProcessorStatusDTO target, final ProcessorStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setType(toMerge.getType());
+        }
+
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());
 
         if (target.getNodeSnapshots() != null) {
@@ -309,6 +355,14 @@ public class StatusMerger {
     public static void merge(final ProcessorStatusSnapshotDTO target, final ProcessorStatusSnapshotDTO toMerge) {
         if (target == null || toMerge == null) {
             return;
+        }
+
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setType(toMerge.getType());
         }
 
         // if the status to merge is invalid allow it to take precedence. whether the
@@ -351,6 +405,17 @@ public class StatusMerger {
             return;
         }
 
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setSourceId(toMerge.getSourceId());
+            target.setSourceName(toMerge.getSourceName());
+            target.setDestinationId(toMerge.getDestinationId());
+            target.setDestinationName(toMerge.getDestinationName());
+        }
+
         target.setFlowFilesIn(target.getFlowFilesIn() + toMerge.getFlowFilesIn());
         target.setBytesIn(target.getBytesIn() + toMerge.getBytesIn());
         target.setFlowFilesOut(target.getFlowFilesOut() + toMerge.getFlowFilesOut());
@@ -371,6 +436,18 @@ public class StatusMerger {
 
 
     public static void merge(final RemoteProcessGroupStatusSnapshotDTO target, final RemoteProcessGroupStatusSnapshotDTO toMerge) {
+        if (target == null || toMerge == null) {
+            return;
+        }
+
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
+            target.setTargetUri(toMerge.getTargetUri());
+        }
+
         final String transmittingValue = TransmissionStatus.Transmitting.name();
         if (transmittingValue.equals(target.getTransmissionStatus()) || transmittingValue.equals(toMerge.getTransmissionStatus())) {
             target.setTransmissionStatus(transmittingValue);
@@ -395,6 +472,13 @@ public class StatusMerger {
     public static void merge(final PortStatusSnapshotDTO target, final PortStatusSnapshotDTO toMerge) {
         if (target == null || toMerge == null) {
             return;
+        }
+
+        if (target.getCanRead() && !toMerge.getCanRead()) {
+            target.setCanRead(toMerge.getCanRead());
+            target.setGroupId(toMerge.getGroupId());
+            target.setId(toMerge.getId());
+            target.setName(toMerge.getName());
         }
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());

@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class ConnectionsEntityMerger {
 
+    private static final ConnectionEntityMerger connectionEntityMerger = new ConnectionEntityMerger();
+
     /**
      * Merges multiple ConnectionEntity responses.
      *
@@ -32,7 +34,7 @@ public class ConnectionsEntityMerger {
      */
     public static void mergeConnections(final Set<ConnectionEntity> connectionEntities, final Map<String, Map<NodeIdentifier, ConnectionEntity>> entityMap) {
         for (final ConnectionEntity entity : connectionEntities) {
-            ConnectionEntityMerger.mergeConnections(entity, entityMap.get(entity.getId()));
+            connectionEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

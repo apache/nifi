@@ -17,24 +17,11 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
 
 import java.util.Map;
-import java.util.Set;
 
-public class ProcessorsEntityMerger {
+public interface ComponentEntityStatusMerger<StatusDtoType> {
 
-    private static final ProcessorEntityMerger processorEntityMerger = new ProcessorEntityMerger();
+    void merge(final StatusDtoType clientEntityStatus, final Map<NodeIdentifier, StatusDtoType> entityStatusMap);
 
-    /**
-     * Merges multiple ProcessorEntity responses.
-     *
-     * @param processorEntities entities being returned to the client
-     * @param entityMap all node responses
-     */
-    public static void mergeProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, Map<NodeIdentifier, ProcessorEntity>> entityMap) {
-        for (final ProcessorEntity entity : processorEntities) {
-            processorEntityMerger.merge(entity, entityMap.get(entity.getId()));
-        }
-    }
 }

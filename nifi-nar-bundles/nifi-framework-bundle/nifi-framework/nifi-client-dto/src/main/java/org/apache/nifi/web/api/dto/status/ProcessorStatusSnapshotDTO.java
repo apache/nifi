@@ -19,18 +19,20 @@ package org.apache.nifi.web.api.dto.status;
 import javax.xml.bind.annotation.XmlType;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.ReadablePermission;
 
 /**
  * DTO for serializing the status of a processor.
  */
 @XmlType(name = "processorStatusSnapshot")
-public class ProcessorStatusSnapshotDTO implements Cloneable {
+public class ProcessorStatusSnapshotDTO implements Cloneable, ReadablePermission {
 
     private String id;
     private String groupId;
     private String name;
     private String type;
     private String runStatus;
+    private Boolean canRead;
 
     private Long bytesRead = 0L;
     private Long bytesWritten = 0L;
@@ -272,12 +274,23 @@ public class ProcessorStatusSnapshotDTO implements Cloneable {
     }
 
     @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
+
+    @Override
     public ProcessorStatusSnapshotDTO clone() {
         final ProcessorStatusSnapshotDTO other = new ProcessorStatusSnapshotDTO();
         other.setId(getId());
         other.setGroupId(getGroupId());
         other.setName(getName());
         other.setType(getType());
+        other.setCanRead(getCanRead());
 
         other.setRunStatus(getRunStatus());
         other.setBytesRead(getBytesRead());

@@ -16,25 +16,22 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 
-import java.util.Map;
-import java.util.Set;
-
-public class ProcessorsEntityMerger {
-
-    private static final ProcessorEntityMerger processorEntityMerger = new ProcessorEntityMerger();
+public class PermissionsDtoMerger {
 
     /**
-     * Merges multiple ProcessorEntity responses.
+     * Merges multiple {@link PermissionsDTO}s.
      *
-     * @param processorEntities entities being returned to the client
-     * @param entityMap all node responses
+     * @param mergedEntityPermissions the {@link PermissionsDTO} representing the merged permissions
+     * @param entityPermissions       an {@link PermissionsDTO} to be merged
      */
-    public static void mergeProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, Map<NodeIdentifier, ProcessorEntity>> entityMap) {
-        for (final ProcessorEntity entity : processorEntities) {
-            processorEntityMerger.merge(entity, entityMap.get(entity.getId()));
+    public static void mergePermissions(PermissionsDTO mergedEntityPermissions, PermissionsDTO entityPermissions) {
+        if (mergedEntityPermissions.getCanRead() && !entityPermissions.getCanRead()) {
+            mergedEntityPermissions.setCanRead(false);
+        }
+        if (mergedEntityPermissions.getCanWrite() && !entityPermissions.getCanWrite()) {
+            mergedEntityPermissions.setCanWrite(false);
         }
     }
 }

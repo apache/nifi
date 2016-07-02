@@ -29,14 +29,15 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ConnectionEndpointMerger extends AbstractSingleEntityEndpoint<ConnectionEntity> implements EndpointResponseMerger {
-    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections");
-    public static final Pattern PROCESSOR_URI_PATTERN = Pattern.compile("/nifi-api/connections/[a-f0-9\\-]{36}");
+    public static final Pattern CONNECTIONS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections");
+    public static final Pattern CONNECTION_URI_PATTERN = Pattern.compile("/nifi-api/connections/[a-f0-9\\-]{36}");
+    private final ConnectionEntityMerger connectionEntityMerger = new ConnectionEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
+        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (CONNECTION_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
-        } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
+        } else if ("POST".equalsIgnoreCase(method) && CONNECTIONS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         }
 
@@ -48,11 +49,10 @@ public class ConnectionEndpointMerger extends AbstractSingleEntityEndpoint<Conne
         return ConnectionEntity.class;
     }
 
-
     @Override
     protected void mergeResponses(final ConnectionEntity clientEntity, final Map<NodeIdentifier, ConnectionEntity> entityMap, final Set<NodeResponse> successfulResponses,
         final Set<NodeResponse> problematicResponses) {
 
-        ConnectionEntityMerger.mergeConnections(clientEntity, entityMap);
+        connectionEntityMerger.merge(clientEntity, entityMap);
     }
 }

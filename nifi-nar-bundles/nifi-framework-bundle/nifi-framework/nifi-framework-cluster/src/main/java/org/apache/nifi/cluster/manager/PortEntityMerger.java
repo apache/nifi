@@ -18,13 +18,21 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-public class PortEntityMerger {
+public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, ComponentEntityStatusMerger<PortStatusDTO> {
+
+    @Override
+    public void merge(PortEntity clientEntity, Map<NodeIdentifier, PortEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+    }
 
     /**
      * Merges the PortEntity responses.
@@ -32,7 +40,8 @@ public class PortEntityMerger {
      * @param clientEntity the entity being returned to the client
      * @param entityMap all node responses
      */
-    public static void mergePorts(final PortEntity clientEntity, final Map<NodeIdentifier, PortEntity> entityMap) {
+    @Override
+    public void mergeComponents(PortEntity clientEntity, Map<NodeIdentifier, PortEntity> entityMap) {
         final PortDTO clientDto = clientEntity.getComponent();
         final Map<NodeIdentifier, PortDTO> dtoMap = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
@@ -41,17 +50,18 @@ public class PortEntityMerger {
             dtoMap.put(entry.getKey(), nodePortDto);
         }
 
-        for (final Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
+        mergeDtos(clientDto, dtoMap);
+    }
+
+    @Override
+    public void merge(PortStatusDTO clientEntityStatus, Map<NodeIdentifier, PortStatusDTO> entityStatusMap) {
+        for (final Map.Entry<NodeIdentifier, PortStatusDTO> entry : entityStatusMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final PortEntity entity = entry.getValue();
-            if (entity != clientEntity) {
-                StatusMerger.merge(clientEntity.getStatus(), entity.getStatus(), nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            final PortStatusDTO entityStatus = entry.getValue();
+            if (entityStatus != clientEntityStatus) {
+                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
             }
         }
-
-        ComponentEntityMerger.mergeComponents(clientEntity, entityMap);
-
-        mergeDtos(clientDto, dtoMap);
     }
 
     private static void mergeDtos(final PortDTO clientDto, final Map<NodeIdentifier, PortDTO> dtoMap) {
