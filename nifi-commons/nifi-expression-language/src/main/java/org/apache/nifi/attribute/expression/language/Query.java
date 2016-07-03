@@ -926,7 +926,7 @@ public class Query {
             }
             case ESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "escapeJson");
-                return addToken(new EscapeJsonEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
+                return addToken(new EscapeJsonEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
