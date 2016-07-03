@@ -18,7 +18,6 @@
 package org.apache.nifi.minifi.bootstrap.util;
 
 
-import org.apache.nifi.controller.FlowSerializationException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.exception.InvalidConfigurationException;
 import org.apache.nifi.minifi.bootstrap.util.schema.ComponentStatusRepositorySchema;
@@ -281,7 +280,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException {
+    private static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException{
         try {
             // create a new, empty document
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -314,9 +313,9 @@ public final class ConfigTransformer {
 
             return new DOMSource(doc);
         } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
-            throw new FlowSerializationException(e);
-        } catch (Exception e) {
-            throw new ConfigurationChangeException("Failed to parse the config YAML while writing the top level of the flow xml", e);
+            throw new ConfigTransformerException(e);
+        } catch (Exception e){
+            throw new ConfigTransformerException("Failed to parse the config YAML while writing the top level of the flow xml", e);
         }
     }
 

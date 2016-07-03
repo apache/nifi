@@ -21,6 +21,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.management.LockInfo;
@@ -42,6 +43,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.minifi.status.StatusRequestException;
 import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,15 +53,15 @@ public class BootstrapListener {
 
     private static final Logger logger = LoggerFactory.getLogger(org.apache.nifi.BootstrapListener.class);
 
-    private final MiNiFi nifi;
+    private final MiNiFi minifi;
     private final int bootstrapPort;
     private final String secretKey;
 
     private volatile Listener listener;
     private volatile ServerSocket serverSocket;
 
-    public BootstrapListener(final MiNiFi nifi, final int bootstrapPort) {
-        this.nifi = nifi;
+    public BootstrapListener(final MiNiFi minifi, final int bootstrapPort) {
+        this.minifi = minifi;
         this.bootstrapPort = bootstrapPort;
         secretKey = UUID.randomUUID().toString();
     }
@@ -197,16 +200,21 @@ public class BootstrapListener {
                                     case RELOAD:
                                         logger.info("Received RELOAD request from Bootstrap");
                                         echoReload(socket.getOutputStream());
-                                        nifi.shutdownHook(true);
+                                        minifi.shutdownHook(true);
                                         return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
                                         echoShutdown(socket.getOutputStream());
-                                        nifi.shutdownHook(false);
+                                        minifi.shutdownHook(false);
                                         return;
                                     case DUMP:
                                         logger.info("Received DUMP request from Bootstrap");
                                         writeDump(socket.getOutputStream());
+                                        break;
+                                    case FLOW_STATUS_REPORT:
+                                        logger.info("Received FLOW_STATUS_REPORT request from Bootstrap");
+                                        String flowStatusRequestString = request.getArgs()[0];
+                                        writeStatusReport(flowStatusRequestString, socket.getOutputStream());
                                         break;
                                 }
                             } catch (final Throwable t) {
@@ -225,6 +233,13 @@ public class BootstrapListener {
                 }
             }
         }
+    }
+
+    private void writeStatusReport(String flowStatusRequestString, final OutputStream out) throws IOException, StatusRequestException {
+        ObjectOutputStream oos = new ObjectOutputStream(out);
+        FlowStatusReport flowStatusReport = minifi.getMinifiServer().getStatusReport(flowStatusRequestString);
+        oos.writeObject(flowStatusReport);
+        oos.close();
     }
 
     private static void writeDump(final OutputStream out) throws IOException {
@@ -390,7 +405,8 @@ public class BootstrapListener {
             RELOAD,
             SHUTDOWN,
             DUMP,
-            PING;
+            PING,
+            FLOW_STATUS_REPORT;
         }
 
         private final RequestType requestType;

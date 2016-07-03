@@ -233,7 +233,7 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump|env)
+    start|stop|run|status|flowStatus|dump|env)
         main "$@"
         ;;
     restart)
@@ -242,6 +242,6 @@ case "$1" in
     run "start"
     ;;
     *)
-        echo "Usage minifi {start|stop|run|restart|status|dump|install}"
+        echo "Usage minifi {start|stop|run|restart|status|flowStatus|dump|install}"
         ;;
 esac

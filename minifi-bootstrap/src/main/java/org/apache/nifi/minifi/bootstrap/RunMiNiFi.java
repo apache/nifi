@@ -25,6 +25,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.lang.reflect.Field;
@@ -61,6 +62,7 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeExcepti
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.Tuple;
@@ -107,6 +109,7 @@ public class RunMiNiFi {
     public static final String RELOAD_CMD = "RELOAD";
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
+    public static final String FLOW_STATUS_REPORT_CMD = "FLOW_STATUS_REPORT";
 
     public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
     public static final String NOTIFIER_COMPONENTS_KEY = NOTIFIER_PROPERTY_PREFIX + ".components";
@@ -168,6 +171,7 @@ public class RunMiNiFi {
         System.out.println("Status : Determine if there is a running instance of Apache MiNiFi");
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Run : Start a new instance of Apache MiNiFi and monitor the Process, restarting if the instance dies");
+        System.out.println("FlowStatus : Get the status of the MiNiFi flow. For usage, read the System Admin Guide 'FlowStatus Query Options' section.");
         System.out.println();
     }
 
@@ -196,6 +200,7 @@ public class RunMiNiFi {
             case "dump":
             case "restart":
             case "env":
+            case "flowstatus":
                 break;
             default:
                 printUsage();
@@ -227,6 +232,13 @@ public class RunMiNiFi {
                 break;
             case "env":
                 runMiNiFi.env();
+                break;
+            case "flowstatus":
+                if(args.length == 2) {
+                    runMiNiFi.statusReport(args[1]);
+                } else {
+                    System.out.println("The 'flowStatus' command requires input. See the System Admin Guide 'FlowStatus Query Options' section for complete details.");
+                }
                 break;
         }
     }
@@ -495,6 +507,19 @@ public class RunMiNiFi {
             logger.info("Apache MiNiFi is not responding to Ping requests. The process may have died or may be hung");
         } else {
             logger.info("Apache MiNiFi is not running");
+        }
+    }
+
+    public void statusReport(String statusRequest) throws IOException {
+        final Logger logger = cmdLogger;
+        final Status status = getStatus(logger);
+        final Properties props = loadProperties(logger);
+
+        try {
+            FlowStatusReport flowStatusReport = getFlowStatusReport(statusRequest,status.getPort(), props.getProperty("secret.key"), logger);
+            System.out.println(flowStatusReport.toString());
+        } catch (IOException | ClassNotFoundException e) {
+            logger.error("Failed to get Flow Status", e);
         }
     }
 
@@ -1183,6 +1208,35 @@ public class RunMiNiFi {
             }
         } finally {
             shutdownChangeNotifiers();
+        }
+    }
+
+    public FlowStatusReport getFlowStatusReport(String statusRequest, final int port, final String secretKey, final Logger logger) throws IOException, ClassNotFoundException {
+        logger.debug("Pinging {}", port);
+
+        try (final Socket socket = new Socket("localhost", port)) {
+            final OutputStream out = socket.getOutputStream();
+            final String commandWithArgs = FLOW_STATUS_REPORT_CMD + " " + secretKey +" " + statusRequest + "\n";
+            out.write((commandWithArgs).getBytes(StandardCharsets.UTF_8));
+            logger.debug("Sending command to MiNiFi: {}",commandWithArgs);
+            out.flush();
+
+            logger.debug("Sent FLOW_STATUS_REPORT_CMD to MiNiFi");
+            socket.setSoTimeout(5000);
+            final InputStream in = socket.getInputStream();
+
+            ObjectInputStream ois = new ObjectInputStream(in);
+            logger.debug("FLOW_STATUS_REPORT_CMD response received");
+            Object o = ois.readObject();
+            ois.close();
+            out.close();
+            try {
+                return FlowStatusReport.class.cast(o);
+            } catch (ClassCastException e) {
+                String message = String.class.cast(o);
+                throw new IOException("Failed to get status report from MiNiFi due to:" + message);
+            }
+
         }
     }
 

@@ -29,6 +29,15 @@ limitations under the License.
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-nar-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-framework-core</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-runtime</artifactId>
         </dependency>
@@ -39,6 +48,10 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-nar-utils</artifactId>
         </dependency>
     </dependencies>
 

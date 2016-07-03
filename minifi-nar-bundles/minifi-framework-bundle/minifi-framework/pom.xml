@@ -27,8 +27,10 @@ limitations under the License.
     <artifactId>minifi-framework</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>minifi-framework-core</module>
         <module>minifi-runtime</module>
         <module>minifi-resources</module>
+        <module>minifi-nar-utils</module>
     </modules>
     <dependencies>
         <dependency>

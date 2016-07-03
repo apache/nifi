@@ -21,6 +21,141 @@
 
 [NiFi Homepage](http://nifi.apache.org)
 
+# FlowStatus Query Options
+
+From the minifi.sh script there is the ability to query to get the current status of the flow. This section will give an overview of the different options.
+
+Note: Currently the script only accepts one high level option at a time. Also any names of connections, remote process groups or processors that contain ":", ";" or "," will cause parsing errors when querying.
+
+## Processors
+
+To query the processors use the "processor" flag followed by the id of the processor to get (or "all") followed by one of the processor options. The processor options are below.
+
+Option | Description
+------ | -----------
+health | The processor's run status, whether or not it has bulletins and the validation errors (if there are any).
+bulletins | A list of all the current bulletins (if there are any).
+stats | The current stats of the processor. This includes but is not limited to active threads and FlowFiles sent/received.
+
+An example query to get the health, bulletins and stats of the "TailFile" processor is below.
+```
+minifi.sh flowStatus processor:TailFile:health,stats,bulletins
+```
+## Connections
+
+To query the connections use the "connection" flag followed by the id of the connection to get (or "all") followed by one of the connection options. The connection options are below.
+
+Option | Description
+------ | -----------
+health | The connections's queued bytes and queued FlowFile count.
+stats | The current stats of the connection. This includes input/output count and input/output bytes.
+
+An example query to get the health and stats of the "TailToS2S" connection is below.
+```
+minifi.sh flowStatus connection:TailToS2S:health,stats
+```
+
+## Remote Process Groups
+
+To query the remote process groups (RPG) use the "remoteProcessGroup" flag followed by the id of the remote process group to get (or "all") followed by one of the remote process group options. The remote process group options are below.
+
+Option | Description
+------ | -----------
+health | The connections's queued bytes and queued FlowFile count.
+bulletins | A list of all the current bulletins (if there are any).
+authorizationIssues | A list of all the current authorization issues (if there are any).
+inputPorts | A list of every input port for this RPG and their status. Their status includes it's name, whether the target exit and whether it's currently running.
+stats | The current stats of the RPG. This includes the active threads, sent content size and count.
+
+An example query to get the health, bulletins, authorization issues, input ports and stats of all the RPGS is below.
+
+```
+minifi.sh flowStatus remoteprocessinggroup:all:health,bulletins,authorizationIssues,inputports,stats
+```
+
+## Controller Services
+
+To query the controller services use the "controllerServices" flag followed by one of the controller service options. The controller service options are below.
+
+Option | Description
+------ | -----------
+health | The controller service's state, whether or not it has bulletins and any validation errors.
+bulletins | A list of all the current bulletins (if there are any).
+
+An example query to get the health and bulletins of all the controller services is below.
+
+```
+minifi.sh flowStatus controllerservices:health,bulletins
+```
+
+## Provenance Reporting
+
+To query the status of the provenance reporting use the "provenancereporting" flag followed by one of the provenance reporting  options. The provenance reporting options are below.
+
+Option | Description
+------ | -----------
+health | The provenance reporting state, active threads, whether or not it has bulletins and any validation errors.
+bulletins | A list of all the current bulletins (if there are any).
+
+An example query to get the health and bulletins of the provenance reporting is below.
+
+```
+minifi.sh flowStatus provenancereporting:health,bulletins
+```
+
+## Instance
+
+To query the status of the MiNiFi instance in general use the "instance" flag followed by one of the instance options. The instance options are below.
+
+Option | Description
+------ | -----------
+health | The provenance reporting state, active threads, whether or not it has bulletins and any validation errors.
+bulletins | A list of all the current bulletins (if there are any).
+stats | The current stats of the instance. This including but not limited to bytes read/written and FlowFiles sent/transferred.
+
+An example query to get the health, stats and bulletins of the instance is below.
+
+```
+minifi.sh flowStatus instance:health,stats,bulletins
+```
+
+## System Diagnostics
+
+To query the system diagnostics use the "systemdiagnostics" flag followed by one of the system diagnostics options. The system diagnostics options are below.
+
+Option | Description
+------ | -----------
+heap | Information detailing the state of the JVM heap.
+processorstats | The system processor stats. This includes the available processors and load average.
+contentrepositoryusage | A list of each content repository and stats detailing its usage.
+flowfilerepositoryusage | Stats about the current usage of the FlowFile repository.
+garbagecollection | A list of the garbage collection events, detailing their name, collection count and time.
+
+An example query to get the heap, processor stats, content repository usage, FlowFile repository usage and garbage collection from the system diagnostics is below.
+
+```
+minifi.sh flowStatus systemdiagnostics:heap,processorstats,contentrepositoryusage,flowfilerepositoryusage,garbagecollection
+```
+
+## Example
+
+This is an example of a simple query to get the health of all the processors and its results from a simple flow:
+
+```
+User:minifi-0.0.1-SNAPSHOT user ./bin/minifi.sh flowStatus processor:all:health
+
+Java home: /Library/Java/JavaVirtualMachines/jdk1.8.0_74.jdk/Contents/Home
+MiNiFi home: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT
+
+Bootstrap Config File: /Users/user/projects/nifi-minifi/minifi-assembly/target/minifi-0.0.1-SNAPSHOT-bin/minifi-0.0.1-SNAPSHOT/conf/bootstrap.conf
+
+Args
+flowStatus
+processor:all:health
+FlowStatusReport{controllerServiceStatusList=null, processorStatusList=[{name='TailFile', processorHealth={runStatus='Running', hasBulletins=false, validationErrorList=[]}, processorStats=null,
+bulletinList=null}], connectionStatusList=null, remoteProcessingGroupStatusList=null, instanceStatus=null, systemDiagnosticsStatus=null, reportingTaskStatusList=null, errorsGeneratingReport=[]}
+```
+
 
 # Config File
 

@@ -50,6 +50,10 @@ limitations under the License.
             <artifactId>minifi-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-utils</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
             <version>1.17</version>
@@ -74,18 +78,6 @@ limitations under the License.
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-core</artifactId>
-            <version>0.6.0</version>
-            <exclusions>
-                <!-- excluding for IDE purposes, this jar doesn't wind up in the lib/bootstrap folder so isn't safe to use in bootstrap project -->
-                <exclusion>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nifi-properties</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     </dependencies>
 

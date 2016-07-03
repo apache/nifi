@@ -36,7 +36,15 @@ limitations under the License.
             <artifactId>minifi-persistent-provenance-repository</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-data-provenance-utils</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-persistent-provenance-repository</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
-
-
 </project>
