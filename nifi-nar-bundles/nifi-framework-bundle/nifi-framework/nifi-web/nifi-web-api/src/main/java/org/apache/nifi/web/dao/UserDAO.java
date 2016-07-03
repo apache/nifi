@@ -19,6 +19,8 @@ package org.apache.nifi.web.dao;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.web.api.dto.UserDTO;
 
+import java.util.Set;
+
 public interface UserDAO {
 
     /**
@@ -42,6 +44,13 @@ public interface UserDAO {
      * @return The user transfer object
      */
     User getUser(String userId);
+
+    /**
+     * Gets all users.
+     *
+     * @return The user transfer objects
+     */
+    Set<User> getUsers();
 
     /**
      * Updates the specified user.

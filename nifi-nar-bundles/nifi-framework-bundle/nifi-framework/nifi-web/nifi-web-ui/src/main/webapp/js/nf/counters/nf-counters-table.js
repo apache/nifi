@@ -165,11 +165,6 @@ nf.CountersTable = (function () {
                 }
             });
 
-            // listen for browser resize events to update the page size
-            $(window).resize(function () {
-                nf.CountersTable.resetTableSize();
-            });
-
             // initialize the templates table
             var countersColumns = [
                 {id: 'context', name: 'Context', field: 'context', sortable: true, resizable: true},
@@ -178,7 +173,7 @@ nf.CountersTable = (function () {
             ];
 
             // only allow dfm's to reset counters
-            if (nf.Common.isDFM()) {
+            if (nf.Common.canModifyCounters()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                     return '<div title="Connect" class="pointer reset-counter fa fa-undo" style="margin-top: 2px;"></div>';

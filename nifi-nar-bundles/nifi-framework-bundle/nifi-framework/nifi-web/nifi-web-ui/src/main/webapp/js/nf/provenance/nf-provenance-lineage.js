@@ -26,7 +26,7 @@ nf.ProvenanceLineage = (function () {
         sliderTickCount: 75,
         urls: {
             lineage: '../nifi-api/provenance/lineage',
-            events: '../nifi-api/provenance/events/'
+            events: '../nifi-api/provenance-events/'
         }
     };
 
@@ -145,9 +145,9 @@ nf.ProvenanceLineage = (function () {
      */
     var getLineage = function (lineage) {
         var url = lineage.uri;
-        if (nf.Common.isDefinedAndNotNull(lineage.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: lineage.clusterNodeId
+                    clusterNodeId: lineage.request.clusterNodeId
                 });
         }
 
@@ -166,9 +166,9 @@ nf.ProvenanceLineage = (function () {
      */
     var cancelLineage = function (lineage) {
         var url = lineage.uri;
-        if (nf.Common.isDefinedAndNotNull(lineage.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(lineage.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: lineage.clusterNodeId
+                    clusterNodeId: lineage.request.clusterNodeId
                 });
         }
 

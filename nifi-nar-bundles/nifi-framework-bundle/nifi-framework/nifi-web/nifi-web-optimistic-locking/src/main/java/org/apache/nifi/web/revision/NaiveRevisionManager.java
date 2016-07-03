@@ -217,7 +217,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
                 for (final Revision revision : revisionList) {
                     final RevisionLock revisionLock = getRevisionLock(revision);
-                    revisionLock.unlock(revision, revision, user.getUserName());
+                    revisionLock.unlock(revision, revision, user.getIdentity());
                     logger.debug("Relinquished lock for {}", revision);
                 }
 
@@ -300,7 +300,7 @@ public class NaiveRevisionManager implements RevisionManager {
 
                 for (final Revision revision : revisionList) {
                     final Revision updatedRevision = updatedRevisions.get(revision);
-                    getRevisionLock(revision).unlock(revision, updatedRevision, user.getUserName());
+                    getRevisionLock(revision).unlock(revision, updatedRevision, user.getIdentity());
 
                     if (updatedRevision.getVersion() != revision.getVersion()) {
                         logger.debug("Unlocked Revision {} and updated associated Version to {}", revision, updatedRevision.getVersion());

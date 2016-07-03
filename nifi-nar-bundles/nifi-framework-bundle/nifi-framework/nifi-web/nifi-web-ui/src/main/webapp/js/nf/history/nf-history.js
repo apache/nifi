@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the status page
     nf.History.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#history').css('margin', 40);
-        $('#history-refresh-container').css('margin', 40);
-    }
 });
 
 nf.History = (function () {
@@ -37,33 +31,21 @@ nf.History = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/flow/authorities'
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
     /**
-     * Loads the current users authorities.
+     * Loads the current user.
      */
-    var loadAuthorities = function () {
-        // get the banners and update the page accordingly
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve();
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -132,8 +114,8 @@ nf.History = (function () {
         init: function () {
             nf.Storage.init();
             
-            // load the users authorities
-            loadAuthorities().done(function () {
+            // load the current user
+            loadCurrentUser().done(function () {
                 // create the history table
                 nf.HistoryTable.init();
 
@@ -142,8 +124,21 @@ nf.History = (function () {
 
                 // once the table is initialized, finish initializing the page
                 initializeHistoryPage().done(function () {
-                    // configure the initial grid height
-                    nf.HistoryTable.resetTableSize();
+                    var setBodySize = function () {
+                        //alter styles if we're not in the shell
+                        if (top === window) {
+                            $('body').css({
+                                'height': $(window).height() + 'px',
+                                'width': $(window).width() + 'px'
+                            });
+                            
+                            $('#history').css('margin', 40);
+                            $('#history-refresh-container').css('margin', 40);
+                        }
+
+                        // configure the initial grid height
+                        nf.HistoryTable.resetTableSize();
+                    };
 
                     // get the about details
                     $.ajax({
@@ -157,7 +152,13 @@ nf.History = (function () {
                         // set the document title and the about title
                         document.title = historyTitle;
                         $('#history-header-text').text(historyTitle);
+
+                        // set the initial size
+                        setBodySize();
                     }).fail(nf.Common.handleAjaxError);
+
+                    // listen for browser resize events to reset the body size
+                    $(window).resize(setBodySize);
                 });
             });
         }

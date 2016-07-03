@@ -34,6 +34,11 @@ public interface ComputeLineageSubmission {
     Date getSubmissionTime();
 
     /**
+     * @return the identity of the user who submitted the request
+     */
+    String getSubmitterIdentity();
+
+    /**
      * @return the generated identifier for this lineage result
      */
     String getLineageIdentifier();

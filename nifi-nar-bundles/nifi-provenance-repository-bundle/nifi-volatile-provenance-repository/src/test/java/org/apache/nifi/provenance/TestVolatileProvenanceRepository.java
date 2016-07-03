@@ -16,7 +16,14 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchTerms;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -26,14 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchTerms;
-import org.apache.nifi.util.NiFiProperties;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -70,7 +70,7 @@ public class TestVolatileProvenanceRepository {
         assertEquals(10, retrieved.size());
         for (int i = 0; i < 10; i++) {
             final ProvenanceEventRecord recovered = retrieved.get(i);
-            assertEquals((long) i, recovered.getEventId());
+            assertEquals(i, recovered.getEventId());
             assertEquals("nifi://unit-test", recovered.getTransitUri());
             assertEquals(ProvenanceEventType.RECEIVE, recovered.getEventType());
             assertEquals(attributes, recovered.getAttributes());
@@ -108,7 +108,7 @@ public class TestVolatileProvenanceRepository {
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
         query.setMaxResults(100);
 
-        final QuerySubmission submission = repo.submitQuery(query);
+        final QuerySubmission submission = repo.submitQuery(query, createUser());
         while (!submission.getResult().isFinished()) {
             Thread.sleep(100L);
         }
@@ -175,4 +175,22 @@ public class TestVolatileProvenanceRepository {
         };
     }
 
+    private NiFiUser createUser() {
+        return new NiFiUser() {
+            @Override
+            public String getIdentity() {
+                return "unit-test";
+            }
+
+            @Override
+            public NiFiUser getChain() {
+                return null;
+            }
+
+            @Override
+            public boolean isAnonymous() {
+                return false;
+            }
+        };
+    }
 }

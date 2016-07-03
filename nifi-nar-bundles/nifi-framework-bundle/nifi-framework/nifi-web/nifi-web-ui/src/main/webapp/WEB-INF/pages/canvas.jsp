@@ -49,6 +49,7 @@
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.tab.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.form.min.js"></script>
         <script type="text/javascript" src="js/jquery/tabbs/jquery.tabbs.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/propertytable/jquery.propertytable.js?${project.version}"></script>
@@ -103,6 +104,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/new-process-group-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-remote-process-group-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-template-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/upload-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/instantiate-template-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>

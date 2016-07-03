@@ -102,6 +102,14 @@ classes should alter those!
     border-right: 0px !important;
 }
 
+.grid-canvas *:last-child .fa{
+    float: left;
+}
+
+.grid-canvas *:last-child .icon{
+    float: left;
+}
+
 .slick-viewport .fa {
     color: #004849;
     line-height: 22px;

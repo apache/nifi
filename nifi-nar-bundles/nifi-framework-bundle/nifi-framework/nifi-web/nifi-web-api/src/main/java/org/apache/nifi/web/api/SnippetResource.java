@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
@@ -228,7 +229,7 @@ public class SnippetResource extends ApplicationResource {
             lookup -> {
                 // ensure write access to the target process group
                 if (requestSnippetDTO.getParentGroupId() != null) {
-                    lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).authorize(authorizer, RequestAction.WRITE);
+                    lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 }
 
                 // ensure read permission to every component in the snippet

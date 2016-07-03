@@ -22,9 +22,8 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
-    height: 90%;
+    left: 20px;
+    right: 20px;
     overflow: auto;
 }
 
@@ -33,13 +32,13 @@
     font-weight: bold;
     color: #728E9B;
     font-family: Roboto Slab;
-    padding-bottom: 10px;
 }
 
 #history-refresh-container {
     position: absolute;
     width: 100%;
     bottom: 0px;
+    left: 20px;
 }
 
 #history-loading-container {
@@ -62,16 +61,18 @@
 /* history filter controls */
 
 #history-filter-container {
-    float: right;
+    position: absolute;
+    right: 0px;
+    top: 15px;
 }
 
 #history-filter-button {
     float: right;
-    margin-left: 1px;
+    margin-left: 5px;
 }
 
 #history-filter-overview {
-    display: none;
+    visibility: hidden;
     font-family: Roboto;
     font-size: 13px;
     margin-bottom: 5px;
@@ -137,7 +138,9 @@ div.history-details-name {
 /* history table */
 
 #history-table {
-    overflow: hidden;
-    height: 80%;
-    width: 100%;
+    position: absolute;
+    top: 62px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
 }

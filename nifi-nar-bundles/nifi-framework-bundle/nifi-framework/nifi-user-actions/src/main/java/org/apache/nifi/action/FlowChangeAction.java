@@ -27,7 +27,6 @@ public class FlowChangeAction implements Action {
 
     private Integer id;
     private String userIdentity;
-    private String userName;
     private Date timestamp;
 
     private String sourceId;
@@ -63,15 +62,6 @@ public class FlowChangeAction implements Action {
 
     public void setUserIdentity(String userIdentity) {
         this.userIdentity = userIdentity;
-    }
-
-    @Override
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     @Override

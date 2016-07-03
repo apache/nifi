@@ -42,9 +42,11 @@
 
 #component-state-table {
     overflow: hidden;
-    height: 55%;
-    width: 100%;
-    min-height: 150px;
+    position: absolute;
+    top: 208px;
+    left: 20px;
+    right: 20px;
+    bottom: 52px;
 }
 
 /*
@@ -53,7 +55,8 @@
 
 #clear-link-container {
     position: absolute;
-    bottom: 10px;
+    top: 186px;
+    right: 20px;
 }
 
 #clear-link.disabled {

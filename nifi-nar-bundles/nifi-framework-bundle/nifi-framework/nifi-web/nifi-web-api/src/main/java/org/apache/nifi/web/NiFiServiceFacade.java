@@ -73,6 +73,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
+import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -86,6 +87,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 
@@ -440,7 +442,7 @@ public interface NiFiServiceFacade {
      *
      * @return templates
      */
-    Set<TemplateDTO> getTemplates();
+    Set<TemplateEntity> getTemplates();
 
     /**
      * Deletes the specified template.
@@ -832,9 +834,16 @@ public interface NiFiServiceFacade {
      */
     PortEntity deleteOutputPort(Revision revision, String outputPortId);
 
+    // ------------
+    // Current user
+    // ------------
+
+    CurrentUserEntity getCurrentUser();
+
     // ----------------------------------------
     // Flow methods
     // ----------------------------------------
+
     /**
      * Returns the flow.
      *
@@ -1215,10 +1224,15 @@ public interface NiFiServiceFacade {
     /**
      * Gets the user with the specified ID.
      * @param userId The user ID
-     * @param prune If true, the users in the groups to which this user belongs will not be returned
      * @return The user transfer object
      */
-    UserEntity getUser(String userId, boolean prune);
+    UserEntity getUser(String userId);
+
+    /**
+     * Gets all the users.
+     * @return The user transfer objects
+     */
+    Set<UserEntity> getUsers();
 
     /**
      * Updates the specified user.
@@ -1250,10 +1264,15 @@ public interface NiFiServiceFacade {
     /**
      * Gets the user group with the specified ID.
      * @param userGroupId The user group ID
-     * @param prune If true, the user groups of the users in this user group will not be returned
      * @return The user group transfer object
      */
-    UserGroupEntity getUserGroup(String userGroupId, boolean prune);
+    UserGroupEntity getUserGroup(String userGroupId);
+
+    /**
+     * Gets all user groups.
+     * @return The user group transfer objects
+     */
+    Set<UserGroupEntity> getUserGroups();
 
     /**
      * Updates the specified user group.

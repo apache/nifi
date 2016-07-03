@@ -90,7 +90,19 @@ public class StandardQueryResult implements QueryResult {
     public long getTotalHitCount() {
         readLock.lock();
         try {
-            return totalHitCount;
+            // Because we filter the results based on the user's permissions,
+            // we don't want to indicate that the total hit count is 1,000+ when we
+            // have 0 matching records, for instance. So, if we have fewer matching
+            // records than the max specified by the query, it is either the case that
+            // we truly don't have enough records to reach the max results, or that
+            // the user is not authorized to see some of the results. Either way,
+            // we want to report the number of events that we find AND that the user
+            // is allowed to see, so we report matching record count, or up to max results.
+            if (matchingRecords.size() < query.getMaxResults()) {
+                return matchingRecords.size();
+            } else {
+                return query.getMaxResults();
+            }
         } finally {
             readLock.unlock();
         }

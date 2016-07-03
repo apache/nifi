@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -191,7 +192,7 @@ public class ConnectionResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable conn = lookup.getConnection(id);
-            conn.authorize(authorizer, RequestAction.READ);
+            conn.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the specified relationship
@@ -270,7 +271,7 @@ public class ConnectionResource extends ApplicationResource {
             revision,
             lookup -> {
                 Authorizable authorizable = lookup.getConnection(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyUpdateConnection(connection),
             () -> {
@@ -345,7 +346,7 @@ public class ConnectionResource extends ApplicationResource {
             revision,
             lookup -> {
                 final Authorizable conn = lookup.getConnection(id);
-                conn.authorize(authorizer, RequestAction.WRITE);
+                conn.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyDeleteConnection(id),
             () -> {

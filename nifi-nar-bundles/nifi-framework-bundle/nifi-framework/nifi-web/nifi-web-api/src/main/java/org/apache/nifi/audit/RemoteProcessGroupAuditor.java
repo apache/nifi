@@ -247,7 +247,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                     // create the port action for updating the name
                     FlowChangeAction remoteProcessGroupAction = new FlowChangeAction();
                     remoteProcessGroupAction.setUserIdentity(user.getIdentity());
-                    remoteProcessGroupAction.setUserName(user.getUserName());
                     remoteProcessGroupAction.setOperation(Operation.Configure);
                     remoteProcessGroupAction.setTimestamp(timestamp);
                     remoteProcessGroupAction.setSourceId(updatedRemoteProcessGroup.getIdentifier());
@@ -268,7 +267,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
                 // create a processor action
                 FlowChangeAction remoteProcessGroupAction = new FlowChangeAction();
                 remoteProcessGroupAction.setUserIdentity(user.getIdentity());
-                remoteProcessGroupAction.setUserName(user.getUserName());
                 remoteProcessGroupAction.setTimestamp(new Date());
                 remoteProcessGroupAction.setSourceId(updatedRemoteProcessGroup.getIdentifier());
                 remoteProcessGroupAction.setSourceName(updatedRemoteProcessGroup.getName());
@@ -356,7 +354,6 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             // create the remote process group action
             action = new FlowChangeAction();
             action.setUserIdentity(user.getIdentity());
-            action.setUserName(user.getUserName());
             action.setOperation(operation);
             action.setTimestamp(new Date());
             action.setSourceId(remoteProcessGroup.getIdentifier());

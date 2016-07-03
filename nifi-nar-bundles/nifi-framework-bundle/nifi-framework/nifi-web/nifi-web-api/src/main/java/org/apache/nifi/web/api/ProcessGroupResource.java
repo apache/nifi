@@ -28,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.AuthorizableLookup;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -59,7 +60,6 @@ import org.apache.nifi.web.api.entity.ProcessorsEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
-import org.apache.nifi.web.api.entity.TemplatesEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
@@ -89,7 +89,6 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -237,7 +236,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get this process group contents
@@ -318,7 +317,7 @@ public class ProcessGroupResource extends ApplicationResource {
             revision,
             lookup -> {
                 Authorizable authorizable = lookup.getProcessGroup(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             null,
             () -> {
@@ -391,7 +390,7 @@ public class ProcessGroupResource extends ApplicationResource {
             revision,
             lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(id);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyDeleteProcessGroup(id),
             () -> {
@@ -473,7 +472,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -535,7 +534,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the process groups
@@ -633,7 +632,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -696,7 +695,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the processors
@@ -783,7 +782,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -844,7 +843,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the input ports
@@ -930,7 +929,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -991,7 +990,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the output ports
@@ -1078,7 +1077,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -1139,7 +1138,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the funnels
@@ -1226,7 +1225,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -1287,7 +1286,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the labels
@@ -1380,7 +1379,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -1472,7 +1471,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the remote process groups
@@ -1571,7 +1570,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -1634,7 +1633,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // all of the relationships for the specified source processor
@@ -1803,10 +1802,10 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 final Authorizable template = lookup.getTemplate(instantiateTemplateRequestEntity.getTemplateId());
-                template.authorize(authorizer, RequestAction.READ);
+                template.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -1837,67 +1836,11 @@ public class ProcessGroupResource extends ApplicationResource {
 
     private void authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId) {
         // ensure write access to the target process group
-        lookup.getProcessGroup(groupId).authorize(authorizer, RequestAction.WRITE);
+        lookup.getProcessGroup(groupId).authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // ensure read permission to every component in the snippet
         final Snippet snippet = lookup.getSnippet(snippetId);
         authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
-    }
-
-    /**
-     * Retrieves all the of templates in this NiFi.
-     *
-     * @return A templatesEntity.
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("{id}/templates")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @ApiOperation(
-        value = "Gets all templates",
-        response = TemplatesEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
-    )
-    @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
-    )
-    public Response getTemplates(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
-
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
-
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
-            processGroup.authorize(authorizer, RequestAction.READ);
-        });
-
-        // get all the templates
-        final Set<TemplateDTO> templates = templateResource.populateRemainingTemplatesContent(serviceFacade.getTemplates());
-
-        // create the response entity
-        final TemplatesEntity entity = new TemplatesEntity();
-        entity.setTemplates(templates);
-        entity.setGenerated(new Date());
-
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
     }
 
     /**
@@ -2077,7 +2020,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -2187,7 +2130,7 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
-                processGroup.authorize(authorizer, RequestAction.WRITE);
+                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {

@@ -40,23 +40,6 @@ $(document).ready(function () {
 
     // initialize the summary page
     nf.Summary.init();
-    
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#summary').css('margin', 40);
-        $('#flow-summary-refresh-container').css({
-            "position": "absolute",
-            "width": "100%",
-            "bottom": "0px",
-            "margin": "40px"
-        });
-
-        $('#system-diagnostics-link-container').css({
-            "float": "right",
-            "margin-top": "8px",
-            "padding-right": "80px"
-        });
-    }
 });
 
 nf.Summary = (function () {
@@ -68,7 +51,7 @@ nf.Summary = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            cluster: '../nifi-api/controller/cluster'
+            flowConfig: '../nifi-api/flow/config'
         }
     };
 
@@ -78,26 +61,15 @@ nf.Summary = (function () {
     var initializeSummaryTable = function () {
         return $.Deferred(function (deferred) {
             $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                nf.SummaryTable.init(true).done(function () {
+                type: 'GET',
+                url: config.urls.flowConfig
+            }).done(function (response) {
+                nf.SummaryTable.init(response.flowConfiguration.clustered).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();
                 });
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    nf.SummaryTable.init(false).done(function () {
-                        deferred.resolve();
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
+            }).fail(nf.Common.handleAjaxError);
         }).promise();
     };
 
@@ -175,10 +147,21 @@ nf.Summary = (function () {
                     initializeSummaryPage().done(function () {
 
                         var setBodySize = function () {
-                            $('body').css({
-                                'height': $(window).height() + 'px',
-                                'width': $(window).width() + 'px'
-                            });
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+                                
+                                $('#summary').css('margin', 40);
+                                $('div.summary-table').css('bottom', 127);
+                                $('#flow-summary-refresh-container').css({
+                                    "position": "absolute",
+                                    "bottom": "0px",
+                                    "margin": "40px"
+                                });
+                            }
 
                             nf.SummaryTable.resetTableSize();
                         };

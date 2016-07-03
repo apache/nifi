@@ -149,10 +149,10 @@
                     $('.timezone').text(nf.Common.substringAfterLast(history.lastRefreshed, ' '));
 
                     // show the filter message if applicable
-                    if (query['sourceId'] || query['userName'] || query['startDate'] || query['endDate']) {
-                        $('#history-filter-overview').show();
+                    if (query['sourceId'] || query['userIdentity'] || query['startDate'] || query['endDate']) {
+                        $('#history-filter-overview').css('visibility', 'visible');
                     } else {
-                        $('#history-filter-overview').hide();
+                        $('#history-filter-overview').css('visibility', 'hidden');
                     }
 
                     // clear the current request

@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.AccessPoliciesAuthorizable;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.UserGroupsAuthorizable;
-import org.apache.nifi.authorization.resource.UsersAuthorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -44,9 +45,32 @@ import org.apache.nifi.web.dao.TemplateDAO;
 
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
-    private static final UsersAuthorizable USERS_AUTHORIZABLE = new UsersAuthorizable();
-    private static final UserGroupsAuthorizable USER_GROUPS_AUTHORIZABLE = new UserGroupsAuthorizable();
+    private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
     private static final Authorizable ACCESS_POLICIES_AUTHORIZABLE = new AccessPoliciesAuthorizable();
+
+    private static final Authorizable PROVENANCE_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getProvenanceResource();
+        }
+    };
+
+    private static final Authorizable COUNTERS_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getCountersResource();
+        }
+    };
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -129,6 +153,16 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
+    public Authorizable getProvenance() {
+        return PROVENANCE_AUTHORIZABLE;
+    }
+
+    @Override
+    public Authorizable getCounters() {
+        return COUNTERS_AUTHORIZABLE;
+    }
+
+    @Override
     public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
         final ControllerServiceReference referencingComponents = controllerService.getReferences();
@@ -159,13 +193,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getUsersAuthorizable() {
-        return USERS_AUTHORIZABLE;
-    }
-
-    @Override
-    public Authorizable getUserGroupsAuthorizable() {
-        return USER_GROUPS_AUTHORIZABLE;
+    public Authorizable getTenantAuthorizable() {
+        return TENANT_AUTHORIZABLE;
     }
 
     @Override

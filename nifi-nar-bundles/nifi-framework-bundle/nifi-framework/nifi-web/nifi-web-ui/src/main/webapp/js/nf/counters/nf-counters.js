@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the counters page
     nf.Counters.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#counters').css('margin', 40);
-        $('#counters-refresh-container').css('margin', 40);
-    }
 });
 
 nf.Counters = (function () {
@@ -37,32 +31,22 @@ nf.Counters = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/flow/authorities'
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
     /**
-     * Loads the current users authorities.
+     * Loads the current user.
      */
-    var loadAuthorities = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve();
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -131,8 +115,8 @@ nf.Counters = (function () {
         init: function () {
             nf.Storage.init();
             
-            // load the users authorities
-            loadAuthorities().done(function () {
+            // load the current user
+            loadCurrentUser().done(function () {
                 // create the counters table
                 nf.CountersTable.init();
 
@@ -140,8 +124,22 @@ nf.Counters = (function () {
                 nf.CountersTable.loadCountersTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeCountersPage().done(function () {
-                        // configure the initial grid height
-                        nf.CountersTable.resetTableSize();
+                        var setBodySize = function () {
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+                                
+                                $('#counters').css('margin', 40);
+                                $('#counters-table').css('bottom', 127);
+                                $('#counters-refresh-container').css('margin', 40);
+                            }
+
+                            // configure the initial grid height
+                            nf.CountersTable.resetTableSize();
+                        };
 
                         // get the about details
                         $.ajax({
@@ -155,7 +153,13 @@ nf.Counters = (function () {
                             // set the document title and the about title
                             document.title = countersTitle;
                             $('#counters-header-text').text(countersTitle);
+
+                            // set the initial size
+                            setBodySize();
                         }).fail(nf.Common.handleAjaxError);
+
+                        // listen for browser resize events to reset the body size
+                        $(window).resize(setBodySize);
                     });
                 });
             });

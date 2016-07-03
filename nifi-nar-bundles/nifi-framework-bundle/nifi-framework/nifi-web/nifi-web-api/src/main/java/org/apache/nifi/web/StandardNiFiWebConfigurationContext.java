@@ -34,7 +34,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
@@ -54,16 +53,12 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.util.ClientResponseUtils;
-import org.apache.nifi.web.util.WebUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -134,7 +129,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getProcessor(requestContext.getId());
-                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
                 componentType = Component.Processor;
@@ -143,7 +138,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getControllerService(requestContext.getId());
-                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
                 componentType = Component.ControllerService;
@@ -152,7 +147,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
                     final Authorizable authorizable = lookup.getReportingTask(requestContext.getId());
-                    authorizable.authorize(authorizer, RequestAction.WRITE);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
                 componentType = Component.ReportingTask;
@@ -182,8 +177,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             action.setSourceName(configurationAction.getName());
             action.setSourceType(componentType);
             action.setOperation(Operation.Configure);
-            action.setUserIdentity(getCurrentUserDn());
-            action.setUserName(getCurrentUserName());
+            action.setUserIdentity(getCurrentUserIdentity());
             action.setComponentDetails(extensionDetails);
             action.setActionDetails(configureDetails);
             actions.add(action);
@@ -203,17 +197,10 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     @Override
-    public String getCurrentUserDn() {
+    public String getCurrentUserIdentity() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         authorizeFlowAccess(user);
         return user.getIdentity();
-    }
-
-    @Override
-    public String getCurrentUserName() {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        authorizeFlowAccess(user);
-        return user.getUserName();
     }
 
     @Override
@@ -322,7 +309,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getProcessor(id);
-                authorizable.authorize(authorizer, RequestAction.READ);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
             final ProcessorDTO processor;
@@ -374,7 +361,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getProcessor(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
 
             final ProcessorDTO processor;
@@ -510,7 +497,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getControllerService(id);
-                authorizable.authorize(authorizer, RequestAction.READ);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
             // if the lookup has the service that means we are either a node or
@@ -568,7 +555,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getControllerService(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
 
             final ControllerServiceDTO controllerService;
@@ -678,7 +665,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getReportingTask(id);
-                authorizable.authorize(authorizer, RequestAction.READ);
+                authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
             // if the provider has the service that means we are either a node or
@@ -736,7 +723,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final Authorizable authorizable = lookup.getReportingTask(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
 
             final ReportingTaskDTO reportingTask;
@@ -840,19 +827,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         headers.put("Accept", "application/json,application/xml");
         if (StringUtils.isNotBlank(config.getProxiedEntitiesChain())) {
             headers.put("X-ProxiedEntitiesChain", config.getProxiedEntitiesChain());
-        }
-
-        // add the user's authorities (if any) to the headers
-        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            final Object userDetailsObj = authentication.getPrincipal();
-            if (userDetailsObj instanceof NiFiUserDetails) {
-                // serialize user details object
-                final String hexEncodedUserDetails = WebUtils.serializeObjectToHex((Serializable) userDetailsObj);
-
-                // put serialized user details in header
-                headers.put("X-ProxiedEntityUserDetails", hexEncodedUserDetails);
-            }
         }
         return headers;
     }

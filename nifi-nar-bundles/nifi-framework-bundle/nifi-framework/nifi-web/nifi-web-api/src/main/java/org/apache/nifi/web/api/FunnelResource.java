@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.FunnelDTO;
@@ -153,7 +154,7 @@ public class FunnelResource extends ApplicationResource {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             final Authorizable funnel = lookup.getFunnel(id);
-            funnel.authorize(authorizer, RequestAction.READ);
+            funnel.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the funnel
@@ -230,7 +231,7 @@ public class FunnelResource extends ApplicationResource {
             revision,
             lookup -> {
                 Authorizable authorizable = lookup.getFunnel(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE);
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             null,
             () -> {
@@ -305,7 +306,7 @@ public class FunnelResource extends ApplicationResource {
             revision,
             lookup -> {
                 final Authorizable funnel = lookup.getFunnel(id);
-                funnel.authorize(authorizer, RequestAction.WRITE);
+                funnel.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyDeleteFunnel(id),
             () -> {

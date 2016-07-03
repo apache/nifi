@@ -33,6 +33,7 @@ public class FlowConfigurationDTO {
 
     private Date currentTime;
     private Integer timeOffset;
+    private Boolean isClustered;
 
     /**
      * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
@@ -76,5 +77,19 @@ public class FlowConfigurationDTO {
 
     public void setTimeOffset(Integer timeOffset) {
         this.timeOffset = timeOffset;
+    }
+
+    /**
+     * @return whether this NiFi instance is clustered
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi instance is clustered."
+    )
+    public Boolean getClustered() {
+        return isClustered;
+    }
+
+    public void setClustered(Boolean clustered) {
+        isClustered = clustered;
     }
 }

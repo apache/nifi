@@ -126,11 +126,12 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
 
             // add the appropriate request actions
             final String authorizationCode = policy.getAction();
-            if (authorizationCode.contains(FileAuthorizer.READ_CODE)) {
-                builder.addAction(RequestAction.READ);
-            }
-            if (authorizationCode.contains(FileAuthorizer.WRITE_CODE)) {
-                builder.addAction(RequestAction.WRITE);
+            if (authorizationCode.equals(FileAuthorizer.READ_CODE)) {
+                builder.action(RequestAction.READ);
+            } else if (authorizationCode.equals(FileAuthorizer.WRITE_CODE)){
+                builder.action(RequestAction.WRITE);
+            } else {
+                throw new IllegalStateException("Unknown Policy Action: " + authorizationCode);
             }
 
             // build the policy and add it to the map

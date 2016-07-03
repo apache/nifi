@@ -52,4 +52,9 @@ public interface QuerySubmission {
      * <code>false</code> otherwise
      */
     boolean isCanceled();
+
+    /**
+     * @return the identity of the user who submitted the query
+     */
+    String getSubmitterIdentity();
 }

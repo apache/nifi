@@ -518,7 +518,7 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * @return the user authorities file
+     * @return the user login identity provider file
      */
     public File getLoginIdentityProviderConfigurationFile() {
         final String value = getProperty(LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE);
@@ -774,7 +774,6 @@ public class NiFiProperties extends Properties {
      * Returns true if client certificates are required for REST API. Determined if the following conditions are all true:
      *
      * - login identity provider is not populated
-     * - anonymous authorities is empty
      * - Kerberos service support is not enabled
      *
      * @return true if client certificates are required for access to the REST API

@@ -17,8 +17,6 @@
 package org.apache.nifi.web;
 
 import org.apache.nifi.authorization.AccessPolicy;
-import org.apache.nifi.authorization.Group;
-import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.Snippet;
 
@@ -38,6 +36,20 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getProcessor(String id);
+
+    /**
+     * Get the authorizable for querying Provenance.
+     *
+     * @return authorizable
+     */
+    Authorizable getProvenance();
+
+    /**
+     * Get the authorizable for viewing/reseting Counters.
+     *
+     * @return authorizable
+     */
+    Authorizable getCounters();
 
     /**
      * Get the authorizable InputPort.
@@ -163,16 +175,10 @@ public interface AuthorizableLookup {
     Snippet getSnippet(String id);
 
     /**
-     * Get the {@link Authorizable} that represents the resource of {@link User}s.
+     * Get the {@link Authorizable} that represents the resource of users and user groups.
      * @return authorizable
      */
-    Authorizable getUsersAuthorizable();
-
-    /**
-     * Get the {@link Authorizable} that represents the resource of {@link Group}s.
-     * @return authorizable
-     */
-    Authorizable getUserGroupsAuthorizable();
+    Authorizable getTenantAuthorizable();
 
     /**
      * Get the {@link Authorizable} the represents the parent resource of {@link AccessPolicy} resources.

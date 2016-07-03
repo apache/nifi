@@ -126,8 +126,7 @@ nf.Canvas = (function () {
     var config = {
         urls: {
             api: '../nifi-api',
-            identity: '../nifi-api/flow/identity',
-            authorities: '../nifi-api/flow/authorities',
+            currentUser: '../nifi-api/flow/current-user',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
@@ -166,54 +165,6 @@ nf.Canvas = (function () {
             });
         }
     };
-
-    /**
-     * Checks the current revision against this version of the flow.
-     */
-    // var checkRevision = function () {
-    //     // get the revision
-    //     return $.ajax({
-    //         type: 'GET',
-    //         url: config.urls.revision,
-    //         dataType: 'json'
-    //     }).done(function (response) {
-    //         if (nf.Common.isDefinedAndNotNull(response.revision)) {
-    //             var revision = response.revision;
-    //             var currentRevision = nf.Client.getRevision();
-    //
-    //             // if there is a newer revision, there are outstanding
-    //             // changes that need to be updated
-    //             if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
-    //                 var refreshContainer = $('#refresh-required-container');
-    //                 var settingsRefreshIcon = $('#settings-refresh-required-icon');
-    //
-    //                 // insert the refresh needed text in the canvas - if necessary
-    //                 if (!refreshContainer.is(':visible')) {
-    //                     $('#stats-last-refreshed').addClass('alert');
-    //                     var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
-    //
-    //                     // update the tooltip
-    //                     var refreshRequiredIcon = $('#refresh-required-icon');
-    //                     if (refreshRequiredIcon.data('qtip')) {
-    //                         refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
-    //                     } else {
-    //                         refreshRequiredIcon.qtip($.extend({
-    //                             content: refreshMessage
-    //                         }, nf.CanvasUtils.config.systemTooltipConfig));
-    //                     }
-    //
-    //                     refreshContainer.show();
-    //                 }
-    //
-    //                 // insert the refresh needed text in the settings - if necessary
-    //                 if (!settingsRefreshIcon.is(':visible')) {
-    //                     $('#settings-last-refreshed').addClass('alert');
-    //                     settingsRefreshIcon.show();
-    //                 }
-    //             }
-    //         }
-    //     }).fail(nf.Common.handleAjaxError);
-    // };
 
     /**
      * Initializes the canvas.
@@ -528,12 +479,13 @@ nf.Canvas = (function () {
                 updateFlowStatusContainerSize();
 
                 // resize grids when appropriate
-                if ($('#process-group-controller-services-table').is(':visible')) {
-                    nf.ProcessGroupConfiguration.resetTableSize();
-                } else if ($('#controller-services-table').is(':visible') || $('#reporting-tasks-table').is(':visible')) {
-                    nf.Settings.resetTableSize();
-                } else if ($('#queue-listing-table').is(':visible')) {
-                    nf.QueueListing.resetTableSize();
+                var gridElements = $('*[class*="slickgrid_"]');
+                for (var i = 0, len = gridElements.length; i < len; i++) {
+                    if ($(gridElements[i]).is(':visible')){
+                        setTimeout(function(gridElement){
+                            gridElement.data('gridInstance').resizeCanvas();
+                        }, 50, $(gridElements[i]));
+                    }
                 }
             }
         }).on('keydown', function (evt) {
@@ -562,7 +514,7 @@ nf.Canvas = (function () {
                     evt.preventDefault();
                 } else if (evt.keyCode === 67) {
                     // ctrl-c
-                    if (nf.Common.isDFM() && nf.CanvasUtils.isCopyable(selection)) {
+                    if (nf.Canvas.canWrite() && nf.CanvasUtils.isCopyable(selection)) {
                         nf.Actions.copy(selection);
 
                         // only want to prevent default if the action was performed, otherwise default copy would be overridden
@@ -570,7 +522,7 @@ nf.Canvas = (function () {
                     }
                 } else if (evt.keyCode === 86) {
                     // ctrl-v
-                    if (nf.Common.isDFM() && nf.CanvasUtils.isPastable()) {
+                    if (nf.Canvas.canWrite() && nf.CanvasUtils.isPastable()) {
                         nf.Actions.paste(selection);
 
                         // only want to prevent default if the action was performed, otherwise default paste would be overridden
@@ -580,7 +532,7 @@ nf.Canvas = (function () {
             } else {
                 if (evt.keyCode === 8 || evt.keyCode === 46) {
                     // backspace or delete
-                    if (nf.Common.isDFM() && nf.CanvasUtils.areDeletable(selection)) {
+                    if (nf.Canvas.canWrite() && nf.CanvasUtils.areDeletable(selection)) {
                         nf.Actions['delete'](selection);
                     }
 
@@ -754,36 +706,22 @@ nf.Canvas = (function () {
                 }
             }).promise();
 
-            // load the identity and authorities for the current user
+            // load the current user
             var userXhr = $.Deferred(function (deferred) {
                 ticketExchange.always(function () {
-                    // get the current user's identity
-                    var identityXhr = $.ajax({
+                    // get the current user
+                    $.ajax({
                         type: 'GET',
-                        url: config.urls.identity,
+                        url: config.urls.currentUser,
                         dataType: 'json'
-                    });
-
-                    // get the current user's authorities
-                    var authoritiesXhr = $.ajax({
-                        type: 'GET',
-                        url: config.urls.authorities,
-                        dataType: 'json'
-                    });
-
-                    $.when(authoritiesXhr, identityXhr).done(function (authoritiesResult, identityResult) {
-                        var authoritiesResponse = authoritiesResult[0];
-                        var identityResponse = identityResult[0];
-
-                        // set the user's authorities
-                        nf.Common.setAuthorities(authoritiesResponse.authorities);
-
+                    }).done(function (currentUser) {
                         // at this point the user may be themselves or anonymous
-
+                        nf.Common.setCurrentUser(currentUser)
+                        
                         // if the user is logged, we want to determine if they were logged in using a certificate
-                        if (identityResponse.anonymous === false) {
-                            // rendner the users name
-                            $('#current-user').text(identityResponse.identity).show();
+                        if (currentUser.anonymous === false) {
+                            // render the users name
+                            $('#current-user').text(currentUser.identity).show();
 
                             // render the logout button if there is a token locally
                             if (nf.Storage.getItem('jwt') !== null) {
@@ -804,6 +742,7 @@ nf.Canvas = (function () {
                     });
                 });
             }).promise();
+            
             userXhr.done(function () {
                 // load the client id
                 var clientXhr = nf.Client.init();
@@ -814,24 +753,6 @@ nf.Canvas = (function () {
                     url: config.urls.flowConfig,
                     dataType: 'json'
                 });
-
-                // create the deferred cluster request
-                var isClusteredRequest = $.Deferred(function (deferred) {
-                    $.ajax({
-                        type: 'HEAD',
-                        url: config.urls.cluster
-                    }).done(function (response, status, xhr) {
-                        clustered = true;
-                        deferred.resolve(response, status, xhr);
-                    }).fail(function (xhr, status, error) {
-                        if (xhr.status === 404) {
-                            clustered = false;
-                            deferred.resolve('', 'success', xhr);
-                        } else {
-                            deferred.reject(xhr, status, error);
-                        }
-                    });
-                }).promise();
 
                 // ensure the config requests are loaded
                 $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
@@ -844,65 +765,65 @@ nf.Canvas = (function () {
                     // get the config details
                     var configDetails = configResponse.flowConfiguration;
 
-                    // when both request complete, load the application
-                    isClusteredRequest.done(function () {
-                        // get the auto refresh interval
-                        var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
+                    // update the clustered flag
+                    clustered = configDetails.clustered;
 
-                        // init storage
-                        nf.Storage.init();
+                    // get the auto refresh interval
+                    var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
-                        // initialize the application
-                        initCanvas();
-                        nf.Canvas.View.init();
-                        nf.ContextMenu.init();
-                        nf.ng.Bridge.injector.get('headerCtrl').init();
-                        nf.Settings.init();
-                        nf.Actions.init();
-                        nf.QueueListing.init();
-                        nf.ComponentState.init();
+                    // init storage
+                    nf.Storage.init();
 
-                        // initialize the component behaviors
-                        nf.Draggable.init();
-                        nf.Selectable.init();
-                        nf.Connectable.init();
+                    // initialize the application
+                    initCanvas();
+                    nf.Canvas.View.init();
+                    nf.ContextMenu.init();
+                    nf.ng.Bridge.injector.get('headerCtrl').init();
+                    nf.Settings.init();
+                    nf.Actions.init();
+                    nf.QueueListing.init();
+                    nf.ComponentState.init();
 
-                        // initialize the chart
-                        nf.StatusHistory.init(configDetails.timeOffset);
+                    // initialize the component behaviors
+                    nf.Draggable.init();
+                    nf.Selectable.init();
+                    nf.Connectable.init();
 
-                        // initialize the birdseye
-                        nf.Birdseye.init();
+                    // initialize the chart
+                    nf.StatusHistory.init(configDetails.timeOffset);
 
-                        // initialize components
-                        nf.ConnectionConfiguration.init();
-                        nf.ControllerService.init();
-                        nf.ReportingTask.init();
-                        nf.ProcessorConfiguration.init();
-                        nf.ProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupConfiguration.init();
-                        nf.RemoteProcessGroupPorts.init();
-                        nf.PortConfiguration.init();
-                        nf.LabelConfiguration.init();
-                        nf.ProcessorDetails.init();
-                        nf.ProcessGroupDetails.init();
-                        nf.PortDetails.init();
-                        nf.ConnectionDetails.init();
-                        nf.RemoteProcessGroupDetails.init();
-                        nf.GoTo.init();
-                        nf.Graph.init().done(function () {
-                            nf.ng.Bridge.injector.get('graphControlsCtrl').init();
+                    // initialize the birdseye
+                    nf.Birdseye.init();
 
-                            // determine the split between the polling
-                            var pollingSplit = autoRefreshIntervalSeconds / 2;
+                    // initialize components
+                    nf.ConnectionConfiguration.init();
+                    nf.ControllerService.init();
+                    nf.ReportingTask.init();
+                    nf.ProcessorConfiguration.init();
+                    nf.ProcessGroupConfiguration.init();
+                    nf.RemoteProcessGroupConfiguration.init();
+                    nf.RemoteProcessGroupPorts.init();
+                    nf.PortConfiguration.init();
+                    nf.LabelConfiguration.init();
+                    nf.ProcessorDetails.init();
+                    nf.ProcessGroupDetails.init();
+                    nf.PortDetails.init();
+                    nf.ConnectionDetails.init();
+                    nf.RemoteProcessGroupDetails.init();
+                    nf.GoTo.init();
+                    nf.Graph.init().done(function () {
+                        nf.ng.Bridge.injector.get('graphControlsCtrl').init();
 
-                            // register the polling
-                            setTimeout(function () {
-                                startPolling(autoRefreshIntervalSeconds);
-                            }, pollingSplit * 1000);
+                        // determine the split between the polling
+                        var pollingSplit = autoRefreshIntervalSeconds / 2;
 
-                            // hide the splash screen
-                            nf.Canvas.hideSplash();
-                        }).fail(nf.Common.handleAjaxError);
+                        // register the polling
+                        setTimeout(function () {
+                            startPolling(autoRefreshIntervalSeconds);
+                        }, pollingSplit * 1000);
+
+                        // hide the splash screen
+                        nf.Canvas.hideSplash();
                     }).fail(nf.Common.handleAjaxError);
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);

@@ -20,11 +20,6 @@
 $(document).ready(function () {
     // initialize the status page
     nf.Provenance.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#provenance').css('margin', 40);
-    }
 });
 
 nf.Provenance = (function () {
@@ -34,10 +29,10 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            cluster: '../nifi-api/controller/cluster',
+            flowConfig: '../nifi-api/flow/config',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            authorities: '../nifi-api/flow/authorities'
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -50,23 +45,12 @@ nf.Provenance = (function () {
      * Determines if this NiFi is clustered.
      */
     var detectedCluster = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'HEAD',
-                url: config.urls.cluster
-            }).done(function () {
-                isClustered = true;
-                deferred.resolve();
-            }).fail(function (xhr, status, error) {
-                if (xhr.status === 404) {
-                    isClustered = false;
-                    deferred.resolve();
-                } else {
-                    nf.Common.handleAjaxError(xhr, status, error);
-                    deferred.reject();
-                }
-            });
-        }).promise();
+        return $.ajax({
+                type: 'GET',
+                url: config.urls.flowConfig
+            }).done(function (response) {
+                isClustered = response.flowConfiguration.clustered;
+            }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -97,27 +81,16 @@ nf.Provenance = (function () {
     };
 
     /**
-     * Loads the current users authorities.
+     * Loads the current user.
      */
-    var loadAuthorities = function () {
-        return $.Deferred(function (deferred) {
-            $.ajax({
-                type: 'GET',
-                url: config.urls.authorities,
-                dataType: 'json'
-            }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.authorities)) {
-                    // record the users authorities
-                    nf.Common.setAuthorities(response.authorities);
-                    deferred.resolve(response);
-                } else {
-                    deferred.reject();
-                }
-            }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error);
-                deferred.reject();
-            });
-        }).promise();
+    var loadCurrentUser = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -186,8 +159,8 @@ nf.Provenance = (function () {
         init: function () {
             nf.Storage.init();
             
-            // load the users authorities and detect if the NiFi is clustered
-            $.when(loadAbout(), loadAuthorities(), detectedCluster()).done(function () {
+            // load the user and detect if the NiFi is clustered
+            $.when(loadAbout(), loadCurrentUser(), detectedCluster()).done(function () {
                 // create the provenance table
                 nf.ProvenanceTable.init(isClustered).done(function () {
                     var searchTerms = {};
@@ -223,11 +196,34 @@ nf.Provenance = (function () {
                         });
                     }
 
-                    // once the table is initialized, finish initializing the page
-                    initializeProvenancePage().done(function () {
+                    var setBodySize = function () {
+                        //alter styles if we're not in the shell
+                        if (top === window) {
+                            $('body').css({
+                                'height': $(window).height() + 'px',
+                                'width': $(window).width() + 'px'
+                            });
+                            
+                            $('#provenance').css('margin', 40);
+                            $('#provenance-table').css('bottom', 127);
+                            $('#provenance-refresh-container').css({
+                                'margin': '0px 0px 40px 0px',
+                                'bottom': '40px'
+                            });
+                        }
+
                         // configure the initial grid height
                         nf.ProvenanceTable.resetTableSize();
+                    };
+
+                    // once the table is initialized, finish initializing the page
+                    initializeProvenancePage().done(function () {
+                        // set the initial size
+                        setBodySize();
                     });
+
+                    // listen for browser resize events to reset the body size
+                    $(window).resize(setBodySize);
                 });
             });
         }
