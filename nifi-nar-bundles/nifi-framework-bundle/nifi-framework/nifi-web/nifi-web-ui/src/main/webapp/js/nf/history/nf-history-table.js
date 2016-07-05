@@ -40,6 +40,7 @@ nf.HistoryTable = (function () {
      */
     var initDetailsDialog = function () {
         $('#action-details-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Action Details',
             buttons: [{
                 buttonText: 'Ok',
@@ -98,6 +99,7 @@ nf.HistoryTable = (function () {
 
         // configure the filter dialog
         $('#history-filter-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Filter History',
             buttons: [{
                 buttonText: 'Filter',
@@ -188,6 +190,7 @@ nf.HistoryTable = (function () {
 
         // configure the filter dialog
         $('#history-purge-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Purge History',
             buttons: [{
                 buttonText: 'Purge',

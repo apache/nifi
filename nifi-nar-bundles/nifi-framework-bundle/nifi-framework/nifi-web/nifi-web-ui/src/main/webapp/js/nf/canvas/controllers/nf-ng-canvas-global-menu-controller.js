@@ -124,14 +124,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  */
                 launch: function () {
                     if (nf.Common.canAccessController()) {
-                        nf.Settings.showSettings().done(function() {
-                            $('#settings-refresh-container').width($('#shell').width());
-                            
-                            // add a shell:resize listener
-                            $('#shell').on('shell:resize', function () {
-                                $('#settings-refresh-container').width($('#shell').width());
-                            });
-                        });
+                        nf.Settings.showSettings();
                     }
                 }
             }
@@ -297,6 +290,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     var self = this;
 
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'About Apache NiFi',
                         buttons: [{
                             buttonText: 'Ok',

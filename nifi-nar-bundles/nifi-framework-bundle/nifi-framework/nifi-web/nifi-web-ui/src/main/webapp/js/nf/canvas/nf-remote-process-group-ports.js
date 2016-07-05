@@ -25,6 +25,7 @@ nf.RemoteProcessGroupPorts = (function () {
     var initRemotePortConfigurationDialog = function () {
         $('#remote-port-configuration').modal({
             headerText: 'Configure Remote Port',
+            scrollableContentStyle: 'scrollable',
             buttons: [{
                 buttonText: 'Apply',
                 color: {
@@ -146,6 +147,7 @@ nf.RemoteProcessGroupPorts = (function () {
      */
     var initRemoteProcessGroupConfigurationDialog = function () {
         $('#remote-process-group-ports').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Remote Process Group Ports',
             buttons: [{
                 buttonText: 'Close',

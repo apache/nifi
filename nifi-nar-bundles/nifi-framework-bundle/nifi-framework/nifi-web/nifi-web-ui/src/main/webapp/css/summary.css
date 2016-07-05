@@ -121,8 +121,8 @@ input.search-nodes {
 
 #system-diagnostics-refresh-container{
     position: absolute;
-    top: 66px;
-    right: 20px;
+    top: 0px;
+    right: 0px;
 }
 
 #system-diagnostics-loading-container {
@@ -228,6 +228,14 @@ div.storage-usage-progressbar div.ui-progressbar-value {
     float: left;
 }
 
+#summary-tabs-content {
+    top: 80px;
+}
+
+#summary-filter-controls {
+    z-index: 1;
+}
+
 .summary-tab {
     display: block;
     padding: 0 5px;
@@ -267,12 +275,13 @@ div.storage-usage-progressbar div.ui-progressbar-value {
 
 div.summary-table {
     position: absolute;
-    top: 151px;
+    top: 70px;
     left: 0px;
     bottom: 48px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
+    min-height: 150px;
 }
 
 span.sorted {
@@ -288,9 +297,14 @@ span.sorted {
 /* cluster processor summary table */
 
 #cluster-processor-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-processor-summary-header {
@@ -349,9 +363,14 @@ span.sorted {
 /* cluster input port summary table */
 
 #cluster-input-port-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-input-port-summary-header {
@@ -411,9 +430,14 @@ span.sorted {
 /* cluster output port summary table */
 
 #cluster-output-port-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-output-port-summary-header {
@@ -473,9 +497,14 @@ span.sorted {
 /* cluster remote process group summary table */
 
 #cluster-remote-process-group-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-remote-process-group-summary-header {
@@ -533,10 +562,14 @@ span.sorted {
 /* cluster connection summary table */
 
 #cluster-connection-summary-table {
-    width: 100%;
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-connection-summary-header {
@@ -595,9 +628,14 @@ span.sorted {
 /* cluster process group summary table */
 
 #cluster-process-group-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
     overflow: hidden;
-    height: 80%;
-    width: 100%;
+    background-color: #fff;
+    min-height: 150px;
 }
 
 #cluster-process-group-summary-header {

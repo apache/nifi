@@ -923,6 +923,7 @@
 
                 newControllerServiceDialog.modal({
                     headerText: 'Add Controller Service',
+                    scrollableContentStyle: 'scrollable',
                     buttons: [{
                         buttonText: 'Create',
                         color: {
@@ -1492,6 +1493,7 @@
 
                         newPropertyDialog.modal({
                             headerText: 'Add Property',
+                            scrollableContentStyle: 'scrollable',
                             buttons: [{
                                 buttonText: 'Ok',
                                 color: {

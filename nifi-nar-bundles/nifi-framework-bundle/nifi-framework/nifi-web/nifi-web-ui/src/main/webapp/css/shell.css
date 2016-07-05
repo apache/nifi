@@ -30,8 +30,13 @@
 
 #shell-container {
     background: #fff;
-    box-shadow: 0 5px 8px rgba(0,0,0,0.30);
     padding: 20px;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+    overflow: hidden;
 }
 
 #shell-close-container {
@@ -74,4 +79,5 @@ div.close-hover {
     right: 0px;
     bottom: 0px;
     left: 0px;
+    overflow: hidden;
 }

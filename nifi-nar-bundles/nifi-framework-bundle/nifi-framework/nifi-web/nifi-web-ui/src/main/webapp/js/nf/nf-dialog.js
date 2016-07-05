@@ -20,6 +20,7 @@
 $(document).ready(function () {
     // configure the ok dialog
     $('#nf-ok-dialog').modal({
+        scrollableContentStyle: 'scrollable',
         handler: {
             close: function () {
                 // clear the content
@@ -33,6 +34,7 @@ $(document).ready(function () {
 
     // configure the yes/no dialog
     $('#nf-yes-no-dialog').modal({
+        scrollableContentStyle: 'scrollable',
         handler: {
             close: function () {
                 // clear the content and reset the button model

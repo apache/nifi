@@ -44,8 +44,8 @@
      *   }],
      *   select: selectHandler
      * }
-     * 
-     * @argument {object} options 
+     *
+     * @argument {object} options
      */
     $.fn.tabbs = function (options) {
         return this.each(function () {
@@ -62,7 +62,7 @@
                 var tabDefinition = this;
 
                 // mark the tab content
-                $('#' + tabDefinition.tabContentId).addClass(tabContentStyle);
+                $('#' + tabDefinition.tabContentId).addClass(tabContentStyle).hide();
 
                 // prep the tab itself
                 var tab = $('<li></li>').text(tabDefinition.name).addClass(options.tabStyle).click(function () {
@@ -70,7 +70,16 @@
                     $('.' + tabContentStyle).hide();
 
                     // show the desired tab
-                    $('#' + tabDefinition.tabContentId).show();
+                    var tabContent = $('#' + tabDefinition.tabContentId).show();
+
+                    // check if content has overflow
+                    var tabContentContainer = tabContent.parent();
+                    if (tabContentContainer.get(0).offsetHeight < tabContentContainer.get(0).scrollHeight ||
+                        tabContentContainer.get(0).offsetWidth < tabContentContainer.get(0).scrollWidth) {
+                        tabContentContainer.addClass(options.scrollableTabContentStyle);
+                    } else {
+                        tabContentContainer.removeClass(options.scrollableTabContentStyle);
+                    }
 
                     // unselect the previously selected tab
                     tabList.children('.' + options.tabStyle).removeClass(options.selectedTabStyle);

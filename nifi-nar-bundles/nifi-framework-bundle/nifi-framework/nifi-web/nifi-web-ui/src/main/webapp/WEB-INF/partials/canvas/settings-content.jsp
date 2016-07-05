@@ -18,8 +18,8 @@
 <div id="settings">
     <div id="settings-header-text" class="settings-header-text">NiFi Settings</div>
     <div class="settings-container">
-        <div class="tab-container">
-            <div id="settings-tabs" class="settings-tabs"></div>
+        <div>
+            <div id="settings-tabs" class="settings-tabs tab-container"></div>
             <button id="new-service-or-task" class="add-button fa fa-plus"></button>
             <div class="clear"></div>
         </div>

@@ -73,6 +73,7 @@ nf.SummaryTable = (function () {
         $('#summary-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'Processors',
                 tabContentId: 'processor-summary-tab-content'
@@ -528,6 +529,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster processor summary dialog
         $('#cluster-processor-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Processor Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -784,6 +786,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster connection summary dialog
         $('#cluster-connection-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Connection Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1088,6 +1091,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster process group summary dialog
         $('#cluster-process-group-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Process Group Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1331,6 +1335,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster input port summary dialog
         $('#cluster-input-port-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Input Port Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1570,6 +1575,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster output port summary dialog
         $('#cluster-output-port-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Output Port Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1866,6 +1872,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster remote process group summary dialog
         $('#cluster-remote-process-group-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Remote Process Group Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1969,6 +1976,7 @@ nf.SummaryTable = (function () {
         $('#system-diagnostics-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'JVM',
                 tabContentId: 'jvm-tab-content'
@@ -1980,6 +1988,7 @@ nf.SummaryTable = (function () {
 
         // initialize the system diagnostics dialog
         $('#system-diagnostics-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'System Diagnostics',
             buttons: [{
                 buttonText: 'Close',
@@ -1998,6 +2007,9 @@ nf.SummaryTable = (function () {
                 close: function () {
                     // show the summary loading container
                     $('#summary-loading-container').show();
+                },
+                open: function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 }
             }
         });

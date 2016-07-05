@@ -35,6 +35,7 @@ nf.Actions = (function () {
 
         // configure the drop request status dialog
         $('#drop-request-status-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
                     // reset the progress bar

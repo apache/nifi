@@ -530,6 +530,7 @@ nf.Settings = (function () {
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Add Reporting Task',
             buttons: [{
                     buttonText: 'Add',
@@ -954,6 +955,7 @@ nf.Settings = (function () {
             $('#settings-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'

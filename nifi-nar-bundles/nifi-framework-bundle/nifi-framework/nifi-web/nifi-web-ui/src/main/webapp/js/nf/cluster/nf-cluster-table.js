@@ -335,6 +335,7 @@ nf.ClusterTable = (function () {
         init: function () {
             // initialize the user details dialog
             $('#node-details-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Node Details',
                 buttons: [{
                     buttonText: 'Ok',

@@ -322,6 +322,7 @@ nf.GoTo = (function () {
          */
         init: function () {
             $('#connections-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
                     buttonText: 'Close',
                     color: {

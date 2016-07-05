@@ -23,6 +23,7 @@ nf.ProcessGroupDetails = (function () {
         init: function () {
             // configure the processor details dialog
             $('#process-group-details').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Process Group Details',
                 buttons: [{
                     buttonText: 'Ok',

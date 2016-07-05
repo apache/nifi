@@ -185,6 +185,7 @@ nf.ProvenanceTable = (function () {
         $('#event-details-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'Details',
                 tabContentId: 'event-details-tab-content'
@@ -198,6 +199,7 @@ nf.ProvenanceTable = (function () {
         });
 
         $('#event-details-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Provenance Event',
             buttons: [{
                 buttonText: 'Ok',
@@ -221,6 +223,9 @@ nf.ProvenanceTable = (function () {
                     $('#child-flowfiles-container').empty();
                     $('#provenance-event-cluster-node-id').text('');
                     $('#modified-attribute-toggle').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                },
+                open: function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 }
             }
         });
@@ -359,6 +364,7 @@ nf.ProvenanceTable = (function () {
 
         // configure the search dialog
         $('#provenance-search-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Search Events',
             buttons: [{
                 buttonText: 'Search',
@@ -460,6 +466,7 @@ nf.ProvenanceTable = (function () {
 
         // initialize the dialog
         $('#provenance-query-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Searching provenance events...',
             handler: {
                 close: function () {

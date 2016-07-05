@@ -110,7 +110,7 @@ input.provenance-filter-list {
 #provenance-search-container {
     float: right;
     position: relative;
-    top: -38px;
+    top: 42px;
 }
 
 #provenance-search-button {
@@ -131,7 +131,6 @@ input.provenance-filter-list {
 /* provenance search dialog */
 
 #searchable-fields-container {
-    width: 100%;
     min-height: 185px;
     padding: 5px;
     overflow: auto;
@@ -334,12 +333,13 @@ div.content-detail-value {
 
 #provenance-table {
     position: absolute;
-    top: 78px;
+    top: 88px;
     left: 0px;
     bottom: 48px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
+    min-height: 150px;
 }
 
 /* provenance lineage */

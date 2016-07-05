@@ -97,6 +97,7 @@ input.cluster-filter-list {
     overflow: hidden;
     height: 80%;
     width: 100%;
+    min-height: 150px;
 }
 
 span.sorted {
