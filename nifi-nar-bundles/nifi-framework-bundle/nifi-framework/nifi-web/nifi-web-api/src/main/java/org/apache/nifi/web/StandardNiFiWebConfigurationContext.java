@@ -52,6 +52,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.concurrent.LockExpiredException;
 import org.apache.nifi.web.util.ClientResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -410,17 +411,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 processor = entity.getComponent();
             } else {
-                // claim the revision
-                serviceFacade.claimRevision(revision, user);
+                // update processor within write lock
+                final String writeLockId = serviceFacade.obtainWriteLock();
                 try {
-
-                    ProcessorDTO processorDTO = buildProcessorDto(id,annotationData,properties);
-                    final ProcessorEntity entity = serviceFacade.updateProcessor(revision,processorDTO);
-                    processor = entity.getComponent();
-
+                    processor = serviceFacade.withWriteLock(writeLockId, () -> {
+                        ProcessorDTO processorDTO = buildProcessorDto(id, annotationData, properties);
+                        final ProcessorEntity entity = serviceFacade.updateProcessor(revision, processorDTO);
+                        return entity.getComponent();
+                    });
                 } finally {
-                    // ensure the revision is canceled.. if the operation succeed, this is a noop
-                    serviceFacade.cancelRevision(revision);
+                    // ensure the lock is released
+                    try {
+                        serviceFacade.releaseWriteLock(writeLockId);
+                    } catch (final LockExpiredException e) {
+                    }
                 }
             }
 
@@ -565,15 +569,19 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 controllerServiceDto.setAnnotationData(annotationData);
                 controllerServiceDto.setProperties(properties);
 
-                // claim the revision
-                serviceFacade.claimRevision(revision, user);
+                // update controller service within write lock
+                final String writeLockId = serviceFacade.obtainWriteLock();
                 try {
-                    // perform the update
-                    final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerServiceDto);
-                    controllerService = entity.getComponent();
+                    controllerService = serviceFacade.withWriteLock(writeLockId, () -> {
+                        final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, controllerServiceDto);
+                        return entity.getComponent();
+                    });
                 } finally {
-                    // ensure the revision is canceled.. if the operation succeed, this is a noop
-                    serviceFacade.cancelRevision(revision);
+                    // ensure the lock is released
+                    try {
+                        serviceFacade.releaseWriteLock(writeLockId);
+                    } catch (final LockExpiredException e) {
+                    }
                 }
             } else {
                 // if this is a standalone instance the service should have been found above... there should
@@ -733,14 +741,20 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 reportingTaskDto.setAnnotationData(annotationData);
                 reportingTaskDto.setProperties(properties);
 
-                // claim the revision
-                serviceFacade.claimRevision(revision, user);
+                // obtain write lock
+                final String writeLockId = serviceFacade.obtainWriteLock();
                 try {
-                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDto);
-                    reportingTask = entity.getComponent();
+                    reportingTask = serviceFacade.withWriteLock(writeLockId, () -> {
+                        serviceFacade.verifyRevision(revision, user);
+                        final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, reportingTaskDto);
+                        return entity.getComponent();
+                    });
                 } finally {
-                    // ensure the revision is canceled.. if the operation succeed, this is a noop
-                    serviceFacade.cancelRevision(revision);
+                    // ensure the lock is released
+                    try {
+                        serviceFacade.releaseWriteLock(writeLockId);
+                    } catch (final LockExpiredException e) {
+                    }
                 }
             } else {
                 // if this is a standalone instance the task should have been found above... there should
