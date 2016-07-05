@@ -183,6 +183,20 @@ limitations under the License.
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.nifi.minifi</groupId>
+                <artifactId>minifi-standard-nar</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi.minifi</groupId>
+                <artifactId>minifi-update-attribute-nar</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+
+
+            <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
                 <version>1.1.3</version>
@@ -262,11 +276,6 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-expression-language</artifactId>
-                <version>${org.apache.nifi.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
                 <version>${org.apache.nifi.version}</version>
             </dependency>
@@ -332,12 +341,6 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-nar</artifactId>
-                <version>${org.apache.nifi.version}</version>
-                <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-standard-nar</artifactId>
                 <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
@@ -452,8 +455,7 @@ limitations under the License.
             <dependency>
                 <groupId>com.squareup.okhttp</groupId>
                 <artifactId>okhttp</artifactId>
-                <version>2.7.5</version>
-                <scope>test</scope>
+                <version>2.7.1</version>
             </dependency>
             <dependency>
                 <groupId>commons-io</groupId>

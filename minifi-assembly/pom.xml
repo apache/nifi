@@ -121,6 +121,16 @@ limitations under the License.
             <artifactId>minifi-provenance-repository-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-standard-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-update-attribute-nar</artifactId>
+            <type>nar</type>
+        </dependency>
 
         <!-- MiNiFi NiFi Dependencies -->
         <dependency>
@@ -137,17 +147,6 @@ limitations under the License.
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core-api</artifactId>
         </dependency>
-        <!-- <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-core</artifactId>
-        </dependency>-->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-docs</artifactId>
-            <classifier>resources</classifier>
-            <scope>runtime</scope>
-            <type>zip</type>
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
@@ -156,16 +155,6 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-update-attribute-nar</artifactId>
             <type>nar</type>
         </dependency>
         <dependency>

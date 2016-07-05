@@ -27,5 +27,7 @@
         <module>minifi-framework-bundle</module>
         <module>minifi-provenance-repository-bundle</module>
         <module>minifi-provenance-reporting-bundle</module>
+        <module>minifi-update-attribute-nar</module>
+        <module>minifi-standard-nar</module>
     </modules>
 </project>

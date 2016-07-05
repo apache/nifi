@@ -35,7 +35,6 @@
             <excludes>
             	<exclude>minifi-bootstrap</exclude>
                 <exclude>minifi-resources</exclude>
-                <exclude>nifi-docs</exclude>
             </excludes>
         </dependencySet>
 
@@ -93,25 +92,6 @@
                 <includes>
                     <include>bin/*</include>
                 </includes>
-            </unpackOptions>
-        </dependencySet>
-        <!-- Writes out the docs directory contents -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>docs/</outputDirectory>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>nifi-docs</include>
-            </includes>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <filtered>false</filtered>
-                <excludes>
-                    <!-- LICENSE and NOTICE both covered by top-level -->
-                    <exclude>LICENSE</exclude>
-                    <exclude>NOTICE</exclude>
-                </excludes>
             </unpackOptions>
         </dependencySet>
     </dependencySets>
