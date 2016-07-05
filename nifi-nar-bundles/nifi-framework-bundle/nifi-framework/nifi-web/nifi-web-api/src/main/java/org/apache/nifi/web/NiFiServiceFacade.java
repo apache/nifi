@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.web;
 
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
@@ -90,13 +98,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+import org.apache.nifi.web.concurrent.LockExpiredException;
 
 /**
  * Defines the NiFiServiceFacade interface.
@@ -115,13 +117,111 @@ public interface NiFiServiceFacade {
     void authorizeAccess(AuthorizeAccess authorizeAccess);
 
     /**
+     * Obtains a read (shared) lock for the entire flow, so that no other
+     * requests can be made to modify the flow until either this read lock
+     * is released via {@link #releaseReadLock()} or the lock expires
+     *
+     * @return an identifier that indicates the version of the lock, so that other
+     *         requests cannot release a lock that was held by this request
+     */
+    String obtainReadLock();
+
+    /**
+     * Obtains a read (shared) lock for the entire flow, so that no other
+     * requests can be made to modify the flow until either this read lock
+     * is released via {@link #releaseReadLock()} or the lock expires
+     *
+     * @param versionId specifies a value to use for the Version ID for the lock
+     *
+     * @return an identifier that indicates the version of the lock, so that other
+     *         requests cannot release a lock that was held by this request
+     */
+    String obtainReadLock(String versionId);
+
+    /**
+     * Performs the given action while holding the read lock that has already been obtained
+     * with the given versionIdentifier. This allows the given action to be performed without
+     * allowing the read lock to expire until the entire action has completed.
+     *
+     * @param versionIdentifier the identifier that indicates the version of the lock that
+     *            is held. The value that is to be passed here is the value that was returned from the
+     *            call to {@link #obtainReadLock()}.
+     * @param action the action to perform
+     *
+     * @return the value returned by the action
+     * @throws LockExpiredException if the lock has expired before the action is invoked
+     * @throws Exception any Exception thrown by the given action is propagated
+     */
+    <T> T withReadLock(String versionIdentifier, Supplier<T> action) throws LockExpiredException;
+
+    /**
+     * Releases the read lock held on this flow
+     *
+     * @param versionIdentifier the identifier that indicates the version of the lock that
+     *            is held. The value that is to be passed here is the value that was returned from the
+     *            call to {@link #obtainReadLock()}.
+     *
+     * @throws LockExpiredException if the lock with the given identifier has already expired or is not valid
+     */
+    void releaseReadLock(String versionIdentifier) throws LockExpiredException;
+
+    /**
+     * Obtains a write (mutually exclusive) lock for the entire flow, so that no other
+     * requests can be made to read or modify the flow until either this write lock
+     * is released via {@link #releaseWriteLock()} or the lock expires
+     *
+     * @return an identifier that indicates the version of the lock, so that other
+     *         requests cannot release a lock that was held by this request
+     */
+    String obtainWriteLock();
+
+    /**
+     * Obtains a write (mutually exclusive) lock for the entire flow, so that no other
+     * requests can be made to read or modify the flow until either this write lock
+     * is released via {@link #releaseWriteLock()} or the lock expires
+     *
+     * @param versionId specifies a value to use for the Version ID for the lock
+     *
+     * @return an identifier that indicates the version of the lock, so that other
+     *         requests cannot release a lock that was held by this request
+     */
+    String obtainWriteLock(String versionId);
+
+    /**
+     * Performs the given action while holding the write lock that has already been obtained
+     * with the given versionIdentifier. This allows the given action to be performed without
+     * allowing the write lock to expire until the entire action has completed.
+     *
+     * @param versionIdentifier the identifier that indicates the version of the lock that
+     *            is held. The value that is to be passed here is the value that was returned from the
+     *            call to {@link #obtainWriteLock()}.
+     * @param action the action to perform
+     *
+     * @return the value returned by the action
+     * @throws LockExpiredException if the lock has expired before the action is invoked
+     * @throws Exception any Exception thrown by the given action is propagated
+     */
+    <T> T withWriteLock(String versionIdentifier, Supplier<T> action) throws LockExpiredException;
+
+    /**
+     * Releases the write lock held on the flow
+     *
+     * @param versionIdentifier the identifier that indicates the version of the lock that
+     *            is held. The value that is to be passed here is the value that was returned from the
+     *            call to {@link #obtainWriteLock()}.
+     *
+     * @throws LockExpiredException if the lock with the given identifier has already expired or is not valid
+     */
+    void releaseWriteLock(String versionIdentifier) throws LockExpiredException;
+
+    /**
      * Claims the specified revision for the specified user.
      *
      * @param revision revision
      * @param user user
      * @throws InvalidRevisionException invalid revision
      */
-    void claimRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
+    void verifyRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Claims the specified revisions for the specified user.
@@ -130,41 +230,7 @@ public interface NiFiServiceFacade {
      * @param user user
      * @throws InvalidRevisionException invalid revision
      */
-    void claimRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
-
-    /**
-     * Cancels the specified revision. Cancellation is only supported based on the current thread.
-     *
-     * @param revision revision
-     * @throws InvalidRevisionException invalid revision
-     */
-    void cancelRevision(Revision revision) throws InvalidRevisionException;
-
-    /**
-     * Cancels the specified revisions. Cancellation is only supported based on the current thread.
-     *
-     * @param revisions revision
-     * @throws InvalidRevisionException invalid revision
-     */
-    void cancelRevisions(Set<Revision> revisions) throws InvalidRevisionException;
-
-    /**
-     * Releases the claim that is held on the given revision by the given user
-     *
-     * @param revision the revision
-     * @param user the user
-     * @throws InvalidRevisionException if the revision is invalid
-     */
-    void releaseRevisionClaim(Revision revision, NiFiUser user) throws InvalidRevisionException;
-
-    /**
-     * Releases the claim that is held on the given revisions by the given user
-     *
-     * @param revisions the revisions
-     * @param user the user
-     * @throws InvalidRevisionException if the revision is invalid
-     */
-    void releaseRevisionClaims(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
+    void verifyRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Gets the current revisions for the components based on the specified function.

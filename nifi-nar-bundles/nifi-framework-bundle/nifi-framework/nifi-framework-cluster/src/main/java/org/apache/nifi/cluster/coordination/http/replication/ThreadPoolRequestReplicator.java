@@ -325,6 +325,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     private void performVerification(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, StandardAsyncClusterResponse clusterResponse) {
         logger.debug("Verifying that mutable request {} {} can be made", method, uri.getPath());
 
+        // Add the Lock Version ID to the headers so that it is used in all requests for this transaction
+        final String lockVersionId = UUID.randomUUID().toString();
+        headers.put(RequestReplicator.LOCK_VERSION_ID_HEADER, lockVersionId);
+
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
         updatedHeaders.put(REQUEST_VALIDATION_HTTP_HEADER, NODE_CONTINUE);
 
@@ -361,20 +365,21 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                             return;
                         }
 
-                        final Thread cancelClaimThread = new Thread(new Runnable() {
+                        final Map<String, String> cancelLockHeaders = new HashMap<>(updatedHeaders);
+                        cancelLockHeaders.put(LOCK_CANCELATION_HEADER, "true");
+                        final Thread cancelLockThread = new Thread(new Runnable() {
                             @Override
                             public void run() {
                                 logger.debug("Found {} dissenting nodes for {} {}; canceling claim request", dissentingCount, method, uri.getPath());
-                                updatedHeaders.put(CLAIM_CANCEL_HEADER, "true");
 
                                 final Function<NodeIdentifier, NodeHttpRequest> requestFactory =
-                                    nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, updatedHeaders, null);
+                                    nodeId -> new NodeHttpRequest(nodeId, method, createURI(uri, nodeId), entity, cancelLockHeaders, null);
 
-                                replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, updatedHeaders);
+                                replicateRequest(nodeIds, uri.getScheme(), uri.getPath(), requestFactory, cancelLockHeaders);
                             }
                         });
-                        cancelClaimThread.setName("Cancel Claims");
-                        cancelClaimThread.start();
+                        cancelLockThread.setName("Cancel Flow Locks");
+                        cancelLockThread.start();
 
                         // Add a NodeResponse for each node to the Cluster Response
                         // Check that all nodes responded successfully.

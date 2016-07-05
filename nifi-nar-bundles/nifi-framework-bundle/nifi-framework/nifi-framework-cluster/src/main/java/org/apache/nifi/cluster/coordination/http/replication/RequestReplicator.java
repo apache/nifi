@@ -38,7 +38,11 @@ public interface RequestReplicator {
     public static final String NODE_CONTINUE = "150-NodeContinue";
     public static final int NODE_CONTINUE_STATUS_CODE = 150;
 
-    public static final String CLAIM_CANCEL_HEADER = "X-Cancel-Claim";
+    /**
+     * Indicates that the request is intended to cancel a lock that was previously obtained without performing the action
+     */
+    public static final String LOCK_CANCELATION_HEADER = "X-Cancel-Lock";
+    public static final String LOCK_VERSION_ID_HEADER = "X-Lock-Version-Id";
 
     /**
      * Stops the instance from replicating requests. Calling this method on a stopped instance has no effect.
