@@ -18,12 +18,7 @@ package org.apache.nifi.authorization;
 
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class TestUser {
 
@@ -37,25 +32,16 @@ public class TestUser {
         final User user = new User.Builder()
                 .identifier(identifier)
                 .identity(identity)
-                .addGroup(group1)
-                .addGroup(group2)
                 .build();
 
         assertEquals(identifier, user.getIdentifier());
         assertEquals(identity, user.getIdentity());
-
-        assertNotNull(user.getGroups());
-        assertEquals(2, user.getGroups().size());
-        assertTrue(user.getGroups().contains(group1));
-        assertTrue(user.getGroups().contains(group2));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testMissingIdentifier() {
         new User.Builder()
                 .identity("user1")
-                .addGroup("group1")
-                .addGroup("group2")
                 .build();
     }
 
@@ -63,26 +49,7 @@ public class TestUser {
     public void testMissingIdentity() {
         new User.Builder()
                 .identifier("1")
-                .addGroup("group1")
-                .addGroup("group2")
                 .build();
-    }
-
-    @Test
-    public void testMissingGroups() {
-        final String identifier = "1";
-        final String identity = "user1";
-
-        final User user = new User.Builder()
-                .identifier(identifier)
-                .identity(identity)
-                .build();
-
-        assertEquals(identifier, user.getIdentifier());
-        assertEquals(identity, user.getIdentity());
-
-        assertNotNull(user.getGroups());
-        assertEquals(0, user.getGroups().size());
     }
 
     @Test
@@ -95,22 +62,14 @@ public class TestUser {
         final User user = new User.Builder()
                 .identifier(identifier)
                 .identity(identity)
-                .addGroup(group1)
-                .addGroup(group2)
                 .build();
 
         assertEquals(identifier, user.getIdentifier());
         assertEquals(identity, user.getIdentity());
 
-        assertNotNull(user.getGroups());
-        assertEquals(2, user.getGroups().size());
-        assertTrue(user.getGroups().contains(group1));
-        assertTrue(user.getGroups().contains(group2));
-
         final User user2 = new User.Builder(user).build();
         assertEquals(user.getIdentifier(), user2.getIdentifier());
         assertEquals(user.getIdentity(), user2.getIdentity());
-        assertEquals(user.getGroups(), user2.getGroups());
     }
 
     @Test(expected = IllegalStateException.class)
@@ -118,53 +77,9 @@ public class TestUser {
         final User user = new User.Builder()
                 .identifier("1")
                 .identity("user1")
-                .addGroup("group1")
-                .addGroup("group2")
                 .build();
 
         new User.Builder(user).identifier("2").build();
-    }
-
-    @Test
-    public void testAddRemoveClearGroups() {
-        final User.Builder builder = new User.Builder()
-                .identifier("1")
-                .identity("user1")
-                .addGroup("group1");
-
-        final User user1 = builder.build();
-        assertNotNull(user1.getGroups());
-        assertEquals(1, user1.getGroups().size());
-        assertTrue(user1.getGroups().contains("group1"));
-
-        final Set<String> moreGroups = new HashSet<>();
-        moreGroups.add("group2");
-        moreGroups.add("group3");
-        moreGroups.add("group4");
-
-        final User user2 = builder.addGroups(moreGroups).build();
-        assertEquals(4, user2.getGroups().size());
-        assertTrue(user2.getGroups().contains("group1"));
-        assertTrue(user2.getGroups().contains("group2"));
-        assertTrue(user2.getGroups().contains("group3"));
-        assertTrue(user2.getGroups().contains("group4"));
-
-        final User user3 = builder.removeGroup("group2").build();
-        assertEquals(3, user3.getGroups().size());
-        assertTrue(user3.getGroups().contains("group1"));
-        assertTrue(user3.getGroups().contains("group3"));
-        assertTrue(user3.getGroups().contains("group4"));
-
-        final Set<String> removeGroups = new HashSet<>();
-        removeGroups.add("group1");
-        removeGroups.add("group4");
-
-        final User user4 = builder.removeGroups(removeGroups).build();
-        assertEquals(1, user4.getGroups().size());
-        assertTrue(user4.getGroups().contains("group3"));
-
-        final User user5 = builder.clearGroups().build();
-        assertEquals(0, user5.getGroups().size());
     }
 
 }

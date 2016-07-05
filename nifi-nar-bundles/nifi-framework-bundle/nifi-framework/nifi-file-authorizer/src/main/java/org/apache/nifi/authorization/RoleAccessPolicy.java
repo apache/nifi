@@ -33,19 +33,19 @@ public final class RoleAccessPolicy {
     static final String WRITE_ACTION = "W";
 
     private final String resource;
-    private final String actions;
+    private final String action;
 
-    private RoleAccessPolicy(final String resource, final String actions) {
+    private RoleAccessPolicy(final String resource, final String action) {
         this.resource = resource;
-        this.actions = actions;
+        this.action = action;
     }
 
     public String getResource() {
         return resource;
     }
 
-    public String getActions() {
-        return actions;
+    public String getAction() {
+        return action;
     }
 
     public static Map<Role,Set<RoleAccessPolicy>> getMappings(final String rootGroupId) {
@@ -62,13 +62,18 @@ public final class RoleAccessPolicy {
 
         final Set<RoleAccessPolicy> provenancePolicies = new HashSet<>();
         provenancePolicies.add(new RoleAccessPolicy(ResourceType.Provenance.getValue(), READ_ACTION));
+        if (rootGroupId != null) {
+            provenancePolicies.add(new RoleAccessPolicy(ResourceType.ProvenanceEvent.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
+        }
         roleAccessPolicies.put(Role.ROLE_PROVENANCE, Collections.unmodifiableSet(provenancePolicies));
 
         final Set<RoleAccessPolicy> dfmPolicies = new HashSet<>();
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.Flow.getValue(), READ_ACTION));
+        dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_ACTION));
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), WRITE_ACTION));
         dfmPolicies.add(new RoleAccessPolicy(ResourceType.System.getValue(), READ_ACTION));
         if (rootGroupId != null) {
+            dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
             dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));
         }
         roleAccessPolicies.put(Role.ROLE_DFM, Collections.unmodifiableSet(dfmPolicies));
@@ -79,16 +84,20 @@ public final class RoleAccessPolicy {
         if (rootGroupId != null) {
             adminPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
         }
+        adminPolicies.add(new RoleAccessPolicy(ResourceType.Tenant.getValue(), READ_ACTION));
         adminPolicies.add(new RoleAccessPolicy(ResourceType.Tenant.getValue(), WRITE_ACTION));
+        adminPolicies.add(new RoleAccessPolicy(ResourceType.Policy.getValue(), READ_ACTION));
         adminPolicies.add(new RoleAccessPolicy(ResourceType.Policy.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_ADMIN, Collections.unmodifiableSet(adminPolicies));
 
         final Set<RoleAccessPolicy> proxyPolicies = new HashSet<>();
+        proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), READ_ACTION));
         proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_PROXY, Collections.unmodifiableSet(proxyPolicies));
 
         final Set<RoleAccessPolicy> nifiPolicies = new HashSet<>();
         nifiPolicies.add(new RoleAccessPolicy(ResourceType.Controller.getValue(), READ_ACTION));
+        nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), READ_ACTION));
         nifiPolicies.add(new RoleAccessPolicy(ResourceType.SiteToSite.getValue(), WRITE_ACTION));
         roleAccessPolicies.put(Role.ROLE_NIFI, Collections.unmodifiableSet(nifiPolicies));
 

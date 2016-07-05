@@ -40,4 +40,12 @@ public interface UsersAndAccessPolicies {
      */
     public User getUser(final String identity);
 
+    /**
+     * Retrieves the groups for a given user identity.
+     *
+     * @param userIdentity a user identity
+     * @return the set of groups for the given user identity
+     */
+    public Set<Group> getGroups(final String userIdentity);
+
 }

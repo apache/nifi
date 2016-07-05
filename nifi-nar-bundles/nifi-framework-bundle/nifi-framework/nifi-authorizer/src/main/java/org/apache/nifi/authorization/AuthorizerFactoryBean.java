@@ -369,7 +369,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                public AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.addAccessPolicy(accessPolicy);
                     }
@@ -418,7 +418,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                public void doOnConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         policyBasedAuthorizer.onConfigured(configurationContext);
                     }
