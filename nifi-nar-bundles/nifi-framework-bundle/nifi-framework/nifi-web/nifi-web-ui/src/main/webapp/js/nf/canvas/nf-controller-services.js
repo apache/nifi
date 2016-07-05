@@ -380,6 +380,7 @@ nf.ControllerServices = (function () {
         // initialize the controller service dialog
         $('#new-controller-service-dialog').modal({
             headerText: 'Add Controller Service',
+            scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
                     // clear the selected row

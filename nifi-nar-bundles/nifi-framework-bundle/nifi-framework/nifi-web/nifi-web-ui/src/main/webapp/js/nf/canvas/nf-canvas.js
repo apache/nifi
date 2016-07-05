@@ -134,7 +134,7 @@ nf.Canvas = (function () {
             cluster: '../nifi-api/controller/cluster'
         }
     };
-    
+
     /**
      * Starts polling.
      *
@@ -299,42 +299,42 @@ nf.Canvas = (function () {
 
         // handle canvas events
         svg.on('mousedown.selection', function () {
-                canvasClicked = true;
+            canvasClicked = true;
 
-                if (d3.event.button !== 0) {
-                    // prevent further propagation (to parents and others handlers
-                    // on the same element to prevent zoom behavior)
-                    d3.event.stopImmediatePropagation();
-                    return;
-                }
+            if (d3.event.button !== 0) {
+                // prevent further propagation (to parents and others handlers
+                // on the same element to prevent zoom behavior)
+                d3.event.stopImmediatePropagation();
+                return;
+            }
 
-                // show selection box if shift is held down
-                if (d3.event.shiftKey) {
-                    var position = d3.mouse(canvas.node());
-                    canvas.append('rect')
-                        .attr('rx', 6)
-                        .attr('ry', 6)
-                        .attr('x', position[0])
-                        .attr('y', position[1])
-                        .attr('class', 'selection')
-                        .attr('width', 0)
-                        .attr('height', 0)
-                        .attr('stroke-width', function () {
-                            return 1 / nf.Canvas.View.scale();
-                        })
-                        .attr('stroke-dasharray', function () {
-                            return 4 / nf.Canvas.View.scale();
-                        })
-                        .datum(position);
+            // show selection box if shift is held down
+            if (d3.event.shiftKey) {
+                var position = d3.mouse(canvas.node());
+                canvas.append('rect')
+                    .attr('rx', 6)
+                    .attr('ry', 6)
+                    .attr('x', position[0])
+                    .attr('y', position[1])
+                    .attr('class', 'selection')
+                    .attr('width', 0)
+                    .attr('height', 0)
+                    .attr('stroke-width', function () {
+                        return 1 / nf.Canvas.View.scale();
+                    })
+                    .attr('stroke-dasharray', function () {
+                        return 4 / nf.Canvas.View.scale();
+                    })
+                    .datum(position);
 
-                    // prevent further propagation (to parents and others handlers
-                    // on the same element to prevent zoom behavior)
-                    d3.event.stopImmediatePropagation();
+                // prevent further propagation (to parents and others handlers
+                // on the same element to prevent zoom behavior)
+                d3.event.stopImmediatePropagation();
 
-                    // prevents the browser from changing to a text selection cursor
-                    d3.event.preventDefault();
-                }
-            })
+                // prevents the browser from changing to a text selection cursor
+                d3.event.preventDefault();
+            }
+        })
             .on('mousemove.selection', function () {
                 // update selection box if shift is held down
                 if (d3.event.shiftKey) {
@@ -451,7 +451,7 @@ nf.Canvas = (function () {
             });
             svg.attr({
                 'height': canvasContainer.height(),
-                'width': canvasContainer.width()
+                'width': $(window).width()
             });
 
             //breadcrumbs
@@ -478,15 +478,48 @@ nf.Canvas = (function () {
                 updateGraphSize();
                 updateFlowStatusContainerSize();
 
-                // resize grids when appropriate
-                var gridElements = $('*[class*="slickgrid_"]');
-                for (var i = 0, len = gridElements.length; i < len; i++) {
-                    if ($(gridElements[i]).is(':visible')){
-                        setTimeout(function(gridElement){
-                            gridElement.data('gridInstance').resizeCanvas();
-                        }, 50, $(gridElements[i]));
+                // resize shell when appropriate
+                var shell = $('#shell-dialog');
+                if (shell.is(':visible')){
+                    setTimeout(function(shell){
+                        nf.Shell.resizeContent(shell);
+                        if(shell.find('#shell-iframe').is(':visible')) {
+                            nf.Shell.resizeIframe(shell);
+                        }
+                    }, 50, shell);
+                }
+
+                // resize dialogs when appropriate
+                var dialogs = $('.dialog');
+                for (var i = 0, len = dialogs.length; i < len; i++) {
+                    if ($(dialogs[i]).is(':visible')){
+                        setTimeout(function(dialog){
+                            dialog.modal('resize');
+                        }, 50, $(dialogs[i]));
                     }
                 }
+
+                // resize grids when appropriate
+                var gridElements = $('*[class*="slickgrid_"]');
+                for (var j = 0, len = gridElements.length; j < len; j++) {
+                    if ($(gridElements[j]).is(':visible')){
+                        setTimeout(function(gridElement){
+                            gridElement.data('gridInstance').resizeCanvas();
+                        }, 50, $(gridElements[j]));
+                    }
+                }
+
+                // toggle tabs .scrollable when appropriate
+                var tabsContainers = $('.tab-container');
+                var tabsContents = [];
+                for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                    if ($(tabsContainers[k]).is(':visible')){
+                        tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                    }
+                }
+                $.each(tabsContents, function (index, tabsContent) {
+                    nf.Common.toggleScrollable(tabsContent.get(0));
+                });
             }
         }).on('keydown', function (evt) {
             // if a dialog is open, disable canvas shortcuts
@@ -606,7 +639,7 @@ nf.Canvas = (function () {
 
             // update the access policies
             accessPolicy = flowResponse.accessPolicy;
-            
+
             // update the breadcrumbs
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
@@ -746,7 +779,7 @@ nf.Canvas = (function () {
             userXhr.done(function () {
                 // load the client id
                 var clientXhr = nf.Client.init();
-                
+
                 // get the controller config to register the status poller
                 var configXhr = $.ajax({
                     type: 'GET',
@@ -898,10 +931,10 @@ nf.Canvas = (function () {
                 return accessPolicy.canRead === true;
             }
         },
-        
+
         /**
          * Whether the current user can write in this group.
-         * 
+         *
          * @returns {boolean}   can write
          */
         canWrite: function () {

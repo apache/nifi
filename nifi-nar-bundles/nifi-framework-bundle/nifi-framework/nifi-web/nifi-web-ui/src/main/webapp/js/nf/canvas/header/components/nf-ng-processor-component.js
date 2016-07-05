@@ -415,6 +415,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
 
                 // configure the new processor dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Processor'
                 });
             },
@@ -561,7 +562,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 }]);
 
             // set a new handler for closing the the dialog
-            this.modal.update('setHandler', {
+            this.modal.update('setCloseHandler', {
                 close: function () {
                     // remove the handler
                     grid.onDblClick.unsubscribe(gridDoubleClick);

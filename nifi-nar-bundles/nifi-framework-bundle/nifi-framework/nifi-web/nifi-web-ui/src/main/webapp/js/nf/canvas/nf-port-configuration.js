@@ -24,6 +24,7 @@ nf.PortConfiguration = (function () {
      */
     var initPortConfigurationDialog = function () {
         $('#port-configuration').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Configure Port',
             buttons: [{
                 buttonText: 'Apply',

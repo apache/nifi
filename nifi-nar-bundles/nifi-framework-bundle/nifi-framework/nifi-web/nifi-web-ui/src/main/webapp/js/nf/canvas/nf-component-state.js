@@ -224,6 +224,7 @@ nf.ComponentState = (function () {
 
             // initialize the processor configuration dialog
             $('#component-state-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Component State',
                 buttons: [{
                     buttonText: 'Close',

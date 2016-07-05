@@ -39,6 +39,7 @@ nf.ProvenanceLineage = (function () {
 
         // initialize the dialog
         $('#lineage-query-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Computing FlowFile lineage...',
             handler: {
                 close: function () {

@@ -33,13 +33,17 @@ div.settings-header-text {
 }
 
 div.settings-container {
-    margin-top: 18px;
-    height: 85%;
+    position: absolute;
+    top: 58px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
 }
 
 #new-service-or-task {
-    float: right;
-    cursor: pointer;
+    position: absolute;
+    top: 0px;
+    right: 0px;
 }
 
 #settings-refresh-container {
@@ -53,12 +57,18 @@ div.settings-tabs {
     float: left;
 }
 
+#settings-tabs-content {
+    top: 53px;
+    bottom: 48px;
+}
+
 div.settings-table {
     position: absolute;
-    top: 111px;
+    top: 0px;
     left: 0px;
-    bottom: 72px;
+    bottom: 20px;
     right: 0px;
+    min-height: 150px;
 }
 
 span.sorted {

@@ -850,7 +850,7 @@ nf.StatusHistory = (function () {
             },
             start: function (e, ui) {
                 var helperOffset = ui.helper.offset();
-                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2) + 8; //8 for the box shadow
+                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2);
                 var dialogContent = statusHistoryDialog.find('.dialog-content');
                 var dialogContentPaddingRight = ((dialogContent.outerWidth() - dialogContent.width()) / 2);
                 var chartOuter = chartContainer.outerWidth() - chartContainer.width();
@@ -859,9 +859,8 @@ nf.StatusHistory = (function () {
                 maxWidth = $('body').width() - helperOffset.left - dialogOuter - dialogContentPaddingRight - chartOuter;
 
                 // calculate the max height of the component
-                var dialogContentPaddingBottom = ((dialogContent.outerHeight() - dialogContent.height()) / 2);
-                var dialogButtonsHeight = statusHistoryDialog.find('.dialog-buttons').height() + 5; //5 for the box shadow
-                maxHeight = $('body').height() - helperOffset.top - dialogOuter - chartOuter - dialogContentPaddingBottom - dialogButtonsHeight - chartControlContainer.outerHeight(true);
+                var dialogContentPaddingBottom = dialogContent.outerHeight() - dialogContent.height() - parseInt(dialogContent.css('padding-top'), 10);
+                maxHeight = $('body').height() - helperOffset.top - dialogOuter - chartOuter - dialogContentPaddingBottom - chartControlContainer.outerHeight(true);
 
                 // record the current extent so it can be reset on stop
                 if (!brush.empty()) {
@@ -1077,6 +1076,7 @@ nf.StatusHistory = (function () {
 
             // configure the dialog and make it draggable
             $('#status-history-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: "Status History",
                 buttons: [{
                     buttonText: 'Close',

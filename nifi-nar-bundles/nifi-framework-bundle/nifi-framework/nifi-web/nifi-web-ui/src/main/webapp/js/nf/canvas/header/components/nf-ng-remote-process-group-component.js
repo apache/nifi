@@ -119,6 +119,7 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
                 var defaultYieldDuration = "10 sec";
                 // configure the new remote process group dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Remote Process Group',
                     handler: {
                         close: function () {

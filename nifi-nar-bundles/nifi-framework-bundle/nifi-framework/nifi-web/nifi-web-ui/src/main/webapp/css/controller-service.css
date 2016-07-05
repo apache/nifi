@@ -54,10 +54,8 @@
 
 #controller-service-referencing-components {
     border: 0 solid #CCCCCC;
-    height: 280px;
     overflow: auto;
     padding: 2px;
-    width: 376px;
 }
 
 div.referencing-component-block {
@@ -161,8 +159,6 @@ div.controller-service-canceling {
 #disable-controller-service-referencing-components {
     border: 0 solid #CCCCCC;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }
@@ -198,8 +194,6 @@ div.controller-service-canceling {
 #enable-controller-service-referencing-components {
     border: 0 solid #ccc;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }

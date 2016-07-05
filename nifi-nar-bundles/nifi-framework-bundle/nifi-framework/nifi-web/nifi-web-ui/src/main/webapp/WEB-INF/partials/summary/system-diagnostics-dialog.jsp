@@ -18,116 +18,117 @@
 <div id="system-diagnostics-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="system-diagnostics-tabs" class="tab-container"></div>
-        <div id="jvm-tab-content" class="configuration-tab">
-            <div class="settings-left">
+        <div id="system-diagnostics-tabs-content">
+            <div id="jvm-tab-content" class="configuration-tab">
+                <div class="settings-left">
+                    <div class="setting">
+                        <input type="hidden" id=""/>
+                        <div class="setting-header">Heap <span id="utilization-heap"></span></div>
+                        <div class="setting-field">
+                            <table id="heap-table">
+                                <tbody>
+                                <tr>
+                                    <td class="memory-header setting-name">Max:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="max-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Total:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="total-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Used:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="used-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Free:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="free-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+                <div class="spacer"></div>
+                <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-header">Non-heap <span id="utilization-non-heap"></span></div>
+                        <div class="setting-field">
+                            <table id="heap-table">
+                                <tbody>
+                                <tr>
+                                    <td class="memory-header setting-name">Max:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="max-non-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Total:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="total-non-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Used:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="used-non-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td class="setting-name">Free:</td>
+                                </tr>
+                                <tr>
+                                    <td><span id="free-non-heap"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="clear"></div>
+                    </div>
+                </div>
+                <div class="clear"></div>
                 <div class="setting">
-                    <input type="hidden" id=""/>
-                    <div class="setting-header">Heap <span id="utilization-heap"></span></div>
-                    <div class="setting-field">
-                        <table id="heap-table">
-                            <tbody>
-                            <tr>
-                                <td class="memory-header setting-name">Max:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="max-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Total:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="total-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Used:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="used-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Free:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="free-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            </tbody>
+                    <div class="setting-header">Garbage Collection</div>
+                    <div id="garbage-collection-container" class="setting-field">
+                        <table id="garbage-collection-table">
+                            <tbody></tbody>
                         </table>
                     </div>
-                    <div class="clear"></div>
                 </div>
             </div>
-            <div class="spacer"></div>
-            <div class="settings-right">
-                <div class="setting">
-                    <div class="setting-header">Non-heap <span id="utilization-non-heap"></span></div>
-                    <div class="setting-field">
-                        <table id="heap-table">
-                            <tbody>
-                            <tr>
-                                <td class="memory-header setting-name">Max:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="max-non-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Total:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="total-non-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Used:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="used-non-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td class="setting-name">Free:</td>
-                            </tr>
-                            <tr>
-                                <td><span id="free-non-heap"></span></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="clear"></div>
-                </div>
-            </div>
-            <div class="clear"></div>
-            <div class="setting">
-                <div class="setting-header">Garbage Collection</div>
-                <div id="garbage-collection-container" class="setting-field">
-                    <table id="garbage-collection-table">
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div id="system-tab-content"class="configuration-tab">
+            <div id="system-tab-content"class="configuration-tab">
             <div class="settings-left">
                 <div class="setting">
                     <div class="setting-name">Available Processors:</div>
@@ -161,6 +162,7 @@
                     <div id="content-repository-storage-usage-container"></div>
                 </div>
             </div>
+        </div>
         </div>
         <div id="system-diagnostics-refresh-container">
             <button id="system-diagnostics-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>

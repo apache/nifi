@@ -44,10 +44,12 @@ div.add-property-text {
 }
 
 div.property-table {
-    width: 100%;
+    position: absolute;
+    top: 43px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
     min-height: 150px;
-    overflow: hidden;
-    height: 90%;
 }
 
 .property-table .fa {

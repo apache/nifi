@@ -89,6 +89,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
             init: function () {
                 // configure the new port dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Port',
                     handler: {
                         close: function () {
