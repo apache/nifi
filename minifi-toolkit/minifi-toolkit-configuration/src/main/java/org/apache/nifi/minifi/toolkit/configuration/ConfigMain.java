@@ -18,7 +18,7 @@
 package org.apache.nifi.minifi.toolkit.configuration;
 
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
-import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaSaver;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
@@ -140,7 +140,7 @@ public class ConfigMain {
         Set<RemoteProcessGroupDTO> remoteProcessGroups = flowSnippetDTO.getRemoteProcessGroups();
         if (remoteProcessGroups != null) {
             for (RemoteProcessGroupDTO remoteProcessGroupDTO : remoteProcessGroups) {
-                if (BaseSchema.isNullOrEmpty(remoteProcessGroupDTO.getName())) {
+                if (StringUtil.isNullOrEmpty(remoteProcessGroupDTO.getName())) {
                     remoteProcessGroupDTO.setName(remoteProcessGroupDTO.getTargetUri());
                 }
             }
@@ -165,7 +165,7 @@ public class ConfigMain {
                 setName(connectableNameMap, connection.getDestination());
             }
             for (ConnectionDTO connection : connections) {
-                if (BaseSchema.isNullOrEmpty(connection.getName())) {
+                if (StringUtil.isNullOrEmpty(connection.getName())) {
                     StringBuilder name = new StringBuilder();
                     ConnectableDTO connectionSource = connection.getSource();
                     if (connectionSource != null) {
@@ -215,7 +215,7 @@ public class ConfigMain {
             for (T hasIdAndName : hasIdAndNames) {
                 String id = idGetter.apply(hasIdAndName);
                 String name = nameGetter.apply(hasIdAndName);
-                if (!BaseSchema.isNullOrEmpty(name)) {
+                if (!StringUtil.isNullOrEmpty(name)) {
                     connectableNameMap.put(id, name);
                 }
             }

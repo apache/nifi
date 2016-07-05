@@ -32,6 +32,7 @@ import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.ProvenanceRepositorySchema;
 import org.apache.nifi.minifi.commons.schema.RemoteInputPortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessingGroupSchema;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
@@ -103,7 +104,7 @@ public final class ConfigTransformer {
         writeFlowXmlFile(flowXml, destPath);
     }
 
-    private static void writeNiFiPropertiesFile(ByteArrayOutputStream nifiPropertiesOutputStream, String destPath) throws IOException {
+    protected static void writeNiFiPropertiesFile(ByteArrayOutputStream nifiPropertiesOutputStream, String destPath) throws IOException {
         final Path nifiPropertiesPath = Paths.get(destPath, "nifi.properties");
         try (FileOutputStream nifiProperties = new FileOutputStream(nifiPropertiesPath.toString())) {
             nifiPropertiesOutputStream.writeTo(nifiProperties);
@@ -115,8 +116,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void writeFlowXmlFile(DOMSource domSource, String path) throws IOException, TransformerException {
-
+    protected static void writeFlowXmlFile(DOMSource domSource, String path) throws IOException, TransformerException {
         final OutputStream fileOut = Files.newOutputStream(Paths.get(path, "flow.xml.gz"));
         final OutputStream outStream = new GZIPOutputStream(fileOut);
         final StreamResult streamResult = new StreamResult(outStream);
@@ -133,7 +133,7 @@ public final class ConfigTransformer {
         outStream.close();
     }
 
-    private static void writeNiFiProperties(ConfigSchema configSchema, OutputStream outputStream) throws FileNotFoundException, UnsupportedEncodingException, ConfigurationChangeException {
+    protected static void writeNiFiProperties(ConfigSchema configSchema, OutputStream outputStream) throws FileNotFoundException, UnsupportedEncodingException, ConfigurationChangeException {
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(outputStream, true);
@@ -263,7 +263,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException{
+    protected static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException{
         try {
             // create a new, empty document
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -302,7 +302,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addSSLControllerService(final Element element, SecurityPropertiesSchema securityProperties) throws ConfigurationChangeException {
+    protected static void addSSLControllerService(final Element element, SecurityPropertiesSchema securityProperties) throws ConfigurationChangeException {
         try {
             final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
             addTextElement(serviceElement, "id", "SSL-Context-Service");
@@ -329,7 +329,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addProcessGroup(final Element parentElement, ConfigSchema configSchema, final String elementName) throws ConfigurationChangeException {
+    protected static void addProcessGroup(final Element parentElement, ConfigSchema configSchema, final String elementName) throws ConfigurationChangeException {
         try {
             FlowControllerSchema flowControllerProperties = configSchema.getFlowControllerProperties();
 
@@ -368,7 +368,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addProcessor(final Element parentElement, ProcessorSchema processorConfig) throws ConfigurationChangeException {
+    protected static void addProcessor(final Element parentElement, ProcessorSchema processorConfig) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("processor");
@@ -404,7 +404,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addProvenanceReportingTask(final Element element, ConfigSchema configSchema) throws ConfigurationChangeException {
+    protected static void addProvenanceReportingTask(final Element element, ConfigSchema configSchema) throws ConfigurationChangeException {
         try {
             ProvenanceReportingSchema provenanceProperties = configSchema.getProvenanceReportingProperties();
             final Element taskElement = element.getOwnerDocument().createElement("reportingTask");
@@ -437,7 +437,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addConfiguration(final Element element, Map<String, Object> elementConfig) {
+    protected static void addConfiguration(final Element element, Map<String, Object> elementConfig) {
         final Document doc = element.getOwnerDocument();
         if (elementConfig == null) {
             return;
@@ -454,12 +454,12 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addStyle(final Element parentElement) {
+    protected static void addStyle(final Element parentElement) {
         final Element element = parentElement.getOwnerDocument().createElement("styles");
         parentElement.appendChild(element);
     }
 
-    private static void addRemoteProcessGroup(final Element parentElement, RemoteProcessingGroupSchema remoteProcessingGroupProperties) throws ConfigurationChangeException {
+    protected static void addRemoteProcessGroup(final Element parentElement, RemoteProcessingGroupSchema remoteProcessingGroupProperties) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("remoteProcessGroup");
@@ -484,7 +484,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addRemoteGroupPort(final Element parentElement, RemoteInputPortSchema inputPort) throws ConfigurationChangeException {
+    protected static void addRemoteGroupPort(final Element parentElement, RemoteInputPortSchema inputPort) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("inputPort");
@@ -503,7 +503,7 @@ public final class ConfigTransformer {
         }
     }
 
-    private static void addConnection(final Element parentElement, ConnectionSchema connectionProperties, ConfigSchema configSchema) throws ConfigurationChangeException {
+    protected static void addConnection(final Element parentElement, ConnectionSchema connectionProperties, ConfigSchema configSchema) throws ConfigurationChangeException {
         try {
             final Document doc = parentElement.getOwnerDocument();
             final Element element = doc.createElement("connection");
@@ -538,7 +538,7 @@ public final class ConfigTransformer {
             addTextElement(element, "maxWorkQueueDataSize", connectionProperties.getMaxWorkQueueDataSize());
 
             addTextElement(element, "flowFileExpiration", connectionProperties.getFlowfileExpiration());
-            addTextElement(element, "queuePrioritizerClass", connectionProperties.getQueuePrioritizerClass());
+            addTextElementIfNotNullOrEmpty(element, "queuePrioritizerClass", connectionProperties.getQueuePrioritizerClass());
 
             parentElement.appendChild(element);
         } catch (Exception e) {
@@ -547,7 +547,7 @@ public final class ConfigTransformer {
     }
 
     // Locate the associated parent group for a given input port by its id
-    private static Optional<String> findInputPortParentGroup(String inputPortId, ConfigSchema configSchema) {
+    protected static Optional<String> findInputPortParentGroup(String inputPortId, ConfigSchema configSchema) {
         final List<RemoteProcessingGroupSchema> remoteProcessingGroups = configSchema.getRemoteProcessingGroups();
         if (remoteProcessingGroups != null) {
             for (final RemoteProcessingGroupSchema remoteProcessingGroupSchema : remoteProcessingGroups) {
@@ -564,14 +564,20 @@ public final class ConfigTransformer {
         return Optional.empty();
     }
 
-    private static void addPosition(final Element parentElement) {
+    protected static void addPosition(final Element parentElement) {
         final Element element = parentElement.getOwnerDocument().createElement("position");
         element.setAttribute("x", String.valueOf("0"));
         element.setAttribute("y", String.valueOf("0"));
         parentElement.appendChild(element);
     }
 
-    private static void addTextElement(final Element element, final String name, final String value) {
+    protected static void addTextElementIfNotNullOrEmpty(final Element element, final String name, final String value) {
+        if (!StringUtil.isNullOrEmpty(value)) {
+            addTextElement(element, name, value);
+        }
+    }
+
+    protected static void addTextElement(final Element element, final String name, final String value) {
         final Document doc = element.getOwnerDocument();
         final Element toAdd = doc.createElement(name);
         toAdd.setTextContent(value);

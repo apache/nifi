@@ -193,8 +193,4 @@ public abstract class BaseSchema {
     public static <K, V> Map<K, V> nullToEmpty(Map<K, V> map) {
         return map == null ? Collections.emptyMap() : map;
     }
-
-    public static boolean isNullOrEmpty(final String string) {
-        return string == null || string.isEmpty();
-    }
 }
