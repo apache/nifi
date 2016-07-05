@@ -98,7 +98,7 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
 
     private String getNCMDN(Socket socket) {
         try {
-            return CertificateUtils.extractClientDNFromSSLSocket(socket);
+            return CertificateUtils.extractPeerDNFromSSLSocket(socket);
         } catch (CertificateException e) {
             throw new ProtocolException(e);
         }

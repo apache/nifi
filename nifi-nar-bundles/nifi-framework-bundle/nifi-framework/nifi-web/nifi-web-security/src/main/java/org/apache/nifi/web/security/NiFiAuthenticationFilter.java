@@ -122,7 +122,7 @@ public abstract class NiFiAuthenticationFilter extends GenericFilterBean {
      * the request contains an authentication request but it could not be authenticated.
      *
      * @param request The request
-     * @return The NiFiAutorizationRequestToken used to later authorized the client
+     * @return The NiFiAuthorizationRequestToken used to later authorized the client
      * @throws InvalidAuthenticationException If the request contained an authentication attempt, but could not authenticate
      */
     public abstract NiFiAuthorizationRequestToken attemptAuthentication(HttpServletRequest request);
