@@ -23,17 +23,17 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.notifiers.RestChangeNotifier;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public abstract class TestRestChangeNotifierCommon {
+
+    private static String testString = "This is a test string.";
 
     public static OkHttpClient client;
     public static RestChangeNotifier restChangeNotifier;
@@ -63,14 +63,9 @@ public abstract class TestRestChangeNotifierCommon {
     @Test
     public void testFileUpload() throws Exception {
         assertEquals(1, restChangeNotifier.getChangeListeners().size());
-
-        File file = new File("src/test/resources/testUploadFile.txt");
-        assertTrue(file.exists());
-        assertTrue(file.canRead());
-
         Request request = new Request.Builder()
                 .url(url)
-                .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, file))
+                .post(RequestBody.create(MEDIA_TYPE_MARKDOWN, testString))
                 .addHeader("charset","UTF-8")
                 .build();
 
@@ -84,6 +79,6 @@ public abstract class TestRestChangeNotifierCommon {
 
         assertEquals("The result of notifying listeners:\nMockChangeListener successfully handled the configuration change\n", response.body().string());
 
-        assertEquals(new String(Files.readAllBytes(file.toPath())), mockChangeListener.getConfFile());
+        assertEquals(testString, StringUtils.trim(mockChangeListener.getConfFile()));
     }
 }
