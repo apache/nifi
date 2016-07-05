@@ -95,7 +95,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
 
     private String getCoordinatorDN(Socket socket) {
         try {
-            return CertificateUtils.extractClientDNFromSSLSocket(socket);
+            return CertificateUtils.extractPeerDNFromSSLSocket(socket);
         } catch (CertificateException e) {
             throw new ProtocolException(e);
         }

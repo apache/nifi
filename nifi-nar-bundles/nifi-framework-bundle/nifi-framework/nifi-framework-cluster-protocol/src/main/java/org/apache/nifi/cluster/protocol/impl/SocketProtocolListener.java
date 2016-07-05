@@ -187,7 +187,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
     private String getRequestorDN(Socket socket) {
         try {
-            return CertificateUtils.extractClientDNFromSSLSocket(socket);
+            return CertificateUtils.extractPeerDNFromSSLSocket(socket);
         } catch (CertificateException e) {
             throw new ProtocolException(e);
         }
