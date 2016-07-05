@@ -692,6 +692,16 @@ public class TestStandardFlowFileQueue {
         public long getContentClaimOffset() {
             return 0;
         }
+
+        @Override
+        public long getLineageStartIndex() {
+            return 0;
+        }
+
+        @Override
+        public long getQueueDateIndex() {
+            return 0;
+        }
     }
 
     private static class FlowFileSizePrioritizer implements FlowFilePrioritizer {
