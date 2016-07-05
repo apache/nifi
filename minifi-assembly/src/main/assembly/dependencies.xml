@@ -35,6 +35,23 @@
             <excludes>
             	<exclude>minifi-bootstrap</exclude>
                 <exclude>minifi-resources</exclude>
+                <!-- Filter items introduced via transitive dependencies that are provided in associated NARs -->
+                <exclude>spring-aop</exclude>
+                <exclude>spring-context</exclude>
+                <exclude>spring-security-core</exclude>
+                <exclude>spring-beans</exclude>
+                <exclude>swagger-annotations</exclude>
+                <exclude>slf4j-log4j12</exclude>
+                <exclude>aspectjweaver</exclude>
+                <exclude>h2</exclude>
+                <exclude>netty</exclude>
+                <exclude>jaxb-impl</exclude>
+                <exclude>httpclient</exclude>
+                <exclude>quartz</exclude>
+                <exclude>mail</exclude>
+                <exclude>log4j</exclude>
+                <exclude>lucene-queryparser</exclude>
+                <exclude>commons-net</exclude>
             </excludes>
         </dependencySet>
 
@@ -72,6 +89,12 @@
                 <includes>
                     <include>conf/*</include>
                 </includes>
+                <excludes>
+                    <exclude>conf/authority-providers.xml</exclude>
+                    <exclude>conf/authorized-users.xml</exclude>
+                    <exclude>conf/identity-providers.xml</exclude>
+                    <exclude>conf/zookeeper.properties</exclude>
+                </excludes>
             </unpackOptions>
         </dependencySet>
 
