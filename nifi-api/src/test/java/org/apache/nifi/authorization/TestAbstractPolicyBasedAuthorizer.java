@@ -23,6 +23,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -104,10 +105,17 @@ public class TestAbstractPolicyBasedAuthorizer {
         final User user = new User.Builder()
                 .identity(userIdentity)
                 .identifier(userIdentifier)
-                .addGroup(groupIdentifier)
                 .build();
 
         when(usersAndAccessPolicies.getUser(userIdentity)).thenReturn(user);
+
+        final Group group = new Group.Builder()
+                .identifier(groupIdentifier)
+                .name(groupIdentifier)
+                .addUser(user.getIdentifier())
+                .build();
+
+        when(usersAndAccessPolicies.getGroups(userIdentity)).thenReturn(Collections.singleton(group));
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .identity(userIdentity)
@@ -180,11 +188,11 @@ public class TestAbstractPolicyBasedAuthorizer {
     public void testGetFingerprint() {
         // create the users, groups, and policies
 
-        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
-        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
 
-        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").addGroup(group1.getIdentifier()).build();
-        User user2 = new User.Builder().identifier("user-id-2").identity("user-2").addGroup(group2.getIdentifier()).build();
+        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
+        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").addUser(user2.getIdentifier()).build();
 
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
@@ -251,11 +259,12 @@ public class TestAbstractPolicyBasedAuthorizer {
 
     @Test
     public void testInheritFingerprint() {
-        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
-        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
 
-        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").addGroup(group1.getIdentifier()).build();
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
+        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
 
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
@@ -392,7 +401,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         }
 
         @Override
-        public AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+        protected AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
             policies.add(accessPolicy);
             return accessPolicy;
         }
@@ -428,7 +437,7 @@ public class TestAbstractPolicyBasedAuthorizer {
         }
 
         @Override
-        public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+        public void doOnConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
 
         }
 

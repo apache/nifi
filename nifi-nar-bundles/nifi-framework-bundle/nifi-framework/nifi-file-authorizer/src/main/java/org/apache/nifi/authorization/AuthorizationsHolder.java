@@ -45,6 +45,7 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
 
     private final Set<Group> allGroups;
     private final Map<String,Group> groupsById;
+    private final Map<String, Set<Group>> groupsByUserIdentity;
 
     /**
      * Creates a new holder and populates all convenience data structures.
@@ -75,6 +76,9 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
         // create a convenience map to retrieve a group by id
         final Map<String, Group> groupByIdMap = Collections.unmodifiableMap(createGroupByIdMap(allGroups));
 
+        // create a convenience map to retrieve the groups for a user identity
+        final Map<String, Set<Group>> groupsByUserIdentityMap = Collections.unmodifiableMap(createGroupsByUserIdentityMap(allGroups, allUsers));
+
         // create a convenience map from resource id to policies
         final Map<String, Set<AccessPolicy>> policiesByResourceMap = Collections.unmodifiableMap(createResourcePolicyMap(allPolicies));
 
@@ -88,6 +92,7 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
         this.usersById = userByIdMap;
         this.usersByIdentity = userByIdentityMap;
         this.groupsById = groupByIdMap;
+        this.groupsByUserIdentity = groupsByUserIdentityMap;
         this.policiesByResource = policiesByResourceMap;
         this.policiesById = policiesByIdMap;
     }
@@ -158,12 +163,6 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
                     .identity(user.getIdentity())
                     .identifier(user.getIdentifier());
 
-            if (user.getGroup() != null) {
-                for (org.apache.nifi.authorization.file.generated.User.Group group : user.getGroup()) {
-                    builder.addGroup(group.getIdentifier());
-                }
-            }
-
             allUsers.add(builder.build());
         }
 
@@ -188,40 +187,14 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
                     .identifier(group.getIdentifier())
                     .name(group.getName());
 
-            // need to figured out what users are in this group by going through the users list
-            final Set<String> groupUsers = getUsersForGroup(users, group.getIdentifier());
-            builder.addUsers(groupUsers);
+            for (org.apache.nifi.authorization.file.generated.Group.User groupUser : group.getUser()) {
+                builder.addUser(groupUser.getIdentifier());
+            }
 
             allGroups.add(builder.build());
         }
 
         return allGroups;
-    }
-
-    /**
-     * Gets the set of user identifiers that are part of the given group.
-     *
-     * @param users the JAXB Users element
-     * @param groupId the group id to get the users for
-     * @return the user identifiers that belong to the group with the given identifier
-     */
-    private Set<String> getUsersForGroup(org.apache.nifi.authorization.file.generated.Users users, final String groupId) {
-        Set<String> groupUsers = new HashSet<>();
-
-        if (users != null && users.getUser()!= null) {
-            for (org.apache.nifi.authorization.file.generated.User user : users.getUser()) {
-                if (user.getGroup() != null) {
-                    for (org.apache.nifi.authorization.file.generated.User.Group group : user.getGroup()) {
-                        if (group.getIdentifier().equals(groupId)) {
-                            groupUsers.add(user.getIdentifier());
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        return groupUsers;
     }
 
     /**
@@ -288,6 +261,32 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
     }
 
     /**
+     * Creates a Map from user identity to the set of Groups for that identity.
+     *
+     * @param groups all groups
+     * @param users all users
+     * @return a Map from User identity to the set of Groups for that identity
+     */
+    private Map<String, Set<Group>> createGroupsByUserIdentityMap(final Set<Group> groups, final Set<User> users) {
+        Map<String, Set<Group>> groupsByUserIdentity = new HashMap<>();
+
+        for (User user : users) {
+            Set<Group> userGroups = new HashSet<>();
+            for (Group group : groups) {
+                for (String groupUser : group.getUsers()) {
+                    if (groupUser.equals(user.getIdentifier())) {
+                        userGroups.add(group);
+                    }
+                }
+            }
+
+            groupsByUserIdentity.put(user.getIdentity(), userGroups);
+        }
+
+        return groupsByUserIdentity;
+    }
+
+    /**
      * Creates a Map from policy identifier to AccessPolicy.
      *
      * @param policies the set of all access policies
@@ -351,6 +350,14 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
             throw new IllegalArgumentException("Identity cannot be null");
         }
         return usersByIdentity.get(identity);
+    }
+
+    @Override
+    public Set<Group> getGroups(String userIdentity) {
+        if (userIdentity == null) {
+            throw new IllegalArgumentException("User Identity cannot be null");
+        }
+        return groupsByUserIdentity.get(userIdentity);
     }
 
 }

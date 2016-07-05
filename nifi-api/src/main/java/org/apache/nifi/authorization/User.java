@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * A user to create authorization policies for.
@@ -30,12 +27,9 @@ public class User {
 
     private final String identity;
 
-    private final Set<String> groups;
-
     private User(final Builder builder) {
         this.identifier = builder.identifier;
         this.identity = builder.identity;
-        this.groups = Collections.unmodifiableSet(new HashSet<>(builder.groups));
 
         if (identifier == null || identifier.trim().isEmpty()) {
             throw new IllegalArgumentException("Identifier can not be null or empty");
@@ -59,13 +53,6 @@ public class User {
      */
     public String getIdentity() {
         return identity;
-    }
-
-    /**
-     * @return an unmodifiable set of group ids
-     */
-    public Set<String> getGroups() {
-        return groups;
     }
 
     @Override
@@ -98,7 +85,6 @@ public class User {
 
         private String identifier;
         private String identity;
-        private Set<String> groups = new HashSet<>();
         private final boolean fromUser;
 
         /**
@@ -122,8 +108,6 @@ public class User {
 
             this.identifier = other.getIdentifier();
             this.identity = other.getIdentity();
-            this.groups.clear();
-            this.groups.addAll(other.getGroups());
             this.fromUser = true;
         }
 
@@ -152,68 +136,6 @@ public class User {
          */
         public Builder identity(final String identity) {
             this.identity = identity;
-            return this;
-        }
-
-        /**
-         * Adds all groups from the provided set to the builder's set of groups.
-         *
-         * @param groups the groups to add
-         * @return the builder
-         */
-        public Builder addGroups(final Set<String> groups) {
-            if (groups != null) {
-                this.groups.addAll(groups);
-            }
-            return this;
-        }
-
-        /**
-         * Adds the provided group to the builder's set of groups.
-         *
-         * @param group the group to add
-         * @return the builder
-         */
-        public Builder addGroup(final String group) {
-            if (group != null) {
-                this.groups.add(group);
-            }
-            return this;
-        }
-
-        /**
-         * Removes all groups in the provided set from the builder's set of groups.
-         *
-         * @param groups the groups to remove
-         * @return the builder
-         */
-        public Builder removeGroups(final Set<String> groups) {
-            if (groups != null) {
-                this.groups.removeAll(groups);
-            }
-            return this;
-        }
-
-        /**
-         * Removes the provided group from the builder's set of groups.
-         *
-         * @param group the group to remove
-         * @return the builder
-         */
-        public Builder removeGroup(final String group) {
-            if (group != null) {
-                this.groups.remove(group);
-            }
-            return this;
-        }
-
-        /**
-         * Clears the builder's set of groups so that groups is non-null with size == 0.
-         *
-         * @return the builder
-         */
-        public Builder clearGroups() {
-            this.groups.clear();
             return this;
         }
 
