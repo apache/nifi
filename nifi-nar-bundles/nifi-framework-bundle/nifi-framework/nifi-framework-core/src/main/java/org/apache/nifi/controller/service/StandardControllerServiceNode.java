@@ -115,7 +115,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
-        List<ControllerServiceNode> requiredServices = new ArrayList<>();
+        Set<ControllerServiceNode> requiredServices = new HashSet<>();
         for (Entry<PropertyDescriptor, String> pEntry : this.getProperties().entrySet()) {
             PropertyDescriptor descriptor = pEntry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && descriptor.isRequired()) {
@@ -124,7 +124,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 requiredServices.addAll(rNode.getRequiredControllerServices());
             }
         }
-        return requiredServices;
+        return new ArrayList<>(requiredServices);
     }
 
 
