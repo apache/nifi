@@ -1,0 +1,14 @@
+{
+  "tlsHelperConfig" : {
+    "days" : 365,
+    "keySize" : 2048,
+    "keyPairAlgorithm" : "RSA",
+    "signingAlgorithm" : "SHA256WITHRSA",
+    "keyStoreType" : "jks"
+  },
+  "keyStore" : "serverKeyStore",
+  "keyStoreType" : "jks",
+  "token" : "myTestTokenUseSomethingStronger",
+  "hostname" : "localhost",
+  "port" : 8443
+}
