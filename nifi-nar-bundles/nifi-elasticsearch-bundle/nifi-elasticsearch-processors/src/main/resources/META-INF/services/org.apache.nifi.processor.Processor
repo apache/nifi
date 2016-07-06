@@ -14,3 +14,5 @@
 # limitations under the License.
 org.apache.nifi.processors.elasticsearch.FetchElasticsearch
 org.apache.nifi.processors.elasticsearch.PutElasticsearch
+org.apache.nifi.processors.elasticsearch.FetchElasticsearchHttp
+org.apache.nifi.processors.elasticsearch.PutElasticsearchHttp

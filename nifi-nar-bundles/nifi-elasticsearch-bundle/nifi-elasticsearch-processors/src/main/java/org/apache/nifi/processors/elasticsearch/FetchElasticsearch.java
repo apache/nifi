@@ -64,7 +64,7 @@ import java.util.Set;
         @WritesAttribute(attribute = "es.index", description = "The Elasticsearch index containing the document"),
         @WritesAttribute(attribute = "es.type", description = "The Elasticsearch document type")
 })
-public class FetchElasticsearch extends AbstractElasticsearchProcessor {
+public class FetchElasticsearch extends AbstractElasticsearchTransportClientProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are read from Elasticsearch are routed to this relationship").build();

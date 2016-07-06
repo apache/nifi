@@ -62,7 +62,7 @@ import java.util.Set;
         + "the index to insert into and the type of the document. If the cluster has been configured for authorization "
         + "and/or secure transport (SSL/TLS) and the Shield plugin is available, secure connections can be made. This processor "
         + "supports Elasticsearch 2.x clusters.")
-public class PutElasticsearch extends AbstractElasticsearchProcessor {
+public class PutElasticsearch extends AbstractElasticsearchTransportClientProcessor {
 
     static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles that are written to Elasticsearch are routed to this relationship").build();
