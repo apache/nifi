@@ -22,8 +22,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -170,7 +170,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
-        List<ControllerServiceNode> requiredServices = new ArrayList<>();
+        Set<ControllerServiceNode> requiredServices = new HashSet<>();
         for (Entry<PropertyDescriptor, String> pEntry : this.getProperties().entrySet()) {
             PropertyDescriptor descriptor = pEntry.getKey();
             if (descriptor.getControllerServiceDefinition() != null && descriptor.isRequired()) {
@@ -179,7 +179,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
                 requiredServices.addAll(rNode.getRequiredControllerServices());
             }
         }
-        return requiredServices;
+        return new ArrayList<>(requiredServices);
     }
 
 

@@ -398,32 +398,73 @@ public class TestStandardControllerServiceProvider {
         ProcessGroup procGroup = new MockProcessGroup();
         Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
 
-        ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
-        ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2", false);
-        ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
-        ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
-        ControllerServiceNode serviceNode5 = provider.createControllerService(ServiceA.class.getName(), "5", false);
+        ControllerServiceNode A = provider.createControllerService(ServiceA.class.getName(), "A", false);
+        ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B", false);
+        ControllerServiceNode C = provider.createControllerService(ServiceA.class.getName(), "C", false);
+        ControllerServiceNode D = provider.createControllerService(ServiceB.class.getName(), "D", false);
+        ControllerServiceNode E = provider.createControllerService(ServiceA.class.getName(), "E", false);
 
-        procGroup.addControllerService(serviceNode1);
-        procGroup.addControllerService(serviceNode2);
-        procGroup.addControllerService(serviceNode3);
-        procGroup.addControllerService(serviceNode4);
-        procGroup.addControllerService(serviceNode5);
+        procGroup.addControllerService(A);
+        procGroup.addControllerService(B);
+        procGroup.addControllerService(C);
+        procGroup.addControllerService(D);
+        procGroup.addControllerService(E);
 
-        serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
-        serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
-        serviceNode5.setProperty(ServiceA.OTHER_SERVICE.getName(), "1");
+        A.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
+        B.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
+        C.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
+        C.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "D");
+        E.setProperty(ServiceA.OTHER_SERVICE.getName(), "A");
 
-        provider.enableControllerServices(
-                Arrays.asList(new ControllerServiceNode[] { serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5}));
+        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[] { A, B, C, D, E }));
 
-        assertTrue(serviceNode1.isActive());
-        assertTrue(serviceNode2.isActive());
-        assertTrue(serviceNode3.isActive());
-        assertTrue(serviceNode4.isActive());
-        assertTrue(serviceNode5.isActive());
+        assertTrue(A.isActive());
+        assertTrue(B.isActive());
+        assertTrue(C.isActive());
+        assertTrue(D.isActive());
+        assertTrue(E.isActive());
+    }
+
+    /**
+     * This test is similar to the above, but different combination of service
+     * dependencies
+     *
+     */
+    @Test
+    public void validateEnableServices2() {
+        StandardProcessScheduler scheduler = createScheduler();
+        FlowController controller = Mockito.mock(FlowController.class);
+        StandardControllerServiceProvider provider = new StandardControllerServiceProvider(controller, scheduler, null,
+                stateManagerProvider);
+        ProcessGroup procGroup = new MockProcessGroup();
+        Mockito.when(controller.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        ControllerServiceNode A = provider.createControllerService(ServiceC.class.getName(), "A", false);
+        ControllerServiceNode B = provider.createControllerService(ServiceA.class.getName(), "B", false);
+        ControllerServiceNode C = provider.createControllerService(ServiceB.class.getName(), "C", false);
+        ControllerServiceNode D = provider.createControllerService(ServiceA.class.getName(), "D", false);
+        ControllerServiceNode F = provider.createControllerService(ServiceA.class.getName(), "F", false);
+
+        procGroup.addControllerService(A);
+        procGroup.addControllerService(B);
+        procGroup.addControllerService(C);
+        procGroup.addControllerService(D);
+        procGroup.addControllerService(F);
+
+        A.setProperty(ServiceC.REQ_SERVICE_1.getName(), "B");
+        A.setProperty(ServiceC.REQ_SERVICE_2.getName(), "D");
+        B.setProperty(ServiceA.OTHER_SERVICE.getName(), "C");
+
+        F.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
+        D.setProperty(ServiceA.OTHER_SERVICE.getName(), "C");
+
+        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[] { C, F, A, B, D }));
+
+        assertTrue(A.isActive());
+        assertTrue(B.isActive());
+        assertTrue(C.isActive());
+        assertTrue(D.isActive());
+        assertTrue(F.isActive());
     }
 
     @Test
