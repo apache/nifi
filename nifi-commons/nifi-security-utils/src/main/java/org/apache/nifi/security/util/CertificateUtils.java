@@ -187,9 +187,11 @@ public final class CertificateUtils {
             logger.debug("SSL Socket client auth status: {}", clientAuth);
 
             if (clientMode) {
-               dn = extractPeerDNFromClientSSLSocket(sslSocket);
-            } else {
+                logger.debug("This socket is in client mode, so attempting to extract certificate from remote 'server' socket");
                dn = extractPeerDNFromServerSSLSocket(sslSocket);
+            } else {
+                logger.debug("This socket is in server mode, so attempting to extract certificate from remote 'client' socket");
+               dn = extractPeerDNFromClientSSLSocket(sslSocket);
             }
         }
 
@@ -223,6 +225,7 @@ public final class CertificateUtils {
                     if (certChains != null && certChains.length > 0) {
                         X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
                         dn = x509Certificate.getSubjectDN().getName().trim();
+                        logger.debug("Extracted DN={} from client certificate", dn);
                     }
                 } catch (SSLPeerUnverifiedException e) {
                     if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
@@ -255,11 +258,12 @@ public final class CertificateUtils {
                     if (certChains != null && certChains.length > 0) {
                         X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
                         dn = x509Certificate.getSubjectDN().getName().trim();
+                        logger.debug("Extracted DN={} from server certificate", dn);
                     }
                 } catch (SSLPeerUnverifiedException e) {
                     if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
                         logger.error("The server did not present a certificate and thus the DN cannot" +
-                                " be extracted. Check that the other endpoint is providing a complete  certificate chain");
+                                " be extracted. Check that the other endpoint is providing a complete certificate chain");
                     }
                     throw new CertificateException(e);
                 }

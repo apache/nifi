@@ -307,23 +307,25 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
 
+        // This socket is in client mode, so the peer ("target") is a server
+
         // Create mock sockets for each possible value of ClientAuth
         SSLSocket mockNoneSocket = [
-                getUseClientMode : { -> false },
+                getUseClientMode : { -> true },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
         ] as SSLSocket
 
         SSLSocket mockNeedSocket = [
-                getUseClientMode : { -> false },
+                getUseClientMode : { -> true },
                 getNeedClientAuth: { -> true },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
         ] as SSLSocket
 
         SSLSocket mockWantSocket = [
-                getUseClientMode : { -> false },
+                getUseClientMode : { -> true },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> true },
                 getSession       : { -> mockSession }
@@ -346,8 +348,10 @@ class CertificateUtilsTest extends GroovyTestCase {
     @Test
     void testShouldNotExtractClientCertificatesFromSSLClientSocketWithClientAuthNone() {
         // Arrange
+
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
-                getUseClientMode : { -> true },
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> false }
         ] as SSLSocket
@@ -370,8 +374,9 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
-                getUseClientMode : { -> true },
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> true },
                 getSession       : { -> mockSession }
@@ -392,8 +397,9 @@ class CertificateUtilsTest extends GroovyTestCase {
             throw new SSLPeerUnverifiedException("peer not authenticated")
         }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
-                getUseClientMode : { -> true },
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> true },
                 getSession       : { -> mockSession }
@@ -418,8 +424,9 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
-                getUseClientMode : { -> true },
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> true },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
@@ -440,8 +447,9 @@ class CertificateUtilsTest extends GroovyTestCase {
             throw new SSLPeerUnverifiedException("peer not authenticated")
         }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
-                getUseClientMode : { -> true },
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> true },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
