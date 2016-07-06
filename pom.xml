@@ -36,11 +36,12 @@ limitations under the License.
         <module>minifi-api</module>
         <module>minifi-bootstrap</module>
         <module>minifi-nar-bundles</module>
+        <module>minifi-docs</module>
         <module>minifi-assembly</module>
         <module>minifi-toolkit</module>
     </modules>
 
-    <url>http://nifi.apache.org</url>
+    <url>http://nifi.apache.org/minifi</url>
     <organization>
         <name>Apache NiFi Project</name>
         <url>http://nifi.apache.org/</url>
@@ -195,7 +196,14 @@ limitations under the License.
                 <version>0.0.1-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.nifi.minifi</groupId>
+                <artifactId>minifi-docs</artifactId>
+                <version>0.0.1-SNAPSHOT</version>
+                <classifier>resources</classifier>
+                <scope>runtime</scope>
+                <type>zip</type>
+            </dependency>
 
             <dependency>
                 <groupId>ch.qos.logback</groupId>

@@ -14,36 +14,16 @@
   limitations under the License.
 -->
 <assembly>
-    <id>bin</id>
+    <id>resources</id>
     <formats>
-        <format>dir</format>
         <format>zip</format>
-        <format>tar.gz</format>
     </formats>
-    <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>minifi-toolkit-${project.version}</baseDirectory>
-
-    <dependencySets>
-        <!-- Write out all dependency artifacts to lib directory -->
-        <dependencySet>
-            <outputDirectory>lib</outputDirectory>
-            <useProjectArtifact>false</useProjectArtifact>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0660</fileMode>
-        </dependencySet>
-    </dependencySets>
-    <fileSets>
-        <fileSet>
-            <directory>${project.basedir}/src/main/resources</directory>
-            <outputDirectory>bin/</outputDirectory>
-            <fileMode>0755</fileMode>
-        </fileSet>
-    </fileSets>
+    <includeBaseDirectory>false</includeBaseDirectory>
     <files>
         <file>
-            <source>./README.md</source>
+            <source>${project.build.directory}/markdown/System_Admin_Guide.md</source>
             <outputDirectory>./</outputDirectory>
-            <destName>README</destName>
+            <destName>System_Admin_Guide.md</destName>
             <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
@@ -53,7 +33,7 @@
             <destName>LICENSE</destName>
             <fileMode>0644</fileMode>
             <filtered>true</filtered>
-        </file>
+        </file>       
         <file>
             <source>./NOTICE</source>
             <outputDirectory>./</outputDirectory>

@@ -117,8 +117,35 @@
                 </includes>
             </unpackOptions>
         </dependencySet>
+
+        <!-- Write out docs directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>docs/</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>minifi-docs</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>false</filtered>
+                <excludes>
+                    <!-- LICENSE and NOTICE both covered by top-level -->
+                    <exclude>LICENSE</exclude>
+                    <exclude>NOTICE</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
     </dependencySets>
     <files>
+        <file>
+            <source>./README.md</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>README</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
         <file>
             <source>./LICENSE</source>
             <outputDirectory>./</outputDirectory>

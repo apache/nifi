@@ -85,6 +85,13 @@ limitations under the License.
             <artifactId>slf4j-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.minifi</groupId>
+            <artifactId>minifi-docs</artifactId>
+            <classifier>resources</classifier>
+            <scope>runtime</scope>
+            <type>zip</type>
+        </dependency>
 
         <!-- MiNiFi -->
         <dependency>
