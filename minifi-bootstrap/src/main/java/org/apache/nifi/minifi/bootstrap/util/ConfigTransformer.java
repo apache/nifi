@@ -73,7 +73,7 @@ import java.util.zip.GZIPOutputStream;
 
 public final class ConfigTransformer {
     // Underlying version of NIFI will be using
-    public static final String NIFI_VERSION = "0.6.0";
+    public static final String NIFI_VERSION = "0.6.1";
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
