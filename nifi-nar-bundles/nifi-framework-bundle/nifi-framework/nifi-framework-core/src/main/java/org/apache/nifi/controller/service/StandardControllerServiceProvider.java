@@ -25,7 +25,6 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -55,7 +54,6 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
-
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ObjectHolder;
@@ -385,17 +383,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         if (shouldStart) {
-            List<ControllerServiceNode> services = new ArrayList<>(serviceNodes);
-            Collections.sort(services, new Comparator<ControllerServiceNode>() {
-                @Override
-                public int compare(ControllerServiceNode s1, ControllerServiceNode s2) {
-                    return s2.getRequiredControllerServices().contains(s1) ? -1 : 1;
-                }
-            });
-
-            for (ControllerServiceNode controllerServiceNode : services) {
+            for (ControllerServiceNode controllerServiceNode : serviceNodes) {
                 try {
-                    this.enableControllerService(controllerServiceNode);
+                    if (!controllerServiceNode.isActive()) {
+                        this.enableControllerServiceDependenciesFirst(controllerServiceNode);
+                    }
                 } catch (Exception e) {
                     logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
                     if (this.bulletinRepo != null) {
@@ -405,6 +397,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
         }
+    }
+
+    private void enableControllerServiceDependenciesFirst(ControllerServiceNode serviceNode) {
+        for (ControllerServiceNode depNode : serviceNode.getRequiredControllerServices()) {
+            if (!depNode.isActive()) {
+                this.enableControllerServiceDependenciesFirst(depNode);
+            }
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Enabling " + serviceNode);
+        }
+        this.enableControllerService(serviceNode);
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {
