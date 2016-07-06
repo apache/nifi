@@ -843,11 +843,13 @@ public final class FingerprintFactory {
         // destination type
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "destinationType"));
 
+        appendFirstValue(builder, DomUtils.getChildNodesByTagName(connectionElem, "name"));
+
         // relationships
         final NodeList relationshipElems = DomUtils.getChildNodesByTagName(connectionElem, "relationship");
         final List<Element> sortedRelationshipElems = sortElements(relationshipElems, getConnectionRelationshipsComparator());
         for (final Element relationshipElem : sortedRelationshipElems) {
-            addConnectionRelationshipFingerprint(builder, relationshipElem);
+            builder.append(getValue(relationshipElem, "NO_VALUE"));
         }
 
         return builder;
@@ -869,12 +871,6 @@ public final class FingerprintFactory {
             }
         }
 
-        return builder;
-    }
-
-    private StringBuilder addConnectionRelationshipFingerprint(final StringBuilder builder, final Element relationshipElem) throws FingerprintException {
-        // destination type
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(relationshipElem, "relationship"));
         return builder;
     }
 

@@ -18,10 +18,12 @@ package org.apache.nifi.fingerprint;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -50,6 +52,13 @@ public class FingerprintFactoryTest {
         final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
         final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow2.xml"), null);
         assertFalse(fp1.equals(fp2));
+    }
+
+    @Test
+    public void testResourceValueInFingerprint() throws IOException {
+        final String fingerprint = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        assertEquals(3, StringUtils.countMatches(fingerprint, "success"));
+        assertTrue(fingerprint.contains("In Connection"));
     }
 
     private byte[] getResourceBytes(final String resource) throws IOException {
