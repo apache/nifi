@@ -33,6 +33,7 @@ language governing permissions and limitations under the License. -->
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
+        <module>nifi-toolkit</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
@@ -870,6 +871,11 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-toolkit-tls</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
@@ -1255,6 +1261,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase-client-service-api</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-assembly</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>

@@ -16,19 +16,8 @@
  */
 package org.apache.nifi.security.util
 
-import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage
-import org.bouncycastle.asn1.x509.KeyPurposeId
-import org.bouncycastle.asn1.x509.KeyUsage
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.asn1.x509.X509Extension
-import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.cert.X509v3CertificateBuilder
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.operator.ContentSigner
 import org.bouncycastle.operator.OperatorCreationException
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -46,13 +35,14 @@ import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
-import java.security.PrivateKey
-import java.security.PublicKey
 import java.security.Security
 import java.security.SignatureException
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
+import java.util.concurrent.TimeUnit
+
+import static org.junit.Assert.assertEquals
 
 @RunWith(JUnit4.class)
 class CertificateUtilsTest extends GroovyTestCase {
@@ -116,53 +106,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     private
     static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
-        return generateCertificate(dn, keyPair);
-    }
-
-    /**
-     * Generates a signed certificate with a specific keypair.
-     *
-     * @param dn the DN
-     * @param keyPair the public key will be included in the certificate and the the private key is used to sign the certificate
-     * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
-     */
-    private
-    static X509Certificate generateCertificate(String dn, KeyPair keyPair) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
-        PrivateKey privateKey = keyPair.getPrivate();
-        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(privateKey);
-        SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
-        Date startDate = new Date(YESTERDAY);
-        Date endDate = new Date(ONE_YEAR_FROM_NOW);
-
-        X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
-                new X500Name(dn),
-                BigInteger.valueOf(System.currentTimeMillis()),
-                startDate, endDate,
-                new X500Name(dn),
-                subPubKeyInfo);
-
-        // Set certificate extensions
-        // (1) digitalSignature extension
-        certBuilder.addExtension(X509Extension.keyUsage, true,
-                new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement));
-
-        // (2) extendedKeyUsage extension
-        Vector<KeyPurposeId> ekUsages = new Vector<>();
-        ekUsages.add(KeyPurposeId.id_kp_clientAuth);
-        ekUsages.add(KeyPurposeId.id_kp_serverAuth);
-        certBuilder.addExtension(X509Extension.extendedKeyUsage, false, new ExtendedKeyUsage(ekUsages));
-
-        // Sign the certificate
-        X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
-        return new JcaX509CertificateConverter().setProvider(PROVIDER)
-                .getCertificate(certificateHolder);
+        return CertificateUtils.generateSelfSignedX509Certificate(keyPair, dn, SIGNATURE_ALGORITHM, 365);
     }
 
     /**
@@ -181,52 +125,16 @@ class CertificateUtilsTest extends GroovyTestCase {
      * @throws OperatorCreationException
      */
     private
-    static X509Certificate generateIssuedCertificate(String dn, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
+    static X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer, KeyPair issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
         KeyPair keyPair = generateKeyPair();
-        return generateIssuedCertificate(dn, keyPair.getPublic(), issuerDn, issuerKey);
-    }
-
-    /**
-     * Generates a certificate with a specific public key signed by the issuer key.
-     *
-     * @param dn the subject DN
-     * @param publicKey the subject public key
-     * @param issuerDn the issuer DN
-     * @param issuerKey the issuer private key
-     * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
-     */
-    private
-    static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, String issuerDn, PrivateKey issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
-        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER).build(issuerKey);
-        SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
-        Date startDate = new Date(YESTERDAY);
-        Date endDate = new Date(ONE_YEAR_FROM_NOW);
-
-        X509v3CertificateBuilder v3CertGen = new X509v3CertificateBuilder(
-                new X500Name(issuerDn),
-                BigInteger.valueOf(System.currentTimeMillis()),
-                startDate, endDate,
-                new X500Name(dn),
-                subPubKeyInfo);
-
-        X509CertificateHolder certificateHolder = v3CertGen.build(sigGen);
-        return new JcaX509CertificateConverter().setProvider(PROVIDER)
-                .getCertificate(certificateHolder);
+        return CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKey, SIGNATURE_ALGORITHM, 365);
     }
 
     private static X509Certificate[] generateCertificateChain(String dn = SUBJECT_DN, String issuerDn = ISSUER_DN) {
         final KeyPair issuerKeyPair = generateKeyPair();
-        final PrivateKey issuerPrivateKey = issuerKeyPair.getPrivate();
 
-        final X509Certificate issuerCertificate = generateCertificate(issuerDn, issuerKeyPair);
-        final X509Certificate certificate = generateIssuedCertificate(dn, issuerDn, issuerPrivateKey);
+        final X509Certificate issuerCertificate = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, issuerDn, SIGNATURE_ALGORITHM, 365);
+        final X509Certificate certificate = generateIssuedCertificate(dn, issuerCertificate, issuerKeyPair);
         [certificate, issuerCertificate] as X509Certificate[]
     }
 
@@ -236,6 +144,10 @@ class CertificateUtilsTest extends GroovyTestCase {
 
     private static Certificate generateAbstractCertificate(X509Certificate x509Certificate) {
         return x509Certificate as Certificate
+    }
+
+    private static Date inFuture(int days) {
+        return new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(days));
     }
 
     @Test
@@ -512,5 +424,59 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert !dn1MatchesDn2
         assert !dn1MatchesDn2Reversed
         assert !dn1MatchesEmpty
+    }
+
+
+
+    @Test
+    public void testShouldGenerateSelfSignedCert() throws Exception {
+        String dn = "CN=testDN,O=testOrg";
+
+        int days = 365;
+        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(generateKeyPair(), dn, SIGNATURE_ALGORITHM, days);
+
+        Date notAfter = x509Certificate.getNotAfter();
+        assertTrue(notAfter.after(inFuture(days - 1)));
+        assertTrue(notAfter.before(inFuture(days + 1)));
+
+        Date notBefore = x509Certificate.getNotBefore();
+        assertTrue(notBefore.after(inFuture(-1)));
+        assertTrue(notBefore.before(inFuture(1)));
+
+        assertEquals(dn, x509Certificate.getIssuerDN().getName());
+        assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase());
+        assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm());
+
+        x509Certificate.checkValidity();
+    }
+
+
+
+    @Test
+    public void testIssueCert() throws Exception {
+        int days = 365;
+        KeyPair issuerKeyPair = generateKeyPair();
+        X509Certificate issuer = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, "CN=testCa,O=testOrg", SIGNATURE_ALGORITHM, days);
+
+        String dn = "CN=testIssued,O=testOrg";
+
+        KeyPair keyPair = generateKeyPair();
+        X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair, SIGNATURE_ALGORITHM, days);
+        assertEquals(dn, x509Certificate.getSubjectDN().toString());
+        assertEquals(issuer.getSubjectDN().toString(), x509Certificate.getIssuerDN().toString());
+        assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
+
+        Date notAfter = x509Certificate.getNotAfter();
+        assertTrue(notAfter.after(inFuture(days - 1)));
+        assertTrue(notAfter.before(inFuture(days + 1)));
+
+        Date notBefore = x509Certificate.getNotBefore();
+        assertTrue(notBefore.after(inFuture(-1)));
+        assertTrue(notBefore.before(inFuture(1)));
+
+        assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase());
+        assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm());
+
+        x509Certificate.verify(issuerKeyPair.getPublic());
     }
 }
