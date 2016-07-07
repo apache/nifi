@@ -36,6 +36,7 @@ md-toolbar.md-small .md-toolbar-tools {
 #header .icon {
     font-size:30px;
     color: #004849;
+    padding-left:12px
 }
 
 #header .fa {
@@ -141,19 +142,25 @@ md-toolbar.md-small .md-toolbar-tools {
 
 
 #header .component-button {
-    background-color:#AABBC3; /*tint base-color 40%*/
-    border-radius:2px;
+    background: none;
+    height: 56px;
+    position: relative;
+    width: 56px;
     border: none;
-    height: 40px;
-    width: 40px;
 }
 
 #header .component-button:hover {
-    background-color:#C7D2D7; /*tint base-color 60%*/
-    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+    background-color: #e3e8eb;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     cursor:grab;
     cursor:-moz-grab;
     cursor:-webkit-grab;
+}
+
+#header .component-button:active {
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
+    cursor: -moz-grabbing;
 }
 
 #header .component-button:disabled {
@@ -164,6 +171,15 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #header .component-button:disabled .icon{
     color:#669192;
+}
+
+.component-button-grip {
+    background: repeating-linear-gradient(90deg,rgba(170,187,195,1),rgba(170,187,195,1) 4px,rgba(170,187,195,0) 4px,rgba(170,187,195,0) 6px);
+    bottom: 2px;
+    height: 4px;
+    left: 2px;
+    position: absolute;
+    width: 52px;
 }
 
 /* styles for the status link */

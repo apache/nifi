@@ -244,6 +244,10 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
 
     function ProcessorComponent() {
 
+        this.icon = 'icon icon-processor';
+
+        this.hoverIcon = 'icon icon-processor-add';
+
         /**
          * The processor component's modal.
          */

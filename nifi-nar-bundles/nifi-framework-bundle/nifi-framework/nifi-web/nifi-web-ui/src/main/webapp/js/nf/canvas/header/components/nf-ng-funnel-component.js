@@ -21,6 +21,9 @@ nf.ng.FunnelComponent = function (serviceProvider) {
     'use strict';
 
     function FunnelComponent() {
+        this.icon = 'icon icon-funnel';
+
+        this.hoverIcon = 'icon icon-funnel-add';
     }
     FunnelComponent.prototype = {
         constructor: FunnelComponent,

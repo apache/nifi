@@ -94,12 +94,21 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
          * NOTE: The `component` must implement a dropHandler.
          */
         draggableComponentConfig: function(component) {
+
+            //add hover effect
+            component.getElement().hover(function () {
+                component.getElement().removeClass(component.icon).addClass(component.hoverIcon);
+            }, function () {
+                component.getElement().removeClass(component.hoverIcon).addClass(component.icon);
+            })
+
             return {
                 zIndex: 1011,
                 revert: true,
                 revertDuration: 0,
                 cancel: false,
                 containment: 'body',
+                cursor: '-webkit-grabbing',
                 start: function (e, ui) {
                     // hide the context menu if necessary
                     nf.ContextMenu.hide();
