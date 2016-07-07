@@ -47,7 +47,8 @@
  *   }],
  *   handler: {
  *      close: closeHandler,
- *      open: openHandler
+ *      open: openHandler,
+ *      resize: resizeHandler
  *   }
  * }
  *
@@ -177,6 +178,13 @@
                         }
                     }
 
+                    // save the open handler
+                    if (isDefinedAndNotNull(options.handler)) {
+                        if (isDefinedAndNotNull(options.handler.resize)) {
+                            nfDialog.resize = options.handler.resize;
+                        }
+                    }
+
                     // save the scrollable class name
                     if (isDefinedAndNotNull(options.scrollableContentStyle)) {
                         nfDialog.scrollableContentStyle = options.scrollableContentStyle;
@@ -226,6 +234,25 @@
                     nfDialog = $(dialog).data('nf-dialog');
                 }
                 nfDialog.open = handler;
+
+                //persist data attribute
+                $(dialog).data('nfDialog', nfDialog);
+            });
+        },
+
+        /**
+         * Sets the handler that is used when the dialog is resized.
+         *
+         * @argument {function} handler The function to call when resizing the dialog
+         */
+        setResizeHandler: function (handler) {
+            return this.each(function (index, dialog) {
+
+                var nfDialog = {};
+                if (isDefinedAndNotNull($(this).data('nf-dialog'))) {
+                    nfDialog = $(dialog).data('nf-dialog');
+                }
+                nfDialog.resize = handler;
 
                 //persist data attribute
                 $(dialog).data('nfDialog', nfDialog);
@@ -416,6 +443,12 @@
                 if (isDefinedAndNotNull(nfDialog.scrollableContentStyle)) {
                     dialogContent.removeClass(nfDialog.scrollableContentStyle);
                 }
+            }
+
+            // invoke the handler
+            var handler = dialog.data('nf-dialog').resize;
+            if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
+                handler.call(dialog);
             }
         },
 

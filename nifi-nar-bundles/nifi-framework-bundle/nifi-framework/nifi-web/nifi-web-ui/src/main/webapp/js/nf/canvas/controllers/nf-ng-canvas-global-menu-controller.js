@@ -289,9 +289,18 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                 init: function () {
                     var self = this;
 
+                    var resizeAbout = function(){
+                        var dialog = $(this);
+                        var top = $('#nf-about-pic-container').height() + $('.dialog-header').height() + 10; //10 for padding-top
+                        dialog.find('.dialog-content').css('top', top);
+                    };
+
                     this.getElement().modal({
                         scrollableContentStyle: 'scrollable',
                         headerText: 'About Apache NiFi',
+                        handler: {
+                          resize: resizeAbout
+                        },
                         buttons: [{
                             buttonText: 'Ok',
                             color: {
