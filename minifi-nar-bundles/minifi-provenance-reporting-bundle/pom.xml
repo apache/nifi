@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-nar-bundles</artifactId>
-        <version>0.0.1</version>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>minifi-provenance-reporting-bundle</artifactId>
@@ -34,7 +34,7 @@
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-reporting-task</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.glassfish.jersey.core</groupId>

@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-provenance-reporting-bundle</artifactId>
-        <version>0.0.1</version>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>minifi-provenance-reporting-task</artifactId>
     <description>Publishes MiNiFi metrics to NiFi via S2S</description>
-    <version>0.0.1</version>
+    <version>0.1.0-SNAPSHOT</version>
 
     <dependencies>
         <dependency>

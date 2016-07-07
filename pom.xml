@@ -26,7 +26,7 @@ limitations under the License.
 
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi - MiNiFi is a child project effort to aid in the collection and transmission of data close to where it is created.</description>
 
@@ -81,7 +81,7 @@ limitations under the License.
         <connection>scm:git:git://git.apache.org/nifi-minifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi-minifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi-minifi.git</url>
-      <tag>minifi-0.0.1-RC1</tag>
+      <tag>HEAD</tag>
   </scm>
     <issueManagement>
         <system>JIRA</system>
@@ -122,54 +122,54 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-bootstrap</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-nar-utils</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-utils</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-api</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-nar</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-core</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-resources</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repository-nar</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-reporting-nar</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
@@ -177,29 +177,29 @@ limitations under the License.
                 <artifactId>minifi-resources</artifactId>
                 <classifier>resources</classifier>
                 <type>zip</type>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-runtime</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-standard-nar</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-update-attribute-nar</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-docs</artifactId>
-                <version>0.0.1</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
