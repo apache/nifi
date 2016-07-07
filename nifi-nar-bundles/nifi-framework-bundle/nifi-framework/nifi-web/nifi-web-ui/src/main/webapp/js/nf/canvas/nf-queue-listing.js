@@ -518,7 +518,7 @@ nf.QueueListing = (function () {
 
             // define a custom formatter for showing more processor details
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<div class="pointer show-flowfile-details fa fa-info" title="View Details" style="margin-top: 5px; float: left;"></div>';
+                return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="margin-top: 5px; float: left;"></div>';
             };
 
             // function for formatting data sizes
