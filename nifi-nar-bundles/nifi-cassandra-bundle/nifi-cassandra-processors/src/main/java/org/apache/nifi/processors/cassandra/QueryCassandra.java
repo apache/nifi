@@ -75,7 +75,7 @@ import java.util.concurrent.TimeoutException;
 @Tags({"cassandra", "cql", "select"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Execute provided Cassandra Query Language (CQL) select query on a Cassandra 1.x or 2.x cluster. Query result "
+@CapabilityDescription("Execute provided Cassandra Query Language (CQL) select query on a Cassandra 1.x, 2.x, or 3.0.x cluster. Query result "
         + "may be converted to Avro or JSON format. Streaming is used so arbitrarily large result sets are supported. This processor can be "
         + "scheduled to run on a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
         + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "

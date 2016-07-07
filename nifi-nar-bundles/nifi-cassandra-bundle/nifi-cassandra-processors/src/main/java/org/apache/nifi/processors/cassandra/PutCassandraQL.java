@@ -69,7 +69,7 @@ import java.util.regex.Pattern;
 @Tags({"cassandra", "cql", "put", "insert", "update", "set"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x or 2.x cluster. "
+@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x, 2.x, or 3.0.x cluster. "
         + "The content of an incoming FlowFile is expected to be the CQL command to execute. The CQL command may use "
         + "the ? to escape parameters. In this case, the parameters to use must exist as FlowFile attributes with the "
         + "naming convention cql.args.N.type and cql.args.N.value, where N is a positive integer. The cql.args.N.type "
