@@ -64,7 +64,7 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #nifi-logo {
     height: 37px;
-    margin: 0 20px 0 15px;
+    margin:0 20px 3px 15px;
 }
 
 #global-menu-button {
