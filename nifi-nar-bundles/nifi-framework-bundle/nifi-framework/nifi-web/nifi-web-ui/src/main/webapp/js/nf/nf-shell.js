@@ -94,13 +94,13 @@ nf.Shell = (function () {
                 shell.empty();
 
                 // register a new close handler
-                $('#shell-dialog').modal('setCloseHandler', {
-                    close: function () {
-                        deferred.resolve();
-                    },
-                    open: function () {
-                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
-                    }
+                $('#shell-dialog').modal('setCloseHandler', function () {
+                    deferred.resolve();
+                });
+
+                // register a new open handler
+                $('#shell-dialog').modal('setOpenHandler', function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 });
 
                 // show the custom processor ui
@@ -150,13 +150,11 @@ nf.Shell = (function () {
                     content.detach();
 
                     // register a new close handler
-                    $('#shell-dialog').modal('setCloseHandler', {
-                        close: function () {
-                            deferred.resolve();
+                    $('#shell-dialog').modal('setCloseHandler', function () {
+                        deferred.resolve();
 
-                            // detach the content and add it back to the parent
-                            content.hide().detach().appendTo(parent);
-                        }
+                        // detach the content and add it back to the parent
+                        content.hide().detach().appendTo(parent);
                     });
 
                     // hide the undock button
