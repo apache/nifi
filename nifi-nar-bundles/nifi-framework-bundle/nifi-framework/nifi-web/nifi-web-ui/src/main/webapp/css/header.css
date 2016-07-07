@@ -68,28 +68,24 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #global-menu-button {
-    background-color:#AABBC3; /*tint base-color 40%*/
-    border:1px solid #AABBC3; /*tint base-color 40%*/
-    border-top-left-radius:2px;
-    border-top-right-radius:2px;
-    margin:0 10px;
+    background-color: #AABBC1; /*tint base-color 40%*/
+    border: 0;
     cursor: pointer;
-    height: 40px;
-    width: 40px;
+    height: 56px;
+    width: 63px;
 }
 
 #global-menu-button:hover {
-    background-color:#C7D2D7; /*tint base-color 60%*/
-    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+    background-color: #e3e8eb; /*tint base-color 60%*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 #global-menu-content {
     font-size: 13px;
-    padding: 0px 0;
-    background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
-    border:1px solid #004849; /*link-color*/
-    border-radius:2px;
-    box-shadow:0 2px 3px rgba(0,0,0,0.35);
+    padding: 3px 0;
+    background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
     width: 215px;
     max-height: inherit;
 }
