@@ -119,7 +119,7 @@ public class ConfigSchema extends BaseSchema {
     }
 
     private void checkForDuplicateNames(String errorMessagePrefix, List<String> names) {
-        if (processors != null) {
+        if (names != null) {
             Set<String> seenNames = new HashSet<>();
             Set<String> duplicateNames = new TreeSet<>();
             for (String name : names) {
