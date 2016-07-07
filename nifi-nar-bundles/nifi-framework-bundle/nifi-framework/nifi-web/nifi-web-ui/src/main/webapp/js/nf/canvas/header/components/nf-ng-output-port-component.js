@@ -69,6 +69,10 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
 
     function OutputPortComponent() {
 
+        this.icon = 'icon icon-port-out';
+
+        this.hoverIcon = 'icon icon-port-out-add';
+
         /**
          * The output port component's modal.
          */

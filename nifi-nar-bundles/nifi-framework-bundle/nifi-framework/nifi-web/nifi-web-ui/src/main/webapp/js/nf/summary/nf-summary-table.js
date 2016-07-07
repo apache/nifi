@@ -622,7 +622,7 @@ nf.SummaryTable = (function () {
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info" title="View Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Details" style="margin-top: 5px;"></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)

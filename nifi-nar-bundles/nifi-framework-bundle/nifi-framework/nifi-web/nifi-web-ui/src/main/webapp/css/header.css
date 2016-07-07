@@ -34,12 +34,13 @@ md-toolbar.md-small .md-toolbar-tools {
 }
 
 #header .icon {
-    font-size:30px;
+    font-size:32px;
     color: #004849;
+    padding-left:12px
 }
 
 #header .fa {
-    font-size:30px;
+    font-size:32px;
     color: #004849;
 }
 
@@ -63,32 +64,28 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #nifi-logo {
     height: 37px;
-    margin: 0 20px 0 15px;
+    margin:0 20px 3px 15px;
 }
 
 #global-menu-button {
-    background-color:#AABBC3; /*tint base-color 40%*/
-    border:1px solid #AABBC3; /*tint base-color 40%*/
-    border-top-left-radius:2px;
-    border-top-right-radius:2px;
-    margin:0 10px;
+    background-color: #AABBC1; /*tint base-color 40%*/
+    border: 0;
     cursor: pointer;
-    height: 40px;
-    width: 40px;
+    height: 56px;
+    width: 63px;
 }
 
 #global-menu-button:hover {
-    background-color:#C7D2D7; /*tint base-color 60%*/
-    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+    background-color: #e3e8eb; /*tint base-color 60%*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
 }
 
 #global-menu-content {
     font-size: 13px;
-    padding: 0px 0;
-    background-color:rgba(249,250,251,0.97); /*tint base-color 96%*/
-    border:1px solid #004849; /*link-color*/
-    border-radius:2px;
-    box-shadow:0 2px 3px rgba(0,0,0,0.35);
+    padding: 3px 0;
+    background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
     width: 215px;
     max-height: inherit;
 }
@@ -141,19 +138,25 @@ md-toolbar.md-small .md-toolbar-tools {
 
 
 #header .component-button {
-    background-color:#AABBC3; /*tint base-color 40%*/
-    border-radius:2px;
+    background: none;
+    height: 56px;
+    position: relative;
+    width: 56px;
     border: none;
-    height: 40px;
-    width: 40px;
 }
 
 #header .component-button:hover {
-    background-color:#C7D2D7; /*tint base-color 60%*/
-    box-shadow:0 1px 1px rgba(0,0,0,0.15);
+    background-color: #e3e8eb;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
     cursor:grab;
     cursor:-moz-grab;
     cursor:-webkit-grab;
+}
+
+#header .component-button:active {
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
+    cursor: -moz-grabbing;
 }
 
 #header .component-button:disabled {
@@ -164,6 +167,15 @@ md-toolbar.md-small .md-toolbar-tools {
 
 #header .component-button:disabled .icon{
     color:#669192;
+}
+
+.component-button-grip {
+    background: repeating-linear-gradient(90deg,rgba(170,187,195,1),rgba(170,187,195,1) 4px,rgba(170,187,195,0) 4px,rgba(170,187,195,0) 6px);
+    bottom: 2px;
+    height: 4px;
+    left: 2px;
+    position: absolute;
+    width: 52px;
 }
 
 /* styles for the status link */

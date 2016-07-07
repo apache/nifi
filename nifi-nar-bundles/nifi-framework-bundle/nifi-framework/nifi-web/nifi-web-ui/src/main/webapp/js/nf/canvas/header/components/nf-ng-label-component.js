@@ -21,6 +21,9 @@ nf.ng.LabelComponent = function (serviceProvider) {
     'use strict';
 
     function LabelComponent() {
+        this.icon = 'icon icon-label';
+
+        this.hoverIcon = 'icon icon-label-add';
     }
     LabelComponent.prototype = {
         constructor: LabelComponent,

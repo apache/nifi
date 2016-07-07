@@ -69,6 +69,10 @@ nf.ng.InputPortComponent = function (serviceProvider) {
 
     function InputPortComponent() {
 
+        this.icon = 'icon icon-port-in';
+
+        this.hoverIcon = 'icon icon-port-in-add';
+
         /**
          * The input port component's modal.
          */

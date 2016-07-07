@@ -97,6 +97,10 @@ nf.ng.RemoteProcessGroupComponent = function (serviceProvider) {
 
     function RemoteProcessGroupComponent() {
 
+        this.icon = 'icon icon-group-remote';
+
+        this.hoverIcon = 'icon icon-group-remote-add';
+
         /**
          * The remote group component's modal.
          */

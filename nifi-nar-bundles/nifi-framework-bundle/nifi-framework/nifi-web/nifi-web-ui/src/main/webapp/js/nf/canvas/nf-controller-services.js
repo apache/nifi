@@ -496,7 +496,7 @@ nf.ControllerServices = (function () {
                 return '';
             }
             
-            var markup = '<div class="pointer view-controller-service fa fa-info" title="View Details" style="margin-top: 5px; float: left;" ></div>';
+            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; float: left;" ></div>';
 
             // always include a button to view the usage
             markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-left: -2px; margin-top: 5px; float: left;" ></div>';

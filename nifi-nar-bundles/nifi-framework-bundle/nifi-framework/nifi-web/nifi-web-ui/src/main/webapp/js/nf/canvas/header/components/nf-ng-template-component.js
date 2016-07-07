@@ -56,6 +56,10 @@ nf.ng.TemplateComponent = function (serviceProvider) {
 
     function TemplateComponent() {
 
+        this.icon = 'icon icon-template';
+
+        this.hoverIcon = 'icon icon-template-add';
+
         /**
          * The template component's modal.
          */

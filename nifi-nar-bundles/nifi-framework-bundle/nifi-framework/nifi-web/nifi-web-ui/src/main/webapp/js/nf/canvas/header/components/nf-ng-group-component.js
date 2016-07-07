@@ -69,6 +69,10 @@ nf.ng.GroupComponent = function (serviceProvider) {
 
     function GroupComponent() {
 
+        this.icon = 'icon icon-group';
+
+        this.hoverIcon = 'icon icon-group-add';
+
         /**
          * The group component's modal.
          */
