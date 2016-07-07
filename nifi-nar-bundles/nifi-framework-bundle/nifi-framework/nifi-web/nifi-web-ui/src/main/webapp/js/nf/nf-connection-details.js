@@ -293,6 +293,7 @@ nf.ConnectionDetails = (function () {
             $('#connection-details-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Details',
                     tabContentId: 'read-only-connection-details-tab-content'
@@ -305,6 +306,7 @@ nf.ConnectionDetails = (function () {
             // configure the connection details dialog
             $('#connection-details').modal({
                 headerText: 'Connection Details',
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
                     buttonText: 'Ok',
                     color: {
@@ -345,6 +347,9 @@ nf.ConnectionDetails = (function () {
                         $('#read-only-back-pressure-object-threshold').text('');
                         $('#read-only-back-pressure-data-size-threshold').text('');
                         $('#read-only-prioritizers').empty();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });

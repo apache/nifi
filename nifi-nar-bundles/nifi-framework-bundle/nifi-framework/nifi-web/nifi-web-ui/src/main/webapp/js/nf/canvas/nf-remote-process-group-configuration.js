@@ -22,6 +22,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
         init: function () {
             $('#remote-process-group-configuration').modal({
                 headerText: 'Configure Remote Process Group',
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
                     buttonText: 'Apply',
                     color: {

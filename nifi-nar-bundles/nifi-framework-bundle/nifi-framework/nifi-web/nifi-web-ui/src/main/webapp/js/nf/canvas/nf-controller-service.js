@@ -1523,6 +1523,7 @@ nf.ControllerService = (function () {
             $('#controller-service-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'controller-service-standard-settings-tab-content'
@@ -1554,6 +1555,7 @@ nf.ControllerService = (function () {
             // initialize the conroller service configuration dialog
             $('#controller-service-configuration').modal({
                 headerText: 'Configure Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         // empty the referencing components list
@@ -1573,6 +1575,9 @@ nf.ControllerService = (function () {
 
                         // removed the cached controller service details
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -1580,6 +1585,7 @@ nf.ControllerService = (function () {
             // initialize the disable service dialog
             $('#disable-controller-service-dialog').modal({
                 headerText: 'Disable Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         var disableDialog = $(this);
@@ -1624,6 +1630,7 @@ nf.ControllerService = (function () {
             // initialize the enable service dialog
             $('#enable-controller-service-dialog').modal({
                 headerText: 'Enable Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         var enableDialog = $(this);

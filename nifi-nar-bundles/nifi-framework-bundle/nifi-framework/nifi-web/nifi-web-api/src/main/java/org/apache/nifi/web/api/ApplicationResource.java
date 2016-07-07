@@ -16,10 +16,31 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -40,32 +61,14 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
+import org.apache.nifi.web.concurrent.LockExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 
 /**
  * Base class for controllers.
@@ -343,8 +346,8 @@ public abstract class ApplicationResource {
         return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
     }
 
-    protected boolean isClaimCancelationPhase(final HttpServletRequest httpServletRequest) {
-        return httpServletRequest.getHeader(RequestReplicator.CLAIM_CANCEL_HEADER) != null;
+    protected boolean isLockCancelationPhase(final HttpServletRequest httpServletRequest) {
+        return httpServletRequest.getHeader(RequestReplicator.LOCK_CANCELATION_HEADER) != null;
     }
 
     /**
@@ -444,9 +447,7 @@ public abstract class ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-                () -> serviceFacade.claimRevision(revision, user),
-                () -> serviceFacade.cancelRevision(revision),
-                () -> serviceFacade.releaseRevisionClaim(revision, user));
+            () -> serviceFacade.verifyRevision(revision, user));
     }
 
     /**
@@ -463,56 +464,76 @@ public abstract class ApplicationResource {
                                      final Runnable verifier, final Supplier<Response> action) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-                () -> serviceFacade.claimRevisions(revisions, user),
-                () -> serviceFacade.cancelRevisions(revisions),
-                () -> serviceFacade.releaseRevisionClaims(revisions, user));
+            () -> serviceFacade.verifyRevisions(revisions, user));
     }
 
 
     /**
      * Executes an action through the service facade using the specified revision.
      *
-     * @param serviceFacade  service facade
-     * @param authorizer     authorizer
-     * @param verifier       verifier
-     * @param action         the action to execute
-     * @param claimRevision  a callback that will claim the necessary revisions for the operation
-     * @param cancelRevision a callback that will cancel the necessary revisions if the operation fails
-     * @param releaseClaim   a callback that will release any previously claimed revision if the operation is canceled after the first phase
+     * @param serviceFacade service facade
+     * @param authorizer authorizer
+     * @param verifier verifier
+     * @param action the action to execute
+     * @param verifyRevision a callback that will claim the necessary revisions for the operation
      * @return the response
      */
     private Response withWriteLock(
             final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
-            final Runnable claimRevision, final Runnable cancelRevision, final Runnable releaseClaim) {
+        final Runnable verifyRevision) {
 
-        if (isClaimCancelationPhase(httpServletRequest)) {
-            releaseClaim.run();
+        if (isLockCancelationPhase(httpServletRequest)) {
+            final String lockVersionId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
+            try {
+                serviceFacade.releaseWriteLock(lockVersionId);
+            } catch (final Exception e) {
+                // If the lock has expired, then it has already been unlocked.
+            }
+
             return generateOkResponse().build();
         }
 
-        final boolean validationPhase = isValidationPhase(httpServletRequest);
-        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-            // authorize access
-            serviceFacade.authorizeAccess(authorizer);
-            claimRevision.run();
-        }
-
+        String lockId = null;
         try {
+            final boolean validationPhase = isValidationPhase(httpServletRequest);
+            if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+                // authorize access
+                serviceFacade.authorizeAccess(authorizer);
+
+                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
+                lockId = serviceFacade.obtainWriteLock(lockId);
+                verifyRevision.run();
+            } else {
+                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
+            }
+
             if (validationPhase) {
                 if (verifier != null) {
                     verifier.run();
                 }
                 return generateContinueResponse().build();
             }
-        } catch (final Exception e) {
-            cancelRevision.run();
-            throw e;
-        }
 
-        try {
-            return action.get();
-        } finally {
-            cancelRevision.run();
+            try {
+                return serviceFacade.withWriteLock(lockId, () -> action.get());
+            } finally {
+                try {
+                    serviceFacade.releaseWriteLock(lockId);
+                } catch (final LockExpiredException e) {
+                    // If the lock expires here, it's okay. We've already completed our action,
+                    // so the expiration of the lock is of no consequence to us.
+                }
+            }
+        } catch (final RuntimeException t) {
+            if (lockId != null) {
+                try {
+                    serviceFacade.releaseWriteLock(lockId);
+                } catch (final Exception e) {
+                    t.addSuppressed(e);
+                }
+            }
+
+            throw t;
         }
     }
 

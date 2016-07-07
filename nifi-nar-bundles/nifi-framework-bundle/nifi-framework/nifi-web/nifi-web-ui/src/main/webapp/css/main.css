@@ -311,6 +311,14 @@ textarea {
     font-size: 13px !important;
 }
 
+#new-template-description {
+    position: absolute;
+    top: 81px;
+    bottom: 0px;
+    height: inherit;
+    min-height: 32px;
+}
+
 ul.property-info {
     list-style-type: disc;
     margin-left: 10px;
@@ -507,7 +515,8 @@ input:focus {
 /* filter controls */
 
 .filter-controls {
-    width: 100%;
+    position: absolute;
+    top: 10px;
 }
 
 .filter-container {
@@ -606,8 +615,7 @@ div.secondary-button:hover {
 }
 
 .scrollable {
-    background: rgba(255, 255, 255, 1);
-    background: linear-gradient(to bottom,rgba(255,255,255,1) 0,rgba(255,255,255,0.50) 95%,rgba(234,238,240,1) 100%);
+    border-bottom: 1px solid #d0dbe0;
 }
 
 /* progress bars */
@@ -640,7 +648,7 @@ md-progress-linear > div {
 
 #select-template-button {
     position: absolute;
-    top: 66px;
+    top: 0px;
     left: 135px;
     cursor: pointer;
     overflow: hidden;

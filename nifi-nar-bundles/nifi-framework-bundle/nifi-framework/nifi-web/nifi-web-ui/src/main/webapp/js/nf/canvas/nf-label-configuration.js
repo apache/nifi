@@ -28,6 +28,7 @@ nf.LabelConfiguration = (function () {
         init: function () {
             // make the new property dialog draggable
             $('#label-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Label',
                 buttons: [{
                     buttonText: 'Apply',

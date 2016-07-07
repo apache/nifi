@@ -1123,11 +1123,15 @@ nf.ConnectionConfiguration = (function () {
 
             // initialize the configure connection dialog
             $('#connection-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Connection',
                 handler: {
                     close: function () {
                         // reset the dialog on close
                         resetDialog();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -1136,6 +1140,7 @@ nf.ConnectionConfiguration = (function () {
             $('#connection-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Details',
                     tabContentId: 'connection-details-tab-content'

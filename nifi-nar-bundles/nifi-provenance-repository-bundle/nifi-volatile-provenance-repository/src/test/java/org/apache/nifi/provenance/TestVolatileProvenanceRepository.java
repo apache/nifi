@@ -172,6 +172,16 @@ public class TestVolatileProvenanceRepository {
             public Long getLastQueueDate() {
                 return System.currentTimeMillis();
             }
+
+            @Override
+            public long getLineageStartIndex() {
+                return 0;
+            }
+
+            @Override
+            public long getQueueDateIndex() {
+                return 0;
+            }
         };
     }
 

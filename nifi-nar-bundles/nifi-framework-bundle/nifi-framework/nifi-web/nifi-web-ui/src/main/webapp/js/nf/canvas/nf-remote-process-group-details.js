@@ -22,6 +22,7 @@ nf.RemoteProcessGroupDetails = (function () {
         init: function () {
             $('#remote-process-group-details').modal({
                 headerText: 'Remote Process Group Details',
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
                     buttonText: 'Ok',
                     color: {

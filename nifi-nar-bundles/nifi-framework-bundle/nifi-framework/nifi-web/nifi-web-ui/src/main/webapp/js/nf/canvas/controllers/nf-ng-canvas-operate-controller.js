@@ -58,6 +58,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create template dialog
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'Create Template'
                     });
                 },
@@ -250,6 +251,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create fillcolor dialog
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'Change Color',
                         buttons: [{
                             buttonText: 'Apply',

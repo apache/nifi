@@ -19,18 +19,16 @@ package org.apache.nifi.web.revision;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
 
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.web.InvalidRevisionException;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.concurrent.DistributedLockingManager;
 
 
 /**
  * <p>
  * A Revision Manager provides the ability to prevent clients of the Web API from
- * stepping on one another. This is done by providing claims and locking mechanisms
+ * stepping on one another. This is done by providing revisions
  * for components individually.
  * </p>
  *
@@ -45,67 +43,26 @@ import org.apache.nifi.web.Revision;
  *
  * <p>
  * When the first phase of the two-phase commit is processed, the Revision Manager should
- * be used to obtain a Revision Claim by calling the {@link #requestClaim(Collection)}
- * method. If a Claim is granted, then the request validation may continue. If the
- * Claim is not granted, the request should fail and the second phase should not
- * be performed.
+ * be used to verify that the client-provided Revisions are current by calling the
+ * {@link #verifyRevisions(Collection)}
+ * method. If the revisions are up-to-date, the method will return successfully and the
+ * request validation may continue. Otherwise, the request should fail and the second phase
+ * should not be performed.
  * </p>
  *
  * <p>
  * If the first phase of the above two-phase commit completes and all nodes indicate that the
- * request may continue, this means that all nodes have provided granted a Claim on the Revisions
- * that are relevant. This Claim will automatically expire after some time. This expiration
- * means that if the node that issues the first phase never initiates the second phase (if the node
- * dies or loses network connectivitiy, for instance), then the Revision Claim will expire and
- * the Revision will remain unchanged.
+ * request may continue, this means that all nodes have agreed that the client's Revisios are
+ * acceptable.
  * </p>
  *
  * <p>
- * When the second phase begins, changes to the resource(s) must be made with the Revisions
- * locked. This is accomplished by wrapping the logic in a {@link Runnable} and passing the Runnable,
- * along with the {@link RevisionClaim} to the {@link #updateRevision(RevisionClaim, Supplier)} method.
+ * To ensure that the revisions remain consistent between the time that they are validated and
+ * the time that the modification takes place, it is important that the revisions always be
+ * validated while an appropriate read or write lock is held, via the {@link DistributedLockingManager}.
  * </p>
  */
 public interface RevisionManager {
-
-    /**
-     * <p>
-     * Attempts to obtain a Revision Claim for Revisions supplied. If a Revision Claim
-     * is granted, no other thread will be allowed to modify any of the components for
-     * which a Revision is claimed until either the Revision Claim is relinquished by
-     * calling the {@link #updateRevision(RevisionClaim, Runnable)} method or the
-     * {@link #releaseClaim(RevisionClaim)} method, or the Revision Claim expires.
-     * </p>
-     *
-     * <p>
-     * This method is atomic. If a Revision Claim is unable to be obtained for any of the
-     * provided Revisions, then no Revision Claim will be obtained.
-     * </p>
-     *
-     * @param revisions a Set of Revisions, each of which corresponds to a different
-     *            component for which a Claim is to be acquired.
-     * @param user the user for which the claim is being requested
-     *
-     * @return the Revision Claim that was granted, if one was granted.
-     *
-     * @throws InvalidRevisionException if any of the Revisions provided is out-of-date.
-     */
-    RevisionClaim requestClaim(Collection<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
-
-    /**
-     * <p>
-     * A convenience method that will call {@link #requestClaim(Collection)} by wrapping the given
-     * Revision in a Collection
-     * </p>
-     *
-     * @param revision the revision to request a claim for
-     * @param user the user for which the claim is being requested
-     *
-     * @return the Revision Claim that was granted, if one was granted.
-     *
-     * @throws InvalidRevisionException if any of the Revisions provided is out-of-date.
-     */
-    RevisionClaim requestClaim(Revision revision, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Returns the current Revision for the component with the given ID. If no Revision yet exists for the
@@ -135,7 +92,7 @@ public interface RevisionManager {
      *
      * @throws ExpiredRevisionClaimException if the Revision Claim has expired
      */
-    <T> RevisionUpdate<T> updateRevision(RevisionClaim claim, NiFiUser modifier, UpdateRevisionTask<T> task) throws ExpiredRevisionClaimException;
+    <T> RevisionUpdate<T> updateRevision(RevisionClaim claim, NiFiUser modifier, UpdateRevisionTask<T> task);
 
     /**
      * Performs the given task that is expected to remove a component from the flow. As a result,
@@ -150,64 +107,6 @@ public interface RevisionManager {
      * @throws ExpiredRevisionClaimException if the Revision Claim has expired
      */
     <T> T deleteRevision(RevisionClaim claim, NiFiUser user, DeleteRevisionTask<T> task) throws ExpiredRevisionClaimException;
-
-    /**
-     * Performs some operation to obtain an object of type T whose identifier is provided via
-     * the componentId argument, and return that object of type T while holding a Read Lock on
-     * the Revision for that object. Note that the callback provided must never modify the object
-     * with the given ID.
-     *
-     * @param callback the callback that is to be performed with the Read Lock held
-     * @return the value returned from the callback
-     */
-    <T> T get(String componentId, ReadOnlyRevisionCallback<T> callback);
-
-    /**
-     * Performs some operation to obtain an object of type T whose identifier is provided via
-     * the componentId argument, and return that object of type T while holding a Read Lock on
-     * the Revision for that object. Note that the callback provided must never modify the object
-     * with the given ID.
-     *
-     * @param callback the callback that is to be performed with the Read Lock held
-     * @return the value returned from the callback
-     */
-    <T> T get(Set<String> componentId, Supplier<T> callback);
-
-    /**
-     * Releases the claims on the revisions held by the given Revision Claim, if all of the Revisions
-     * are up-to-date.
-     *
-     * @param claim the claim that holds the revisions
-     * @param user the user that is releasing the claim. Must be the same user that claimed the revision.
-     *
-     * @return <code>true</code> if the claim was released, <code>false</code> if the Revisions were not
-     *         up-to-date
-     */
-    boolean releaseClaim(RevisionClaim claim, NiFiUser user);
-
-    /**
-     * Releases the claim on the revision for the given component if the claim was obtained by the calling thread
-     *
-     * @param componentId the ID of the component
-     * @return <code>true</code> if the claim was released, false otherwise
-     */
-    boolean cancelClaim(String componentId);
-
-    /**
-     * Releases the claim on the given revision if the claim was obtained by the calling thread
-     *
-     * @param revision the Revision to cancel the claim for
-     * @return <code>true</code> if the claim was released, false otherwise
-     */
-    boolean cancelClaim(Revision revision);
-
-    /**
-     * Releases the claims on the given revisions if the claim was obtained by the calling thread
-     *
-     * @param revisions the Revisions to cancel claims for
-     * @return <code>true</code> if all claims were released, false otherwise
-     */
-    boolean cancelClaims(Set<Revision> revisions);
 
     /**
      * Clears any revisions that are currently held and resets the Revision Manager so that the revisions

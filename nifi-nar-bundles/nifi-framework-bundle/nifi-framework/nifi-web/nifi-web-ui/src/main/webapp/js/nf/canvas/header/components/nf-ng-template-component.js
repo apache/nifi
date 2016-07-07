@@ -76,6 +76,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
             init: function () {
                 // configure the instantiate template dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Template',
                     overlayBackgroud: false
                 });

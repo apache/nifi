@@ -67,6 +67,7 @@
     left: 0px;
     bottom: 68px;
     right: 0px;
+    min-height: 150px;
 }
 
 /* queue listing table */
@@ -93,7 +94,7 @@ div.flowfile-header {
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
+    padding-bottom: 20px;
     text-overflow: ellipsis;
 }
 

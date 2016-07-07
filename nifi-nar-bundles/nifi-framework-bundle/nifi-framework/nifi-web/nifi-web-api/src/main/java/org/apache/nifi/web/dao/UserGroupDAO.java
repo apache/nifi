@@ -46,6 +46,14 @@ public interface UserGroupDAO {
     Group getUserGroup(String userGroupId);
 
     /**
+     * Gets the groups for the user with the specified ID.
+     *
+     * @param userId The user ID
+     * @return The set of groups
+     */
+    Set<Group> getUserGroupsForUser(String userId);
+
+    /**
      * Gets all user groups.
      *
      * @return The user group transfer objects

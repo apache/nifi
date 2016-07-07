@@ -89,6 +89,7 @@ nf.ng.GroupComponent = function (serviceProvider) {
             init: function () {
                 // configure the new process group dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Process Group',
                     handler: {
                         close: function () {

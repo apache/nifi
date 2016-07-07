@@ -175,12 +175,6 @@ nf.ProcessGroupConfiguration = (function () {
         nf.Shell.showContent('#process-group-configuration').done(function () {
             reset();
         });
-        $('#process-group-refresh-container').width($('#shell').width());
-
-        // add a shell:resize listener
-        $('#shell').on('shell:resize', function () {
-            $('#process-group-refresh-container').width($('#shell').width());
-        });
 
         // adjust the table size
         nf.ProcessGroupConfiguration.resetTableSize();
@@ -207,6 +201,7 @@ nf.ProcessGroupConfiguration = (function () {
             $('#process-group-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-process-group-configuration-tab-content'

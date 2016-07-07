@@ -305,6 +305,7 @@ nf.ReportingTask = (function () {
             $('#reporting-task-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'reporting-task-standard-settings-tab-content'
@@ -331,6 +332,7 @@ nf.ReportingTask = (function () {
 
             // initialize the reporting task configuration dialog
             $('#reporting-task-configuration').data('mode', config.edit).modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Reporting Task',
                 handler: {
                     close: function () {
@@ -345,6 +347,9 @@ nf.ReportingTask = (function () {
 
                         // removed the cached reporting task details
                         $('#reporting-task-configuration').removeData('reportingTaskDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });

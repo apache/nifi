@@ -23,6 +23,7 @@ nf.PortDetails = (function () {
         init: function () {
             // configure the processor details dialog
             $('#port-details').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Port Details',
                 buttons: [{
                     buttonText: 'Ok',

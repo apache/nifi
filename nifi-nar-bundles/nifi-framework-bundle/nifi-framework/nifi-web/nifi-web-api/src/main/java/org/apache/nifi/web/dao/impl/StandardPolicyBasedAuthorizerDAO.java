@@ -107,7 +107,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public AccessPolicy addAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
+                public AccessPolicy doAddAccessPolicy(final AccessPolicy accessPolicy) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -141,7 +141,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+                public void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
                 }
 
                 @Override
@@ -220,6 +220,13 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
+    public Set<Group> getUserGroupsForUser(String userId) {
+        return authorizer.getGroups().stream()
+                .filter(g -> g.getUsers().contains(userId))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
     public Set<Group> getUserGroups() {
         return authorizer.getGroups();
     }
@@ -278,11 +285,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     private User buildUser(final String identifier, final UserDTO userDTO) {
-        final Set<TenantEntity> groups = userDTO.getUserGroups();
         final User.Builder builder = new User.Builder().identifier(identifier).identity(userDTO.getIdentity());
-        if (groups != null) {
-            builder.addGroups(groups.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
-        }
         return builder.build();
     }
 

@@ -329,6 +329,23 @@ nf.Common = (function () {
         },
 
         /**
+         * Determine if an `element` has content overflow and adds the `.scrollable` class if it does.
+         *
+         * @param {HTMLElement} element The DOM element to toggle .scrollable upon.
+         */
+        toggleScrollable: function (element) {
+            if ($(element).is(':visible')){
+                if (element.offsetHeight < element.scrollHeight ||
+                    element.offsetWidth < element.scrollWidth) {
+                    // your element has overflow
+                    $(element).addClass('scrollable');
+                } else {
+                    $(element).removeClass('scrollable');
+                }
+            }
+        },
+
+        /**
          * Method for handling ajax errors.
          * 
          * @argument {object} xhr       The XmlHttpRequest

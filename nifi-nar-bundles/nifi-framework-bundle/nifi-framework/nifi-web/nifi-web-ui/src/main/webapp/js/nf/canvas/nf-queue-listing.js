@@ -41,6 +41,8 @@ nf.QueueListing = (function () {
 
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Queue Listing',
             handler: {
                 close: function () {
                     // reset the progress bar
@@ -189,6 +191,7 @@ nf.QueueListing = (function () {
         $('#flowfile-details-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'Details',
                 tabContentId: 'flowfile-details-tab-content'
@@ -199,6 +202,7 @@ nf.QueueListing = (function () {
         });
 
         $('#flowfile-details-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'FlowFile',
             buttons: [{
                 buttonText: 'Ok',
@@ -219,6 +223,9 @@ nf.QueueListing = (function () {
                     $('#flowfile-attributes-container').empty();
                     $('#flowfile-cluster-node-id').text('');
                     $('#additional-flowfile-details').empty();
+                },
+                open: function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 }
             }
         });
@@ -245,7 +252,7 @@ nf.QueueListing = (function () {
                 // update the progress bar
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
                 if (percentComplete > 0) {
-                    label.css('margin-top', '-19px');
+                    label.css('margin-top', '-24px');
                 }
                 progressBar.progressbar('value', percentComplete).append(label);
             };

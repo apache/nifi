@@ -81,8 +81,7 @@ div.remote-port-header {
 div.remote-ports-container {
     padding: 5px;
     overflow-y: auto;
-    overflow-x: hidden;
-    height: 335px;
+    overflow-x: auto;
     border: 1px solid #666;
 }
 

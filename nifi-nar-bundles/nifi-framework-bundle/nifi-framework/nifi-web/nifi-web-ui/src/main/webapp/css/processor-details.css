@@ -29,7 +29,6 @@
 }
 
 #processor-details div.details-tab {
-    height: 330px;
     display: none;
 }
 
@@ -43,7 +42,6 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 2px 2px 0;
-    width: 376px;
 }
 
 #processor-details div.relationship-name {

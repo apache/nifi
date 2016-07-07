@@ -3671,7 +3671,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .entryDate(System.currentTimeMillis())
             .id(flowFileRepository.getNextFlowFileSequence())
             .lineageIdentifiers(lineageIdentifiers)
-            .lineageStartDate(event.getLineageStartDate())
+            .lineageStart(event.getLineageStartDate(), 0L)
             .size(contentSize.longValue())
             // Create a new UUID and add attributes indicating that this is a replay
             .addAttribute("flowfile.replay", "true")

@@ -290,4 +290,14 @@ public class MockFlowFile implements FlowFileRecord {
     public long getContentClaimOffset() {
         return 0;
     }
+
+    @Override
+    public long getLineageStartIndex() {
+        return 0;
+    }
+
+    @Override
+    public long getQueueDateIndex() {
+        return 0;
+    }
 }

@@ -16,19 +16,12 @@
  */
 package org.apache.nifi.web.dao.impl
 
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer
-import org.apache.nifi.authorization.AccessPolicy
-import org.apache.nifi.authorization.Authorizer
-import org.apache.nifi.authorization.Group
-import org.apache.nifi.authorization.RequestAction
-import org.apache.nifi.authorization.User
+import org.apache.nifi.authorization.*
 import org.apache.nifi.web.ResourceNotFoundException
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.UserDTO
 import org.apache.nifi.web.api.dto.UserGroupDTO
 import org.apache.nifi.web.api.entity.TenantEntity
-import org.apache.nifi.web.api.entity.UserEntity
-import org.apache.nifi.web.api.entity.UserGroupEntity
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -100,14 +93,15 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.addAccessPolicy(accessPolicy) >> accessPolicy
+        1 * authorizer.getAccessPolicies() >> accessPolicies
+        1 * authorizer.doAddAccessPolicy(accessPolicy) >> accessPolicy
         0 * _
         result?.equals accessPolicy
 
         where:
-        accessPolicy                                                                  | _
+        accessPolicy                                 | accessPolicies
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .action(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | [] as Set
     }
 
     @Unroll
@@ -409,7 +403,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -432,7 +426,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -451,7 +445,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -485,7 +479,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         users                                                                                                             | _
-        [new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build()] as Set | _
+        [new User.Builder().identifier('user-id-1').identity('user identity').build()] as Set | _
     }
 
     @Unroll
@@ -506,7 +500,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -542,7 +536,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll

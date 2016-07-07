@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -48,7 +49,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     static final String USER_ELEMENT = "user";
-    static final String USER_GROUP_ELEMENT = "userGroup";
+    static final String GROUP_USER_ELEMENT = "groupUser";
     static final String GROUP_ELEMENT = "group";
     static final String POLICY_ELEMENT = "policy";
     static final String POLICY_USER_ELEMENT = "policyUser";
@@ -60,6 +61,44 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     static final String ACTIONS_ATTR = "actions";
 
     public static final String EMPTY_FINGERPRINT = "EMPTY";
+
+    @Override
+    public final void onConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+        doOnConfigured(configurationContext);
+
+        // ensure that only one policy per resource-action exists
+        for (AccessPolicy accessPolicy : getAccessPolicies()) {
+            if (policyExists(accessPolicy)) {
+                throw new AuthorizerCreationException("Found multiple policies for " + accessPolicy.getResource()
+                        + " with " + accessPolicy.getAction());
+            }
+        }
+    }
+
+    /**
+     * Allows sub-classes to take action when onConfigured is called.
+     *
+     * @param configurationContext the configuration context
+     * @throws AuthorizerCreationException if an error occurs during onConfigured process
+     */
+    protected abstract void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException;
+
+    /**
+     * Checks if another policy exists with the same resource and action as the given policy.
+     *
+     * @param checkAccessPolicy an access policy being checked
+     * @return true if another access policy exists with the same resource and action, false otherwise
+     */
+    private boolean policyExists(final AccessPolicy checkAccessPolicy) {
+        for (AccessPolicy accessPolicy : getAccessPolicies()) {
+            if (!accessPolicy.getIdentifier().equals(checkAccessPolicy.getIdentifier())
+                    && accessPolicy.getResource().equals(checkAccessPolicy.getResource())
+                    && accessPolicy.getAction().equals(checkAccessPolicy.getAction())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
@@ -77,9 +116,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
             return AuthorizationResult.denied("Unknown user with identity " + request.getIdentity());
         }
 
+        final Set<Group> userGroups = usersAndAccessPolicies.getGroups(user.getIdentity());
+
         for (AccessPolicy policy : policies) {
             final boolean containsUser = policy.getUsers().contains(user.getIdentifier());
-            if (policy.getAction() == request.getAction() && (containsUser || containsGroup(user, policy)) ) {
+            if (policy.getAction() == request.getAction() && (containsUser || containsGroup(userGroups, policy)) ) {
                 return AuthorizationResult.approved();
             }
         }
@@ -88,13 +129,13 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     }
 
 
-    private boolean containsGroup(final User user, final AccessPolicy policy) {
-        if (user.getGroups().isEmpty() || policy.getGroups().isEmpty()) {
+    private boolean containsGroup(Set<Group> userGroups, final AccessPolicy policy) {
+        if (userGroups.isEmpty() || policy.getGroups().isEmpty()) {
             return false;
         }
 
-        for (String userGroup : user.getGroups()) {
-            if (policy.getGroups().contains(userGroup)) {
+        for (Group userGroup : userGroups) {
+            if (policy.getGroups().contains(userGroup.getIdentifier())) {
                 return true;
             }
         }
@@ -200,6 +241,20 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      */
     public abstract Set<User> getUsers() throws AuthorizationAccessException;
 
+    /**
+     * Adds the given policy ensuring that multiple policies can not be added for the same resource and action.
+     *
+     * @param accessPolicy the policy to add
+     * @return the policy that was added
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public final synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
+        if (policyExists(accessPolicy)) {
+            throw new IllegalStateException("Found multiple policies for " + accessPolicy.getResource()
+                    + " with " + accessPolicy.getAction());
+        }
+        return doAddAccessPolicy(accessPolicy);
+    }
 
     /**
      * Adds the given policy.
@@ -208,7 +263,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @return the policy that was added
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
-    public abstract AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
+    protected abstract AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException;
 
     /**
      * Retrieves the policy with the given identifier.
@@ -304,20 +359,21 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
                 .identifier(element.getAttribute(IDENTIFIER_ATTR))
                 .identity(element.getAttribute(IDENTITY_ATTR));
 
-        NodeList userGroups = element.getElementsByTagName(USER_GROUP_ELEMENT);
-        for (int i=0; i < userGroups.getLength(); i++) {
-            Element userGroupNode = (Element) userGroups.item(i);
-            builder.addGroup(userGroupNode.getAttribute(IDENTIFIER_ATTR));
-        }
-
         return builder.build();
     }
 
     private Group parseGroup(final Element element) {
-        return new Group.Builder()
+        final Group.Builder builder = new Group.Builder()
                 .identifier(element.getAttribute(IDENTIFIER_ATTR))
-                .name(element.getAttribute(NAME_ATTR))
-                .build();
+                .name(element.getAttribute(NAME_ATTR));
+
+        NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
+        for (int i=0; i < groupUsers.getLength(); i++) {
+            Element groupUserNode = (Element) groupUsers.item(i);
+            builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
+        }
+
+        return builder.build();
     }
 
     private AccessPolicy parsePolicy(final Element element) {
@@ -403,26 +459,26 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
     }
 
     private void writeUser(final XMLStreamWriter writer, final User user) throws XMLStreamException {
-        List<String> userGroups = new ArrayList<>(user.getGroups());
-        Collections.sort(userGroups);
-
         writer.writeStartElement(USER_ELEMENT);
         writer.writeAttribute(IDENTIFIER_ATTR, user.getIdentifier());
         writer.writeAttribute(IDENTITY_ATTR, user.getIdentity());
-
-        for (String userGroup : userGroups) {
-            writer.writeStartElement(USER_GROUP_ELEMENT);
-            writer.writeAttribute(IDENTIFIER_ATTR, userGroup);
-            writer.writeEndElement();
-        }
-
         writer.writeEndElement();
     }
 
     private void writeGroup(final XMLStreamWriter writer, final Group group) throws XMLStreamException {
+        List<String> users = new ArrayList<>(group.getUsers());
+        Collections.sort(users);
+
         writer.writeStartElement(GROUP_ELEMENT);
         writer.writeAttribute(IDENTIFIER_ATTR, group.getIdentifier());
         writer.writeAttribute(NAME_ATTR, group.getName());
+
+        for (String user : users) {
+            writer.writeStartElement(GROUP_USER_ELEMENT);
+            writer.writeAttribute(IDENTIFIER_ATTR, user);
+            writer.writeEndElement();
+        }
+
         writer.writeEndElement();
     }
 

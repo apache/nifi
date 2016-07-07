@@ -26,17 +26,21 @@
 }
 
 #add-process-group-configuration-controller-service {
-    float: right;
     margin-top: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    text-transform: uppercase;
+    position: absolute;
+    top: 0px;
+    right: 0px;
 }
 
 /* settings tabs */
 
 #process-group-configuration-tabs {
     float: left;
+}
+
+#process-group-configuration-tabs-content {
+    top: 53px;
+    bottom: 52px;
 }
 
 #process-group-refresh-container {

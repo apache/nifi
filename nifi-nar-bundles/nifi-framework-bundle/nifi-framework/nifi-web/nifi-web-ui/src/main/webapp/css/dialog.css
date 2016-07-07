@@ -199,7 +199,6 @@ div.go-to-link {
 
 #listing-request-percent-complete {
     margin-top: 10px;
-    width: 100%;
     border-radius: 0;
 }
 
@@ -212,7 +211,6 @@ div.progress-label {
     display: block;
     font-weight: bold;
     text-align: center;
-    /*width: 378px;*/
     margin-top: 4px;
 }
 
@@ -264,7 +262,7 @@ ul.result li {
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
+    padding-bottom: 20px;
     text-overflow: ellipsis;
 }
 

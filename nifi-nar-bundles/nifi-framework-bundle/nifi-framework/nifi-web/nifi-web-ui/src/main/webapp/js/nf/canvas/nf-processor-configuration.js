@@ -456,6 +456,7 @@ nf.ProcessorConfiguration = (function () {
             $('#processor-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'processor-standard-settings-tab-content'
@@ -491,6 +492,7 @@ nf.ProcessorConfiguration = (function () {
 
             // initialize the processor configuration dialog
             $('#processor-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Processor',
                 handler: {
                     close: function () {
@@ -502,6 +504,9 @@ nf.ProcessorConfiguration = (function () {
 
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });

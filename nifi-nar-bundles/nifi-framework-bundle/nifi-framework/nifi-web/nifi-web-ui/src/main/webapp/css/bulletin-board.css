@@ -18,6 +18,10 @@
     Bulletin Board Styles
 */
 
+#bulletin-board {
+    margin: 20px;
+}
+
 #bulletin-board-header-text {
     font-size: 18px;
     font-weight: bold;
@@ -28,8 +32,10 @@
 
 #bulletin-board-refresh-container {
     position: absolute;
-    width: 100%;
-    bottom: 0px;
+    right: 0px;
+    bottom: 20px;
+    margin: 20px;
+    left: 0px;
 }
 
 #bulletin-board-loading-container {

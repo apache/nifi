@@ -23,6 +23,7 @@
  *   header: true,
  *   footer: true,
  *   headerText: 'Dialog Header',
+ *   scrollableContentStyle: 'scrollable',
  *   buttons: [{
  *      buttonText: 'Cancel',
  *          color: {
@@ -45,7 +46,8 @@
  *      }
  *   }],
  *   handler: {
- *      close: closeHandler
+ *      close: closeHandler,
+ *      open: openHandler
  *   }
  * }
  *
@@ -156,9 +158,28 @@
                         dialog.prepend(dialogHeader);
                     }
 
+                    var nfDialog = {};
+                    if (isDefinedAndNotNull(dialog.data('nf-dialog'))) {
+                        nfDialog = dialog.data('nf-dialog');
+                    }
+
                     // save the close handler
                     if (isDefinedAndNotNull(options.handler)) {
-                        dialog.data('handler', options.handler);
+                        if (isDefinedAndNotNull(options.handler.close)) {
+                            nfDialog.close = options.handler.close;
+                        }
+                    }
+
+                    // save the open handler
+                    if (isDefinedAndNotNull(options.handler)) {
+                        if (isDefinedAndNotNull(options.handler.open)) {
+                            nfDialog.open = options.handler.open;
+                        }
+                    }
+
+                    // save the scrollable class name
+                    if (isDefinedAndNotNull(options.scrollableContentStyle)) {
+                        nfDialog.scrollableContentStyle = options.scrollableContentStyle;
                     }
 
                     // determine if dialog needs footer/buttons
@@ -166,6 +187,9 @@
                         // add the buttons
                         addButtons(dialog, options.buttons);
                     }
+
+                    //persist data attribute
+                    dialog.data('nfDialog', nfDialog);
                 }
             });
         },
@@ -175,9 +199,36 @@
          *
          * @argument {function} handler The function to call when hiding the dialog
          */
-        setHandler: function (handler) {
-            return this.each(function () {
-                $(this).data('handler', handler);
+        setCloseHandler: function (handler) {
+            return this.each(function (index, dialog) {
+
+                var nfDialog = {};
+                if (isDefinedAndNotNull($(this).data('nf-dialog'))) {
+                    nfDialog = $(dialog).data('nf-dialog');
+                }
+                nfDialog.close = handler;
+
+                //persist data attribute
+                $(dialog).data('nfDialog', nfDialog);
+            });
+        },
+
+        /**
+         * Sets the handler that is used when the dialog is opened.
+         *
+         * @argument {function} handler The function to call when showing the dialog
+         */
+        setOpenHandler: function (handler) {
+            return this.each(function (index, dialog) {
+
+                var nfDialog = {};
+                if (isDefinedAndNotNull($(this).data('nf-dialog'))) {
+                    nfDialog = $(dialog).data('nf-dialog');
+                }
+                nfDialog.open = handler;
+
+                //persist data attribute
+                $(dialog).data('nfDialog', nfDialog);
             });
         },
 
@@ -211,12 +262,168 @@
             });
         },
 
+        resize: function () {
+            var dialog = $(this);
+            var dialogContent = dialog.find('.dialog-content');
+
+            var nfDialog = {};
+            if (isDefinedAndNotNull(dialog.data('nf-dialog'))) {
+                nfDialog = dialog.data('nf-dialog');
+            }
+
+            //initialize responsive properties
+            if (!isDefinedAndNotNull(nfDialog.responsive)) {
+                nfDialog.responsive = {};
+
+                if (!isDefinedAndNotNull(nfDialog.responsive.x)) {
+                    nfDialog.responsive.x = true;
+                }
+
+                if (!isDefinedAndNotNull(nfDialog.responsive.y)) {
+                    nfDialog.responsive.y = true;
+                }
+            } else {
+                if (!isDefinedAndNotNull(nfDialog.responsive.x)) {
+                    nfDialog.responsive.x = true;
+                } else {
+                    nfDialog.responsive.x = (nfDialog.responsive.x == "true" || nfDialog.responsive.x == true) ? true : false;
+                }
+
+                if (!isDefinedAndNotNull(nfDialog.responsive.y)) {
+                    nfDialog.responsive.y = true;
+                } else {
+                    nfDialog.responsive.y = (nfDialog.responsive.y == "true" || nfDialog.responsive.y == true) ? true : false;
+                }
+            }
+
+            if (!isDefinedAndNotNull(nfDialog.resizable)) {
+                nfDialog.resizable = false;
+            } else {
+                nfDialog.resizable = (nfDialog.resizable == "true" || nfDialog.resizable == true) ? true : false;
+            }
+
+            if(nfDialog.resizable){
+                dialogContent.css({
+                    'position': 'static',
+                    'padding': '10px 20px 52px 20px'
+                });
+            }
+
+            if (nfDialog.responsive.y || nfDialog.responsive.x) {
+
+                var fullscreenHeight;
+                var fullscreenWidth;
+
+                if (isDefinedAndNotNull(nfDialog.responsive['fullscreen-height'])) {
+                    fullscreenHeight = parseInt(nfDialog.responsive['fullscreen-height'], 10);
+                } else {
+                    nfDialog.responsive['fullscreen-height'] = dialog.height() + 'px';
+
+                    fullscreenHeight = parseInt(nfDialog.responsive['fullscreen-height'], 10);
+                }
+
+                if (isDefinedAndNotNull(nfDialog.responsive['fullscreen-width'])) {
+                    fullscreenWidth = parseInt(nfDialog.responsive['fullscreen-width'], 10);
+                } else {
+                    nfDialog.responsive['fullscreen-width'] = dialog.width() + 'px';
+
+                    fullscreenWidth = parseInt(nfDialog.responsive['fullscreen-width'], 10);
+                }
+
+                if (!isDefinedAndNotNull(nfDialog.width)) {
+                    nfDialog.width = dialog.css('width');
+                }
+
+                if (!isDefinedAndNotNull(nfDialog['min-width'])) {
+                    if (parseInt(dialog.css('min-width'), 10) > 0) {
+                        nfDialog['min-width'] = dialog.css('min-width');
+                    } else {
+                        nfDialog['min-width'] = nfDialog.width;
+                    }
+                }
+
+                //min-width should always be set in terms of px
+                if (nfDialog['min-width'].indexOf("%") > 0) {
+                    nfDialog['min-width'] = ($(window).width() * (parseInt(nfDialog['min-width'], 10) / 100)) + 'px';
+                }
+
+                if (!isDefinedAndNotNull(nfDialog.height)) {
+                    nfDialog.height = dialog.css('height');
+                }
+
+                if (!isDefinedAndNotNull(nfDialog['min-height'])) {
+                    if (parseInt(dialog.css('min-height'), 10) > 0) {
+                        nfDialog['min-height'] = dialog.css('min-height');
+                    } else {
+                        nfDialog['min-height'] = nfDialog.height;
+                    }
+                }
+
+                //min-height should always be set in terms of px
+                if (nfDialog['min-height'].indexOf("%") > 0) {
+                    nfDialog['min-height'] = ($(window).height() * (parseInt(nfDialog['min-height'], 10) / 100)) + 'px';
+                }
+
+                //resize dialog
+                if ($(window).height() < fullscreenHeight) {
+                    if (nfDialog.responsive.y) {
+                        dialog.css('height', '100%');
+                        dialog.css('min-height', '100%');
+                    }
+                } else {
+                    //set the dialog min-height
+                    dialog.css('min-height', nfDialog['min-height']);
+                    if (nfDialog.responsive.y) {
+                        //make sure nfDialog.height is in terms of %
+                        if (nfDialog.height.indexOf("px") > 0) {
+                            nfDialog.height = (parseInt(nfDialog.height, 10) / $(window).height() * 100) + '%';
+                        }
+                        dialog.css('height', nfDialog.height);
+                    }
+                }
+
+                if ($(window).width() < fullscreenWidth) {
+                    if (nfDialog.responsive.x) {
+                        dialog.css('width', '100%');
+                        dialog.css('min-width', '100%');
+                    }
+                } else {
+                    //set the dialog width
+                    dialog.css('min-width', nfDialog['min-width']);
+                    if (nfDialog.responsive.x) {
+                        //make sure nfDialog.width is in terms of %
+                        if (nfDialog.width.indexOf("px") > 0) {
+                            nfDialog.width = (parseInt(nfDialog.width, 10) / $(window).width() * 100) + '%';
+                        }
+                        dialog.css('width', nfDialog.width);
+                    }
+                }
+
+                dialog.center();
+
+                //persist data attribute
+                dialog.data('nfDialog', nfDialog);
+            }
+
+            //apply scrollable style if applicable
+            if (dialogContent[0].offsetHeight < dialogContent[0].scrollHeight) {
+                // your element has overflow
+                if (isDefinedAndNotNull(nfDialog.scrollableContentStyle)) {
+                    dialogContent.addClass(nfDialog.scrollableContentStyle);
+                }
+            } else {
+                // your element doesn't have overflow
+                if (isDefinedAndNotNull(nfDialog.scrollableContentStyle)) {
+                    dialogContent.removeClass(nfDialog.scrollableContentStyle);
+                }
+            }
+        },
+
         /**
          * Shows the dialog.
          */
         show: function () {
             var dialog = $(this);
-            var dialogContent = dialog.find('.dialog-content');
 
             var zIndex = dialog.css('z-index');
             if (zIndex === 'auto') {
@@ -233,7 +440,7 @@
                     var index;
                     return isNaN(index = parseInt($(openDialog).css("z-index"), 10)) ? 0 : index;
                 });
-                //Add 2 so that we have room for the modalGlass of the new dialog
+                //Add 2 so that we have room for the glass pane overlay of the new dialog
                 zIndex = Math.max.apply(null, zVals) + 2;
             }
             dialog.css('z-index', zIndex);
@@ -243,15 +450,15 @@
                 nfDialog = dialog.data('nf-dialog');
             }
 
-            // determine if dialog needs a glasspane
+            // determine if dialog needs a glass pane overlay
             var hasGlasspane;
             if (isDefinedAndNotNull(nfDialog.glasspane)) {
                 hasGlasspane = nfDialog.glasspane;
             } else {
-                hasGlasspane = true;
+                nfDialog.glasspane = hasGlasspane = true;
             }
 
-            //create glasspane overlay
+            //create glass pane overlay
             if(hasGlasspane && (top === window)) {
                 // build the dialog modal
                 var modalGlassMarkup = '<div data-nf-dialog-parent="' + dialog.attr('id') + '" class="modal-glass"></div>';
@@ -261,169 +468,21 @@
                 modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
             }
 
-            var resize = function () {
-                //initialize responsive properties
-                if (!isDefinedAndNotNull(nfDialog.responsive)) {
-                    nfDialog.responsive = {};
-
-                    if (!isDefinedAndNotNull(nfDialog.responsive.x)) {
-                        nfDialog.responsive.x = true;
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog.responsive.y)) {
-                        nfDialog.responsive.y = true;
-                    }
-                } else {
-                    if (!isDefinedAndNotNull(nfDialog.responsive.x)) {
-                        nfDialog.responsive.x = true;
-                    } else {
-                        nfDialog.responsive.x = (nfDialog.responsive.x == "true" || nfDialog.responsive.x == true) ? true : false;
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog.responsive.y)) {
-                        nfDialog.responsive.y = true;
-                    } else {
-                        nfDialog.responsive.y = (nfDialog.responsive.y == "true" || nfDialog.responsive.y == true) ? true : false;
-                    }
-                }
-
-                if (!isDefinedAndNotNull(nfDialog.resizable)) {
-                    nfDialog.resizable = false;
-                } else {
-                    nfDialog.resizable = (nfDialog.resizable == "true" || nfDialog.resizable == true) ? true : false;
-                }
-
-                if (nfDialog.responsive.y || nfDialog.responsive.x) {
-
-                    var fullscreenHeight;
-                    var fullscreenWidth;
-
-                    if (isDefinedAndNotNull(nfDialog.responsive['fullscreen-height'])) {
-                        fullscreenHeight = parseInt(nfDialog.responsive['fullscreen-height'], 10);
-                    } else {
-                        nfDialog.responsive['fullscreen-height'] = dialog.height() + 'px';
-
-                        fullscreenHeight = parseInt(nfDialog.responsive['fullscreen-height'], 10);
-                    }
-
-                    if (isDefinedAndNotNull(nfDialog.responsive['fullscreen-width'])) {
-                        fullscreenWidth = parseInt(nfDialog.responsive['fullscreen-width'], 10);
-                    } else {
-                        nfDialog.responsive['fullscreen-width'] = dialog.width() + 'px';
-
-                        fullscreenWidth = parseInt(nfDialog.responsive['fullscreen-width'], 10);
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog.width)) {
-                        nfDialog.width = dialog.css('width');
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog['min-width'])) {
-                        if (parseInt(dialog.css('min-width'), 10) > 0) {
-                            nfDialog['min-width'] = dialog.css('min-width');
-                        } else {
-                            nfDialog['min-width'] = nfDialog.width;
-                        }
-                    }
-
-                    //min-width should always be set in terms of px
-                    if (nfDialog['min-width'].indexOf("%") > 0) {
-                        nfDialog['min-width'] = ($(window).width() * (parseInt(nfDialog['min-width'], 10) / 100)) + 'px';
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog.height)) {
-                        nfDialog.height = dialog.css('height');
-                    }
-
-                    if (!isDefinedAndNotNull(nfDialog['min-height'])) {
-                        if (parseInt(dialog.css('min-height'), 10) > 0) {
-                            nfDialog['min-height'] = dialog.css('min-height');
-                        } else {
-                            nfDialog['min-height'] = nfDialog.height;
-                        }
-                    }
-
-                    //min-height should always be set in terms of px
-                    if (nfDialog['min-height'].indexOf("%") > 0) {
-                        nfDialog['min-height'] = ($(window).height() * (parseInt(nfDialog['min-height'], 10) / 100)) + 'px';
-                    }
-
-                    //resize dialog
-                    if ($(window).height() < fullscreenHeight) {
-                        if (nfDialog.responsive.y) {
-                            dialog.css('height', '100%');
-                            dialog.css('min-height', '100%');
-                        }
-                    } else {
-                        //set the dialog min-height
-                        dialog.css('min-height', nfDialog['min-height']);
-                        if (nfDialog.responsive.y) {
-                            //make sure nfDialog.height is in terms of %
-                            if (nfDialog.height.indexOf("px") > 0) {
-                                nfDialog.height = (parseInt(nfDialog.height, 10) / $(window).height() * 100) + '%';
-                            }
-                            dialog.css('height', nfDialog.height);
-                        }
-                    }
-
-                    if ($(window).width() < fullscreenWidth) {
-                        if (nfDialog.responsive.x) {
-                            dialog.css('width', '100%');
-                            dialog.css('min-width', '100%');
-                        }
-                    } else {
-                        //set the dialog width
-                        dialog.css('min-width', nfDialog['min-width']);
-                        if (nfDialog.responsive.x) {
-                            //make sure nfDialog.width is in terms of %
-                            if (nfDialog.width.indexOf("px") > 0) {
-                                nfDialog.width = (parseInt(nfDialog.width, 10) / $(window).width() * 100) + '%';
-                            }
-                            dialog.css('width', nfDialog.width);
-                        }
-                    }
-
-                    dialog.center();
-
-                    //persist data attribute
-                    dialog.data('nfDialog', nfDialog);
-                }
-
-                //resize dialog content
-                if (!nfDialog.resizable) {
-                    dialogContent.attr('style', 'height:' +
-                        (dialog.outerHeight() -
-                        dialog.find('.dialog-header').height() -
-                        dialog.find('.dialog-buttons').height() -
-                        parseInt(dialogContent.css('padding-top'), 10) -
-                        parseInt(dialogContent.css('padding-bottom'), 10) + 'px'));
-
-                    if (dialogContent[0].offsetHeight < dialogContent[0].scrollHeight) {
-                        // your element have overflow
-                        dialogContent.addClass('scrollable');
-                        dialog.find('.dialog-buttons').css('background', '#eaeef0');
-                    } else {
-                        // your element doesn't have overflow
-                        dialogContent.removeClass('scrollable');
-                        dialog.find('.dialog-buttons').css('background', '#fff');
-                    }
-                }
-            };
-
-            // listen for browser resize events to resize and center the dialog
-            $(window).resize(function () {
-                resize();
-
-                dialog.trigger("dialog:resize");
-            });
+            //persist data attribute
+            dialog.data('nfDialog', nfDialog);
 
             return this.each(function () {
                 // show the dialog
                 if (!dialog.is(':visible')) {
-                    // center and show the dialog
-                    dialog.center().show();
+                    dialog.show();
+                    dialog.modal('resize');
+                    dialog.center();
 
-                    resize();
+                    // invoke the handler
+                    var handler = dialog.data('nf-dialog').open;
+                    if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
+                        handler.call(dialog);
+                    }
                 }
             });
         },
@@ -435,16 +494,16 @@
             return this.each(function () {
                 var dialog = $(this);
                 if (dialog.is(':visible')) {
-                    // remove the modal backgroun
+                    // remove the modal glass pane overlay
                     $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
 
                     // hide the dialog
                     dialog.hide();
 
                     // invoke the handler
-                    var handler = dialog.data('handler');
-                    if (isDefinedAndNotNull(handler) && typeof handler.close === 'function') {
-                        handler.close.call(dialog);
+                    var handler = dialog.data('nf-dialog').close;
+                    if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
+                        handler.call(dialog);
                     }
                 }
             });
