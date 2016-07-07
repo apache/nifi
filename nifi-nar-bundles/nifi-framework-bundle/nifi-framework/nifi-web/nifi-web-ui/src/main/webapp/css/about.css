@@ -16,8 +16,8 @@
  */
 #nf-about {
     overflow: hidden;
-    width: 450px;
-    height: 450px;
+    width: 500px;
+    height: 500px;
     max-height: 450px;
 }
 
@@ -31,10 +31,6 @@
 #nf-about-pic-container {
     height: 50%;
     background: #000000;
-}
-
-#nf-about-content {
-    margin: 10px 0px 0px 0px;
 }
 
 #nf-version {

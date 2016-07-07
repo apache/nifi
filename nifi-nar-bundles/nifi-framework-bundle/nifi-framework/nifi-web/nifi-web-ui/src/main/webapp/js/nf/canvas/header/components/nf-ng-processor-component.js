@@ -566,14 +566,12 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                 }]);
 
             // set a new handler for closing the the dialog
-            this.modal.update('setCloseHandler', {
-                close: function () {
-                    // remove the handler
-                    grid.onDblClick.unsubscribe(gridDoubleClick);
+            this.modal.update('setCloseHandler', function () {
+                // remove the handler
+                grid.onDblClick.unsubscribe(gridDoubleClick);
 
-                    // clear the current filters
-                    resetProcessorDialog();
-                }
+                // clear the current filters
+                resetProcessorDialog();
             });
 
             // show the dialog
