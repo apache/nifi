@@ -50,6 +50,12 @@ class KafkaPublisher implements Closeable {
 
     private volatile ComponentLog processLog;
 
+    private final int ackCheckSize;
+
+    KafkaPublisher(Properties kafkaProperties) {
+        this(kafkaProperties, 100);
+    }
+
     /**
      * Creates an instance of this class as well as the instance of the
      * corresponding Kafka {@link KafkaProducer} using provided Kafka
@@ -59,8 +65,9 @@ class KafkaPublisher implements Closeable {
      *            instance of {@link Properties} used to bootstrap
      *            {@link KafkaProducer}
      */
-    KafkaPublisher(Properties kafkaProperties) {
+    KafkaPublisher(Properties kafkaProperties, int ackCheckSize) {
         this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
+        this.ackCheckSize = ackCheckSize;
     }
 
     /**
@@ -100,15 +107,31 @@ class KafkaPublisher implements Closeable {
 
         byte[] messageBytes;
         int tokenCounter = 0;
-        for (; (messageBytes = streamTokenizer.nextToken()) != null; tokenCounter++) {
+        boolean continueSending = true;
+        KafkaPublisherResult result = null;
+        for (; continueSending && (messageBytes = streamTokenizer.nextToken()) != null; tokenCounter++) {
             if (prevLastAckedMessageIndex < tokenCounter) {
                 ProducerRecord<byte[], byte[]> message = new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getKeyBytes(), messageBytes);
                 resultFutures.add(this.kafkaProducer.send(message));
+
+                if (tokenCounter % this.ackCheckSize == 0){
+                    int lastAckedMessageIndex = this.processAcks(resultFutures, prevLastAckedMessageIndex);
+                    resultFutures.clear();
+                    if (lastAckedMessageIndex % this.ackCheckSize != 0) {
+                        continueSending = false;
+                        result = new KafkaPublisherResult(tokenCounter, lastAckedMessageIndex);
+                    }
+                    prevLastAckedMessageIndex = lastAckedMessageIndex;
+                }
             }
         }
 
-        int lastAckedMessageIndex = this.processAcks(resultFutures, prevLastAckedMessageIndex);
-        return new KafkaPublisherResult(tokenCounter, lastAckedMessageIndex);
+        if (result == null) {
+            int lastAckedMessageIndex = this.processAcks(resultFutures, prevLastAckedMessageIndex);
+            resultFutures.clear();
+            result = new KafkaPublisherResult(tokenCounter, lastAckedMessageIndex);
+        }
+        return result;
     }
 
     /**
