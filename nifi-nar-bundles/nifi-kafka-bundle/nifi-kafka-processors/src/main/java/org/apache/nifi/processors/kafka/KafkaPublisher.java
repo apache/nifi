@@ -121,13 +121,12 @@ class KafkaPublisher implements Closeable {
 
         int prevLastAckedMessageIndex = publishingContext.getLastAckedMessageIndex();
         List<Future<RecordMetadata>> resultFutures = new ArrayList<>();
-        System.out.println(1 - prevLastAckedMessageIndex);
 
         byte[] messageBytes;
         int tokenCounter = 0;
         boolean continueSending = true;
         KafkaPublisherResult result = null;
-        for (; (messageBytes = streamTokenizer.nextToken()) != null && continueSending; tokenCounter++) {
+        for (; continueSending && (messageBytes = streamTokenizer.nextToken()) != null; tokenCounter++) {
             if (prevLastAckedMessageIndex < tokenCounter) {
                 Integer partitionId = publishingContext.getPartitionId();
                 if (partitionId == null && publishingContext.getKeyBytes() != null) {

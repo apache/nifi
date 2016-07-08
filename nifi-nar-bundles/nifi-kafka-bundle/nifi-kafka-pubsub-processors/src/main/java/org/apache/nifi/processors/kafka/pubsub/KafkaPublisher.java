@@ -109,7 +109,7 @@ class KafkaPublisher implements Closeable {
         int tokenCounter = 0;
         boolean continueSending = true;
         KafkaPublisherResult result = null;
-        for (; (messageBytes = streamTokenizer.nextToken()) != null && continueSending; tokenCounter++) {
+        for (; continueSending && (messageBytes = streamTokenizer.nextToken()) != null; tokenCounter++) {
             if (prevLastAckedMessageIndex < tokenCounter) {
                 ProducerRecord<byte[], byte[]> message = new ProducerRecord<>(publishingContext.getTopic(), publishingContext.getKeyBytes(), messageBytes);
                 resultFutures.add(this.kafkaProducer.send(message));
