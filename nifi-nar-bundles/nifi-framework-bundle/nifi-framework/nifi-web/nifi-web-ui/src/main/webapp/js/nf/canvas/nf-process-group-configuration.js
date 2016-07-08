@@ -266,6 +266,15 @@ nf.ProcessGroupConfiguration = (function () {
         },
 
         /**
+         * Loads the configuration for the specified process group.
+         *
+         * @param groupId
+         */
+        loadConfiguration: function (groupId) {
+            return loadConfiguration(groupId);
+        },
+
+        /**
          * Selects the specified controller service.
          *
          * @param {string} controllerServiceId
