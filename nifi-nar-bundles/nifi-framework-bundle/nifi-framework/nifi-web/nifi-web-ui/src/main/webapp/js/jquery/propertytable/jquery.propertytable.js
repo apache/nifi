@@ -1219,9 +1219,15 @@
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
                     if (nf.Common.isDefinedAndNotNull(controllerService.parentGroupId)) {
-                        nf.ProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
-                            deferred.resolve();
-                        });
+                        if ($('#process-group-configuration').is(':visible')) {
+                            nf.ProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
+                                deferred.resolve();
+                            });
+                        } else {
+                            nf.ProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
+                                deferred.resolve();
+                            });
+                        }
                     } else {
                         if ($('#settings').is(':visible')) {
                             // reload the settings
