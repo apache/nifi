@@ -22,7 +22,6 @@ import java.util.List;
 
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.concurrent.DistributedLockingManager;
 
 
 /**
@@ -54,12 +53,6 @@ import org.apache.nifi.web.concurrent.DistributedLockingManager;
  * If the first phase of the above two-phase commit completes and all nodes indicate that the
  * request may continue, this means that all nodes have agreed that the client's Revisios are
  * acceptable.
- * </p>
- *
- * <p>
- * To ensure that the revisions remain consistent between the time that they are validated and
- * the time that the modification takes place, it is important that the revisions always be
- * validated while an appropriate read or write lock is held, via the {@link DistributedLockingManager}.
  * </p>
  */
 public interface RevisionManager {

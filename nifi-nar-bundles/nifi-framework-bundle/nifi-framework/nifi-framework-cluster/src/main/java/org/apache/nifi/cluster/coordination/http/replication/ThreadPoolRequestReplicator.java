@@ -36,6 +36,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -90,6 +93,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     private final ConcurrentMap<String, StandardAsyncClusterResponse> responseMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<NodeIdentifier, AtomicInteger> sequentialLongRequestCounts = new ConcurrentHashMap<>();
+
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock readLock = rwLock.readLock();
+    private final Lock writeLock = rwLock.writeLock();
 
     /**
      * Creates an instance using a connection timeout and read timeout of 3 seconds
@@ -204,14 +211,18 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
-        return replicate(nodeIdSet, method, uri, entity, headers);
+
+        return replicate(nodeIdSet, method, uri, entity, headers, true);
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers) {
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, final boolean indicateReplicated) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
         updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
-        updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+
+        if (indicateReplicated) {
+            updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+        }
 
         // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
         // it knows that we are acting as a proxy on behalf of the current user.
@@ -221,7 +232,23 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
         }
 
-        return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+        if (indicateReplicated) {
+            // If we are replicating a request and indicating that it is replicated, then this means that we are
+            // performing an action, rather than simply proxying the request to the cluster coordinator. In this case,
+            // we need to ensure that we use proper locking. We don't want two requests modifying the flow at the same
+            // time, so we use a write lock if the request is mutable and a read lock otherwise.
+            final Lock lock = isMutableRequest(method, uri.getPath()) ? writeLock : readLock;
+            logger.debug("Obtaining lock {} in order to replicate request {} {}", method, uri);
+            lock.lock();
+            try {
+                logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+        }
     }
 
     /**

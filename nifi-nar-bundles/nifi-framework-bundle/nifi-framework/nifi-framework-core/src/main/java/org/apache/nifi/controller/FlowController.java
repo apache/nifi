@@ -65,6 +65,7 @@ import org.apache.nifi.authorization.resource.ProvenanceEventAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.HeartbeatPayload;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
@@ -305,6 +306,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final List<Connectable> startConnectablesAfterInitialization;
     private final List<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
+    private final ClusterCoordinator clusterCoordinator;
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -383,6 +385,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             /* configuredForClustering */ false,
             /* NodeProtocolSender */ null,
             bulletinRepo,
+            /* cluster coordinator */ null,
             /* heartbeat monitor */ null);
     }
 
@@ -394,6 +397,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final StringEncryptor encryptor,
         final NodeProtocolSender protocolSender,
         final BulletinRepository bulletinRepo,
+        final ClusterCoordinator clusterCoordinator,
         final HeartbeatMonitor heartbeatMonitor) {
         final FlowController flowController = new FlowController(
             flowFileEventRepo,
@@ -404,6 +408,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             /* configuredForClustering */ true,
             protocolSender,
             bulletinRepo,
+            clusterCoordinator,
             heartbeatMonitor);
 
         flowController.setClusterManagerRemoteSiteInfo(properties.getRemoteInputPort(), properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
@@ -420,6 +425,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         final boolean configuredForClustering,
         final NodeProtocolSender protocolSender,
         final BulletinRepository bulletinRepo,
+        final ClusterCoordinator clusterCoordinator,
         final HeartbeatMonitor heartbeatMonitor) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
@@ -430,6 +436,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.heartbeatMonitor = heartbeatMonitor;
         sslContext = SslContextFactory.createSslContext(properties, false);
         extensionManager = new ExtensionManager();
+        this.clusterCoordinator = clusterCoordinator;
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
@@ -3181,11 +3188,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public void onLeaderRelinquish() {
                 heartbeatMonitor.stop();
+
+                if (clusterCoordinator != null) {
+                    clusterCoordinator.removeRole(ClusterRoles.CLUSTER_COORDINATOR);
+                }
             }
 
             @Override
             public void onLeaderElection() {
                 heartbeatMonitor.start();
+
+                if (clusterCoordinator != null) {
+                    clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
+                }
             }
         });
     }
@@ -3819,7 +3834,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 return null;
             }
 
-            final Set<String> roles = bean.isPrimary() ? Collections.singleton(ClusterRoles.PRIMARY_NODE) : Collections.emptySet();
+            final Set<String> roles = new HashSet<>();
+            if (bean.isPrimary()) {
+                roles.add(ClusterRoles.PRIMARY_NODE);
+            }
+            if (clusterCoordinator.isActiveClusterCoordinator()) {
+                roles.add(ClusterRoles.CLUSTER_COORDINATOR);
+            }
+
             final Heartbeat heartbeat = new Heartbeat(nodeId, roles, bean.getConnectionStatus(), hbPayload.marshal());
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);

@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.web.concurrent;
+package org.apache.nifi.cluster.manager.exception;
 
-public enum LockMode {
+public class NoClusterCoordinatorException extends ClusterException {
+    private static final long serialVersionUID = -1782098541351698293L;
 
-    SHARED,
+    public NoClusterCoordinatorException() {
+        super("Action cannot be performed because there is currently no Cluster Coordinator elected. "
+            + "The request should be tried again after a moment, after a Cluster Coordinator has been automatically elected.");
+    }
 
-    MUTUALLY_EXCLUSIVE;
-
+    public NoClusterCoordinatorException(final String message) {
+        super(message);
+    }
 }

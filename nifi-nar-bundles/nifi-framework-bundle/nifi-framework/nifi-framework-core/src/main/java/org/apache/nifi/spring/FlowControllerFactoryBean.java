@@ -18,6 +18,7 @@ package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
@@ -52,6 +53,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
             if (properties.isNode()) {
                 final NodeProtocolSender nodeProtocolSender = applicationContext.getBean("nodeProtocolSender", NodeProtocolSender.class);
                 final HeartbeatMonitor heartbeatMonitor = applicationContext.getBean("heartbeatMonitor", HeartbeatMonitor.class);
+                final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
                 flowController = FlowController.createClusteredInstance(
                     flowFileEventRepository,
                     properties,
@@ -60,6 +62,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     encryptor,
                     nodeProtocolSender,
                     bulletinRepository,
+                    clusterCoordinator,
                     heartbeatMonitor);
             } else {
                 flowController = FlowController.createStandaloneInstance(

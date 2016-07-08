@@ -16,13 +16,23 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.util.Collections;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -43,21 +53,13 @@ import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
 import org.apache.nifi.web.api.entity.Entity;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.Collections;
-import java.util.Set;
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 
 /**
@@ -148,7 +150,17 @@ public class CountersResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse;
+
+                // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+                // to the cluster nodes themselves.
+                if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                    nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                } else {
+                    final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
+                    nodeResponse = getRequestReplicator().replicate(coordinatorNode, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), false).awaitMergedResponse();
+                }
+
                 final CountersEntity entity = (CountersEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -164,10 +176,7 @@ public class CountersResource extends ApplicationResource {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
-
-                // replicate the request to the specific node
-                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
+                return replicate(HttpMethod.GET, targetNode);
             }
         }
 

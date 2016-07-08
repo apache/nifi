@@ -183,8 +183,6 @@ import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
-import org.apache.nifi.web.concurrent.DistributedLockingManager;
-import org.apache.nifi.web.concurrent.LockExpiredException;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -258,53 +256,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private Authorizer authorizer;
 
     private AuthorizableLookup authorizableLookup;
-    private DistributedLockingManager lockManager;
 
     // -----------------------------------------
     // Synchronization methods
     // -----------------------------------------
-    @Override
-    public String obtainReadLock() {
-        return lockManager.getReadLock().lock();
-    }
-
-    @Override
-    public String obtainReadLock(final String versionIdSeed) {
-        return lockManager.getReadLock().lock(versionIdSeed);
-    }
-
-    @Override
-    public <T> T withReadLock(final String versionIdentifier, final Supplier<T> action) throws LockExpiredException {
-        return lockManager.getReadLock().withLock(versionIdentifier, action);
-    }
-
-    @Override
-    public void releaseReadLock(final String versionIdentifier) throws LockExpiredException {
-        lockManager.getReadLock().unlock(versionIdentifier);
-    }
-
-    @Override
-    public String obtainWriteLock() {
-        return lockManager.getWriteLock().lock();
-    }
-
-    @Override
-    public String obtainWriteLock(final String versionIdSeed) {
-        return lockManager.getWriteLock().lock(versionIdSeed);
-    }
-
-    @Override
-    public <T> T withWriteLock(final String versionIdentifier, final Supplier<T> action) throws LockExpiredException {
-        return lockManager.getWriteLock().withLock(versionIdentifier, action);
-    }
-
-    @Override
-    public void releaseWriteLock(final String versionIdentifier) throws LockExpiredException {
-        lockManager.getWriteLock().unlock(versionIdentifier);
-    }
-
-
-
     @Override
     public void authorizeAccess(final AuthorizeAccess authorizeAccess) {
         authorizeAccess.authorize(authorizableLookup);
@@ -2899,9 +2854,5 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
-    }
-
-    public void setLockManager(final DistributedLockingManager lockManager) {
-        this.lockManager = lockManager;
     }
 }

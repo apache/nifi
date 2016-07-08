@@ -16,13 +16,31 @@
  */
 package org.apache.nifi.web.api;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -104,29 +122,13 @@ import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -1219,7 +1221,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final ProcessorStatusEntity entity = (ProcessorStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1301,7 +1303,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final PortStatusEntity entity = (PortStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1383,7 +1385,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final PortStatusEntity entity = (PortStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1465,7 +1467,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final RemoteProcessGroupStatusEntity entity = (RemoteProcessGroupStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1556,7 +1558,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final ProcessGroupStatusEntity entity = (ProcessGroupStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary
@@ -1659,7 +1661,7 @@ public class FlowResource extends ApplicationResource {
         if (isReplicateRequest()) {
             // determine where this request should be sent
             if (clusterNodeId == null) {
-                final NodeResponse nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse();
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
                 final ConnectionStatusEntity entity = (ConnectionStatusEntity) nodeResponse.getUpdatedEntity();
 
                 // ensure there is an updated entity (result of merging) and prune the response as necessary

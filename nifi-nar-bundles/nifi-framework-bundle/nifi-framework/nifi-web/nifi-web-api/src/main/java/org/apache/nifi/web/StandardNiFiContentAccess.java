@@ -25,6 +25,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.util.NiFiProperties;
@@ -87,12 +88,17 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
             // get the target node and ensure it exists
             final NodeIdentifier nodeId = clusterCoordinator.getNodeIdentifier(request.getClusterNodeId());
-            final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
 
-            // replicate the request to the specific node
+            // replicate the request to the cluster coordinator, indicating the target node
             NodeResponse nodeResponse;
             try {
-                nodeResponse = requestReplicator.replicate(targetNodes, HttpMethod.GET, dataUri, parameters, headers).awaitMergedResponse();
+                headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
+                final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
+                if (coordinatorNode == null) {
+                    throw new NoClusterCoordinatorException();
+                }
+                final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
+                nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false).awaitMergedResponse();
             } catch (InterruptedException e) {
                 throw new IllegalClusterStateException("Interrupted while waiting for a response from node");
             }

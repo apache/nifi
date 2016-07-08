@@ -27,7 +27,6 @@ public interface RequestReplicator {
 
     public static final String REQUEST_TRANSACTION_ID_HEADER = "X-RequestTransactionId";
     public static final String CLUSTER_ID_GENERATION_SEED_HEADER = "X-Cluster-Id-Generation-Seed";
-    public static final String REPLICATION_INDICATOR_HEADER = "X-Request-Replicated";
 
     /**
      * The HTTP header that the requestor specifies to ask a node if they are able to process a given request. The value
@@ -45,6 +44,25 @@ public interface RequestReplicator {
     public static final String LOCK_VERSION_ID_HEADER = "X-Lock-Version-Id";
 
     /**
+     * When we replicate a request across the cluster, we replicate it only from the cluster coordinator.
+     * If the request needs to be replicated by another node, it first replicates the request to the coordinator,
+     * which then replicates the request on the node's behalf. This header name and value are used to denote
+     * that the request has already been to the cluster coordinator, and the cluster coordinator is the one replicating
+     * the request. This allows us to know that the request should be serviced, rather than proxied back to the
+     * cluster coordinator.
+     */
+    public static final String REPLICATION_INDICATOR_HEADER = "X-Request-Replicated";
+
+    /**
+     * When replicating a request to the cluster coordinator, it may be useful to denote that the request should
+     * be replicated only to a single node. This happens, for instance, when retrieving a Provenance Event that
+     * we know lives on a specific node. This request must still be replicated through the cluster coordinator.
+     * This header tells the cluster coordinator the UUID's (comma-separated list, possibly with spaces between)
+     * of the nodes that the request should be replicated to.
+     */
+    public static final String REPLICATION_TARGET_NODE_UUID_HEADER = "X-Replication-Target-Id";
+
+    /**
      * Stops the instance from replicating requests. Calling this method on a stopped instance has no effect.
      */
     void shutdown();
@@ -54,7 +72,7 @@ public interface RequestReplicator {
      * Replicates a request to each node in the cluster. If the request attempts to modify the flow and there is a node
      * that is not currently connected, an Exception will be thrown. Otherwise, the returned AsyncClusterResponse object
      * will contain the results that are immediately available, as well as an identifier for obtaining an updated result
-     * later.
+     * later. NOTE: This method will ALWAYS indicate that the request has been replicated.
      *
      * @param method the HTTP method (e.g., POST, PUT)
      * @param uri the base request URI (up to, but not including, the query string)
@@ -78,10 +96,12 @@ public interface RequestReplicator {
      * @param uri the base request URI (up to, but not including, the query string)
      * @param entity an entity
      * @param headers any HTTP headers
+     * @param indicateReplicated if <code>true</code>, will add a header indicating to the receiving nodes that the request
+     *            has already been replicated, so the receiving node will not replicate the request itself.
      *
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      */
-    AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers);
+    AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated);
 
     /**
      * <p>

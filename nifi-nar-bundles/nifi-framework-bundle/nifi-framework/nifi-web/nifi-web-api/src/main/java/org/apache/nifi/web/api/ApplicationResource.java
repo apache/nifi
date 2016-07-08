@@ -49,6 +49,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.Snippet;
@@ -61,7 +63,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.concurrent.LockExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -296,7 +297,9 @@ public abstract class ApplicationResource {
 
         final Map<String, String> result = new HashMap<>();
         final Map<String, String> overriddenHeadersIgnoreCaseMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        overriddenHeadersIgnoreCaseMap.putAll(overriddenHeaders);
+        if (overriddenHeaders != null) {
+            overriddenHeadersIgnoreCaseMap.putAll(overriddenHeaders);
+        }
 
         final Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -344,10 +347,6 @@ public abstract class ApplicationResource {
      */
     protected boolean isValidationPhase(final HttpServletRequest httpServletRequest) {
         return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
-    }
-
-    protected boolean isLockCancelationPhase(final HttpServletRequest httpServletRequest) {
-        return httpServletRequest.getHeader(RequestReplicator.LOCK_CANCELATION_HEADER) != null;
     }
 
     /**
@@ -482,59 +481,21 @@ public abstract class ApplicationResource {
             final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
         final Runnable verifyRevision) {
 
-        if (isLockCancelationPhase(httpServletRequest)) {
-            final String lockVersionId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
-            try {
-                serviceFacade.releaseWriteLock(lockVersionId);
-            } catch (final Exception e) {
-                // If the lock has expired, then it has already been unlocked.
-            }
-
-            return generateOkResponse().build();
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(authorizer);
+            verifyRevision.run();
         }
 
-        String lockId = null;
-        try {
-            final boolean validationPhase = isValidationPhase(httpServletRequest);
-            if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-                // authorize access
-                serviceFacade.authorizeAccess(authorizer);
-
-                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
-                lockId = serviceFacade.obtainWriteLock(lockId);
-                verifyRevision.run();
-            } else {
-                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
+        if (validationPhase) {
+            if (verifier != null) {
+                verifier.run();
             }
-
-            if (validationPhase) {
-                if (verifier != null) {
-                    verifier.run();
-                }
-                return generateContinueResponse().build();
-            }
-
-            try {
-                return serviceFacade.withWriteLock(lockId, () -> action.get());
-            } finally {
-                try {
-                    serviceFacade.releaseWriteLock(lockId);
-                } catch (final LockExpiredException e) {
-                    // If the lock expires here, it's okay. We've already completed our action,
-                    // so the expiration of the lock is of no consequence to us.
-                }
-            }
-        } catch (final RuntimeException t) {
-            if (lockId != null) {
-                try {
-                    serviceFacade.releaseWriteLock(lockId);
-                } catch (final Exception e) {
-                    t.addSuppressed(e);
-                }
-            }
-
-            throw t;
+            return generateContinueResponse().build();
         }
+
+        return action.get();
     }
 
     /**
@@ -582,13 +543,54 @@ public abstract class ApplicationResource {
             throw new UnknownNodeException("Cannot replicate request " + method + " " + getAbsolutePath() + " to node with ID " + nodeUuid + " because the specified node does not exist.");
         }
 
-        final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
         final URI path = getAbsolutePath();
         try {
             final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
-            return requestReplicator.replicate(targetNodes, method, path, entity, headers).awaitMergedResponse().getResponse();
+
+            // Determine if we should replicate to the node directly or if we should replicate to the Cluster Coordinator,
+            // and have it replicate the request on our behalf.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                // If we are to replicate directly to the nodes, we need to indicate that the replication source is
+                // the cluster coordinator so that the node knows to service the request.
+                final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
+                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true).awaitMergedResponse().getResponse();
+            } else {
+                headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
+                return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method,
+                    path, entity, headers, false).awaitMergedResponse().getResponse();
+            }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    protected NodeIdentifier getClusterCoordinatorNode() {
+        final NodeIdentifier activeClusterCoordinator = clusterCoordinator.getElectedActiveCoordinatorNode();
+        if (activeClusterCoordinator != null) {
+            return activeClusterCoordinator;
+        }
+
+        throw new NoClusterCoordinatorException();
+    }
+
+    protected ReplicationTarget getReplicationTarget() {
+        return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
+    }
+
+    protected Response replicate(final String method, final NodeIdentifier targetNode) {
+        try {
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+            // to the cluster nodes themselves.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
+                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(true), getHeaders(), true).awaitMergedResponse().getResponse();
+            } else {
+                final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
+                final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
+                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(true), headers, false).awaitMergedResponse().getResponse();
+            }
+        } catch (final InterruptedException ie) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
         }
     }
 
@@ -601,6 +603,18 @@ public abstract class ApplicationResource {
      */
     protected Response replicate(final String method) {
         return replicate(method, getRequestParameters(true));
+    }
+
+    /**
+     * Convenience method for calling {@link #replicateNodeResponse(String, Object, Map)} with an entity of
+     * {@link #getRequestParameters() getRequestParameters(true)} and overriding no headers
+     *
+     * @param method the HTTP method to use
+     * @return the response from the request
+     * @throws InterruptedException if interrupted while replicating the request
+     */
+    protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
+        return replicateNodeResponse(method, getRequestParameters(true), (Map<String, String>) null);
     }
 
     /**
@@ -621,18 +635,45 @@ public abstract class ApplicationResource {
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
      * that provided by the {@link #getAbsolutePath()} method
      *
-     * @param method            the HTTP method to use
-     * @param entity            the entity to replicate
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
+     * @see #replicateNodeResponse(String, Object, Map)
      */
     protected Response replicate(final String method, final Object entity, final Map<String, String> headersToOverride) {
-        final URI path = getAbsolutePath();
         try {
-            final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
-            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse().getResponse();
+            return replicateNodeResponse(method, entity, headersToOverride).getResponse();
         } catch (final InterruptedException ie) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    /**
+     * Replicates the request to all nodes in the cluster using the provided method and entity. The headers
+     * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
+     * that provided by the {@link #getAbsolutePath()} method. This method returns the NodeResponse,
+     * rather than a Response object.
+     *
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
+     * @param headersToOverride the headers to override
+     *
+     * @return the response from the request
+     *
+     * @throws InterruptedException if interrupted while replicating the request
+     * @see #replicate(String, Object, Map)
+     */
+    protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
+        final URI path = getAbsolutePath();
+        final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
+
+        // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+        // to the cluster nodes themselves.
+        if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
+        } else {
+            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false).awaitMergedResponse();
         }
     }
 
@@ -666,5 +707,9 @@ public abstract class ApplicationResource {
 
     protected NiFiProperties getProperties() {
         return properties;
+    }
+
+    public static enum ReplicationTarget {
+        CLUSTER_NODES, CLUSTER_COORDINATOR;
     }
 }
