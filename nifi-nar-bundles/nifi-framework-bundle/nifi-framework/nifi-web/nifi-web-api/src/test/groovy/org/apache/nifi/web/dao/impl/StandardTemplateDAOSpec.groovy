@@ -24,6 +24,8 @@ import org.apache.nifi.controller.service.ControllerServiceProvider
 import org.apache.nifi.groups.ProcessGroup
 import org.apache.nifi.web.api.dto.*
 import org.apache.nifi.web.util.SnippetUtils
+
+import spock.lang.Ignore;
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -117,28 +119,28 @@ class StandardTemplateDAOSpec extends Specification {
         rootGroupId | oldOriginX | oldOriginY | newOriginX | newOriginY | templateId | idGenerationSeed | encodingVersion | snippet
         'g1'        | 0.0        | 0.0        | 5.0        | 5.0        | 't1'       | 'AAAA'           | null            | new FlowSnippetDTO()
         'g1'        | 10.0       | 10.0       | 5.0        | 5.0        | 't1'       | 'AAAA'           | '0.7'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(name: 'proc1', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))])
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0000-c4af042cb1559", name: 'proc1', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 't1'       | 'AAAA'           | null           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0001-c4af042cb1559", name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0000-c4af042cb1559", 
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0002-c4af042cb1559", name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 't1'       | 'AAAA'           | '0.7'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0003-c4af042cb1559", name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0001-c4af042cb1559",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0004-c4af042cb1559", name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
         'g1'        | 10.0       | -10.0      | 5.0        | 5.0        | 't1'       | 'AAAA'           | '1.0'           | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0005-c4af042cb1559", name: 'proc2', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(
+                        new ProcessGroupDTO(id:"c81f6810-0a55-1000-0003-c4af042cb1559",
                                 name: 'g2',
                                 position: new PositionDTO(x: 105, y: -10),
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0006-c4af042cb1559", name: 'proc3', config: new ProcessorConfigDTO(), position: new PositionDTO(x: 50, y: 60))]))])
     }
 
     def PositionDTO calculateMoveAndScalePosition(position, oldOriginX, oldOriginY, newOriginX, newOriginY, factorX, factorY) {

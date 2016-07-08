@@ -41,6 +41,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.TypeOneUUIDGenerator;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -216,11 +217,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     @Override
     public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, final boolean indicateReplicated) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
-        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
 
+        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, TypeOneUUIDGenerator.generateId().toString());
         if (indicateReplicated) {
             updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
         }
+
 
         // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
         // it knows that we are acting as a proxy on behalf of the current user.
