@@ -158,7 +158,7 @@ public class TestAbstractHeartbeatMonitor {
 
 
     private NodeHeartbeat createHeartbeat(final NodeIdentifier nodeId, final NodeConnectionState state) {
-        final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state);
+        final NodeConnectionStatus status = new NodeConnectionStatus(nodeId, state, Collections.emptySet());
         return new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(), status, Collections.emptySet(), 0, 0, 0, 0);
     }
 
@@ -184,7 +184,7 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public synchronized void requestNodeConnect(NodeIdentifier nodeId, String userDn) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING, Collections.emptySet()));
         }
 
         @Override
@@ -194,17 +194,17 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public synchronized void finishNodeConnection(NodeIdentifier nodeId) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, Collections.emptySet()));
         }
 
         @Override
         public synchronized void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, Collections.emptySet()));
         }
 
         @Override
         public synchronized void disconnectionRequestedByNode(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation) {
-            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED));
+            statuses.put(nodeId, new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, Collections.emptySet()));
         }
 
         @Override
@@ -286,6 +286,24 @@ public class TestAbstractHeartbeatMonitor {
 
         @Override
         public void setConnected(boolean connected) {
+        }
+
+        @Override
+        public NodeIdentifier getElectedActiveCoordinatorNode() {
+            return null;
+        }
+
+        @Override
+        public boolean isActiveClusterCoordinator() {
+            return false;
+        }
+
+        @Override
+        public void addRole(String clusterRole) {
+        }
+
+        @Override
+        public void removeRole(String clusterRole) {
         }
     }
 

@@ -167,6 +167,17 @@ public interface ClusterCoordinator {
     NodeIdentifier getPrimaryNode();
 
     /**
+     * @return the identifier of the node that is elected the active cluster coordinator, or <code>null</code> if
+     *         there is no active cluster coordinator elected.
+     */
+    NodeIdentifier getElectedActiveCoordinatorNode();
+
+    /**
+     * @return <code>true</code> if this node has been elected the active cluster coordinator, <code>false</code> otherwise.
+     */
+    boolean isActiveClusterCoordinator();
+
+    /**
      * Updates the Flow Service to use for obtaining the current flow
      *
      * @param flowService the flow service to use for obtaining the current flow
@@ -200,4 +211,18 @@ public interface ClusterCoordinator {
      * @return <code>true</code> if connected, <code>false</code> otherwise
      */
     boolean isConnected();
+
+    /**
+     * Notifies the cluster coordinator that this node has been granted the given role
+     *
+     * @param clusterRole the role that this node has been granted
+     */
+    void addRole(String clusterRole);
+
+    /**
+     * Notifies the cluster coordinator that this node is no longer responsible for the given role
+     *
+     * @param clusterRole the role that this node is no longer responsible for
+     */
+    void removeRole(String clusterRole);
 }

@@ -19,26 +19,26 @@ package org.apache.nifi.web.api.config;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 
+import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.web.concurrent.LockExpiredException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Provider
-public class LockExpiredExceptionMapper implements ExceptionMapper<LockExpiredException> {
-    private static final Logger logger = LoggerFactory.getLogger(InvalidRevisionExceptionMapper.class);
+public class NoClusterCoordinatorExceptionMapper implements ExceptionMapper<NoClusterCoordinatorException> {
+    private static final Logger logger = LoggerFactory.getLogger(NoConnectedNodesException.class);
 
     @Override
-    public Response toResponse(LockExpiredException exception) {
+    public Response toResponse(final NoClusterCoordinatorException ex) {
         // log the error
-        logger.warn(String.format("%s. Returning %s response.", exception, Response.Status.CONFLICT));
+        logger.info(String.format("Cluster failed processing request: %s. Returning %s response.", ex, Response.Status.SERVICE_UNAVAILABLE));
 
         if (logger.isDebugEnabled()) {
-            logger.debug(StringUtils.EMPTY, exception);
+            logger.debug(StringUtils.EMPTY, ex);
         }
 
-        return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();
+        return Response.status(Response.Status.SERVICE_UNAVAILABLE).entity(ex.getMessage()).type("text/plain").build();
     }
+
 }

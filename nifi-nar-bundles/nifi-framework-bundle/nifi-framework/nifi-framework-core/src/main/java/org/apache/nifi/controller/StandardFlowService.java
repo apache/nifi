@@ -83,6 +83,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -867,7 +868,9 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setClustered(true, response.getInstanceId(), response.getCoordinatorDN());
             controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.getManagerRemoteInputHttpPort(), response.isManagerRemoteCommsSecure());
 
-            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
+            final Set<String> roles = status == null ? Collections.emptySet() : status.getRoles();
+            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, roles));
 
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(autoResumeState);
