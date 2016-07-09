@@ -98,6 +98,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
         // Add this connector
         server.addConnector(https)
+        logger.info("Created server with supported protocols: ${supportedProtocols}")
 
         /** Create a simple Groovlet that responds to the incoming request by reversing the string parameter
          * i.e. localhost:8456/ReverseHandler.groovy?string=Happy%20birthday -> yadhtrib yppaH
@@ -162,14 +163,6 @@ class TestPostHTTPGroovy extends GroovyTestCase {
                 }
         ] as HostnameVerifier
 
-        SSLContext sc = SSLContext.getInstance(TLSv1_2)
-        sc.init(null, [nullTrustManager] as TrustManager[], null)
-        SocketFactory socketFactory = sc.getSocketFactory()
-        logger.info("JCE unlimited strength installed: ${Cipher.getMaxAllowedKeyLength("AES") > 128}")
-        logger.info("Supported client cipher suites: ${socketFactory.supportedCipherSuites}")
-        HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
-        HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier)
-
         // Configure the test runner
         runner = TestRunners.newTestRunner(PostHTTP.class)
         final SSLContextService sslContextService = new StandardSSLContextService()
@@ -191,7 +184,14 @@ class TestPostHTTPGroovy extends GroovyTestCase {
 
     @Before
     public void setUp() throws Exception {
-
+        // This must be executed before each test, or the connections will be re-used and if a TLSv1.1 connection is re-used against a server that only supports TLSv1.2, it will fail
+        SSLContext sc = SSLContext.getInstance(TLSv1_2)
+        sc.init(null, [nullTrustManager] as TrustManager[], null)
+        SocketFactory socketFactory = sc.getSocketFactory()
+        logger.info("JCE unlimited strength installed: ${Cipher.getMaxAllowedKeyLength("AES") > 128}")
+        logger.info("Supported client cipher suites: ${socketFactory.supportedCipherSuites}")
+        HttpsURLConnection.setDefaultSSLSocketFactory(socketFactory)
+        HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier)
     }
 
     @After
@@ -290,7 +290,7 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         // Act
         socket.startHandshake()
         String selectedProtocol = socket.getSession().protocol
-        logger.info("Selected protocol: ${ selectedProtocol}")
+        logger.info("Selected protocol: ${selectedProtocol}")
 
         // Assert
         assert selectedProtocol == TLSv1_2
@@ -308,11 +308,11 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
     }
 
-    // Add tests where SSLContextService only supports 1, 1.1, 1.2
-    // Add tests where SSLContextService supports all and server only supports 1, 1.1, 1.2
-
+    /**
+     * This test creates a server that supports TLSv1. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. All three context services should be able to communicate successfully.
+     */
     @Test
-    public void testPostHTTPShouldSupportTLSv1() {
+    public void testPostHTTPShouldConnectToServerWithTLSv1() {
         // Arrange
         final String MSG = "This is a test message"
 
@@ -323,65 +323,64 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         server.start()
 
         // Act
-        runner.enqueue(MSG.getBytes())
-        runner.run()
+        [TLSv1, TLSv1_1, TLSv1_2].each { String tlsVersion ->
+            logger.info("Set context service protocol to ${tlsVersion}")
+            enableContextServiceProtocol(runner, tlsVersion)
+            runner.enqueue(MSG.getBytes())
+            runner.run()
 
-        // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            // Assert
+            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.clearTransferState()
+            logger.info("Ran successfully")
+        }
     }
 
+    /**
+     * This test creates a server that supports TLSv1.1. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. The context service with TLSv1 should not be able to communicate with a server that does not support it, but TLSv1.1 and TLSv1.2 should be able to communicate successfully.
+     */
     @Test
-    public void testPostHTTPShouldSupportTLSv1_1() {
+    public void testPostHTTPShouldConnectToServerWithTLSv1_1() {
         // Arrange
         final String MSG = "This is a test message"
 
-        // Configure the test runner
-       enableContextServiceProtocol(runner, TLSv1_1)
-
-
-
-        runner.setProperty(PostHTTP.URL, url)
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
-//        runner.setProperty(PostHTTP.SEND_AS_FLOWFILE, "false")
-
         // Configure server with TLSv1.1 only
-        keystorePath = "src/test/resources/localhost-ks.jks"
-        keystorePassword = "localtest"
-        truststorePath = "src/test/resources/localhost-ts.jks"
-        truststorePassword = "localtest"
         server = createServer([TLSv1_1])
 
         // Start server
         server.start()
 
         // Act
+        logger.info("Set context service protocol to ${TLSv1}")
+        enableContextServiceProtocol(runner, TLSv1)
         runner.enqueue(MSG.getBytes())
         runner.run()
 
         // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+        runner.clearTransferState()
+        logger.expected("Unable to connect")
+
+        [TLSv1_1, TLSv1_2].each { String tlsVersion ->
+            logger.info("Set context service protocol to ${tlsVersion}")
+            enableContextServiceProtocol(runner, tlsVersion)
+            runner.enqueue(MSG.getBytes())
+            runner.run()
+
+            // Assert
+            runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+            runner.clearTransferState()
+            logger.info("Ran successfully")
+        }
     }
 
+    /**
+     * This test creates a server that supports TLSv1.2. It iterates over an {@link SSLContextService} with TLSv1, TLSv1.1, and TLSv1.2 support. The context services with TLSv1 and TLSv1.1 should not be able to communicate with a server that does not support it, but TLSv1.2 should be able to communicate successfully.
+     */
     @Test
-    public void testPostHTTPShouldSupportTLSv1_2() {
+    public void testPostHTTPShouldConnectToServerWithTLSv1_2() {
         // Arrange
         final String MSG = "This is a test message"
-        final String url = "${HTTPS_URL}/PostHandler.groovy"
-
-        // Configure the test runner
-        final SSLContextService sslContextService = new StandardSSLContextService()
-        runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
-        runner.enableControllerService(sslContextService)
-
-        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
-
-        runner.setProperty(PostHTTP.URL, url)
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
 
         // Configure server with TLSv1.2 only
         server = createServer([TLSv1_2])
@@ -390,71 +389,26 @@ class TestPostHTTPGroovy extends GroovyTestCase {
         server.start()
 
         // Act
-        runner.enqueue(MSG.getBytes())
-        runner.run()
+        [TLSv1, TLSv1_1].each { String tlsVersion ->
+            logger.info("Set context service protocol to ${tlsVersion}")
+            enableContextServiceProtocol(runner, tlsVersion)
+            runner.enqueue(MSG.getBytes())
+            runner.run()
 
-        // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
-    }
-
-    @Test
-    public void testPostHTTPShouldPreferTLSv1_2() {
-        // Arrange
-        final String MSG = "This is a test message"
-        final String url = "${HTTPS_URL}/PostHandler.groovy"
-
-        // Configure the test runner
-        final SSLContextService sslContextService = new StandardSSLContextService()
-        runner.addControllerService("ssl-context", sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, truststorePath)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, truststorePassword)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, KEYSTORE_TYPE)
-        runner.enableControllerService(sslContextService)
-
-        logger.info("PostHTTP supported cipher suites: ${sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE).supportedSSLParameters.cipherSuites}")
-
-        runner.setProperty(PostHTTP.URL, url)
-        runner.setProperty(PostHTTP.SSL_CONTEXT_SERVICE, "ssl-context")
-        runner.setProperty(PostHTTP.CHUNKED_ENCODING, "false")
-
-        // Configure server with all TLS protocols
-        keystorePath = "src/test/resources/localhost-ks.jks"
-        keystorePassword = "localtest"
-        truststorePath = "src/test/resources/localhost-ts.jks"
-        truststorePassword = "localtest"
-        server = createServer()
-
-        // Start server
-        server.start()
-
-        // Act
-        runner.enqueue(MSG.getBytes())
-        runner.run()
-
-        // Assert
-        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
-    }
-
-    @Ignore("Runs a server temporarily until stopped for testing with s_client")
-    @Test
-    public void runServer() {
-
-        keystorePath = "src/test/resources/localhost-ks.jks"
-        keystorePassword = "localtest"
-        truststorePath = "src/test/resources/localhost-ts.jks"
-        truststorePassword = "localtest"
-
-        // Configure server with TLSv1 only
-        server = createServer()
-
-        // Start server
-        server.start()
-
-        boolean exit = false
-
-        while (!exit) {
-            sleep(5000)
-            logger.info("Still running")
+            // Assert
+            runner.assertAllFlowFilesTransferred(PostHTTP.REL_FAILURE, 1)
+            runner.clearTransferState()
+            logger.expected("Unable to connect")
         }
+
+        logger.info("Set context service protocol to ${TLSv1_2}")
+        enableContextServiceProtocol(runner, TLSv1_2)
+        runner.enqueue(MSG.getBytes())
+        runner.run()
+
+        // Assert
+        runner.assertAllFlowFilesTransferred(PostHTTP.REL_SUCCESS, 1)
+        runner.clearTransferState()
+        logger.info("Ran successfully")
     }
 }
