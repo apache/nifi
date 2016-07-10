@@ -20,7 +20,9 @@
 
 	<artifactId>nifi-azure-processors</artifactId>
 	<packaging>jar</packaging>
-
+	<properties>
+		<powermock.version>1.6.5</powermock.version>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
@@ -35,11 +37,10 @@
 			<artifactId>javax.jms-api</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.eventhubs.client</groupId>
-			<artifactId>eventhubs-client</artifactId>
-			<version>0.9.1</version>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>azure-eventhubs</artifactId>
+			<version>0.7.1</version>
 		</dependency>
-
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-mock</artifactId>
@@ -53,6 +54,12 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.powermock</groupId>
+			<artifactId>powermock-module-junit4</artifactId>
+			<version>${powermock.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
