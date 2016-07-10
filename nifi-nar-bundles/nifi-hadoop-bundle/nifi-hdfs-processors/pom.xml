@@ -42,19 +42,14 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
         </dependency>
-        <dependency> 
-            <groupId>org.apache.hadoop</groupId> 
-            <artifactId>hadoop-common</artifactId> 
-            <scope>provided</scope> 
-        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.hadoop</groupId> 
-            <artifactId>hadoop-hdfs</artifactId> 
-            <scope>provided</scope> 
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -69,5 +64,33 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
         </dependency>
+        <!--
+            changes made to support Azure HDInsight wasb file storage
+            updated hadoop-common to use version 2.7.2
+            added hadoop-azure
+        -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.7.2</version>
+
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure</artifactId>
+            <version>2.7.2</version>
+        </dependency>
+
+
     </dependencies>
 </project>
