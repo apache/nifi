@@ -15,19 +15,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>17</version>
-        <relativePath/>
+        <relativePath />
     </parent>
 
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi - MiNiFi is a child project effort to aid in the collection and transmission of data close to where it is created.</description>
 
@@ -82,7 +81,8 @@ limitations under the License.
         <connection>scm:git:git://git.apache.org/nifi-minifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi-minifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi-minifi.git</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
     <issueManagement>
         <system>JIRA</system>
         <url>https://issues.apache.org/jira/browse/MINIFI</url>
@@ -122,54 +122,54 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-bootstrap</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-nar-utils</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-utils</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-api</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-nar</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-framework-core</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-resources</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-repository-nar</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-provenance-reporting-nar</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
@@ -177,29 +177,29 @@ limitations under the License.
                 <artifactId>minifi-resources</artifactId>
                 <classifier>resources</classifier>
                 <type>zip</type>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-runtime</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-standard-nar</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-update-attribute-nar</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-docs</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.1.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -638,78 +638,78 @@ limitations under the License.
                 <configuration>
                     <checkstyleRules>
                         <module name="Checker">
-                            <property name="charset" value="UTF-8"/>
-                            <property name="severity" value="warning"/>
+                            <property name="charset" value="UTF-8" />
+                            <property name="severity" value="warning" />
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
-                                <property name="eachLine" value="true"/>
+                                <property name="eachLine" value="true" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="\s+$"/>
-                                    <property name="message" value="Line has trailing whitespace."/>
+                                    <property name="format" value="\s+$" />
+                                    <property name="message" value="Line has trailing whitespace." />
                                 </module>
                                 <module name="RegexpSinglelineJava">
-                                    <property name="format" value="[@]see\s+[{][@]link"/>
-                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other."/>
+                                    <property name="format" value="[@]see\s+[{][@]link" />
+                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
-                                <module name="OuterTypeFilename"/>
+                                <module name="OuterTypeFilename" />
                                 <module name="LineLength">
                                     <!-- needs extra, because Eclipse formatter ignores the ending left
                                     brace -->
-                                    <property name="max" value="200"/>
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+                                    <property name="max" value="200" />
+                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                                 </module>
-                                <module name="AvoidStarImport"/>
+                                <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
-                                    <property name="processJavadoc" value="true"/>
+                                    <property name="processJavadoc" value="true" />
                                 </module>
-                                <module name="NoLineWrap"/>
+                                <module name="NoLineWrap" />
                                 <module name="LeftCurly">
-                                    <property name="maxLineLength" value="160"/>
+                                    <property name="maxLineLength" value="160" />
                                 </module>
-                                <module name="RightCurly"/>
+                                <module name="RightCurly" />
                                 <module name="RightCurly">
-                                    <property name="option" value="alone"/>
-                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT"/>
+                                    <property name="option" value="alone" />
+                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="DOT"/>
-                                    <property name="option" value="nl"/>
+                                    <property name="tokens" value="DOT" />
+                                    <property name="option" value="nl" />
                                 </module>
                                 <module name="SeparatorWrap">
-                                    <property name="tokens" value="COMMA"/>
-                                    <property name="option" value="EOL"/>
+                                    <property name="tokens" value="COMMA" />
+                                    <property name="option" value="EOL" />
                                 </module>
                                 <module name="PackageName">
-                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$"/>
+                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
                                 </module>
                                 <module name="MethodTypeParameterName">
-                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
+                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                                 </module>
-                                <module name="MethodParamPad"/>
+                                <module name="MethodParamPad" />
                                 <module name="OperatorWrap">
-                                    <property name="option" value="NL"/>
-                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR "/>
+                                    <property name="option" value="NL" />
+                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF"/>
+                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
                                 </module>
                                 <module name="AnnotationLocation">
-                                    <property name="tokens" value="VARIABLE_DEF"/>
-                                    <property name="allowSamelineMultipleAnnotations" value="true"/>
+                                    <property name="tokens" value="VARIABLE_DEF" />
+                                    <property name="allowSamelineMultipleAnnotations" value="true" />
                                 </module>
-                                <module name="NonEmptyAtclauseDescription"/>
+                                <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowMissingJavadoc" value="true"/>
-                                    <property name="allowMissingParamTags" value="true"/>
-                                    <property name="allowMissingThrowsTags" value="true"/>
-                                    <property name="allowMissingReturnTag" value="true"/>
-                                    <property name="allowedAnnotations" value="Override,org.apache.nifi.minifi.Test,BeforeClass,AfterClass,Before,After"/>
-                                    <property name="allowThrowsTagsForSubclasses" value="true"/>
+                                    <property name="allowMissingJavadoc" value="true" />
+                                    <property name="allowMissingParamTags" value="true" />
+                                    <property name="allowMissingThrowsTags" value="true" />
+                                    <property name="allowMissingReturnTag" value="true" />
+                                    <property name="allowedAnnotations" value="Override,org.apache.nifi.minifi.Test,BeforeClass,AfterClass,Before,After" />
+                                    <property name="allowThrowsTagsForSubclasses" value="true" />
                                 </module>
-                                <module name="SingleLineJavadoc"/>
+                                <module name="SingleLineJavadoc" />
                             </module>
                         </module>
                     </checkstyleRules>
