@@ -33,44 +33,7 @@
 }
 
 #fill-color-processor-preview {
-    width: 173px;
-    height: 56px;
-    font-weight: bold;
-    border-width: 1px;
-    border-style: solid;
-}
-
-#fill-color-processor-preview-name {
-    margin-left: 5px;
-    margin-top: 5px;
-    float: left;
-}
-
-#fill-color-processor-preview-icon {
-    margin-top: 5px;
-    margin-right: 5px;
-    float: right;
-    background-image: url(../images/iconSmallProcessor.png);
-    width: 14px;
-    height: 14px;
-}
-
-#fill-color-processor-preview-stats {
-    margin-top: 1px;
-    margin-left: 5px;
-    float: left;
-    border: 1px solid #6f97ac;
-    background-color: #ffffff;
-    height: 30px;
-    width: 161px;
-}
-
-#fill-color-processor-preview-stats-label {
-    float: left;
-    background: linear-gradient(to bottom, #30505c, #6f97ac);
-    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#30505c, endColorstr=#6f97ac);
-    height: 30px;
-    width: 30px;
+    font-size: 64px;
 }
 
 #fill-color-label-preview {
