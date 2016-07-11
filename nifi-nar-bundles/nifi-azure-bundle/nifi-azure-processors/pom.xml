@@ -33,10 +33,6 @@
 			<artifactId>nifi-processor-utils</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>javax.jms</groupId>
-			<artifactId>javax.jms-api</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>azure-eventhubs</artifactId>
 			<version>0.7.1</version>
