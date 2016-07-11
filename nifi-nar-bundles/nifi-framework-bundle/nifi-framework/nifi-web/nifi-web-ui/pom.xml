@@ -434,6 +434,10 @@
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-config.js</include>
+                                                <include>${staging.dir}/js/nf/nf-ng-app-controller.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-table.js</include>
                                                 <include>${staging.dir}/js/nf/provenance/nf-provenance-lineage.js</include>

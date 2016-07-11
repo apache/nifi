@@ -462,7 +462,7 @@ nf.ProvenanceTable = (function () {
      */
     var initProvenanceQueryDialog = function () {
         // initialize the progress bar
-        $('#provenance-percent-complete').progressbar();
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Searching Provenance Events"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo($('#provenance-percent-complete'));
 
         // initialize the dialog
         $('#provenance-query-dialog').modal({
@@ -476,7 +476,8 @@ nf.ProvenanceTable = (function () {
 
                     // update the progress bar
                     var label = $('<div class="progress-label"></div>').text('0%');
-                    provenanceProgressBar.progressbar('value', 0).append(label);
+                    provenanceProgressBar.find('md-progress-linear').attr('value', 0);
+                    provenanceProgressBar.append(label);
                 }
             }
         });
@@ -1091,10 +1092,9 @@ nf.ProvenanceTable = (function () {
 
             // update the progress bar
             var label = $('<div class="progress-label"></div>').text(value + '%');
-            if (value > 0) {
-                label.css('margin-top', '-19px');
-            }
-            progressBar.progressbar('value', value).append(label);
+            progressBar.find('md-progress-linear').attr('value', value);
+            (nf.ng.Bridge.injector.get('$compile')(progressBar)(nf.ng.Bridge.rootScope));
+            progressBar.append(label);
         },
 
         /**

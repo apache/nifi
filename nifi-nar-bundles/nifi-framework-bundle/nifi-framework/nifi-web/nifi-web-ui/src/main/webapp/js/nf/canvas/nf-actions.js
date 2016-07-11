@@ -31,7 +31,8 @@ nf.Actions = (function () {
      */
     var initializeDropRequestStatusDialog = function () {
         // initialize the drop requst progress bar
-        var dropRequestProgressBar = $('#drop-request-percent-complete').progressbar();
+        var dropRequestProgressBar = $('#drop-request-percent-complete');
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Dropping Request"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(dropRequestProgressBar);
 
         // configure the drop request status dialog
         $('#drop-request-status-dialog').modal({
@@ -43,6 +44,7 @@ nf.Actions = (function () {
 
                     // update the progress bar
                     var label = $('<div class="progress-label"></div>').text('0%');
+                    dropRequestProgressBar.find('md-progress-linear').attr('value', 0);
                     dropRequestProgressBar.progressbar('value', 0).append(label);
 
                     // clear the current button model
@@ -921,10 +923,9 @@ nf.Actions = (function () {
 
                         // update the progress bar
                         var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                        if (percentComplete > 0) {
-                            label.css('margin-top', '-19px');
-                        }
-                        progressBar.progressbar('value', percentComplete).append(label);
+                        progressBar.find('md-progress-linear').attr('value', percentComplete);
+                        (nf.ng.Bridge.injector.get('$compile')(progressBar)(nf.ng.Bridge.rootScope));
+                        progressBar.append(label);
                     };
 
                     // update the button model of the drop request status dialog

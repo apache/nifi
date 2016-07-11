@@ -18,6 +18,26 @@
 /* global nf, top */
 
 $(document).ready(function () {
+    //Create Angular App
+    var app = angular.module('ngProvenanceApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
+    nf.ng.ServiceProvider.$inject = [];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngProvenanceAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('serviceProvider', nf.ng.ServiceProvider);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], { strictDi: true });
+
     // initialize the status page
     nf.Provenance.init();
 });

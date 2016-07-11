@@ -35,7 +35,7 @@ nf.ProvenanceLineage = (function () {
      */
     var initLineageQueryDialog = function () {
         // initialize the progress bar
-        $('#lineage-percent-complete').progressbar();
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Dropping Request"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo($('#lineage-percent-complete'));
 
         // initialize the dialog
         $('#lineage-query-dialog').modal({
@@ -49,6 +49,7 @@ nf.ProvenanceLineage = (function () {
 
                     // update the progress bar
                     var label = $('<div class="progress-label"></div>').text('0%');
+                    lineageProgressBar.find('md-progress-linear').attr('value', 0);
                     lineageProgressBar.progressbar('value', 0).append(label);
                 }
             }

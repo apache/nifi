@@ -2287,7 +2287,7 @@ nf.SummaryTable = (function () {
         }
         storage.appendTo(storageUsageContainer);
 
-        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" md-mode="determinate" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
 
         var usageDetails = $('<div class="storage-usage-details"></div>').text(' (' + storageUsage.usedSpace + ' of ' + storageUsage.totalSpace + ')').prepend($('<b></b>').text(Math.round((used/total)*100) + '%'));
         $('<div class="storage-usage-header"></div>').append(usageDetails).append('<div class="clear"></div>').appendTo(storageUsageContainer);

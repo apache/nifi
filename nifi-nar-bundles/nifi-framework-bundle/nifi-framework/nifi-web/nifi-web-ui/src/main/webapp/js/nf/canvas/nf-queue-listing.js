@@ -37,7 +37,8 @@ nf.QueueListing = (function () {
      */
     var initializeListingRequestStatusDialog = function () {
         // initialize the listing request progress bar
-        var listingRequestProgressBar = $('#listing-request-percent-complete').progressbar();
+        var listingRequestProgressBar = $('#listing-request-percent-complete');
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Searching Queue"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(listingRequestProgressBar);
 
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
@@ -50,7 +51,8 @@ nf.QueueListing = (function () {
 
                     // update the progress bar
                     var label = $('<div class="progress-label"></div>').text('0%');
-                    listingRequestProgressBar.progressbar('value', 0).append(label);
+                    listingRequestProgressBar.find('md-progress-linear').attr('value', 0);
+                    listingRequestProgressBar.append(label);
 
                     // clear the current button model
                     $('#listing-request-status-dialog').modal('setButtonModel', []);
@@ -251,10 +253,9 @@ nf.QueueListing = (function () {
 
                 // update the progress bar
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                if (percentComplete > 0) {
-                    label.css('margin-top', '-24px');
-                }
-                progressBar.progressbar('value', percentComplete).append(label);
+                progressBar.find('md-progress-linear').attr('value', percentComplete);
+                (nf.ng.Bridge.injector.get('$compile')(progressBar)(nf.ng.Bridge.rootScope));
+                progressBar.append(label);
             };
 
             // update the button model of the drop request status dialog
