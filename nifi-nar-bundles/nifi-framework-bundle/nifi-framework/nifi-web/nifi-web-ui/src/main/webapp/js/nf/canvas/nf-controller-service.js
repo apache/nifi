@@ -275,9 +275,11 @@ nf.ControllerService = (function () {
                 if (bulletinIcon.data('qtip')) {
                     bulletinIcon.qtip('option', 'content.text', list);
                 } else {
-                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
                 }
             } else if (bulletinIcon.data('qtip')) {
                 bulletinIcon.removeClass('has-bulletins').removeData('bulletins').hide().qtip('api').destroy(true);
@@ -304,9 +306,11 @@ nf.ControllerService = (function () {
                 if (icon.data('qtip')) {
                     icon.qtip('option', 'content.text', list);
                 } else {
-                    icon.qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    icon.qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
                 }
             } else if (icon.data('qtip')) {
                 icon.qtip('api').destroy(true);
@@ -334,9 +338,11 @@ nf.ControllerService = (function () {
                 if (icon.data('qtip')) {
                     icon.qtip('option', 'content.text', list);
                 } else {
-                    icon.qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    icon.qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig, 
+                        {
+                            content: list
+                        }));
                 }
             } else if (icon.data('qtip')) {
                 icon.qtip('api').destroy(true);
