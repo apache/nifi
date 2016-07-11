@@ -285,10 +285,10 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                             bulletinIcon.qtip('option', 'content.text', newBulletins);
                         } else {
                             // no bulletins before, show icon and tips
-                            bulletinIcon.addClass('has-bulletins').qtip($.extend({
-                                content: newBulletins
-                            }, nf.CanvasUtils.config.systemTooltipConfig, {
+                            bulletinIcon.addClass('has-bulletins').qtip($.extend({},
+                                nf.CanvasUtils.config.systemTooltipConfig, {
                                 position: {
+                                    content: newBulletins,
                                     at: 'bottom left',
                                     my: 'top right',
                                     adjust: {
