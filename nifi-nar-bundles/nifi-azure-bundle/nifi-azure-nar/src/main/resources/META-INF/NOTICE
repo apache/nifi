@@ -4,31 +4,20 @@ Copyright 2015-2016 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
-******************
-Apache Software License v2
-******************
-
-The following binary components are provided under the Apache Software License v2
-
-  (ASLv2) Apache Commons Lang
-    The following NOTICE information applies:
-      Apache Commons Lang
-      Copyright 2001-2014 The Apache Software Foundation
-
-      This product includes software from the Spring Framework,
-      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
-
-  (ASLv2) Apache Qpid AMQP 1.0 Client
-    The following NOTICE information applies:
-      Copyright 2006-2015 The Apache Software Foundation
-
-  (ASLv2) EventHubs Client (com.microsoft.eventhubs.client:eventhubs-client:0.9.1 - https://github.com/hdinsight/eventhubs-client/)
-
 
 ************************
-Common Development and Distribution License 1.1
+MIT License
 ************************
+The following binary components are provided under the MIT License
 
-The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+    (MIT) Microsoft Azure IoT Device Libraries (com.microsoft.azure:azure-eventhubs:0.7.1 -- https://github.com/Azure/azure-event-hubs/)
+        This product includes software developed by Apache
+            Apache Qpid Proton 0.13.0
+            (Apache 2.0 license)
+                The following NOTICE information applies:
+                Copyright 2006-2015 The Apache Software Foundation
 
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
+        The product includes software developed by The Legion of the Bouncy Castle Inc. License (https://www.bouncycastle.org/licence.html)
+            (Bouncy Castle) Crytography library BCPKIX  (org.bouncycastle:bcpkix-jdk15on:1.47 -- https://www.bouncycastle.org/java.html)
+                The following NOTICE information applies:
+                Copyright (c) 2000 - 2016 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
