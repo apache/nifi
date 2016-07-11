@@ -173,12 +173,6 @@ div.searchable-field-value {
     display: none;
 }
 
-#provenance-search-location {
-    height: 18px;
-    line-height: 18px;
-    width: 424px;
-}
-
 /* event details dialog */
 
 div.flowfile-container {
