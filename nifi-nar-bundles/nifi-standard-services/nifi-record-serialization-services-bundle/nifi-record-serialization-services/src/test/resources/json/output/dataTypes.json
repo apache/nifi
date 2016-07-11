@@ -1,0 +1,18 @@
+[ {
+  "string" : "string",
+  "boolean" : true,
+  "byte" : 1,
+  "char" : "c",
+  "short" : 8,
+  "int" : 9,
+  "bigint" : 8,
+  "long" : 8,
+  "float" : 8.0,
+  "double" : 8.0,
+  "date" : "2017-01-01",
+  "time" : "17:00:00",
+  "timestamp" : "2017-01-01 17:00:00",
+  "record" : null,
+  "choice" : 48,
+  "array" : null
+} ]

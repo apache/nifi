@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8"/>
+        <title>CSVReader</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css"/>
+    </head>
+
+    <body>
+        <p>
+        	The CSVReader Controller Service, expects input in such a way that the first line of a FlowFile specifies the name of
+        	each column in the data. Following the first line, the rest of the FlowFile is expected to be valid CSV data from which
+        	to form appropriate Records. By default, the schema for a FlowFile is inferred by extracting the name of each column from
+        	the first line of the CSV and assumes that all columns are of type <code>string</code>. Of course, we may want to treat some
+        	columns as a data type other than <code>string</code>. This can be accomplished by adding a user-defined property where the
+        	name of the property is the same as the name of a CSV column and the value of the property is the data type to use.
+        </p>
+        
+        <p>
+        	When specifying a data type for a field, the following values are valid:
+        </p>
+        
+        <ul>
+        	<li><b>string</b></li>
+        	<li><b>boolean</b></li>
+        	<li><b>byte</b></li>
+        	<li><b>char</b></li>
+        	<li><b>short</b></li>
+        	<li><b>int</b></li>
+        	<li><b>bigint</b></li>
+        	<li><b>long</b></li>
+        	<li><b>float</b></li>
+        	<li><b>double</b></li>
+        	<li><b>date</b> - A date with no time field. By default, the format used is <code>yyyy-MM-dd</code>. This can be overridden
+        		by adding a colon (:) followed by the desired format. For example: <code>date:MM/dd/yyyy</code>. The format to use is
+        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
+        		SimpleDateFormat Patterns</a> for more information).
+        	</li>
+        	<li><b>time</b> - A time with no date field. By default, the format used is <code>HH:mm:ss</code>. This can be overridden
+        		by adding a colon (:) followed by the desired format. For example: <code>time:hh:mm:ss a</code>. The format to use is
+        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
+        		SimpleDateFormat Patterns</a> for more information).
+        	</li>
+        	<li><b>timestamp</b> - A field that represents both a date and time. By default, the format used is
+        		<code>yyyy-MM-dd HH:mm:ss</code>. This can be overridden by adding a colon (:) followed by the desired format. For example:
+        		<code>MM/dd/yyyy hh:mm:ss a</code>. The format to use is
+        		that of Java's SimpleDateFormat (see <a href="http://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html">
+        		SimpleDateFormat Patterns</a> for more information).</li>
+        	<li><b>object</b> - <i>This data type does not apply to CSV data.</i></li>
+        	<li><b>array</b> - <i>This data type does not apply to CSV data.</i></li>
+        </ul>
+        
+        <p>
+        	As an example, consider a FlowFile whose contents consists of the following:
+        </p>
+        
+        <code>
+        	id, name, balance, notes<br />
+        	1, John, 48.23, "Our very<br />
+first customer!"<br />
+        	2, Jane, 1245.89,<br />
+        	3, Frank Franklin, "48481.29",<br />
+        </code>
+        
+        <p>
+        	Additionally, let's consider that this Controller Service is configured with the following user-defined properties:
+        </p>
+        
+		<table>
+    		<head>
+    			<th>Property Name</th>
+    			<th>Property Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>balance</td>
+    				<td><code>float</code></td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+    	<p>
+    		In this case, the result will be that this FlowFile consists of 3 different records. The first record will contain the following values:
+    	</p>
+
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>1</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>John</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>48.23</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td>Our very<br />first customer!</td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+    	<p>
+    		The second record will contain the following values:
+    	</p>
+    	
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>2</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>Jane</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>1245.89</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td></td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+		<p>
+			The third record will contain the following values:
+		</p>    	
+    	
+		<table>
+    		<head>
+    			<th>Field Name</th>
+    			<th>Field Value</th>
+    		</head>
+    		<body>
+    			<tr>
+    				<td>id</td>
+    				<td>3</td>
+    			</tr>
+    			<tr>
+    				<td>name</td>
+    				<td>Frank Franklin</td>
+    			</tr>
+    			<tr>
+    				<td>balance</td>
+    				<td>48481.29</td>
+    			</tr>
+    			<tr>
+    				<td>notes</td>
+    				<td></td>
+    			</tr>
+    		</body>
+    	</table>
+    	
+    	
+    </body>
+</html>

@@ -56,5 +56,10 @@
             <artifactId>nifi-hbase-client-service-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>
