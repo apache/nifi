@@ -61,13 +61,6 @@
     padding-top: 10px;
 }
 
-div.status-text {
-    padding-left: 4px;
-    line-height: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 /* view options */
 
 #view-options-container {
