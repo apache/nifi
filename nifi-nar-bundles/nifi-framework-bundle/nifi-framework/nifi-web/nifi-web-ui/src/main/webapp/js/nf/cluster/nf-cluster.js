@@ -20,12 +20,6 @@
 $(document).ready(function () {
     // initialize the counters page
     nf.Cluster.init();
-
-    //alter styles if we're not in the shell
-    if (top === window) {
-        $('#cluster').css('margin', 40);
-        $('#cluster-refresh-container').css('margin', 40);
-    }
 });
 
 nf.Cluster = (function () {
@@ -129,8 +123,22 @@ nf.Cluster = (function () {
                 nf.ClusterTable.loadClusterTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeClusterPage().done(function () {
-                        // configure the initial grid height
-                        nf.ClusterTable.resetTableSize();
+                        var setBodySize = function () {
+                            //alter styles if we're not in the shell
+                            if (top === window) {
+                                $('body').css({
+                                    'height': $(window).height() + 'px',
+                                    'width': $(window).width() + 'px'
+                                });
+
+                                $('#cluster').css('margin', 40);
+                                $('#cluster-table').css('bottom', 127);
+                                $('#cluster-refresh-container').css('margin', 40);
+                            }
+
+                            // configure the initial grid height
+                            nf.ClusterTable.resetTableSize();
+                        };
 
                         // get the about details
                         $.ajax({
@@ -145,6 +153,41 @@ nf.Cluster = (function () {
                             document.title = countersTitle;
                             $('#counters-header-text').text(countersTitle);
                         }).fail(nf.Common.handleAjaxError);
+
+                        $(window).on('resize', function (e) {
+                            setBodySize();
+                            // resize dialogs when appropriate
+                            var dialogs = $('.dialog');
+                            for (var i = 0, len = dialogs.length; i < len; i++) {
+                                if ($(dialogs[i]).is(':visible')){
+                                    setTimeout(function(dialog){
+                                        dialog.modal('resize');
+                                    }, 50, $(dialogs[i]));
+                                }
+                            }
+
+                            // resize grids when appropriate
+                            var gridElements = $('*[class*="slickgrid_"]');
+                            for (var j = 0, len = gridElements.length; j < len; j++) {
+                                if ($(gridElements[j]).is(':visible')){
+                                    setTimeout(function(gridElement){
+                                        gridElement.data('gridInstance').resizeCanvas();
+                                    }, 50, $(gridElements[j]));
+                                }
+                            }
+
+                            // toggle tabs .scrollable when appropriate
+                            var tabsContainers = $('.tab-container');
+                            var tabsContents = [];
+                            for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                                if ($(tabsContainers[k]).is(':visible')){
+                                    tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                                }
+                            }
+                            $.each(tabsContents, function (index, tabsContent) {
+                                nf.Common.toggleScrollable(tabsContent.get(0));
+                            });
+                        });
                     });
                 });
             });
