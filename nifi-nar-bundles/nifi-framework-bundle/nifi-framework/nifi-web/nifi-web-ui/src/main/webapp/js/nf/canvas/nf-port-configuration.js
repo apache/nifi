@@ -96,7 +96,7 @@ nf.PortConfiguration = (function () {
 
                                 nf.Dialog.showOkDialog({
                                     dialogContent: content,
-                                    headerText: 'Configuration Error'
+                                    headerText: 'Port Configuration'
                                 });
                             } else {
                                 // close the details panel

@@ -546,8 +546,8 @@ nf.ControllerServices = (function () {
             }
 
             // format the markup
-            var formattedValue = '<div class="' + icon + '" style="margin-top: 5px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 2px; margin-left: 4px; float: left;">' + label + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + icon + '" style="margin-top: 5px;"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + label + '</div></div>';
         };
 
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {

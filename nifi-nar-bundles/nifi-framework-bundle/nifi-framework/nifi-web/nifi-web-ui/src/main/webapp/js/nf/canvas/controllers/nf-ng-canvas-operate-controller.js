@@ -385,7 +385,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 $('#fill-color-value').val(hex);
 
                                 // always update the preview
-                                $('#fill-color-processor-preview, #fill-color-label-preview').css({
+                                $('#fill-color-processor-preview').css('color', hex);
+                                $('#fill-color-label-preview').css({
                                     'border-color': hex,
                                     'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
                                     'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'

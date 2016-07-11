@@ -36,22 +36,12 @@ nf.QueueListing = (function () {
      * Initializes the listing request status dialog.
      */
     var initializeListingRequestStatusDialog = function () {
-        // initialize the listing request progress bar
-        var listingRequestProgressBar = $('#listing-request-percent-complete').progressbar();
-
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
             scrollableContentStyle: 'scrollable',
             headerText: 'Queue Listing',
             handler: {
                 close: function () {
-                    // reset the progress bar
-                    listingRequestProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    listingRequestProgressBar.progressbar('value', 0).append(label);
-
                     // clear the current button model
                     $('#listing-request-status-dialog').modal('setButtonModel', []);
                 }
@@ -248,13 +238,12 @@ nf.QueueListing = (function () {
                 // remove existing labels
                 var progressBar = $('#listing-request-percent-complete');
                 progressBar.find('div.progress-label').remove();
+                progressBar.find('md-progress-linear').remove();
 
-                // update the progress bar
+                // update the progress
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                if (percentComplete > 0) {
-                    label.css('margin-top', '-24px');
-                }
-                progressBar.progressbar('value', percentComplete).append(label);
+                (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+                progressBar.append(label);
             };
 
             // update the button model of the drop request status dialog

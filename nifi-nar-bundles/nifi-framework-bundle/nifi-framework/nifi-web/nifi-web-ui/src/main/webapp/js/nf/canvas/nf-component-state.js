@@ -270,6 +270,7 @@ nf.ComponentState = (function () {
                         }).fail(nf.Common.handleAjaxError);
                     } else {
                         nf.Dialog.showOkDialog({
+                            headerText: 'Component State',
                             dialogContent: 'This component has no state to clear.'
                         });
                     }

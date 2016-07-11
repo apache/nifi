@@ -78,6 +78,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
                                     }
@@ -106,6 +107,7 @@ nf.ConnectionConfiguration = (function () {
                     } else {
                         // there are no relationships for this processor
                         nf.Dialog.showOkDialog({
+                            headerText: 'Connection Configuration',
                             dialogContent: '\'' + nf.Common.escapeHtml(processor.name) + '\' does not support any relationships.'
                         });
 
@@ -320,6 +322,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no output ports for this process group
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any output ports.'
                     });
 
@@ -398,6 +401,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any output ports.'
                     });
 
@@ -545,6 +549,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any input ports.'
                     });
 
@@ -622,6 +627,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any input ports.'
                     });
 
@@ -987,6 +993,7 @@ nf.ConnectionConfiguration = (function () {
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     });
                 } else {
@@ -1043,8 +1050,8 @@ nf.ConnectionConfiguration = (function () {
 
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
-                dialogContent: nf.Common.formatUnorderedList(errors),
-                headerText: 'Configuration Error'
+                headerText: 'Connection Configuration',
+                dialogContent: nf.Common.formatUnorderedList(errors)
             });
             return false;
         } else {
@@ -1354,6 +1361,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected and the source is a processor
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
 

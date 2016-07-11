@@ -80,6 +80,7 @@ nf.ProcessGroupConfiguration = (function () {
 
             // show the result dialog
             nf.Dialog.showOkDialog({
+                headerText: 'Process Group Configuration',
                 dialogContent: 'Process group configuration successfully saved.'
             });
 

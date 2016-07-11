@@ -596,7 +596,7 @@ nf.Settings = (function () {
             var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle" style="margin-top: 5px; float: left;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 3px; margin-top: 5px;"></div>';
+            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 6px; margin-top: 5px; float: left;"></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
@@ -622,16 +622,20 @@ nf.Settings = (function () {
             }
 
             // determine the appropriate label
-            var label;
+            var icon = '', label = '';
             if (!nf.Common.isEmpty(dataContext.component.validationErrors)) {
                 label = 'Invalid';
+                icon = 'invalid fa fa-warning';
             } else {
                 if (dataContext.component.state === 'STOPPED') {
                     label = 'Stopped';
+                    icon = 'fa fa-stop';
                 } else if (dataContext.component.state === 'RUNNING') {
                     label = 'Running';
+                    icon = 'fa fa-play';
                 } else {
                     label = 'Disabled';
+                    icon = 'icon icon-enable-false';
                 }
             }
 
@@ -642,8 +646,8 @@ nf.Settings = (function () {
             }
 
             // format the markup
-            var formattedValue = '<div class="' + nf.Common.escapeHtml(label.toLowerCase()) + '" style="margin-top: 3px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 2px; margin-left: 4px; float: left;">' + nf.Common.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + icon + '" style="margin-top: 3px;"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {

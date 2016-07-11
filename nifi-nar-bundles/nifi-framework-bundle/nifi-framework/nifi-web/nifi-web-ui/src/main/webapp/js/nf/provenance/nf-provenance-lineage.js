@@ -34,24 +34,10 @@ nf.ProvenanceLineage = (function () {
      * Initializes the lineage query dialog.
      */
     var initLineageQueryDialog = function () {
-        // initialize the progress bar
-        $('#lineage-percent-complete').progressbar();
-
         // initialize the dialog
         $('#lineage-query-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Computing FlowFile lineage...',
-            handler: {
-                close: function () {
-                    // reset the progress bar
-                    var lineageProgressBar = $('#lineage-percent-complete');
-                    lineageProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    lineageProgressBar.progressbar('value', 0).append(label);
-                }
-            }
+            headerText: 'Computing FlowFile lineage...'
         });
     };
 

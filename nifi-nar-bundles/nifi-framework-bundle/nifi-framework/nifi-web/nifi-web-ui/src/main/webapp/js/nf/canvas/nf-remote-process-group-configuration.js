@@ -79,7 +79,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
 
                                     nf.Dialog.showOkDialog({
                                         dialogContent: content,
-                                        headerText: 'Configuration'
+                                        headerText: 'Remote Process Group Configuration'
                                     });
                                 } else {
                                     nf.Common.handleAjaxError(xhr, status, error);

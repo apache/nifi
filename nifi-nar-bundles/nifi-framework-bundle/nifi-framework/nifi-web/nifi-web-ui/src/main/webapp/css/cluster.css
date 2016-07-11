@@ -22,10 +22,13 @@
     position: absolute;
     top: 0px;
     bottom: 0px;
-    left: 0px;
-    right: 0px;
-    height: 90%;
+    left: 20px;
+    right: 20px;
     overflow: auto;
+}
+
+#cluster-header-and-filter {
+    height: 98px;
 }
 
 #cluster-header-text {
@@ -40,6 +43,7 @@
     position: absolute;
     width: 100%;
     bottom: 0px;
+    left: 20px;
 }
 
 #cluster-loading-container {
@@ -59,44 +63,14 @@
     padding-top: 10px;
 }
 
-#refresh-button {
-    height: 24px;
-    width: 26px;
-    float: left;
-}
-
-/* filter controls */
-
-#cluster-filter-controls {
-    float: right;
-}
-
-#cluster-filter-container {
-    height: 32px;
-    width: 318px;
-}
-
-#cluster-filter {
-    width: 173px;
-    margin-right: 3px;
-    float: left;
-}
-
-input.cluster-filter-list {
-    color: #888;
-}
-
-#cluster-filter-type {
-    width: 120px;
-    float: left;
-}
-
 /* counters table */
 
 #cluster-table {
-    overflow: hidden;
-    height: 80%;
-    width: 100%;
+    position: absolute;
+    top: 98px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
     min-height: 150px;
 }
 

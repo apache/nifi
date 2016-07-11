@@ -157,3 +157,11 @@ classes should alter those!
     border-bottom: 1px solid #c7d2d7;
     padding: 0px 2px 6px 10px;
 }
+
+div.status-text {
+    padding-left: 4px;
+    line-height: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    float: left;
+}
