@@ -239,7 +239,7 @@ public class NodeResponse {
 
         // if no client response was created, then generate a 500 response
         if (hasThrowable()) {
-            return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+            return Response.status(Status.INTERNAL_SERVER_ERROR).entity(getThrowable().toString()).build();
         }
 
         // set the status

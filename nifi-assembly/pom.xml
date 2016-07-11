@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor
-license agreements. See the NOTICE file distributed with this work for additional
-information regarding copyright ownership. The ASF licenses this file to
-You under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of
-the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required
-by applicable law or agreed to in writing, software distributed under the
-License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
-OF ANY KIND, either express or implied. See the License for the specific
-language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+    license agreements. See the NOTICE file distributed with this work for additional 
+    information regarding copyright ownership. The ASF licenses this file to 
+    You under the Apache License, Version 2.0 (the "License"); you may not use 
+    this file except in compliance with the License. You may obtain a copy of 
+    the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+    by applicable law or agreed to in writing, software distributed under the 
+    License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+    OF ANY KIND, either express or implied. See the License for the specific 
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
@@ -405,6 +406,11 @@ language governing permissions and limitations under the License. -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-services-nar</artifactId>
+            <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mqtt-nar</artifactId>
             <type>nar</type>
         </dependency>
@@ -513,13 +519,17 @@ language governing permissions and limitations under the License. -->
                         <configuration>
                             <name>nifi</name>
                             <summary>Apache NiFi</summary>
-                            <description>Apache NiFi is dataflow system based on the Flow-Based Programming concepts.</description>
-                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
+                            <description>Apache NiFi is dataflow system
+                                based on the Flow-Based Programming
+                                concepts.</description>
+                            <license>Apache License, Version 2.0 and
+                                others (see included LICENSE file)</license>
                             <url>http://nifi.apache.org</url>
                             <group>Utilities</group>
                             <prefix>/opt/nifi</prefix>
                             <defineStatements>
-                                <defineStatement>_use_internal_dependency_generator 0</defineStatement>
+                                <defineStatement>_use_internal_dependency_generator
+                                    0</defineStatement>
                             </defineStatements>
                             <defaultDirmode>750</defaultDirmode>
                             <defaultFilemode>640</defaultFilemode>
@@ -536,7 +546,13 @@ language governing permissions and limitations under the License. -->
                             </installScriptlet>
                             <preinstallScriptlet>
                                 <script>
-                                    /usr/bin/getent group nifi &gt;/dev/null || /usr/sbin/groupadd -r nifi; /usr/bin/getent passwd nifi &gt;/dev/null || /usr/sbin/useradd -r -g nifi -d /opt/nifi -s /sbin/nologin -c "NiFi System User" nifi
+                                    /usr/bin/getent group nifi
+                                    &gt;/dev/null || /usr/sbin/groupadd
+                                    -r nifi; /usr/bin/getent passwd nifi
+                                    &gt;/dev/null || /usr/sbin/useradd
+                                    -r -g nifi -d /opt/nifi -s
+                                    /sbin/nologin -c "NiFi System User"
+                                    nifi
                                 </script>
                             </preinstallScriptlet>
                         </configuration>
@@ -602,10 +618,12 @@ language governing permissions and limitations under the License. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                         </mapping>
-                                        <!-- The lib excludes and lib/bootstrap includes are computed by looking at the desired contents of
-                                        lib vs the desired contents of bootstrap directories.  The bootstrap directory should be comprised of explicitly
-                                        included items as found from the lib/bootstrap of a non rpm build and the lib folder should be specific excludes
-                                        being those which we want in bootstrap and NOT in lib. -->
+                                        <!-- The lib excludes and lib/bootstrap 
+                                            includes are computed by looking at the desired contents of lib vs the desired 
+                                            contents of bootstrap directories. The bootstrap directory should be comprised 
+                                            of explicitly included items as found from the lib/bootstrap of a non rpm 
+                                            build and the lib folder should be specific excludes being those which we 
+                                            want in bootstrap and NOT in lib. -->
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
                                             <dependency>
@@ -636,7 +654,8 @@ language governing permissions and limitations under the License. -->
                                                     <!-- must be in lib <exclude>ch.qos.logback:logback-core</exclude> -->
                                                     <exclude>org.apache.nifi:nifi-security-utils</exclude>
                                                     <exclude>org.apache.nifi:nifi-utils</exclude>
-                                                    <!-- Items to not include which are also not in bootstrap -->
+                                                    <!-- Items to not include 
+                                                        which are also not in bootstrap -->
                                                     <exclude>org.apache.nifi:nifi-resources</exclude>
                                                     <exclude>org.apache.nifi:nifi-docs</exclude>
                                                 </excludes>
