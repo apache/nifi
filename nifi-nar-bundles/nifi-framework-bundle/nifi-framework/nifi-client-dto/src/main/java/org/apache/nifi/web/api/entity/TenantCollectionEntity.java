@@ -14,19 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.authorization.resource;
+package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.authorization.Resource;
+import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Set;
 
-public class AccessPoliciesAuthorizable implements Authorizable {
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API.
+ */
+@XmlRootElement(name = "tenantCollectionEntity")
+public class TenantCollectionEntity extends ComponentEntity {
 
-    @Override
-    public Authorizable getParentAuthorizable() {
-        return null;
+    private Set<String> tenants;
+
+    /**
+     * The tenants being serialized.
+     *
+     * @return The tenants
+     */
+    public Set<String> getTenants() {
+        return tenants;
     }
 
-    @Override
-    public Resource getResource() {
-        return ResourceFactory.getPoliciesResource();
+    public void setTenants(Set<String> tenants) {
+        this.tenants = tenants;
     }
+
 }

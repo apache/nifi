@@ -129,7 +129,7 @@ nf.Label = (function () {
                 }
             })
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // update the body fill using the configured color
@@ -143,7 +143,7 @@ nf.Label = (function () {
                 }
             })
             .style('fill', function (d) {
-                if (!d.accessPolicy.canRead) {
+                if (!d.permissions.canRead) {
                     return null;
                 }
 
@@ -157,7 +157,7 @@ nf.Label = (function () {
                 return color;
             })
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // go through each label being updated
@@ -170,7 +170,7 @@ nf.Label = (function () {
             // update the label
             var labelText = label.select('text.label-value');
             var labelPoint = label.selectAll('rect.labelpoint');
-            if (d.accessPolicy.canRead) {
+            if (d.permissions.canRead) {
                 // udpate the font size
                 labelText.attr('font-size', function () {
                     var fontSize = '12px';
@@ -209,7 +209,7 @@ nf.Label = (function () {
                 // labelpoints
                 // -----------
 
-                if (d.accessPolicy.canWrite) {
+                if (d.permissions.canWrite) {
                     var pointData = [
                         {x: d.dimensions.width, y: d.dimensions.height}
                     ];

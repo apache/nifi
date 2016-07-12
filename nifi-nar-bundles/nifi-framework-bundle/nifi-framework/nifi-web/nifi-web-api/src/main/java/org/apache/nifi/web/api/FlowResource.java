@@ -16,31 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -123,13 +105,29 @@ import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Flow.
@@ -208,7 +206,7 @@ public class FlowResource extends ApplicationResource {
     /**
      * Authorizes access to the flow.
      */
-    private void authorizeFlow(final RequestAction action) {
+    private void authorizeFlow() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         final Map<String,String> userContext;
@@ -224,7 +222,7 @@ public class FlowResource extends ApplicationResource {
             .identity(user.getIdentity())
             .anonymous(user.isAnonymous())
             .accessAttempt(true)
-            .action(action)
+            .action(RequestAction.READ)
             .userContext(userContext)
             .build();
 
@@ -287,7 +285,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response generateClientId() {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
         return clusterContext(generateOkResponse(generateUuid())).build();
     }
 
@@ -321,7 +319,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getFlowConfig() {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -350,7 +348,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getCurrentUser() {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // note that the cluster manager will handle this request directly
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
@@ -413,7 +411,7 @@ public class FlowResource extends ApplicationResource {
         )
         @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -458,7 +456,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerServicesFromController() {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -511,7 +509,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String groupId) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
@@ -566,7 +564,7 @@ public class FlowResource extends ApplicationResource {
         )
         @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -622,7 +620,7 @@ public class FlowResource extends ApplicationResource {
         @PathParam("id") String id,
         ScheduleComponentsEntity scheduleComponentsEntity) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure the same id is being used
         if (!id.equals(scheduleComponentsEntity.getId())) {
@@ -753,7 +751,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) throws InterruptedException {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // query the controller
         final SearchResultsDTO results = serviceFacade.searchController(value);
@@ -796,7 +794,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getControllerStatus() throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -841,7 +839,7 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getBanners() {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // get the banner from the properties - will come from the NCM when clustered
         final String bannerText = getProperties().getBannerText();
@@ -888,7 +886,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getProcessorTypes() throws InterruptedException {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // create response entity
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
@@ -933,7 +931,7 @@ public class FlowResource extends ApplicationResource {
                     required = false
             )
         @QueryParam("serviceType") String serviceType) throws InterruptedException {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
@@ -972,7 +970,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getReportingTaskTypes() throws InterruptedException {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
@@ -1011,7 +1009,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getPrioritizers() throws InterruptedException {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // create response entity
         final PrioritizerTypesEntity entity = new PrioritizerTypesEntity();
@@ -1049,7 +1047,7 @@ public class FlowResource extends ApplicationResource {
             }
     )
     public Response getAboutInfo() {
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // create the about dto
         final AboutDTO aboutDTO = new AboutDTO();
@@ -1139,7 +1137,7 @@ public class FlowResource extends ApplicationResource {
         )
         @QueryParam("limit") IntegerParameter limit) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -1230,7 +1228,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1312,7 +1310,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1394,7 +1392,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1476,7 +1474,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1567,7 +1565,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String groupId) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1670,7 +1668,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure a valid request
         if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
@@ -1746,7 +1744,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -1801,7 +1799,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String groupId) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -1856,7 +1854,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -1911,7 +1909,7 @@ public class FlowResource extends ApplicationResource {
         )
         @PathParam("id") String id) throws InterruptedException {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -2022,7 +2020,7 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("sourceId") String sourceId) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure the page is specified
         if (offset == null) {
@@ -2130,7 +2128,7 @@ public class FlowResource extends ApplicationResource {
             )
             @PathParam("id") IntegerParameter id) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure the id was specified
         if (id == null) {
@@ -2188,7 +2186,7 @@ public class FlowResource extends ApplicationResource {
             )
             @PathParam("componentId") final String componentId) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -2240,7 +2238,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // authorize access
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // get all the templates
         final Set<TemplateEntity> templates = serviceFacade.getTemplates();
@@ -2295,7 +2293,7 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
 
-        authorizeFlow(RequestAction.READ);
+        authorizeFlow();
 
         // ensure connected to the cluster
         if (!isConnectedToCluster()) {

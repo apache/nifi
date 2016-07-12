@@ -14,9 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#process-group-details {
-    z-index: 1301;
-    display: none;
-    width: 400px;
-    height: 290px;
+package org.apache.nifi.authorization.resource;
+
+import org.apache.nifi.authorization.Resource;
+
+/**
+ * Authorizable for policies of an Authorizable.
+ */
+public class DataTransferAuthorizable implements Authorizable {
+    final Authorizable authorizable;
+
+    public DataTransferAuthorizable(Authorizable authorizable) {
+        this.authorizable = authorizable;
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return null;
+    }
+
+    @Override
+    public Resource getResource() {
+        return ResourceFactory.getDataTransferResource(authorizable.getResource());
+    }
 }

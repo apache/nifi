@@ -415,7 +415,7 @@ nf.ControllerServices = (function () {
      * @returns {String}
      */
     var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '<span class="blank">' + dataContext.id + '</span>';
         }
         
@@ -433,7 +433,7 @@ nf.ControllerServices = (function () {
      * @returns {String}
      */
     var typeFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '';
         }
         
@@ -492,24 +492,24 @@ nf.ControllerServices = (function () {
     var initControllerServices = function (serviceTable) {
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
             
-            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; float: left;" ></div>';
+            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-left: 3px; margin-top: 5px; float: left;" ></div>';
+            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 3px; float: left;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px;" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px;"></div>';
             }
 
             if (hasErrors || hasBulletins) {
@@ -520,7 +520,7 @@ nf.ControllerServices = (function () {
         };
 
         var controllerServiceStateFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
             
@@ -553,24 +553,27 @@ nf.ControllerServices = (function () {
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.accessPolicy.canRead && dataContext.accessPolicy.canWrite) {
+            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
                 if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                    markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px;" ></div>';
+                    markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 } else if (dataContext.component.state === 'DISABLED') {
-                    markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px;" ></div>';
+                    markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                     // if there are no validation errors allow enabling
                     if (nf.Common.isEmpty(dataContext.component.validationErrors)) {
-                        markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-left: 6px;"></div>';
+                        markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
 
-                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
-                    markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
             }
+
+            // TODO - only if we can adminster policies
+            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
 
             return markup;
         };
@@ -629,6 +632,12 @@ nf.ControllerServices = (function () {
                     nf.ControllerService.remove(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
                     nf.ComponentState.showState(controllerServiceEntity.component, controllerServiceEntity.state === 'DISABLED');
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nf.PolicyManagement.showControllerServicePolicy(controllerServiceEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {

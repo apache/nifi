@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
 
@@ -52,6 +53,14 @@ public interface UserGroupDAO {
      * @return The set of groups
      */
     Set<Group> getUserGroupsForUser(String userId);
+
+    /**
+     * Gets the access policies for the user with the specified ID.
+     *
+     * @param userId The user ID
+     * @return The set of access policies
+     */
+    Set<AccessPolicy> getAccessPoliciesForUser(String userId);
 
     /**
      * Gets all user groups.

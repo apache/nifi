@@ -69,8 +69,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testReadUserGetConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -82,8 +82,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testReadWriteUserGetConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -95,8 +95,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testWriteUserGetConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -108,8 +108,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testNoneUserGetConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -121,8 +121,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testReadUserPutConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
@@ -144,8 +144,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testReadWriteUserPutConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String updatedName = "Updated Name";
@@ -209,8 +209,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testWriteUserPutConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name";
@@ -252,8 +252,8 @@ public class ITConnectionAccessControl {
     @Test
     public void testNoneUserPutConnection() throws Exception {
         final ConnectionEntity entity = getRandomConnection(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name";

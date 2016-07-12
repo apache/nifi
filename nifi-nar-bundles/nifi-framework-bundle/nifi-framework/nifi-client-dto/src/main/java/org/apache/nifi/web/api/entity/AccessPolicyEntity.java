@@ -17,8 +17,11 @@
 package org.apache.nifi.web.api.entity;
 
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.Date;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an {@link AccessPolicyDTO}.
@@ -26,6 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "accessPolicyEntity")
 public class AccessPolicyEntity extends ComponentEntity {
 
+    private Date generated;
     private AccessPolicyDTO component;
 
     /**
@@ -41,4 +45,15 @@ public class AccessPolicyEntity extends ComponentEntity {
         this.component = component;
     }
 
+    /**
+     * @return When this content was generated
+     */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    public Date getGenerated() {
+        return generated;
+    }
+
+    public void setGenerated(Date generated) {
+        this.generated = generated;
+    }
 }

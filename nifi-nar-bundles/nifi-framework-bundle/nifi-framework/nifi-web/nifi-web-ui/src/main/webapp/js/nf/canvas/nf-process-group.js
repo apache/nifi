@@ -157,7 +157,7 @@ nf.ProcessGroup = (function () {
 
         // only support dragging, connection, and drag and drop if appropriate
         processGroup.filter(function (d) {
-                return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+                return d.permissions.canWrite && d.permissions.canRead;
             })
             .on('mouseover.drop', function (d) {
                 // Using mouseover/out to workaround chrome issue #122746
@@ -210,13 +210,13 @@ nf.ProcessGroup = (function () {
         // process group border authorization
         updated.select('rect.border')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // process group body authorization
         updated.select('rect.body')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         updated.each(function (processGroupData) {
@@ -742,7 +742,7 @@ nf.ProcessGroup = (function () {
                         return stoppedX + stoppedCount.node().getComputedTextLength() + CONTENTS_SPACER;
                     })
                     .classed('has-validation-errors', function (d) {
-                        return d.accessPolicy.canRead && d.component.invalidCount > 0;
+                        return d.permissions.canRead && d.component.invalidCount > 0;
                     });
                 var invalidCount = details.select('text.process-group-invalid-count')
                     .attr('x', function () {
@@ -768,7 +768,7 @@ nf.ProcessGroup = (function () {
                         return d.disabledCount;
                     });
 
-                if (processGroupData.accessPolicy.canRead) {
+                if (processGroupData.permissions.canRead) {
                     // update the process group comments
                     details.select('text.process-group-comments')
                         .each(function (d) {
@@ -812,7 +812,7 @@ nf.ProcessGroup = (function () {
                 // populate the stats
                 processGroup.call(updateProcessGroupStatus);
             } else {
-                if (processGroupData.accessPolicy.canRead) {
+                if (processGroupData.permissions.canRead) {
                     // update the process group name
                     processGroup.select('text.process-group-name')
                         .text(function (d) {

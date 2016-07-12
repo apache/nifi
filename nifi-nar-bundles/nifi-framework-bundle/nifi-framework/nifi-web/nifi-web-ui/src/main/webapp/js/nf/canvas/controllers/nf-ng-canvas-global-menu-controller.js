@@ -193,8 +193,29 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  * Launch the users shell.
                  */
                 launch: function () {
-                    if (nf.Common.canAccessTenants()) {
+                    if (nf.Common.canModifyTenants()) {
                         nf.Shell.showPage('users');
+                    }
+                }
+            }
+        };
+
+        /**
+         * The policies menu item controller.
+         */
+        this.policies = {
+
+            /**
+             * The policies menu item's shell controller.
+             */
+            shell: {
+
+                /**
+                 * Launch the policies shell.
+                 */
+                launch: function () {
+                    if (nf.Common.canModifyPolicies() && nf.Common.canAccessTenants()) {
+                        nf.PolicyManagement.showGlobalPolicies();
                     }
                 }
             }

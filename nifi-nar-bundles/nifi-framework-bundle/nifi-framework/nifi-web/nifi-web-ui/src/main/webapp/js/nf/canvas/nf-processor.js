@@ -143,13 +143,13 @@ nf.Processor = (function () {
         // processor border authorization
         updated.select('rect.border')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // processor body authorization
         updated.select('rect.body')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         updated.each(function (processorData) {
@@ -474,7 +474,7 @@ nf.Processor = (function () {
                         .text('\uf24a');
                 }
 
-                if (processorData.accessPolicy.canRead) {
+                if (processorData.permissions.canRead) {
                     // update the processor name
                     processor.select('text.processor-name')
                         .each(function (d) {
@@ -516,7 +516,7 @@ nf.Processor = (function () {
                 // populate the stats
                 processor.call(updateProcessorStatus);
             } else {
-                if (processorData.accessPolicy.canRead) {
+                if (processorData.permissions.canRead) {
                     // update the processor name
                     processor.select('text.processor-name')
                         .text(function (d) {
@@ -553,7 +553,7 @@ nf.Processor = (function () {
                 // get the default color
                 var color = nf.Processor.defaultColor();
                 
-                if (!d.accessPolicy.canRead) {
+                if (!d.permissions.canRead) {
                     return color;
                 }
 
@@ -615,7 +615,7 @@ nf.Processor = (function () {
                 }
 
                 // if there are validation errors generate a tooltip
-                if (d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
+                if (d.permissions.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
                     tip = d3.select('#processor-tooltips').append('div')
                         .attr('id', function () {
                             return 'run-status-tip-' + d.id;

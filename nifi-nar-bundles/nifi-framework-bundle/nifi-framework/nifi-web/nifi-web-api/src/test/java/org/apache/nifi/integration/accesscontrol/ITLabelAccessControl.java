@@ -65,8 +65,8 @@ public class ITLabelAccessControl {
     @Test
     public void testReadUserGetLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -78,8 +78,8 @@ public class ITLabelAccessControl {
     @Test
     public void testReadWriteUserGetLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -91,8 +91,8 @@ public class ITLabelAccessControl {
     @Test
     public void testWriteUserGetLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -104,8 +104,8 @@ public class ITLabelAccessControl {
     @Test
     public void testNoneUserGetLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -117,8 +117,8 @@ public class ITLabelAccessControl {
     @Test
     public void testReadUserPutLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
@@ -140,8 +140,8 @@ public class ITLabelAccessControl {
     @Test
     public void testReadWriteUserPutLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String updatedLabel = "Updated Name";
@@ -205,8 +205,8 @@ public class ITLabelAccessControl {
     @Test
     public void testWriteUserPutLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedLabel = "Updated Name";
@@ -248,8 +248,8 @@ public class ITLabelAccessControl {
     @Test
     public void testNoneUserPutLabel() throws Exception {
         final LabelEntity entity = getRandomLabel(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name";

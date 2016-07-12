@@ -118,6 +118,30 @@
 
     };
 
+    var setDisabled = function (combo, optionElement, option, disabled) {
+        // reset the option element
+        optionElement.removeClass('unset').off('click');
+        
+        if (disabled === true) {
+            optionElement.addClass('unset');
+        } else {
+            optionElement.on('click', function () {
+                //remove active styles
+                $('.combo').removeClass('combo-open');
+
+                // select the option
+                selectOption(combo, option.text, option.value);
+
+                // click the glass pane which will hide the options
+                $('.combo-glass-pane').click();
+            }).hover(function () {
+                $(this).addClass('pointer').css('background', '#eaeef0');
+            }, function () {
+                $(this).removeClass('pointer').css('background', '#ffffff');
+            });
+        }
+    };
+
     var methods = {
 
         /**
@@ -146,6 +170,8 @@
                     }, function () {
                         combo.removeClass('button-over').addClass('combo-button-normal');
                     }).click(function (event) {
+                        var comboConfigOptions = combo.data('options');
+                        
                         //add active styles
                         $(this).addClass('combo-open');
 
@@ -166,8 +192,8 @@
 
                         // set the max height if necessary
                         var maxHeight = -1;
-                        if (isDefinedAndNotNull(options.maxHeight)) {
-                            maxHeight = parseInt(options.maxHeight);
+                        if (isDefinedAndNotNull(comboConfigOptions.maxHeight)) {
+                            maxHeight = parseInt(comboConfigOptions.maxHeight);
                             if (maxHeight > 0) {
                                 comboOptions.css('max-height', maxHeight + 'px');
                             }
@@ -177,7 +203,7 @@
                         var optionList = $('<ul></ul>').appendTo(comboOptions);
 
                         // process the options
-                        $.each(options.options, function (i, option) {
+                        $.each(comboConfigOptions.options, function (i, option) {
                             var optionText = $('<span class="combo-option-text"></span>').attr('title', option.text).text(option.text);
                             var optionValue = $('<span class="hidden"></span>').text(option.value);
 
@@ -298,13 +324,34 @@
         },
 
         /**
+         * Sets whether the specified option is enabled or disabled.
+         * 
+         * @param option
+         * @param enabled
+         */
+        setOptionEnabled: function (option, enabled) {
+            return this.each(function () {
+                var combo = $(this);
+                var comboConfigOptions = combo.data('options');
+
+                $.each(comboConfigOptions.options, function (i, configOption) {
+                     if (configOption.value === option.value) {
+                        configOption.disabled = !enabled;   
+                     }
+                });
+            });
+        },
+
+        /**
          * Destroy's the combo.
          */
         destroy: function () {
-            $(this).empty().unbind().removeData();
+            return this.each(function () {
+                $(this).empty().unbind().removeData();
 
-            // remove the options if open
-            $('div.combo-glass-pane').click();
+                // remove the options if open
+                $('div.combo-glass-pane').click();
+            });
         }
     };
 

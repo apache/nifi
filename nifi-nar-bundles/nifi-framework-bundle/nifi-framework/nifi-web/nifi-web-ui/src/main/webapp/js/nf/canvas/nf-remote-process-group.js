@@ -168,13 +168,13 @@ nf.RemoteProcessGroup = (function () {
         // remote process group border authorization
         updated.select('rect.border')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // remote process group body authorization
         updated.select('rect.body')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         updated.each(function (remoteProcessGroupData) {
@@ -493,7 +493,7 @@ nf.RemoteProcessGroup = (function () {
                         .text('\uf24a');
                 }
 
-                if (remoteProcessGroupData.accessPolicy.canRead) {
+                if (remoteProcessGroupData.permissions.canRead) {
                     // remote process group uri
                     details.select('text.remote-process-group-uri')
                         .each(function (d) {
@@ -612,7 +612,7 @@ nf.RemoteProcessGroup = (function () {
                 // populate the stats
                 remoteProcessGroup.call(updateProcessGroupStatus);
             } else {
-                if (remoteProcessGroupData.accessPolicy.canRead) {
+                if (remoteProcessGroupData.permissions.canRead) {
                     // update the process group name
                     remoteProcessGroup.select('text.remote-process-group-name')
                         .text(function (d) {
@@ -694,7 +694,7 @@ nf.RemoteProcessGroup = (function () {
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
                 var icon = '';
-                if (d.accessPolicy.canRead) {
+                if (d.permissions.canRead) {
                     if (!nf.Common.isEmpty(d.component.authorizationIssues)) {
                         icon = '\uf071';
                     } else if (d.component.transmitting === true) {
@@ -707,7 +707,7 @@ nf.RemoteProcessGroup = (function () {
             })
             .attr('font-family', function (d) {
                 var family = '';
-                if (d.accessPolicy.canRead) {
+                if (d.permissions.canRead) {
                     if (!nf.Common.isEmpty(d.component.authorizationIssues) || d.component.transmitting) {
                         family = 'FontAwesome';
                     } else {
@@ -717,7 +717,7 @@ nf.RemoteProcessGroup = (function () {
                 return family;
             })
             .classed('has-authorization-errors', function (d) {
-                return d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
+                return d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
             })
             .each(function (d) {
                 // remove the existing tip if necessary
@@ -727,7 +727,7 @@ nf.RemoteProcessGroup = (function () {
                 }
 
                 // if there are validation errors generate a tooltip
-                if (d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.authorizationIssues)) {
+                if (d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues)) {
                     tip = d3.select('#remote-process-group-tooltips').append('div')
                         .attr('id', function () {
                             return 'authorization-issues-' + d.id;
@@ -944,7 +944,7 @@ nf.RemoteProcessGroup = (function () {
                     // reload the group's connections
                     var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                     $.each(connections, function (_, connection) {
-                        if (connection.accessPolicy.canRead) {
+                        if (connection.permissions.canRead) {
                             nf.Connection.reload(connection.component);
                         }
                     });

@@ -100,7 +100,7 @@ public class TestHttpClientTransaction {
     public void testReceiveZeroFlowFile() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doReturn(false).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
 
         ByteArrayInputStream serverResponse = new ByteArrayInputStream(new byte[0]);
@@ -116,7 +116,7 @@ public class TestHttpClientTransaction {
     public void testReceiveOneFlowFile() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(CONFIRM_TRANSACTION.getCode());
@@ -138,7 +138,7 @@ public class TestHttpClientTransaction {
     public void testReceiveTwoFlowFiles() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(CONFIRM_TRANSACTION.getCode());
@@ -161,7 +161,7 @@ public class TestHttpClientTransaction {
     public void testReceiveWithInvalidChecksum() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
         // The checksum is correct, but here we simulate as if it's wrong, BAD_CHECKSUM.
         TransactionResultEntity resultEntity = new TransactionResultEntity();
@@ -185,7 +185,7 @@ public class TestHttpClientTransaction {
     public void testSendZeroFlowFile() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
 
         ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
@@ -202,7 +202,7 @@ public class TestHttpClientTransaction {
     public void testSendOneFlowFile() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {
@@ -236,7 +236,7 @@ public class TestHttpClientTransaction {
     public void testSendTwoFlowFiles() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(CommunicationsSession.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {
@@ -271,7 +271,7 @@ public class TestHttpClientTransaction {
     @Test
     public void testSendWithInvalidChecksum() throws IOException {
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
         // Emulate that server returns incorrect checksum.
         doAnswer(new Answer() {
@@ -312,7 +312,7 @@ public class TestHttpClientTransaction {
     public void testSendButDestinationFull() throws IOException {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
-        final String transactionUrl = "http://www.example.com/site-to-site/input-ports/portId/transactions/transactionId";
+        final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
         doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(CommunicationsSession.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {

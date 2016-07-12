@@ -374,7 +374,7 @@ nf.ProcessorConfiguration = (function () {
     var reloadProcessorConnections = function (processor) {
         var connections = nf.Connection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
-            if (connection.accessPolicy.canRead) {
+            if (connection.permissions.canRead) {
                 if (connection.sourceId === processor.id) {
                     nf.Connection.reload(connection.component);
                 }

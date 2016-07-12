@@ -286,6 +286,32 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access counters.
+         *
+         * @returns {boolean}
+         */
+        canAccessPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify counters.
+         *
+         * @returns {boolean}
+         */
+        canModifyPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true && nf.Common.currentUser.policiesPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Determines whether the current user can access the controller.
          *
          * @returns {boolean}
@@ -402,7 +428,7 @@ nf.Common = (function () {
             // status code 400, 403, 404, and 409 are expected response codes for common errors.
             if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Malformed Request',
+                    headerText: 'Error',
                     dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {

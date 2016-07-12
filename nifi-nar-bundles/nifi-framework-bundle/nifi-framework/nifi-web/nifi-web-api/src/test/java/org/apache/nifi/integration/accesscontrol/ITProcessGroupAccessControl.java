@@ -66,8 +66,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testReadUserGetProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -79,8 +79,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testReadWriteUserGetProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -92,8 +92,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testWriteUserGetProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -105,8 +105,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testNoneUserGetProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -118,8 +118,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testReadUserPutProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
@@ -141,8 +141,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testReadWriteUserPutProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;
@@ -206,8 +206,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testWriteUserPutProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;
@@ -249,8 +249,8 @@ public class ITProcessGroupAccessControl {
     @Test
     public void testNoneUserPutProcessGroup() throws Exception {
         final ProcessGroupEntity entity = getRandomProcessGroup(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;

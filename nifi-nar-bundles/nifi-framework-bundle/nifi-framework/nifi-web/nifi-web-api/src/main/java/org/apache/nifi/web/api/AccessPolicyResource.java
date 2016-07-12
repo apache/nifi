@@ -98,6 +98,74 @@ public class AccessPolicyResource extends ApplicationResource {
         return accessPolicy;
     }
 
+    // -----------------
+    // get access policy
+    // -----------------
+
+    /**
+     * Retrieves the specified access policy.
+     *
+     * @return An accessPolicyEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{action}/{resource: .+}")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Gets an access policy",
+            response = AccessPolicyEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getAccessPolicyForResource(
+            @ApiParam(
+                    value = "The request action.",
+                    allowableValues = "read, write",
+                    required = true
+            ) @PathParam("action") final String action,
+            @ApiParam(
+                    value = "The resource of the policy.",
+                    required = true
+            ) @PathParam("resource") String rawResource) {
+
+        // parse the action and resource type
+        final RequestAction requestAction = RequestAction.valueOfValue(action);
+        final String resource = "/" + rawResource;
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable accessPolicy = lookup.getAccessPolicyByResource(resource);
+            accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the access policy
+        final AccessPolicyEntity entity = serviceFacade.getAccessPolicy(requestAction, resource);
+        populateRemainingAccessPolicyEntityContent(entity);
+
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+
+    // -----------------------
+    // manage an access policy
+    // -----------------------
+
     /**
      * Creates a new access policy.
      *
@@ -111,58 +179,6 @@ public class AccessPolicyResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates an access policy",
-            notes = "    Available resources:\n" +
-                    "        /flow                       - READ - allows user/entity to load the UI and see the flow structure\n" +
-                    "                                    - WRITE - NA\n" +
-                    "        /resource                   - READ - allows user/entity to retrieve the available resources\n" +
-                    "                                    - WRITE - NA\n" +
-                    "        /system                     - READ - allows user/entity to retrieve system level diagnostics (CPU load, disk utilization, etc)\n" +
-                    "                                    - WRITE - NA\n" +
-                    "        /controller                 - READ - allows user/entity to retrieve configuration details for the controller (controller bulletins, thread pool, reporting tasks, etc)\n" +
-                    "                                    - WRITE - allows user/entity to modify configuration details for the controller\n" +
-                    "        /provenance                 - READ - allows user/entity to perform provenance requests. results will be filtered based on access to provenance data per component\n" +
-                    "                                    - WRITE - NA\n" +
-                    "        /token                      - READ - NA\n" +
-                    "                                    - WRITE - allows user/entity to create a token for access the REST API\n" +
-                    "        /site-to-site               - READ - allows user/entity to retrieve configuration details for performing site to site data transfers with this NiFi\n" +
-                    "                                    - WRITE - NA\n" +
-                    "        /proxy                      - READ - NA\n" +
-                    "                                    - WRITE - allows user/entity to create a proxy request on behalf of another user\n" +
-                    "        /process-groups/{id}        - READ - allows user/entity to retrieve configuration details for the process group and all descendant components without explicit " +
-                    "access policies\n" +
-                    "                                    - WRITE - allows user/entity to create/update/delete configuration details for the process group and all descendant components without " +
-                    "explicit access policies\n" +
-                    "        /processors/{id}            - READ - allows user/entity to retrieve configuration details for the processor overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the processor overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /input-ports/{id}           - READ - allows user/entity to retrieve configuration details for the input port overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the input port overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /output-ports/{id}          - READ - allows user/entity to retrieve configuration details for the output port overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the output port overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /labels/{id}                - READ - allows user/entity to retrieve configuration details for the label overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the label overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /connections/{id}           - READ - allows user/entity to retrieve configuration details for the connection overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the label overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /remote-process-groups/{id} - READ - allows user/entity to retrieve configuration details for the remote process group overriding any inherited authorizations from an " +
-                    "ancestor process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the remote process group overriding any inherited authorizations from an ancestor process " +
-                    "group\n" +
-                    "        /templates/{id}             - READ - allows user/entity to retrieve configuration details for the template overriding any inherited authorizations from an ancestor " +
-                    "process group\n" +
-                    "                                    - WRITE - allows user/entity to create/update/delete the template overriding any inherited authorizations from an ancestor process group\n" +
-                    "        /controller-services/{id}   - READ - allows user/entity to retrieve configuration details for the controller service overriding any inherited authorizations from an " +
-                    "ancestor process group\n" +
-                    "                                    - WRITE - allows user/entity to update/delete the controller service overriding any inherited authorizations from an ancestor process " +
-                    "group\n" +
-                    "        /reporting-tasks/{id}       - READ - allows user/entity to retrieve configuration details for the reporting tasks overriding any inherited authorizations from the " +
-                    "controller\n" +
-                    "                                    - WRITE - allows user/entity to create/update/delete the reporting tasks overriding any inherited authorizations from the controller\n" +
-                    "        /{type}/{id}/provenance     - READ - allows user/entity to view provenance data from the underlying component\n" +
-                    "                                    - WRITE - NA\n",
             response = AccessPolicyEntity.class,
             authorizations = {
                     @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
@@ -192,9 +208,17 @@ public class AccessPolicyResource extends ApplicationResource {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Policy.");
         }
 
-        if (accessPolicyEntity.getComponent().getId() != null) {
+        final AccessPolicyDTO requestAccessPolicy = accessPolicyEntity.getComponent();
+        if (requestAccessPolicy.getId() != null) {
             throw new IllegalArgumentException("Access policy ID cannot be specified.");
         }
+
+        if (requestAccessPolicy.getResource() == null) {
+            throw new IllegalArgumentException("Access policy resource must be specified.");
+        }
+
+        // ensure this is a valid action
+        RequestAction.valueOfValue(requestAccessPolicy.getAction());
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, accessPolicyEntity);
@@ -205,7 +229,7 @@ public class AccessPolicyResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable accessPolicies = lookup.getAccessPoliciesAuthorizable();
+                final Authorizable accessPolicies = lookup.getAccessPolicyByResource(requestAccessPolicy.getResource());
                 accessPolicies.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -270,8 +294,8 @@ public class AccessPolicyResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable accessPolicy = lookup.getAccessPolicyAuthorizable(id);
-            accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            Authorizable authorizable  = lookup.getAccessPolicyById(id);
+            authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the access policy
@@ -347,8 +371,8 @@ public class AccessPolicyResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    Authorizable authorizable  = lookup.getAccessPolicyAuthorizable(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    Authorizable authorizable  = lookup.getAccessPolicyById(id);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -422,8 +446,8 @@ public class AccessPolicyResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable accessPolicy = lookup.getAccessPolicyAuthorizable(id);
-                accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final Authorizable accessPolicy = lookup.getAccessPolicyById(id);
+                    accessPolicy.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 () -> {
                 },

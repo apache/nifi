@@ -326,7 +326,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     private String initiateTransaction(String portType, String portId) throws IOException {
         logger.debug("initiateTransaction handshaking portType={}, portId={}", portType, portId);
-        HttpPost post = createPost("/site-to-site/" + portType + "/" + portId + "/transactions");
+        HttpPost post = createPost("/data-transfer/" + portType + "/" + portId + "/transactions");
 
 
         post.setHeader("Accept", "application/json");

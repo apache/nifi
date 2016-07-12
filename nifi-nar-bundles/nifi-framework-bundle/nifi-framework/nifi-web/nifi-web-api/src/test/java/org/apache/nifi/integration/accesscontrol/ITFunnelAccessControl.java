@@ -65,8 +65,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testReadUserGetFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -78,8 +78,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testReadWriteUserGetFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -91,8 +91,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testWriteUserGetFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -104,8 +104,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testNoneUserGetFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -117,8 +117,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testReadUserPutFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the position
@@ -140,8 +140,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testReadWriteUserPutFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final double y = 15.0;
@@ -174,8 +174,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testWriteUserPutFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final double y = 15.0;
@@ -217,8 +217,8 @@ public class ITFunnelAccessControl {
     @Test
     public void testNoneUserPutFunnel() throws Exception {
         final FunnelEntity entity = getRandomFunnel(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         // attempt to update the position

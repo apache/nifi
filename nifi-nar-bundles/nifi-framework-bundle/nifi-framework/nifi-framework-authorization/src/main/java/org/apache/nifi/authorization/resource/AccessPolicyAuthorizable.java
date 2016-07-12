@@ -16,38 +16,39 @@
  */
 package org.apache.nifi.authorization.resource;
 
-import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Resource;
 
+/**
+ * Authorizable for policies of an Authorizable.
+ */
 public class AccessPolicyAuthorizable implements Authorizable {
+    final Authorizable authorizable;
 
-    private final AccessPolicy policy;
-
-    public AccessPolicyAuthorizable(AccessPolicy policy) {
-        this.policy = policy;
+    public AccessPolicyAuthorizable(Authorizable authorizable) {
+        this.authorizable = authorizable;
     }
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return new Authorizable() {
-            @Override
-            public Authorizable getParentAuthorizable() {
-                return null;
-            }
+        if (authorizable.getParentAuthorizable() == null) {
+            return new Authorizable() {
+                @Override
+                public Authorizable getParentAuthorizable() {
+                    return null;
+                }
 
-            @Override
-            public Resource getResource() {
-                return ResourceFactory.getPoliciesResource();
-            }
-        };
+                @Override
+                public Resource getResource() {
+                    return ResourceFactory.getPoliciesResource();
+                }
+            };
+        } else {
+            return new AccessPolicyAuthorizable(authorizable.getParentAuthorizable());
+        }
     }
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getPolicyResource(policy.getIdentifier());
-    }
-
-    public AccessPolicy getPolicy() {
-        return policy;
+        return ResourceFactory.getPolicyResource(authorizable.getResource());
     }
 }

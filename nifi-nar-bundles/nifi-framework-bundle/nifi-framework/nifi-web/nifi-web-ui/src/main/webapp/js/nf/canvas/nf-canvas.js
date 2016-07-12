@@ -114,7 +114,7 @@ nf.Canvas = (function () {
     var polling = false;
     var groupId = 'root';
     var groupName = null;
-    var accessPolicy = null;
+    var permissions = null;
     var parentGroupId = null;
     var clustered = false;
     var svg = null;
@@ -631,15 +631,15 @@ nf.Canvas = (function () {
 
             // get the current group name from the breadcrumb
             var breadcrumb = processGroupFlow.breadcrumb;
-            if (breadcrumb.accessPolicy.canRead) {
+            if (breadcrumb.permissions.canRead) {
                 nf.Canvas.setGroupName(breadcrumb.breadcrumb.name);
             } else {
                 nf.Canvas.setGroupName(breadcrumb.id);
             }
 
             // update the access policies
-            accessPolicy = flowResponse.accessPolicy;
-
+            permissions = flowResponse.permissions;
+            
             // update the breadcrumbs
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
@@ -832,6 +832,7 @@ nf.Canvas = (function () {
                     nf.ConnectionConfiguration.init();
                     nf.ControllerService.init();
                     nf.ReportingTask.init();
+                    nf.PolicyManagement.init();
                     nf.ProcessorConfiguration.init();
                     nf.ProcessGroupConfiguration.init();
                     nf.RemoteProcessGroupConfiguration.init();
@@ -839,7 +840,6 @@ nf.Canvas = (function () {
                     nf.PortConfiguration.init();
                     nf.LabelConfiguration.init();
                     nf.ProcessorDetails.init();
-                    nf.ProcessGroupDetails.init();
                     nf.PortDetails.init();
                     nf.ConnectionDetails.init();
                     nf.RemoteProcessGroupDetails.init();
@@ -925,10 +925,10 @@ nf.Canvas = (function () {
          * @returns {boolean}   can write
          */
         canRead: function () {
-            if (accessPolicy === null) {
+            if (permissions === null) {
                 return false;
             } else {
-                return accessPolicy.canRead === true;
+                return permissions.canRead === true;
             }
         },
 
@@ -938,10 +938,10 @@ nf.Canvas = (function () {
          * @returns {boolean}   can write
          */
         canWrite: function () {
-            if (accessPolicy === null) {
+            if (permissions === null) {
                 return false;
             } else {
-                return accessPolicy.canWrite === true;
+                return permissions.canWrite === true;
             }
         },
 

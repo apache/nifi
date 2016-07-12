@@ -1329,6 +1329,16 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets an authorizable for proveance events for a given component id.
+     *
+     * @param componentId component id
+     * @return authorizable
+     */
+    public Authorizable getProvenanceEventAuthorizable(final String componentId) {
+        return flowController.createProvenanceAuthorizable(componentId);
+    }
+
+    /**
      * Creates a ProvenanceEventDTO for the specified ProvenanceEventRecord.
      *
      * @param event event

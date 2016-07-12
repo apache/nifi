@@ -20,6 +20,27 @@ package org.apache.nifi.authorization;
  * Actions a user/entity can take on a resource.
  */
 public enum RequestAction {
-    READ,
-    WRITE;
+    READ("read"),
+    WRITE("write");
+
+    private String value;
+
+    RequestAction(String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String toString() {
+        return value.toLowerCase();
+    }
+
+    public static RequestAction valueOfValue(final String action) {
+        if (RequestAction.READ.toString().equals(action)) {
+            return RequestAction.READ;
+        } else if (RequestAction.WRITE.toString().equals(action)) {
+            return RequestAction.WRITE;
+        } else {
+            throw new IllegalArgumentException("Action must be one of [" + READ.toString() + ", " + WRITE.toString() + "]");
+        }
+    }
 }

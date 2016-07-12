@@ -66,8 +66,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testReadUserGetOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -79,8 +79,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testReadWriteUserGetOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -92,8 +92,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testWriteUserGetOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -105,8 +105,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testNoneUserGetOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -118,8 +118,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testReadUserPutOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
@@ -141,8 +141,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testReadWriteUserPutOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;
@@ -206,8 +206,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testWriteUserPutOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;
@@ -249,8 +249,8 @@ public class ITOutputPortAccessControl {
     @Test
     public void testNoneUserPutOutputPort() throws Exception {
         final PortEntity entity = getRandomOutputPort(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name" + count++;

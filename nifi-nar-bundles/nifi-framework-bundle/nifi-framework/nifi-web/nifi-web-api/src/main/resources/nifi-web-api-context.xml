@@ -219,6 +219,12 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="authorizer" ref="authorizer"/>
     </bean>
+    <bean id="dataTransferResource" class="org.apache.nifi.web.api.DataTransferResource" scope="singleton">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterCoordinator" ref="clusterCoordinator"/>
+        <property name="requestReplicator" ref="requestReplicator" />
+        <property name="authorizer" ref="authorizer"/>
+    </bean>
     <bean id="snippetResource" class="org.apache.nifi.web.api.SnippetResource" scope="singleton">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>

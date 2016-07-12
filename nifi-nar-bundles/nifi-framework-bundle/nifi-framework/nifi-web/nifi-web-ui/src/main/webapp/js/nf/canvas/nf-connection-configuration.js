@@ -281,7 +281,7 @@ nf.ConnectionConfiguration = (function () {
                 // show the output port options
                 var options = [];
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
-                    if (outputPort.accessPolicy.canRead && outputPort.accessPolicy.canWrite) {
+                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite) {
                         var component = outputPort.component;
                         options.push({
                             text: component.name,
@@ -506,7 +506,7 @@ nf.ConnectionConfiguration = (function () {
                 // show the input port options
                 var options = [];
                 $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                    if (inputPort.accessPolicy.canRead && inputPort.accessPolicy.canWrite) {
+                    if (inputPort.permissions.canRead && inputPort.permissions.canWrite) {
                         var component = inputPort.component;
                         options.push({
                             text: component.name,

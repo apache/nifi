@@ -179,7 +179,7 @@ nf.ControllerService = (function () {
         // reload all dependent processors if they are currently visible
         $.each(controllerService.referencingComponents, function (_, referencingComponentEntity) {
             // ensure we can read the referencing component prior to reloading
-            if (referencingComponentEntity.accessPolicy.canRead === false) {
+            if (referencingComponentEntity.permissions.canRead === false) {
                 return;
             }
 
@@ -401,7 +401,7 @@ nf.ControllerService = (function () {
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
-            if (referencingComponentEntity.accessPolicy.canRead === false || referencingComponentEntity.accessPolicy.canWrite === false) {
+            if (referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false) {
                 var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingComponentEntity.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
@@ -1029,7 +1029,7 @@ nf.ControllerService = (function () {
 
         var hasUnauthorized = false;
         $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.accessPolicy.canRead === false || referencingComponent.accessPolicy.canWrite === false) {
+            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
                 hasUnauthorized = true;
                 return false;
             }
@@ -1263,7 +1263,7 @@ nf.ControllerService = (function () {
 
         var hasUnauthorized = false;
         $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.accessPolicy.canRead === false || referencingComponent.accessPolicy.canWrite === false) {
+            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
                 hasUnauthorized = true;
                 return false;
             }

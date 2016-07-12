@@ -308,7 +308,7 @@ nf.Connection = (function () {
                 .classed('grouped', function (d) {
                     var grouped = false;
 
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
                         // if there are more than one selected relationship, mark this as grouped
                         if (nf.Common.isDefinedAndNotNull(d.component.selectedRelationships) && d.component.selectedRelationships.length > 1) {
                             grouped = true;
@@ -320,7 +320,7 @@ nf.Connection = (function () {
                 .classed('ghost', function (d) {
                     var ghost = false;
 
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
                         // if the connection has a relationship that is unavailable, mark it a ghost relationship
                         if (hasUnavailableRelationship(d)) {
                             ghost = true;
@@ -333,13 +333,13 @@ nf.Connection = (function () {
             // update connection path
             updated.select('path.connection-path')
                 .classed('unauthorized', function (d) {
-                    return d.accessPolicy.canRead === false;
+                    return d.permissions.canRead === false;
                 });
 
             // update connection behavior
             updated.select('path.connection-path-selectable')
                 .on('dblclick', function (d) {
-                    if (d.accessPolicy.canWrite && d.accessPolicy.canRead) {
+                    if (d.permissions.canWrite && d.permissions.canRead) {
                         var position = d3.mouse(this.parentNode);
 
                         // find where to put this bend point
@@ -466,7 +466,7 @@ nf.Connection = (function () {
                         'marker-end': function () {
                             var marker = 'normal';
 
-                            if (d.accessPolicy.canRead) {
+                            if (d.permissions.canRead) {
                                 // if the connection has a relationship that is unavailable, mark it a ghost relationship
                                 if (hasUnavailableRelationship(d)) {
                                     marker = 'ghost';
@@ -501,7 +501,7 @@ nf.Connection = (function () {
                 var endpoints = connection.selectAll('rect.endpoint');
                 var midpoints = connection.selectAll('rect.midpoint');
 
-                if (d.accessPolicy.canWrite) {
+                if (d.permissions.canWrite) {
 
                     // ------------------
                     // bends - startpoint
@@ -695,7 +695,7 @@ nf.Connection = (function () {
                     var backgrounds = [];
                     var borders = [];
 
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
 
                         // -----------------------
                         // connection label - from
@@ -1087,14 +1087,14 @@ nf.Connection = (function () {
                             return (rowHeight * labelCount);
                         })
                         .classed('unauthorized', function () {
-                            return d.accessPolicy.canRead === false;
+                            return d.permissions.canRead === false;
                         });
                     connectionLabelContainer.select('rect.border')
                         .attr('height', function () {
                             return (rowHeight * labelCount);
                         })
                         .classed('unauthorized', function () {
-                            return d.accessPolicy.canRead === false;
+                            return d.permissions.canRead === false;
                         });
 
                     // update the coloring of the backgrounds
@@ -1115,7 +1115,7 @@ nf.Connection = (function () {
                         }
                     });
 
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
                         // determine whether or not to show the expiration icon
                         connectionLabelContainer.select('g.expiration-icon')
                             .classed('hidden', function () {
@@ -1126,7 +1126,7 @@ nf.Connection = (function () {
                         });
                     }
 
-                    if (d.accessPolicy.canWrite) {
+                    if (d.permissions.canWrite) {
                         // only support dragging the label when appropriate
                         connectionLabelContainer.call(labelDrag);
                     }

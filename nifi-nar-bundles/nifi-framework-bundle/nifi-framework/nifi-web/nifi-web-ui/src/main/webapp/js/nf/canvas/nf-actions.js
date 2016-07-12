@@ -157,7 +157,7 @@ nf.Actions = (function () {
                             // reload the group's connections
                             var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                             $.each(connections, function (_, connection) {
-                                if (connection.accessPolicy.canRead) {
+                                if (connection.permissions.canRead) {
                                     nf.Connection.reload(connection.component);
                                 }
                             });
@@ -702,16 +702,27 @@ nf.Actions = (function () {
             }
         },
 
+        /**
+         * Opens the policy management page for the selected component.
+         *
+         * @param selection
+         */
+        managePolicies: function(selection) {
+            if (selection.size() <= 1) {
+                nf.PolicyManagement.showComponentPolicy(selection);
+            }
+        },
+
         // Defines an action for showing component details (like configuration but read only).
         showDetails: function (selection) {
             if (selection.empty()) {
-                nf.ProcessGroupDetails.showConfiguration(nf.Canvas.getGroupId());
+                nf.ProcessGroupConfiguration.showConfiguration(nf.Canvas.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nf.CanvasUtils.isProcessor(selection)) {
                     nf.ProcessorDetails.showDetails(nf.Canvas.getGroupId(), selectionData.id);
                 } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                    nf.ProcessGroupDetails.showConfiguration(selectionData.id);
+                    nf.ProcessGroupConfiguration.showConfiguration(selectionData.id);
                 } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                     nf.RemoteProcessGroupDetails.showDetails(selection);
                 } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

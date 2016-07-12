@@ -74,7 +74,7 @@ nf.ProcessGroupConfiguration = (function () {
             contentType: 'application/json'
         }).done(function (response) {
             // refresh the process group if necessary
-            if (response.accessPolicy.canRead && response.component.parentGroupId === nf.Canvas.getGroupId()) {
+            if (response.permissions.canRead && response.component.parentGroupId === nf.Canvas.getGroupId()) {
                 nf.ProcessGroup.set(response);
             }
 
@@ -122,7 +122,7 @@ nf.ProcessGroupConfiguration = (function () {
                 url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
                 dataType: 'json'
             }).done(function (response) {
-                if (response.accessPolicy.canWrite) {
+                if (response.permissions.canWrite) {
                     var processGroup = response.component;
 
                     // populate the process group settings
@@ -137,7 +137,7 @@ nf.ProcessGroupConfiguration = (function () {
                         saveConfiguration(response.revision.version, response.id);
                     });
                 } else {
-                    if (response.accessPolicy.canRead) {
+                    if (response.permissions.canRead) {
                         // populate the process group settings
                         $('#read-only-process-group-name').removeClass('unset').text(response.component.name);
                         $('#read-only-process-group-comments').removeClass('unset').text(response.component.comments);

@@ -147,12 +147,19 @@
                             <i class="fa fa-history"></i>Flow Configuration History
                         </a>
                     </md-menu-item>
+                    <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
-                           ng-class="{disabled: !appCtrl.nf.Common.canAccessTenants()}">
+                           ng-class="{disabled: !appCtrl.nf.Common.canModifyTenants()}">
                             <i class="fa fa-users"></i>Users
-                            <div id="has-pending-accounts" class="hidden"></div>
+                        </a>
+                    </md-menu-item>
+                    <md-menu-item layout-align="space-around center">
+                        <a id="policies-link" layout="row"
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
+                           ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">
+                            <i class="fa fa-key"></i>Policies
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>

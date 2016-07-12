@@ -33,8 +33,12 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.TenantDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
+import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
+import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.api.entity.UserGroupsEntity;
@@ -58,6 +62,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 @Path("tenants")
@@ -182,8 +189,8 @@ public class TenantsResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable users = lookup.getTenantAuthorizable();
-                users.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final Authorizable tenants = lookup.getTenant();
+                tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -247,8 +254,8 @@ public class TenantsResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable users = lookup.getTenantAuthorizable();
-            users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            final Authorizable tenants = lookup.getTenant();
+            tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the user
@@ -294,8 +301,8 @@ public class TenantsResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable users = lookup.getTenantAuthorizable();
-            users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            final Authorizable tenants = lookup.getTenant();
+            tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the users
@@ -303,6 +310,7 @@ public class TenantsResource extends ApplicationResource {
 
         // create the response entity
         final UsersEntity entity = new UsersEntity();
+        entity.setGenerated(new Date());
         entity.setUsers(populateRemainingUserEntitiesContent(users));
 
         // generate the response
@@ -375,8 +383,8 @@ public class TenantsResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable users = lookup.getTenantAuthorizable();
-                users.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final Authorizable tenants = lookup.getTenant();
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -450,8 +458,8 @@ public class TenantsResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable users = lookup.getTenantAuthorizable();
-                users.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final Authorizable tenants = lookup.getTenant();
+                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -567,8 +575,8 @@ public class TenantsResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable userGroups = lookup.getTenantAuthorizable();
-                userGroups.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final Authorizable tenants = lookup.getTenant();
+                tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -632,8 +640,8 @@ public class TenantsResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable userGroups = lookup.getTenantAuthorizable();
-            userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            final Authorizable tenants = lookup.getTenant();
+            tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the user group
@@ -679,8 +687,8 @@ public class TenantsResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable userGroups = lookup.getTenantAuthorizable();
-            userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            final Authorizable tenants = lookup.getTenant();
+            tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get all the user groups
@@ -760,8 +768,8 @@ public class TenantsResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable userGroups = lookup.getTenantAuthorizable();
-                userGroups.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final Authorizable tenants = lookup.getTenant();
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -835,8 +843,8 @@ public class TenantsResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable userGroups = lookup.getTenantAuthorizable();
-                userGroups.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final Authorizable tenants = lookup.getTenant();
+                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -845,5 +853,101 @@ public class TenantsResource extends ApplicationResource {
                     return clusterContext(generateOkResponse(entity)).build();
                 }
         );
+    }
+
+    // ------------
+    // search users
+    // ------------
+
+    /**
+     * Searches the cluster for a node with a given address.
+     *
+     * @param value Search value that will be matched against a node's address
+     * @return Nodes that match the specified criteria
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("search-results")
+    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Searches the cluster for a node with the specified address",
+            response = ClusterSearchResultsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                    @Authorization(value = "DFM", type = "ROLE_DFM"),
+                    @Authorization(value = "Admin", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response searchCluster(
+            @ApiParam(
+                    value = "Node address to search for.",
+                    required = true
+            )
+            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable tenants = lookup.getTenant();
+            tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final List<TenantEntity> userMatches = new ArrayList<>();
+        final List<TenantEntity> userGroupMatches = new ArrayList<>();
+
+        // get the users
+        for (final UserEntity userEntity : serviceFacade.getUsers()) {
+            final UserDTO user = userEntity.getComponent();
+            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(user.getIdentity(), value)) {
+                final TenantDTO tenant = new TenantDTO();
+                tenant.setId(user.getId());
+                tenant.setIdentity(user.getIdentity());
+
+                final TenantEntity entity = new TenantEntity();
+                entity.setPermissions(userEntity.getPermissions());
+                entity.setId(userEntity.getId());
+                entity.setComponent(tenant);
+
+                userMatches.add(entity);
+            }
+        }
+
+        // get the user groups
+        for (final UserGroupEntity userGroupEntity : serviceFacade.getUserGroups()) {
+            final UserGroupDTO userGroup = userGroupEntity.getComponent();
+            if (StringUtils.isBlank(value) || StringUtils.containsIgnoreCase(userGroup.getIdentity(), value)) {
+                final TenantDTO tenant = new TenantDTO();
+                tenant.setId(userGroup.getId());
+                tenant.setIdentity(userGroup.getIdentity());
+
+                final TenantEntity entity = new TenantEntity();
+                entity.setPermissions(userGroupEntity.getPermissions());
+                entity.setId(userGroupEntity.getId());
+                entity.setComponent(tenant);
+
+                userGroupMatches.add(entity);
+            }
+        }
+
+        // build the response
+        final TenantsEntity results = new TenantsEntity();
+        results.setUsers(userMatches);
+        results.setUserGroups(userGroupMatches);
+
+        // generate an 200 - OK response
+        return noCache(Response.ok(results)).build();
     }
 }

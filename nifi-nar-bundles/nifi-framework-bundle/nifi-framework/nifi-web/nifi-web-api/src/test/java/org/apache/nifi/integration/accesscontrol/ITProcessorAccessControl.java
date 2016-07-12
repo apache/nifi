@@ -66,8 +66,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadUserGetProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -79,8 +79,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadWriteUserGetProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
     }
 
@@ -92,8 +92,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testWriteUserGetProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -105,8 +105,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testNoneUserGetProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
     }
 
@@ -118,8 +118,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadUserPutProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         // attempt update the name
@@ -141,8 +141,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadWriteUserPutProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadWriteUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String updatedName = "Updated Name";
@@ -206,8 +206,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testWriteUserPutProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getWriteUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertTrue(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertTrue(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name";
@@ -249,8 +249,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testNoneUserPutProcessor() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getNoneUser());
-        assertFalse(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertFalse(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNull(entity.getComponent());
 
         final String updatedName = "Updated Name";
@@ -285,8 +285,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadUserClearState() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
@@ -306,8 +306,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testNoneUserClearState() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
@@ -327,8 +327,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testReadWriteUserClearState() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";
@@ -348,8 +348,8 @@ public class ITProcessorAccessControl {
     @Test
     public void testWriteUserClearState() throws Exception {
         final ProcessorEntity entity = getRandomProcessor(helper.getReadUser());
-        assertTrue(entity.getAccessPolicy().getCanRead());
-        assertFalse(entity.getAccessPolicy().getCanWrite());
+        assertTrue(entity.getPermissions().getCanRead());
+        assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
 
         final String url = helper.getBaseUrl() + "/processors/" + entity.getId() + "/state/clear-requests";

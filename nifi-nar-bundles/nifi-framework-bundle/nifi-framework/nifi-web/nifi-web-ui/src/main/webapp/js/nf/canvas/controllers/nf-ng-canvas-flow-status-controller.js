@@ -382,13 +382,6 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                 nf.Common.isDefinedAndNotNull(status.connectedNodes) ? $sanitize(status.connectedNodes) : '-';
 
             this.bulletins.update(status);
-
-            // handle any pending user request
-            if (status.hasPendingAccounts === true) {
-                $('#has-pending-accounts').show();
-            } else {
-                $('#has-pending-accounts').hide();
-            }
         }
     }
 

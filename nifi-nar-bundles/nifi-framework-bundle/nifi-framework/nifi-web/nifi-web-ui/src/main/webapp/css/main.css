@@ -297,7 +297,7 @@ input::placeholder {
     color: #728e9b; /*base-color*/
 }
 
-input, input[type=text], input[type=password], textarea {
+input[type=text], input[type=password], textarea {
     background-color: #eaeef0;
     border: 1px solid #eaeef0;
     font-family: Roboto, sans-serif;
@@ -569,6 +569,7 @@ input.filter {
 button.fa {
     color: #004849;
     font-size: 16px;
+    cursor: pointer;
 }
 
 button.icon {

@@ -203,12 +203,3 @@ md-toolbar.md-small .md-toolbar-tools {
     color: #262626;
     padding-right: 5px;
 }
-
-#has-pending-accounts {
-    background-image: url(../images/starburst.png);
-    width: 9px;
-    height: 9px;
-    margin-top: 3px;
-    margin-left: 5px;
-    background-color: transparent;
-}
