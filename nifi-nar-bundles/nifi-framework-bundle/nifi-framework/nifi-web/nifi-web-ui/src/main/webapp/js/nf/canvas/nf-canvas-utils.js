@@ -1260,7 +1260,10 @@ nf.CanvasUtils = (function () {
             
             // if the group id is null, we're already in the top most group
             if (groupId === null) {
-                nf.Dialog.showOkDialog('Components are already in the topmost group.');
+                nf.Dialog.showOkDialog({
+                    headerText: 'Process Group',
+                    dialogContent: 'Components are already in the topmost group.'
+                });
             } else {
                 moveComponents(components, groupId);
             }

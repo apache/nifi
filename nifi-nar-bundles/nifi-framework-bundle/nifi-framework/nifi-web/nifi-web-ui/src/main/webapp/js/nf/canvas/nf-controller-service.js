@@ -46,7 +46,7 @@ nf.ControllerService = (function () {
 
             nf.Dialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Configuration Error'
+                headerText: 'Controller Service'
             });
         } else {
             nf.Common.handleAjaxError(xhr, status, error);
@@ -1238,7 +1238,7 @@ nf.ControllerService = (function () {
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Action Canceled',
+                    headerText: 'Controller Service',
                     dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
                 });
             }
@@ -1275,6 +1275,7 @@ nf.ControllerService = (function () {
         // ensure appropriate access
         if (scope === config.serviceAndReferencingComponents && hasUnauthorized) {
             nf.Dialog.showOkDialog({
+                headerText: 'Controller Service',
                 dialogContent: 'Unable to enable due to unauthorized referencing components.'
             });
             return;
@@ -1381,7 +1382,7 @@ nf.ControllerService = (function () {
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Action Canceled',
+                    headerText: 'Controller Service',
                     dialogContent: 'The request to enable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
                 });
             }

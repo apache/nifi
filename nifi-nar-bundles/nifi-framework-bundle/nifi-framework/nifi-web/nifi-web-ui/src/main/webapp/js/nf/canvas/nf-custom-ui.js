@@ -52,7 +52,7 @@ nf.CustomUi = {
                 });
             }).fail(function () {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Configuration',
+                    headerText: 'Advanced Configuration',
                     dialogContent: 'Unable to generate access token for accessing the advanced configuration dialog.'
                 });
                 deferred.resolve();

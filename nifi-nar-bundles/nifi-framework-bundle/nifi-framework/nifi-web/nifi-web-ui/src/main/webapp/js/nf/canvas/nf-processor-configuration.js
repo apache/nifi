@@ -98,7 +98,7 @@ nf.ProcessorConfiguration = (function () {
 
             nf.Dialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Configuration Error'
+                headerText: 'Processor Configuration'
             });
         } else {
             nf.Common.handleAjaxError(xhr, status, error);
@@ -358,7 +358,7 @@ nf.ProcessorConfiguration = (function () {
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
                 dialogContent: nf.Common.formatUnorderedList(errors),
-                headerText: 'Configuration Error'
+                headerText: 'Processor Configuration'
             });
             return false;
         } else {
