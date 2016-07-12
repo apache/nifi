@@ -427,11 +427,11 @@ nf.CanvasUtils = (function () {
          */
         activeThreadCount: function (selection, d, setOffset) {
             // if there is active threads show the count, otherwise hide
-            if (nf.Common.isDefinedAndNotNull(d.status) && d.status.activeThreadCount > 0) {
+            if (nf.Common.isDefinedAndNotNull(d.status) && d.status.aggregateSnapshot.activeThreadCount > 0) {
                 // update the active thread count
                 var activeThreadCount = selection.select('text.active-thread-count')
                         .text(function () {
-                            return d.status.activeThreadCount;
+                            return d.status.aggregateSnapshot.activeThreadCount;
                         })
                         .style('display', 'block')
                         .each(function () {

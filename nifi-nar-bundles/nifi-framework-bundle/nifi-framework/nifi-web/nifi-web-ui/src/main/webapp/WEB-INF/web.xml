@@ -116,16 +116,6 @@
         <url-pattern>/message</url-pattern>
     </servlet-mapping>
     
-    <!-- servlet to support image downloading -->
-    <servlet>
-        <servlet-name>DownloadSvg</servlet-name>
-        <servlet-class>org.apache.nifi.web.servlet.DownloadSvg</servlet-class>
-    </servlet>
-    <servlet-mapping>
-        <servlet-name>DownloadSvg</servlet-name>
-        <url-pattern>/download-svg</url-pattern>
-    </servlet-mapping>
-    
     <!-- servlet to login page -->
     <servlet>
         <servlet-name>Login</servlet-name>

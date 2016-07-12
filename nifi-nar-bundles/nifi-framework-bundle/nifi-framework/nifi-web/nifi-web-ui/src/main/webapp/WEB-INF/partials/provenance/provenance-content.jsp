@@ -56,7 +56,7 @@
             <div id="provenance-lineage-loading" class="loading-container"></div>
         </div>
         <div id="provenance-lineage-close-container">
-            <div id="provenance-lineage-downloader" title="Download"></div>
+            <div id="provenance-lineage-downloader" class="hidden" title="Download"></div>
             <div id="provenance-lineage-closer" title="Close"></div>
         </div>
         <div id="provenance-lineage-context-menu"></div>
