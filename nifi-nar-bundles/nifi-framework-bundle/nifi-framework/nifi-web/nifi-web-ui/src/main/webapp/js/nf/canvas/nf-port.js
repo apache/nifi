@@ -250,7 +250,7 @@ nf.Port = (function () {
                     details.append('text')
                         .attr({
                             'class': 'active-thread-count-icon',
-                            'y': 68
+                            'y': 43 + offset
                         })
                         .text('\ue83f');
 
@@ -258,7 +258,7 @@ nf.Port = (function () {
                     details.append('text')
                         .attr({
                             'class': 'active-thread-count',
-                            'y': 68
+                            'y': 43 + offset
                         });
                 }
 

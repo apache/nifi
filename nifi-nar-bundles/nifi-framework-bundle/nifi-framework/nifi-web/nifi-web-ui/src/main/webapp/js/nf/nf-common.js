@@ -725,41 +725,6 @@ nf.Common = (function () {
         },
 
         /**
-         * Creates a form inline in order to submit the specified params to the specified URL
-         * using the specified method.
-         * 
-         * @param {string} url          The URL
-         * @param {object} params       An object with the params to include in the submission
-         */
-        post: function (url, params) {
-            // temporarily override beforeunload
-            var previousBeforeUnload = window.onbeforeunload;
-            window.onbeforeunload = null;
-
-            // create a form for submission
-            var form = $('<form></form>').attr({
-                'method': 'POST',
-                'action': url,
-                'style': 'display: none;'
-            });
-
-            // add each parameter when specified
-            if (nf.Common.isDefinedAndNotNull(params)) {
-                $.each(params, function (name, value) {
-                    $('<textarea></textarea>').attr('name', name).val(value).appendTo(form);
-                });
-            }
-
-            // submit the form and clean up
-            form.appendTo('body').submit().remove();
-
-            // restore previous beforeunload if necessary
-            if (previousBeforeUnload !== null) {
-                window.onbeforeunload = previousBeforeUnload;
-            }
-        },
-
-        /**
          * Formats the specified array as an unordered list. If the array is not an 
          * array, null is returned.
          * 

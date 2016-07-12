@@ -787,7 +787,7 @@ nf.Connection = (function () {
                                     }
                                 })
                                 .classed('is-missing-port', function () {
-                                    return d.component.source.exists === true;
+                                    return d.component.source.exists === false;
                                 });
                         } else {
                             // there is no connection from, but check if the name was previous
