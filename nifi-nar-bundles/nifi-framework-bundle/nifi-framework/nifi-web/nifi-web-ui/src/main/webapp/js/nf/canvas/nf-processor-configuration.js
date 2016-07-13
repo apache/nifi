@@ -433,7 +433,7 @@ nf.ProcessorConfiguration = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedProcessor),
-                url: processor.uri,
+                url: d.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {

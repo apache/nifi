@@ -1088,9 +1088,10 @@ nf.ProcessGroup = (function () {
          */
         reload: function (processGroup) {
             if (processGroupMap.has(processGroup.id)) {
+                var processGroupEntity = processGroupMap.get(processGroup.id);
                 return $.ajax({
                     type: 'GET',
-                    url: processGroup.uri,
+                    url: processGroupEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.ProcessGroup.set(response);

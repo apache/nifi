@@ -863,9 +863,10 @@ nf.Processor = (function () {
          */
         reload: function (processor) {
             if (processorMap.has(processor.id)) {
+                var processorEntity = processorMap.get(processor.id);
                 return $.ajax({
                     type: 'GET',
-                    url: processor.uri,
+                    url: processorEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Processor.set(response);

@@ -606,9 +606,10 @@ nf.Port = (function () {
          */
         reload: function (port) {
             if (portMap.has(port.id)) {
+                var portEntity = portMap.get(port.id);
                 return $.ajax({
                     type: 'GET',
-                    url: port.uri,
+                    url: portEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     if (nf.Common.isDefinedAndNotNull(response.inputPort)) {

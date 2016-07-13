@@ -461,9 +461,10 @@ nf.Label = (function () {
          */
         reload: function (label) {
             if (labelMap.has(label.id)) {
+                var labelEntity = labelMap.get(label.id);
                 return $.ajax({
                     type: 'GET',
-                    url: label.uri,
+                    url: labelEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Label.set(response);
