@@ -20,10 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -31,7 +29,6 @@ import org.apache.nifi.processor.Relationship;
 
 /**
  * Holder for provenance relevant information
- * <p/>
  */
 public final class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 
@@ -39,7 +36,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     private final long entryDate;
     private final ProvenanceEventType eventType;
     private final long lineageStartDate;
-    private final Set<String> lineageIdentifiers;
     private final String componentId;
     private final String componentType;
     private final String transitUri;
@@ -91,7 +87,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         this.storageFilename = builder.storageFilename;
         this.eventDuration = builder.eventDuration;
         this.lineageStartDate = builder.lineageStartDate;
-        this.lineageIdentifiers = Collections.unmodifiableSet(builder.lineageIdentifiers);
 
         previousClaimSection = builder.previousClaimSection;
         previousClaimContainer = builder.previousClaimContainer;
@@ -109,7 +104,7 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
-
+    
     }
 
     public String getStorageFilename() {
@@ -132,11 +127,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     @Override
     public long getEventTime() {
         return eventTime;
-    }
-
-    @Override
-    public Set<String> getLineageIdentifiers() {
-        return lineageIdentifiers;
     }
 
     @Override
@@ -414,7 +404,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         private long eventTime = System.currentTimeMillis();
         private long entryDate;
         private long lineageStartDate;
-        private Set<String> lineageIdentifiers = new HashSet<>();
         private ProvenanceEventType eventType = null;
         private String componentId = null;
         private String componentType = null;
@@ -453,7 +442,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             eventTime = event.getEventTime();
             entryDate = event.getFlowFileEntryDate();
             lineageStartDate = event.getLineageStartDate();
-            lineageIdentifiers = event.getLineageIdentifiers();
             eventType = event.getEventType();
             componentId = event.getComponentId();
             componentType = event.getComponentType();
@@ -499,12 +487,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         }
 
         @Override
-        public Builder setLineageIdentifiers(final Set<String> lineageIdentifiers) {
-            this.lineageIdentifiers = lineageIdentifiers;
-            return this;
-        }
-
-        @Override
         public Builder setAttributes(final Map<String, String> previousAttributes, final Map<String, String> updatedAttributes) {
             this.previousAttributes = previousAttributes;
             this.updatedAttributes = updatedAttributes;
@@ -538,11 +520,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         @Override
         public Builder setLineageStartDate(final long startDate) {
             this.lineageStartDate = startDate;
-            return this;
-        }
-
-        public Builder addLineageIdentifier(final String lineageIdentifier) {
-            this.lineageIdentifiers.add(lineageIdentifier);
             return this;
         }
 
@@ -661,7 +638,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         @Override
         public ProvenanceEventBuilder fromFlowFile(final FlowFile flowFile) {
             setFlowFileEntryDate(flowFile.getEntryDate());
-            setLineageIdentifiers(flowFile.getLineageIdentifiers());
             setLineageStartDate(flowFile.getLineageStartDate());
             setAttributes(Collections.<String, String>emptyMap(), flowFile.getAttributes());
             uuid = flowFile.getAttribute(CoreAttributes.UUID.key());

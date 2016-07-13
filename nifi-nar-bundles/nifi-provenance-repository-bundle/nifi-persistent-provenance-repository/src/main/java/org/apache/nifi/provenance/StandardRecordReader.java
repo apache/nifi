@@ -23,9 +23,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
@@ -92,8 +90,8 @@ public class StandardRecordReader implements RecordReader {
         final int serializationVersion = dis.readInt();
         headerLength = repoClassName.getBytes(StandardCharsets.UTF_8).length + 2 + 4; // 2 bytes for string length, 4 for integer.
 
-        if (serializationVersion < 1 || serializationVersion > 8) {
-            throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion + " and supported versions are 1-8");
+        if (serializationVersion < 1 || serializationVersion > 9) {
+            throw new IllegalArgumentException("Unable to deserialize record because the version is " + serializationVersion + " and supported versions are 1-9");
         }
 
         this.serializationVersion = serializationVersion;
@@ -252,7 +250,6 @@ public class StandardRecordReader implements RecordReader {
         final Map<String, String> attrs = readAttributes(dis, false);
 
         builder.setFlowFileEntryDate(System.currentTimeMillis());
-        builder.setLineageIdentifiers(Collections.<String>emptySet());
         builder.setLineageStartDate(-1L);
         builder.setAttributes(Collections.<String, String>emptyMap(), attrs);
         builder.setCurrentContentClaim(null, null, null, null, fileSize);
@@ -288,10 +285,11 @@ public class StandardRecordReader implements RecordReader {
         final Long flowFileEntryDate = dis.readLong();
         builder.setEventDuration(dis.readLong());
 
-        final Set<String> lineageIdentifiers = new HashSet<>();
-        final int numLineageIdentifiers = dis.readInt();
-        for (int i = 0; i < numLineageIdentifiers; i++) {
-            lineageIdentifiers.add(readUUID(dis));
+        if (serializationVersion < 9){
+            final int numLineageIdentifiers = dis.readInt();
+            for (int i = 0; i < numLineageIdentifiers; i++) {
+                readUUID(dis); //skip identifiers
+            }
         }
 
         final long lineageStartDate = dis.readLong();
@@ -358,7 +356,6 @@ public class StandardRecordReader implements RecordReader {
         }
 
         builder.setFlowFileEntryDate(flowFileEntryDate);
-        builder.setLineageIdentifiers(lineageIdentifiers);
         builder.setLineageStartDate(lineageStartDate);
         builder.setStorageLocation(filename, startOffset);
 

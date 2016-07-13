@@ -33,10 +33,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -74,7 +72,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 9;
+    public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
@@ -320,13 +318,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             for (final FlowFileRecord flowFile : toSwap) {
                 out.writeLong(flowFile.getId());
                 out.writeLong(flowFile.getEntryDate());
-
-                final Set<String> lineageIdentifiers = flowFile.getLineageIdentifiers();
-                out.writeInt(lineageIdentifiers.size());
-                for (final String lineageId : lineageIdentifiers) {
-                    out.writeUTF(lineageId);
-                }
-
                 out.writeLong(flowFile.getLineageStartDate());
                 out.writeLong(flowFile.getLineageStartIndex());
                 out.writeLong(flowFile.getLastQueueDate());
@@ -443,12 +434,12 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
                 if (serializationVersion > 1) {
                     // Lineage information was added in version 2
-                    final int numLineageIdentifiers = in.readInt();
-                    final Set<String> lineageIdentifiers = new HashSet<>(numLineageIdentifiers);
-                    for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
-                        lineageIdentifiers.add(in.readUTF());
+                    if(serializationVersion < 10){
+                        final int numLineageIdentifiers = in.readInt();
+                        for (int lineageIdIdx = 0; lineageIdIdx < numLineageIdentifiers; lineageIdIdx++) {
+                            in.readUTF(); //skip each identifier
+                        }
                     }
-                    ffBuilder.lineageIdentifiers(lineageIdentifiers);
 
                     // version 9 adds in a 'lineage start index'
                     final long lineageStartDate = in.readLong();

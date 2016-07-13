@@ -249,19 +249,9 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         addField(builder, "eventOrdinal", event.getEventId());
         addField(builder, "eventType", event.getEventType().name());
         addField(builder, "timestampMillis", event.getEventTime());
-
-
         addField(builder, "timestamp", df.format(event.getEventTime()));
-
         addField(builder, "durationMillis", event.getEventDuration());
         addField(builder, "lineageStart", event.getLineageStartDate());
-
-        final Set<String> lineageIdentifiers = new HashSet<>();
-        if (event.getLineageIdentifiers() != null) {
-            lineageIdentifiers.addAll(event.getLineageIdentifiers());
-        }
-        lineageIdentifiers.add(event.getFlowFileUuid());
-        addField(builder, factory, "lineageIdentifiers", lineageIdentifiers);
         addField(builder, "details", event.getDetails());
         addField(builder, "componentId", event.getComponentId());
         addField(builder, "componentType", event.getComponentType());

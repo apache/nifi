@@ -60,11 +60,6 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     }
 
     @Override
-    public Set<String> getLineageIdentifiers() {
-        return Collections.emptySet();
-    }
-
-    @Override
     public long getFileSize() {
         return -1L;
     }

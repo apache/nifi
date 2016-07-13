@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -110,7 +109,6 @@ public class TestFileSystemSwapManager {
             assertEquals(pre.getContentClaimOffset(), post.getContentClaimOffset());
             assertEquals(pre.getEntryDate(), post.getEntryDate());
             assertEquals(pre.getLastQueueDate(), post.getLastQueueDate());
-            assertEquals(pre.getLineageIdentifiers(), post.getLineageIdentifiers());
             assertEquals(pre.getLineageStartDate(), post.getLineageStartDate());
             assertEquals(pre.getPenaltyExpirationMillis(), post.getPenaltyExpirationMillis());
         }
@@ -196,11 +194,6 @@ public class TestFileSystemSwapManager {
         @Override
         public Long getLastQueueDate() {
             return lastQueueDate;
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return Collections.emptySet();
         }
 
         @Override

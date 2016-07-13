@@ -524,7 +524,7 @@ public class TestStandardFlowFileQueue {
         public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue) throws IOException {
             swapOutCalledCount++;
             final String location = UUID.randomUUID().toString();
-            swappedOut.put(location, new ArrayList<FlowFileRecord>(flowFiles));
+            swappedOut.put(location, new ArrayList<>(flowFiles));
             return location;
         }
 
@@ -560,7 +560,7 @@ public class TestStandardFlowFileQueue {
 
         @Override
         public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException {
-            return new ArrayList<String>(swappedOut.keySet());
+            return new ArrayList<>(swappedOut.keySet());
         }
 
         @Override
@@ -610,7 +610,7 @@ public class TestStandardFlowFileQueue {
         }
 
         public TestFlowFile(final long size) {
-            this(new HashMap<String, String>(), size);
+            this(new HashMap<>(), size);
         }
 
         public TestFlowFile(final Map<String, String> attributes, final long size) {
@@ -645,11 +645,6 @@ public class TestStandardFlowFileQueue {
         @Override
         public Long getLastQueueDate() {
             return null;
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return Collections.emptySet();
         }
 
         @Override

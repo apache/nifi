@@ -48,7 +48,7 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, reportingTask, new MockComponentLogger(), context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask, new MockComponentLogger(), context);
         }
     }
 }

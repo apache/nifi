@@ -341,7 +341,6 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getId()).thenReturn(1L);
         Mockito.when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
         Mockito.when(mockFlowFile.getSize()).thenReturn(1L);
-        Mockito.when(mockFlowFile.getLineageIdentifiers()).thenReturn(new HashSet<String>());
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
         return Query.evaluateExpressions(queryString, mockFlowFile);
     }
