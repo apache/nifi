@@ -20,7 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.util.CapturingLogger;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -131,7 +131,7 @@ public class MonitorMemoryTest {
         NiFiProperties properties = NiFiProperties.getInstance();
 
         properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS,
-                MockProvenanceEventRepository.class.getName());
+                MockProvenanceRepository.class.getName());
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
 

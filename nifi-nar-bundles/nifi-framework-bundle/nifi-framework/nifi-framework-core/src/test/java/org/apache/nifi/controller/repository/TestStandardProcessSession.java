@@ -75,7 +75,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -138,7 +138,7 @@ public class TestStandardProcessSession {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
-        provenanceRepo = new MockProvenanceEventRepository();
+        provenanceRepo = new MockProvenanceRepository();
 
         final Connection connection = Mockito.mock(Connection.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
