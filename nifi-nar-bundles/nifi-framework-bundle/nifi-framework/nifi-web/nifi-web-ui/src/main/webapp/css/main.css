@@ -506,7 +506,7 @@ button:hover {
 }
 
 button:disabled {
-    color: #CCDADB; /*tint link-color 80%*/
+    color: #CCDADB !important; /*tint link-color 80%*/
     cursor: not-allowed;
     border: 1px solid #CCDADB; /*tint link-color 80%*/
 }
