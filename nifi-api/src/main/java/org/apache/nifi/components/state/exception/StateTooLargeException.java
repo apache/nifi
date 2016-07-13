@@ -17,6 +17,8 @@
 
 package org.apache.nifi.components.state.exception;
 
+import org.apache.nifi.components.state.StateManager;
+
 import java.io.IOException;
 
 /**
