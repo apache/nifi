@@ -1727,9 +1727,10 @@ nf.Connection = (function () {
          */
         reload: function (connection) {
             if (connectionMap.has(connection.id)) {
+                var connectionEntity = connectionMap.get(connection.id);
                 return $.ajax({
                     type: 'GET',
-                    url: connection.uri,
+                    url: connectionEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Connection.set(response);

@@ -934,9 +934,10 @@ nf.RemoteProcessGroup = (function () {
          */
         reload: function (remoteProcessGroup) {
             if (remoteProcessGroupMap.has(remoteProcessGroup.id)) {
+                var remoteProcessGroupEntity = remoteProcessGroupMap.get(remoteProcessGroup.id);
                 return $.ajax({
                     type: 'GET',
-                    url: remoteProcessGroup.uri,
+                    url: remoteProcessGroupEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.RemoteProcessGroup.set(response);

@@ -281,9 +281,10 @@ nf.Funnel = (function () {
          */
         reload: function (funnel) {
             if (funnelMap.has(funnel.id)) {
+                var funnelEntity = funnelMap.get(funnel.id);
                 return $.ajax({
                     type: 'GET',
-                    url: funnel.uri,
+                    url: funnelEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Funnel.set(response);
