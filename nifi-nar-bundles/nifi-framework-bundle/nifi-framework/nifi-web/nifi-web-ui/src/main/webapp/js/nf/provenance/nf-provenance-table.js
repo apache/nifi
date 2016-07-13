@@ -461,25 +461,10 @@ nf.ProvenanceTable = (function () {
      * Initializes the provenance query dialog.
      */
     var initProvenanceQueryDialog = function () {
-        // initialize the progress bar
-        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Searching Provenance Events"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo($('#provenance-percent-complete'));
-
         // initialize the dialog
         $('#provenance-query-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Searching provenance events...',
-            handler: {
-                close: function () {
-                    // reset the progress bar
-                    var provenanceProgressBar = $('#provenance-percent-complete');
-                    provenanceProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    provenanceProgressBar.find('md-progress-linear').attr('value', 0);
-                    provenanceProgressBar.append(label);
-                }
-            }
+            headerText: 'Searching provenance events...'
         });
     };
 
@@ -1089,11 +1074,11 @@ nf.ProvenanceTable = (function () {
         updateProgress: function (progressBar, value) {
             // remove existing labels
             progressBar.find('div.progress-label').remove();
+            progressBar.find('md-progress-linear').remove();
 
             // update the progress bar
             var label = $('<div class="progress-label"></div>').text(value + '%');
-            progressBar.find('md-progress-linear').attr('value', value);
-            (nf.ng.Bridge.injector.get('$compile')(progressBar)(nf.ng.Bridge.rootScope));
+            (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
             progressBar.append(label);
         },
 

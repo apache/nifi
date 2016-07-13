@@ -30,23 +30,11 @@ nf.Actions = (function () {
      * Initializes the drop request status dialog.
      */
     var initializeDropRequestStatusDialog = function () {
-        // initialize the drop requst progress bar
-        var dropRequestProgressBar = $('#drop-request-percent-complete');
-        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear value="0" class="md-hue-2" md-mode="indeterminate" aria-label="Dropping Request"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(dropRequestProgressBar);
-
         // configure the drop request status dialog
         $('#drop-request-status-dialog').modal({
             scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
-                    // reset the progress bar
-                    dropRequestProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    dropRequestProgressBar.find('md-progress-linear').attr('value', 0);
-                    dropRequestProgressBar.progressbar('value', 0).append(label);
-
                     // clear the current button model
                     $('#drop-request-status-dialog').modal('setButtonModel', []);
                 }
@@ -920,11 +908,11 @@ nf.Actions = (function () {
                         // remove existing labels
                         var progressBar = $('#drop-request-percent-complete');
                         progressBar.find('div.progress-label').remove();
+                        progressBar.find('md-progress-linear').remove();
 
                         // update the progress bar
                         var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                        progressBar.find('md-progress-linear').attr('value', percentComplete);
-                        (nf.ng.Bridge.injector.get('$compile')(progressBar)(nf.ng.Bridge.rootScope));
+                        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Drop request percent complete"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
                         progressBar.append(label);
                     };
 
