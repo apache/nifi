@@ -30,13 +30,13 @@ import java.util.Set;
 public interface FlowFile extends Comparable<FlowFile> {
 
     /**
-     * @return the unique identifier for this flow file
-     * @deprecated This method has been deprecated in favor of using the attribute
-     *             {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
-     *             If an identifier is needed use {@link #getAttribute(String)} to retrieve the value for this attribute.
-     *             For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
+     * @return the unique identifier for this flow file which is guaranteed
+     * to be unique within a single running instance of nifi.  This identifier
+     * should not be used for true universal unique type needs.  For that consider
+     * using the attribute found in the flow file's attribute map keyed by
+     * {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
+     * For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
      */
-    @Deprecated
     long getId();
 
     /**
