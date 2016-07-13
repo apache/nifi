@@ -383,7 +383,14 @@ nf.ng.Canvas.OperateCtrl = function () {
                             change: function (hex, opacity) {
                                 // update the value
                                 $('#fill-color-value').val(hex);
+
+                                // always update the preview
                                 $('#fill-color-processor-preview').css('color', hex);
+                                $('#fill-color-label-preview').css({
+                                    'border-color': hex,
+                                    'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
+                                    'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'
+                                });
                             }
                         });
 
