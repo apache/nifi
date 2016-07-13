@@ -2125,7 +2125,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // create the controller service and generate the json
         final Revision revision = getRevision(controllerServiceEntity, controllerServiceEntity.getComponent().getId());
         final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, groupId, controllerServiceEntity.getComponent());
-        controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
+        controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
 
         // build the response
         return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
