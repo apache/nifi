@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.persistence;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -79,9 +80,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor);
         controller.synchronize(flowSynchronizer, dataFlow);
-
-        // save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
-        save(controller);
+        save(new ByteArrayInputStream(dataFlow.getFlow()));
     }
 
     @Override

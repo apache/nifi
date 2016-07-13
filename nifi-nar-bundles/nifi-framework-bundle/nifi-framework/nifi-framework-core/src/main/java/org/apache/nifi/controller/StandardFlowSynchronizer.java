@@ -142,6 +142,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     @Override
     public void sync(final FlowController controller, final DataFlow proposedFlow, final StringEncryptor encryptor)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
+        // TODO - Include templates
 
         // handle corner cases involving no proposed flow
         if (proposedFlow == null) {
@@ -284,20 +285,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
                     }
 
-                    // If there are any Templates that do not exist in the Proposed Flow that do exist in the 'existing flow', we need
-                    // to ensure that we also add those to the appropriate Process Groups, so that we don't lose them.
-                    final Document existingFlowConfiguration = parseFlowBytes(existingFlow);
-                    if (existingFlowConfiguration != null) {
-                        final Element existingRootElement = (Element) existingFlowConfiguration.getElementsByTagName("flowController").item(0);
-                        if (existingRootElement != null) {
-                            final Element existingRootGroupElement = (Element) existingRootElement.getElementsByTagName("rootGroup").item(0);
-                            if (existingRootElement != null) {
-                                final FlowEncodingVersion existingEncodingVersion = FlowEncodingVersion.parse(existingFlowConfiguration.getDocumentElement());
-                                addLocalTemplates(existingRootGroupElement, rootGroup, existingEncodingVersion);
-                            }
-                        }
-                    }
-
                     final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
                     if (controllerServicesElement != null) {
                         final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
@@ -356,29 +343,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             logger.debug("Finished syncing flows");
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
-        }
-    }
-
-    private void addLocalTemplates(final Element processGroupElement, final ProcessGroup processGroup, final FlowEncodingVersion encodingVersion) {
-        // Replace the templates with those from the proposed flow
-        final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
-        if (templateNodeList != null) {
-            for (final Element templateElement : templateNodeList) {
-                final TemplateDTO templateDto = TemplateUtils.parseDto(templateElement);
-                final Template template = new Template(templateDto);
-
-                // If the Process Group does not have the template, add it.
-                if (processGroup.getTemplate(template.getIdentifier()) == null) {
-                    processGroup.addTemplate(template);
-                }
-            }
-        }
-
-        final List<Element> childGroupElements = getChildrenByTagName(processGroupElement, "processGroup");
-        for (final Element childGroupElement : childGroupElements) {
-            final String childGroupId = getString(childGroupElement, "id");
-            final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
-            addLocalTemplates(childGroupElement, childGroup, encodingVersion);
         }
     }
 
@@ -771,17 +735,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         // Replace the templates with those from the proposed flow
         final List<Element> templateNodeList = getChildrenByTagName(processGroupElement, "template");
+        for (final Template template : processGroup.getTemplates()) {
+            processGroup.removeTemplate(template);
+        }
         for (final Element templateElement : templateNodeList) {
             final TemplateDTO templateDto = TemplateUtils.parseDto(templateElement);
             final Template template = new Template(templateDto);
-
-            // If the Process Group already has the template, remove it and add it again. We do this
-            // to ensure that all of the nodes have the same view of the template. Templates are immutable,
-            // so any two nodes that have a template with the same ID should have the exact same template.
-            // This just makes sure that they do.
-            if (processGroup.getTemplate(template.getIdentifier()) != null) {
-                processGroup.removeTemplate(template);
-            }
             processGroup.addTemplate(template);
         }
 
