@@ -127,6 +127,7 @@ nf.Canvas = (function () {
         urls: {
             api: '../nifi-api',
             currentUser: '../nifi-api/flow/current-user',
+            controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
@@ -721,14 +722,26 @@ nf.Canvas = (function () {
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
-                $.when(processGroupXhr, statusXhr, currentUserXhr).done(function (processGroupResult) {
+                var controllerBulletins = $.ajax({
+                    type: 'GET',
+                    url: config.urls.controllerBulletins,
+                    dataType: 'json'
+                }).done(function (response) {
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateBulletins(response);
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
+                });
+
+                // wait for all requests to complete
+                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins).done(function (processGroupResult) {
                     // inform Angular app values have changed
                     nf.ng.Bridge.digest();
 
                     // resolve the deferred
                     deferred.resolve(processGroupResult);
-                }).fail(function () {
-                    deferred.reject();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
                 });
             }).promise();
         },

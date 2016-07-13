@@ -26,6 +26,7 @@ import java.util.List;
 public interface BulletinRepository {
 
     public static final int MAX_BULLETINS_PER_COMPONENT = 5;
+    public static final int MAX_BULLETINS_FOR_CONTROLLER = 10;
 
     /**
      * Adds a Bulletin to the repository.

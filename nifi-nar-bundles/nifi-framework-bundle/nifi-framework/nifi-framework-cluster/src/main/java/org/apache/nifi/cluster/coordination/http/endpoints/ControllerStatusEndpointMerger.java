@@ -17,17 +17,16 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.StatusMerger;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
+import org.apache.nifi.web.api.entity.ControllerStatusEntity;
+
 import java.net.URI;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.StatusMerger;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.BulletinDTO;
-import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 
 public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<ControllerStatusEntity, ControllerStatusDTO> {
     public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/status");
@@ -53,17 +52,6 @@ public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<Co
         for (final Map.Entry<NodeIdentifier, ControllerStatusDTO> entry : dtoMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
             final ControllerStatusDTO nodeStatus = entry.getValue();
-
-            final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
-            for (final BulletinDTO bulletin : nodeStatus.getBulletins()) {
-                bulletin.setNodeAddress(nodeAddress);
-            }
-            for (final BulletinDTO bulletin : nodeStatus.getControllerServiceBulletins()) {
-                bulletin.setNodeAddress(nodeAddress);
-            }
-            for (final BulletinDTO bulletin : nodeStatus.getReportingTaskBulletins()) {
-                bulletin.setNodeAddress(nodeAddress);
-            }
 
             if (nodeStatus == mergedStatus) {
                 continue;

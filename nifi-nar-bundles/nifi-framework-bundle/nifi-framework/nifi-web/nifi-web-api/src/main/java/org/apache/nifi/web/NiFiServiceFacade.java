@@ -71,6 +71,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
@@ -258,6 +259,13 @@ public interface NiFiServiceFacade {
      * @return Controller configuration transfer object
      */
     ControllerConfigurationEntity getControllerConfiguration();
+
+    /**
+     * Gets the controller level bulletins.
+     *
+     * @return Controller level bulletins
+     */
+    ControllerBulletinsEntity getControllerBulletins();
 
     /**
      * Gets the configuration for the flow.
