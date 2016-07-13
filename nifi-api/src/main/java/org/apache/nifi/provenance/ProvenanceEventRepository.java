@@ -19,7 +19,6 @@ package org.apache.nifi.provenance;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.web.ResourceNotFoundException;
 
 /**
@@ -88,7 +87,6 @@ public interface ProvenanceEventRepository {
      * @return the Provenance Event Record with the given ID, if it exists, or
      *         {@code null} otherwise
      * @throws IOException if failure while retrieving event
-     * @throws AccessDeniedException if the user does not have access to the component
      * @throws ResourceNotFoundException if the component that the event belongs to cannot be found
      */
     ProvenanceEventRecord getEvent(long id) throws IOException;
