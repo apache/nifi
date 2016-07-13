@@ -616,7 +616,7 @@ public class ControllerServiceResource extends ApplicationResource {
             () -> {
                 // update the controller service
                 final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, requestControllerServiceDTO);
-                populateRemainingControllerServiceContent(entity.getComponent());
+                populateRemainingControllerServiceEntityContent(entity);
 
                 return clusterContext(generateOkResponse(entity)).build();
             }

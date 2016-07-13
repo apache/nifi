@@ -416,7 +416,7 @@ public class ControllerResource extends ApplicationResource {
         }
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
+            return replicate(HttpMethod.POST, controllerServiceEntity);
         }
 
         // handle expects request (usually from the cluster manager)
@@ -437,7 +437,7 @@ public class ControllerResource extends ApplicationResource {
         // create the controller service and generate the json
         final Revision revision = getRevision(controllerServiceEntity, controllerServiceEntity.getComponent().getId());
         final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, null, controllerServiceEntity.getComponent());
-        controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
+        controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
 
         // build the response
         return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
