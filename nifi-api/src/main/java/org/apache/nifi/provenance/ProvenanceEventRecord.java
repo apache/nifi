@@ -18,7 +18,6 @@ package org.apache.nifi.provenance;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Describes an event that happened to a FlowFile.
@@ -47,19 +46,6 @@ public interface ProvenanceEventRecord {
      * @return the time at which the lineage began
      */
     long getLineageStartDate();
-
-    /**
-     * @return the set of all lineage identifiers that are associated with the
-     * FlowFile for which this Event was created
-     *
-     * @deprecated this collection was erroneously unbounded and caused a lot of OutOfMemoryError problems
-     *             when querying Provenance Events about FlowFiles with many ancestors. This Collection is
-     *             now capped at 100 lineage identifiers. This method was introduced with the idea of providing
-     *             future performance improvements but due to the high cost of heap consumption will not be used
-     *             in such a manner. As a result, this method will be removed in a future release.
-     */
-    @Deprecated
-    Set<String> getLineageIdentifiers();
 
     /**
      * @return the size of the FlowFile to which this Event is associated

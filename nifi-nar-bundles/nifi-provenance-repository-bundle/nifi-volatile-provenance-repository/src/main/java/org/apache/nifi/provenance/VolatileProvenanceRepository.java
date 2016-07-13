@@ -51,7 +51,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -707,11 +706,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         @Override
         public long getLineageStartDate() {
             return record.getLineageStartDate();
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return record.getLineageIdentifiers();
         }
 
         @Override

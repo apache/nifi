@@ -19,13 +19,6 @@ package org.apache.nifi.provenance.lineage;
 public interface LineageNode {
 
     /**
-     * @return the identifier of the Clustered NiFi Node that generated the
-     * event
-     */
-    @Deprecated
-    String getClusterNodeIdentifier();
-
-    /**
      * @return the type of the LineageNode
      */
     LineageNodeType getNodeType();

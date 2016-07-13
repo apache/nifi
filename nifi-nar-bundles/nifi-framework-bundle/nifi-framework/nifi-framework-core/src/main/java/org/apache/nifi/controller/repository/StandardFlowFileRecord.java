@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,13 +42,11 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
  *
  */
 public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
-    private static final int MAX_LINEAGE_IDENTIFIERS = 100;
 
     private final long id;
     private final long entryDate;
     private final long lineageStartDate;
     private final long lineageStartIndex;
-    private final Set<String> lineageIdentifiers;
     private final long size;
     private final long penaltyExpirationMs;
     private final Map<String, String> attributes;
@@ -64,7 +61,6 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         this.entryDate = builder.bEntryDate;
         this.lineageStartDate = builder.bLineageStartDate;
         this.lineageStartIndex = builder.bLineageStartIndex;
-        this.lineageIdentifiers = builder.bLineageIdentifiers;
         this.penaltyExpirationMs = builder.bPenaltyExpirationMs;
         this.size = builder.bSize;
         this.claim = builder.bClaim;
@@ -81,11 +77,6 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
     @Override
     public long getEntryDate() {
         return entryDate;
-    }
-
-    @Override
-    public Set<String> getLineageIdentifiers() {
-        return Collections.unmodifiableSet(lineageIdentifiers);
     }
 
     @Override
@@ -193,25 +184,6 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
 
         public Builder id(final long id) {
             bId = id;
-            return this;
-        }
-
-        public Builder lineageIdentifiers(final Collection<String> lineageIdentifiers) {
-            if (null != lineageIdentifiers) {
-                bLineageIdentifiers.clear();
-
-                if (lineageIdentifiers.size() > MAX_LINEAGE_IDENTIFIERS) {
-                    int i = 0;
-                    for (final String id : lineageIdentifiers) {
-                        bLineageIdentifiers.add(id);
-                        if (i++ >= MAX_LINEAGE_IDENTIFIERS) {
-                            break;
-                        }
-                    }
-                } else {
-                    bLineageIdentifiers.addAll(lineageIdentifiers);
-                }
-            }
             return this;
         }
 
@@ -330,7 +302,6 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
             bLineageStartDate = specFlowFile.getLineageStartDate();
             bLineageStartIndex = specFlowFile.getLineageStartIndex();
             bLineageIdentifiers.clear();
-            bLineageIdentifiers.addAll(specFlowFile.getLineageIdentifiers());
             bPenaltyExpirationMs = specFlowFile.getPenaltyExpirationMillis();
             bSize = specFlowFile.getSize();
             bAttributes.putAll(specFlowFile.getAttributes());

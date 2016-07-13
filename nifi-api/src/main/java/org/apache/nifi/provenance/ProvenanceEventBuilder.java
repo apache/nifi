@@ -17,7 +17,6 @@
 package org.apache.nifi.provenance;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
@@ -49,15 +48,6 @@ public interface ProvenanceEventBuilder {
      * @return the builder
      */
     ProvenanceEventBuilder setFlowFileEntryDate(long entryDate);
-
-    /**
-     * Sets the Lineage Identifiers. This is a set of all FlowFile UUID's that
-     * were involved in making this event occur.
-     *
-     * @param lineageIdentifiers of the flowfiles in this event
-     * @return the builder
-     */
-    ProvenanceEventBuilder setLineageIdentifiers(Set<String> lineageIdentifiers);
 
     /**
      * Sets the Content Claim that the FlowFile was previously associated with

@@ -45,11 +45,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.annotation.OnConfigured;
-import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -203,27 +200,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void setProperty(final String name, final String value) {
         super.setProperty(name, value);
-        onConfigured();
     }
 
     @Override
     public boolean removeProperty(String name) {
-        final boolean removed = super.removeProperty(name);
-        if (removed) {
-            onConfigured();
-        }
-
-        return removed;
-    }
-
-    @SuppressWarnings("deprecation")
-    private void onConfigured() {
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider, null);
-            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, implementation, configContext);
-        } catch (final Exception e) {
-            throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);
-        }
+        return super.removeProperty(name);
     }
 
     @Override

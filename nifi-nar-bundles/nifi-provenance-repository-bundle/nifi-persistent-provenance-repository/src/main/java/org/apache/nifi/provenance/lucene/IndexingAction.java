@@ -93,10 +93,6 @@ public class IndexingAction {
                 doc.add(new LongField(SearchableFields.Identifier.getSearchableFieldName(), record.getEventId(), Store.YES));
             }
 
-            for (final String lineageIdentifier : record.getLineageIdentifiers()) {
-                addField(doc, SearchableFields.LineageIdentifier, lineageIdentifier, Store.NO);
-            }
-
             // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.
             if (record.getEventType() == ProvenanceEventType.FORK || record.getEventType() == ProvenanceEventType.CLONE || record.getEventType() == ProvenanceEventType.REPLAY) {
                 for (final String uuid : record.getChildUuids()) {

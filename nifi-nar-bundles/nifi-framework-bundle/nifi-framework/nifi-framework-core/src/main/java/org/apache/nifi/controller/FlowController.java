@@ -1019,7 +1019,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         if (firstTimeAdded) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                ReflectionUtils.invokeMethodsWithAnnotations(OnAdded.class, org.apache.nifi.processor.annotation.OnAdded.class, processor);
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
@@ -3662,11 +3662,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final String parentUUID = event.getFlowFileUuid();
 
-        // Create the FlowFile Record
-        final Set<String> lineageIdentifiers = new HashSet<>();
-        lineageIdentifiers.addAll(event.getLineageIdentifiers());
-        lineageIdentifiers.add(parentUUID);
-
         final String newFlowFileUUID = UUID.randomUUID().toString();
 
         // We need to create a new FlowFile by populating it with information from the
@@ -3685,7 +3680,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .contentClaimOffset(0L) // use 0 because we used the content claim offset in the Content Claim itself
             .entryDate(System.currentTimeMillis())
             .id(flowFileRepository.getNextFlowFileSequence())
-            .lineageIdentifiers(lineageIdentifiers)
             .lineageStart(event.getLineageStartDate(), 0L)
             .size(contentSize.longValue())
             // Create a new UUID and add attributes indicating that this is a replay

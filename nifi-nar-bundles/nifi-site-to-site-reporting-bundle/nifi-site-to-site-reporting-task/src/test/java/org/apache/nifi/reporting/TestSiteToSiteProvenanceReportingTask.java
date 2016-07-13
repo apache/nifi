@@ -23,10 +23,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -69,10 +67,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         final Map<String, String> prevAttrs = new HashMap<>();
         attributes.put("filename", "1234.xyz");
 
-        final Set<String> lineageIdentifiers = new HashSet<>();
-        lineageIdentifiers.add("123");
-        lineageIdentifiers.add("321");
-
         final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
         builder.setEventTime(System.currentTimeMillis());
         builder.setEventType(ProvenanceEventType.RECEIVE);
@@ -82,7 +76,6 @@ public class TestSiteToSiteProvenanceReportingTask {
         builder.setAttributes(prevAttrs, attributes);
         builder.setComponentId("1234");
         builder.setComponentType("dummy processor");
-        builder.setLineageIdentifiers(lineageIdentifiers);
         final ProvenanceEventRecord event = builder.build();
 
         final List<byte[]> dataSent = new ArrayList<>();

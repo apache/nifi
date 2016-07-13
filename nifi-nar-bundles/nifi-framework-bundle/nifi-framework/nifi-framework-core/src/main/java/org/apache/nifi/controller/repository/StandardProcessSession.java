@@ -1414,7 +1414,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             eventBuilder.setEventType(ProvenanceEventType.FORK);
 
             eventBuilder.setFlowFileEntryDate(parent.getEntryDate());
-            eventBuilder.setLineageIdentifiers(parent.getLineageIdentifiers());
             eventBuilder.setLineageStartDate(parent.getLineageStartDate());
             eventBuilder.setFlowFileUUID(parent.getAttribute(CoreAttributes.UUID.key()));
 
@@ -2618,9 +2617,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newAttributes.put(key, value);
         }
 
-        final Set<String> lineageIdentifiers = new HashSet<>(parent.getLineageIdentifiers());
-        lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
-        fFileBuilder.lineageIdentifiers(lineageIdentifiers);
         fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
         fFileBuilder.addAttributes(newAttributes);
 
@@ -2646,8 +2642,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         long lineageStartDate = 0L;
         final Set<String> lineageIdentifiers = new HashSet<>();
         for (final FlowFile parent : parents) {
-            lineageIdentifiers.addAll(parent.getLineageIdentifiers());
-            lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
 
             final long parentLineageStartDate = parent.getLineageStartDate();
             if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
@@ -2669,7 +2663,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
             .addAttributes(newAttributes)
-            .lineageIdentifiers(lineageIdentifiers)
             .lineageStart(lineageStartDate, lineageStartIndex)
             .build();
 

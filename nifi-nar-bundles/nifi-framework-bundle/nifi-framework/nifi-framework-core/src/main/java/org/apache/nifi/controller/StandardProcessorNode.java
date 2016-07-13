@@ -151,7 +151,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         identifier = new AtomicReference<>(uuid);
         destinations = new HashMap<>();
         connections = new HashMap<>();
-        incomingConnectionsRef = new AtomicReference<List<Connection>>(new ArrayList<Connection>());
+        incomingConnectionsRef = new AtomicReference<>(new ArrayList<>());
         lossTolerant = new AtomicBoolean(false);
         final Set<Relationship> emptySetOfRelationships = new HashSet<>();
         undefinedRelationshipsToTerminate = new AtomicReference<>(emptySetOfRelationships);
@@ -169,20 +169,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
 
         final Class<?> procClass = processor.getClass();
-        triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenEmpty.class);
-        sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SideEffectFree.class);
-        batchSupported = procClass.isAnnotationPresent(SupportsBatching.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SupportsBatching.class);
-        triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerSerially.class);
-        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class)
-                || procClass.isAnnotationPresent(
-                        org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
-        eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class)
-                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class))
-                && !triggeredSerially && !triggerWhenEmpty;
+        triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
+        sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class);
+        batchSupported = procClass.isAnnotationPresent(SupportsBatching.class);
+        triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class);
+        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
+        eventDrivenSupported = procClass.isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
 
         final boolean inputRequirementPresent = procClass.isAnnotationPresent(InputRequirement.class);
         if (inputRequirementPresent) {
@@ -371,20 +363,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * @return the value of the processor's {@link CapabilityDescription}
      *         annotation, if one exists, else <code>null</code>.
      */
-    @SuppressWarnings("deprecation")
     public String getProcessorDescription() {
         final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
         String description = null;
         if (capDesc != null) {
             description = capDesc.value();
-        } else {
-            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc = processor.getClass()
-                    .getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
-            if (deprecatedCapDesc != null) {
-                description = deprecatedCapDesc.value();
-            }
         }
-
         return description;
     }
 
@@ -1254,8 +1238,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             @Override
                             public Void call() throws Exception {
                                 try (final NarCloseable nc = NarCloseable.withNarLoader()) {
-                                    ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class,
-                                            org.apache.nifi.processor.annotation.OnScheduled.class, processor, processContext);
+                                    ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
                                     return null;
                                 }
                             }
