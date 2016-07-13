@@ -62,6 +62,7 @@ public class MockProcessSession implements ProcessSession {
     private final MockFlowFileQueue processorQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
     private final List<MockFlowFile> penalized = new ArrayList<>();
+    private final Processor processor;
 
     private final Map<Long, MockFlowFile> currentVersions = new HashMap<>();
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
@@ -77,6 +78,7 @@ public class MockProcessSession implements ProcessSession {
     private int removedCount = 0;
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
+        this.processor = processor;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
@@ -650,6 +652,9 @@ public class MockProcessSession implements ProcessSession {
             transfer(flowFile);
             return;
         }
+        if(!processor.getRelationships().contains(relationship)){
+            throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
+        }
 
         validateState(flowFile);
         List<MockFlowFile> list = transferMap.get(relationship);
@@ -667,6 +672,9 @@ public class MockProcessSession implements ProcessSession {
         if (relationship == Relationship.SELF) {
             transfer(flowFiles);
             return;
+        }
+        if(!processor.getRelationships().contains(relationship)){
+            throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
         }
 
         for (final FlowFile flowFile : flowFiles) {
