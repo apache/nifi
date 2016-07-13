@@ -58,8 +58,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred("success", 1);
-        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred("test", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("test");
         result.get(0).assertAttributeEquals("from-content", "test content");
     }
 
@@ -166,8 +166,8 @@ public class TestInvokeGroovy extends BaseScriptTest {
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(InvokeScriptedProcessor.REL_FAILURE, 1);
-        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(InvokeScriptedProcessor.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred("FAILURE", 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship("FAILURE");
         assertFalse(result.isEmpty());
     }
 }

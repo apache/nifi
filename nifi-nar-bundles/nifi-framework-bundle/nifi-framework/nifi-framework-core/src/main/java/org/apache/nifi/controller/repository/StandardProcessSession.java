@@ -1562,9 +1562,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     @Override
     public void transfer(final FlowFile flowFile, final Relationship relationship) {
         validateRecordState(flowFile);
-        final StandardRepositoryRecord record = records.get(flowFile);
-        record.setTransferRelationship(relationship);
-        updateLastQueuedDate(record);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -1575,7 +1572,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
+        final StandardRepositoryRecord record = records.get(flowFile);
+        record.setTransferRelationship(relationship);
+        updateLastQueuedDate(record);
 
         if (autoTerminated) {
             removedCount += multiplier;
@@ -1616,6 +1619,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
 
         final int multiplier = Math.max(1, numDestinations);
