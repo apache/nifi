@@ -944,21 +944,3 @@ SIL OFL 1.1
 
 The following binary components are provided under the SIL Open Font License 1.1
   (SIL OFL 1.1) FontAwesome (4.6.1 - http://fortawesome.github.io/Font-Awesome/license/)
-
-
-************************
-MIT License
-************************
-The following binary components are provided under the MIT License
-
-    (MIT) Microsoft Azure IoT Device Libraries (com.microsoft.azure:azure-eventhubs:0.7.1 -- https://github.com/Azure/azure-event-hubs/)
-        This product includes software developed by Apache
-            Apache Qpid Proton 0.13.0
-            (Apache 2.0 license)
-                The following NOTICE information applies:
-                Copyright 2006-2015 The Apache Software Foundation
-
-        The product includes software developed by The Legion of the Bouncy Castle Inc. License (https://www.bouncycastle.org/licence.html)
-            (Bouncy Castle) Crytography library BCPKIX  (org.bouncycastle:bcpkix-jdk15on:1.47 -- https://www.bouncycastle.org/java.html)
-                The following NOTICE information applies:
-                Copyright (c) 2000 - 2016 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org)
