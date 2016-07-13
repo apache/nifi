@@ -64,6 +64,27 @@ public class TestMockProcessSession {
         }
     }
 
+    @Test
+    public void testTransferUnknownRelationship() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        final Relationship fakeRel = new Relationship.Builder().name("FAKE").build();
+        try {
+            session.transfer(ff1, fakeRel);
+            Assert.fail("Should have thrown IllegalArgumentException");
+        } catch (final IllegalArgumentException ie) {
+
+        }
+        try {
+            session.transfer(Collections.singleton(ff1), fakeRel);
+            Assert.fail("Should have thrown IllegalArgumentException");
+        } catch (final IllegalArgumentException ie) {
+
+        }
+
+    }
+
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {
 
         private static final Relationship REL_FAILURE = new Relationship.Builder()
