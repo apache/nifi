@@ -17,19 +17,9 @@
 
 package org.apache.nifi.cluster.manager;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
@@ -56,6 +46,15 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 public class StatusMerger {
     public static void merge(final ControllerStatusDTO target, final ControllerStatusDTO toMerge) {
         if (target == null || toMerge == null) {
@@ -66,10 +65,6 @@ public class StatusMerger {
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
 
-        target.setBulletins(mergeBulletins(target.getBulletins(), toMerge.getBulletins()));
-        target.setControllerServiceBulletins(mergeBulletins(target.getControllerServiceBulletins(), toMerge.getControllerServiceBulletins()));
-        target.setReportingTaskBulletins(mergeBulletins(target.getReportingTaskBulletins(), toMerge.getReportingTaskBulletins()));
-
         updatePrettyPrintedFields(target);
     }
 
@@ -77,20 +72,6 @@ public class StatusMerger {
         target.setQueued(prettyPrint(target.getFlowFilesQueued(), target.getBytesQueued()));
         target.setConnectedNodes(formatCount(target.getConnectedNodeCount()) + " / " + formatCount(target.getTotalNodeCount()));
     }
-
-    public static List<BulletinDTO> mergeBulletins(final List<BulletinDTO> targetBulletins, final List<BulletinDTO> toMerge) {
-        final List<BulletinDTO> bulletins = new ArrayList<>();
-        if (targetBulletins != null) {
-            bulletins.addAll(targetBulletins);
-        }
-
-        if (toMerge != null) {
-            bulletins.addAll(toMerge);
-        }
-
-        return bulletins;
-    }
-
 
     public static void merge(final ProcessGroupStatusDTO target, final ProcessGroupStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
         merge(target.getAggregateSnapshot(), toMerge.getAggregateSnapshot());

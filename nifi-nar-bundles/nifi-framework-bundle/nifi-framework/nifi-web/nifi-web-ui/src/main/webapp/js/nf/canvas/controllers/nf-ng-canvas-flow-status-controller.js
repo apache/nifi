@@ -257,20 +257,20 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
             /**
              * Update the bulletins.
              *
-             * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
+             * @param response  The controller bulletins returned from the `../nifi-api/controller/bulletins` endpoint.
              */
-            update: function (status) {
+            update: function (response) {
 
                 // icon for system bulletins
                 var bulletinIcon = $('#bulletin-button');
                 var currentBulletins = bulletinIcon.data('bulletins');
 
                 // update the bulletins if necessary
-                if (nf.Common.doBulletinsDiffer(currentBulletins, status.bulletins)) {
-                    bulletinIcon.data('bulletins', status.bulletins);
+                if (nf.Common.doBulletinsDiffer(currentBulletins, response.bulletins)) {
+                    bulletinIcon.data('bulletins', response.bulletins);
 
                     // get the formatted the bulletins
-                    var bulletins = nf.Common.getFormattedBulletins(status.bulletins);
+                    var bulletins = nf.Common.getFormattedBulletins(response.bulletins);
 
                     // bulletins for this processor are now gone
                     if (bulletins.length === 0) {
@@ -286,22 +286,24 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                         } else {
                             // no bulletins before, show icon and tips
                             bulletinIcon.addClass('has-bulletins').qtip($.extend({},
-                                nf.CanvasUtils.config.systemTooltipConfig, {
-                                position: {
+                                nf.CanvasUtils.config.systemTooltipConfig,
+                                {
                                     content: newBulletins,
-                                    at: 'bottom left',
-                                    my: 'top right',
-                                    adjust: {
-                                        x: 4
+                                    position: {
+                                        at: 'bottom left',
+                                        my: 'top right',
+                                        adjust: {
+                                            x: 4
+                                        }
                                     }
                                 }
-                            }));
+                            ));
                         }
                     }
                 }
 
                 // update controller service and reporting task bulletins
-                nf.Settings.setBulletins(status.controllerServiceBulletins, status.reportingTaskBulletins);
+                nf.Settings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins);
             }
 
         }
@@ -381,7 +383,15 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
             this.connectedNodesCount =
                 nf.Common.isDefinedAndNotNull(status.connectedNodes) ? $sanitize(status.connectedNodes) : '-';
 
-            this.bulletins.update(status);
+        },
+
+        /**
+         * Updates the controller level bulletins
+         *
+         * @param response
+         */
+        updateBulletins: function (response) {
+            this.bulletins.update(response);
         }
     }
 

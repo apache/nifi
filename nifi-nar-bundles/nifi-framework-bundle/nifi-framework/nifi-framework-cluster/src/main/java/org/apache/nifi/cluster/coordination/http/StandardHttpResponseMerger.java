@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpoin
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpiontMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceReferenceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
@@ -70,6 +71,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
     private static final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
     static {
         endpointMergers.add(new ControllerStatusEndpointMerger());
+        endpointMergers.add(new ControllerBulletinsEndpointMerger());
         endpointMergers.add(new GroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorStatusEndpointMerger());
         endpointMergers.add(new ConnectionStatusEndpiontMerger());

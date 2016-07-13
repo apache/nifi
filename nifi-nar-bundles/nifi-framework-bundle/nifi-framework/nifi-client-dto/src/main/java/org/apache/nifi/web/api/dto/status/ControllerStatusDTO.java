@@ -18,10 +18,7 @@ package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
-import java.util.ArrayList;
-import java.util.List;
 import javax.xml.bind.annotation.XmlType;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 
 /**
  * The status of this NiFi controller.
@@ -44,10 +41,6 @@ public class ControllerStatusDTO implements Cloneable {
     private Integer disabledCount = 0;
     private Integer activeRemotePortCount = 0;
     private Integer inactiveRemotePortCount = 0;
-
-    private List<BulletinDTO> bulletins;
-    private List<BulletinDTO> controllerServiceBulletins;
-    private List<BulletinDTO> reportingTaskBulletins;
 
     /**
      * The active thread count.
@@ -86,42 +79,6 @@ public class ControllerStatusDTO implements Cloneable {
 
     public void setConnectedNodes(String connectedNodes) {
         this.connectedNodes = connectedNodes;
-    }
-
-    /**
-     * @return System bulletins to be reported to the user
-     */
-    @ApiModelProperty("System level bulletins to be reported to the user.")
-    public List<BulletinDTO> getBulletins() {
-        return bulletins;
-    }
-
-    public void setBulletins(List<BulletinDTO> bulletins) {
-        this.bulletins = bulletins;
-    }
-
-    /**
-     * @return Controller service bulletins to be reported to the user
-     */
-    @ApiModelProperty("Controller service bulletins to be reported to the user.")
-    public List<BulletinDTO> getControllerServiceBulletins() {
-        return controllerServiceBulletins;
-    }
-
-    public void setControllerServiceBulletins(List<BulletinDTO> controllerServiceBulletins) {
-        this.controllerServiceBulletins = controllerServiceBulletins;
-    }
-
-    /**
-     * @return Reporting task bulletins to be reported to the user
-     */
-    @ApiModelProperty("Reporting task bulletins to be reported to the user.")
-    public List<BulletinDTO> getReportingTaskBulletins() {
-        return reportingTaskBulletins;
-    }
-
-    public void setReportingTaskBulletins(List<BulletinDTO> reportingTaskBulletins) {
-        this.reportingTaskBulletins = reportingTaskBulletins;
     }
 
     /**
@@ -248,9 +205,6 @@ public class ControllerStatusDTO implements Cloneable {
         other.setDisabledCount(getDisabledCount());
         other.setActiveRemotePortCount(getActiveRemotePortCount());
         other.setInactiveRemotePortCount(getInactiveRemotePortCount());
-        other.setBulletins(getBulletins() == null ? null : new ArrayList<>(getBulletins()));
-        other.setControllerServiceBulletins(getControllerServiceBulletins() == null ? null : new ArrayList<>(getControllerServiceBulletins()));
-        other.setReportingTaskBulletins(getReportingTaskBulletins() == null ? null : new ArrayList<>(getReportingTaskBulletins()));
         return other;
     }
 }

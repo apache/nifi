@@ -21,6 +21,7 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,23 @@ import java.util.Set;
 public final class BulletinMerger {
 
     private BulletinMerger() {}
+
+    public static Comparator<BulletinDTO> BULLETIN_COMPARATOR = new Comparator<BulletinDTO>() {
+        @Override
+        public int compare(BulletinDTO o1, BulletinDTO o2) {
+            if (o1 == null && o2 == null) {
+                return 0;
+            }
+            if (o1 == null) {
+                return 1;
+            }
+            if (o2 == null) {
+                return -1;
+            }
+
+            return -Long.compare(o1.getId(), o2.getId());
+        }
+    };
 
     /**
      * Merges the validation errors.

@@ -78,6 +78,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
@@ -143,6 +144,7 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
@@ -2177,6 +2179,51 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(controllerFacade);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(rev);
         return entityFactory.createControllerConfigurationEntity(dto, revision, permissions);
+    }
+
+    @Override
+    public ControllerBulletinsEntity getControllerBulletins() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final ControllerBulletinsEntity controllerBulletinsEntity = new ControllerBulletinsEntity();
+
+        final Authorizable controllerAuthorizable = authorizableLookup.getController();
+        if (controllerAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
+            controllerBulletinsEntity.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
+        }
+
+        // get the controller service bulletins
+        final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
+        final List<Bulletin> allControllerServiceBulletins = bulletinRepository.findBulletins(controllerServiceQuery);
+        final List<Bulletin> authorizedControllerServiceBulletins = new ArrayList<>();
+        for (final Bulletin bulletin : allControllerServiceBulletins) {
+            try {
+                final Authorizable controllerServiceAuthorizable = authorizableLookup.getControllerService(bulletin.getSourceId());
+                if (controllerServiceAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
+                    authorizedControllerServiceBulletins.add(bulletin);
+                }
+            } catch (final ResourceNotFoundException e) {
+                // controller service missing.. skip
+            }
+        }
+        controllerBulletinsEntity.setControllerServiceBulletins(dtoFactory.createBulletinDtos(authorizedControllerServiceBulletins));
+
+        // get the reporting task bulletins
+        final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
+        final List<Bulletin> allReportingTaskBulletins = bulletinRepository.findBulletins(reportingTaskQuery);
+        final List<Bulletin> authorizedReportingTaskBulletins = new ArrayList<>();
+        for (final Bulletin bulletin : allReportingTaskBulletins) {
+            try {
+                final Authorizable reportingTaskAuthorizable = authorizableLookup.getReportingTask(bulletin.getSourceId());
+                if (reportingTaskAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
+                    authorizedReportingTaskBulletins.add(bulletin);
+                }
+            } catch (final ResourceNotFoundException e) {
+                // reporting task missing.. skip
+            }
+        }
+        controllerBulletinsEntity.setReportingTaskBulletins(dtoFactory.createBulletinDtos(authorizedReportingTaskBulletins));
+
+        return controllerBulletinsEntity;
     }
 
     @Override
