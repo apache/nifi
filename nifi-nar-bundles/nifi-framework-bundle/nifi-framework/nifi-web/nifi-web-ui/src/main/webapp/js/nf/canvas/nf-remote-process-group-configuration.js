@@ -54,7 +54,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                             $.ajax({
                                 type: 'PUT',
                                 data: JSON.stringify(remoteProcessGroupEntity),
-                                url: remoteProcessGroupData.component.uri,
+                                url: remoteProcessGroupData.uri,
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {

@@ -288,7 +288,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             // update the style for the specified component
                                             $.ajax({
                                                 type: 'PUT',
-                                                url: selectedData.component.uri,
+                                                url: selectedData.uri,
                                                 data: JSON.stringify(entity),
                                                 dataType: 'json',
                                                 contentType: 'application/json'

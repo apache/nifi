@@ -55,7 +55,7 @@ nf.UsersTable = (function () {
                         // update the user
                         $.ajax({
                             type: 'DELETE',
-                            url: user.component.uri + '?' + $.param(nf.Client.getRevision(user)),
+                            url: user.uri + '?' + $.param(nf.Client.getRevision(user)),
                             dataType: 'json'
                         }).done(function () {
                             nf.UsersTable.loadUsersTable();
@@ -157,7 +157,7 @@ nf.UsersTable = (function () {
         // update the group
         return $.ajax({
             type: 'PUT',
-            url: groupEntity.component.uri,
+            url: groupEntity.uri,
             data: JSON.stringify(updatedGroupEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -195,7 +195,7 @@ nf.UsersTable = (function () {
         // update the group
         return $.ajax({
             type: 'PUT',
-            url: groupEntity.component.uri,
+            url: groupEntity.uri,
             data: JSON.stringify(updatedGroupEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -265,7 +265,7 @@ nf.UsersTable = (function () {
         // update the user
         var userXhr = $.ajax({
             type: 'PUT',
-            url: userEntity.component.uri,
+            url: userEntity.uri,
             data: JSON.stringify(updatedUserEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -359,7 +359,7 @@ nf.UsersTable = (function () {
         // update the user
         $.ajax({
             type: 'PUT',
-            url: groupEntity.component.uri,
+            url: groupEntity.uri,
             data: JSON.stringify(updatedGroupoEntity),
             dataType: 'json',
             contentType: 'application/json'

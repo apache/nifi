@@ -60,7 +60,7 @@ nf.Draggable = (function () {
             return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
-                    url: d.component.uri,
+                    url: d.uri,
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'
@@ -113,7 +113,7 @@ nf.Draggable = (function () {
             return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
-                    url: d.component.uri,
+                    url: d.uri,
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'

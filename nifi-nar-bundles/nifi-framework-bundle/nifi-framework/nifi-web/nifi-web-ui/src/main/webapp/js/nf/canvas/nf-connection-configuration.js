@@ -349,7 +349,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
+                url: remoteProcessGroupData.uri,
                 data: {
                     verbose: true
                 },
@@ -573,7 +573,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
+                url: remoteProcessGroupData.uri,
                 data: {
                     verbose: true
                 },

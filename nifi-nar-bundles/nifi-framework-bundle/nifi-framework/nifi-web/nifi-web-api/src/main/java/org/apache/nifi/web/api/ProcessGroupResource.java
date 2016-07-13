@@ -16,36 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
+import com.sun.jersey.api.core.ResourceContext;
+import com.sun.jersey.multipart.FormDataParam;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -88,14 +66,34 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.sun.jersey.multipart.FormDataParam;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.stream.StreamSource;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -147,34 +145,8 @@ public class ProcessGroupResource extends ApplicationResource {
      * @return group dto
      */
     public ProcessGroupEntity populateRemainingProcessGroupEntityContent(ProcessGroupEntity processGroupEntity) {
-        if (processGroupEntity.getComponent() != null) {
-            populateRemainingProcessGroupContent(processGroupEntity.getComponent());
-        }
+        processGroupEntity.setUri(generateResourceUri("process-groups",  processGroupEntity.getId()));
         return processGroupEntity;
-    }
-
-    /**
-     * Populates the remaining fields in the specified process groups.
-     *
-     * @param processGroups groups
-     * @return group dto
-     */
-    public Set<ProcessGroupDTO> populateRemainingProcessGroupsContent(Set<ProcessGroupDTO> processGroups) {
-        for (ProcessGroupDTO processGroup : processGroups) {
-            populateRemainingProcessGroupContent(processGroup);
-        }
-        return processGroups;
-    }
-
-    /**
-     * Populates the remaining fields in the specified process group.
-     *
-     * @param processGroup group
-     * @return group dto
-     */
-    private ProcessGroupDTO populateRemainingProcessGroupContent(ProcessGroupDTO processGroup) {
-        processGroup.setUri(generateResourceUri("process-groups",  processGroup.getId()));
-        return processGroup;
     }
 
     /**
@@ -492,7 +464,7 @@ public class ProcessGroupResource extends ApplicationResource {
         populateRemainingProcessGroupEntityContent(entity);
 
         // generate a 201 created response
-        String uri = entity.getComponent().getUri();
+        String uri = entity.getUri();
         return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
     }
 
@@ -652,7 +624,7 @@ public class ProcessGroupResource extends ApplicationResource {
         processorResource.populateRemainingProcessorEntityContent(entity);
 
         // generate a 201 created response
-        String uri = entity.getComponent().getUri();
+        String uri = entity.getUri();
         return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
     }
 
@@ -802,7 +774,7 @@ public class ProcessGroupResource extends ApplicationResource {
         inputPortResource.populateRemainingInputPortEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -949,7 +921,7 @@ public class ProcessGroupResource extends ApplicationResource {
         outputPortResource.populateRemainingOutputPortEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -1097,7 +1069,7 @@ public class ProcessGroupResource extends ApplicationResource {
         funnelResource.populateRemainingFunnelEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -1245,7 +1217,7 @@ public class ProcessGroupResource extends ApplicationResource {
         labelResource.populateRemainingLabelEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -1424,7 +1396,7 @@ public class ProcessGroupResource extends ApplicationResource {
         final RemoteProcessGroupEntity entity = serviceFacade.createRemoteProcessGroup(revision, groupId, requestProcessGroupDTO);
         remoteProcessGroupResource.populateRemainingRemoteProcessGroupEntityContent(entity);
 
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -1591,7 +1563,7 @@ public class ProcessGroupResource extends ApplicationResource {
         connectionResource.populateRemainingConnectionEntityContent(entity);
 
         // extract the href and build the response
-        String uri = entity.getComponent().getUri();
+        String uri = entity.getUri();
         return clusterContext(generateCreatedResponse(URI.create(uri), entity)).build();
     }
 
@@ -2156,7 +2128,7 @@ public class ProcessGroupResource extends ApplicationResource {
         controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     // setters

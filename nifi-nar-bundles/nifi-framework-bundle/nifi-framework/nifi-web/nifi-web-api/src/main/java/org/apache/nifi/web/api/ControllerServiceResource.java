@@ -16,29 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
@@ -65,12 +48,27 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Controller Service.
@@ -112,6 +110,10 @@ public class ControllerServiceResource extends ApplicationResource {
      * @return dtos
      */
     public ControllerServiceEntity populateRemainingControllerServiceEntityContent(final ControllerServiceEntity controllerServiceEntity) {
+        // populate the controller service href
+        controllerServiceEntity.setUri(generateResourceUri("controller-services", controllerServiceEntity.getId()));
+
+        // populate the remaining content
         if (controllerServiceEntity.getComponent() != null) {
             populateRemainingControllerServiceContent(controllerServiceEntity.getComponent());
         }
@@ -120,24 +122,8 @@ public class ControllerServiceResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified controller service.
-     *
-     * @param controllerServices services
-     * @return dtos
-     */
-    public Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final Set<ControllerServiceDTO> controllerServices) {
-        for (ControllerServiceDTO controllerService : controllerServices) {
-            populateRemainingControllerServiceContent(controllerService);
-        }
-        return controllerServices;
-    }
-
-    /**
-     * Populates the uri for the specified controller service.
      */
     public ControllerServiceDTO populateRemainingControllerServiceContent(final ControllerServiceDTO controllerService) {
-        // populate the controller service href
-        controllerService.setUri(generateResourceUri("controller-services", controllerService.getId()));
-
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {

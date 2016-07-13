@@ -50,20 +50,18 @@ nf.ng.GroupComponent = function (serviceProvider) {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // add the process group to the graph
-                nf.Graph.add({
-                    'processGroups': [response]
-                }, {
-                    'selectAll': true
-                });
+            // add the process group to the graph
+            nf.Graph.add({
+                'processGroups': [response]
+            }, {
+                'selectAll': true
+            });
 
-                // update component visibility
-                nf.Canvas.View.updateVisibility();
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
 
-                // update the birdseye
-                nf.Birdseye.refresh();
-            }
+            // update the birdseye
+            nf.Birdseye.refresh();
         }).fail(nf.Common.handleAjaxError);
     };
 

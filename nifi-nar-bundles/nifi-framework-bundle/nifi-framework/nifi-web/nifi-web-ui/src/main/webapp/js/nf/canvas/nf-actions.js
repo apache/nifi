@@ -143,7 +143,7 @@ nf.Actions = (function () {
                 var poll = function (nextDelay) {
                     $.ajax({
                         type: 'GET',
-                        url: d.component.uri,
+                        url: d.uri,
                         dataType: 'json'
                     }).done(function (response) {
                         var remoteProcessGroup = response.component;
@@ -408,7 +408,7 @@ nf.Actions = (function () {
                         }
                     };
 
-                    enableRequests.push(updateResource(d.component.uri, entity).done(function (response) {
+                    enableRequests.push(updateResource(d.uri, entity).done(function (response) {
                         nf[d.type].set(response);
                     }));
                 });
@@ -451,7 +451,7 @@ nf.Actions = (function () {
                         }
                     };
 
-                    disableRequests.push(updateResource(d.component.uri, entity).done(function (response) {
+                    disableRequests.push(updateResource(d.uri, entity).done(function (response) {
                         nf[d.type].set(response);
                     }));
                 });
@@ -522,7 +522,7 @@ nf.Actions = (function () {
                                 'state': 'RUNNING'
                             }
                         } else {
-                            uri = d.component.uri;
+                            uri = d.uri;
                             entity = {
                                 'revision': nf.Client.getRevision(d),
                                 'component': {
@@ -592,7 +592,7 @@ nf.Actions = (function () {
                                 'state': 'STOPPED'
                             };
                         } else {
-                            uri = d.component.uri;
+                            uri = d.uri;
                             entity = {
                                 'revision': nf.Client.getRevision(d),
                                 'component': {
@@ -643,7 +643,7 @@ nf.Actions = (function () {
                 };
 
                 // start transmitting
-                updateResource(d.component.uri, entity).done(function (response) {
+                updateResource(d.uri, entity).done(function (response) {
                     nf.RemoteProcessGroup.set(response);
                 });
             });
@@ -670,7 +670,7 @@ nf.Actions = (function () {
                     }
                 };
 
-                updateResource(d.component.uri, entity).done(function (response) {
+                updateResource(d.uri, entity).done(function (response) {
                     nf.RemoteProcessGroup.set(response);
                 });
             });
@@ -805,7 +805,7 @@ nf.Actions = (function () {
 
                     $.ajax({
                         type: 'DELETE',
-                        url: selectionData.component.uri + '?' + $.param({
+                        url: selectionData.uri + '?' + $.param({
                             version: revision.version,
                             clientId: revision.clientId
                         }),
@@ -1094,7 +1094,7 @@ nf.Actions = (function () {
             var processor = selection.datum();
 
             // view the state for the selected processor
-            nf.ComponentState.showState(processor.component, nf.CanvasUtils.supportsModification(selection));
+            nf.ComponentState.showState(processor, nf.CanvasUtils.supportsModification(selection));
         },
 
         /**
@@ -1436,7 +1436,7 @@ nf.Actions = (function () {
                 // update the edge in question
                 $.ajax({
                     type: 'PUT',
-                    url: connection.component.uri,
+                    url: connection.uri,
                     data: JSON.stringify(connectionEntity),
                     dataType: 'json',
                     contentType: 'application/json'

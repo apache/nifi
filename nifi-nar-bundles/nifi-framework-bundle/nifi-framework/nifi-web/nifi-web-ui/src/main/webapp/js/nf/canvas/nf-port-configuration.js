@@ -68,7 +68,7 @@ nf.PortConfiguration = (function () {
                         $.ajax({
                             type: 'PUT',
                             data: JSON.stringify(portEntity),
-                            url: portData.component.uri,
+                            url: portData.uri,
                             dataType: 'json',
                             contentType: 'application/json'
                         }).done(function (response) {
