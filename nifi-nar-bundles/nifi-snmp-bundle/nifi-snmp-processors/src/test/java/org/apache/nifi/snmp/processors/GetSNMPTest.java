@@ -360,8 +360,10 @@ public class GetSNMPTest {
         }
 
         runner.run();
-        Thread.sleep(200);
+        Thread.sleep(500);
 
+        // Assert that a file has been transferred before attempting to access
+        runner.assertTransferCount(GetSNMP.REL_SUCCESS, 1);
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
         assertNotNull(successFF);
         assertTrue(successFF.getAttributes().get(SNMPUtils.SNMP_PROP_PREFIX + sysDescr.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4").startsWith("SNMP4J-Agent"));

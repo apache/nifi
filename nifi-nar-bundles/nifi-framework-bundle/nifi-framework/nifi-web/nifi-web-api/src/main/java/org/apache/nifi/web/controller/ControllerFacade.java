@@ -68,8 +68,8 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
@@ -831,7 +831,7 @@ public class ControllerFacade implements Authorizable {
      * @return the available options for searching provenance
      */
     public ProvenanceOptionsDTO getProvenanceSearchOptions() {
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
 
         // create the search options dto
         final ProvenanceOptionsDTO searchOptions = new ProvenanceOptionsDTO();
@@ -905,7 +905,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         // submit the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final QuerySubmission querySubmission = provenanceRepository.submitQuery(query, NiFiUserUtils.getNiFiUser());
 
         // return the query with the results populated at this point
@@ -921,7 +921,7 @@ public class ControllerFacade implements Authorizable {
     public ProvenanceDTO getProvenanceQuery(String provenanceId) {
         try {
             // get the query to the provenance repository
-            final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+            final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
             final QuerySubmission querySubmission = provenanceRepository.retrieveQuerySubmission(provenanceId, NiFiUserUtils.getNiFiUser());
 
             // ensure the query results could be found
@@ -1013,7 +1013,7 @@ public class ControllerFacade implements Authorizable {
         final LineageRequestDTO requestDto = lineageDto.getRequest();
 
         // get the provenance repo
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission result;
 
         // submit the event
@@ -1040,7 +1040,7 @@ public class ControllerFacade implements Authorizable {
      */
     public LineageDTO getLineage(final String lineageId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission computeLineageSubmission = provenanceRepository.retrieveLineageSubmission(lineageId, NiFiUserUtils.getNiFiUser());
 
         // ensure the submission was found
@@ -1058,7 +1058,7 @@ public class ControllerFacade implements Authorizable {
      */
     public void deleteProvenanceQuery(final String provenanceId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final QuerySubmission querySubmission = provenanceRepository.retrieveQuerySubmission(provenanceId, NiFiUserUtils.getNiFiUser());
         if (querySubmission != null) {
             querySubmission.cancel();
@@ -1072,7 +1072,7 @@ public class ControllerFacade implements Authorizable {
      */
     public void deleteLineage(final String lineageId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission computeLineageSubmission = provenanceRepository.retrieveLineageSubmission(lineageId, NiFiUserUtils.getNiFiUser());
         if (computeLineageSubmission != null) {
             computeLineageSubmission.cancel();

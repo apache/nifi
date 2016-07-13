@@ -183,8 +183,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
@@ -266,7 +266,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final ContentRepository contentRepository;
     private final FlowFileRepository flowFileRepository;
     private final FlowFileEventRepository flowFileEventRepository;
-    private final ProvenanceEventRepository provenanceEventRepository;
+    private final ProvenanceRepository provenanceRepository;
     private final BulletinRepository bulletinRepository;
     private final StandardProcessScheduler processScheduler;
     private final SnippetManager snippetManager;
@@ -449,8 +449,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         bulletinRepository = bulletinRepo;
 
         try {
-            this.provenanceEventRepository = createProvenanceRepository(properties);
-            this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository), authorizer, this);
+            this.provenanceRepository = createProvenanceRepository(properties);
+            this.provenanceRepository.initialize(createEventReporter(bulletinRepository), authorizer, this);
         } catch (final Exception e) {
             throw new RuntimeException("Unable to create Provenance Repository", e);
         }
@@ -470,7 +470,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         processScheduler = new StandardProcessScheduler(this, encryptor, stateManagerProvider);
         eventDrivenWorkerQueue = new EventDrivenWorkerQueue(false, false, processScheduler);
 
-        final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceEventRepository);
+        final ProcessContextFactory contextFactory = new ProcessContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository);
         processScheduler.setSchedulingAgent(SchedulingStrategy.EVENT_DRIVEN, new EventDrivenSchedulingAgent(
             eventDrivenEngineRef.get(), this, stateManagerProvider, eventDrivenWorkerQueue, contextFactory, maxEventDrivenThreads.get(), encryptor));
 
@@ -521,7 +521,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
         } else if (isSiteToSiteSecure && sslContext == null) {
             LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore "
-                + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
+                    + "Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
             RemoteResourceManager.setServerProtocolImplementation(SocketFlowFileServerProtocol.RESOURCE_NAME, SocketFlowFileServerProtocol.class);
@@ -534,7 +534,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             externalSiteListeners.add(HttpRemoteSiteListener.getInstance());
         }
 
-        for(final RemoteSiteListener listener : externalSiteListeners) {
+        for (final RemoteSiteListener listener : externalSiteListeners) {
             listener.setRootGroup(rootGroup);
         }
 
@@ -672,7 +672,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // ContentRepository to purge superfluous files
             contentRepository.cleanup();
 
-            for(final RemoteSiteListener listener : externalSiteListeners) {
+            for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.start();
             }
 
@@ -807,7 +807,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    private ProvenanceEventRepository createProvenanceRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    private ProvenanceRepository createProvenanceRepository(final NiFiProperties properties) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final String implementationClassName = properties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, DEFAULT_PROVENANCE_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create Provenance Repository because the NiFi Properties is missing the following property: "
@@ -815,7 +815,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            return NarThreadContextClassLoader.createInstance(implementationClassName, ProvenanceEventRepository.class);
+            return NarThreadContextClassLoader.createInstance(implementationClassName, ProvenanceRepository.class);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
@@ -882,16 +882,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         return builder.id(requireNonNull(id).intern())
-            .name(name == null ? null : name.intern())
-            .relationships(relationships)
-            .source(requireNonNull(source))
-            .destination(destination)
-            .swapManager(swapManager)
-            .eventReporter(eventReporter)
-            .resourceClaimManager(resourceClaimManager)
-            .flowFileRepository(flowFileRepository)
-            .provenanceRepository(provenanceEventRepository)
-            .build();
+                .name(name == null ? null : name.intern())
+                .relationships(relationships)
+                .source(requireNonNull(source))
+                .destination(destination)
+                .swapManager(swapManager)
+                .eventReporter(eventReporter)
+                .resourceClaimManager(resourceClaimManager)
+                .flowFileRepository(flowFileRepository)
+                .provenanceRepository(provenanceRepository)
+                .build();
     }
 
     /**
@@ -1313,7 +1313,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     + "will take an indeterminate amount of time to stop.  Might need to kill the program manually.");
             }
 
-            for(final RemoteSiteListener listener : externalSiteListeners) {
+            for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.stop();
             }
 
@@ -1325,9 +1325,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 contentRepository.shutdown();
             }
 
-            if (provenanceEventRepository != null) {
+            if (provenanceRepository != null) {
                 try {
-                    provenanceEventRepository.close();
+                    provenanceRepository.close();
                 } catch (final IOException ioe) {
                     LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
                     if (LOG.isDebugEnabled()) {
@@ -1414,9 +1414,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * Updates the number of threads that can be simultaneously used for executing processors.
      *
-     * @param maxThreadCount
-     *
-     *            This method must be called while holding the write lock!
+     * @param maxThreadCount This method must be called while holding the write lock!
      */
     private void setMaxThreadCount(final int maxThreadCount, final FlowEngine engine, final AtomicInteger maxThreads) {
         if (maxThreadCount < 1) {
@@ -1458,7 +1456,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         try {
             rootGroup = group;
 
-            for(final RemoteSiteListener listener : externalSiteListeners) {
+            for (final RemoteSiteListener listener : externalSiteListeners) {
                 listener.setRootGroup(rootGroup);
             }
 
@@ -3496,7 +3494,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             .setDetails("Download of " + (direction == ContentDirection.INPUT ? "Input" : "Output") + " Content requested by " + requestor + " for Provenance Event " + provEvent.getEventId())
             .build();
 
-        provenanceEventRepository.registerEvent(sendEvent);
+        provenanceRepository.registerEvent(sendEvent);
 
         return new LimitedInputStream(rawStream, size);
     }
@@ -3542,7 +3540,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         final ProvenanceEventRecord sendEvent = sendEventBuilder.build();
-        provenanceEventRepository.registerEvent(sendEvent);
+        provenanceRepository.registerEvent(sendEvent);
         return stream;
     }
 
@@ -3596,7 +3594,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     public ProvenanceEventRecord replayFlowFile(final long provenanceEventRecordId, final NiFiUser user) throws IOException {
-        final ProvenanceEventRecord record = provenanceEventRepository.getEvent(provenanceEventRecordId, user);
+        final ProvenanceEventRecord record = provenanceRepository.getEvent(provenanceEventRecordId, user);
         if (record == null) {
             throw new IllegalStateException("Cannot find Provenance Event with ID " + provenanceEventRecordId);
         }
@@ -3691,20 +3689,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         // Register a Provenance Event to indicate that we replayed the data.
         final ProvenanceEventRecord replayEvent = new StandardProvenanceEventRecord.Builder()
-            .setEventType(ProvenanceEventType.REPLAY)
-            .addChildUuid(newFlowFileUUID)
-            .addParentUuid(parentUUID)
-            .setFlowFileUUID(parentUUID)
-            .setAttributes(Collections.<String, String> emptyMap(), flowFileRecord.getAttributes())
-            .setCurrentContentClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
-            .setDetails("Replay requested by " + user.getIdentity())
-            .setEventTime(System.currentTimeMillis())
-            .setFlowFileEntryDate(System.currentTimeMillis())
-            .setLineageStartDate(event.getLineageStartDate())
-            .setComponentType(event.getComponentType())
-            .setComponentId(event.getComponentId())
-            .build();
-        provenanceEventRepository.registerEvent(replayEvent);
+                .setEventType(ProvenanceEventType.REPLAY)
+                .addChildUuid(newFlowFileUUID)
+                .addParentUuid(parentUUID)
+                .setFlowFileUUID(parentUUID)
+                .setAttributes(Collections.<String, String>emptyMap(), flowFileRecord.getAttributes())
+                .setCurrentContentClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
+                .setDetails("Replay requested by " + user.getIdentity())
+                .setEventTime(System.currentTimeMillis())
+                .setFlowFileEntryDate(System.currentTimeMillis())
+                .setLineageStartDate(event.getLineageStartDate())
+                .setComponentType(event.getComponentType())
+                .setComponentId(event.getComponentId())
+                .build();
+        provenanceRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow
         final StandardRepositoryRecord record = new StandardRepositoryRecord(queue, flowFileRecord);
@@ -3863,7 +3861,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     @Override
     public List<ProvenanceEventRecord> getProvenanceEvents(final long firstEventId, final int maxRecords) throws IOException {
-        return new ArrayList<>(provenanceEventRepository.getEvents(firstEventId, maxRecords));
+        return new ArrayList<>(provenanceRepository.getEvents(firstEventId, maxRecords));
     }
 
     @Override
@@ -3955,9 +3953,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return controllerServiceProvider.getControllerServiceIdentifiers(serviceType, groupId);
     }
 
-    @Override
-    public ProvenanceEventRepository getProvenanceRepository() {
-        return provenanceEventRepository;
+    public ProvenanceRepository getProvenanceRepository() {
+        return provenanceRepository;
     }
 
     public StatusHistoryDTO getConnectionStatusHistory(final String connectionId) {

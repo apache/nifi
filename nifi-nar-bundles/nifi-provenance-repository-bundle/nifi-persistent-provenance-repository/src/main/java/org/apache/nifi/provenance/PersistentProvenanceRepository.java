@@ -112,7 +112,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class PersistentProvenanceRepository implements ProvenanceEventRepository {
+public class PersistentProvenanceRepository implements ProvenanceRepository {
 
     public static final String EVENT_CATEGORY = "Provenance Repository";
     private static final String FILE_EXTENSION = ".prov";
@@ -2264,7 +2264,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
-    private ProvenanceEventRecord getEvent(final long id) throws IOException {
+    public ProvenanceEventRecord getEvent(final long id) throws IOException {
         final List<ProvenanceEventRecord> records = getEvents(id, 1);
         if (records.isEmpty()) {
             return null;
@@ -2318,6 +2318,11 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             files.add(path.toFile());
         }
         return files;
+    }
+
+    @Override
+    public ProvenanceEventRepository getProvenanceEventRepository() {
+        return this;
     }
 
     /**

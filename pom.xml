@@ -25,6 +25,7 @@ language governing permissions and limitations under the License. -->
     <modules>
         <module>nifi-commons</module>
         <module>nifi-api</module>
+        <module>nifi-framework-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
@@ -789,6 +790,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-api</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>

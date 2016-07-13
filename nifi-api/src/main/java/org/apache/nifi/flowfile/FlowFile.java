@@ -68,7 +68,7 @@ public interface FlowFile extends Comparable<FlowFile> {
      * @return the time at which the FlowFile was most recently added to a
      * FlowFile queue, or {@code null} if the FlowFile has never been enqueued.
      * This value will always be populated before it is passed to a
-     * {@link FlowFilePrioritizer}
+     * FlowFilePrioritizer
      */
     Long getLastQueueDate();
 

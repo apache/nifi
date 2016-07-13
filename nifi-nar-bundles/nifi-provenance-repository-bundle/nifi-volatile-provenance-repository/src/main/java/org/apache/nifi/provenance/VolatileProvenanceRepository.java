@@ -62,7 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-public class VolatileProvenanceRepository implements ProvenanceEventRepository {
+public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     // properties
     public static final String BUFFER_SIZE = "nifi.provenance.repository.buffer.size";
@@ -124,6 +124,11 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     @Override
+    public ProvenanceEventRepository getProvenanceEventRepository() {
+        return this;
+    }
+
+    @Override
     public ProvenanceEventBuilder eventBuilder() {
         return new StandardProvenanceEventRecord.Builder();
     }
@@ -176,7 +181,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
-    private ProvenanceEventRecord getEvent(final long id) {
+    public ProvenanceEventRecord getEvent(final long id) {
         final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
@@ -187,7 +192,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
-    @Override
     public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) {
         final ProvenanceEventRecord event = getEvent(id);
         if (event == null) {

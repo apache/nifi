@@ -39,7 +39,7 @@ import org.apache.nifi.processor.Relationship;
 @Inherited
 public @interface DynamicRelationship {
 
-    public String name();
+    String name();
 
-    public String description();
+    String description();
 }

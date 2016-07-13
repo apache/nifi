@@ -36,11 +36,11 @@ import org.apache.nifi.components.ConfigurableComponent;
 @Inherited
 public @interface DynamicProperty {
 
-    public String name();
+    String name();
 
-    public boolean supportsExpressionLanguage() default false;
+    boolean supportsExpressionLanguage() default false;
 
-    public String value();
+    String value();
 
-    public String description();
+    String description();
 }
