@@ -16,20 +16,11 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
+import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.EventHubClient;
+import com.microsoft.azure.eventhubs.PartitionReceiver;
+import com.microsoft.azure.servicebus.ConnectionStringBuilder;
+import com.microsoft.azure.servicebus.ServiceBusException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -45,110 +36,136 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import com.microsoft.eventhubs.client.ConnectionStringBuilder;
-import com.microsoft.eventhubs.client.EventHubEnqueueTimeFilter;
-import com.microsoft.eventhubs.client.EventHubException;
-import com.microsoft.eventhubs.client.EventHubMessage;
-import com.microsoft.eventhubs.client.IEventHubFilter;
-import com.microsoft.eventhubs.client.ResilientEventHubReceiver;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-@Tags({ "azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams" })
+@Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from a Microsoft Azure Event Hub, writing the contents of the Azure message to the content of the FlowFile")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
-    @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the Azure Event Hub"),
-    @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
-    @WritesAttribute(attribute = "eventhub.sequence", description = "The Azure Sequence number associated with the message"),
-    @WritesAttribute(attribute = "eventhub.name", description = "The name of the Event Hub from which the message was pulled"),
-    @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the Azure Event Hub"),
+        @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
+        @WritesAttribute(attribute = "eventhub.sequence", description = "The Azure Sequence number associated with the message"),
+        @WritesAttribute(attribute = "eventhub.name", description = "The name of the Event Hub from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
 })
 public class GetAzureEventHub extends AbstractProcessor {
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
-        .name("Event Hub Name")
-        .description("The name of the Azure Event Hub to pull messages from")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(true)
-        .build();
+            .name("Event Hub Name")
+            .description("The name of the Azure Event Hub to pull messages from")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .build();
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
-        .name("Event Hub Namespace")
-        .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .required(true)
-        .build();
+            .name("Event Hub Namespace")
+            .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .required(true)
+            .build();
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
-        .name("Shared Access Policy Name")
-        .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .required(true)
-        .build();
+            .name("Shared Access Policy Name")
+            .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .required(true)
+            .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
-        .name("Shared Access Policy Primary Key")
-        .description("The primary key of the Event Hub Shared Access Policy")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .sensitive(true)
-        .required(true)
-        .build();
+            .name("Shared Access Policy Primary Key")
+            .description("The primary key of the Event Hub Shared Access Policy")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .sensitive(true)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor NUM_PARTITIONS = new PropertyDescriptor.Builder()
-        .name("Number of Event Hub Partitions")
-        .description("The number of partitions that the Event Hub has. Only this number of partitions will be used, "
-            + "so it is important to ensure that if the number of partitions changes that this value be updated. Otherwise, some messages may not be consumed.")
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .required(true)
-        .build();
+            .name("Number of Event Hub Partitions")
+            .description("The number of partitions that the Event Hub has. Only this number of partitions will be used, "
+                    + "so it is important to ensure that if the number of partitions changes that this value be updated. Otherwise, some messages may not be consumed.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .required(true)
+            .build();
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
-        .name("Event Hub Consumer Group")
-        .description("The name of the Event Hub Consumer Group to use when pulling events")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .defaultValue("$Default")
-        .required(true)
-        .build();
-    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("Batch Size")
-        .description("The number of FlowFiles to pull in a single JMS session")
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .defaultValue("10")
-        .required(true)
-        .build();
+            .name("Event Hub Consumer Group")
+            .description("The name of the Event Hub Consumer Group to use when pulling events")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .defaultValue("$Default")
+            .required(true)
+            .build();
+
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Any FlowFile that is successfully received from the Azure Event Hub will be transferred to this Relationship.")
-        .build();
+            .name("success")
+            .description("Any FlowFile that is successfully received from the Azure Event Hub will be transferred to this Relationship.")
+            .build();
 
-    private final ConcurrentMap<String, ResilientEventHubReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, PartitionReceiver> partitionToReceiverMap = new ConcurrentHashMap<>();
     private volatile BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
+    private EventHubClient eventHubClient;
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(EVENT_HUB_NAME);
-        properties.add(NAMESPACE);
-        properties.add(ACCESS_POLICY);
-        properties.add(POLICY_PRIMARY_KEY);
-        properties.add(NUM_PARTITIONS);
-        properties.add(CONSUMER_GROUP);
-        return properties;
+    private final static List<PropertyDescriptor> propertyDescriptors;
+    private final static Set<Relationship> relationships;
+
+    /*
+    * Will ensure that the list of property descriptors is build only once.
+    * Will also create a Set of relationships
+    */
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(EVENT_HUB_NAME);
+        _propertyDescriptors.add(NAMESPACE);
+        _propertyDescriptors.add(ACCESS_POLICY);
+        _propertyDescriptors.add(POLICY_PRIMARY_KEY);
+        _propertyDescriptors.add(NUM_PARTITIONS);
+        _propertyDescriptors.add(CONSUMER_GROUP);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+
+        Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        relationships = Collections.unmodifiableSet(_relationships);
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return relationships;
     }
 
-    private ResilientEventHubReceiver getReceiver(final ProcessContext context, final String partitionId) throws EventHubException {
-        ResilientEventHubReceiver existingReceiver = partitionToReceiverMap.get(partitionId);
+    @Override
+    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return propertyDescriptors;
+    }
+
+
+    protected void setupReceiver(final String connectionString) throws ProcessException {
+        try {
+            eventHubClient = EventHubClient.createFromConnectionString(connectionString).get();
+        } catch (InterruptedException | ExecutionException | IOException | ServiceBusException e) {
+            throw new ProcessException(e);
+        }
+    }
+
+    PartitionReceiver getReceiver(final ProcessContext context, final String partitionId) throws IOException, ServiceBusException, ExecutionException, InterruptedException {
+        PartitionReceiver existingReceiver = partitionToReceiverMap.get(partitionId);
         if (existingReceiver != null) {
             return existingReceiver;
         }
@@ -167,39 +184,74 @@ public class GetAzureEventHub extends AbstractProcessor {
                 return existingReceiver;
             }
 
-            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
-            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
-            final String namespace = context.getProperty(NAMESPACE).getValue();
-            final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
             final String consumerGroupName = context.getProperty(CONSUMER_GROUP).getValue();
 
-            final String connectionString = new ConnectionStringBuilder(policyName, policyKey, namespace).getConnectionString();
-            final IEventHubFilter filter = new EventHubEnqueueTimeFilter(System.currentTimeMillis());
-            final ResilientEventHubReceiver receiver = new ResilientEventHubReceiver(connectionString, eventHubName, partitionId, consumerGroupName, -1, filter);
-            receiver.initialize();
+            final PartitionReceiver receiver = eventHubClient.createReceiver(
+                    consumerGroupName,
+                    partitionId,
+                    Instant.now()).get();
 
             partitionToReceiverMap.put(partitionId, receiver);
             return receiver;
+
         }
     }
 
+    /**
+     * This method is here to try and isolate the Azure related code as the PartitionReceiver cannot be mocked
+     * with PowerMock due to it being final. Unfortunately it extends a base class and does not implement an interface
+     * so even if we create a MockPartitionReciver, it will not work as the two classes are orthogonal.
+     *
+     * @param context     - The processcontext for this processor
+     * @param partitionId - The partition ID to retrieve a receiver by.
+     * @return - Returns the events received from the EventBus.
+     * @throws ProcessException -- If any exception is encountered, receiving events it is wrapped in a ProcessException
+     *                          and then that exception is thrown.
+     */
+    protected Iterable<EventData> receiveEvents(final ProcessContext context, final String partitionId) throws ProcessException {
+        final PartitionReceiver receiver;
+        try {
+            receiver = getReceiver(context, partitionId);
+            return receiver.receive(100).get();
+        } catch (final IOException | ServiceBusException | ExecutionException | InterruptedException e) {
+            throw new ProcessException(e);
+        }
+    }
 
     @OnStopped
-    public void tearDown() {
-        for (final ResilientEventHubReceiver receiver : partitionToReceiverMap.values()) {
-            receiver.close();
+    public void tearDown() throws ProcessException {
+        for (final PartitionReceiver receiver : partitionToReceiverMap.values()) {
+            if (null != receiver) {
+                receiver.close();
+            }
         }
 
         partitionToReceiverMap.clear();
+        try {
+            if (null != eventHubClient) {
+                eventHubClient.closeSync();
+            }
+        } catch (final ServiceBusException e) {
+            throw new ProcessException(e);
+        }
     }
 
     @OnScheduled
-    public void setupPartitions(final ProcessContext context) {
+    public void onScheduled(final ProcessContext context) throws ProcessException {
         final BlockingQueue<String> partitionNames = new LinkedBlockingQueue<>();
         for (int i = 0; i < context.getProperty(NUM_PARTITIONS).asInteger(); i++) {
             partitionNames.add(String.valueOf(i));
         }
         this.partitionNames = partitionNames;
+
+        final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+        final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+        final String namespace = context.getProperty(NAMESPACE).getValue();
+        final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+
+
+        final String connectionString = new ConnectionStringBuilder(namespace, eventHubName, policyName, policyKey).toString();
+        setupReceiver(connectionString);
     }
 
 
@@ -214,41 +266,44 @@ public class GetAzureEventHub extends AbstractProcessor {
 
         final StopWatch stopWatch = new StopWatch(true);
         try {
-            final ResilientEventHubReceiver receiver;
-            try {
-                receiver = getReceiver(context, partitionId);
-            } catch (final EventHubException e) {
-                throw new ProcessException(e);
-            }
 
-            final EventHubMessage message = EventHubMessage.parseAmqpMessage(receiver.receive(100L));
-            if (message == null) {
+            final Iterable<EventData> receivedEvents = receiveEvents(context, partitionId);
+            if (receivedEvents == null) {
                 return;
             }
 
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("eventhub.enqueued.timestamp", String.valueOf(message.getEnqueuedTimestamp()));
-            attributes.put("eventhub.offset", message.getOffset());
-            attributes.put("eventhub.sequence", String.valueOf(message.getSequence()));
-            attributes.put("eventhub.name", context.getProperty(EVENT_HUB_NAME).getValue());
-            attributes.put("eventhub.partition", partitionId);
+            for (final EventData eventData : receivedEvents) {
+                if (null != eventData) {
 
-            FlowFile flowFile = session.create();
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    out.write(message.getData());
+                    final Map<String, String> attributes = new HashMap<>();
+                    FlowFile flowFile = session.create();
+                    EventData.SystemProperties systemProperties = eventData.getSystemProperties();
+
+                    if (null != systemProperties) {
+                        attributes.put("eventhub.enqueued.timestamp", String.valueOf(eventData.getSystemProperties().getEnqueuedTime()));
+                        attributes.put("eventhub.offset", eventData.getSystemProperties().getOffset());
+                        attributes.put("eventhub.sequence", String.valueOf(eventData.getSystemProperties().getSequenceNumber()));
+                    }
+
+                    attributes.put("eventhub.name", context.getProperty(EVENT_HUB_NAME).getValue());
+                    attributes.put("eventhub.partition", partitionId);
+
+
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    flowFile = session.write(flowFile, out -> {
+                        out.write(eventData.getBody());
+                    });
+
+
+                    session.transfer(flowFile, REL_SUCCESS);
+
+                    final String namespace = context.getProperty(NAMESPACE).getValue();
+                    final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+                    final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
+                    final String transitUri = "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName + "/ConsumerGroups/" + consumerGroup + "/Partitions/" + partitionId;
+                    session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 }
-            });
-
-            session.transfer(flowFile, REL_SUCCESS);
-
-            final String namespace = context.getProperty(NAMESPACE).getValue();
-            final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-            final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
-            final String transitUri = "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName + "/ConsumerGroups/" + consumerGroup + "/Partitions/" + partitionId;
-            session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            }
         } finally {
             partitionIds.offer(partitionId);
         }
