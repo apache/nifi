@@ -18,13 +18,18 @@ class testScriptRoutesToFailure implements Processor {
 
   def ComponentLog log
 
+  def REL_FAILURE = new Relationship.Builder()
+          .name("FAILURE")
+          .description("A FAILURE relationship")
+          .build();
+
   @Override
   void initialize(ProcessorInitializationContext context) {
   }
 
   @Override
   Set<Relationship> getRelationships() {
-      return [] as Set
+        return [REL_FAILURE] as Set
   }
 
   @Override
@@ -32,7 +37,7 @@ class testScriptRoutesToFailure implements Processor {
       def session = sessionFactory.createSession()
       def flowFile = session.get()
       if(!flowFile) return
-      session.transfer(flowFile, InvokeScriptedProcessor.REL_FAILURE)
+      session.transfer(flowFile, REL_FAILURE)
   }
 
   @Override
