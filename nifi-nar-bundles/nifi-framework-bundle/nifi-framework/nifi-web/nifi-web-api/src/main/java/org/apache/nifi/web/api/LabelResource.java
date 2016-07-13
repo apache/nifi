@@ -83,32 +83,8 @@ public class LabelResource extends ApplicationResource {
      * @return entities
      */
     public LabelEntity populateRemainingLabelEntityContent(LabelEntity labelEntity) {
-        if (labelEntity.getComponent() != null) {
-            populateRemainingLabelContent(labelEntity.getComponent());
-        }
+        labelEntity.setUri(generateResourceUri("labels", labelEntity.getId()));
         return labelEntity;
-    }
-
-    /**
-     * Populates the uri for the specified labels.
-     *
-     * @param labels labels
-     * @return dtos
-     */
-    public Set<LabelDTO> populateRemainingLabelsContent(Set<LabelDTO> labels) {
-        for (LabelDTO label : labels) {
-            populateRemainingLabelContent(label);
-        }
-        return labels;
-    }
-
-    /**
-     * Populates the uri for the specified label.
-     */
-    public LabelDTO populateRemainingLabelContent(LabelDTO label) {
-        // populate the label href
-        label.setUri(generateResourceUri("labels", label.getId()));
-        return label;
     }
 
     /**

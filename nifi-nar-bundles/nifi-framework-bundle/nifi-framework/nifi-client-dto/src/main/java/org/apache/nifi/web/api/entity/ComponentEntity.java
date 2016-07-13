@@ -34,6 +34,7 @@ public class ComponentEntity extends Entity {
 
     private RevisionDTO revision;
     private String id;
+    private String uri;
     private PositionDTO position;
     private PermissionsDTO permissions;
     private List<BulletinDTO> bulletins;
@@ -66,6 +67,22 @@ public class ComponentEntity extends Entity {
 
     public void setId(final String id) {
         this.id = id;
+    }
+
+    /**
+     * The uri for linking to this component in this NiFi.
+     *
+     * @return The uri
+     */
+    @ApiModelProperty(
+            value = "The URI for futures requests to the component."
+    )
+    public String getUri() {
+        return uri;
+    }
+
+    public void setUri(String uri) {
+        this.uri = uri;
     }
 
     /**

@@ -315,7 +315,7 @@ nf.Label = (function () {
 
                         $.ajax({
                             type: 'PUT',
-                            url: labelData.component.uri,
+                            url: labelData.uri,
                             data: JSON.stringify(labelEntity),
                             dataType: 'json',
                             contentType: 'application/json'

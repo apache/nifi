@@ -1188,7 +1188,7 @@ nf.Connection = (function () {
 
         return $.ajax({
             type: 'PUT',
-            url: d.component.uri,
+            url: d.uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
@@ -1397,7 +1397,7 @@ nf.Connection = (function () {
 
                             $.ajax({
                                 type: 'PUT',
-                                url: connectionData.component.uri,
+                                url: connectionData.uri,
                                 data: JSON.stringify(connectionEntity),
                                 dataType: 'json',
                                 contentType: 'application/json'

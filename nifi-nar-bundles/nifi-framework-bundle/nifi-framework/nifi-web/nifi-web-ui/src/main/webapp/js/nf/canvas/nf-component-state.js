@@ -256,10 +256,10 @@ nf.ComponentState = (function () {
                     var stateEntryCount = componentStateGrid.getDataLength();
 
                     if (stateEntryCount > 0) {
-                        var component = componentStateTable.data('component');
+                        var componentEntity = componentStateTable.data('component');
                         $.ajax({
                             type: 'POST',
-                            url: component.uri + '/state/clear-requests',
+                            url: componentEntity.uri + '/state/clear-requests',
                             dataType: 'json'
                         }).done(function (response) {
                             // clear the table
@@ -356,13 +356,13 @@ nf.ComponentState = (function () {
         /**
          * Shows the state for a given component.
          *
-         * @param {object} component
+         * @param {object} componentEntity
          * @param {boolean} canClear
          */
-        showState: function (component, canClear) {
+        showState: function (componentEntity, canClear) {
             return $.ajax({
                 type: 'GET',
-                url: component.uri + '/state',
+                url: componentEntity.uri + '/state',
                 dataType: 'json'
             }).done(function (response) {
                 var componentState = response.componentState;
@@ -372,11 +372,11 @@ nf.ComponentState = (function () {
                 loadComponentState(componentState.localState, componentState.clusterState);
 
                 // populate the name/description
-                $('#component-state-name').text(component.name);
+                $('#component-state-name').text(componentEntity.component.name);
                 $('#component-state-description').text(componentState.stateDescription).ellipsis();
 
                 // store the component
-                componentStateTable.data('component', component);
+                componentStateTable.data('component', componentEntity);
 
                 // show the dialog
                 $('#component-state-dialog').modal('show');

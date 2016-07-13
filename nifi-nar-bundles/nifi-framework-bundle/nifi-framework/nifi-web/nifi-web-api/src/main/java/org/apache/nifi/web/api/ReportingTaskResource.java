@@ -98,6 +98,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * @return dtos
      */
     public ReportingTaskEntity populateRemainingReportingTaskEntityContent(final ReportingTaskEntity reportingTaskEntity) {
+        reportingTaskEntity.setUri(generateResourceUri("reporting-tasks", reportingTaskEntity.getId()));
+
+        // populate the remaining content
         if (reportingTaskEntity.getComponent() != null) {
             populateRemainingReportingTaskContent(reportingTaskEntity.getComponent());
         }
@@ -106,24 +109,8 @@ public class ReportingTaskResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified reporting task.
-     *
-     * @param reportingTasks tasks
-     * @return tasks
-     */
-    public Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final Set<ReportingTaskDTO> reportingTasks) {
-        for (ReportingTaskDTO reportingTask : reportingTasks) {
-            populateRemainingReportingTaskContent(reportingTask);
-        }
-        return reportingTasks;
-    }
-
-    /**
-     * Populates the uri for the specified reporting task.
      */
     public ReportingTaskDTO populateRemainingReportingTaskContent(final ReportingTaskDTO reportingTask) {
-        // populate the reporting task href
-        reportingTask.setUri(generateResourceUri("reporting-tasks", reportingTask.getId()));
-
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {

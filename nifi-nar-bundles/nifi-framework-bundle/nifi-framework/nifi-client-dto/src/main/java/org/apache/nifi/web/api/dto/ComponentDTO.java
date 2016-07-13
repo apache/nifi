@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ComponentDTO {
 
     private String id;
-    private String uri;
+
     private String parentGroupId;
     private PositionDTO position;
 
@@ -58,22 +58,6 @@ public class ComponentDTO {
 
     public void setParentGroupId(String parentGroupId) {
         this.parentGroupId = parentGroupId;
-    }
-
-    /**
-     * The uri for linking to this component in this NiFi.
-     *
-     * @return The uri
-     */
-    @ApiModelProperty(
-            value = "The URI for futures requests to the component."
-    )
-    public String getUri() {
-        return uri;
-    }
-
-    public void setUri(String uri) {
-        this.uri = uri;
     }
 
     /**

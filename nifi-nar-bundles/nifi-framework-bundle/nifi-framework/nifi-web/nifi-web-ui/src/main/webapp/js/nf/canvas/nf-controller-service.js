@@ -132,7 +132,7 @@ nf.ControllerService = (function () {
 
         return $.ajax({
             type: 'GET',
-            url: controllerServiceEntity.component.uri,
+            url: controllerServiceEntity.uri,
             dataType: 'json'
         }).done(function (response) {
             renderControllerService(serviceTable, response);
@@ -602,7 +602,7 @@ nf.ControllerService = (function () {
 
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri,
+            url: controllerServiceEntity.uri,
             data: JSON.stringify(updateControllerServiceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -697,7 +697,7 @@ nf.ControllerService = (function () {
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri + '/references',
+            url: controllerServiceEntity.uri + '/references',
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -969,7 +969,7 @@ nf.ControllerService = (function () {
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri + '/references',
+            url: controllerServiceEntity.uri + '/references',
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -1398,7 +1398,7 @@ nf.ControllerService = (function () {
         var controllerServiceEntity = $('#controller-service-configuration').data('controllerServiceDetails');
         return $.ajax({
             type: 'GET',
-            url: controllerServiceEntity.component.uri + '/descriptors',
+            url: controllerServiceEntity.uri + '/descriptors',
             data: {
                 propertyName: propertyName
             },
@@ -1465,7 +1465,7 @@ nf.ControllerService = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedControllerService),
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -1698,7 +1698,7 @@ nf.ControllerService = (function () {
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json'
             });
 
@@ -1863,7 +1863,7 @@ nf.ControllerService = (function () {
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json'
             });
 
@@ -1999,7 +1999,7 @@ nf.ControllerService = (function () {
             var revision = nf.Client.getRevision(controllerServiceEntity);
             $.ajax({
                 type: 'DELETE',
-                url: controllerServiceEntity.component.uri + '?' + $.param({
+                url: controllerServiceEntity.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),

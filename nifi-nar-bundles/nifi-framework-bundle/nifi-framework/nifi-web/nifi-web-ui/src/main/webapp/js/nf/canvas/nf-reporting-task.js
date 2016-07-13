@@ -205,7 +205,7 @@ nf.ReportingTask = (function () {
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTaskEntity.component.uri,
+            url: reportingTaskEntity.uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
@@ -265,7 +265,7 @@ nf.ReportingTask = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedReportingTask),
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -390,7 +390,7 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
 
@@ -595,7 +595,7 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
 
@@ -715,7 +715,7 @@ nf.ReportingTask = (function () {
 
             return $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             }).done(function (response) {
                 renderReportingTask(response);
@@ -733,7 +733,7 @@ nf.ReportingTask = (function () {
             var revision = nf.Client.getRevision(reportingTaskEntity);
             $.ajax({
                 type: 'DELETE',
-                url: reportingTaskEntity.component.uri + '?' + $.param({
+                url: reportingTaskEntity.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),

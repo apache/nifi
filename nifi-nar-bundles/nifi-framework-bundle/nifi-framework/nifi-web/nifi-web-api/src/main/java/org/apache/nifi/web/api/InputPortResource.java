@@ -83,32 +83,8 @@ public class InputPortResource extends ApplicationResource {
          * @return ports
          */
     public PortEntity populateRemainingInputPortEntityContent(PortEntity inputPortEntity) {
-        if (inputPortEntity.getComponent() != null) {
-            populateRemainingInputPortContent(inputPortEntity.getComponent());
-        }
+        inputPortEntity.setUri(generateResourceUri("input-ports", inputPortEntity.getId()));
         return inputPortEntity;
-    }
-
-    /**
-     * Populates the uri for the specified input ports.
-     *
-     * @param inputPorts ports
-     * @return ports
-     */
-    public Set<PortDTO> populateRemainingInputPortsContent(Set<PortDTO> inputPorts) {
-        for (PortDTO inputPort : inputPorts) {
-            populateRemainingInputPortContent(inputPort);
-        }
-        return inputPorts;
-    }
-
-    /**
-     * Populates the uri for the specified input ports.
-     */
-    public PortDTO populateRemainingInputPortContent(PortDTO inputPort) {
-        // populate the input port uri
-        inputPort.setUri(generateResourceUri("input-ports", inputPort.getId()));
-        return inputPort;
     }
 
     /**

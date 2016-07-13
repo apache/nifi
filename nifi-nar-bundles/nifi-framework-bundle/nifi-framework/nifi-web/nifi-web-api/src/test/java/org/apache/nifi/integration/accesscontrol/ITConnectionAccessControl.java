@@ -414,7 +414,7 @@ public class ITConnectionAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        ClientResponse response = user.testDelete(entity.getComponent().getUri(), queryParams);
+        ClientResponse response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());

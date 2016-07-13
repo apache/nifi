@@ -89,36 +89,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
      * @return dtos
      */
     public RemoteProcessGroupEntity populateRemainingRemoteProcessGroupEntityContent(RemoteProcessGroupEntity remoteProcessGroupEntity) {
-        if (remoteProcessGroupEntity.getComponent() != null) {
-            populateRemainingRemoteProcessGroupContent(remoteProcessGroupEntity.getComponent());
-        }
+        remoteProcessGroupEntity.setUri(generateResourceUri("remote-process-groups", remoteProcessGroupEntity.getId()));
         return remoteProcessGroupEntity;
-    }
-
-    /**
-     * Populates the remaining content for each remote process group. The uri must be generated and the remote process groups name must be retrieved.
-     *
-     * @param remoteProcessGroups groups
-     * @return dtos
-     */
-    public Set<RemoteProcessGroupDTO> populateRemainingRemoteProcessGroupsContent(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
-        for (RemoteProcessGroupDTO remoteProcessGroup : remoteProcessGroups) {
-            populateRemainingRemoteProcessGroupContent(remoteProcessGroup);
-        }
-        return remoteProcessGroups;
-    }
-
-    /**
-     * Populates the remaining content for the specified remote process group. The uri must be generated and the remote process groups name must be retrieved.
-     *
-     * @param remoteProcessGroup group
-     * @return dto
-     */
-    public RemoteProcessGroupDTO populateRemainingRemoteProcessGroupContent(RemoteProcessGroupDTO remoteProcessGroup) {
-        // populate the remaining content
-        remoteProcessGroup.setUri(generateResourceUri("remote-process-groups", remoteProcessGroup.getId()));
-
-        return remoteProcessGroup;
     }
 
     /**

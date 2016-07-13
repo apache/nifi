@@ -105,32 +105,8 @@ public class TenantsResource extends ApplicationResource {
      * @return userEntity
      */
     public UserEntity populateRemainingUserEntityContent(UserEntity userEntity) {
-        if (userEntity.getComponent() != null) {
-            populateRemainingUserContent(userEntity.getComponent());
-        }
+        userEntity.setUri(generateResourceUri("tenants/users", userEntity.getId()));
         return userEntity;
-    }
-
-    /**
-     * Populates the uri for the specified user.
-     */
-    public UserDTO populateRemainingUserContent(UserDTO user) {
-        // populate the user href
-        user.setUri(generateResourceUri("tenants/users", user.getId()));
-        return user;
-    }
-
-    /**
-     * Populates the uri for the specified users.
-     *
-     * @param users users
-     * @return user data transfer objects
-     */
-    public Set<UserDTO> populateRemainingUsersContent(Set<UserDTO> users) {
-        for (UserDTO userDTO : users) {
-            populateRemainingUserContent(userDTO);
-        }
-        return users;
     }
 
     /**
@@ -209,7 +185,7 @@ public class TenantsResource extends ApplicationResource {
         populateRemainingUserEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**
@@ -490,34 +466,9 @@ public class TenantsResource extends ApplicationResource {
      * @return userGroupEntity
      */
     public UserGroupEntity populateRemainingUserGroupEntityContent(UserGroupEntity userGroupEntity) {
-        if (userGroupEntity.getComponent() != null) {
-            populateRemainingUserGroupContent(userGroupEntity.getComponent());
-        }
+        userGroupEntity.setUri(generateResourceUri("tenants/user-groups", userGroupEntity.getId()));
         return userGroupEntity;
     }
-
-    /**
-     * Populates the uri for the specified userGroup.
-     */
-    public UserGroupDTO populateRemainingUserGroupContent(UserGroupDTO userGroup) {
-        // populate the user group href
-        userGroup.setUri(generateResourceUri("tenants/user-groups", userGroup.getId()));
-        return userGroup;
-    }
-
-    /**
-     * Populates the uri for the specified user groups.
-     *
-     * @param userGroups user groups
-     * @return user group data transfer objects
-     */
-    public Set<UserGroupDTO> populateRemainingUserGroupsContent(Set<UserGroupDTO> userGroups) {
-        for (UserGroupDTO userGroup : userGroups) {
-            populateRemainingUserGroupContent(userGroup);
-        }
-        return userGroups;
-    }
-
 
     /**
      * Creates a new user group.
@@ -595,7 +546,7 @@ public class TenantsResource extends ApplicationResource {
         populateRemainingUserGroupEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**

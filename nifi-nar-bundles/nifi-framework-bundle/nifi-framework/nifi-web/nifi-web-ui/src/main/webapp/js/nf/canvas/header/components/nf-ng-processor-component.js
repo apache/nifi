@@ -225,20 +225,18 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // add the processor to the graph
-                nf.Graph.add({
-                    'processors': [response]
-                }, {
-                    'selectAll': true
-                });
+            // add the processor to the graph
+            nf.Graph.add({
+                'processors': [response]
+            }, {
+                'selectAll': true
+            });
 
-                // update component visibility
-                nf.Canvas.View.updateVisibility();
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
 
-                // update the birdseye
-                nf.Birdseye.refresh();
-            }
+            // update the birdseye
+            nf.Birdseye.refresh();
         }).fail(nf.Common.handleAjaxError);
     };
 

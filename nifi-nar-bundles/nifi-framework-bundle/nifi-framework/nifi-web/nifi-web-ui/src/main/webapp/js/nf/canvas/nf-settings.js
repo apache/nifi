@@ -732,7 +732,7 @@ nf.Settings = (function () {
                     nf.ReportingTask.remove(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
-                    nf.ComponentState.showState(reportingTaskEntity.component, canClear);
+                    nf.ComponentState.showState(reportingTaskEntity, canClear);
                 } else if (target.hasClass('edit-access-policies')) {
                     // show the policies for this service
                     nf.PolicyManagement.showReportingTaskPolicy(reportingTaskEntity);

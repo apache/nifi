@@ -84,18 +84,9 @@ public class AccessPolicyResource extends ApplicationResource {
      */
     public AccessPolicyEntity populateRemainingAccessPolicyEntityContent(AccessPolicyEntity accessPolicyEntity) {
         if (accessPolicyEntity.getComponent() != null) {
-            populateRemainingAccessPolicyContent(accessPolicyEntity.getComponent());
+            accessPolicyEntity.setUri(generateResourceUri("policies", accessPolicyEntity.getId()));
         }
         return accessPolicyEntity;
-    }
-
-    /**
-     * Populates the uri for the specified accessPolicy.
-     */
-    public AccessPolicyDTO populateRemainingAccessPolicyContent(AccessPolicyDTO accessPolicy) {
-        // populate the access policy href
-        accessPolicy.setUri(generateResourceUri("policies", accessPolicy.getId()));
-        return accessPolicy;
     }
 
     // -----------------
@@ -249,7 +240,7 @@ public class AccessPolicyResource extends ApplicationResource {
         populateRemainingAccessPolicyEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     /**

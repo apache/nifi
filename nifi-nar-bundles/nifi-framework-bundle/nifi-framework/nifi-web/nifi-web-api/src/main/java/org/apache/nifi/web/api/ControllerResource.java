@@ -358,7 +358,7 @@ public class ControllerResource extends ApplicationResource {
         reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     // -------------------
@@ -440,7 +440,7 @@ public class ControllerResource extends ApplicationResource {
         controllerServiceResource.populateRemainingControllerServiceContent(entity.getComponent());
 
         // build the response
-        return clusterContext(generateCreatedResponse(URI.create(entity.getComponent().getUri()), entity)).build();
+        return clusterContext(generateCreatedResponse(URI.create(entity.getUri()), entity)).build();
     }
 
     // -------

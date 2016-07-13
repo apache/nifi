@@ -84,9 +84,7 @@ public class ProcessorResource extends ApplicationResource {
      */
     public Set<ProcessorEntity> populateRemainingProcessorEntitiesContent(Set<ProcessorEntity> processorEntities) {
         for (ProcessorEntity processorEntity : processorEntities) {
-            if (processorEntity.getComponent() != null) {
-                populateRemainingProcessorContent(processorEntity.getComponent());
-            }
+            populateRemainingProcessorEntityContent(processorEntity);
         }
         return processorEntities;
     }
@@ -98,6 +96,9 @@ public class ProcessorResource extends ApplicationResource {
      * @return dtos
      */
     public ProcessorEntity populateRemainingProcessorEntityContent(ProcessorEntity processorEntity) {
+        processorEntity.setUri(generateResourceUri("processors", processorEntity.getId()));
+
+        // populate remaining content
         if (processorEntity.getComponent() != null) {
             populateRemainingProcessorContent(processorEntity.getComponent());
         }
@@ -105,25 +106,9 @@ public class ProcessorResource extends ApplicationResource {
     }
 
     /**
-     * Populate the uri's for the specified processors and their relationships.
-     *
-     * @param processors processors
-     * @return dtos
-     */
-    public Set<ProcessorDTO> populateRemainingProcessorsContent(Set<ProcessorDTO> processors) {
-        for (ProcessorDTO processor : processors) {
-            populateRemainingProcessorContent(processor);
-        }
-        return processors;
-    }
-
-    /**
      * Populate the uri's for the specified processor and its relationships.
      */
     public ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
-        // populate the remaining properties
-        processor.setUri(generateResourceUri("processors", processor.getId()));
-
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {

@@ -515,7 +515,7 @@ nf.PolicyManagement = (function () {
         if (nf.Common.isDefinedAndNotNull(currentEntity)) {
             $.ajax({
                 type: 'DELETE',
-                url: currentEntity.component.uri + '?' + $.param(nf.Client.getRevision(currentEntity)),
+                url: currentEntity.uri + '?' + $.param(nf.Client.getRevision(currentEntity)),
                 dataType: 'json'
             }).done(function () {
                 loadPolicy();
@@ -749,7 +749,7 @@ nf.PolicyManagement = (function () {
     
             $.ajax({
                 type: 'PUT',
-                url: currentEntity.component.uri,
+                url: currentEntity.uri,
                 data: JSON.stringify(entity),
                 dataType: 'json',
                 contentType: 'application/json'

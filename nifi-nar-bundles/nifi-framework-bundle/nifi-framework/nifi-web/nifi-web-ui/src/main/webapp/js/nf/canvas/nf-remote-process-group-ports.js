@@ -64,7 +64,7 @@ nf.RemoteProcessGroupPorts = (function () {
                             $.ajax({
                                 type: 'PUT',
                                 data: JSON.stringify(remoteProcessGroupPortEntity),
-                                url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(remotePortId),
+                                url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(remotePortId),
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
@@ -294,7 +294,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     $.ajax({
                         type: 'PUT',
                         data: JSON.stringify(remoteProcessGroupPortEntity),
-                        url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(port.id),
+                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id),
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
@@ -470,7 +470,7 @@ nf.RemoteProcessGroupPorts = (function () {
                 // load the properties for the specified component
                 $.ajax({
                     type: 'GET',
-                    url: selectionData.component.uri,
+                    url: selectionData.uri,
                     data: {
                         verbose: true
                     },
