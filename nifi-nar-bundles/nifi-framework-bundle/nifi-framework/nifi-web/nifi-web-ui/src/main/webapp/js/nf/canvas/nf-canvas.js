@@ -147,7 +147,7 @@ nf.Canvas = (function () {
     };
 
     /**
-     * Register the pooler.
+     * Register the poller.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
@@ -665,10 +665,24 @@ nf.Canvas = (function () {
 
             // update the birdseye
             nf.Birdseye.refresh();
-
-            // inform Angular app values have changed
-            nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
+    };
+
+    /**
+     * Loads the current user and updates the current user locally.
+     *
+     * @returns xhr
+     */
+    var loadCurrentUser = function () {
+        // get the current user
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            // set the current user
+            nf.Common.setCurrentUser(currentUser);
+        });
     };
 
     return {
@@ -706,7 +720,12 @@ nf.Canvas = (function () {
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
-                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
+                var currentUserXhr = loadCurrentUser();
+                $.when(processGroupXhr, statusXhr, currentUserXhr).done(function (processGroupResult) {
+                    // inform Angular app values have changed
+                    nf.ng.Bridge.digest();
+
+                    // resolve the deferred
                     deferred.resolve(processGroupResult);
                 }).fail(function () {
                     deferred.reject();
@@ -742,15 +761,7 @@ nf.Canvas = (function () {
             // load the current user
             var userXhr = $.Deferred(function (deferred) {
                 ticketExchange.always(function () {
-                    // get the current user
-                    $.ajax({
-                        type: 'GET',
-                        url: config.urls.currentUser,
-                        dataType: 'json'
-                    }).done(function (currentUser) {
-                        // at this point the user may be themselves or anonymous
-                        nf.Common.setCurrentUser(currentUser)
-                        
+                    loadCurrentUser().done(function (currentUser) {
                         // if the user is logged, we want to determine if they were logged in using a certificate
                         if (currentUser.anonymous === false) {
                             // render the users name
