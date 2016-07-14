@@ -69,7 +69,6 @@ public class TestFileSystemSwapManager {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void testRoundTripSerializeDeserialize() throws IOException {
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
         final Map<String, String> attrs = new HashMap<>();

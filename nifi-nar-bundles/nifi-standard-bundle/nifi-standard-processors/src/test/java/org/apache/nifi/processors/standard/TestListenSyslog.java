@@ -29,7 +29,6 @@ import org.apache.nifi.processors.standard.syslog.SyslogEvent;
 import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.util.IntegerHolder;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -48,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 
@@ -399,7 +399,7 @@ public class TestListenSyslog {
 
         // Add message that will throw a FlowFileAccessException the first time that we attempt to read
         // the contents but will succeed the second time.
-        final IntegerHolder getMessageAttempts = new IntegerHolder(0);
+        final AtomicInteger getMessageAttempts = new AtomicInteger(0);
         msgs.add(new ListenSyslog.RawSyslogEvent(VALID_MESSAGE.getBytes(), "sender-01") {
             @Override
             public byte[] getData() {

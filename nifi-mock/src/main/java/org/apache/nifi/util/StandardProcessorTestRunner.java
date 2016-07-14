@@ -65,7 +65,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
@@ -459,15 +458,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         return flowFiles;
     }
 
-    /**
-     * @deprecated The ProvenanceReporter should not be accessed through the test runner, as it does not expose the events that were emitted.
-     */
-    @Override
-    @Deprecated
-    public ProvenanceReporter getProvenanceReporter() {
-        return sharedState.getProvenanceReporter();
-    }
-
     @Override
     public QueueSize getQueueSize() {
         return flowFileQueue.size();
@@ -584,13 +574,6 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
-        // hold off on failing due to deprecated annotation for now... will introduce later.
-        // for ( final Method method : service.getClass().getMethods() ) {
-        // if ( method.isAnnotationPresent(org.apache.nifi.controller.annotation.OnConfigured.class) ) {
-        // Assert.fail("Controller Service " + service + " is using deprecated Annotation " + org.apache.nifi.controller.annotation.OnConfigured.class + " for method " + method);
-        // }
-        // }
-
         final MockComponentLog logger = new MockComponentLog(identifier, service);
         controllerServiceLoggers.put(identifier, logger);
         final MockStateManager serviceStateManager = new MockStateManager(service);

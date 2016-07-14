@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -48,7 +49,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.ObjectHolder;
 
 @EventDriven
 @SupportsBatching
@@ -129,7 +129,7 @@ public class HashContent extends AbstractProcessor {
             return;
         }
 
-        final ObjectHolder<String> hashValueHolder = new ObjectHolder<>(null);
+        final AtomicReference<String> hashValueHolder = new AtomicReference<>(null);
 
         try {
             session.read(flowFile, new InputStreamCallback() {

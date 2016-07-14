@@ -564,7 +564,6 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
             if (flowFiles == null) {
@@ -668,7 +667,6 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public int compareTo(final FlowFile o) {
             return Long.compare(id, o.getId());
         }

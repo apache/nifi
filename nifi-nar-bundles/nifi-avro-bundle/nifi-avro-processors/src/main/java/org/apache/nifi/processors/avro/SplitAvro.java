@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
@@ -57,7 +58,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 
 @SideEffectFree
 @SupportsBatching
@@ -231,7 +231,7 @@ public class SplitAvro extends AbstractProcessor {
         @Override
         public List<FlowFile> split(final ProcessSession session, final FlowFile originalFlowFile, final SplitWriter splitWriter) {
             final List<FlowFile> childFlowFiles = new ArrayList<>();
-            final ObjectHolder<GenericRecord> recordHolder = new ObjectHolder<>(null);
+            final AtomicReference<GenericRecord> recordHolder = new AtomicReference<>(null);
 
             session.read(originalFlowFile, new InputStreamCallback() {
                 @Override
@@ -239,7 +239,7 @@ public class SplitAvro extends AbstractProcessor {
                     try (final InputStream in = new BufferedInputStream(rawIn);
                          final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
 
-                        final ObjectHolder<String> codec = new ObjectHolder<>(reader.getMetaString(DataFileConstants.CODEC));
+                        final AtomicReference<String> codec = new AtomicReference<>(reader.getMetaString(DataFileConstants.CODEC));
                         if (codec.get() == null) {
                             codec.set(DataFileConstants.NULL_CODEC);
                         }

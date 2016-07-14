@@ -52,12 +52,12 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SideEffectFree
@@ -277,7 +277,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             final JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
             final String pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
 
-            final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
+            final AtomicReference<Object> resultHolder = new AtomicReference<>(null);
             try {
                 final Object result = documentContext.read(jsonPathExp);
                 if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(result)) {

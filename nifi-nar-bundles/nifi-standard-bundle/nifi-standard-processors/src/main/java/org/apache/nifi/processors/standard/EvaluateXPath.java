@@ -75,7 +75,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 import org.xml.sax.InputSource;
 
 import net.sf.saxon.lib.NamespaceConstant;
@@ -271,8 +270,8 @@ public class EvaluateXPath extends AbstractProcessor {
 
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
-            final ObjectHolder<Throwable> error = new ObjectHolder<>(null);
-            final ObjectHolder<Source> sourceRef = new ObjectHolder<>(null);
+            final AtomicReference<Throwable> error = new AtomicReference<>(null);
+            final AtomicReference<Source> sourceRef = new AtomicReference<>(null);
 
             session.read(flowFile, new InputStreamCallback() {
                 @Override
@@ -402,7 +401,7 @@ public class EvaluateXPath extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        final ObjectHolder<TransformerException> error = new ObjectHolder<>(null);
+        final AtomicReference<TransformerException> error = new AtomicReference<>(null);
         transformer.setErrorListener(new ErrorListener() {
             @Override
             public void warning(final TransformerException exception) throws TransformerException {

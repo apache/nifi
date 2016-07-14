@@ -31,7 +31,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.standard.util.JsonPathExpressionValidator;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.util.ObjectHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
@@ -73,7 +73,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
-        final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
+        final AtomicReference<DocumentContext> contextHolder = new AtomicReference<>(null);
         processSession.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(InputStream in) throws IOException {

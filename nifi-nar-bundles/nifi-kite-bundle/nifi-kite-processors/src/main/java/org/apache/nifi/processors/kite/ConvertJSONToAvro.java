@@ -39,7 +39,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.util.LongHolder;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetRecordException;
@@ -50,6 +49,7 @@ import org.kitesdk.data.spi.filesystem.JSONFileReader;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({"kite", "json", "avro"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -132,7 +132,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
         writer.setCodec(CodecFactory.snappyCodec());
 
         try {
-            final LongHolder written = new LongHolder(0L);
+            final AtomicLong written = new AtomicLong(0L);
             final FailureTracker failures = new FailureTracker();
 
             FlowFile badRecords = session.clone(incomingJSON);

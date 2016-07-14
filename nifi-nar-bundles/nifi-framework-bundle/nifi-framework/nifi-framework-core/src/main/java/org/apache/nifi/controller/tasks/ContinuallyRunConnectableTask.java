@@ -54,7 +54,6 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public Boolean call() {
         if (!scheduleState.isScheduled()) {
             return false;

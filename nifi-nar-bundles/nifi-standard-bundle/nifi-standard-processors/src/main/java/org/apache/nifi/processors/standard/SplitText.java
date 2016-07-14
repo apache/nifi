@@ -32,6 +32,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -63,9 +66,6 @@ import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.util.IntegerHolder;
-import org.apache.nifi.util.LongHolder;
-import org.apache.nifi.util.ObjectHolder;
 
 @EventDriven
 @SideEffectFree
@@ -412,7 +412,7 @@ public class SplitText extends AbstractProcessor {
         final String headerMarker = context.getProperty(HEADER_MARKER).getValue();
         final boolean includeLineDelimiter = !context.getProperty(REMOVE_TRAILING_NEWLINES).asBoolean();
 
-        final ObjectHolder<String> errorMessage = new ObjectHolder<>(null);
+        final AtomicReference<String> errorMessage = new AtomicReference<>(null);
         final ArrayList<SplitInfo> splitInfos = new ArrayList<>();
 
         final long startNanos = System.nanoTime();
@@ -479,8 +479,8 @@ public class SplitText extends AbstractProcessor {
                         if (headerInfoLineCount > 0) {
                             // if we have header lines, create a new FlowFile, copy the header lines to that file,
                             // and then start copying lines
-                            final IntegerHolder linesCopied = new IntegerHolder(0);
-                            final LongHolder bytesCopied = new LongHolder(0L);
+                            final AtomicInteger linesCopied = new AtomicInteger(0);
+                            final AtomicLong bytesCopied = new AtomicLong(0L);
                             FlowFile splitFile = session.create(flowFile);
                             try {
                                 splitFile = session.write(splitFile, new OutputStreamCallback() {

@@ -113,7 +113,6 @@ import java.util.stream.Collectors;
 
 public class PersistentProvenanceRepository implements ProvenanceEventRepository {
 
-    public static final String DEPRECATED_CLASS_NAME = "nifi.controller.repository.provenance.PersistentProvenanceRepository";
     public static final String EVENT_CATEGORY = "Provenance Repository";
     private static final String FILE_EXTENSION = ".prov";
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
