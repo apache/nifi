@@ -1136,11 +1136,11 @@ below marked with an asterisk (*) in such a way that upgrading will be easier. F
 at the end of this section. Note that values for periods of time and data sizes must include the unit of measure,
 for example "10 sec" or "10 MB", not simply "10".
 
-==== Core Properties +
+=== Core Properties +
 
 The first section of the _nifi.properties_ file is for the Core Properties. These properties apply to the core framework as a whole.
 
-|====
+|===
 |*Property*|*Description*
 |nifi.version|The version number of the current release. If upgrading but reusing this file, be sure to update this value.
 |nifi.flow.configuration.file*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is ./conf/flow.xml.gz.
@@ -1169,10 +1169,10 @@ Providing three total locations, including  _nifi.nar.library.directory_.
 |nifi.nar.working.directory|The location of the nar working directory. The default value is ./work/nar and probably should be left as is.
 |nifi.documentation.working.directory|The documentation working directory. The default value is ./work/docs/components and probably should be left as is.
 |nifi.processor.scheduling.timeout|Time to wait for a Processor's life-cycle operation (@OnScheduled and @OnUnscheduled) to finish before other life-cycle operation (e.g., stop) could be invoked. Default is 1 minute.
-|====
+|===
 
 
-==== State Management +
+=== State Management +
 
 The State Management section of the Properties file provides a mechanism for configuring local and cluster-wide mechanisms
 for components to persist state. See the <<state_management>> section for more information on how this is used.
@@ -1187,7 +1187,7 @@ for components to persist state. See the <<state_management>> section for more i
 |====
 
 
-==== H2 Settings
+=== H2 Settings
 
 The H2 Settings section defines the settings for the H2 database, which keeps track of user access and flow controller history.
 
@@ -1198,7 +1198,7 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |====
 
 
-==== FlowFile Repository
+=== FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
 this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
@@ -1213,7 +1213,7 @@ to configure it on a separate drive if available.
 |nifi.flowfile.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
 |====
 
-==== Swap Management
+=== Swap Management
 
 NiFi keeps FlowFile information in memory (the JVM)
 but during surges of incoming data, the FlowFile information can start to take up so much of the JVM that system performance
@@ -1230,7 +1230,7 @@ available again. These properties govern how that process occurs.
 |nifi.swap.out.threads|The number of threads to use for swapping out. The default value is 4.
 |====
 
-==== Content Repository
+=== Content Repository
 
 The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root
 installation directory as all the other repositories; however, administrators will likely want to configure it on a separate
@@ -1243,7 +1243,7 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should only be changed with caution. To store flowfile content in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.controller.repository.VolatileContentRepository.
 |====
 
-==== File System Content Repository Properties
+=== File System Content Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1268,7 +1268,7 @@ this property specifies the maximum amount of time to keep the archived data. It
 |nifi.content.viewer.url|The URL for a web-based content viewer if one is available. It is blank by default.
 |====
 
-==== Volatile Content Repository Properties
+=== Volatile Content Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1276,7 +1276,7 @@ this property specifies the maximum amount of time to keep the archived data. It
 |nifi.volatile.content.repository.block.size|The Content Repository block size. The default value is 32KB.
 |====
 
-==== Provenance Repository
+=== Provenance Repository
 
 The Provenance Repository contains the information related to Data Provenance. The next three sections are for Provenance Repository properties.
 
@@ -1285,7 +1285,7 @@ The Provenance Repository contains the information related to Data Provenance. T
 |nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should only be changed with caution. To store provenance events in memory instead of on disk (at the risk of data loss in the event of power/machine failure), set this property to org.apache.nifi.provenance.VolatileProvenanceRepository.
 |====
 
-==== Persistent Provenance Repository Properties
+=== Persistent Provenance Repository Properties
 
 |====
 |*Property*|*Description*
@@ -1317,14 +1317,14 @@ Providing three total locations, including  _nifi.provenance.repository.director
 |nifi.provenance.repository.max.attribute.length|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository. If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default is 65536.
 |====
 
-==== Volatile Provenance Repository Properties
+=== Volatile Provenance Repository Properties
 
 |====
 |*Property*|*Description*
 |nifi.provenance.repository.buffer.size|The Provenance Repository buffer size. The default value is 100000.
 |====
 
-==== Component Status Repository
+=== Component Status Repository
 
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These
 properties govern how that tool works.
@@ -1344,7 +1344,7 @@ of 576.
 
 
 [[site_to_site_properties]]
-==== Site to Site Properties
+=== Site to Site Properties
 
 These properties govern how this instance of NiFi communicates with remote instances of NiFi when Remote Process Groups are configured in the dataflow.
 Remote Process Groups can choose transport protocol from RAW and HTTP. Properties named with _nifi.remote.input.socket.*_ are RAW transport protocol specific. Similarly, _nifi.remote.input.http.*_ are HTTP transport protocol specific properties.
@@ -1361,7 +1361,7 @@ Whether a Site-to-Site client uses HTTP or HTTPS is determined by _nifi.remote.i
 |nifi.remote.input.http.transaction.ttl|Specify how long a transaction can stay alive on server. If a Site-to-Site client didn't proceed to next action for this period of time, the transaction is discarded from remote NiFi instance. For example, a client creates a transaction but doesn't send or receive flow files, or send or received flow files but doesn't confirm that transaction. By default, it is set to 30 seconds.|
 |====
 
-==== Web Properties
+=== Web Properties
 
 These properties pertain to the web-based User Interface.
 
@@ -1376,7 +1376,7 @@ These properties pertain to the web-based User Interface.
 |nifi.web.jetty.threads|The number of Jetty threads. The default value is 200.
 |====
 
-==== Security Properties
+=== Security Properties
 
 These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the
 Security Configuration section of this Administrator's Guide.
@@ -1400,7 +1400,7 @@ in the file specified in `nifi.login.identity.provider.configuration.file`. Sett
 |nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
 
-==== Cluster Common Properties
+=== Cluster Common Properties
 
 When setting up a NiFi cluster, these properties should be configured the same way on all nodes.
 
@@ -1418,7 +1418,7 @@ from the remote node before considering the communication with the node a failur
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |====
 
-==== Cluster Node Properties
+=== Cluster Node Properties
 
 Configure these properties for cluster nodes.
 
@@ -1432,7 +1432,7 @@ in the cluster. This property defaults to 10, but for large clusters, this value
 |====
 
 [[claim_management]]
-==== Claim Management
+=== Claim Management
 
 Whenever a request is made to change the dataflow, it is important that
 all nodes in the NiFi cluster are kept in-sync. In order to allow for this, NiFi employs a two-phase commit. The request
@@ -1453,7 +1453,7 @@ unlocking.
 |====
 
 
-==== ZooKeeper Properties
+=== ZooKeeper Properties
 
 NiFi depends on Apache ZooKeeper for determining which node in the cluster should play the role of Primary Node
 and which node should play the role of Cluster Coordinator. These properties must be configured in order for NiFi
@@ -1474,7 +1474,7 @@ that is specified.
 |====
 
 [[kerberos_properties]]
-==== Kerberos Properties
+=== Kerberos Properties
 
 |====
 |*Property*|*Description*
