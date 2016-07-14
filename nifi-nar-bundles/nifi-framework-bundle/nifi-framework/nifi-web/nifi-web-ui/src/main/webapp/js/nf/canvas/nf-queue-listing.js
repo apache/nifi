@@ -167,61 +167,6 @@ nf.QueueListing = (function () {
     };
 
     /**
-     * Initializes the flowfile details dialog.
-     */
-    var initFlowFileDetailsDialog = function () {
-        $('#content-download').on('click', downloadContent);
-
-        // only show if content viewer is configured
-        if (nf.Common.isContentViewConfigured()) {
-            $('#content-view').show();
-            $('#content-view').on('click', viewContent);
-        }
-
-        $('#flowfile-details-tabs').tabbs({
-            tabStyle: 'tab',
-            selectedTabStyle: 'selected-tab',
-            scrollableTabContentStyle: 'scrollable',
-            tabs: [{
-                name: 'Details',
-                tabContentId: 'flowfile-details-tab-content'
-            }, {
-                name: 'Attributes',
-                tabContentId: 'flowfile-attributes-tab-content'
-            }]
-        });
-
-        $('#flowfile-details-dialog').modal({
-            scrollableContentStyle: 'scrollable',
-            headerText: 'FlowFile',
-            buttons: [{
-                buttonText: 'Ok',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                handler: {
-                    click: function () {
-                        $('#flowfile-details-dialog').modal('hide');
-                    }
-                }
-            }],
-            handler: {
-                close: function () {
-                    // clear the details
-                    $('#flowfile-attributes-container').empty();
-                    $('#flowfile-cluster-node-id').text('');
-                    $('#additional-flowfile-details').empty();
-                },
-                open: function () {
-                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
-                }
-            }
-        });
-    };
-
-    /**
      * Performs a listing on the specified connection.
      *
      * @param connection the connection
@@ -497,7 +442,6 @@ nf.QueueListing = (function () {
     return {
         init: function () {
             initializeListingRequestStatusDialog();
-            initFlowFileDetailsDialog();
 
             // define mouse over event for the refresh button
             $('#queue-listing-refresh-button').click(function () {
@@ -683,6 +627,61 @@ nf.QueueListing = (function () {
 
             // initialize the number of display items
             $('#displayed-flowfiles').text('0');
+        },
+
+        /**
+         * Initializes the flowfile details dialog.
+         */
+        initFlowFileDetailsDialog: function () {
+            $('#content-download').on('click', downloadContent);
+
+            // only show if content viewer is configured
+            if (nf.Common.isContentViewConfigured()) {
+                $('#content-view').show();
+                $('#content-view').on('click', viewContent);
+            }
+
+            $('#flowfile-details-tabs').tabbs({
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
+                tabs: [{
+                    name: 'Details',
+                    tabContentId: 'flowfile-details-tab-content'
+                }, {
+                    name: 'Attributes',
+                    tabContentId: 'flowfile-attributes-tab-content'
+                }]
+            });
+
+            $('#flowfile-details-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                headerText: 'FlowFile',
+                buttons: [{
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#flowfile-details-dialog').modal('hide');
+                        }
+                    }
+                }],
+                handler: {
+                    close: function () {
+                        // clear the details
+                        $('#flowfile-attributes-container').empty();
+                        $('#flowfile-cluster-node-id').text('');
+                        $('#additional-flowfile-details').empty();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                    }
+                }
+            });
         },
 
         /**

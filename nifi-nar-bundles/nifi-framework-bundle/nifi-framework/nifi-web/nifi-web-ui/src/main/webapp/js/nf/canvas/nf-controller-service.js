@@ -1837,6 +1837,8 @@ nf.ControllerService = (function () {
 
                 // show the border if necessary
                 updateReferencingComponentsBorder(referenceContainer);
+
+                $('#controller-service-properties').propertytable('resetTableSize');
             }).fail(nf.Common.handleAjaxError);
         },
 
@@ -1952,6 +1954,8 @@ nf.ControllerService = (function () {
 
                 // show the border if necessary
                 updateReferencingComponentsBorder(referenceContainer);
+
+                $('#controller-service-properties').propertytable('resetTableSize');
             });
         },
 
