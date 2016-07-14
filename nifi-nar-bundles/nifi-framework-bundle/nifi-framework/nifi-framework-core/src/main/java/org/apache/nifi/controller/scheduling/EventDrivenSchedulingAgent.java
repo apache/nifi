@@ -270,7 +270,6 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             }
         }
 
-        @SuppressWarnings("deprecation")
         private void trigger(final Connectable worker, final ScheduleState scheduleState, final ConnectableProcessContext processContext, final ProcessSessionFactory sessionFactory) {
             final int newThreadCount = scheduleState.incrementActiveThreadCount();
             if (newThreadCount > worker.getMaxConcurrentTasks() && worker.getMaxConcurrentTasks() > 0) {

@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,7 +74,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.ObjectHolder;
 
 @TriggerWhenEmpty
 @TriggerSerially
@@ -274,8 +274,8 @@ public class GetHBase extends AbstractProcessor {
 
             final Map<String, Set<String>> cellsMatchingTimestamp = new HashMap<>();
 
-            final ObjectHolder<Long> rowsPulledHolder = new ObjectHolder<>(0L);
-            final ObjectHolder<Long> latestTimestampHolder = new ObjectHolder<>(minTime);
+            final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
+            final AtomicReference<Long> latestTimestampHolder = new AtomicReference<>(minTime);
 
 
             hBaseClientService.scan(tableName, columns, filterExpression, minTime, new ResultHandler() {

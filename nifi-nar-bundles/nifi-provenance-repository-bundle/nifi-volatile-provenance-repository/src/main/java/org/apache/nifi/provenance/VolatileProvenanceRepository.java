@@ -35,7 +35,6 @@ import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.util.IntegerHolder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
@@ -611,7 +610,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         @Override
         public void run() {
             // Retrieve the most recent results and count the total number of matches
-            final IntegerHolder matchingCount = new IntegerHolder(0);
+            final AtomicInteger matchingCount = new AtomicInteger(0);
             final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>(maxRecords);
             ringBuffer.forEach(new ForEachEvaluator<ProvenanceEventRecord>() {
                 @Override

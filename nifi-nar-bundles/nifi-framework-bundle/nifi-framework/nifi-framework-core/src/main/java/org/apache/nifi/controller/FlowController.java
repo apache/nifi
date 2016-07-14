@@ -986,7 +986,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws NullPointerException if either arg is null
      * @throws ProcessorInstantiationException if the processor cannot be instantiated for any reason
      */
-    @SuppressWarnings("deprecation")
     public ProcessorNode createProcessor(final String type, String id, final boolean firstTimeAdded) throws ProcessorInstantiationException {
         id = id.intern();
 
@@ -3605,7 +3604,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return replayFlowFile(record, user);
     }
 
-    @SuppressWarnings("deprecation")
     public ProvenanceEventRecord replayFlowFile(final ProvenanceEventRecord event, final NiFiUser user) throws IOException {
         if (event == null) {
             throw new NullPointerException();

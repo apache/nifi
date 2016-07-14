@@ -1927,36 +1927,20 @@ public final class DtoFactory {
     /**
      * Gets the capability description from the specified class.
      */
-    @SuppressWarnings("deprecation")
     private String getCapabilityDescription(final Class<?> cls) {
         final CapabilityDescription capabilityDesc = cls.getAnnotation(CapabilityDescription.class);
-        if (capabilityDesc != null) {
-            return capabilityDesc.value();
-        }
-
-        final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapabilityDesc
-                = cls.getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
-
-        return (deprecatedCapabilityDesc == null) ? null : deprecatedCapabilityDesc.value();
+        return capabilityDesc == null ? null : capabilityDesc.value();
     }
 
     /**
      * Gets the tags from the specified class.
      */
-    @SuppressWarnings("deprecation")
     private Set<String> getTags(final Class<?> cls) {
         final Set<String> tags = new HashSet<>();
         final Tags tagsAnnotation = cls.getAnnotation(Tags.class);
         if (tagsAnnotation != null) {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
-            }
-        } else {
-            final org.apache.nifi.processor.annotation.Tags deprecatedTagsAnnotation = cls.getAnnotation(org.apache.nifi.processor.annotation.Tags.class);
-            if (deprecatedTagsAnnotation != null) {
-                for (final String tag : deprecatedTagsAnnotation.value()) {
-                    tags.add(tag);
-                }
             }
         }
 
@@ -2129,7 +2113,6 @@ public final class DtoFactory {
      * @param node node
      * @return dto
      */
-    @SuppressWarnings("deprecation")
     public ProvenanceNodeDTO createProvenanceEventNodeDTO(final ProvenanceEventLineageNode node) {
         final ProvenanceNodeDTO dto = new ProvenanceNodeDTO();
         dto.setId(node.getIdentifier());
@@ -2140,7 +2123,6 @@ public final class DtoFactory {
         dto.setFlowFileUuid(node.getFlowFileUuid());
         dto.setParentUuids(node.getParentUuids());
         dto.setChildUuids(node.getChildUuids());
-        dto.setClusterNodeIdentifier(node.getClusterNodeIdentifier());
         return dto;
     }
 
@@ -2150,7 +2132,6 @@ public final class DtoFactory {
      * @param node node
      * @return dto
      */
-    @SuppressWarnings("deprecation")
     public ProvenanceNodeDTO createFlowFileNodeDTO(final LineageNode node) {
         final ProvenanceNodeDTO dto = new ProvenanceNodeDTO();
         dto.setId(node.getIdentifier());
@@ -2158,7 +2139,6 @@ public final class DtoFactory {
         dto.setTimestamp(new Date(node.getTimestamp()));
         dto.setMillis(node.getTimestamp());
         dto.setFlowFileUuid(node.getFlowFileUuid());
-        dto.setClusterNodeIdentifier(node.getClusterNodeIdentifier());
         return dto;
     }
 

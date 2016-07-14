@@ -139,7 +139,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             processor.getClass().getSimpleName(), processor.getClass().getCanonicalName());
     }
 
-    @SuppressWarnings("deprecation")
     public StandardProcessorNode(final Processor processor, final String uuid,
         final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
         final ControllerServiceProvider controllerServiceProvider,

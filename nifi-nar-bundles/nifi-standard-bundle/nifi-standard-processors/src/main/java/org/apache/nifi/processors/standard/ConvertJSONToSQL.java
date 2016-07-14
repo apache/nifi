@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -57,7 +58,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.ObjectHolder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
@@ -276,7 +276,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
-        final ObjectHolder<JsonNode> rootNodeRef = new ObjectHolder<>(null);
+        final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
             session.read(flowFile, new InputStreamCallback() {
                 @Override

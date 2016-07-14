@@ -117,7 +117,6 @@ import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -466,7 +465,7 @@ public class PostHTTP extends AbstractProcessor {
         CloseableHttpClient client = null;
         final String transactionId = UUID.randomUUID().toString();
 
-        final ObjectHolder<String> dnHolder = new ObjectHolder<>("none");
+        final AtomicReference<String> dnHolder = new AtomicReference<>("none");
         while (true) {
             FlowFile flowFile = session.get();
             if (flowFile == null) {

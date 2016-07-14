@@ -333,7 +333,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         return flowController.getStateManagerProvider().getStateManager(componentId);
     }
 
-    @SuppressWarnings("deprecation")
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
@@ -688,7 +687,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void removeProcessor(final ProcessorNode processor) {
         final String id = requireNonNull(processor).getIdentifier();
         writeLock.lock();

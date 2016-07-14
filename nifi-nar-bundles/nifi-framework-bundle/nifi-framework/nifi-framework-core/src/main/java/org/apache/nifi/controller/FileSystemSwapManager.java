@@ -284,8 +284,6 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
-
-    @SuppressWarnings("deprecation")
     public static int serializeFlowFiles(final List<FlowFileRecord> toSwap, final FlowFileQueue queue, final String swapLocation, final OutputStream destination) throws IOException {
         if (toSwap == null || toSwap.isEmpty()) {
             return 0;

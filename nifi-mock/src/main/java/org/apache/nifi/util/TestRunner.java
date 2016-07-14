@@ -33,7 +33,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 
@@ -484,12 +483,6 @@ public interface TestRunner {
      * @return flowfiles that were penalized
      */
     List<MockFlowFile> getPenalizedFlowFiles();
-
-    /**
-     * @return the {@link ProvenanceReporter} that will be used by the
-     *         configured {@link Processor} for reporting Provenance Events
-     */
-    ProvenanceReporter getProvenanceReporter();
 
     /**
      * @return the current size of the Processor's Input Queue

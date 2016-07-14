@@ -181,7 +181,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         scheduleState.setScheduled(true);
 
         final Runnable startReportingTaskRunnable = new Runnable() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 final long lastStopTime = scheduleState.getLastStopTime();
@@ -243,7 +242,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         taskNode.setScheduledState(ScheduledState.STOPPED);
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
-            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();

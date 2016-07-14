@@ -104,7 +104,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         updatedAttributes = builder.updatedAttributes == null ? Collections.<String, String>emptyMap() : Collections.unmodifiableMap(builder.updatedAttributes);
 
         sourceQueueIdentifier = builder.sourceQueueIdentifier;
-    
     }
 
     public String getStorageFilename() {

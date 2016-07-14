@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -56,7 +57,6 @@ import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,7 +144,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
 
             final ControllerService originalService = controllerServiceClass.newInstance();
-            final ObjectHolder<ControllerServiceNode> serviceNodeHolder = new ObjectHolder<>(null);
+            final AtomicReference<ControllerServiceNode> serviceNodeHolder = new AtomicReference<>(null);
             final InvocationHandler invocationHandler = new InvocationHandler() {
                 @Override
                 public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {

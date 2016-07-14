@@ -39,7 +39,6 @@ import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
-import org.apache.nifi.util.LongHolder;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"splunk", "logs", "tcp", "udp"})
@@ -219,7 +219,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
         // some pattern. We can use this to search for the delimiter as we read through the stream of bytes in the FlowFile
         final NonThreadSafeCircularBuffer buffer = new NonThreadSafeCircularBuffer(delimiterBytes);
 
-        final LongHolder messagesSent = new LongHolder(0L);
+        final AtomicLong messagesSent = new AtomicLong(0L);
         final FlowFileMessageBatch messageBatch = new FlowFileMessageBatch(session, flowFile);
         activeBatches.add(messageBatch);
 

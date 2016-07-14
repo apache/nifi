@@ -110,26 +110,6 @@ public class TestStandardProcessorTestRunner {
         runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.KEY);
     }
 
-    @org.apache.nifi.annotation.documentation.Tags({"deprecated"})
-    private static class NewAnnotation extends AbstractProcessor {
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-    }
-
-    private static class NewMethodAnnotation extends AbstractProcessor {
-
-        @org.apache.nifi.annotation.lifecycle.OnScheduled
-        public void dummy() {
-
-        }
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-    }
-
     private static class ProcessorWithOnStop extends AbstractProcessor {
 
         private int callsWithContext = 0;

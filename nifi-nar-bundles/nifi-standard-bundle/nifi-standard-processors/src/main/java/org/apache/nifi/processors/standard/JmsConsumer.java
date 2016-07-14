@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
@@ -60,7 +61,6 @@ import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProcessingSummary;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.IntegerHolder;
 import org.apache.nifi.util.StopWatch;
 
 public abstract class JmsConsumer extends AbstractProcessor {
@@ -181,7 +181,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
             throws Exception {
 
         // Currently not very useful, because always one Message == one FlowFile
-        final IntegerHolder msgsThisFlowFile = new IntegerHolder(1);
+        final AtomicInteger msgsThisFlowFile = new AtomicInteger(1);
 
         FlowFile flowFile = session.create();
         try {

@@ -34,7 +34,6 @@ public class ReportingTaskWrapper implements Runnable {
         this.scheduleState = scheduleState;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public synchronized void run() {
         scheduleState.incrementActiveThreadCount();
