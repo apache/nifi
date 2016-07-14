@@ -19,8 +19,6 @@ package org.apache.nifi.provenance;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.nifi.web.ResourceNotFoundException;
-
 /**
  * This Repository houses Provenance Events. The repository is responsible for
  * managing the life-cycle of the events, providing access to the events that it
@@ -87,7 +85,6 @@ public interface ProvenanceEventRepository {
      * @return the Provenance Event Record with the given ID, if it exists, or
      *         {@code null} otherwise
      * @throws IOException if failure while retrieving event
-     * @throws ResourceNotFoundException if the component that the event belongs to cannot be found
      */
     ProvenanceEventRecord getEvent(long id) throws IOException;
 
