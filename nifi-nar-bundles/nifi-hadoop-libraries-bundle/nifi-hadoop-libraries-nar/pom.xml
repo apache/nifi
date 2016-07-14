@@ -35,5 +35,16 @@
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
         </dependency>
+        <!-- Added dependencies to support HDInsight wasb file format - http://mvnrepository.com/artifact/org.apache.hadoop/hadoop-azure -->
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure</artifactId>
+            <version>2.7.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-storage</artifactId>
+            <version>4.0.0</version>
+        </dependency>
     </dependencies>
 </project>
