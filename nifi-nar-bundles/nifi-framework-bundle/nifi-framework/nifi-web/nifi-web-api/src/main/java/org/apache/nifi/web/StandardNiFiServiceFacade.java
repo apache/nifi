@@ -1556,11 +1556,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         final Set<ConfiguredComponent> updated = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
                         final ControllerServiceReference updatedReference = controllerServiceDAO.getControllerService(controllerServiceId).getReferences();
 
+                        // get the revisions of the updated components
                         final Map<String, Revision> updatedRevisions = new HashMap<>();
                         for (final ConfiguredComponent component : updated) {
                             final Revision currentRevision = revisionManager.getRevision(component.getIdentifier());
                             final Revision requestRevision = referenceRevisions.get(component.getIdentifier());
                             updatedRevisions.put(component.getIdentifier(), currentRevision.incrementRevision(requestRevision.getClientId()));
+                        }
+
+                        // return the current revision if the component wasn't updated
+                        for (final Map.Entry<String, Revision> entry : referenceRevisions.entrySet()) {
+                            final String componentId = entry.getKey();
+                            if (!updatedRevisions.containsKey(componentId)) {
+                                final Revision currentRevision = revisionManager.getRevision(componentId);
+                                updatedRevisions.put(componentId, currentRevision);
+                            }
                         }
 
                         final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
