@@ -103,13 +103,6 @@ public interface FlowService extends LifeCycle {
     void copyCurrentFlow(OutputStream os) throws IOException;
 
     /**
-     * Creates a copy of the current flow and saves it in the configured 'archive' directory
-     *
-     * @throws IOException if unable to write to the archive directory
-     */
-    void archiveFlow() throws IOException;
-
-    /**
      * Creates a DataFlow object from the current flow
      *
      * @return the created DataFlow object

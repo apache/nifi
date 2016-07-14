@@ -284,14 +284,6 @@ public interface NiFiServiceFacade {
     ControllerConfigurationEntity updateControllerConfiguration(Revision revision, ControllerConfigurationDTO controllerConfigurationDTO);
 
     /**
-     * Creates a new archive of the flow configuration.
-     *
-     * @return snapshot
-     */
-    ProcessGroupEntity createArchive();
-
-
-    /**
      * Returns the process group status.
      *
      * @param groupId group

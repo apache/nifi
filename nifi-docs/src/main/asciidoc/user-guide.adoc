@@ -117,10 +117,14 @@ Terminology
 	As a result, several components may be combined together to make a larger building block from which to create a dataflow.
 	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
 
-*flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the flow.xml.gz. This file is located in the nifi/conf directory.
-	Any change made on the canvas is automatically saved to this file, without the user needing to click a "save" button. In addition, the user may create a back-up copy of this file at any time
-	by selecting the Controller Settings button in the far-right section of the tool bar and clicking "Back-up flow" on the General tab. By default, this action saves a copy of the current flow in the nifi/conf/archive directory.
-	See <<Controller_Settings>> for a description of where the "Back-up flow" button may be found. (Note that in a NiFi Cluster, the NiFi Cluster Manager's copy of this file is named flow.tar, whereas this file is still named flow.xml.gz on the nodes.)
+*flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the flow.xml.gz. This file is located in the nifi/conf directory by default.
+	Any change made on the canvas is automatically saved to this file, without the user needing to click a "save" button.
+	In addition, NiFi automatically create a back-up copy of this file in the archive directory when it is updated.
+	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace flow.xml.gz with a desired back-up copy, then restart NiFi.
+	With a clustered environment, stop whole NiFi cluster, replace flow.xml.gz of one of nodes, start the node first. Remove flow.xml.gz from other nodes.
+	Once you confirmed the node starts up as one node cluster, start other nodes. Then the replaced flow configration will be synchronized across cluster.
+	The name and location of flow.xml.gz, and auto archive behavior are configurable, see link:administration-guide.html#core-properties-br[Admin Guide] for further detail.
+
 
 
 [[User_Interface]]
@@ -572,7 +576,7 @@ image:controller-settings-button.png["Controller Settings Button", width=200]
 
 The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
 
-The General tab also provides settings for the overall maximum thread counts of the instance, as well as the ability to click "Back-up flow" to create a backup copy of the current flow, which is saved by default in the /conf/archive directory.
+The General tab also provides settings for the overall maximum thread counts of the instance.
 
 image:settings-general-tab.png["Controller Settings General Tab", width=700]
 
@@ -1636,7 +1640,7 @@ Other Management Features
 
 In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the DFM. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the dataflow that will fix the problem.
 
-Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the canvas. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the link:administration-guide.html[Admin Guide]. 
+Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the link:administration-guide.html[Admin Guide].
 
 
 

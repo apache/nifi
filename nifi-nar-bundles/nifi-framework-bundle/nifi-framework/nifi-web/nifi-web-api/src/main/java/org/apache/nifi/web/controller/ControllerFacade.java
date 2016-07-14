@@ -152,15 +152,6 @@ public class ControllerFacade implements Authorizable {
 
 
     /**
-     * Creates an archive of the current flow.
-     *
-     * @throws IOException if unable to save a copy of the flow
-     */
-    public void createArchive() throws IOException {
-        flowService.archiveFlow();
-    }
-
-    /**
      * Returns the group id that contains the specified processor.
      *
      * @param processorId processor id
