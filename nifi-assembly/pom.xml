@@ -368,7 +368,10 @@ language governing permissions and limitations under the License. -->
         <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
 
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
+        <nifi.flow.configuration.archive.enabled>true</nifi.flow.configuration.archive.enabled>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
+        <nifi.flow.configuration.archive.max.time>30 days</nifi.flow.configuration.archive.max.time>
+        <nifi.flow.configuration.archive.max.storage>500 MB</nifi.flow.configuration.archive.max.storage>
         <nifi.login.identity.provider.configuration.file>./conf/login-identity-providers.xml</nifi.login.identity.provider.configuration.file>
         <nifi.authorizer.configuration.file>./conf/authorizers.xml</nifi.authorizer.configuration.file>
         <nifi.templates.directory>./conf/templates</nifi.templates.directory>

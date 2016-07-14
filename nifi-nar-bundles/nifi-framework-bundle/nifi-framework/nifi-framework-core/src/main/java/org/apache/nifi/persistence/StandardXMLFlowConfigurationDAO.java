@@ -43,10 +43,9 @@ import org.slf4j.LoggerFactory;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
-    public static final String CONFIGURATION_ARCHIVE_DIR_KEY = "nifi.flow.configuration.archive.dir";
-
     private final Path flowXmlPath;
     private final StringEncryptor encryptor;
+    private final FlowConfigurationArchiveManager archiveManager;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
@@ -65,8 +64,9 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         this.flowXmlPath = flowXml;
         this.encryptor = encryptor;
-    }
 
+        this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, NiFiProperties.getInstance());
+    }
 
     @Override
     public boolean isFlowPresent() {
@@ -160,8 +160,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         if (archive) {
             try {
-                final File archiveFile = createArchiveFile();
-                Files.copy(configFile, archiveFile.toPath());
+                archiveManager.archive();
             } catch (final Exception ex) {
                 LOG.warn("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {
@@ -171,16 +170,4 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
 
-    @Override
-    public File createArchiveFile() throws IOException {
-        final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
-        final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? flowXmlPath.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-        Files.createDirectories(archiveDir);
-
-        if (!Files.isDirectory(archiveDir)) {
-            throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
-        }
-        final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + flowXmlPath.toFile().getName());
-        return archiveFile.toFile();
-    }
 }

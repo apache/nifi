@@ -27,7 +27,6 @@ nf.Settings = (function () {
         urls: {
             api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
-            controllerArchive: '../nifi-api/controller/archive',
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
             reportingTasks: '../nifi-api/flow/reporting-tasks'

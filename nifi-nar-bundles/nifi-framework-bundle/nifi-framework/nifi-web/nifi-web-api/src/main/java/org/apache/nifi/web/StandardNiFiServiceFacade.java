@@ -196,7 +196,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1486,17 +1485,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final FlowEntity flowEntity = new FlowEntity();
         flowEntity.setFlow(flowDto);
         return flowEntity;
-    }
-
-    @Override
-    public ProcessGroupEntity createArchive() {
-        try {
-            controllerFacade.createArchive();
-        } catch (final IOException e) {
-            logger.error("Failed to create an archive", e);
-        }
-
-        return getProcessGroup("root");
     }
 
     @Override
