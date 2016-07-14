@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.web.api.entity.TemplateEntity;
 import org.apache.nifi.web.api.entity.TemplatesEntity;
 
 public class TemplatesEndpointMerger implements EndpointResponseMerger {
@@ -42,7 +43,7 @@ public class TemplatesEndpointMerger implements EndpointResponseMerger {
         return TemplatesEntity.class;
     }
 
-    protected Set<TemplateDTO> getDtos(final TemplatesEntity entity) {
+    protected Set<TemplateEntity> getDtos(final TemplatesEntity entity) {
         return entity.getTemplates();
     }
 
@@ -61,11 +62,11 @@ public class TemplatesEndpointMerger implements EndpointResponseMerger {
         // Find the templates that all nodes know about. We do this by mapping Template ID to Template and
         // then for each node, removing any template whose ID is not known to that node. After iterating over
         // all of the nodes, we are left with a Map whose contents are those Templates known by all nodes.
-        Map<String, TemplateDTO> templatesById = null;
+        Map<String, TemplateEntity> templatesById = null;
         for (final NodeResponse nodeResponse : successfulResponses) {
             final TemplatesEntity entity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(TemplatesEntity.class);
-            final Set<TemplateDTO> templateDtos = entity.getTemplates();
-            final Map<String, TemplateDTO> nodeTemplatesById = templateDtos.stream().collect(Collectors.toMap(dto -> dto.getId(), dto -> dto));
+            final Set<TemplateEntity> templateEntities = entity.getTemplates();
+            final Map<String, TemplateEntity> nodeTemplatesById = templateEntities.stream().collect(Collectors.toMap(ent -> ent.getId(), ent -> ent));
 
             if (templatesById == null) {
                 // Create new HashMap so that the map that we have is modifiable.
