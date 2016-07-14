@@ -26,11 +26,16 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.db.DatabaseAdapter;
+import org.apache.nifi.processors.standard.db.impl.GenericDatabaseAdapter;
+import org.apache.nifi.processors.standard.db.impl.OracleDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.file.FileUtils;
 import org.fusesource.hawtbuf.ByteArrayInputStream;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -41,6 +46,7 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Arrays;
@@ -58,24 +64,52 @@ public class QueryDatabaseTableTest {
 
     MockQueryDatabaseTable processor;
     private TestRunner runner;
-    final static String DB_LOCATION = "target/db";
+    private final static String DB_LOCATION = "target/db_qdt";
+    private DatabaseAdapter dbAdapter;
 
 
     @BeforeClass
-    public static void setupClass() {
+    public static void setupBeforeClass() throws IOException {
         System.setProperty("derby.stream.error.file", "target/derby.log");
+
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        try {
+            FileUtils.deleteFile(dbLocation, true);
+        } catch (IOException ioe) {
+            // Do nothing, may not have existed
+        }
     }
+
+    @AfterClass
+    public static void cleanUpAfterClass() throws Exception {
+        try {
+            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
+        } catch (SQLNonTransientConnectionException e) {
+            // Do nothing, this is what happens at Derby shutdown
+        }
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        try {
+            FileUtils.deleteFile(dbLocation, true);
+        } catch (IOException ioe) {
+            // Do nothing, may not have existed
+        }
+    }
+
 
     @Before
     public void setup() throws InitializationException, IOException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
+        dbAdapter = new GenericDatabaseAdapter();
 
         processor = new MockQueryDatabaseTable();
         runner = TestRunners.newTestRunner(processor);
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         runner.enableControllerService(dbcp);
         runner.setProperty(QueryDatabaseTable.DBCP_SERVICE, "dbcp");
+        runner.setProperty(QueryDatabaseTable.DB_TYPE, dbAdapter.getName());
         runner.getStateManager().clear(Scope.CLUSTER);
     }
 
@@ -85,20 +119,13 @@ public class QueryDatabaseTableTest {
     }
 
     @Test
-    public void testGetColumns() throws Exception {
-        assertTrue(processor.getColumns(null).isEmpty());
-        assertTrue(processor.getColumns("").isEmpty());
-        assertEquals(2, processor.getColumns("col1,col2").size());
-    }
-
-    @Test
     public void testGetQuery() throws Exception {
-        String query = processor.getQuery("myTable", null, null, null, "None");
+        String query = processor.getQuery(dbAdapter, "myTable", null, null, null);
         assertEquals("SELECT * FROM myTable", query);
-        query = processor.getQuery("myTable", "col1,col2", null, null, "None");
+        query = processor.getQuery(dbAdapter, "myTable", "col1,col2", null, null);
         assertEquals("SELECT col1,col2 FROM myTable", query);
 
-        query = processor.getQuery("myTable", null, Collections.singletonList("id"), null, "None");
+        query = processor.getQuery(dbAdapter, "myTable", null, Collections.singletonList("id"), null);
         assertEquals("SELECT * FROM myTable", query);
 
         Map<String, String> maxValues = new HashMap<>();
@@ -106,30 +133,28 @@ public class QueryDatabaseTableTest {
         StateManager stateManager = runner.getStateManager();
         stateManager.setState(maxValues, Scope.CLUSTER);
         processor.putColumnType("id", Types.INTEGER);
-        query = processor.getQuery("myTable", null, Collections.singletonList("id"), stateManager.getState(Scope.CLUSTER), "None");
+        query = processor.getQuery(dbAdapter, "myTable", null, Collections.singletonList("id"), stateManager.getState(Scope.CLUSTER));
         assertEquals("SELECT * FROM myTable WHERE id > 509", query);
 
         maxValues.put("date_created", "2016-03-07 12:34:56");
         stateManager.setState(maxValues, Scope.CLUSTER);
         processor.putColumnType("date_created", Types.TIMESTAMP);
-        query = processor.getQuery("myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER), "None");
+        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER));
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED > '2016-03-07 12:34:56'", query);
+
         // Test Oracle strategy
-        query = processor.getQuery("myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER), "Oracle");
+        dbAdapter = new OracleDatabaseAdapter();
+        query = processor.getQuery(dbAdapter, "myTable", null, Arrays.asList("id", "DATE_CREATED"), stateManager.getState(Scope.CLUSTER));
         assertEquals("SELECT * FROM myTable WHERE id > 509 AND DATE_CREATED > to_date('2016-03-07 12:34:56', 'yyyy-mm-dd HH24:MI:SS')", query);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testGetQueryNoTable() throws Exception {
-        processor.getQuery(null, null, null, null, "None");
+        processor.getQuery(dbAdapter, null, null, null, null);
     }
 
     @Test
     public void testAddedRows() throws ClassNotFoundException, SQLException, InitializationException, IOException {
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -256,10 +281,6 @@ public class QueryDatabaseTableTest {
 
     @Test
     public void testWithNullIntColumn() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -285,10 +306,6 @@ public class QueryDatabaseTableTest {
 
     @Test
     public void testWithSqlException() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -330,7 +347,7 @@ public class QueryDatabaseTableTest {
     /**
      * Simple implementation only for QueryDatabaseTable processor testing.
      */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {
@@ -350,7 +367,7 @@ public class QueryDatabaseTableTest {
 
     @Stateful(scopes = Scope.CLUSTER, description = "Mock for QueryDatabaseTable processor")
     private static class MockQueryDatabaseTable extends QueryDatabaseTable {
-        public void putColumnType(String colName, Integer colType) {
+        void putColumnType(String colName, Integer colType) {
             columnTypeMap.put(colName, colType);
         }
     }

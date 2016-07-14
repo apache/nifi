@@ -43,6 +43,7 @@ org.apache.nifi.processors.standard.HashContent
 org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
 org.apache.nifi.processors.standard.JoltTransformJSON
+org.apache.nifi.processors.standard.GenerateTableFetch
 org.apache.nifi.processors.standard.GetJMSQueue
 org.apache.nifi.processors.standard.GetJMSTopic
 org.apache.nifi.processors.standard.ListFile
