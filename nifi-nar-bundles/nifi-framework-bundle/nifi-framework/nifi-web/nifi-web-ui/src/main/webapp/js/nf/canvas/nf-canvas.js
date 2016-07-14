@@ -873,7 +873,7 @@ nf.Canvas = (function () {
                     var clusterSummary = clusterSummaryResponse.clusterSummary;
 
                     // show disconnected message on load if necessary
-                    if (clusterSummary.connectedToCluster === false) {
+                    if (clusterSummary.clustered && !clusterSummary.connectedToCluster) {
                         nf.Canvas.showDisconnectedFromClusterMessage();
                     }
 

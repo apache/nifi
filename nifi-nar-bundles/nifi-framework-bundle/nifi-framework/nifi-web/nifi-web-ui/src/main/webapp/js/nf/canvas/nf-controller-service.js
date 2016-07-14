@@ -613,7 +613,7 @@ nf.ControllerService = (function () {
         // wait until the polling of each service finished
         return $.Deferred(function (deferred) {
             updated.done(function () {
-                var serviceUpdated = pollService(controllerServiceEntity.component, function (service, bulletins) {
+                var serviceUpdated = pollService(controllerServiceEntity, function (service, bulletins) {
                     if ($.isArray(bulletins)) {
                         if (enabled) {
                             updateBulletins(bulletins, $('#enable-controller-service-bulletins'));
@@ -746,12 +746,14 @@ nf.ControllerService = (function () {
      * Polls the specified services referencing components to see if the
      * specified condition is satisfied.
      *
-     * @param {object} controllerService
+     * @param {object} controllerServiceEntity
      * @param {function} completeCondition
      * @param {function} bulletinDeferred
      * @param {function} pollCondition
      */
-    var pollService = function (controllerService, completeCondition, bulletinDeferred, pollCondition) {
+    var pollService = function (controllerServiceEntity, completeCondition, bulletinDeferred, pollCondition) {
+        var controllerService = controllerServiceEntity.component;
+
         // we want to keep polling until the condition is met
         return $.Deferred(function (deferred) {
             var current = 2;
@@ -769,7 +771,7 @@ nf.ControllerService = (function () {
                 var bulletins = bulletinDeferred(controllerService);
                 var service = $.ajax({
                     type: 'GET',
-                    url: controllerService.uri,
+                    url: controllerServiceEntity.uri,
                     dataType: 'json'
                 });
 

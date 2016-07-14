@@ -548,9 +548,10 @@ nf.ProcessorConfiguration = (function () {
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function (propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
+                    var d = nf.Processor.get(processor.id);
                     return $.ajax({
                         type: 'GET',
-                        url: processor.uri + '/descriptors',
+                        url: d.uri + '/descriptors',
                         data: {
                             propertyName: propertyName
                         },
