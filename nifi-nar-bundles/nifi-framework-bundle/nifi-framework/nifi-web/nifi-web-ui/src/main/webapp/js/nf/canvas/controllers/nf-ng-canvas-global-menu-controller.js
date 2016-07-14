@@ -284,6 +284,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     // store the content viewer url if available
                     if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
                         $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
+                        nf.QueueListing.initFlowFileDetailsDialog();
                     }
                 }).fail(nf.Common.handleAjaxError);
 
