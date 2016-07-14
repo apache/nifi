@@ -33,8 +33,6 @@
                         </div>
                         <div class="editable setting-field">
                             <input type="text" id="maximum-timer-driven-thread-count-field" class="setting-input"/>
-                            <span id="archive-flow-link" class="link">Back-up flow</span>
-                            <div class="fa fa-question-circle" alt="Info" title="Archives the flow configuration."></div>
                         </div>
                         <div class="read-only setting-field">
                             <span id="read-only-maximum-timer-driven-thread-count-field"></span>
