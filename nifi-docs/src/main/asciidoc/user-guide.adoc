@@ -119,11 +119,11 @@ Terminology
 
 *flow.xml.gz*: Everything the DFM puts onto the NiFi User Interface canvas is written, in real time, to one file called the flow.xml.gz. This file is located in the nifi/conf directory by default.
 	Any change made on the canvas is automatically saved to this file, without the user needing to click a "save" button.
-	In addition, NiFi automatically create a back-up copy of this file in the archive directory when it is updated.
-	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace flow.xml.gz with a desired back-up copy, then restart NiFi.
-	With a clustered environment, stop whole NiFi cluster, replace flow.xml.gz of one of nodes, start the node first. Remove flow.xml.gz from other nodes.
-	Once you confirmed the node starts up as one node cluster, start other nodes. Then the replaced flow configration will be synchronized across cluster.
-	The name and location of flow.xml.gz, and auto archive behavior are configurable, see link:administration-guide.html#core-properties-br[Admin Guide] for further detail.
+	In addition, NiFi automatically creates a backup copy of this file in the archive directory when it is updated.
+	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace flow.xml.gz with a desired backup copy, then restart NiFi.
+	In a clustered environment, stop the entire NiFi cluster, replace the flow.xml.gz of one of nodes, and restart the node. Remove flow.xml.gz from other nodes.
+	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
+	The name and location of flow.xml.gz, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[Admin Guide] for further details.
 
 
 
