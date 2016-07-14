@@ -25,6 +25,5 @@ import java.util.Comparator;
  * extracted to be used as an attribute of the flow file.
  *
  */
-@Deprecated
 public interface FlowFilePrioritizer extends Comparator<FlowFile> {
 }
