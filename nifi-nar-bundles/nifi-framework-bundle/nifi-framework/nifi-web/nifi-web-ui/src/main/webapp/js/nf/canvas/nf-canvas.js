@@ -117,6 +117,7 @@ nf.Canvas = (function () {
     var permissions = null;
     var parentGroupId = null;
     var clustered = false;
+    var connectedToCluster = false;
     var svg = null;
     var canvas = null;
 
@@ -132,6 +133,7 @@ nf.Canvas = (function () {
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
             flowConfig: '../nifi-api/flow/config',
+            clusterSummary: '../nifi-api/flow/cluster/summary',
             cluster: '../nifi-api/controller/cluster'
         }
     };
@@ -686,6 +688,19 @@ nf.Canvas = (function () {
         });
     };
 
+    /**
+     * Loads the flow configuration and updated the cluster state.
+     *
+     * @returns xhr
+     */
+    var loadClusterSummary = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.clusterSummary,
+            dataType: 'json'
+        });
+    };
+
     return {
         CANVAS_OFFSET: 0,
 
@@ -718,7 +733,7 @@ nf.Canvas = (function () {
                 // hide the context menu
                 nf.ContextMenu.hide();
 
-                // get the process group to refresh everything
+                // issue the requests
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
@@ -732,9 +747,19 @@ nf.Canvas = (function () {
                 }).fail(function (xhr, status, error) {
                     deferred.reject(xhr, status, error);
                 });
+                var clusterSummary = loadClusterSummary().done(function (response) {
+                    var clusterSummary = response.clusterSummary;
+
+                    // update the cluster summary
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
+
+                    // update the clustered flag
+                    clustered = clusterSummary.clustered;
+                    connectedToCluster = clusterSummary.connectedToCluster;
+                });
 
                 // wait for all requests to complete
-                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins).done(function (processGroupResult) {
+                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
                     // inform Angular app values have changed
                     nf.ng.Bridge.digest();
 
@@ -744,6 +769,26 @@ nf.Canvas = (function () {
                     deferred.reject(xhr, status, error);
                 });
             }).promise();
+        },
+
+        /**
+         * Shows a message when disconnected from the cluster.
+         */
+        showDisconnectedFromClusterMessage: function () {
+            nf.Dialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.'
+            });
+        },
+
+        /**
+         * Shows a message when connected to the cluster.
+         */
+        showConnectedToClusterMessage: function () {
+            nf.Dialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.'
+            });
         },
 
         /**
@@ -811,9 +856,13 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
+                // get the initial cluster summary
+                var clusterSummary = loadClusterSummary();
+
                 // ensure the config requests are loaded
-                $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
+                $.when(configXhr, clusterSummary, userXhr, clientXhr).done(function (configResult, clusterSummaryResult) {
                     var configResponse = configResult[0];
+                    var clusterSummaryResponse = clusterSummaryResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -821,9 +870,19 @@ nf.Canvas = (function () {
 
                     // get the config details
                     var configDetails = configResponse.flowConfiguration;
+                    var clusterSummary = clusterSummaryResponse.clusterSummary;
 
-                    // update the clustered flag
-                    clustered = configDetails.clustered;
+                    // show disconnected message on load if necessary
+                    if (clusterSummary.connectedToCluster === false) {
+                        nf.Canvas.showDisconnectedFromClusterMessage();
+                    }
+
+                    // establish the initial cluster state
+                    clustered = clusterSummary.clustered;
+                    connectedToCluster = clusterSummary.connectedToCluster;
+
+                    // update the cluster summary
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
 
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
@@ -893,6 +952,15 @@ nf.Canvas = (function () {
          */
         isClustered: function () {
             return clustered === true;
+        },
+
+        /**
+         * Return whether this instance is connected to a cluster.
+         *
+         * @returns {boolean}
+         */
+        isConnectedToCluster: function () {
+            return connectedToCluster === true;
         },
 
         /**

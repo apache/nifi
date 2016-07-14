@@ -338,6 +338,43 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
         },
 
         /**
+         * Updates the cluster summary.
+         *
+         * @param clusterSummary
+         */
+        updateClusterSummary: function (clusterSummary) {
+            // see if this node has been (dis)connected
+            if (nf.Canvas.isConnectedToCluster() !== clusterSummary.connectedToCluster) {
+                if (clusterSummary.connectedToCluster) {
+                    nf.Canvas.showConnectedToClusterMessage();
+                } else {
+                    nf.Canvas.showDisconnectedFromClusterMessage();
+                }
+            }
+
+            var color = '#728E9B';
+
+            // update the connection state
+            if (clusterSummary.connectedToCluster) {
+                if (nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes)) {
+                    var connectedNodes = clusterSummary.connectedNodes.split(' / ');
+                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
+                        this.clusterConnectionWarning = true;
+                        color = '#BA554A';
+                    }
+                }
+                this.connectedNodesCount =
+                    nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? $sanitize(clusterSummary.connectedNodes) : '-';
+            } else {
+                this.connectedNodesCount = 'Disconnected';
+                color = '#BA554A';
+            }
+
+            // update the color
+            $('#connected-nodes-count').closest('div.fa-cubes').css('color', color);
+        },
+
+        /**
          * Update the flow status counts.
          *
          * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
@@ -347,13 +384,6 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                 (nf.Common.isDefinedAndNotNull(status.invalidCount) && (status.invalidCount > 0)) ?
                     '#BA554A' : '#728E9B';
             $('#controller-invalid-count').parent().css('color', controllerInvalidCountColor);
-
-            if (nf.Common.isDefinedAndNotNull(status.connectedNodes)) {
-                var connectedNodes = status.connectedNodes.split(' / ');
-                var connectedNodesCountColor =
-                    (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) ? '#BA554A' : '#728E9B';
-                $('#connected-nodes-count').parent().css('color', connectedNodesCountColor);
-            }
 
             // update the report values
             this.activeThreadCount = $sanitize(status.activeThreadCount);
@@ -379,9 +409,6 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
 
             this.controllerDisabledCount =
                 nf.Common.isDefinedAndNotNull(status.disabledCount) ? $sanitize(status.disabledCount) : '-';
-
-            this.connectedNodesCount =
-                nf.Common.isDefinedAndNotNull(status.connectedNodes) ? $sanitize(status.connectedNodes) : '-';
 
         },
 

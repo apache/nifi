@@ -70,7 +70,6 @@ public class StatusMerger {
 
     public static void updatePrettyPrintedFields(final ControllerStatusDTO target) {
         target.setQueued(prettyPrint(target.getFlowFilesQueued(), target.getBytesQueued()));
-        target.setConnectedNodes(formatCount(target.getConnectedNodeCount()) + " / " + formatCount(target.getTotalNodeCount()));
     }
 
     public static void merge(final ProcessGroupStatusDTO target, final ProcessGroupStatusDTO toMerge, final String nodeId, final String nodeAddress, final Integer nodeApiPort) {

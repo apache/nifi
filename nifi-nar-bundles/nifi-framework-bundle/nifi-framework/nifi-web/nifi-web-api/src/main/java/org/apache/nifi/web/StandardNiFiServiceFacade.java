@@ -2781,7 +2781,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // create node dtos
         final Collection<NodeDTO> nodeDtos = new ArrayList<>();
         clusterDto.setNodes(nodeDtos);
-        final NodeIdentifier primaryNode = clusterCoordinator.getPrimaryNode();
         for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
             if (status == null) {
@@ -2789,9 +2788,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             final List<NodeEvent> events = clusterCoordinator.getNodeEvents(nodeId);
-            final boolean primary = primaryNode != null && primaryNode.equals(nodeId);
+            final Set<String> nodeRoles = clusterCoordinator.getConnectionStatus(nodeId).getRoles();
             final NodeHeartbeat heartbeat = heartbeatMonitor.getLatestHeartbeat(nodeId);
-            nodeDtos.add(dtoFactory.createNodeDTO(nodeId, status, heartbeat, events, primary));
+            nodeDtos.add(dtoFactory.createNodeDTO(nodeId, status, heartbeat, events, nodeRoles));
         }
 
         return clusterDto;
@@ -2806,9 +2805,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private NodeDTO getNode(final NodeIdentifier nodeId) {
         final NodeConnectionStatus nodeStatus = clusterCoordinator.getConnectionStatus(nodeId);
         final List<NodeEvent> events = clusterCoordinator.getNodeEvents(nodeId);
-        final boolean primary = nodeId.equals(clusterCoordinator.getPrimaryNode());
+        final Set<String> roles = clusterCoordinator.getConnectionStatus(nodeId).getRoles();
         final NodeHeartbeat heartbeat = heartbeatMonitor.getLatestHeartbeat(nodeId);
-        return dtoFactory.createNodeDTO(nodeId, nodeStatus, heartbeat, events, primary);
+        return dtoFactory.createNodeDTO(nodeId, nodeStatus, heartbeat, events, roles);
     }
 
     @Override

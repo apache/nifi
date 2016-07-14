@@ -426,7 +426,7 @@ nf.Common = (function () {
             }
 
             // status code 400, 403, 404, and 409 are expected response codes for common errors.
-            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
+            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
                 nf.Dialog.showOkDialog({
                     headerText: 'Error',
                     dialogContent: nf.Common.escapeHtml(xhr.responseText)

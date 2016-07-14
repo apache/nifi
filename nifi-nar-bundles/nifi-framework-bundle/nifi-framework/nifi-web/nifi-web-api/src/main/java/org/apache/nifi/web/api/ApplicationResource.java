@@ -694,7 +694,11 @@ public abstract class ApplicationResource {
      * if running in standalone mode or disconnected from cluster
      */
     boolean isConnectedToCluster() {
-        return clusterCoordinator != null && clusterCoordinator.isConnected();
+        return isClustered() && clusterCoordinator.isConnected();
+    }
+
+    boolean isClustered () {
+        return clusterCoordinator != null;
     }
 
     public void setRequestReplicator(final RequestReplicator requestReplicator) {

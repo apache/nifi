@@ -31,10 +31,6 @@ public class ControllerStatusDTO implements Cloneable {
     private Integer flowFilesQueued = 0;
     private Long bytesQueued = 0L;
 
-    private String connectedNodes;
-    private Integer connectedNodeCount = 0;
-    private Integer totalNodeCount = 0;
-
     private Integer runningCount = 0;
     private Integer stoppedCount = 0;
     private Integer invalidCount = 0;
@@ -66,19 +62,6 @@ public class ControllerStatusDTO implements Cloneable {
 
     public void setQueued(String queued) {
         this.queued = queued;
-    }
-
-    /**
-     * @return Used in clustering, will report the number of nodes connected vs
-     * the number of nodes in the cluster
-     */
-    @ApiModelProperty("When clustered, reports the number of nodes connected vs the number of nodes in the cluster.")
-    public String getConnectedNodes() {
-        return connectedNodes;
-    }
-
-    public void setConnectedNodes(String connectedNodes) {
-        this.connectedNodes = connectedNodes;
     }
 
     /**
@@ -171,24 +154,6 @@ public class ControllerStatusDTO implements Cloneable {
         this.bytesQueued = bytesQueued;
     }
 
-    @ApiModelProperty("The number of nodes that are currently connected to the cluster")
-    public Integer getConnectedNodeCount() {
-        return connectedNodeCount;
-    }
-
-    public void setConnectedNodeCount(Integer connectedNodeCount) {
-        this.connectedNodeCount = connectedNodeCount;
-    }
-
-    @ApiModelProperty("The number of nodes in the cluster, regardless of whether or not they are connected")
-    public Integer getTotalNodeCount() {
-        return totalNodeCount;
-    }
-
-    public void setTotalNodeCount(Integer totalNodeCount) {
-        this.totalNodeCount = totalNodeCount;
-    }
-
     @Override
     public ControllerStatusDTO clone() {
         final ControllerStatusDTO other = new ControllerStatusDTO();
@@ -196,9 +161,6 @@ public class ControllerStatusDTO implements Cloneable {
         other.setQueued(getQueued());
         other.setFlowFilesQueued(getFlowFilesQueued());
         other.setBytesQueued(getBytesQueued());
-        other.setConnectedNodes(getConnectedNodes());
-        other.setConnectedNodeCount(getConnectedNodeCount());
-        other.setTotalNodeCount(getTotalNodeCount());
         other.setRunningCount(getRunningCount());
         other.setStoppedCount(getStoppedCount());
         other.setInvalidCount(getInvalidCount());
