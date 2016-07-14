@@ -2943,7 +2943,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public NodeDTO createNodeDTO(final NodeIdentifier nodeId, final NodeConnectionStatus status, final NodeHeartbeat nodeHeartbeat, final List<NodeEvent> events, final boolean primary) {
+    public NodeDTO createNodeDTO(final NodeIdentifier nodeId, final NodeConnectionStatus status, final NodeHeartbeat nodeHeartbeat, final List<NodeEvent> events, final Set<String> roles) {
         final NodeDTO nodeDto = new NodeDTO();
 
         // populate node dto
@@ -2951,7 +2951,7 @@ public final class DtoFactory {
         nodeDto.setAddress(nodeId.getApiAddress());
         nodeDto.setApiPort(nodeId.getApiPort());
         nodeDto.setStatus(status.getState().name());
-        nodeDto.setPrimary(primary);
+        nodeDto.setRoles(roles);
         if (status.getConnectionRequestTime() != null) {
             final Date connectionRequested = new Date(status.getConnectionRequestTime());
             nodeDto.setConnectionRequested(connectionRequested);

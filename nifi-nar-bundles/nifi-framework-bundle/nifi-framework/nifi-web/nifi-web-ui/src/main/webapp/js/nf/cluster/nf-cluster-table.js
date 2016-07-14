@@ -23,6 +23,8 @@ nf.ClusterTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
+        primaryNode: 'Primary Node',
+        clusterCoorindator: 'Cluster Coordinator',
         filterText: 'Filter',
         styles: {
             filterList: 'cluster-filter-list'
@@ -65,11 +67,11 @@ nf.ClusterTable = (function () {
                 }
             } else if (sortDetails.columnId === 'status') {
                 var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                if (a.primary === true) {
+                if (a.roles.includes(config.primaryNode)) {
                     aString += ', PRIMARY';
                 }
                 var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                if (b.primary === true) {
+                if (b.roles.includes(config.primaryNode)) {
                     bString += ', PRIMARY';
                 }
                 return aString === bString ? 0 : aString > bString ? 1 : -1;
@@ -409,11 +411,14 @@ nf.ClusterTable = (function () {
 
             // define a custom formatter for the status column
             var statusFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (dataContext.primary === true) {
-                    return value + ', PRIMARY';
-                } else {
-                    return value;
+                var markup = value;
+                if (dataContext.roles.includes(config.primaryNode)) {
+                    value += ', PRIMARY';
                 }
+                if (dataContext.roles.includes(config.clusterCoorindator)) {
+                    value += ', COORDINATOR';
+                }
+                return value;
             };
 
             var columnModel = [
@@ -432,9 +437,6 @@ nf.ClusterTable = (function () {
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                     var canDisconnect = false;
                     var canConnect = false;
-
-                    // determine if this node is already the primary
-                    var isPrimary = dataContext.primary;
 
                     // determine the current status
                     if (dataContext.status === 'CONNECTED' || dataContext.status === 'CONNECTING') {

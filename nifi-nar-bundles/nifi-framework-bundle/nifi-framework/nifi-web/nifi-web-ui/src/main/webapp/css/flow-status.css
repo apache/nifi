@@ -111,6 +111,10 @@
     background-color: transparent;
 }
 
+#connected-nodes-count.connection-warning {
+    color: #BA554A;
+}
+
 /* search field */
 div.search-result-icon {
     float: left;

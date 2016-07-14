@@ -32,7 +32,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -494,20 +493,6 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setQueued(FormatUtils.formatCount(controllerQueueSize.getObjectCount()) + " / " + FormatUtils.formatDataSize(controllerQueueSize.getByteCount()));
         controllerStatus.setBytesQueued(controllerQueueSize.getByteCount());
         controllerStatus.setFlowFilesQueued(controllerQueueSize.getObjectCount());
-
-        if (clusterCoordinator != null && clusterCoordinator.isConnected()) {
-            final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
-            int totalNodeCount = 0;
-            for (final List<NodeIdentifier> nodeList : stateMap.values()) {
-                totalNodeCount += nodeList.size();
-            }
-            final List<NodeIdentifier> connectedNodeIds = stateMap.get(NodeConnectionState.CONNECTED);
-            final int connectedNodeCount = (connectedNodeIds == null) ? 0 : connectedNodeIds.size();
-
-            controllerStatus.setConnectedNodeCount(connectedNodeCount);
-            controllerStatus.setTotalNodeCount(totalNodeCount);
-            controllerStatus.setConnectedNodes(connectedNodeCount + " / " + totalNodeCount);
-        }
 
         final ProcessGroupCounts counts = rootGroup.getCounts();
         controllerStatus.setRunningCount(counts.getRunningCount());
