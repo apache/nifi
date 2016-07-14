@@ -27,12 +27,12 @@ public interface ComputeLineageResult {
     /**
      * @return all nodes for the graph
      */
-    public List<LineageNode> getNodes();
+    List<LineageNode> getNodes();
 
     /**
      * @return all links for the graph
      */
-    public List<LineageEdge> getEdges();
+    List<LineageEdge> getEdges();
 
     /**
      * @return the date at which this AsynchronousLineageResult will expire
