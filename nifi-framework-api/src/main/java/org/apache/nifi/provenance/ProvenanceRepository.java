@@ -148,13 +148,13 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
 
     /**
      * @return a list of all fields that can be searched via the
-     * {@link ProvenanceQueryableIndex#submitQuery(Query, NiFiUser)} method
+     * {@link ProvenanceRepository#submitQuery(Query, NiFiUser)} method
      */
     List<SearchableField> getSearchableFields();
 
     /**
      * @return a list of all FlowFile attributes that can be searched via the
-     * {@link ProvenanceQueryableIndex#submitQuery(Query, NiFiUser)} method
+     * {@link ProvenanceRepository#submitQuery(Query, NiFiUser)} method
      */
     List<SearchableField> getSearchableAttributes();
 }

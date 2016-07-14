@@ -25,7 +25,6 @@ import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.slf4j.Logger;
