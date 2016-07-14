@@ -697,7 +697,7 @@ public abstract class ApplicationResource {
         return isClustered() && clusterCoordinator.isConnected();
     }
 
-    boolean isClustered () {
+    boolean isClustered() {
         return clusterCoordinator != null;
     }
 
