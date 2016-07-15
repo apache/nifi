@@ -55,6 +55,7 @@ public class NiFiLegacyCipherProvider extends OpenSSLPKCS5CipherProvider impleme
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher
      */
+    @Deprecated
     @Override
     public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
         return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);

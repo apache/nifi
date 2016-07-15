@@ -64,6 +64,7 @@ public class OpenSSLPKCS5CipherProvider implements PBECipherProvider {
      * @throws Exception if there is a problem initializing the cipher
      */
     @Override
+    @Deprecated
     public Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception {
         return getCipher(encryptionMethod, password, new byte[0], keyLength, encryptMode);
     }
