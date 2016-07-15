@@ -127,7 +127,7 @@ nf.Canvas = (function () {
     var config = {
         urls: {
             api: '../nifi-api',
-            currentUser: '../nifi-api/flow/current-user',
+            currentUser: '../nifi-api/access/current-user',
             controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
@@ -834,13 +834,6 @@ nf.Canvas = (function () {
                             nf.Common.setAnonymousUserLabel();
                         }
                         deferred.resolve();
-                    }).fail(function (xhr, status, error) {
-                        // there is no anonymous access and we don't know this user - open the login page which handles login/registration/etc
-                        if (xhr.status === 401) {
-                            window.location = '/nifi/login';
-                        } else {
-                            deferred.reject(xhr, status, error);
-                        }
                     });
                 });
             }).promise();

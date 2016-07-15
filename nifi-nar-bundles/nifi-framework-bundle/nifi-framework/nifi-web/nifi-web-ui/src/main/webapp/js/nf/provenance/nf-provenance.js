@@ -52,7 +52,7 @@ nf.Provenance = (function () {
             clusterSummary: '../nifi-api/flow/cluster/summary',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            currentUser: '../nifi-api/flow/current-user'
+            currentUser: '../nifi-api/access/current-user'
         }
     };
 
