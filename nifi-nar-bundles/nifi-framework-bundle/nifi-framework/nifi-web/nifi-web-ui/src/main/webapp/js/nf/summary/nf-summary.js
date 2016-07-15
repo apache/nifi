@@ -51,7 +51,7 @@ nf.Summary = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            flowConfig: '../nifi-api/flow/config'
+            clusterSummary: '../nifi-api/flow/cluster/summary'
         }
     };
 
@@ -62,9 +62,9 @@ nf.Summary = (function () {
         return $.Deferred(function (deferred) {
             $.ajax({
                 type: 'GET',
-                url: config.urls.flowConfig
+                url: config.urls.clusterSummary
             }).done(function (response) {
-                nf.SummaryTable.init(response.flowConfiguration.clustered).done(function () {
+                nf.SummaryTable.init(response.clusterSummary.connectedToCluster).done(function () {
                     deferred.resolve();
                 }).fail(function () {
                     deferred.reject();

@@ -49,7 +49,7 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            flowConfig: '../nifi-api/flow/config',
+            clusterSummary: '../nifi-api/flow/cluster/summary',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             currentUser: '../nifi-api/flow/current-user'
@@ -67,9 +67,9 @@ nf.Provenance = (function () {
     var detectedCluster = function () {
         return $.ajax({
                 type: 'GET',
-                url: config.urls.flowConfig
+                url: config.urls.clusterSummary
             }).done(function (response) {
-                isClustered = response.flowConfiguration.clustered;
+                isClustered = response.clusterSummary.connectedToCluster;
             }).fail(nf.Common.handleAjaxError);
     };
 

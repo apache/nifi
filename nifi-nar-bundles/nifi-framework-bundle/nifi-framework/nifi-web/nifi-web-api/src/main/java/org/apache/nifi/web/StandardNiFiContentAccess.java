@@ -52,7 +52,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
         .compile("/flowfile-queues/([a-f0-9\\-]{36})/flowfiles/([a-f0-9\\-]{36})/content.*");
 
     private static final Pattern PROVENANCE_CONTENT_URI_PATTERN = Pattern
-        .compile("/provenance/events/([0-9]+)/content/((?:input)|(?:output)).*");
+        .compile("/provenance-events/([0-9]+)/content/((?:input)|(?:output)).*");
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;

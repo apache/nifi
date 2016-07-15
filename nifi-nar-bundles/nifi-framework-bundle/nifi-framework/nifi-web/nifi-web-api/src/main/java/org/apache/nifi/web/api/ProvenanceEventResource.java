@@ -305,6 +305,7 @@ public class ProvenanceEventResource extends ApplicationResource {
 
         // get the provenance event
         final ProvenanceEventDTO event = serviceFacade.getProvenanceEvent(id.getLong());
+        event.setClusterNodeId(clusterNodeId);
 
         // create a response entity
         final ProvenanceEventEntity entity = new ProvenanceEventEntity();

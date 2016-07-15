@@ -1147,11 +1147,11 @@ public class ControllerFacade implements Authorizable {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
 
+            // authorize the replay
+            authorizeReplay(originalEvent.getComponentId(), originalEvent.getAttributes(), originalEvent.getSourceQueueIdentifier());
+
             // replay the flow file
             final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user);
-
-            // authorize the replay
-            authorizeReplay(event.getComponentId(), event.getAttributes(), event.getSourceQueueIdentifier());
 
             // convert the event record
             return createProvenanceEventDto(event);
