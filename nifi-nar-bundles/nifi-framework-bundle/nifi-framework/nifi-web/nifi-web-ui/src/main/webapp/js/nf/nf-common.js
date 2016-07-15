@@ -222,6 +222,19 @@ nf.Common = (function () {
 
         /**
          * Determines whether the current user can access provenance.
+         *
+         * @returns {boolean}
+         */
+        isAnonymous: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.anonymous === true;
+            } else {
+                return true;
+            }
+        },
+
+        /**
+         * Determines whether the current user can access provenance.
          * 
          * @returns {boolean}
          */
@@ -400,12 +413,16 @@ nf.Common = (function () {
                 nf.Common.closeCanvas();
                 return;
             }
-            
+
+            // if we don't know who the user is, redirect to the log in page
+            if (xhr.status === 401) {
+                window.location = '/nifi/login';
+                return;
+            }
+
             // if an error occurs while the splash screen is visible close the canvas show the error message
             if ($('#splash').is(':visible')) {
-                if (xhr.status === 401) {
-                    $('#message-title').text('Unauthorized');
-                } else if (xhr.status === 403) {
+                if (xhr.status === 403) {
                     $('#message-title').text('Access Denied');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
@@ -445,13 +462,6 @@ nf.Common = (function () {
                     }
                     $('#message-title').text('Unable to communicate with NiFi');
                     $('#message-content').text(content);
-                } else if (xhr.status === 401) {
-                    $('#message-title').text('Unauthorized');
-                    if ($.trim(xhr.responseText) === '') {
-                        $('#message-content').text('Authentication is required to use this NiFi.');
-                    } else {
-                        $('#message-content').text(xhr.responseText);
-                    }
                 } else if (xhr.status === 500) {
                     $('#message-title').text('An unexpected error has occurred');
                     if ($.trim(xhr.responseText) === '') {

@@ -31,7 +31,7 @@ nf.Cluster = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            currentUser: '../nifi-api/flow/current-user'
+            currentUser: '../nifi-api/access/current-user'
         }
     };
 

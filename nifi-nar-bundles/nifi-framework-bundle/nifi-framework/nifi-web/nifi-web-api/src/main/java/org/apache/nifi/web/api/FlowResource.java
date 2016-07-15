@@ -50,8 +50,8 @@ import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
-import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -84,7 +84,6 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
-import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
@@ -119,7 +118,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -326,36 +324,6 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final FlowConfigurationEntity entity = serviceFacade.getFlowConfiguration();
-        return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    /**
-     * Retrieves the identity of the user making the request.
-     *
-     * @return An identityEntity
-     */
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("current-user")
-    @ApiOperation(
-            value = "Retrieves the user identity of the user making the request",
-            response = CurrentUserEntity.class
-    )
-    public Response getCurrentUser() {
-
-        authorizeFlow();
-
-        // note that the cluster manager will handle this request directly
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
-        }
-
-        // create the response entity
-        final CurrentUserEntity entity = serviceFacade.getCurrentUser();
-
-        // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
 

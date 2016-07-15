@@ -26,7 +26,7 @@ nf.Login = (function () {
     var config = {
         urls: {
             token: '../nifi-api/access/token',
-            accessStatus: '../nifi-api/access',
+            currentUser: '../nifi-api/access/current-user',
             accessConfig: '../nifi-api/access/config'
         }
     };
@@ -85,31 +85,29 @@ nf.Login = (function () {
             // check to see if they actually have access now
             $.ajax({
                 type: 'GET',
-                url: config.urls.accessStatus,
+                url: config.urls.currentUser,
                 dataType: 'json'
-            }).done(function (response) {
-                var accessStatus = response.accessStatus;
-                
+            }).done(function (currentUser) {
                 // update the logout link appropriately
                 showLogoutLink();
                 
                 // update according to the access status
-                if (accessStatus.status === 'ACTIVE') {
-                    // reload as appropriate - no need to schedule token refresh as the page is reloading
-                    if (top !== window) {
-                        parent.window.location = '/nifi';
-                    } else {
-                        window.location = '/nifi';
-                    }
-                } else {
+                if (currentUser.anonymous === true) {
                     $('#login-message-title').text('Unable to log in');
-                    $('#login-message').text(accessStatus.message);
+                    $('#login-message').text('No credentials supplied, unknown user.');
 
                     // update visibility
                     $('#login-container').hide();
                     $('#login-submission-container').hide();
                     $('#login-progress-container').hide();
                     $('#login-message-container').show();
+                } else {
+                    // reload as appropriate - no need to schedule token refresh as the page is reloading
+                    if (top !== window) {
+                        parent.window.location = '/nifi';
+                    } else {
+                        window.location = '/nifi';
+                    }
                 }
             }).fail(function (xhr, status, error) {
                 $('#login-message-title').text('Unable to log in');
@@ -157,9 +155,9 @@ nf.Login = (function () {
             });
 
             // access status
-            var accessStatus = $.ajax({
+            var currentUser = $.ajax({
                 type: 'GET',
-                url: config.urls.accessStatus,
+                url: config.urls.currentUser,
                 dataType: 'json'
             }).fail(function (xhr, status, error) {
                 $('#login-message-title').text('Unable to check Access Status');
@@ -174,9 +172,8 @@ nf.Login = (function () {
                 dataType: 'json'
             });
 
-            $.when(accessStatus, accessConfigXhr).done(function (accessStatusResult, accessConfigResult) {
-                var accessStatusResponse = accessStatusResult[0];
-                var accessStatus = accessStatusResponse.accessStatus;
+            $.when(currentUser, accessConfigXhr).done(function (currentUserResult, accessConfigResult) {
+                var currentUserResponse = currentUserResult[0];
 
                 var accessConfigResponse = accessConfigResult[0];
                 var accessConfig = accessConfigResponse.config;
@@ -186,14 +183,14 @@ nf.Login = (function () {
                 var showMessage = false;
                 
                 // handle the status appropriately
-                if (accessStatus.status === 'UNKNOWN') {
+                if (currentUserResponse.anonymous === true) {
                     needsLogin = true;
-                } else if (accessStatus.status === 'ACTIVE') {
+                } else {
                     showMessage = true;
                     needsLogin = false;
                     
                     $('#login-message-title').text('Success');
-                    $('#login-message').text(accessStatus.message);
+                    $('#login-message').text('You are already logged in.');
                 }
                 
                 // if login is required, verify its supported
