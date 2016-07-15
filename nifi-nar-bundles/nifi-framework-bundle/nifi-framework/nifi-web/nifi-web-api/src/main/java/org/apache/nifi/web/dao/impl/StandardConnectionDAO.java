@@ -59,6 +59,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -419,8 +420,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // If destination is changing, ensure that current destination is not running. This check is done here, rather than
             // in the Connection object itself because the Connection object itself does not know which updates are to occur and
             // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
-            if (connectionDTO.getDestination() != null && connection.getDestination().isRunning()) {
-                throw new IllegalStateException("Cannot change the destination of connection because the current destination is running");
+            final Connectable destination = connection.getDestination();
+            if (destination != null && destination.isRunning() && destination.getConnectableType() != ConnectableType.FUNNEL && destination.getConnectableType() != ConnectableType.INPUT_PORT) {
+                throw new ValidationException(Collections.singletonList("Cannot change the destination of connection because the current destination is running"));
             }
 
             // verify that this connection supports modification
