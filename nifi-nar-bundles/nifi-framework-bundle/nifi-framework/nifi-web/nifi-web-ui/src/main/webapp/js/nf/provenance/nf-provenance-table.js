@@ -99,7 +99,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the uri to the data
-        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = controllerUri + 'provenance-events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -900,9 +900,9 @@ nf.ProvenanceTable = (function () {
      */
     var getProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 
@@ -921,9 +921,9 @@ nf.ProvenanceTable = (function () {
      */
     var cancelProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 

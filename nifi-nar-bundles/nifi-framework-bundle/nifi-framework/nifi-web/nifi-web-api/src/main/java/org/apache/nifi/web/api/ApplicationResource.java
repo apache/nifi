@@ -49,7 +49,6 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -291,16 +290,6 @@ public abstract class ApplicationResource {
         return entity;
     }
 
-    protected MultivaluedMap<String, String> getRequestParameters(final boolean forceClientId) {
-        final MultivaluedMap<String, String> params = getRequestParameters();
-        if (forceClientId) {
-            if (StringUtils.isBlank(params.getFirst(CLIENT_ID))) {
-                params.putSingle(CLIENT_ID, new ClientIdParameter().getClientId());
-            }
-        }
-        return params;
-    }
-
     protected Map<String, String> getHeaders() {
         return getHeaders(new HashMap<String, String>());
     }
@@ -519,7 +508,7 @@ public abstract class ApplicationResource {
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
      */
     protected Response replicate(final String method, final String nodeUuid) {
-        return replicate(method, getRequestParameters(true), nodeUuid);
+        return replicate(method, getRequestParameters(), nodeUuid);
     }
 
     /**
@@ -595,11 +584,11 @@ public abstract class ApplicationResource {
             // to the cluster nodes themselves.
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
                 final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
-                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(true), getHeaders(), true).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(), getHeaders(), true).awaitMergedResponse().getResponse();
             } else {
                 final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
                 final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
-                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(true), headers, false).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(), headers, false).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
@@ -614,7 +603,7 @@ public abstract class ApplicationResource {
      * @return the response from the request
      */
     protected Response replicate(final String method) {
-        return replicate(method, getRequestParameters(true));
+        return replicate(method, getRequestParameters());
     }
 
     /**
@@ -626,7 +615,7 @@ public abstract class ApplicationResource {
      * @throws InterruptedException if interrupted while replicating the request
      */
     protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
-        return replicateNodeResponse(method, getRequestParameters(true), (Map<String, String>) null);
+        return replicateNodeResponse(method, getRequestParameters(), (Map<String, String>) null);
     }
 
     /**

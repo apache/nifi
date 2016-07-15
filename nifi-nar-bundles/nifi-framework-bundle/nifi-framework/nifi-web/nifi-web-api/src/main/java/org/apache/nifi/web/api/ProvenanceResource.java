@@ -220,11 +220,11 @@ public class ProvenanceResource extends ApplicationResource {
             headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
 
             // determine where this request should be sent
-            if (provenanceDto.getClusterNodeId() == null) {
+            if (provenanceDto.getRequest() == null || provenanceDto.getRequest().getClusterNodeId() == null) {
                 // replicate to all nodes
                 return replicate(HttpMethod.POST, provenanceEntity, headersToOverride);
             } else {
-                return replicate(HttpMethod.POST, provenanceEntity, provenanceDto.getClusterNodeId(), headersToOverride);
+                return replicate(HttpMethod.POST, provenanceEntity, provenanceDto.getRequest().getClusterNodeId(), headersToOverride);
             }
         }
 
@@ -242,8 +242,12 @@ public class ProvenanceResource extends ApplicationResource {
 
         // submit the provenance request
         final ProvenanceDTO dto = serviceFacade.submitProvenance(provenanceDto);
-        dto.setClusterNodeId(provenanceDto.getClusterNodeId());
         populateRemainingProvenanceContent(dto);
+
+        // set the cluster id if necessary
+        if (provenanceDto.getRequest() != null && provenanceDto.getRequest().getClusterNodeId() != null) {
+            dto.getRequest().setClusterNodeId(provenanceDto.getRequest().getClusterNodeId());
+        }
 
         // create the response entity
         final ProvenanceEntity entity = new ProvenanceEntity();
@@ -308,7 +312,7 @@ public class ProvenanceResource extends ApplicationResource {
 
         // get the provenance
         final ProvenanceDTO dto = serviceFacade.getProvenance(id);
-        dto.setClusterNodeId(clusterNodeId);
+        dto.getRequest().setClusterNodeId(clusterNodeId);
         populateRemainingProvenanceContent(dto);
 
         // create the response entity
