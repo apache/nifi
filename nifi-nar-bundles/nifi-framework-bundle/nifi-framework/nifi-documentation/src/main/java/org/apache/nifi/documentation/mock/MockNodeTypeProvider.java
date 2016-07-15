@@ -16,36 +16,25 @@
  */
 package org.apache.nifi.documentation.mock;
 
-import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 
 /**
- * A Mock ProcessorInitializationContext that can be used so that Processors can
- * be initialized for the purpose of generating documentation.
+ * A Mock NodeTypeProvider that can be used so that
+ * ConfigurableComponents can be initialized for the purpose of generating
+ * documentation
  *
  *
  */
-public class MockProcessorInitializationContext implements ProcessorInitializationContext {
+public class MockNodeTypeProvider implements NodeTypeProvider {
 
     @Override
-    public String getIdentifier() {
-        return "mock-processor";
+    public boolean isClustered() {
+        return false;
     }
 
     @Override
-    public ComponentLog getLogger() {
-        return new MockComponentLogger();
+    public boolean isPrimary() {
+        return false;
     }
 
-    @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return new MockControllerServiceLookup();
-    }
-
-    @Override
-    public NodeTypeProvider getNodeTypeProvider() {
-        return new MockNodeTypeProvider();
-    }
 }
