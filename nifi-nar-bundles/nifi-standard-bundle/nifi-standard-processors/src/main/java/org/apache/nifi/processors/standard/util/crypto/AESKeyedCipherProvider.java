@@ -76,8 +76,10 @@ public class AESKeyedCipherProvider extends KeyedCipherProvider {
      * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher or if decryption is requested
+     * @deprecated use other getCipher requiring a salt
      */
     @Override
+    @Deprecated
     public Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception {
         return getCipher(encryptionMethod, key, new byte[0], encryptMode);
     }

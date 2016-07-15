@@ -53,7 +53,9 @@ public abstract class KeyedCipherProvider implements CipherProvider {
      * @param encryptMode      true for encrypt, false for decrypt
      * @return the initialized cipher
      * @throws Exception if there is a problem initializing the cipher or if decryption is requested
+     * @deprecated use other getCipher method
      */
+    @Deprecated
     abstract Cipher getCipher(EncryptionMethod encryptionMethod, SecretKey key, boolean encryptMode) throws Exception;
 
     /**

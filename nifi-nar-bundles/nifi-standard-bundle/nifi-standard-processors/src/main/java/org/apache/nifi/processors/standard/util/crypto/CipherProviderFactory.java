@@ -27,23 +27,22 @@ import java.util.Map;
 public class CipherProviderFactory {
     private static final Logger logger = LoggerFactory.getLogger(CipherProviderFactory.class);
 
-    private static Map<KeyDerivationFunction, Class<? extends CipherProvider>> registeredCipherProviders;
+    private static final Map<KeyDerivationFunction, Class<? extends CipherProvider>> REGISTERED_CIPHER_PROVIDERS = new HashMap<>();
 
     static {
-        registeredCipherProviders = new HashMap<>();
-        registeredCipherProviders.put(KeyDerivationFunction.NIFI_LEGACY, NiFiLegacyCipherProvider.class);
-        registeredCipherProviders.put(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY, OpenSSLPKCS5CipherProvider.class);
-        registeredCipherProviders.put(KeyDerivationFunction.PBKDF2, PBKDF2CipherProvider.class);
-        registeredCipherProviders.put(KeyDerivationFunction.BCRYPT, BcryptCipherProvider.class);
-        registeredCipherProviders.put(KeyDerivationFunction.SCRYPT, ScryptCipherProvider.class);
-        registeredCipherProviders.put(KeyDerivationFunction.NONE, AESKeyedCipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.NIFI_LEGACY, NiFiLegacyCipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY, OpenSSLPKCS5CipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.PBKDF2, PBKDF2CipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.BCRYPT, BcryptCipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.SCRYPT, ScryptCipherProvider.class);
+        REGISTERED_CIPHER_PROVIDERS.put(KeyDerivationFunction.NONE, AESKeyedCipherProvider.class);
     }
 
     public static CipherProvider getCipherProvider(KeyDerivationFunction kdf) {
-        logger.debug("{} KDFs registered", registeredCipherProviders.size());
+        logger.debug("{} KDFs registered", REGISTERED_CIPHER_PROVIDERS.size());
 
-        if (registeredCipherProviders.containsKey(kdf)) {
-            Class<? extends CipherProvider> clazz = registeredCipherProviders.get(kdf);
+        if (REGISTERED_CIPHER_PROVIDERS.containsKey(kdf)) {
+            Class<? extends CipherProvider> clazz = REGISTERED_CIPHER_PROVIDERS.get(kdf);
             try {
                 return clazz.newInstance();
             } catch (Exception e) {

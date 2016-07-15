@@ -49,6 +49,11 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
         return identifier;
     }
 
+    /**
+     * @param context config context
+     * @deprecated When methods annotated with OnEnabled are called the config context is supplied
+     */
+    @Deprecated
     @OnConfigured
     public void onConfigurationChange(final ConfigurationContext context) {
         this.configContext = context;
@@ -58,7 +63,9 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      * @param descriptor to retrieve value of
      * @return the currently configured value for the given
      * {@link PropertyDescriptor}
+     * @deprecated will be removed.  Instead use config context as passed to OnEnabled annotated methods
      */
+    @Deprecated
     protected final PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return configContext.getProperty(descriptor);
     }
@@ -66,7 +73,9 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     /**
      * @return an unmodifiable map of all configured properties for this
      * {@link ControllerService}
+     * @deprecated will be removed.  Instead use config context as passed to OnEnabled annotated methods
      */
+    @Deprecated
     protected final Map<PropertyDescriptor, String> getProperties() {
         return configContext.getProperties();
     }
