@@ -16,17 +16,21 @@
  */
 package org.apache.nifi.web.util;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -74,7 +78,7 @@ public final class SnippetUtils {
      * @return snippet
      */
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices) {
-        final FlowSnippetDTO snippetDto = new FlowSnippetDTO();
+        final FlowSnippetDTO snippetDto = new FlowSnippetDTO(true);
         final String groupId = snippet.getParentGroupId();
         final ProcessGroup processGroup = flowController.getGroup(groupId);
 
@@ -99,8 +103,11 @@ public final class SnippetUtils {
                     controllerServices.addAll(getControllerServices(processor.getProperties()));
                 }
             }
+            this.normalizeCoordinates(processors);
             snippetDto.setProcessors(processors);
         }
+
+
 
         // add any connections
         if (!snippet.getConnections().isEmpty()) {
@@ -559,11 +566,12 @@ public final class SnippetUtils {
      * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
      */
     private String generateId(final String currentId, final String seed) {
-        if (seed == null) {
-            return UUID.randomUUID().toString();
-        } else {
-            return UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8)).toString();
-        }
+        long msb = UUID.fromString(currentId).getMostSignificantBits();
+        long lsb = StringUtils.isBlank(seed)
+                ? Math.abs(new Random().nextInt())
+                : Math.abs(ByteBuffer.wrap(seed.getBytes(StandardCharsets.UTF_8)).getInt());
+
+        return new UUID(msb, lsb).toString();
     }
 
     /* setters */
@@ -573,6 +581,32 @@ public final class SnippetUtils {
 
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    /**
+     * Will normalize the coordinates of the processors to ensure their
+     * consistency across exports. It will do so by fist calculating the
+     * smallest X and smallest Y and then subtracting it from all X's and Y's of
+     * each processor ensuring that coordinates are consistent across export
+     * while preserving relative locations set by the user.
+     */
+    private void normalizeCoordinates(Collection<ProcessorDTO> processors) {
+        double smallestX = Double.MAX_VALUE;
+        double smallestY = Double.MAX_VALUE;
+        for (ProcessorDTO processor : processors) {
+            double d = processor.getPosition().getX();
+            if (d < smallestX) {
+                smallestX = d;
+            }
+            d = processor.getPosition().getY();
+            if (d < smallestY) {
+                smallestY = d;
+            }
+        }
+        for (ProcessorDTO processor : processors) {
+            processor.getPosition().setX(processor.getPosition().getX() - smallestX);
+            processor.getPosition().setY(processor.getPosition().getY() - smallestY);
+        }
     }
 
 }

@@ -43,7 +43,7 @@ class SnippetUtilsSpec extends Specification {
         where:
         nX  | nY  | oX | oY | fX  | fY   | snippet
         500 | 500 | 0  | 0  | 1.5 | 1.34 | new FlowSnippetDTO()
-        500 | 500 | 10 | 10 | 1.5 | 1.34 | new FlowSnippetDTO(processors: [new ProcessorDTO(position: new PositionDTO(x: 10, y: 10))])
+        500 | 500 | 10 | 10 | 1.5 | 1.34 | new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0000-c4af042cb1559", position: new PositionDTO(x: 10, y: 10))])
     }
 
     @Unroll
@@ -69,10 +69,10 @@ class SnippetUtilsSpec extends Specification {
         fX  | fY   | snippet
         1.5 | 1.34 | new FlowSnippetDTO()
         1.5 | 1.34 | new FlowSnippetDTO(
-                processors: [new ProcessorDTO(position: new PositionDTO(x: 10, y: 10))],
+                processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0001-c4af042cb1559", position: new PositionDTO(x: 10, y: 10))],
                 processGroups: [
-                        new ProcessGroupDTO(position: new PositionDTO(x: 105, y: -10), name: 'pg2',
-                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(name: 'proc1', position: new PositionDTO(x: 50, y: 60))]))])
+                        new ProcessGroupDTO(id:"c81f6a10-0155-1000-0002-c4af042cb1559", position: new PositionDTO(x: 105, y: -10), name: 'pg2',
+                                contents: new FlowSnippetDTO(processors: [new ProcessorDTO(id:"c81f6810-0155-1000-0002-c4af042cb1559", name: 'proc1', position: new PositionDTO(x: 50, y: 60))]))])
 
     }
 
