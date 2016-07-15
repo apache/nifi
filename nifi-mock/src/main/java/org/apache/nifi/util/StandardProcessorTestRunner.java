@@ -812,4 +812,13 @@ public class StandardProcessorTestRunner implements TestRunner {
         return controllerServiceLoggers.get(identifier);
     }
 
+    @Override
+    public void setClustered(boolean clustered) {
+        context.setClustered(clustered);
+    }
+
+    @Override
+    public void setPrimaryNode(boolean primaryNode) {
+        context.setPrimaryNode(primaryNode);
+    }
 }

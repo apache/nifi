@@ -42,6 +42,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -347,6 +348,11 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                                 @Override
                                 public ControllerServiceLookup getControllerServiceLookup() {
                                     return InvokeScriptedProcessor.super.getControllerServiceLookup();
+                                }
+
+                                @Override
+                                public NodeTypeProvider getNodeTypeProvider() {
+                                    return InvokeScriptedProcessor.super.getNodeTypeProvider();
                                 }
                             });
                         } catch (final Exception e) {

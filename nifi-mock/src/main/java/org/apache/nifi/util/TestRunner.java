@@ -891,4 +891,14 @@ public interface TestRunner {
      * @return the State Manager that is used to store and retrieve state for the given controller service
      */
     MockStateManager getStateManager(ControllerService service);
+
+    /**
+     * @param clustered Specify if this test emulates running in a clustered environment
+     */
+    void setClustered(boolean clustered);
+
+    /**
+     * @param primaryNode Specify if this test emulates running as a primary node
+     */
+    void setPrimaryNode(boolean primaryNode);
 }

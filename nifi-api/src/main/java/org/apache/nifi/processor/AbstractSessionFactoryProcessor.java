@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 
 /**
@@ -50,6 +51,7 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     private volatile boolean scheduled = false;
     private volatile boolean configurationRestored = false;
     private ControllerServiceLookup serviceLookup;
+    private NodeTypeProvider nodeTypeProvider;
     private String description;
 
     @Override
@@ -57,6 +59,7 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
         identifier = context.getIdentifier();
         logger = context.getLogger();
         serviceLookup = context.getControllerServiceLookup();
+        nodeTypeProvider = context.getNodeTypeProvider();
         init(context);
 
         description = getClass().getSimpleName() + "[id=" + identifier + "]";
@@ -68,6 +71,14 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
+    }
+
+    /**
+     * @return the {@link NodeTypeProvider} that was passed to the
+     * {@link #init(ProcessorInitializationContext)} method
+     */
+    protected final NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 
     @Override

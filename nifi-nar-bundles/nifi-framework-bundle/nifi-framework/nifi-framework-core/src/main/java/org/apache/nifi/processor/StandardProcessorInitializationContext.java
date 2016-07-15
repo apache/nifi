@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
 
@@ -25,11 +26,13 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     private final String identifier;
     private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
+    private final NodeTypeProvider nodeTypeProvider;
 
-    public StandardProcessorInitializationContext(final String identifier, final ComponentLog componentLog, final ControllerServiceProvider serviceProvider) {
+    public StandardProcessorInitializationContext(final String identifier, final ComponentLog componentLog, final ControllerServiceProvider serviceProvider, NodeTypeProvider nodeTypeProvider) {
         this.identifier = identifier;
         this.logger = componentLog;
         this.serviceProvider = serviceProvider;
+        this.nodeTypeProvider = nodeTypeProvider;
     }
 
     @Override
@@ -45,5 +48,10 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return serviceProvider;
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 }

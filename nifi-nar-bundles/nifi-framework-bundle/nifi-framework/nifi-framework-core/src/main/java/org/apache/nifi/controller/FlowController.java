@@ -237,7 +237,7 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.ClientHandlerException;
 
-public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory {
+public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -1053,7 +1053,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final Class<? extends Processor> processorClass = rawClass.asSubclass(Processor.class);
             processor = processorClass.newInstance();
             final ComponentLog componentLogger = new SimpleProcessLogger(identifier, processor);
-            final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, componentLogger, this);
+            final ProcessorInitializationContext ctx = new StandardProcessorInitializationContext(identifier, componentLogger, this, this);
             processor.initialize(ctx);
 
             LogRepositoryFactory.getRepository(identifier).setLogger(componentLogger);
@@ -3148,6 +3148,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * @return true if this instance is clustered; false otherwise. Clustered means that a node is either connected or trying to connect to the cluster.
      */
+    @Override
     public boolean isClustered() {
         readLock.lock();
         try {
@@ -3323,6 +3324,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * @return true if this instance is the primary node in the cluster; false otherwise
      */
+    @Override
     public boolean isPrimary() {
         return leaderElectionManager != null && leaderElectionManager.isLeader(ClusterRoles.PRIMARY_NODE);
     }
