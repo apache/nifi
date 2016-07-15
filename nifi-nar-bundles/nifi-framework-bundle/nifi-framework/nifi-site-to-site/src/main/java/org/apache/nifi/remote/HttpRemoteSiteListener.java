@@ -18,6 +18,7 @@ package org.apache.nifi.remote;
 
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
+import org.apache.nifi.remote.protocol.HandshakenProperties;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -90,10 +91,12 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private class TransactionWrapper {
         private final FlowFileTransaction transaction;
+        private final HandshakenProperties handshakenProperties;
         private long lastCommunicationAt;
 
-        private TransactionWrapper(final FlowFileTransaction transaction) {
+        private TransactionWrapper(final FlowFileTransaction transaction, final HandshakenProperties handshakenProperties) {
             this.transaction = transaction;
+            this.handshakenProperties = handshakenProperties;
             this.lastCommunicationAt = System.currentTimeMillis();
         }
 
@@ -166,13 +169,17 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     public String createTransaction() {
         final String transactionId = UUID.randomUUID().toString();
-        transactions.put(transactionId, new TransactionWrapper(null));
+        transactions.put(transactionId, new TransactionWrapper(null, null));
         logger.debug("Created a new transaction: {}", transactionId);
         return transactionId;
     }
 
     public boolean isTransactionActive(final String transactionId) {
         TransactionWrapper transaction = transactions.get(transactionId);
+        return isTransactionActive(transaction);
+    }
+
+    private boolean isTransactionActive(TransactionWrapper transaction) {
         if (transaction == null) {
             return false;
         }
@@ -182,7 +189,23 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         return true;
     }
 
-    public void holdTransaction(final String transactionId, final FlowFileTransaction transaction) throws IllegalStateException {
+    /**
+     * @param transactionId transactionId to check
+     * @return Returns a HandshakenProperties instance which is created when this transaction is started,
+     *          only if the transaction is active,
+     *          and it holds a HandshakenProperties,
+     *          otherwise return null
+     */
+    public HandshakenProperties getHandshakenProperties(final String transactionId) {
+        TransactionWrapper transaction = transactions.get(transactionId);
+        if (isTransactionActive(transaction)) {
+            return transaction.handshakenProperties;
+        }
+        return null;
+    }
+
+    public void holdTransaction(final String transactionId, final FlowFileTransaction transaction,
+                                final HandshakenProperties handshakenProperties) throws IllegalStateException {
         // We don't check expiration of the transaction here, to support large file transport or slow network.
         // The availability of current transaction is already checked when the HTTP request was received at SiteToSiteResource.
         TransactionWrapper currentTransaction = transactions.remove(transactionId);
@@ -197,7 +220,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         logger.debug("Holding a transaction: {}", transactionId);
         // Server has received or sent all data, and transaction TTL count down starts here.
         // However, if the client doesn't consume data fast enough, server might expire and rollback the transaction.
-        transactions.put(transactionId, new TransactionWrapper(transaction));
+        transactions.put(transactionId, new TransactionWrapper(transaction, handshakenProperties));
     }
 
     public FlowFileTransaction finalizeTransaction(final String transactionId) throws IllegalStateException {
