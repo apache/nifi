@@ -32,6 +32,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TestListenSMTP {
 
@@ -251,7 +252,7 @@ public class TestListenSMTP {
         listenSmtp.startShutdown();
     }
 
-    @Test(timeout=15000, expected=EmailException.class)
+    @Test(timeout=15000)
     public void emailTooLarge() throws Exception {
         ListenSMTP listenSmtp = new ListenSMTP();
         final TestRunner runner = TestRunners.newTestRunner(listenSmtp);
@@ -272,31 +273,47 @@ public class TestListenSMTP {
         listenSmtp.initializeSMTPServer(context);
 
         final int port = listenSmtp.getPort();
-
-        Email email = new SimpleEmail();
-        email.setHostName("127.0.0.1");
-        email.setSmtpPort(port);
-        email.setStartTLSEnabled(false);
-        email.setFrom("alice@nifi.apache.org");
-        email.setSubject("This is a test");
-        email.setMsg("Test test test chocolate");
-        email.addTo("bob@nifi.apache.org");
-        email.send();
-
-        Thread.sleep(100);
-
-
-        // process the request.
-        listenSmtp.onTrigger(context, processSessionFactory);
-
-        runner.assertTransferCount(ListenSMTP.REL_SUCCESS, 0);
-        runner.assertQueueEmpty();
+        AtomicBoolean finished = new AtomicBoolean(false);;
+        AtomicBoolean failed = new AtomicBoolean(false);
 
         try {
-                listenSmtp.startShutdown();
-        } catch (InterruptedException e) {
-                e.printStackTrace();
-                Assert.assertFalse(e.toString(), true);
+            final Thread clientThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Email email = new SimpleEmail();
+                        email.setHostName("127.0.0.1");
+                        email.setSmtpPort(port);
+                        email.setStartTLSEnabled(false);
+                        email.setFrom("alice@nifi.apache.org");
+                        email.setSubject("This is a test");
+                        email.setMsg("Test test test chocolate");
+                        email.addTo("bob@nifi.apache.org");
+                        email.send();
+
+                    } catch (final EmailException t) {
+                        failed.set(true);
+                    }
+                    finished.set(true);
+                }
+            });
+            clientThread.start();
+
+            while (!finished.get()) {
+                // process the request.
+                listenSmtp.onTrigger(context, processSessionFactory);
+                Thread.sleep(10);
+            }
+            clientThread.stop();
+
+            Assert.assertTrue("Sending email succeeded when it should have failed", failed.get());
+
+            runner.assertTransferCount(ListenSMTP.REL_SUCCESS, 0);
+
+            runner.assertQueueEmpty();
+        } finally {
+            // shut down the server
+            listenSmtp.startShutdown();
         }
     }
 }
