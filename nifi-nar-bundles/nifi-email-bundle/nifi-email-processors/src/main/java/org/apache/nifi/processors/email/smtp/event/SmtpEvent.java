@@ -18,14 +18,13 @@
 package org.apache.nifi.processors.email.smtp.event;
 
 
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
+import java.io.InputStream;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -38,19 +37,15 @@ public class SmtpEvent{
     private final String helo;
     private final String from;
     private final String to;
-    private final ByteArrayOutputStream messageData;
+    private final InputStream messageData;
     private List<Map<String, String>> certificatesDetails;
     private AtomicBoolean processed = new AtomicBoolean(false);
     private AtomicBoolean acknowledged = new AtomicBoolean(false);
     private AtomicInteger returnCode = new AtomicInteger();
-    private CountDownLatch processedLatch;
 
     public SmtpEvent(
             final String remoteIP, final String helo, final String from, final String to, final X509Certificate[] certificates,
-            final ByteArrayOutputStream messageData,
-            CountDownLatch processedLatch) {
-
-        this.processedLatch = processedLatch;
+            final InputStream messageData) {
 
         this.remoteIP = remoteIP;
         this.helo = helo;
@@ -86,7 +81,7 @@ public class SmtpEvent{
         return helo;
     }
 
-    public synchronized ByteArrayOutputStream getMessageData() {
+    public synchronized InputStream getMessageData() {
         return messageData;
     }
 
@@ -118,15 +113,11 @@ public class SmtpEvent{
         return this.acknowledged.get();
     }
 
-    public synchronized void updateProcessedLatch() {
-        this.processedLatch.countDown();
-    }
-
     public synchronized void setReturnCode(int code) {
         this.returnCode.set(code);
     }
 
-    public synchronized int getReturnCode() {
+    public synchronized Integer getReturnCode() {
         return this.returnCode.get();
     }
 

@@ -79,5 +79,15 @@ public enum SMTPResultCode {
         return (smtpResultCode == null) ? UNKNOWN_ERROR_CODE : smtpResultCode;
     }
 
-
+    public boolean isError(){
+        switch (this) {
+            case MESSAGE_TOO_LARGE:
+            case UNEXPECTED_ERROR:
+            case QUEUE_ERROR:
+            case TIMEOUT_ERROR:
+                return true;
+            default:
+                return false;
+        }
+    }
 }

@@ -20,12 +20,10 @@ package org.apache.nifi.processors.email.smtp.handler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.cert.X509Certificate;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.util.StopWatch;
 import org.subethamail.smtp.DropConnectionException;
 import org.subethamail.smtp.MessageContext;
@@ -33,7 +31,6 @@ import org.subethamail.smtp.MessageHandler;
 import org.subethamail.smtp.MessageHandlerFactory;
 import org.subethamail.smtp.RejectException;
 import org.subethamail.smtp.TooMuchDataException;
-import org.subethamail.smtp.server.SMTPServer;
 
 import org.apache.nifi.processors.email.smtp.event.SmtpEvent;
 
@@ -57,13 +54,9 @@ public class SMTPMessageHandlerFactory implements MessageHandlerFactory {
         final MessageContext messageContext;
         String from;
         String recipient;
-        ByteArrayOutputStream messageData;
-
-        private CountDownLatch latch;
 
         public Handler(MessageContext messageContext, LinkedBlockingQueue<SmtpEvent> incomingMessages, ComponentLog logger){
             this.messageContext = messageContext;
-            this.latch =  new CountDownLatch(1);
         }
 
         @Override
@@ -82,30 +75,8 @@ public class SMTPMessageHandlerFactory implements MessageHandlerFactory {
         public void data(InputStream inputStream) throws RejectException, TooMuchDataException, IOException {
             // Start counting the timer...
             StopWatch watch = new StopWatch(true);
-
             long elapsed;
-
-            SMTPServer server = messageContext.getSMTPServer();
-
             final long serverTimeout = TimeUnit.MILLISECONDS.convert(messageContext.getSMTPServer().getConnectionTimeout(), TimeUnit.MILLISECONDS);
-
-            this.messageData = new ByteArrayOutputStream();
-
-            byte [] buffer = new byte[1024];
-
-            int rd;
-
-            while ((rd = inputStream.read(buffer, 0, buffer.length)) != -1 ) {
-                messageData.write(buffer, 0, rd);
-                if (messageData.getBufferLength() > server.getMaxMessageSize() ) {
-                    // NOTE: Setting processed at this stage is not desirable as message object will only be created
-                    // if this test (i.e. message size) passes.
-                    final SMTPResultCode returnCode = SMTPResultCode.fromCode(500);
-                    logger.warn(returnCode.getLogMessage());
-                    throw new TooMuchDataException(returnCode.getErrorMessage());
-                }
-            }
-            messageData.flush();
 
             X509Certificate[] certificates = new X509Certificate[]{};
 
@@ -116,67 +87,79 @@ public class SMTPMessageHandlerFactory implements MessageHandlerFactory {
                 certificates = (X509Certificate[]) messageContext.getTlsPeerCertificates().clone();
             }
 
-            SmtpEvent message = new SmtpEvent(remoteIP, helo, from, recipient, certificates, messageData, latch);
+            SmtpEvent message = new SmtpEvent(remoteIP, helo, from, recipient, certificates, inputStream);
 
-            // / Try to queue the message back to the NiFi session
-            try {
+            synchronized (message) {
+                // / Try to queue the message back to the NiFi session
+                try {
+                    elapsed = watch.getElapsed(TimeUnit.MILLISECONDS);
+                    incomingMessages.offer(message, serverTimeout - elapsed, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    final SMTPResultCode returnCode = SMTPResultCode.fromCode(421);
+                    logger.trace(returnCode.getLogMessage());
+
+                    // NOTE: Setting acknowledged at this stage is redundant as this catch deals with the inability of
+                    // adding message to the processing queue. Yet, for the sake of consistency the message is
+                    // updated nonetheless
+                    message.setReturnCode(returnCode.getCode());
+                    message.setAcknowledged();
+                    throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
+                }
+
+                // Once message has been sent to the queue, it should be processed by NiFi onTrigger,
+                // a flowfile created and its processed status updated before an acknowledgment is
+                // given back to the SMTP client
                 elapsed = watch.getElapsed(TimeUnit.MILLISECONDS);
-                incomingMessages.offer(message, serverTimeout - elapsed, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                final SMTPResultCode returnCode = SMTPResultCode.fromCode(421);
-                logger.trace(returnCode.getLogMessage());
+                try {
+                    message.wait(serverTimeout - elapsed);
+                } catch (InterruptedException e) {
+                    // Interrupted while waiting for the message to process. Will return error and request onTrigger to rollback
+                    logger.trace("Interrupted while waiting for processor to process data. Returned error to SMTP client as precautionary measure");
+                    incomingMessages.remove(message);
 
-                // NOTE: Setting processed at this stage is redundant as this catch deals with the inability of
-                // adding message to the processing queue. Yet, for the sake of consistency the message is
-                // updated nonetheless
-                message.setReturnCode(returnCode.getCode());
-                message.setAcknowledged();
-                throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
+                    // Set the final values so onTrigger can figure out what happened to message
+                    final SMTPResultCode returnCode = SMTPResultCode.fromCode(423);
+                    message.setReturnCode(returnCode.getCode());
+                    message.setAcknowledged();
+
+                    // Inform client
+                    throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
+                }
+
+                // Check if message is processed
+                if (!message.getProcessed()) {
+                    incomingMessages.remove(message);
+                    final SMTPResultCode returnCode = SMTPResultCode.fromCode(451);
+                    logger.trace("Did not receive the onTrigger response within the acceptable timeframe.");
+
+                    // Set the final values so onTrigger can figure out what happened to message
+                    message.setReturnCode(returnCode.getCode());
+                    message.setAcknowledged();
+                    throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
+                } else if(message.getReturnCode() != null) {
+                    // No need to check if over server timeout because we already processed the data. Might as well use the status code returned by onTrigger.
+                    final SMTPResultCode returnCode = SMTPResultCode.fromCode(message.getReturnCode());
+
+                    if(returnCode.isError()){
+                        message.setAcknowledged();
+                        throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
+                    }
+                } else {
+                    // onTrigger successfully processed the data.
+                    // No need to check if over server timeout because we already processed the data. Might as well finalize it.
+                    // Set the final values so onTrigger can figure out what happened to message
+                    message.setReturnCode(250);
+                    message.setAcknowledged();
+                }
+                // Exit, allowing Handler to acknowledge the message
+                message.notifyAll();
             }
-
-            // Once message has been sent to the queue, it should be processed by NiFi onTrigger,
-            // a flowfile created and its processed status updated before an acknowledgment is
-            // given back to the SMTP client
-            elapsed = watch.getElapsed(TimeUnit.MILLISECONDS);
-            try {
-                latch.await(serverTimeout - elapsed, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                // Latch open unexpectedly. Will return error and requestonTrigger to rollback
-                logger.trace("Latch opened unexpectedly and processor indicates data wasn't processed. Returned error to SMTP client as precautionary measure");
-                incomingMessages.remove(message);
-
-                // Set the final values so onTrigger can figure out what happened to message
-                final SMTPResultCode returnCode = SMTPResultCode.fromCode(423);
-                message.setReturnCode(returnCode.getCode());
-                message.setAcknowledged();
-
-                // Inform client
-                throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
-            }
-
-            // Remove the message from the queue.
-            incomingMessages.remove(message);
-            // Check if message is processed and if yes, check if it was received on time and wraps it up.
-            elapsed = watch.getElapsed(TimeUnit.MILLISECONDS);
-            if (!message.getProcessed() ||  (elapsed >= serverTimeout)) {
-                final SMTPResultCode returnCode = SMTPResultCode.fromCode(451);
-                logger.trace("Did not receive the onTrigger response within the acceptable timeframes. Data duplication may have occurred.");
-
-                // Set the final values so onTrigger can figure out what happened to message
-                message.setReturnCode(returnCode.getCode());
-                message.setAcknowledged();
-                throw new DropConnectionException(returnCode.getCode(), returnCode.getErrorMessage());
-            }
-
-            // Set the final values so onTrigger can figure out what happened to message
-            message.setReturnCode(250);
-            message.setAcknowledged();
-            // Exit, allowing Handler to acknowledge the message
-    }
+        }
 
         @Override
         public void done() {
             logger.trace("Called the last method of message handler. Exiting");
+            // Notifying the ontrigger that the message was handled.
         }
     }
 }

@@ -20,7 +20,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -44,7 +44,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.ByteArrayOutputStream;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -64,7 +63,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.ssl.SSLContextService;
 
 import org.apache.nifi.processors.email.smtp.event.SmtpEvent;
@@ -356,85 +354,123 @@ public class ListenSMTP extends AbstractProcessor {
         while (!incomingMessages.isEmpty()) {
             SmtpEvent message = incomingMessages.poll();
 
-
             if (message == null) {
                 return;
             }
 
             synchronized (message) {
+                if (resultCodeSetAndIsError(message)) {
+                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
+                    getLogger().warn("Message failed before onTrigger processing message was: " + resultCode.getLogMessage());
+                    continue;
+                }
 
-                FlowFile flowfile = session.create();
+                try {
+                    FlowFile flowfile = session.create();
 
-                if (message.getMessageData() != null) {
-                    ByteArrayOutputStream messageData = message.getMessageData();
-                    flowfile = session.write(flowfile, new OutputStreamCallback() {
+                    if (message.getMessageData() != null) {
+                        flowfile = session.write(flowfile, out -> {
+                            InputStream inputStream = message.getMessageData();
+                            byte [] buffer = new byte[1024];
 
-                        // Write the messageData to flowfile content
-                        @Override
-                        public void process(OutputStream out) throws IOException {
-                            out.write(messageData.toByteArray());
+                            int rd;
+                            long totalBytesRead =0;
+
+                            while ((rd = inputStream.read(buffer, 0, buffer.length)) != -1 ) {
+                                totalBytesRead += rd;
+                                if (totalBytesRead > server.getMaxMessageSize() ) {
+                                    message.setReturnCode(500);
+                                    message.setProcessed();
+                                    break;
+                                }
+                                out.write(buffer, 0, rd);
+                            }
+                            out.flush();
+                        });
+                    } else {
+                        getLogger().debug("Message body was null");
+                        message.setReturnCode(SMTPResultCode.UNKNOWN_ERROR_CODE.getCode());
+                        message.setProcessed();
+                    }
+
+                    if (!message.getProcessed()) {
+                        HashMap<String, String> attributes = new HashMap<>();
+                        // Gather message attributes
+                        attributes.put(SMTP_HELO, message.getHelo());
+                        attributes.put(SMTP_SRC_IP, message.getHelo());
+                        attributes.put(SMTP_FROM, message.getFrom());
+                        attributes.put(SMTP_TO, message.getTo());
+
+                        List<Map<String, String>> details = message.getCertifcateDetails();
+                        int c = 0;
+
+                        // Add a selection of each X509 certificates to the already gathered attributes
+
+                        for (Map<String, String> detail : details) {
+                            attributes.put("smtp.certificate." + c + ".serial", detail.getOrDefault("SerialNumber", null));
+                            attributes.put("smtp.certificate." + c + ".subjectName", detail.getOrDefault("SubjectName", null));
+                            c++;
                         }
-                    });
+
+                        // Set Mime-Type
+                        attributes.put(CoreAttributes.MIME_TYPE.key(), MIME_TYPE);
+
+                        // Add the attributes. to flowfile
+                        flowfile = session.putAllAttributes(flowfile, attributes);
+                        session.getProvenanceReporter().receive(flowfile, "smtp://" + SMTP_HOSTNAME + ":" + SMTP_PORT + "/");
+                        session.transfer(flowfile, REL_SUCCESS);
+
+                        getLogger().info("Transferring {} to success", new Object[]{flowfile});
+                    }
+                } catch (Exception e) {
+                    message.setProcessed();
+                    message.setReturnCode(SMTPResultCode.UNEXPECTED_ERROR.getCode());
                 }
 
-                HashMap<String, String> attributes = new HashMap<>();
-                // Gather message attributes
-                attributes.put(SMTP_HELO, message.getHelo());
-                attributes.put(SMTP_SRC_IP, message.getHelo());
-                attributes.put(SMTP_FROM, message.getFrom());
-                attributes.put(SMTP_TO, message.getTo());
-
-                List<Map<String, String>> details = message.getCertifcateDetails();
-                int c = 0;
-
-                // Add a selection of each X509 certificates to the already gathered attributes
-
-                for (Map<String, String> detail : details) {
-                    attributes.put("smtp.certificate." + c + ".serial", detail.getOrDefault("SerialNumber", null));
-                    attributes.put("smtp.certificate." + c + ".subjectName", detail.getOrDefault("SubjectName", null));
-                    c++;
+                // Check to see if it failed when creating the FlowFile
+                if (resultCodeSetAndIsError(message)) {
+                    session.rollback();
+                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
+                    getLogger().warn("Failed to received message due to: " + resultCode.getLogMessage());
+                    message.notifyAll();
+                    continue;
                 }
-
-                // Set Mime-Type
-                attributes.put(CoreAttributes.MIME_TYPE.key(), MIME_TYPE);
-
-                // Add the attributes. to flowfile
-                flowfile = session.putAllAttributes(flowfile, attributes);
-                session.getProvenanceReporter().receive(flowfile, "smtp://" + SMTP_HOSTNAME + ":" + SMTP_PORT + "/");
-                session.transfer(flowfile, REL_SUCCESS);
-                getLogger().info("Transferring {} to success", new Object[]{flowfile});
 
                 // Finished processing,
                 message.setProcessed();
 
-                // update the latch so data() can process the rest of the method
-                message.updateProcessedLatch();
+                // notify on the message so data() can process the rest of the method
+                message.notifyAll();
 
-                // End of synchronized block
-            }
-
-            // Wait for SMTPMessageHandler data() and done() to complete
-            // their side of the work (i.e. acknowledgement)
-            while (!message.getAcknowledged()) {
-                // Busy wait
+                // Wait for data() to tell sender we received the message and double check we didn't timeout
+                final long serverTimeout = context.getProperty(SMTP_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+                try {
+                    message.wait(serverTimeout);
+                } catch (InterruptedException e) {
+                    getLogger().info("Interrupted while waiting for Message Handler to acknowledge message.");
                 }
 
-            // Lock one last time
-            synchronized (message) {
-                SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
-                switch (resultCode) {
-                    case UNEXPECTED_ERROR:
-                    case TIMEOUT_ERROR:
-                        session.rollback();
-                        getLogger().warn(resultCode.getLogMessage());
-                    case SUCCESS:
-                        getLogger().info(resultCode.getLogMessage());
-                        break;
-                    default:
-                        getLogger().error(resultCode.getLogMessage());
+                // Check to see if the sender was correctly notified
+                if (resultCodeSetAndIsError(message)) {
+                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
+                    session.rollback();
+                    getLogger().warn("Failed to received message due to: " + resultCode.getLogMessage());
+                } else {
+                    // Need to commit because if we didn't and a following message needed to be rolled back, this message would be too, causing data loss.
+                    session.commit();
                 }
             }
         }
+    }
+
+    private boolean resultCodeSetAndIsError(SmtpEvent message){
+        if (message.getReturnCode() != null ) {
+            SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
+            if (resultCode.isError()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Same old... same old... used for testing to access the random port that was selected
