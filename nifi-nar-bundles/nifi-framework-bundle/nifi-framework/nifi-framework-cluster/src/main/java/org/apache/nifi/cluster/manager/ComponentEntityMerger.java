@@ -21,9 +21,13 @@ import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.nifi.cluster.manager.BulletinMerger.BULLETIN_COMPARATOR;
+import static org.apache.nifi.reporting.BulletinRepository.MAX_BULLETINS_PER_COMPONENT;
 
 public class ComponentEntityMerger {
 
@@ -47,5 +51,13 @@ public class ComponentEntityMerger {
             }
         }
         clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
+
+        // sort the results
+        Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);
+
+        // prune the response to only include the max number of bulletins
+        if (clientEntity.getBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
+            clientEntity.setBulletins(clientEntity.getBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
+        }
     }
 }

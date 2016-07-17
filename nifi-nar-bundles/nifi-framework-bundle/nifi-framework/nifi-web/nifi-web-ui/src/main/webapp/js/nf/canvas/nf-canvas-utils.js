@@ -260,7 +260,7 @@ nf.CanvasUtils = (function () {
         editable: function (selection) {
             var selectionData = selection.datum();
             
-            if (selectionData.accessPolicy.canWrite && selectionData.accessPolicy.canRead) {
+            if (selectionData.permissions.canWrite && selectionData.permissions.canRead) {
                 if (!selection.classed('connectable')) {
                     selection.call(nf.Connectable.activate);
                 }
@@ -427,11 +427,11 @@ nf.CanvasUtils = (function () {
          */
         activeThreadCount: function (selection, d, setOffset) {
             // if there is active threads show the count, otherwise hide
-            if (nf.Common.isDefinedAndNotNull(d.status) && d.status.activeThreadCount > 0) {
+            if (nf.Common.isDefinedAndNotNull(d.status) && d.status.aggregateSnapshot.activeThreadCount > 0) {
                 // update the active thread count
                 var activeThreadCount = selection.select('text.active-thread-count')
                         .text(function () {
-                            return d.status.activeThreadCount;
+                            return d.status.aggregateSnapshot.activeThreadCount;
                         })
                         .style('display', 'block')
                         .each(function () {
@@ -888,7 +888,7 @@ nf.CanvasUtils = (function () {
         canModify: function (selection) {
             var selectionSize = selection.size();
             var writableSize = selection.filter(function (d) {
-                return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+                return d.permissions.canWrite && d.permissions.canRead;
             }).size();
             
             return selectionSize === writableSize;
@@ -903,7 +903,7 @@ nf.CanvasUtils = (function () {
         canRead: function (selection) {
             var selectionSize = selection.size();
             var readableSize = selection.filter(function (d) {
-                return d.accessPolicy.canRead;
+                return d.permissions.canRead;
             }).size();
 
             return selectionSize === readableSize;
@@ -923,7 +923,7 @@ nf.CanvasUtils = (function () {
             var selectionData = selection.datum();
 
             // check access policies first
-            if (selectionData.accessPolicy.canRead === false || selectionData.accessPolicy.canWrite === false) {
+            if (selectionData.permissions.canRead === false || selectionData.permissions.canWrite === false) {
                 return false;
             }
 
@@ -1101,7 +1101,7 @@ nf.CanvasUtils = (function () {
                 if (source.empty() === false) {
                     var sourceData = source.datum();
 
-                    if (sourceData.accessPolicy.canRead) {
+                    if (sourceData.permissions.canRead) {
                         // update the source status if necessary
                         if (nf.CanvasUtils.isProcessor(source)) {
                             nf.Processor.reload(sourceData.component);
@@ -1119,7 +1119,7 @@ nf.CanvasUtils = (function () {
                 if (destination.empty() === false) {
                     var destinationData = destination.datum();
 
-                    if (destinationData.accessPolicy.canRead) {
+                    if (destinationData.permissions.canRead) {
                         // update the destination component accordingly
                         if (nf.CanvasUtils.isProcessor(destination)) {
                             nf.Processor.reload(destinationData.component);
@@ -1260,7 +1260,10 @@ nf.CanvasUtils = (function () {
             
             // if the group id is null, we're already in the top most group
             if (groupId === null) {
-                nf.Dialog.showOkDialog('Components are already in the topmost group.');
+                nf.Dialog.showOkDialog({
+                    headerText: 'Process Group',
+                    dialogContent: 'Components are already in the topmost group.'
+                });
             } else {
                 moveComponents(components, groupId);
             }

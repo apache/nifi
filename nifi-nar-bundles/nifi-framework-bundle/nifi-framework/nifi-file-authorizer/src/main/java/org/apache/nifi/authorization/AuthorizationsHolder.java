@@ -337,11 +337,23 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
     }
 
     @Override
-    public Set<AccessPolicy> getAccessPolicies(String resourceIdentifier) {
+    public AccessPolicy getAccessPolicy(final String resourceIdentifier, final RequestAction action) {
         if (resourceIdentifier == null) {
             throw new IllegalArgumentException("Resource Identifier cannot be null");
         }
-        return policiesByResource.get(resourceIdentifier);
+
+        final Set<AccessPolicy> resourcePolicies = policiesByResource.get(resourceIdentifier);
+        if (resourcePolicies == null) {
+            return null;
+        }
+
+        for (AccessPolicy accessPolicy : resourcePolicies) {
+            if (accessPolicy.getAction() == action) {
+                return accessPolicy;
+            }
+        }
+
+        return null;
     }
 
     @Override

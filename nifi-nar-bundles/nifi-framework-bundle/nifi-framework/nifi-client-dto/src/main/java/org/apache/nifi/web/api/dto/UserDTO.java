@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -29,16 +30,35 @@ import java.util.Set;
 public class UserDTO extends TenantDTO {
 
     private Set<TenantEntity> userGroups;
+    private Set<AccessPolicySummaryEntity> accessPolicies;
 
     /**
      * @return groups to which the user belongs
      */
-    @ApiModelProperty(value = "The groups to which the user belongs.")
+    @ApiModelProperty(
+            value = "The groups to which the user belongs. This field is read only and it provided for convenience.",
+            readOnly = true
+    )
     public Set<TenantEntity> getUserGroups() {
         return userGroups;
     }
 
     public void setUserGroups(Set<TenantEntity> userGroups) {
         this.userGroups = userGroups;
+    }
+
+    /**
+     * @return policies this user is part of
+     */
+    @ApiModelProperty(
+            value = "The access policies this user belongs to.",
+            readOnly = true
+    )
+    public Set<AccessPolicySummaryEntity> getAccessPolicies() {
+        return accessPolicies;
+    }
+
+    public void setAccessPolicies(Set<AccessPolicySummaryEntity> accessPolicies) {
+        this.accessPolicies = accessPolicies;
     }
 }

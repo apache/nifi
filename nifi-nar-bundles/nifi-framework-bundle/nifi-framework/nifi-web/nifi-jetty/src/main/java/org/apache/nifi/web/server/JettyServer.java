@@ -600,7 +600,11 @@ public class JettyServer implements NiFiServer {
 
     private SslContextFactory createSslContextFactory() {
         final SslContextFactory contextFactory = new SslContextFactory();
+        configureSslContextFactory(contextFactory, props);
+        return contextFactory;
+    }
 
+    protected static void configureSslContextFactory(SslContextFactory contextFactory, NiFiProperties props) {
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {
             contextFactory.setNeedClientAuth(true);
@@ -621,11 +625,11 @@ public class JettyServer implements NiFiServer {
         if (StringUtils.isNotBlank(keystorePassword)) {
             // if no key password was provided, then assume the keystore password is the same as the key password.
             final String defaultKeyPassword = (StringUtils.isBlank(keyPassword)) ? keystorePassword : keyPassword;
-            contextFactory.setKeyManagerPassword(keystorePassword);
-            contextFactory.setKeyStorePassword(defaultKeyPassword);
+            contextFactory.setKeyStorePassword(keystorePassword);
+            contextFactory.setKeyManagerPassword(defaultKeyPassword);
         } else if (StringUtils.isNotBlank(keyPassword)) {
             // since no keystore password was provided, there will be no keystore integrity check
-            contextFactory.setKeyStorePassword(keyPassword);
+            contextFactory.setKeyManagerPassword(keyPassword);
         }
 
         // truststore properties
@@ -638,8 +642,6 @@ public class JettyServer implements NiFiServer {
         if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD))) {
             contextFactory.setTrustStorePassword(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));
         }
-
-        return contextFactory;
     }
 
     @Override

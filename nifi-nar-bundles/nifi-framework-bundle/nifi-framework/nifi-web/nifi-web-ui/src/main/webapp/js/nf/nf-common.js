@@ -286,6 +286,32 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access counters.
+         *
+         * @returns {boolean}
+         */
+        canAccessPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify counters.
+         *
+         * @returns {boolean}
+         */
+        canModifyPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true && nf.Common.currentUser.policiesPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Determines whether the current user can access the controller.
          *
          * @returns {boolean}
@@ -400,9 +426,9 @@ nf.Common = (function () {
             }
 
             // status code 400, 403, 404, and 409 are expected response codes for common errors.
-            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
+            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Malformed Request',
+                    headerText: 'Error',
                     dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {
@@ -695,41 +721,6 @@ nf.Common = (function () {
                 return propertyDescriptor.supportsEl === true;
             } else {
                 return false;
-            }
-        },
-
-        /**
-         * Creates a form inline in order to submit the specified params to the specified URL
-         * using the specified method.
-         * 
-         * @param {string} url          The URL
-         * @param {object} params       An object with the params to include in the submission
-         */
-        post: function (url, params) {
-            // temporarily override beforeunload
-            var previousBeforeUnload = window.onbeforeunload;
-            window.onbeforeunload = null;
-
-            // create a form for submission
-            var form = $('<form></form>').attr({
-                'method': 'POST',
-                'action': url,
-                'style': 'display: none;'
-            });
-
-            // add each parameter when specified
-            if (nf.Common.isDefinedAndNotNull(params)) {
-                $.each(params, function (name, value) {
-                    $('<textarea></textarea>').attr('name', name).val(value).appendTo(form);
-                });
-            }
-
-            // submit the form and clean up
-            form.appendTo('body').submit().remove();
-
-            // restore previous beforeunload if necessary
-            if (previousBeforeUnload !== null) {
-                window.onbeforeunload = previousBeforeUnload;
             }
         },
 

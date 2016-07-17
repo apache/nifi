@@ -18,6 +18,7 @@ package org.apache.nifi.spring;
 
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
@@ -43,6 +44,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private AuditService auditService;
     private StringEncryptor encryptor;
     private BulletinRepository bulletinRepository;
+    private ClusterCoordinator clusterCoordinator;
 
     @Override
     public Object getObject() throws Exception {
@@ -60,6 +62,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     encryptor,
                     nodeProtocolSender,
                     bulletinRepository,
+                    clusterCoordinator,
                     heartbeatMonitor);
             } else {
                 flowController = FlowController.createStandaloneInstance(
@@ -111,4 +114,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
         this.bulletinRepository = bulletinRepository;
     }
 
+    public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
+        this.clusterCoordinator = clusterCoordinator;
+    }
 }

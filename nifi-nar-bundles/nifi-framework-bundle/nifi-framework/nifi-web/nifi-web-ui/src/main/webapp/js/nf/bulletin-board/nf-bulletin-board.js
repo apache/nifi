@@ -286,7 +286,8 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
                     "position": "absolute",
                     "width": "100%",
                     "bottom": "40px",
-                    "margin": "40px"
+                    "left": "40px",
+                    "right": "40px"
                 });
 
                 $('#bulletin-board-status-container').css({

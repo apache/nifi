@@ -30,16 +30,12 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.annotation.OnConfigured;
-import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.ReflectionUtils;
 
 public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
 
@@ -138,30 +134,11 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     @Override
     public void setProperty(final String name, final String value) {
         super.setProperty(name, value);
-
-        onConfigured();
     }
 
     @Override
     public boolean removeProperty(String name) {
-        final boolean removed = super.removeProperty(name);
-        if (removed) {
-            onConfigured();
-        }
-
-        return removed;
-    }
-
-    @SuppressWarnings("deprecation")
-    private void onConfigured() {
-        // We need to invoke any method annotation with the OnConfigured annotation in order to
-        // maintain backward compatibility. This will be removed when we remove the old, deprecated annotations.
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
-            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, configContext);
-        } catch (final Exception e) {
-            throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + reportingTask, e);
-        }
+        return super.removeProperty(name);
     }
 
     public boolean isDisabled() {

@@ -297,16 +297,67 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert noneClientAuthStatus == CertificateUtils.ClientAuth.NONE
     }
 
+
     @Test
-    void testShouldNotExtractClientCertificatesFromSSLSocketWithClientAuthNone() {
+    void testShouldExtractClientCertificatesFromSSLServerSocketWithAnyClientAuth() {
+        final String EXPECTED_DN = "CN=ncm.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
+        Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN)
+        logger.info("Expected DN: ${EXPECTED_DN}")
+        logger.info("Expected certificate chain: ${certificateChain.collect { (it as X509Certificate).getSubjectDN().name }.join(" issued by ")}")
+
+        SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
+
+        // This socket is in client mode, so the peer ("target") is a server
+
+        // Create mock sockets for each possible value of ClientAuth
+        SSLSocket mockNoneSocket = [
+                getUseClientMode : { -> true },
+                getNeedClientAuth: { -> false },
+                getWantClientAuth: { -> false },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        SSLSocket mockNeedSocket = [
+                getUseClientMode : { -> true },
+                getNeedClientAuth: { -> true },
+                getWantClientAuth: { -> false },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        SSLSocket mockWantSocket = [
+                getUseClientMode : { -> true },
+                getNeedClientAuth: { -> false },
+                getWantClientAuth: { -> true },
+                getSession       : { -> mockSession }
+        ] as SSLSocket
+
+        // Act
+        def resolvedServerDNs = [mockNeedSocket, mockWantSocket, mockNoneSocket].collect { SSLSocket mockSocket ->
+            logger.info("Running test with socket ClientAuth setting: ${CertificateUtils.getClientAuthStatus(mockSocket)}")
+            String serverDN = CertificateUtils.extractPeerDNFromSSLSocket(mockNoneSocket)
+            logger.info("Extracted server DN: ${serverDN}")
+            serverDN
+        }
+
+        // Assert
+        assert resolvedServerDNs.every { String serverDN ->
+            CertificateUtils.compareDNs(serverDN, EXPECTED_DN)
+        }
+    }
+
+    @Test
+    void testShouldNotExtractClientCertificatesFromSSLClientSocketWithClientAuthNone() {
         // Arrange
+
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> false }
         ] as SSLSocket
 
         // Act
-        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
@@ -314,7 +365,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldExtractClientCertificatesFromSSLSocketWithClientAuthWant() {
+    void testShouldExtractClientCertificatesFromSSLClientSocketWithClientAuthWant() {
         // Arrange
         final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN)
@@ -323,14 +374,16 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> true },
                 getSession       : { -> mockSession }
         ] as SSLSocket
 
         // Act
-        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
@@ -338,18 +391,22 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldHandleFailureToExtractClientCertificatesFromSSLSocketWithClientAuthWant() {
+    void testShouldHandleFailureToExtractClientCertificatesFromSSLClientSocketWithClientAuthWant() {
         // Arrange
-        SSLSession mockSession = [getPeerCertificates: { -> throw new SSLPeerUnverifiedException("peer not authenticated") }] as SSLSession
+        SSLSession mockSession = [getPeerCertificates: { ->
+            throw new SSLPeerUnverifiedException("peer not authenticated")
+        }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> false },
                 getWantClientAuth: { -> true },
                 getSession       : { -> mockSession }
         ] as SSLSocket
 
         // Act
-        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
@@ -358,7 +415,7 @@ class CertificateUtilsTest extends GroovyTestCase {
 
 
     @Test
-    void testShouldExtractClientCertificatesFromSSLSocketWithClientAuthNeed() {
+    void testShouldExtractClientCertificatesFromSSLClientSocketWithClientAuthNeed() {
         // Arrange
         final String EXPECTED_DN = "CN=client.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
         Certificate[] certificateChain = generateCertificateChain(EXPECTED_DN)
@@ -367,14 +424,16 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         SSLSession mockSession = [getPeerCertificates: { -> certificateChain }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> true },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
         ] as SSLSocket
 
         // Act
-        String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+        String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
         logger.info("Extracted client DN: ${clientDN}")
 
         // Assert
@@ -382,11 +441,15 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldHandleFailureToExtractClientCertificatesFromSSLSocketWithClientAuthNeed() {
+    void testShouldHandleFailureToExtractClientCertificatesFromSSLClientSocketWithClientAuthNeed() {
         // Arrange
-        SSLSession mockSession = [getPeerCertificates: { -> throw new SSLPeerUnverifiedException("peer not authenticated") }] as SSLSession
+        SSLSession mockSession = [getPeerCertificates: { ->
+            throw new SSLPeerUnverifiedException("peer not authenticated")
+        }] as SSLSession
 
+        // This socket is in server mode, so the peer ("target") is a client
         SSLSocket mockSocket = [
+                getUseClientMode : { -> false },
                 getNeedClientAuth: { -> true },
                 getWantClientAuth: { -> false },
                 getSession       : { -> mockSession }
@@ -394,7 +457,7 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(CertificateException) {
-            String clientDN = CertificateUtils.extractClientDNFromSSLSocket(mockSocket)
+            String clientDN = CertificateUtils.extractPeerDNFromSSLSocket(mockSocket)
             logger.info("Extracted client DN: ${clientDN}")
         }
 

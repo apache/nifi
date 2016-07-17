@@ -42,7 +42,7 @@ nf.ng.BreadcrumbsCtrl = function (serviceProvider, $sanitize) {
          */
         generateBreadcrumbs: function(breadcrumbEntity) {
             var label = breadcrumbEntity.id;
-            if (breadcrumbEntity.accessPolicy.canRead) {
+            if (breadcrumbEntity.permissions.canRead) {
                 label = breadcrumbEntity.breadcrumb.name;
             }
             

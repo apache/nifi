@@ -38,7 +38,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 @Inherited
 public @interface SeeAlso {
 
-    public Class<? extends ConfigurableComponent>[] value() default {};
+    Class<? extends ConfigurableComponent>[] value() default {};
 
-    public String[] classNames() default {};
+    String[] classNames() default {};
 }

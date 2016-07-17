@@ -386,29 +386,29 @@ public class TestHttpClient {
         servletHandler.addServletWithMapping(SiteInfoServlet.class, "/site-to-site");
         servletHandler.addServletWithMapping(PeersServlet.class, "/site-to-site/peers");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/input-ports/input-running-id/transactions");
-        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/site-to-site/input-ports/input-running-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesServlet.class, "/site-to-site/input-ports/input-running-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/input-ports/input-running-id/transactions");
+        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesServlet.class, "/data-transfer/input-ports/input-running-id/transactions/transaction-id/flow-files");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/input-ports/input-timeout-id/transactions");
-        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/site-to-site/input-ports/input-timeout-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesTimeoutServlet.class, "/site-to-site/input-ports/input-timeout-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/input-ports/input-timeout-id/transactions");
+        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/data-transfer/input-ports/input-timeout-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesTimeoutServlet.class, "/data-transfer/input-ports/input-timeout-id/transactions/transaction-id/flow-files");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/input-ports/input-timeout-data-ex-id/transactions");
-        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/site-to-site/input-ports/input-timeout-data-ex-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/site-to-site/input-ports/input-timeout-data-ex-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/input-ports/input-timeout-data-ex-id/transactions");
+        servletHandler.addServletWithMapping(InputPortTransactionServlet.class, "/data-transfer/input-ports/input-timeout-data-ex-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/data-transfer/input-ports/input-timeout-data-ex-id/transactions/transaction-id/flow-files");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/output-ports/output-running-id/transactions");
-        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/site-to-site/output-ports/output-running-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesServlet.class, "/site-to-site/output-ports/output-running-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/output-ports/output-running-id/transactions");
+        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/data-transfer/output-ports/output-running-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesServlet.class, "/data-transfer/output-ports/output-running-id/transactions/transaction-id/flow-files");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/output-ports/output-timeout-id/transactions");
-        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/site-to-site/output-ports/output-timeout-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesTimeoutServlet.class, "/site-to-site/output-ports/output-timeout-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/output-ports/output-timeout-id/transactions");
+        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/data-transfer/output-ports/output-timeout-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesTimeoutServlet.class, "/data-transfer/output-ports/output-timeout-id/transactions/transaction-id/flow-files");
 
-        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/site-to-site/output-ports/output-timeout-data-ex-id/transactions");
-        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/site-to-site/output-ports/output-timeout-data-ex-id/transactions/transaction-id");
-        servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/site-to-site/output-ports/output-timeout-data-ex-id/transactions/transaction-id/flow-files");
+        servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions");
+        servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions/transaction-id");
+        servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions/transaction-id/flow-files");
 
         server.start();
 

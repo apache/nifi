@@ -66,6 +66,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -103,6 +105,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
+    static final Pattern NODE_IDENTITY_PATTERN = Pattern.compile("Node Identity \\S+");
 
     private Schema flowSchema;
     private Schema usersSchema;
@@ -114,6 +117,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private String rootGroupId;
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
+    private Set<String> nodeIdentities;
 
     private final AtomicReference<AuthorizationsHolder> authorizationsHolder = new AtomicReference<>();
 
@@ -169,11 +173,22 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 }
             }
 
+            // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
             initialAdminIdentity = initialAdminIdentityProp == null ? null : initialAdminIdentityProp.getValue();
 
+            // get the value of the legacy authorized users file
             final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(PROP_LEGACY_AUTHORIZED_USERS_FILE);
             legacyAuthorizedUsersFile = legacyAuthorizedUsersProp == null ? null : legacyAuthorizedUsersProp.getValue();
+
+            // extract any node identities
+            nodeIdentities = new HashSet<>();
+            for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
+                Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
+                if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
+                    nodeIdentities.add(entry.getValue());
+                }
+            }
 
             // load the authorizations
             load();
@@ -234,6 +249,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 logger.info("Converting " + legacyAuthorizedUsersFile + " to new authorizations model");
                 convertLegacyAuthorizedUsers(authorizations);
             }
+
+            populateNodes(authorizations);
 
             // save any changes that were made and repopulate the holder
             saveAndRefreshHolder(authorizations);
@@ -335,6 +352,38 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         // grant the user read/write access to the /policies resource
         addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), READ_CODE);
         addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), WRITE_CODE);
+    }
+
+    /**
+     * Creates a user for each node and gives the nodes write permission to /proxy.
+     *
+     * @param authorizations the overall authorizations
+     */
+    private void populateNodes(Authorizations authorizations) {
+        for (String nodeIdentity : nodeIdentities) {
+            // see if we have an existing user for the given node identity
+            org.apache.nifi.authorization.file.generated.User jaxbNodeUser = null;
+            for (org.apache.nifi.authorization.file.generated.User user : authorizations.getUsers().getUser()) {
+                if (user.getIdentity().equals(nodeIdentity)) {
+                    jaxbNodeUser = user;
+                    break;
+                }
+            }
+
+            // if we didn't find an existing user then create a new one
+            if (jaxbNodeUser == null) {
+                // generate an identifier and add a User with the given identifier and identity
+                final UUID nodeIdentifier = UUID.nameUUIDFromBytes(nodeIdentity.getBytes(StandardCharsets.UTF_8));
+                final User nodeUser = new User.Builder().identifier(nodeIdentifier.toString()).identity(nodeIdentity).build();
+
+                jaxbNodeUser = createJAXBUser(nodeUser);
+                authorizations.getUsers().getUser().add(jaxbNodeUser);
+            }
+
+            // grant access to the proxy resource
+            addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), READ_CODE);
+            addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), WRITE_CODE);
+        }
     }
 
     /**
@@ -509,25 +558,42 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      * @param action the action for the policy
      */
     private void addAccessPolicy(final Authorizations authorizations, final String resource, final String identity, final String action) {
-        final String uuidSeed = resource + identity;
-        final UUID policyIdentifier = UUID.nameUUIDFromBytes(uuidSeed.getBytes(StandardCharsets.UTF_8));
-
-        final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                .identifier(policyIdentifier.toString())
-                .resource(resource)
-                .addUser(identity);
-
-        if (action.equals(READ_CODE)) {
-            builder.action(RequestAction.READ);
-        } else if (action.equals(WRITE_CODE)) {
-            builder.action(RequestAction.WRITE);
-        } else {
-            throw new IllegalStateException("Unknown Policy Action: " + action);
+        // first try to find an existing policy for the given resource and action
+        Policy foundPolicy = null;
+        for (Policy policy : authorizations.getPolicies().getPolicy()) {
+            if (policy.getResource().equals(resource) && policy.getAction().equals(action)) {
+                foundPolicy = policy;
+                break;
+            }
         }
 
-        final AccessPolicy accessPolicy = builder.build();
-        final Policy jaxbPolicy = createJAXBPolicy(accessPolicy);
-        authorizations.getPolicies().getPolicy().add(jaxbPolicy);
+        if (foundPolicy == null) {
+            // if we didn't find an existing policy create a new one
+            final String uuidSeed = resource + identity + action;
+            final UUID policyIdentifier = UUID.nameUUIDFromBytes(uuidSeed.getBytes(StandardCharsets.UTF_8));
+
+            final AccessPolicy.Builder builder = new AccessPolicy.Builder()
+                    .identifier(policyIdentifier.toString())
+                    .resource(resource)
+                    .addUser(identity);
+
+            if (action.equals(READ_CODE)) {
+                builder.action(RequestAction.READ);
+            } else if (action.equals(WRITE_CODE)) {
+                builder.action(RequestAction.WRITE);
+            } else {
+                throw new IllegalStateException("Unknown Policy Action: " + action);
+            }
+
+            final AccessPolicy accessPolicy = builder.build();
+            final Policy jaxbPolicy = createJAXBPolicy(accessPolicy);
+            authorizations.getPolicies().getPolicy().add(jaxbPolicy);
+        } else {
+            // otherwise add the user to the existing policy
+            Policy.User policyUser = new Policy.User();
+            policyUser.setIdentifier(identity);
+            foundPolicy.getUser().add(policyUser);
+        }
     }
 
     /**

@@ -114,9 +114,10 @@ nf.Canvas = (function () {
     var polling = false;
     var groupId = 'root';
     var groupName = null;
-    var accessPolicy = null;
+    var permissions = null;
     var parentGroupId = null;
     var clustered = false;
+    var connectedToCluster = false;
     var svg = null;
     var canvas = null;
 
@@ -127,10 +128,12 @@ nf.Canvas = (function () {
         urls: {
             api: '../nifi-api',
             currentUser: '../nifi-api/flow/current-user',
+            controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners',
             flowConfig: '../nifi-api/flow/config',
+            clusterSummary: '../nifi-api/flow/cluster/summary',
             cluster: '../nifi-api/controller/cluster'
         }
     };
@@ -147,7 +150,7 @@ nf.Canvas = (function () {
     };
 
     /**
-     * Register the pooler.
+     * Register the poller.
      *
      * @argument {int} autoRefreshInterval      The auto refresh interval
      */
@@ -631,15 +634,15 @@ nf.Canvas = (function () {
 
             // get the current group name from the breadcrumb
             var breadcrumb = processGroupFlow.breadcrumb;
-            if (breadcrumb.accessPolicy.canRead) {
+            if (breadcrumb.permissions.canRead) {
                 nf.Canvas.setGroupName(breadcrumb.breadcrumb.name);
             } else {
                 nf.Canvas.setGroupName(breadcrumb.id);
             }
 
             // update the access policies
-            accessPolicy = flowResponse.accessPolicy;
-
+            permissions = flowResponse.permissions;
+            
             // update the breadcrumbs
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').resetBreadcrumbs();
             nf.ng.Bridge.injector.get('breadcrumbsCtrl').generateBreadcrumbs(breadcrumb);
@@ -665,10 +668,37 @@ nf.Canvas = (function () {
 
             // update the birdseye
             nf.Birdseye.refresh();
-
-            // inform Angular app values have changed
-            nf.ng.Bridge.digest();
         }).fail(nf.Common.handleAjaxError);
+    };
+
+    /**
+     * Loads the current user and updates the current user locally.
+     *
+     * @returns xhr
+     */
+    var loadCurrentUser = function () {
+        // get the current user
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            // set the current user
+            nf.Common.setCurrentUser(currentUser);
+        });
+    };
+
+    /**
+     * Loads the flow configuration and updated the cluster state.
+     *
+     * @returns xhr
+     */
+    var loadClusterSummary = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.clusterSummary,
+            dataType: 'json'
+        });
     };
 
     return {
@@ -703,15 +733,62 @@ nf.Canvas = (function () {
                 // hide the context menu
                 nf.ContextMenu.hide();
 
-                // get the process group to refresh everything
+                // issue the requests
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
-                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
+                var currentUserXhr = loadCurrentUser();
+                var controllerBulletins = $.ajax({
+                    type: 'GET',
+                    url: config.urls.controllerBulletins,
+                    dataType: 'json'
+                }).done(function (response) {
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateBulletins(response);
+                    deferred.resolve();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
+                });
+                var clusterSummary = loadClusterSummary().done(function (response) {
+                    var clusterSummary = response.clusterSummary;
+
+                    // update the cluster summary
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
+
+                    // update the clustered flag
+                    clustered = clusterSummary.clustered;
+                    connectedToCluster = clusterSummary.connectedToCluster;
+                });
+
+                // wait for all requests to complete
+                $.when(processGroupXhr, statusXhr, currentUserXhr, controllerBulletins, clusterSummary).done(function (processGroupResult) {
+                    // inform Angular app values have changed
+                    nf.ng.Bridge.digest();
+
+                    // resolve the deferred
                     deferred.resolve(processGroupResult);
-                }).fail(function () {
-                    deferred.reject();
+                }).fail(function (xhr, status, error) {
+                    deferred.reject(xhr, status, error);
                 });
             }).promise();
+        },
+
+        /**
+         * Shows a message when disconnected from the cluster.
+         */
+        showDisconnectedFromClusterMessage: function () {
+            nf.Dialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node is currently not connected to the cluster. Any modifications to the data flow made here will not replicate across the cluster.'
+            });
+        },
+
+        /**
+         * Shows a message when connected to the cluster.
+         */
+        showConnectedToClusterMessage: function () {
+            nf.Dialog.showOkDialog({
+                headerText: 'Cluster Connection',
+                dialogContent: 'This node just joined the cluster. Any modifications to the data flow made here will replicate across the cluster.'
+            });
         },
 
         /**
@@ -742,15 +819,7 @@ nf.Canvas = (function () {
             // load the current user
             var userXhr = $.Deferred(function (deferred) {
                 ticketExchange.always(function () {
-                    // get the current user
-                    $.ajax({
-                        type: 'GET',
-                        url: config.urls.currentUser,
-                        dataType: 'json'
-                    }).done(function (currentUser) {
-                        // at this point the user may be themselves or anonymous
-                        nf.Common.setCurrentUser(currentUser)
-                        
+                    loadCurrentUser().done(function (currentUser) {
                         // if the user is logged, we want to determine if they were logged in using a certificate
                         if (currentUser.anonymous === false) {
                             // render the users name
@@ -787,9 +856,13 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 });
 
+                // get the initial cluster summary
+                var clusterSummary = loadClusterSummary();
+
                 // ensure the config requests are loaded
-                $.when(configXhr, userXhr, clientXhr).done(function (configResult, loginResult, aboutResult) {
+                $.when(configXhr, clusterSummary, userXhr, clientXhr).done(function (configResult, clusterSummaryResult) {
                     var configResponse = configResult[0];
+                    var clusterSummaryResponse = clusterSummaryResult[0];
 
                     // calculate the canvas offset
                     var canvasContainer = $('#canvas-container');
@@ -797,9 +870,19 @@ nf.Canvas = (function () {
 
                     // get the config details
                     var configDetails = configResponse.flowConfiguration;
+                    var clusterSummary = clusterSummaryResponse.clusterSummary;
 
-                    // update the clustered flag
-                    clustered = configDetails.clustered;
+                    // show disconnected message on load if necessary
+                    if (clusterSummary.clustered && !clusterSummary.connectedToCluster) {
+                        nf.Canvas.showDisconnectedFromClusterMessage();
+                    }
+
+                    // establish the initial cluster state
+                    clustered = clusterSummary.clustered;
+                    connectedToCluster = clusterSummary.connectedToCluster;
+
+                    // update the cluster summary
+                    nf.ng.Bridge.injector.get('flowStatusCtrl').updateClusterSummary(clusterSummary);
 
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
@@ -832,6 +915,7 @@ nf.Canvas = (function () {
                     nf.ConnectionConfiguration.init();
                     nf.ControllerService.init();
                     nf.ReportingTask.init();
+                    nf.PolicyManagement.init();
                     nf.ProcessorConfiguration.init();
                     nf.ProcessGroupConfiguration.init();
                     nf.RemoteProcessGroupConfiguration.init();
@@ -839,7 +923,6 @@ nf.Canvas = (function () {
                     nf.PortConfiguration.init();
                     nf.LabelConfiguration.init();
                     nf.ProcessorDetails.init();
-                    nf.ProcessGroupDetails.init();
                     nf.PortDetails.init();
                     nf.ConnectionDetails.init();
                     nf.RemoteProcessGroupDetails.init();
@@ -869,6 +952,15 @@ nf.Canvas = (function () {
          */
         isClustered: function () {
             return clustered === true;
+        },
+
+        /**
+         * Return whether this instance is connected to a cluster.
+         *
+         * @returns {boolean}
+         */
+        isConnectedToCluster: function () {
+            return connectedToCluster === true;
         },
 
         /**
@@ -925,10 +1017,10 @@ nf.Canvas = (function () {
          * @returns {boolean}   can write
          */
         canRead: function () {
-            if (accessPolicy === null) {
+            if (permissions === null) {
                 return false;
             } else {
-                return accessPolicy.canRead === true;
+                return permissions.canRead === true;
             }
         },
 
@@ -938,10 +1030,10 @@ nf.Canvas = (function () {
          * @returns {boolean}   can write
          */
         canWrite: function () {
-            if (accessPolicy === null) {
+            if (permissions === null) {
                 return false;
             } else {
-                return accessPolicy.canWrite === true;
+                return permissions.canWrite === true;
             }
         },
 

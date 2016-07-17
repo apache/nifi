@@ -237,7 +237,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getSelectedRelationships(), actual.getSelectedRelationships());
         assertEquals(expected.getSource(), actual.getSource());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(ConnectableDTO expected, ConnectableDTO actual) {
@@ -259,7 +258,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getId(), actual.getId());
         Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(LabelDTO expected, LabelDTO actual) {
@@ -271,7 +269,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getLabel(), actual.getLabel());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getStyle(), actual.getStyle());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
     }
 
     private void assertEquals(ProcessorDTO expected, ProcessorDTO actual) {
@@ -283,7 +280,6 @@ public class StandardFlowServiceTest {
         Assert.assertEquals(expected.getName(), actual.getName());
         Assert.assertEquals(expected.getParentGroupId(), actual.getParentGroupId());
         Assert.assertEquals(expected.getStyle(), actual.getStyle());
-        Assert.assertEquals(expected.getUri(), actual.getUri());
         Assert.assertEquals(expected.getType(), actual.getType());
         Assert.assertEquals(expected.getState(), actual.getState());
         Assert.assertEquals(expected.getRelationships(), actual.getRelationships());

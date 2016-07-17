@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.resource.AccessPoliciesAuthorizable;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.ProvenanceEventAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Snippet;
@@ -46,7 +50,17 @@ import org.apache.nifi.web.dao.TemplateDAO;
 class StandardAuthorizableLookup implements AuthorizableLookup {
 
     private static final TenantAuthorizable TENANT_AUTHORIZABLE = new TenantAuthorizable();
-    private static final Authorizable ACCESS_POLICIES_AUTHORIZABLE = new AccessPoliciesAuthorizable();
+    private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getPoliciesResource();
+        }
+    };
 
     private static final Authorizable PROVENANCE_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -193,18 +207,243 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getTenantAuthorizable() {
+    public Authorizable getTenant() {
         return TENANT_AUTHORIZABLE;
     }
 
     @Override
-    public Authorizable getAccessPoliciesAuthorizable() {
-        return ACCESS_POLICIES_AUTHORIZABLE;
+    public Authorizable getPolicies() {
+        return POLICIES_AUTHORIZABLE;
     }
 
     @Override
-    public Authorizable getAccessPolicyAuthorizable(String id) {
-        return new AccessPolicyAuthorizable(accessPolicyDAO.getAccessPolicy(id));
+    public Authorizable getAccessPolicyById(final String id) {
+        final AccessPolicy policy = accessPolicyDAO.getAccessPolicy(id);
+        return getAccessPolicyByResource(policy.getResource());
+    }
+
+    @Override
+    public Authorizable getAccessPolicyByResource(final String resource) {
+        try {
+            return new AccessPolicyAuthorizable(getAuthorizableFromResource(resource));
+        } catch (final ResourceNotFoundException e) {
+            // the underlying component has been removed or resource is invalid... require /policies permissions
+            return POLICIES_AUTHORIZABLE;
+        }
+    }
+
+    @Override
+    public Authorizable getAuthorizableFromResource(String resource) {
+        // parse the resource type
+        ResourceType resourceType = null;
+        for (ResourceType type : ResourceType.values()) {
+            if (resource.equals(type.getValue()) || resource.startsWith(type.getValue() + "/")) {
+                resourceType = type;
+            }
+        }
+
+        if (resourceType == null) {
+            throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+        }
+
+        // if this is a policy or a provenance event resource, there should be another resource type
+        if (ResourceType.Policy.equals(resourceType) || ResourceType.ProvenanceEvent.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
+            final ResourceType primaryResourceType = resourceType;
+
+            // get the resource type
+            resource = StringUtils.substringAfter(resource, resourceType.getValue());
+
+            for (ResourceType type : ResourceType.values()) {
+                if (resource.equals(type.getValue()) || resource.startsWith(type.getValue() + "/")) {
+                    resourceType = type;
+                }
+            }
+
+            if (resourceType == null) {
+                throw new ResourceNotFoundException("Unrecognized resource: " + resource);
+            }
+
+            // must either be a policy, event, or data transfer
+            if (ResourceType.Policy.equals(primaryResourceType)) {
+                return new AccessPolicyAuthorizable(getAccessPolicy(resourceType, resource));
+            } else if (ResourceType.ProvenanceEvent.equals(primaryResourceType)) {
+                return new ProvenanceEventAuthorizable(getAccessPolicy(resourceType, resource));
+            } else {
+                return new DataTransferAuthorizable(getAccessPolicy(resourceType, resource));
+            }
+        } else {
+            return getAccessPolicy(resourceType, resource);
+        }
+    }
+
+    private Authorizable getAccessPolicy(final ResourceType resourceType, final String resource) {
+        final String slashComponentId = StringUtils.substringAfter(resource, resourceType.getValue());
+        if (slashComponentId.startsWith("/")) {
+            return getAccessPolicyByResource(resourceType, slashComponentId.substring(1));
+        } else {
+            return getAccessPolicyByResource(resourceType);
+        }
+    }
+
+    private Authorizable getAccessPolicyByResource(final ResourceType resourceType, final String componentId) {
+        Authorizable authorizable = null;
+        switch (resourceType) {
+            case Connection:
+                authorizable = getConnection(componentId);
+                break;
+            case ControllerService:
+                authorizable = getControllerService(componentId);
+                break;
+            case Funnel:
+                authorizable = getFunnel(componentId);
+                break;
+            case InputPort:
+                authorizable = getInputPort(componentId);
+                break;
+            case Label:
+                authorizable = getLabel(componentId);
+                break;
+            case OutputPort:
+                authorizable = getOutputPort(componentId);
+                break;
+            case Processor:
+                authorizable = getProcessor(componentId);
+                break;
+            case ProcessGroup:
+                authorizable = getProcessGroup(componentId);
+                break;
+            case RemoteProcessGroup:
+                authorizable = getRemoteProcessGroup(componentId);
+                break;
+            case ReportingTask:
+                authorizable = getReportingTask(componentId);
+                break;
+            case Template:
+                authorizable = getTemplate(componentId);
+                break;
+            case ProvenanceEvent:
+                authorizable = controllerFacade.getProvenanceEventAuthorizable(componentId);
+                break;
+        }
+
+        if (authorizable == null) {
+            throw new IllegalArgumentException("An unexpected type of resource in this policy " + resourceType.getValue());
+        }
+
+        return authorizable;
+    }
+
+    private Authorizable getAccessPolicyByResource(final ResourceType resourceType) {
+        Authorizable authorizable = null;
+        switch (resourceType) {
+            case Controller:
+                authorizable = getController();
+                break;
+            case Counters:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getCountersResource();
+                    }
+                };
+                break;
+            case Flow:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getFlowResource();
+                    }
+                };
+                break;
+            case Provenance:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getProvenanceResource();
+                    }
+                };
+                break;
+            case Proxy:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getProxyResource();
+                    }
+                };
+                break;
+            case Policy:
+                authorizable = POLICIES_AUTHORIZABLE;
+                break;
+            case Resource:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getResourceResource();
+                    }
+                };
+                break;
+            case SiteToSite:
+                // TODO - new site-to-site and port specific site-to-site
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getSiteToSiteResource();
+                    }
+                };
+                break;
+            case System:
+                authorizable = new Authorizable() {
+                    @Override
+                    public Authorizable getParentAuthorizable() {
+                        return null;
+                    }
+
+                    @Override
+                    public Resource getResource() {
+                        return ResourceFactory.getSystemResource();
+                    }
+                };
+                break;
+            case Tenant:
+                authorizable = getTenant();
+                break;
+        }
+
+        if (authorizable == null) {
+            throw new IllegalArgumentException("An unexpected type of resource in this policy " + resourceType.getValue());
+        }
+
+        return authorizable;
     }
 
     @Override

@@ -51,7 +51,8 @@ import java.util.concurrent.TimeUnit;
 
 public class SocketClientProtocol implements ClientProtocol {
 
-    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
+    // Version 6 added to support Zero-Master Clustering, which was introduced in NiFi 1.0.0
+    private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
 
     private RemoteDestination destination;
     private boolean useCompression = false;
@@ -217,6 +218,8 @@ public class SocketClientProtocol implements ClientProtocol {
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
+        final boolean queryPeersForOtherPeers = getVersionNegotiator().getVersion() >= 6;
+
         RequestType.REQUEST_PEER_LIST.writeRequestType(dos);
         dos.flush();
         final int numPeers = dis.readInt();
@@ -226,7 +229,7 @@ public class SocketClientProtocol implements ClientProtocol {
             final int port = dis.readInt();
             final boolean secure = dis.readBoolean();
             final int flowFileCount = dis.readInt();
-            peers.add(new PeerStatus(new PeerDescription(hostname, port, secure), flowFileCount));
+            peers.add(new PeerStatus(new PeerDescription(hostname, port, secure), flowFileCount, queryPeersForOtherPeers));
         }
 
         logger.debug("{} Received {} Peer Statuses from {}", this, peers.size(), peer);

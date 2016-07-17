@@ -39,9 +39,6 @@ public class ConnectionResponse {
     private final int tryLaterSeconds;
     private final NodeIdentifier nodeIdentifier;
     private final DataFlow dataFlow;
-    private final Integer managerRemoteInputPort;
-    private final Integer managerRemoteInputHttpPort;
-    private final Boolean managerRemoteCommsSecure;
     private final String instanceId;
     private final List<NodeConnectionStatus> nodeStatuses;
     private final List<ComponentRevision> componentRevisions;
@@ -49,8 +46,7 @@ public class ConnectionResponse {
     private volatile String coordinatorDN;
 
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
-        final Integer managerRemoteInputPort, final Integer managerRemoteInputHttpPort, final Boolean managerRemoteCommsSecure, final String instanceId,
-        final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
+        final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
 
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
@@ -61,9 +57,6 @@ public class ConnectionResponse {
         this.dataFlow = dataFlow;
         this.tryLaterSeconds = 0;
         this.rejectionReason = null;
-        this.managerRemoteInputPort = managerRemoteInputPort;
-        this.managerRemoteInputHttpPort = managerRemoteInputHttpPort;
-        this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
         this.nodeStatuses = Collections.unmodifiableList(new ArrayList<>(nodeStatuses));
         this.componentRevisions = componentRevisions == null ? Collections.emptyList() : Collections.unmodifiableList(new ArrayList<>(componentRevisions));
@@ -77,9 +70,6 @@ public class ConnectionResponse {
         this.nodeIdentifier = null;
         this.tryLaterSeconds = tryLaterSeconds;
         this.rejectionReason = null;
-        this.managerRemoteInputPort = null;
-        this.managerRemoteInputHttpPort = null;
-        this.managerRemoteCommsSecure = null;
         this.instanceId = null;
         this.nodeStatuses = null;
         this.componentRevisions = null;
@@ -90,9 +80,6 @@ public class ConnectionResponse {
         this.nodeIdentifier = null;
         this.tryLaterSeconds = 0;
         this.rejectionReason = rejectionReason;
-        this.managerRemoteInputPort = null;
-        this.managerRemoteInputHttpPort = null;
-        this.managerRemoteCommsSecure = null;
         this.instanceId = null;
         this.nodeStatuses = null;
         this.componentRevisions = null;
@@ -128,18 +115,6 @@ public class ConnectionResponse {
 
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;
-    }
-
-    public Integer getManagerRemoteInputPort() {
-        return managerRemoteInputPort;
-    }
-
-    public Integer getManagerRemoteInputHttpPort() {
-        return managerRemoteInputHttpPort;
-    }
-
-    public Boolean isManagerRemoteCommsSecure() {
-        return managerRemoteCommsSecure;
     }
 
     public String getInstanceId() {

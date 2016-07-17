@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.transform.stream.StreamSource;
@@ -49,7 +50,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.BooleanHolder;
 import org.xml.sax.SAXException;
 
 @EventDriven
@@ -128,7 +128,7 @@ public class ValidateXml extends AbstractProcessor {
         final ComponentLog logger = getLogger();
 
         for (final FlowFile flowFile : flowFiles) {
-            final BooleanHolder valid = new BooleanHolder(true);
+            final AtomicBoolean valid = new AtomicBoolean(true);
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {

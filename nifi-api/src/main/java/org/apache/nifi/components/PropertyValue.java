@@ -36,41 +36,41 @@ public interface PropertyValue {
     /**
      * @return the raw property value as a string
      */
-    public String getValue();
+    String getValue();
 
     /**
      * @return an integer representation of the property value, or
      * <code>null</code> if not set
      * @throws NumberFormatException if not able to parse
      */
-    public Integer asInteger();
+    Integer asInteger();
 
     /**
      * @return a Long representation of the property value, or <code>null</code>
      * if not set
      * @throws NumberFormatException if not able to parse
      */
-    public Long asLong();
+    Long asLong();
 
     /**
      * @return a Boolean representation of the property value, or
      * <code>null</code> if not set
      */
-    public Boolean asBoolean();
+    Boolean asBoolean();
 
     /**
      * @return a Float representation of the property value, or
      * <code>null</code> if not set
      * @throws NumberFormatException if not able to parse
      */
-    public Float asFloat();
+    Float asFloat();
 
     /**
      * @return a Double representation of the property value, of
      * <code>null</code> if not set
      * @throws NumberFormatException if not able to parse
      */
-    public Double asDouble();
+    Double asDouble();
 
     /**
      * @param timeUnit specifies the TimeUnit to convert the time duration into
@@ -78,7 +78,7 @@ public interface PropertyValue {
      * in terms of the specified TimeUnit; if the property is not set, returns
      * <code>null</code>
      */
-    public Long asTimePeriod(TimeUnit timeUnit);
+    Long asTimePeriod(TimeUnit timeUnit);
 
     /**
      *
@@ -87,14 +87,14 @@ public interface PropertyValue {
      * in terms of the specified DataUnit; if hte property is not set, returns
      * <code>null</code>
      */
-    public Double asDataSize(DataUnit dataUnit);
+    Double asDataSize(DataUnit dataUnit);
 
     /**
      * @return the ControllerService whose identifier is the raw value of
      * <code>this</code>, or <code>null</code> if either the value is not set or
      * the value does not identify a ControllerService
      */
-    public ControllerService asControllerService();
+    ControllerService asControllerService();
 
     /**
      * @param <T> the generic type of the controller service
@@ -110,14 +110,14 @@ public interface PropertyValue {
      * <code>serviceType</code> or if <code>serviceType</code> references a
      * class that is not an interface
      */
-    public <T extends ControllerService> T asControllerService(Class<T> serviceType) throws IllegalArgumentException;
+    <T extends ControllerService> T asControllerService(Class<T> serviceType) throws IllegalArgumentException;
 
     /**
      * @return <code>true</code> if the user has configured a value, or if the
      * {@link PropertyDescriptor} for the associated property has a default
      * value, <code>false</code> otherwise
      */
-    public boolean isSet();
+    boolean isSet();
 
     /**
      * <p>
@@ -132,7 +132,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions() throws ProcessException;
+    PropertyValue evaluateAttributeExpressions() throws ProcessException;
 
     /**
      * <p>
@@ -148,7 +148,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
      * the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException;
 
     /**
      * <p>
@@ -167,7 +167,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
      * the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
@@ -183,7 +183,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(FlowFile flowFile) throws ProcessException;
 
     /**
      * <p>
@@ -202,7 +202,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException;
 
     /**
      * <p>
@@ -222,7 +222,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
@@ -240,7 +240,7 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(AttributeValueDecorator decorator) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
@@ -260,5 +260,5 @@ public interface PropertyValue {
      * @throws ProcessException if the Expression cannot be compiled or evaluating
      * the Expression against the given attributes causes an Exception to be thrown
      */
-    public PropertyValue evaluateAttributeExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
+    PropertyValue evaluateAttributeExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
 }

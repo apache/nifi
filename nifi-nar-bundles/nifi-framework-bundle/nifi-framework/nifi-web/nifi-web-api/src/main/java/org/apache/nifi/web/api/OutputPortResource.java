@@ -83,32 +83,8 @@ public class OutputPortResource extends ApplicationResource {
      * @return dtos
      */
     public PortEntity populateRemainingOutputPortEntityContent(PortEntity outputPortEntity) {
-        if (outputPortEntity.getComponent() != null) {
-            populateRemainingOutputPortContent(outputPortEntity.getComponent());
-        }
+        outputPortEntity.setUri(generateResourceUri("output-ports", outputPortEntity.getId()));
         return outputPortEntity;
-    }
-
-    /**
-     * Populates the uri for the specified output ports.
-     *
-     * @param outputPorts ports
-     * @return dtos
-     */
-    public Set<PortDTO> populateRemainingOutputPortsContent(Set<PortDTO> outputPorts) {
-        for (PortDTO outputPort : outputPorts) {
-            populateRemainingOutputPortContent(outputPort);
-        }
-        return outputPorts;
-    }
-
-    /**
-     * Populates the uri for the specified output ports.
-     */
-    public PortDTO populateRemainingOutputPortContent(PortDTO outputPort) {
-        // populate the output port uri
-        outputPort.setUri(generateResourceUri("output-ports", outputPort.getId()));
-        return outputPort;
     }
 
     /**

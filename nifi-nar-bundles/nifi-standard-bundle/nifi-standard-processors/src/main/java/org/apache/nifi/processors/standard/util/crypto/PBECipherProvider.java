@@ -24,17 +24,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public interface PBECipherProvider extends CipherProvider {
-    /**
-     * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.
-     *
-     * @param encryptionMethod the {@link EncryptionMethod}
-     * @param password         the secret input
-     * @param keyLength        the desired key length in bits
-     * @param encryptMode      true for encrypt, false for decrypt
-     * @return the initialized cipher
-     * @throws Exception if there is a problem initializing the cipher
-     */
-    Cipher getCipher(EncryptionMethod encryptionMethod, String password, int keyLength, boolean encryptMode) throws Exception;
 
     /**
      * Returns an initialized cipher for the specified algorithm. The key (and IV if necessary) are derived by the KDF of the implementation.

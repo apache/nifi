@@ -26,55 +26,10 @@ import java.util.Set;
  * Details for the access configuration.
  */
 @XmlType(name = "accessPolicy")
-public class AccessPolicyDTO  extends ComponentDTO {
+public class AccessPolicyDTO  extends AccessPolicySummaryDTO {
 
-    private String resource;
     private Set<TenantEntity> users;
     private Set<TenantEntity> userGroups;
-    private Boolean canRead;
-    private Boolean canWrite;
-
-    /**
-     * @return Indicates whether the user can read a given resource.
-     */
-    @ApiModelProperty(
-            value = "Indicates whether the user can read a given resource.",
-            readOnly = true
-    )
-    public Boolean getCanRead() {
-        return canRead;
-    }
-
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
-    }
-
-    /**
-     * @return Indicates whether the user can write a given resource.
-     */
-    @ApiModelProperty(
-            value = "Indicates whether the user can write a given resource.",
-            readOnly = true
-    )
-    public Boolean getCanWrite() {
-        return canWrite;
-    }
-
-    public void setCanWrite(Boolean canWrite) {
-        this.canWrite = canWrite;
-    }
-
-    /**
-     * @return The resource ID for this access policy.
-     */
-    @ApiModelProperty(value="The resource ID for this access policy.")
-    public String getResource() {
-        return resource;
-    }
-
-    public void setResource(String resource) {
-        this.resource = resource;
-    }
 
     /**
      * @return The set of user IDs associated with this access policy.

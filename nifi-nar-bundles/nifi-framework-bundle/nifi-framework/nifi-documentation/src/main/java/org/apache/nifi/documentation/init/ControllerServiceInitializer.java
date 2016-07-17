@@ -51,7 +51,7 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
 
             final ComponentLog logger = new MockComponentLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, controllerService, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, controllerService, logger, context);
         }
     }
 }

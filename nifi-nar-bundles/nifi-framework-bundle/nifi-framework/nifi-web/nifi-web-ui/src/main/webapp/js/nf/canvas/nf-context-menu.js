@@ -424,7 +424,7 @@ nf.ContextMenu = (function () {
             }).appendTo(contextMenu);
 
             // create the img and conditionally add the style
-            var img = $('<div class="context-menu-item-img"></div>').css('background-image', 'url(' + item['img'] + ')').appendTo(menuItem);
+            var img = $('<div class="context-menu-item-img"></div>').addClass(item['clazz']).appendTo(menuItem);
             if (nf.Common.isDefinedAndNotNull(item['imgStyle'])) {
                 img.addClass(item['imgStyle']);
             }
@@ -464,35 +464,35 @@ nf.ContextMenu = (function () {
 
     // defines the available actions and the conditions which they apply
     var actions = [
-        {condition: emptySelection, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh', action: 'reload'}},
-        {condition: isNotRootGroup, menuItem: {img: 'images/iconGoTo.png', text: 'Leave group', action: 'leaveGroup'}},
-        {condition: isConfigurable, menuItem: {img: 'images/iconConfigure.png', text: 'Configure', action: 'showConfiguration'}},
-        {condition: hasDetails, menuItem: {img: 'images/iconConfigure.png', text: 'View configuration', action: 'showDetails'}},
-        {condition: isProcessGroup, menuItem: {img: 'images/iconGoTo.png', text: 'Enter group', action: 'enterGroup'}},
-        {condition: isRunnable, menuItem: {img: 'images/iconRun.png', text: 'Start', action: 'start'}},
-        {condition: isStoppable, menuItem: {img: 'images/iconStop.png', text: 'Stop', action: 'stop'}},
-        {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconRemotePorts.png', text: 'Remote ports', action: 'remotePorts'}},
-        {condition: canStartTransmission, menuItem: {img: 'images/iconTransmissionActive.png', text: 'Enable transmission', action: 'enableTransmission'}},
-        {condition: canStopTransmission, menuItem: {img: 'images/iconTransmissionInactive.png', text: 'Disable transmission', action: 'disableTransmission'}},
-        {condition: supportsStats, menuItem: {img: 'images/iconChart.png', text: 'Stats', action: 'showStats'}},
-        {condition: canAccessProvenance, menuItem: {img: 'images/iconProvenance.png', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
-        {condition: isStatefulProcessor, menuItem: {img: 'images/iconViewState.png', text: 'View state', action: 'viewState'}},
-        {condition: canMoveToFront, menuItem: {img: 'images/iconToFront.png', text: 'Bring to front', action: 'toFront'}},
-        {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to source', action: 'showSource'}},
-        {condition: isConnection, menuItem: {img: 'images/iconGoTo.png', text: 'Go to destination', action: 'showDestination'}},
-        {condition: hasUpstream, menuItem: {img: 'images/iconSmallRelationship.png', text: 'Upstream connections', action: 'showUpstream'}},
-        {condition: hasDownstream, menuItem: {img: 'images/iconSmallRelationship.png', text: 'Downstream connections', action: 'showDownstream'}},
-        {condition: hasUsage, menuItem: {img: 'images/iconUsage.png', text: 'Usage', action: 'showUsage'}},
-        {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh', action: 'refreshRemoteFlow'}},
-        {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconGoTo.png', text: 'Go to', action: 'openUri'}},
-        {condition: isColorable, menuItem: {img: 'images/iconColor.png', text: 'Change color', action: 'fillColor'}},
-        {condition: isNotConnection, menuItem: {img: 'images/iconCenterView.png', text: 'Center in view', action: 'center'}},
-        {condition: isCopyable, menuItem: {img: 'images/iconCopy.png', text: 'Copy', action: 'copy'}},
-        {condition: isPastable, menuItem: {img: 'images/iconPaste.png', text: 'Paste', action: 'paste'}},
-        {condition: canMoveToParent, menuItem: {img: 'images/iconMoveToParent.png', text: 'Move to parent group', action: 'moveIntoParent'}},
-        {condition: canListQueue, menuItem: {img: 'images/iconListQueue.png', text: 'List queue', action: 'listQueue'}},
-        {condition: canEmptyQueue, menuItem: {img: 'images/iconEmptyQueue.png', text: 'Empty queue', action: 'emptyQueue'}},
-        {condition: isDeletable, menuItem: {img: 'images/iconDelete.png', text: 'Delete', action: 'delete'}}
+        {condition: emptySelection, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh', action: 'reload'}},
+        {condition: isNotRootGroup, menuItem: {clazz: 'fa fa-level-up', text: 'Leave group', action: 'leaveGroup'}},
+        {condition: isConfigurable, menuItem: {clazz: 'fa fa-gear', text: 'Configure', action: 'showConfiguration'}},
+        {condition: hasDetails, menuItem: {clazz: 'fa fa-gear', text: 'View configuration', action: 'showDetails'}},
+        {condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
+        {condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
+        {condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-cloud', text: 'Remote ports', action: 'remotePorts'}},
+        {condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
+        {condition: canStopTransmission, menuItem: {clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
+        {condition: supportsStats, menuItem: {clazz: 'fa fa-bar-chart', text: 'Stats', action: 'showStats'}},
+        {condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
+        {condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
+        {condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
+        {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
+        {condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
+        {condition: hasUpstream, menuItem: {clazz: 'icon icon-connect', text: 'Upstream connections', action: 'showUpstream'}},
+        {condition: hasDownstream, menuItem: {clazz: 'icon icon-connect', text: 'Downstream connections', action: 'showDownstream'}},
+        {condition: hasUsage, menuItem: {clazz: 'fa fa-book', text: 'Usage', action: 'showUsage'}},
+        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-refresh', text: 'Refresh', action: 'refreshRemoteFlow'}},
+        {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-external-link', text: 'Go to', action: 'openUri'}},
+        {condition: isColorable, menuItem: {clazz: 'fa fa-paint-brush', text: 'Change color', action: 'fillColor'}},
+        {condition: isNotConnection, menuItem: {clazz: 'fa fa-crosshairs', text: 'Center in view', action: 'center'}},
+        {condition: isCopyable, menuItem: {clazz: 'fa fa-copy', text: 'Copy', action: 'copy'}},
+        {condition: isPastable, menuItem: {clazz: 'fa fa-paste', text: 'Paste', action: 'paste'}},
+        {condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
+        {condition: canListQueue, menuItem: {clazz: 'fa fa-list', text: 'List queue', action: 'listQueue'}},
+        {condition: canEmptyQueue, menuItem: {clazz: 'fa fa-minus-circle', text: 'Empty queue', action: 'emptyQueue'}},
+        {condition: isDeletable, menuItem: {clazz: 'fa fa-trash', text: 'Delete', action: 'delete'}}
     ];
 
     return {
@@ -523,7 +523,7 @@ nf.ContextMenu = (function () {
                     var menuItem = action.menuItem;
 
                     addMenuItem(contextMenu, {
-                        img: menuItem.img,
+                        clazz: menuItem.clazz,
                         imgStyle: menuItem.imgStyle, 
                         text: menuItem.text,
                         click: function (evt) {

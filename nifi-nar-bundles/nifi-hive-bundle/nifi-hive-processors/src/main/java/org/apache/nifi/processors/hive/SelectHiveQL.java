@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -47,7 +48,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
 
@@ -157,7 +157,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
 
         try (final Connection con = dbcpService.getConnection();
              final Statement st = con.createStatement()) {
-            final LongHolder nrOfRows = new LongHolder(0L);
+            final AtomicLong nrOfRows = new AtomicLong(0L);
             if (fileToProcess == null) {
                 fileToProcess = session.create();
             }
@@ -182,7 +182,7 @@ public class SelectHiveQL extends AbstractHiveQLProcessor {
             });
 
             // set attribute how many rows were selected
-            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, nrOfRows.get().toString());
+            fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
 
             // Set MIME type on output document and add extension
             if (AVRO.equals(outputFormat)) {

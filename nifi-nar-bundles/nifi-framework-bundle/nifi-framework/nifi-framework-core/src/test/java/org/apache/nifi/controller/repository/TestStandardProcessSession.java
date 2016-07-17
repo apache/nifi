@@ -75,7 +75,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -97,6 +97,7 @@ public class TestStandardProcessSession {
 
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
+    private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
 
     @After
     public void cleanup() {
@@ -137,7 +138,7 @@ public class TestStandardProcessSession {
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
-        provenanceRepo = new MockProvenanceEventRepository();
+        provenanceRepo = new MockProvenanceRepository();
 
         final Connection connection = Mockito.mock(Connection.class);
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
@@ -187,11 +188,14 @@ public class TestStandardProcessSession {
                 final Relationship relationship = (Relationship) arguments[0];
                 if (relationship == Relationship.SELF) {
                     return Collections.emptySet();
-                } else {
+                } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP) ){
+                    return null;
+                }else {
                     return new HashSet<>(connList);
                 }
             }
         }).when(connectable).getConnections(Mockito.any(Relationship.class));
+
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
 
         contentRepo = new MockContentRepository();
@@ -1248,6 +1252,34 @@ public class TestStandardProcessSession {
         in2.close();
         session.remove(flowFile);
         session.commit();
+    }
+
+    @Test
+    public void testTransferUnknownRelationship() {
+        final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
+            .id(1L)
+            .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
+            .entryDate(System.currentTimeMillis())
+            .build();
+
+        flowFileQueue.put(flowFileRecord1);
+
+        FlowFile ff1 = session.get();
+        ff1 = session.putAttribute(ff1, "index", "1");
+
+        try {
+            session.transfer(ff1, FAKE_RELATIONSHIP);
+            Assert.fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException iae) {
+        }
+
+        try {
+            final Collection<FlowFile> collection = new HashSet<>();
+            collection.add(ff1);
+            session.transfer(collection, FAKE_RELATIONSHIP);
+            Assert.fail("Expected IllegalArgumentException");
+        } catch (IllegalArgumentException iae) {
+        }
     }
 
     private static class MockFlowFileRepository implements FlowFileRepository {

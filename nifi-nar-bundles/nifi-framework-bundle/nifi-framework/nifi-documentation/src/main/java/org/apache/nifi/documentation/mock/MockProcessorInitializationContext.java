@@ -17,6 +17,7 @@
 package org.apache.nifi.documentation.mock;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
@@ -41,5 +42,10 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return new MockControllerServiceLookup();
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return new MockNodeTypeProvider();
     }
 }

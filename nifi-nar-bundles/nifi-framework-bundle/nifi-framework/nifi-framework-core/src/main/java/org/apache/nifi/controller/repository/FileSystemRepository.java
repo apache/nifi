@@ -70,7 +70,6 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.file.FileUtils;
@@ -297,7 +296,7 @@ public class FileSystemRepository implements ContentRepository {
             final Callable<Long> scanContainer = new Callable<Long>() {
                 @Override
                 public Long call() throws IOException {
-                    final LongHolder oldestDateHolder = new LongHolder(0L);
+                    final AtomicLong oldestDateHolder = new AtomicLong(0L);
 
                     // the path already exists, so scan the path to find any files and update maxIndex to the max of
                     // all filenames seen.

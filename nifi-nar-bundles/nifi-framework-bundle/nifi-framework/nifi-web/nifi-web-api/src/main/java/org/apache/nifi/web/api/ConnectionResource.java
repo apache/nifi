@@ -30,8 +30,6 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -85,67 +83,8 @@ public class ConnectionResource extends ApplicationResource {
      * @return dto
      */
     public ConnectionEntity populateRemainingConnectionEntityContent(ConnectionEntity connectionEntity) {
-        if (connectionEntity.getComponent() != null) {
-            populateRemainingConnectionContent(connectionEntity.getComponent());
-        }
+       connectionEntity.setUri(generateResourceUri("connections", connectionEntity.getId()));
         return connectionEntity;
-    }
-
-    /**
-     * Populate the URIs for the specified connections.
-     *
-     * @param connections connections
-     * @return dtos
-     */
-    public Set<ConnectionDTO> populateRemainingConnectionsContent(Set<ConnectionDTO> connections) {
-        for (ConnectionDTO connection : connections) {
-            populateRemainingConnectionContent(connection);
-        }
-        return connections;
-    }
-
-    /**
-     * Populate the URIs for the specified connection.
-     *
-     * @param connection connection
-     * @return dto
-     */
-    public ConnectionDTO populateRemainingConnectionContent(ConnectionDTO connection) {
-        // populate the remaining properties
-        connection.setUri(generateResourceUri("connections", connection.getId()));
-        return connection;
-    }
-
-    /**
-     * Populate the URIs for the specified flowfile listing.
-     *
-     * @param connectionId connection
-     * @param flowFileListing flowfile listing
-     * @return dto
-     */
-    public ListingRequestDTO populateRemainingFlowFileListingContent(final String connectionId, final ListingRequestDTO flowFileListing) {
-        // uri of the listing
-        flowFileListing.setUri(generateResourceUri("connections", connectionId, "listing-requests", flowFileListing.getId()));
-
-        // uri of each flowfile
-        if (flowFileListing.getFlowFileSummaries() != null) {
-            for (FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
-                populateRemainingFlowFileContent(connectionId, flowFile);
-            }
-        }
-        return flowFileListing;
-    }
-
-    /**
-     * Populate the URIs for the specified flowfile.
-     *
-     * @param connectionId the connection id
-     * @param flowFile the flowfile
-     * @return the dto
-     */
-    public FlowFileSummaryDTO populateRemainingFlowFileContent(final String connectionId, final FlowFileSummaryDTO flowFile) {
-        flowFile.setUri(generateResourceUri("connections", connectionId, "flowfiles", flowFile.getUuid()));
-        return flowFile;
     }
 
     /**

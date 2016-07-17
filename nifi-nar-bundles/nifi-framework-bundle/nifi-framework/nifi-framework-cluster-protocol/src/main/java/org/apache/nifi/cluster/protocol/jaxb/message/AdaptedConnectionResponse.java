@@ -33,9 +33,6 @@ public class AdaptedConnectionResponse {
     private NodeIdentifier nodeIdentifier;
     private String rejectionReason;
     private int tryLaterSeconds;
-    private Integer managerRemoteInputPort;
-    private Integer managerRemoteInputHttpPort;
-    private Boolean managerRemoteCommsSecure;
     private String instanceId;
     private List<NodeConnectionStatus> nodeStatuses;
     private List<ComponentRevision> componentRevisions;
@@ -79,30 +76,6 @@ public class AdaptedConnectionResponse {
 
     public boolean shouldTryLater() {
         return tryLaterSeconds > 0;
-    }
-
-    public void setManagerRemoteInputPort(Integer managerRemoteInputPort) {
-        this.managerRemoteInputPort = managerRemoteInputPort;
-    }
-
-    public Integer getManagerRemoteInputPort() {
-        return managerRemoteInputPort;
-    }
-
-    public void setManagerRemoteInputHttpPort(Integer managerRemoteInputHttpPort) {
-        this.managerRemoteInputHttpPort = managerRemoteInputHttpPort;
-    }
-
-    public Integer getManagerRemoteInputHttpPort() {
-        return managerRemoteInputHttpPort;
-    }
-
-    public void setManagerRemoteCommsSecure(Boolean secure) {
-        this.managerRemoteCommsSecure = secure;
-    }
-
-    public Boolean isManagerRemoteCommsSecure() {
-        return managerRemoteCommsSecure;
     }
 
     public void setInstanceId(String instanceId) {

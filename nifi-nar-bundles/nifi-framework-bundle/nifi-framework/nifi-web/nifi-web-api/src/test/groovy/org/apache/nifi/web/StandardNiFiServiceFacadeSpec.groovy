@@ -74,8 +74,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         if (isAuthorized) {
             assert userEntity?.component?.id == userDto.id
             assert userEntity?.component?.identity?.equals(userDto.identity)
-            assert userEntity?.accessPolicy?.canRead
-            assert userEntity?.accessPolicy?.canWrite
+            assert userEntity?.permissions?.canRead
+            assert userEntity?.permissions?.canWrite
         } else {
             assert userEntity.component == null
         }
@@ -174,8 +174,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         def userEntity = userEntityUpdateResult?.result
         if (isAuthorized) {
             assert userEntity?.component?.id?.equals(userDto.id)
-            assert userEntity?.accessPolicy?.canRead
-            assert userEntity?.accessPolicy?.canWrite
+            assert userEntity?.getPermissions?.canRead
+            assert userEntity?.getPermissions?.canWrite
         } else {
             assert userEntity.component == null
         }
@@ -294,8 +294,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         if (isAuthorized) {
             assert userGroupEntity?.component?.id == userGroupDto.id
             assert userGroupEntity?.component?.users?.equals(userGroupDto.users)
-            assert userGroupEntity?.accessPolicy?.canRead
-            assert userGroupEntity?.accessPolicy?.canWrite
+            assert userGroupEntity?.permissions?.canRead
+            assert userGroupEntity?.permissions?.canWrite
         } else {
             assert userGroupEntity?.component == null
         }
@@ -425,8 +425,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         assert userGroupEntity != null
         if (isAuthorized) {
             assert userGroupEntity?.component?.id?.equals(userGroupDto.id)
-            assert userGroupEntity?.accessPolicy?.canRead
-            assert userGroupEntity?.accessPolicy?.canWrite
+            assert userGroupEntity?.getPermissions?.canRead
+            assert userGroupEntity?.getPermissions?.canWrite
         } else {
             assert userGroupEntity.component == null
         }
@@ -577,8 +577,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         assert accessPolicyEntity != null
         if (isAuthorized) {
             assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
-            assert accessPolicyEntity?.accessPolicy?.canRead
-            assert accessPolicyEntity?.accessPolicy?.canWrite
+            assert accessPolicyEntity?.permissions?.canRead
+            assert accessPolicyEntity?.permissions?.canWrite
         } else {
             assert accessPolicyEntity.component == null
         }
@@ -722,8 +722,8 @@ class StandardNiFiServiceFacadeSpec extends Specification {
         assert accessPolicyEntity != null
         if (isAuthorized) {
             assert accessPolicyEntity?.component?.id?.equals(accessPolicyDto.id)
-            assert accessPolicyEntity?.accessPolicy?.canRead
-            assert accessPolicyEntity?.accessPolicy?.canWrite
+            assert accessPolicyEntity?.getPermissions?.canRead
+            assert accessPolicyEntity?.getPermissions?.canWrite
         } else {
             assert accessPolicyEntity.component == null
         }

@@ -30,7 +30,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.File;
@@ -40,6 +39,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for PutFTP & PutSFTP
@@ -123,7 +123,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
 
                     beforePut(flowFile, context, transfer);
                     final FlowFile flowFileToTransfer = flowFile;
-                    final ObjectHolder<String> fullPathRef = new ObjectHolder<>(null);
+                    final AtomicReference<String> fullPathRef = new AtomicReference<>(null);
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
                         public void process(final InputStream in) throws IOException {

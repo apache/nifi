@@ -39,6 +39,7 @@ public class ITPutSNS {
     @Test
     public void testPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSNS());
+        runner.setValidateExpressionUsage(false);
         runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutSNS.ARN, "arn:aws:sns:us-west-2:100515378163:test-topic-1");
         assertTrue(runner.setProperty("DynamicProperty", "hello!").isValid());

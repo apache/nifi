@@ -31,7 +31,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -67,7 +67,7 @@ public class TestFlowController {
         final AuditService auditService = Mockito.mock(AuditService.class);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor();
         final NiFiProperties properties = NiFiProperties.getInstance();
-        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceEventRepository.class.getName());
+        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
 

@@ -215,7 +215,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
             } else {
                 if (selection.size() === 1) {
                     var d = selection.datum();
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
                         if (nf.CanvasUtils.isLabel(selection)) {
                             if ($.trim(d.component.label) !== '') {
                                 return d.component.label;

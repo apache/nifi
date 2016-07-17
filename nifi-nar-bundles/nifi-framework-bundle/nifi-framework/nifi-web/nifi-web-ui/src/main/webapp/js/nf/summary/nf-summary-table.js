@@ -293,8 +293,8 @@ nf.SummaryTable = (function () {
                 default:
                     classes += '';
             }
-            var formattedValue = '<div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -622,7 +622,7 @@ nf.SummaryTable = (function () {
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info" title="View Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Details" style="margin-top: 5px;"></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -2287,7 +2287,7 @@ nf.SummaryTable = (function () {
         }
         storage.appendTo(storageUsageContainer);
 
-        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" md-mode="determinate" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
 
         var usageDetails = $('<div class="storage-usage-details"></div>').text(' (' + storageUsage.usedSpace + ' of ' + storageUsage.totalSpace + ')').prepend($('<b></b>').text(Math.round((used/total)*100) + '%'));
         $('<div class="storage-usage-header"></div>').append(usageDetails).append('<div class="clear"></div>').appendTo(storageUsageContainer);

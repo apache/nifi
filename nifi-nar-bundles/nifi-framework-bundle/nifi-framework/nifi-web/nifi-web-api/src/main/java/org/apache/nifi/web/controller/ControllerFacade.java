@@ -32,7 +32,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -69,8 +68,8 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
@@ -80,9 +79,7 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.RootGroupPort;
-import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
@@ -152,15 +149,6 @@ public class ControllerFacade implements Authorizable {
     private NiFiProperties properties;
     private DtoFactory dtoFactory;
 
-
-    /**
-     * Creates an archive of the current flow.
-     *
-     * @throws IOException if unable to save a copy of the flow
-     */
-    public void createArchive() throws IOException {
-        flowService.archiveFlow();
-    }
 
     /**
      * Returns the group id that contains the specified processor.
@@ -506,30 +494,6 @@ public class ControllerFacade implements Authorizable {
         controllerStatus.setBytesQueued(controllerQueueSize.getByteCount());
         controllerStatus.setFlowFilesQueued(controllerQueueSize.getObjectCount());
 
-        if (clusterCoordinator != null && clusterCoordinator.isConnected()) {
-            final Map<NodeConnectionState, List<NodeIdentifier>> stateMap = clusterCoordinator.getConnectionStates();
-            int totalNodeCount = 0;
-            for (final List<NodeIdentifier> nodeList : stateMap.values()) {
-                totalNodeCount += nodeList.size();
-            }
-            final List<NodeIdentifier> connectedNodeIds = stateMap.get(NodeConnectionState.CONNECTED);
-            final int connectedNodeCount = (connectedNodeIds == null) ? 0 : connectedNodeIds.size();
-
-            controllerStatus.setConnectedNodeCount(connectedNodeCount);
-            controllerStatus.setTotalNodeCount(totalNodeCount);
-            controllerStatus.setConnectedNodes(connectedNodeCount + " / " + totalNodeCount);
-        }
-
-        controllerStatus.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
-
-        // get the controller service bulletins
-        final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
-        controllerStatus.setControllerServiceBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(controllerServiceQuery)));
-
-        // get the reporting task bulletins
-        final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
-        controllerStatus.setReportingTaskBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(reportingTaskQuery)));
-
         final ProcessGroupCounts counts = rootGroup.getCounts();
         controllerStatus.setRunningCount(counts.getRunningCount());
         controllerStatus.setStoppedCount(counts.getStoppedCount());
@@ -714,39 +678,6 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Returns the socket port that the Cluster Manager is listening on for
-     * Site-to-Site communications
-     *
-     * @return the socket port that the Cluster Manager is listening on for
-     *         Site-to-Site communications
-     */
-    public Integer getClusterManagerRemoteSiteListeningPort() {
-        return flowController.getClusterManagerRemoteSiteListeningPort();
-    }
-
-    /**
-     * Returns the http(s) port that the Cluster Manager is listening on for
-     * Site-to-Site communications
-     *
-     * @return the socket port that the Cluster Manager is listening on for
-     *         Site-to-Site communications
-     */
-    public Integer getClusterManagerRemoteSiteListeningHttpPort() {
-        return flowController.getClusterManagerRemoteSiteListeningHttpPort();
-    }
-
-    /**
-     * Indicates whether or not Site-to-Site communications with the Cluster
-     * Manager are secure
-     *
-     * @return whether or not Site-to-Site communications with the Cluster
-     *         Manager are secure
-     */
-    public Boolean isClusterManagerRemoteSiteCommsSecure() {
-        return flowController.isClusterManagerRemoteSiteCommsSecure();
-    }
-
-    /**
      * Returns the socket port that the local instance is listening on for
      * Site-to-Site communications
      *
@@ -867,7 +798,7 @@ public class ControllerFacade implements Authorizable {
      * @return the available options for searching provenance
      */
     public ProvenanceOptionsDTO getProvenanceSearchOptions() {
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
 
         // create the search options dto
         final ProvenanceOptionsDTO searchOptions = new ProvenanceOptionsDTO();
@@ -941,7 +872,7 @@ public class ControllerFacade implements Authorizable {
         }
 
         // submit the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final QuerySubmission querySubmission = provenanceRepository.submitQuery(query, NiFiUserUtils.getNiFiUser());
 
         // return the query with the results populated at this point
@@ -957,7 +888,7 @@ public class ControllerFacade implements Authorizable {
     public ProvenanceDTO getProvenanceQuery(String provenanceId) {
         try {
             // get the query to the provenance repository
-            final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+            final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
             final QuerySubmission querySubmission = provenanceRepository.retrieveQuerySubmission(provenanceId, NiFiUserUtils.getNiFiUser());
 
             // ensure the query results could be found
@@ -1049,7 +980,7 @@ public class ControllerFacade implements Authorizable {
         final LineageRequestDTO requestDto = lineageDto.getRequest();
 
         // get the provenance repo
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission result;
 
         // submit the event
@@ -1076,7 +1007,7 @@ public class ControllerFacade implements Authorizable {
      */
     public LineageDTO getLineage(final String lineageId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission computeLineageSubmission = provenanceRepository.retrieveLineageSubmission(lineageId, NiFiUserUtils.getNiFiUser());
 
         // ensure the submission was found
@@ -1094,7 +1025,7 @@ public class ControllerFacade implements Authorizable {
      */
     public void deleteProvenanceQuery(final String provenanceId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final QuerySubmission querySubmission = provenanceRepository.retrieveQuerySubmission(provenanceId, NiFiUserUtils.getNiFiUser());
         if (querySubmission != null) {
             querySubmission.cancel();
@@ -1108,7 +1039,7 @@ public class ControllerFacade implements Authorizable {
      */
     public void deleteLineage(final String lineageId) {
         // get the query to the provenance repository
-        final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
+        final ProvenanceRepository provenanceRepository = flowController.getProvenanceRepository();
         final ComputeLineageSubmission computeLineageSubmission = provenanceRepository.retrieveLineageSubmission(lineageId, NiFiUserUtils.getNiFiUser());
         if (computeLineageSubmission != null) {
             computeLineageSubmission.cancel();
@@ -1183,11 +1114,11 @@ public class ControllerFacade implements Authorizable {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
 
+            // authorize the replay
+            authorizeReplay(originalEvent.getComponentId(), originalEvent.getAttributes(), originalEvent.getSourceQueueIdentifier());
+
             // replay the flow file
             final ProvenanceEventRecord event = flowController.replayFlowFile(originalEvent, user);
-
-            // authorize the replay
-            authorizeReplay(event.getComponentId(), event.getAttributes(), event.getSourceQueueIdentifier());
 
             // convert the event record
             return createProvenanceEventDto(event);
@@ -1210,7 +1141,8 @@ public class ControllerFacade implements Authorizable {
         final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
         for (final String identity : dnChain) {
             final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final NiFiUser chainUser = new StandardNiFiUser(identity) {
+            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
+            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
                 @Override
                 public boolean isAnonymous() {
                     // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
@@ -1243,7 +1175,8 @@ public class ControllerFacade implements Authorizable {
         final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
         for (final String identity : dnChain) {
             final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final NiFiUser chainUser = new StandardNiFiUser(identity) {
+            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
+            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
                 @Override
                 public boolean isAnonymous() {
                     // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
@@ -1324,6 +1257,16 @@ public class ControllerFacade implements Authorizable {
         } catch (final IOException ioe) {
             throw new NiFiCoreException("An error occured while getting the specified event.", ioe);
         }
+    }
+
+    /**
+     * Gets an authorizable for proveance events for a given component id.
+     *
+     * @param componentId component id
+     * @return authorizable
+     */
+    public Authorizable getProvenanceEventAuthorizable(final String componentId) {
+        return flowController.createProvenanceAuthorizable(componentId);
     }
 
     /**

@@ -261,7 +261,7 @@ nf.ProcessorDetails = (function () {
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
-                        headerText: 'Malformed Request',
+                        headerText: 'Error',
                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                     });
                 } else {

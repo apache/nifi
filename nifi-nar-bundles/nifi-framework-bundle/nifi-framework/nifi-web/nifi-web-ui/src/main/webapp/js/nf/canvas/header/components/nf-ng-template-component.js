@@ -56,6 +56,10 @@ nf.ng.TemplateComponent = function (serviceProvider) {
 
     function TemplateComponent() {
 
+        this.icon = 'icon icon-template';
+
+        this.hoverIcon = 'icon icon-template-add';
+
         /**
          * The template component's modal.
          */
@@ -169,7 +173,7 @@ nf.ng.TemplateComponent = function (serviceProvider) {
                 if (nf.Common.isDefinedAndNotNull(templates) && templates.length > 0) {
                     var options = [];
                     $.each(templates, function (_, templateEntity) {
-                        if (templateEntity.accessPolicy.canRead === true) {
+                        if (templateEntity.permissions.canRead === true) {
                             options.push({
                                 text: templateEntity.template.name,
                                 value: templateEntity.id,

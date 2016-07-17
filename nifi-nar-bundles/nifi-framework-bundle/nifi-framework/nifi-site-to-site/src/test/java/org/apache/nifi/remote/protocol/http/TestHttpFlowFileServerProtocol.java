@@ -80,7 +80,7 @@ public class TestHttpFlowFileServerProtocol {
         final PeerDescription description = new PeerDescription("peer-host", 8080, false);
         final InputStream inputStream = new ByteArrayInputStream(new byte[]{});
         final OutputStream outputStream = new ByteArrayOutputStream();
-        final HttpServerCommunicationsSession commsSession = new HttpServerCommunicationsSession(inputStream, outputStream, transactionId);
+        final HttpServerCommunicationsSession commsSession = new HttpServerCommunicationsSession(inputStream, outputStream, transactionId, "user");
         commsSession.putHandshakeParam(HandshakeProperty.GZIP, "false");
         commsSession.putHandshakeParam(HandshakeProperty.REQUEST_EXPIRATION_MILLIS, "1234");
         final String peerUrl = "http://peer-host:8080/";
@@ -90,7 +90,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new HttpFlowFileServerProtocolImpl(versionNegotiator);
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator);
     }
 
     @Test
@@ -101,7 +101,7 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.handshake(peer);
             fail();
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             assertEquals(ResponseCode.MISSING_PROPERTY, e.getResponseCode());
         }
 
@@ -122,7 +122,7 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.handshake(peer);
             fail();
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             assertEquals(ResponseCode.UNKNOWN_PORT, e.getResponseCode());
         }
 
@@ -147,7 +147,7 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.handshake(peer);
             fail();
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             assertEquals(ResponseCode.UNAUTHORIZED, e.getResponseCode());
         }
 
@@ -173,7 +173,7 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.handshake(peer);
             fail();
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             assertEquals(ResponseCode.PORT_NOT_IN_VALID_STATE, e.getResponseCode());
         }
 
@@ -196,7 +196,7 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(true).when(authResult).isAuthorized();
         doReturn(true).when(port).isValid();
         doReturn(true).when(port).isRunning();
-        Set<Connection> connections = new HashSet<>();
+        final Set<Connection> connections = new HashSet<>();
         final Connection connection = mock(Connection.class);
         connections.add(connection);
         doReturn(connections).when(port).getConnections();
@@ -208,7 +208,7 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.handshake(peer);
             fail();
-        } catch (HandshakeException e) {
+        } catch (final HandshakeException e) {
             assertEquals(ResponseCode.PORTS_DESTINATION_FULL, e.getResponseCode());
         }
 
@@ -237,13 +237,13 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded);
             fail("transferFlowFiles should fail since it's already shutdown.");
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
         }
 
         try {
             serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
             fail("receiveFlowFiles should fail since it's already shutdown.");
-        } catch (IllegalStateException e) {
+        } catch (final IllegalStateException e) {
         }
     }
 
@@ -288,12 +288,12 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.commitTransferTransaction(peer, "client-sent-wrong-checksum");
             fail();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             assertTrue(e.getMessage().contains("CRC32 Checksum"));
         }
     }
 
-    private Peer transferOneFile(HttpFlowFileServerProtocol serverProtocol, String transactionId) throws IOException {
+    private Peer transferOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId) throws IOException {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
         final Peer peer = getDefaultPeer(transactionId);
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -312,21 +312,21 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(flowFile).when(processSession).get();
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            String peerUrl = (String)invocation.getArguments()[1];
-            String detail = (String)invocation.getArguments()[2];
+            final String peerUrl = (String)invocation.getArguments()[1];
+            final String detail = (String)invocation.getArguments()[2];
             assertEquals("http://peer-host:8080/", peerUrl);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter).send(eq(flowFile), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
 
         doAnswer(invocation -> {
-            InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
+            final InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
             callback.process(new java.io.ByteArrayInputStream("Server content".getBytes()));
             return null;
         }).when(processSession).read(any(FlowFile.class), any(InputStreamCallback.class));
 
         // Execute test using mock
-        int flowFileSent = serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded);
+        final int flowFileSent = serverProtocol.transferFlowFiles(peer, context, processSession, negotiatedCoded);
         assertEquals(1, flowFileSent);
 
         assertTrue(remoteSiteListener.isTransactionActive(transactionId));
@@ -360,8 +360,8 @@ public class TestHttpFlowFileServerProtocol {
 
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            String peerUrl = (String)invocation.getArguments()[1];
-            String detail = (String)invocation.getArguments()[2];
+            final String peerUrl = (String)invocation.getArguments()[1];
+            final String detail = (String)invocation.getArguments()[2];
             assertEquals("http://peer-host:8080/", peerUrl);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
@@ -369,15 +369,15 @@ public class TestHttpFlowFileServerProtocol {
 
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            String peerUrl = (String)invocation.getArguments()[1];
-            String detail = (String)invocation.getArguments()[2];
+            final String peerUrl = (String)invocation.getArguments()[1];
+            final String detail = (String)invocation.getArguments()[2];
             assertEquals("http://peer-host:8080/", peerUrl);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter).send(eq(flowFile2), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
 
         doAnswer(invocation -> {
-            InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
+            final InputStreamCallback callback = (InputStreamCallback)invocation.getArguments()[1];
             callback.process(new java.io.ByteArrayInputStream("Server content".getBytes()));
             return null;
         }).when(processSession).read(any(FlowFile.class), any(InputStreamCallback.class));
@@ -397,7 +397,7 @@ public class TestHttpFlowFileServerProtocol {
         final String contents = "Content from client.";
         final byte[] bytes = contents.getBytes();
         final InputStream in = new ByteArrayInputStream(bytes);
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("client-attr-1", "client-attr-1-value");
         attributes.put("client-attr-2", "client-attr-2-value");
         return new StandardDataPacket(attributes, in, bytes.length);
@@ -458,12 +458,12 @@ public class TestHttpFlowFileServerProtocol {
         try {
             serverProtocol.commitReceiveTransaction(peer);
             fail();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             assertTrue(e.getMessage().contains("Received a BadChecksum response"));
         }
     }
 
-    private void receiveOneFile(HttpFlowFileServerProtocol serverProtocol, String transactionId, Peer peer) throws IOException {
+    private void receiveOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer) throws IOException {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
@@ -479,7 +479,7 @@ public class TestHttpFlowFileServerProtocol {
         final ProvenanceReporter provenanceReporter = mock(ProvenanceReporter.class);
         final FlowFile flowFile = mock(FlowFile.class);
 
-        DataPacket dataPacket = createClientDataPacket();
+        final DataPacket dataPacket = createClientDataPacket();
 
         final ByteArrayOutputStream testDataOs = new ByteArrayOutputStream();
         negotiatedCoded.encode(dataPacket, testDataOs);
@@ -488,7 +488,7 @@ public class TestHttpFlowFileServerProtocol {
         ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
 
         doAnswer(invocation -> {
-            InputStream is = (InputStream) invocation.getArguments()[0];
+            final InputStream is = (InputStream) invocation.getArguments()[0];
             for (int b; (b = is.read()) >= 0;) {
                 // consume stream.
             }
@@ -499,21 +499,21 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(flowFile).when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            String peerUrl = (String)invocation.getArguments()[1];
-            String detail = (String)invocation.getArguments()[3];
+            final String peerUrl = (String)invocation.getArguments()[1];
+            final String detail = (String)invocation.getArguments()[3];
             assertEquals("http://peer-host:8080/", peerUrl);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter)
                 .receive(any(FlowFile.class), any(String.class), any(String.class), any(String.class), any(Long.class));
 
-        Set<Relationship> relations = new HashSet<>();
+        final Set<Relationship> relations = new HashSet<>();
         final Relationship relationship = new Relationship.Builder().build();
         relations.add(relationship);
         doReturn(relations).when(context).getAvailableRelationships();
 
         // Execute test using mock
-        int flowFileReceived = serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
+        final int flowFileReceived = serverProtocol.receiveFlowFiles(peer, context, processSession, negotiatedCoded);
         assertEquals(1, flowFileReceived);
 
         assertTrue(remoteSiteListener.isTransactionActive(transactionId));
@@ -549,7 +549,7 @@ public class TestHttpFlowFileServerProtocol {
         ((HttpInput)commsSession.getInput()).setInputStream(httpInputStream);
 
         doAnswer(invocation -> {
-            InputStream is = (InputStream) invocation.getArguments()[0];
+            final InputStream is = (InputStream) invocation.getArguments()[0];
             for (int b; (b = is.read()) >= 0;) {
                 // consume stream.
             }
@@ -562,15 +562,15 @@ public class TestHttpFlowFileServerProtocol {
                 .when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            String peerUrl = (String)invocation.getArguments()[1];
-            String detail = (String)invocation.getArguments()[3];
+            final String peerUrl = (String)invocation.getArguments()[1];
+            final String detail = (String)invocation.getArguments()[3];
             assertEquals("http://peer-host:8080/", peerUrl);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter)
                 .receive(any(FlowFile.class), any(String.class), any(String.class), any(String.class), any(Long.class));
 
-        Set<Relationship> relations = new HashSet<>();
+        final Set<Relationship> relations = new HashSet<>();
         doReturn(relations).when(context).getAvailableRelationships();
 
         // Execute test using mock

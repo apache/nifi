@@ -18,6 +18,26 @@
 /* global nf, top */
 
 $(document).ready(function () {
+    //Create Angular App
+    var app = angular.module('ngProvenanceApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
+    nf.ng.ServiceProvider.$inject = [];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngProvenanceAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('serviceProvider', nf.ng.ServiceProvider);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], { strictDi: true });
+
     // initialize the status page
     nf.Provenance.init();
 });
@@ -29,7 +49,7 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            flowConfig: '../nifi-api/flow/config',
+            clusterSummary: '../nifi-api/flow/cluster/summary',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             currentUser: '../nifi-api/flow/current-user'
@@ -47,9 +67,9 @@ nf.Provenance = (function () {
     var detectedCluster = function () {
         return $.ajax({
                 type: 'GET',
-                url: config.urls.flowConfig
+                url: config.urls.clusterSummary
             }).done(function (response) {
-                isClustered = response.flowConfiguration.clustered;
+                isClustered = response.clusterSummary.connectedToCluster;
             }).fail(nf.Common.handleAjaxError);
     };
 

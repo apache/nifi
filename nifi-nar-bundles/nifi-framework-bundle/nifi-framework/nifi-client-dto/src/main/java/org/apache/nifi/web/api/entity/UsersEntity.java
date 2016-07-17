@@ -16,8 +16,12 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Collection;
+import java.util.Date;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of UserEntity
@@ -26,6 +30,7 @@ import java.util.Collection;
 @XmlRootElement(name = "usersEntity")
 public class UsersEntity extends Entity {
 
+    private Date generated;
     private Collection<UserEntity> users;
 
     /**
@@ -39,5 +44,17 @@ public class UsersEntity extends Entity {
 
     public void setUsers(Collection<UserEntity> users) {
         this.users = users;
+    }
+
+    /**
+     * @return When this content was generated
+     */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    public Date getGenerated() {
+        return generated;
+    }
+
+    public void setGenerated(Date generated) {
+        this.generated = generated;
     }
 }

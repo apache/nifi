@@ -17,6 +17,38 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
+import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
+import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
+import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.manager.exception.UriConstructionException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -36,41 +68,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
-import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.cluster.manager.NodeResponse;
-import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
-import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.manager.exception.UriConstructionException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
@@ -90,6 +92,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
     private final ConcurrentMap<String, StandardAsyncClusterResponse> responseMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<NodeIdentifier, AtomicInteger> sequentialLongRequestCounts = new ConcurrentHashMap<>();
+
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock readLock = rwLock.readLock();
+    private final Lock writeLock = rwLock.writeLock();
 
     /**
      * Creates an instance using a connection timeout and read timeout of 3 seconds
@@ -204,14 +210,19 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         }
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
-        return replicate(nodeIdSet, method, uri, entity, headers);
+
+        return replicate(nodeIdSet, method, uri, entity, headers, true);
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers) {
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, final boolean indicateReplicated) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
-        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, UUID.randomUUID().toString());
-        updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+
+        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, TypeOneUUIDGenerator.generateId().toString());
+        if (indicateReplicated) {
+            updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
+        }
+
 
         // If the user is authenticated, add them as a proxied entity so that when the receiving NiFi receives the request,
         // it knows that we are acting as a proxy on behalf of the current user.
@@ -221,7 +232,23 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             updatedHeaders.put(ProxiedEntitiesUtils.PROXY_ENTITIES_CHAIN, proxiedEntitiesChain);
         }
 
-        return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+        if (indicateReplicated) {
+            // If we are replicating a request and indicating that it is replicated, then this means that we are
+            // performing an action, rather than simply proxying the request to the cluster coordinator. In this case,
+            // we need to ensure that we use proper locking. We don't want two requests modifying the flow at the same
+            // time, so we use a write lock if the request is mutable and a read lock otherwise.
+            final Lock lock = isMutableRequest(method, uri.getPath()) ? writeLock : readLock;
+            logger.debug("Obtaining lock {} in order to replicate request {} {}", method, uri);
+            lock.lock();
+            try {
+                logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+        }
     }
 
     /**
@@ -604,12 +631,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
 
     private URI createURI(final URI exampleUri, final NodeIdentifier nodeId) {
-        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), nodeId.getApiPort(), exampleUri.getPath());
+        return createURI(exampleUri.getScheme(), nodeId.getApiAddress(), nodeId.getApiPort(), exampleUri.getPath(), exampleUri.getQuery());
     }
 
-    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, final String path) {
+    private URI createURI(final String scheme, final String nodeApiAddress, final int nodeApiPort, final String path, final String query) {
         try {
-            return new URI(scheme, null, nodeApiAddress, nodeApiPort, path, null, null);
+            return new URI(scheme, null, nodeApiAddress, nodeApiPort, path, query, null);
         } catch (final URISyntaxException e) {
             throw new UriConstructionException(e);
         }

@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpoin
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpiontMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceReferenceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
@@ -50,6 +51,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpoint
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SystemDiagnosticsEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.TemplatesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.stream.io.NullOutputStream;
@@ -70,6 +72,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
     private static final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
     static {
         endpointMergers.add(new ControllerStatusEndpointMerger());
+        endpointMergers.add(new ControllerBulletinsEndpointMerger());
         endpointMergers.add(new GroupStatusEndpointMerger());
         endpointMergers.add(new ProcessorStatusEndpointMerger());
         endpointMergers.add(new ConnectionStatusEndpiontMerger());
@@ -102,6 +105,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
+        endpointMergers.add(new TemplatesEndpointMerger());
     }
 
     public StandardHttpResponseMerger() {

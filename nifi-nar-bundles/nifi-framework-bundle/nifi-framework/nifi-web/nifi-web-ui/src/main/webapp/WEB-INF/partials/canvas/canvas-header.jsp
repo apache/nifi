@@ -20,52 +20,60 @@
     <div flex layout="row" layout-align="space-between center">
         <div id="component-container">
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processor}}"
-                    id="processor-component" class="component-button"
+                    id="processor-component"
+                    class="component-button icon icon-processor"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.processorComponent);">
-                <div class="icon icon-processor"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.inputPort}}"
-                    id="port-in-component" class="component-button"
+                    id="port-in-component"
+                    class="component-button icon icon-port-in"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.inputPortComponent);">
-                <div class="icon icon-port-in"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.outputPort}}"
-                    id="port-out-component" class="component-button"
+                    id="port-out-component"
+                    class="component-button icon icon-port-out"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.outputPortComponent);">
-                <div class="icon icon-port-out"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.processGroup}}"
-                    id="group-component" class="component-button"
+                    id="group-component"
+                    class="component-button icon icon-group"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.groupComponent);">
-                <div class="icon icon-group"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.remoteProcessGroup}}"
-                    id="group-remote-component" class="component-button"
+                    id="group-remote-component"
+                    class="component-button icon icon-group-remote"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.remoteGroupComponent);">
-                <div class="icon icon-group-remote"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.funnel}}"
-                    id="funnel-component" class="component-button"
+                    id="funnel-component"
+                    class="component-button icon icon-funnel"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.funnelComponent);">
-                <div class="icon icon-funnel"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.template}}"
-                    id="template-component" class="component-button"
+                    id="template-component"
+                    class="component-button icon icon-template"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.templateComponent);">
-                <div class="icon icon-template"></div>
+                <span class="component-button-grip"></span>
             </button>
             <button title="{{appCtrl.serviceProvider.headerCtrl.toolboxCtrl.config.type.label}}"
-                    id="label-component" class="component-button"
+                    id="label-component"
+                    class="component-button icon icon-label"
                     ng-disabled="!appCtrl.nf.Canvas.canWrite();"
                     nf-draggable="appCtrl.serviceProvider.headerCtrl.toolboxCtrl.draggableComponentConfig(appCtrl.serviceProvider.headerCtrl.toolboxCtrl.labelComponent);">
-                <div class="icon icon-label"></div>
+                <span class="component-button-grip"></span>
             </button>
         </div>
         <div layout="row" layout-align="space-between center">
@@ -139,12 +147,19 @@
                             <i class="fa fa-history"></i>Flow Configuration History
                         </a>
                     </md-menu-item>
+                    <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
-                           ng-class="{disabled: !appCtrl.nf.Common.canAccessTenants()}">
+                           ng-class="{disabled: !appCtrl.nf.Common.canModifyTenants()}">
                             <i class="fa fa-users"></i>Users
-                            <div id="has-pending-accounts" class="hidden"></div>
+                        </a>
+                    </md-menu-item>
+                    <md-menu-item layout-align="space-around center">
+                        <a id="policies-link" layout="row"
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.policies.shell.launch();"
+                           ng-class="{disabled: !(appCtrl.nf.Common.canAccessTenants() && appCtrl.nf.Common.canModifyPolicies())}">
+                            <i class="fa fa-key"></i>Policies
                         </a>
                     </md-menu-item>
                     <md-menu-divider></md-menu-divider>

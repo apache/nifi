@@ -54,7 +54,6 @@ import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
-import org.apache.nifi.controller.repository.io.LongHolder;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -120,8 +119,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private int removedCount = 0; // number of flowfiles removed in this session
     private long removedBytes = 0L; // size of all flowfiles removed in this session
-    private final LongHolder bytesRead = new LongHolder(0L);
-    private final LongHolder bytesWritten = new LongHolder(0L);
+    private final AtomicLong bytesRead = new AtomicLong(0L);
+    private final AtomicLong bytesWritten = new AtomicLong(0L);
     private int flowFilesIn = 0, flowFilesOut = 0;
     private long contentSizeIn = 0L, contentSizeOut = 0L;
 
@@ -966,8 +965,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final Connectable connectable = context.getConnectable();
         final StandardFlowFileEvent flowFileEvent = new StandardFlowFileEvent(connectable.getIdentifier());
-        flowFileEvent.setBytesRead(bytesRead.getValue());
-        flowFileEvent.setBytesWritten(bytesWritten.getValue());
+        flowFileEvent.setBytesRead(bytesRead.get());
+        flowFileEvent.setBytesWritten(bytesWritten.get());
 
         // update event repository
         try {
@@ -1055,8 +1054,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         flowFilesOut = 0;
         removedCount = 0;
         removedBytes = 0L;
-        bytesRead.setValue(0L);
-        bytesWritten.setValue(0L);
+        bytesRead.set(0L);
+        bytesWritten.set(0L);
         connectionCounts.clear();
         createdFlowFiles.clear();
         removedFlowFiles.clear();
@@ -1414,7 +1413,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             eventBuilder.setEventType(ProvenanceEventType.FORK);
 
             eventBuilder.setFlowFileEntryDate(parent.getEntryDate());
-            eventBuilder.setLineageIdentifiers(parent.getLineageIdentifiers());
             eventBuilder.setLineageStartDate(parent.getLineageStartDate());
             eventBuilder.setFlowFileUUID(parent.getAttribute(CoreAttributes.UUID.key()));
 
@@ -1562,9 +1560,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     @Override
     public void transfer(final FlowFile flowFile, final Relationship relationship) {
         validateRecordState(flowFile);
-        final StandardRepositoryRecord record = records.get(flowFile);
-        record.setTransferRelationship(relationship);
-        updateLastQueuedDate(record);
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
 
@@ -1575,7 +1570,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
+        final StandardRepositoryRecord record = records.get(flowFile);
+        record.setTransferRelationship(relationship);
+        updateLastQueuedDate(record);
 
         if (autoTerminated) {
             removedCount += multiplier;
@@ -1616,6 +1617,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             autoTerminated = true;
         } else if (numDestinations == 0 && relationship == Relationship.SELF) {
             selfRelationship = true;
+        } else if (numDestinations == 0) {
+            // the relationship specified is not known in this session/context
+            throw new IllegalArgumentException("Relationship '" + relationship.getName() + "' is not known");
         }
 
         final int multiplier = Math.max(1, numDestinations);
@@ -1817,7 +1821,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
 
                 currentReadClaim = claim;
-                currentReadClaimStream = new ByteCountingInputStream(rawInStream, new LongHolder(0L));
+                currentReadClaimStream = new ByteCountingInputStream(rawInStream, new AtomicLong(0L));
                 StreamUtils.skip(currentReadClaimStream, offset);
 
                 // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
@@ -2064,8 +2068,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     writtenCount += footer.length;
                 }
             } finally {
-                bytesWritten.increment(writtenCount);
-                bytesRead.increment(readCount);
+                bytesWritten.getAndAdd(writtenCount);
+                bytesRead.getAndAdd(readCount);
             }
         } catch (final ContentNotFoundException nfe) {
             destroyContent(newClaim);
@@ -2106,7 +2110,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final StandardRepositoryRecord record = records.get(source);
 
         ContentClaim newClaim = null;
-        final LongHolder writtenHolder = new LongHolder(0L);
+        final AtomicLong writtenHolder = new AtomicLong(0L);
         try {
             newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
@@ -2137,7 +2141,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             destroyContent(newClaim);
             throw t;
         } finally {
-            bytesWritten.increment(writtenHolder.getValue());
+            bytesWritten.getAndAdd(writtenHolder.get());
         }
 
         removeTemporaryClaim(record);
@@ -2145,7 +2149,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             .fromFlowFile(record.getCurrent())
             .contentClaim(newClaim)
             .contentClaimOffset(0)
-            .size(writtenHolder.getValue())
+            .size(writtenHolder.get())
             .build();
 
         record.setWorking(newFile);
@@ -2173,7 +2177,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     final OutputStream rawOutStream = context.getContentRepository().write(newClaim);
                     final OutputStream bufferedOutStream = new BufferedOutputStream(rawOutStream);
-                    outStream = new ByteCountingOutputStream(bufferedOutStream, new LongHolder(0L));
+                    outStream = new ByteCountingOutputStream(bufferedOutStream, new AtomicLong(0L));
                     originalByteWrittenCount = 0;
 
                     appendableStreams.put(newClaim, outStream);
@@ -2219,7 +2223,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         } finally {
             if (outStream != null) {
                 final long bytesWrittenThisIteration = outStream.getBytesWritten() - originalByteWrittenCount;
-                bytesWritten.increment(bytesWrittenThisIteration);
+                bytesWritten.getAndAdd(bytesWrittenThisIteration);
             }
         }
 
@@ -2308,7 +2312,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final ContentClaim currClaim = record.getCurrentClaim();
 
         ContentClaim newClaim = null;
-        final LongHolder writtenHolder = new LongHolder(0L);
+        final AtomicLong writtenHolder = new AtomicLong(0L);
         try {
             newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
             claimLog.debug("Creating ContentClaim {} for 'write' for {}", newClaim, source);
@@ -2360,7 +2364,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             destroyContent(newClaim);
             throw t;
         } finally {
-            bytesWritten.increment(writtenHolder.getValue());
+            bytesWritten.getAndAdd(writtenHolder.get());
         }
 
         removeTemporaryClaim(record);
@@ -2368,7 +2372,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             .fromFlowFile(record.getCurrent())
             .contentClaim(newClaim)
             .contentClaimOffset(0L)
-            .size(writtenHolder.getValue())
+            .size(writtenHolder.get())
             .build();
 
         record.setWorking(newFile);
@@ -2400,8 +2404,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         long newSize = 0L;
         try {
             newSize = context.getContentRepository().importFrom(source, newClaim);
-            bytesWritten.increment(newSize);
-            bytesRead.increment(newSize);
+            bytesWritten.getAndAdd(newSize);
+            bytesRead.getAndAdd(newSize);
         } catch (final Throwable t) {
             destroyContent(newClaim);
             throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
@@ -2434,7 +2438,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
 
                 newSize = context.getContentRepository().importFrom(source, newClaim);
-                bytesWritten.increment(newSize);
+                bytesWritten.getAndAdd(newSize);
             } catch (final IOException e) {
                 throw new FlowFileAccessException("Unable to create ContentClaim due to " + e.toString(), e);
             }
@@ -2460,8 +2464,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             ensureNotAppending(record.getCurrentClaim());
 
             final long copyCount = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, append, record.getCurrentClaimOffset(), source.getSize());
-            bytesRead.increment(copyCount);
-            bytesWritten.increment(copyCount);
+            bytesRead.getAndAdd(copyCount);
+            bytesWritten.getAndAdd(copyCount);
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final Throwable t) {
@@ -2612,9 +2616,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newAttributes.put(key, value);
         }
 
-        final Set<String> lineageIdentifiers = new HashSet<>(parent.getLineageIdentifiers());
-        lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
-        fFileBuilder.lineageIdentifiers(lineageIdentifiers);
         fFileBuilder.lineageStart(parent.getLineageStartDate(), parent.getLineageStartIndex());
         fFileBuilder.addAttributes(newAttributes);
 
@@ -2638,10 +2639,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // When creating a new FlowFile from multiple parents, we need to add all of the Lineage Identifiers
         // and use the earliest lineage start date
         long lineageStartDate = 0L;
-        final Set<String> lineageIdentifiers = new HashSet<>();
         for (final FlowFile parent : parents) {
-            lineageIdentifiers.addAll(parent.getLineageIdentifiers());
-            lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
 
             final long parentLineageStartDate = parent.getLineageStartDate();
             if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
@@ -2663,7 +2661,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         final FlowFileRecord fFile = new StandardFlowFileRecord.Builder().id(context.getNextFlowFileSequence())
             .addAttributes(newAttributes)
-            .lineageIdentifiers(lineageIdentifiers)
             .lineageStart(lineageStartDate, lineageStartIndex)
             .build();
 
@@ -2786,8 +2783,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             this.removedCount += session.removedCount;
             this.removedBytes += session.removedBytes;
-            this.bytesRead += session.bytesRead.getValue();
-            this.bytesWritten += session.bytesWritten.getValue();
+            this.bytesRead += session.bytesRead.get();
+            this.bytesWritten += session.bytesWritten.get();
             this.flowFilesIn += session.flowFilesIn;
             this.flowFilesOut += session.flowFilesOut;
             this.contentSizeIn += session.contentSizeIn;

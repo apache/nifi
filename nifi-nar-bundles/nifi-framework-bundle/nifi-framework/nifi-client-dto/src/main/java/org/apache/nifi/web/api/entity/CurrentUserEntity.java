@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -29,14 +30,16 @@ public class CurrentUserEntity extends Entity {
     private String identity;
     private boolean anonymous;
 
-    private AccessPolicyDTO provenancePermissions;
-    private AccessPolicyDTO countersPermissions;
-    private AccessPolicyDTO tenantsPermissions;
-    private AccessPolicyDTO controllerPermissions;
+    private PermissionsDTO provenancePermissions;
+    private PermissionsDTO countersPermissions;
+    private PermissionsDTO tenantsPermissions;
+    private PermissionsDTO controllerPermissions;
+    private PermissionsDTO policiesPermissions;
 
     /**
      * @return the user identity being serialized
      */
+    @ApiModelProperty("The user identity being serialized.")
     public String getIdentity() {
         return identity;
     }
@@ -48,6 +51,7 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return if the user is anonymous
      */
+    @ApiModelProperty("Whether the current user is anonymous.")
     public boolean isAnonymous() {
         return anonymous;
     }
@@ -59,44 +63,60 @@ public class CurrentUserEntity extends Entity {
     /**
      * @return if the use can query provenance
      */
-    public AccessPolicyDTO getProvenancePermissions() {
+    @ApiModelProperty("Permissions for querying provenance.")
+    public PermissionsDTO getProvenancePermissions() {
         return provenancePermissions;
     }
 
-    public void setProvenancePermissions(AccessPolicyDTO provenancePermissions) {
+    public void setProvenancePermissions(PermissionsDTO provenancePermissions) {
         this.provenancePermissions = provenancePermissions;
     }
 
     /**
      * @return permissions for accessing counters
      */
-    public AccessPolicyDTO getCountersPermissions() {
+    @ApiModelProperty("Permissions for accessing counters.")
+    public PermissionsDTO getCountersPermissions() {
         return countersPermissions;
     }
 
-    public void setCountersPermissions(AccessPolicyDTO countersPermissions) {
+    public void setCountersPermissions(PermissionsDTO countersPermissions) {
         this.countersPermissions = countersPermissions;
     }
 
     /**
      * @return permissions for accessing users
      */
-    public AccessPolicyDTO getTenantsPermissions() {
+    @ApiModelProperty("Permissions for accessing tenants.")
+    public PermissionsDTO getTenantsPermissions() {
         return tenantsPermissions;
     }
 
-    public void setTenantsPermissions(AccessPolicyDTO tenantsPermissions) {
+    public void setTenantsPermissions(PermissionsDTO tenantsPermissions) {
         this.tenantsPermissions = tenantsPermissions;
     }
 
     /**
      * @return permissions for accessing the controller
      */
-    public AccessPolicyDTO getControllerPermissions() {
+    @ApiModelProperty("Permissions for accessing the controller.")
+    public PermissionsDTO getControllerPermissions() {
         return controllerPermissions;
     }
 
-    public void setControllerPermissions(AccessPolicyDTO controllerPermissions) {
+    public void setControllerPermissions(PermissionsDTO controllerPermissions) {
         this.controllerPermissions = controllerPermissions;
+    }
+
+    /**
+     * @return permissions for accessing the all policies
+     */
+    @ApiModelProperty("Permissions for accessing the policies.")
+    public PermissionsDTO getPoliciesPermissions() {
+        return policiesPermissions;
+    }
+
+    public void setPoliciesPermissions(PermissionsDTO policiesPermissions) {
+        this.policiesPermissions = policiesPermissions;
     }
 }

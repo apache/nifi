@@ -95,6 +95,7 @@
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/yes-no-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/status-history-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/search-users-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/disable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/enable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
@@ -123,6 +124,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-details.jsp"/>

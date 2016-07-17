@@ -35,5 +35,5 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface ReadsAttributes {
 
-    public ReadsAttribute[] value();
+    ReadsAttribute[] value();
 }

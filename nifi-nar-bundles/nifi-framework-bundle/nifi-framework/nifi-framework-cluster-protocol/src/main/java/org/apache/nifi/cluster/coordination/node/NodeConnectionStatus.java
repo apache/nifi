@@ -43,16 +43,9 @@ public class NodeConnectionStatus {
     private final Long connectionRequestTime;
     private final Set<String> roles;
 
-    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state) {
-        this(nodeId, state, null, null, null, null);
-    }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final Set<String> roles) {
         this(nodeId, state, null, null, null, roles);
-    }
-
-    public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final long connectionRequestTime) {
-        this(nodeId, state, null, null, connectionRequestTime, null);
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode) {
@@ -129,6 +122,7 @@ public class NodeConnectionStatus {
         if (state == NodeConnectionState.DISCONNECTED || state == NodeConnectionState.DISCONNECTING) {
             sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getDisconnectReason());
         }
+        sb.append(", roles=").append(getRoles());
         sb.append(", updateId=").append(getUpdateIdentifier());
         sb.append("]");
         return sb.toString();

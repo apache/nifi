@@ -49,7 +49,7 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
 
             final ComponentLog logger = new MockComponentLogger();
             final MockProcessContext context = new MockProcessContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, processor, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, processor, logger, context);
         }
     }
 }

@@ -40,6 +40,7 @@
         <property name="auditService" ref="auditService" />
         <property name="encryptor" ref="stringEncryptor" />
         <property name="bulletinRepository" ref="bulletinRepository" />
+        <property name="clusterCoordinator" ref="clusterCoordinator" />
     </bean>
 
     <!-- flow service -->

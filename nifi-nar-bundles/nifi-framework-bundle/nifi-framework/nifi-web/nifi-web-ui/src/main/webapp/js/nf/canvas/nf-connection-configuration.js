@@ -78,6 +78,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
                                     }
@@ -106,6 +107,7 @@ nf.ConnectionConfiguration = (function () {
                     } else {
                         // there are no relationships for this processor
                         nf.Dialog.showOkDialog({
+                            headerText: 'Connection Configuration',
                             dialogContent: '\'' + nf.Common.escapeHtml(processor.name) + '\' does not support any relationships.'
                         });
 
@@ -281,7 +283,7 @@ nf.ConnectionConfiguration = (function () {
                 // show the output port options
                 var options = [];
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
-                    if (outputPort.accessPolicy.canRead && outputPort.accessPolicy.canWrite) {
+                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite) {
                         var component = outputPort.component;
                         options.push({
                             text: component.name,
@@ -320,6 +322,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no output ports for this process group
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any output ports.'
                     });
 
@@ -349,7 +352,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
+                url: remoteProcessGroupData.uri,
                 data: {
                     verbose: true
                 },
@@ -398,6 +401,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any output ports.'
                     });
 
@@ -506,7 +510,7 @@ nf.ConnectionConfiguration = (function () {
                 // show the input port options
                 var options = [];
                 $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                    if (inputPort.accessPolicy.canRead && inputPort.accessPolicy.canWrite) {
+                    if (inputPort.permissions.canRead && inputPort.permissions.canWrite) {
                         var component = inputPort.component;
                         options.push({
                             text: component.name,
@@ -545,6 +549,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any input ports.'
                     });
 
@@ -573,7 +578,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
+                url: remoteProcessGroupData.uri,
                 data: {
                     verbose: true
                 },
@@ -622,6 +627,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any input ports.'
                     });
 
@@ -987,6 +993,7 @@ nf.ConnectionConfiguration = (function () {
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     });
                 } else {
@@ -1043,8 +1050,8 @@ nf.ConnectionConfiguration = (function () {
 
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
-                dialogContent: nf.Common.formatUnorderedList(errors),
-                headerText: 'Configuration Error'
+                headerText: 'Connection Configuration',
+                dialogContent: nf.Common.formatUnorderedList(errors)
             });
             return false;
         } else {
@@ -1327,7 +1334,7 @@ nf.ConnectionConfiguration = (function () {
                     });
 
                     // store the connection details
-                    $('#connection-uri').val(connection.uri);
+                    $('#connection-uri').val(connectionEntry.uri);
 
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
@@ -1354,6 +1361,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected and the source is a processor
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
 

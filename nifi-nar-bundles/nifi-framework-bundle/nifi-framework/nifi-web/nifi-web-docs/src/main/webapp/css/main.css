@@ -32,32 +32,26 @@
 
 div.main-banner-header {
     display: none;
-    z-index: 100;
     font-weight: bold;
     font-size: 1em;
     text-align: center;
     line-height: 15px;
     color: #7e7e7e;
     margin: 0px auto;
-    width: 900px;
-    height: 17px;
+    width: 100%;
+    height: 1em;
     background-color: #fff;
-    z-index: 100;
     background-image: url(../images/bgHeader.png);
+    background-position: center;
+    background-repeat: no-repeat;
 }
 
 div.main-banner-footer {
     display: none;
-    position: absolute;
-    left: 0px;
-    right: 0px;
-    bottom: 0px;
-    height: 15px;
     color: #fff;
     text-align: center;
     font-weight: bold;
     font-size: 1em;
-    line-height: 15px;
     overflow: visible;
     background-color: #9eb9c7;
     background-image: url(../images/bgBannerFoot.png);
@@ -68,52 +62,72 @@ div.main-banner-footer {
 /* documentation */
 
 div.documentation-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 45px;
     border-bottom: 1px solid #d1dee5;
     color: #365c6a;
     font-size: 13px;
+    display: flex;
+}
+
+#component-list-toggle-link {
+    padding: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #264c58;
+    cursor: pointer;
+    width: 12px;
+    text-align: center;
+    align-self: flex-end;
+}
+
+#header-contents {
+    display: flex;
+    flex-wrap: wrap;
 }
 
 #nf-title {
-    float: left;
-    height: 50px;
-    padding: 5px;
     font-size: 20px;
-    margin-top: 10px;
+    margin: 5px 5px 0px 5px;
 }
 
 #nf-version {
-    float: left;
     font-size: 14px;
-    margin-left: 10px;
-    margin-top: 21px;
     font-style: italic;
     color: #aaa;
+    margin: 11px 5px 0px 5px;
+    flex-grow: 1;
 }
 
 #selected-component {
-    float: right;
-    height: 50px;
-    padding: 5px;
-    margin-top: 10px;
     font-size: 20px;
+    margin: 5px 5px 0px 5px;
+}
+
+/* content flex-box containers */
+
+#component-root-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    width: 100%;
+}
+
+#component-listing-container {
+    flex-grow: 1;
+    min-width: 312px;
+    padding: 0px 4px 0px 4px;
+}
+
+#component-usage-container {
+    flex-grow: 4;
+    min-width: 300px;
+    padding: 0px 4px 0px 4px;
 }
 
 /* component listing */
 
 div.component-listing {
-    width: 300px;
-    position: absolute;
-    top: 46px;
-    left: 0;
-    bottom: 40px;
     overflow: auto;
     font-size: 16px;
-    padding: 4px;
 }
 
 div.component-listing div.section {
@@ -161,25 +175,17 @@ div.component-links span.no-components {
 /* component filter control */
 
 #component-filter-controls {
-    width: 308px;
-    height: 40px;
-    position: absolute;
-    bottom: 0;
-    left: 0;
 }
 
 #component-filter-container {
-    height: 24px;
     margin-left: 2px;
-    margin-top: 1px;
 }
 
 #component-filter {
-    padding: 1px;
     font-size: 12px;
     height: 18px;
     line-height: 20px;
-    width: 299px;
+    width: 98%;
     float: left;
 }
 
@@ -195,20 +201,13 @@ input.component-filter-list {
     clear: left; 
     line-height: normal;
     margin-left: 7px;
-    margin-top: 2px;
 }
 
 /* component usage */
 
-#component-usage-container {
-    position: absolute;
-    top: 46px;
-    right: 0px;
-    bottom: 0px;
-    left: 312px;
-    overflow: hidden;
-}
-
 #component-usage {
     overflow: auto;
+    width: 100%;
+    height: 100%;
+    position: absolute;
 }

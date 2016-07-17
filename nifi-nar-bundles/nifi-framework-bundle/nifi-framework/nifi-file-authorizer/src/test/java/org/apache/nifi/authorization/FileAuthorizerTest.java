@@ -157,10 +157,12 @@ public class FileAuthorizerTest {
         assertEquals(1, users.size());
 
         UsersAndAccessPolicies usersAndAccessPolicies = authorizer.getUsersAndAccessPolicies();
-        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.Flow.getValue()).size());
-        assertEquals(2, usersAndAccessPolicies.getAccessPolicies(ResourceType.Controller.getValue()).size());
-        assertEquals(1, usersAndAccessPolicies.getAccessPolicies(ResourceType.System.getValue()).size());
-        assertEquals(2, usersAndAccessPolicies.getAccessPolicies(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID).size());
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.Flow.getValue(), RequestAction.READ));
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.Controller.getValue(), RequestAction.READ));
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.Controller.getValue(), RequestAction.WRITE));
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.System.getValue(), RequestAction.READ));
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID, RequestAction.READ));
+        assertNotNull(usersAndAccessPolicies.getAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID, RequestAction.WRITE));
     }
 
     @Test
@@ -340,7 +342,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(4, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -377,7 +379,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(3, policies.size());
+        assertEquals(5, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -414,7 +416,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(3, policies.size());
+        assertEquals(5, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -427,6 +429,46 @@ public class FileAuthorizerTest {
         }
 
         assertFalse(foundRootGroupPolicy);
+    }
+
+    @Test
+    public void testOnConfiguredWhenNodeIdentitiesProvided() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        final String nodeIdentity1 = "node1";
+        final String nodeIdentity2 = "node2";
+
+        final Map<String,String> props = new HashMap<>();
+        props.put("Node Identity 1", nodeIdentity1);
+        props.put("Node Identity 2", nodeIdentity2);
+
+        when(configurationContext.getProperties()).thenReturn(props);
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        User adminUser = authorizer.getUserByIdentity(adminIdentity);
+        assertNotNull(adminUser);
+
+        User nodeUser1 = authorizer.getUserByIdentity(nodeIdentity1);
+        assertNotNull(nodeUser1);
+
+        User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
+        assertNotNull(nodeUser2);
+
+        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
+        AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+
+        assertNotNull(proxyReadPolicy);
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
+
+        assertNotNull(proxyWritePolicy);
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser2.getIdentifier()));
     }
 
     @Test

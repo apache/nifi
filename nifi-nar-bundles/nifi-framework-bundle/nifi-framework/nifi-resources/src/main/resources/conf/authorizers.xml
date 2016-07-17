@@ -19,11 +19,34 @@
     must be specified in the nifi.properties file.
 -->
 <authorizers>
+
+    <!--
+        The FileAuthorizer is NiFi's provided authorizer and has the following properties:
+
+        - Authorizations File - The file where the FileAuthorizer will store authorizations.
+
+        - Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and
+            given the ability to create additional users, groups, and policies. The value of this property could be
+            a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there
+            are no other users, groups, and policies defined. If this property is specified then a Legacy Authorized
+            Users File can not be specified.
+
+        - Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically
+            converted to the new authorizations model. If this property is specified then an Initial Admin Identity can
+            not be specified, and this property will only be used when there are no other users, groups, and policies defined.
+
+        - Node Identity [unique key] - The identity of a NiFi cluster node. When clustered, a property for each node
+            should be defined, so that every node knows about every other node. If not clustered these properties can be ignored.
+    -->
     <authorizer>
         <identifier>file-provider</identifier>
         <class>org.apache.nifi.authorization.FileAuthorizer</class>
         <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File"></property>
+        <!--
+        <property name="Node Identity 1"></property>
+        <property name="Node Identity 2"></property>
+        -->
     </authorizer>
 </authorizers>

@@ -257,20 +257,20 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
             /**
              * Update the bulletins.
              *
-             * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
+             * @param response  The controller bulletins returned from the `../nifi-api/controller/bulletins` endpoint.
              */
-            update: function (status) {
+            update: function (response) {
 
                 // icon for system bulletins
                 var bulletinIcon = $('#bulletin-button');
                 var currentBulletins = bulletinIcon.data('bulletins');
 
                 // update the bulletins if necessary
-                if (nf.Common.doBulletinsDiffer(currentBulletins, status.bulletins)) {
-                    bulletinIcon.data('bulletins', status.bulletins);
+                if (nf.Common.doBulletinsDiffer(currentBulletins, response.bulletins)) {
+                    bulletinIcon.data('bulletins', response.bulletins);
 
                     // get the formatted the bulletins
-                    var bulletins = nf.Common.getFormattedBulletins(status.bulletins);
+                    var bulletins = nf.Common.getFormattedBulletins(response.bulletins);
 
                     // bulletins for this processor are now gone
                     if (bulletins.length === 0) {
@@ -285,23 +285,25 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                             bulletinIcon.qtip('option', 'content.text', newBulletins);
                         } else {
                             // no bulletins before, show icon and tips
-                            bulletinIcon.addClass('has-bulletins').qtip($.extend({
-                                content: newBulletins
-                            }, nf.CanvasUtils.config.systemTooltipConfig, {
-                                position: {
-                                    at: 'bottom left',
-                                    my: 'top right',
-                                    adjust: {
-                                        x: 4
+                            bulletinIcon.addClass('has-bulletins').qtip($.extend({},
+                                nf.CanvasUtils.config.systemTooltipConfig,
+                                {
+                                    content: newBulletins,
+                                    position: {
+                                        at: 'bottom left',
+                                        my: 'top right',
+                                        adjust: {
+                                            x: 4
+                                        }
                                     }
                                 }
-                            }));
+                            ));
                         }
                     }
                 }
 
                 // update controller service and reporting task bulletins
-                nf.Settings.setBulletins(status.controllerServiceBulletins, status.reportingTaskBulletins);
+                nf.Settings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins);
             }
 
         }
@@ -336,6 +338,43 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
         },
 
         /**
+         * Updates the cluster summary.
+         *
+         * @param clusterSummary
+         */
+        updateClusterSummary: function (clusterSummary) {
+            // see if this node has been (dis)connected
+            if (nf.Canvas.isConnectedToCluster() !== clusterSummary.connectedToCluster) {
+                if (clusterSummary.connectedToCluster) {
+                    nf.Canvas.showConnectedToClusterMessage();
+                } else {
+                    nf.Canvas.showDisconnectedFromClusterMessage();
+                }
+            }
+
+            var color = '#728E9B';
+
+            // update the connection state
+            if (clusterSummary.connectedToCluster) {
+                if (nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes)) {
+                    var connectedNodes = clusterSummary.connectedNodes.split(' / ');
+                    if (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) {
+                        this.clusterConnectionWarning = true;
+                        color = '#BA554A';
+                    }
+                }
+                this.connectedNodesCount =
+                    nf.Common.isDefinedAndNotNull(clusterSummary.connectedNodes) ? $sanitize(clusterSummary.connectedNodes) : '-';
+            } else {
+                this.connectedNodesCount = 'Disconnected';
+                color = '#BA554A';
+            }
+
+            // update the color
+            $('#connected-nodes-count').closest('div.fa-cubes').css('color', color);
+        },
+
+        /**
          * Update the flow status counts.
          *
          * @param status  The controller status returned from the `../nifi-api/flow/status` endpoint.
@@ -345,13 +384,6 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
                 (nf.Common.isDefinedAndNotNull(status.invalidCount) && (status.invalidCount > 0)) ?
                     '#BA554A' : '#728E9B';
             $('#controller-invalid-count').parent().css('color', controllerInvalidCountColor);
-
-            if (nf.Common.isDefinedAndNotNull(status.connectedNodes)) {
-                var connectedNodes = status.connectedNodes.split(' / ');
-                var connectedNodesCountColor =
-                    (connectedNodes.length === 2 && connectedNodes[0] !== connectedNodes[1]) ? '#BA554A' : '#728E9B';
-                $('#connected-nodes-count').parent().css('color', connectedNodesCountColor);
-            }
 
             // update the report values
             this.activeThreadCount = $sanitize(status.activeThreadCount);
@@ -378,17 +410,15 @@ nf.ng.Canvas.FlowStatusCtrl = function (serviceProvider, $sanitize) {
             this.controllerDisabledCount =
                 nf.Common.isDefinedAndNotNull(status.disabledCount) ? $sanitize(status.disabledCount) : '-';
 
-            this.connectedNodesCount =
-                nf.Common.isDefinedAndNotNull(status.connectedNodes) ? $sanitize(status.connectedNodes) : '-';
+        },
 
-            this.bulletins.update(status);
-
-            // handle any pending user request
-            if (status.hasPendingAccounts === true) {
-                $('#has-pending-accounts').show();
-            } else {
-                $('#has-pending-accounts').hide();
-            }
+        /**
+         * Updates the controller level bulletins
+         *
+         * @param response
+         */
+        updateBulletins: function (response) {
+            this.bulletins.update(response);
         }
     }
 

@@ -18,7 +18,7 @@
 <div id="bulletin-board">
     <div id="bulletin-board-header-and-filter">
         <div id="bulletin-board-header-text">NiFi Templates</div>
-        <div id="bulletin-board-filter-controls" class="filter-controls">
+        <div id="bulletin-board-filter-controls">
             <div id="bulletin-board-filter-container" class="filter-container">
                 <input type="text" placeholder="Filter" id="bulletin-board-filter" class="filter"/>
                 <div id="bulletin-board-filter-type" class="filter-type"></div>

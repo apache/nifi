@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.web.api;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -33,6 +35,7 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -62,12 +65,21 @@ public class ResourceResource extends ApplicationResource {
     private void authorizeResource() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        final Map<String,String> userContext;
+        if (!StringUtils.isBlank(user.getClientAddress())) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
             .resource(ResourceFactory.getResourceResource())
             .identity(user.getIdentity())
             .anonymous(user.isAnonymous())
             .accessAttempt(true)
             .action(RequestAction.READ)
+            .userContext(userContext)
             .build();
 
         final AuthorizationResult result = authorizer.authorize(request);

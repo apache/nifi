@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -46,7 +47,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.ObjectHolder;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -166,7 +166,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
 
         // Parse the JSON document
         final ObjectMapper mapper = new ObjectMapper();
-        final ObjectHolder<JsonNode> rootNodeRef = new ObjectHolder<>(null);
+        final AtomicReference<JsonNode> rootNodeRef = new AtomicReference<>(null);
         try {
             session.read(flowFile, new InputStreamCallback() {
                 @Override
@@ -189,13 +189,13 @@ public class PutHBaseJSON extends AbstractPutHBase {
         }
 
         final Collection<PutColumn> columns = new ArrayList<>();
-        final ObjectHolder<String> rowIdHolder = new ObjectHolder<>(null);
+        final AtomicReference<String> rowIdHolder = new AtomicReference<>(null);
 
         // convert each field/value to a column for the put, skip over nulls and arrays
         final Iterator<String> fieldNames = rootNode.getFieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
-            final ObjectHolder<byte[]> fieldValueHolder = new ObjectHolder<>(null);
+            final AtomicReference<byte[]> fieldValueHolder = new AtomicReference<>(null);
 
             final JsonNode fieldNode = rootNode.get(fieldName);
             if (fieldNode.isNull()) {

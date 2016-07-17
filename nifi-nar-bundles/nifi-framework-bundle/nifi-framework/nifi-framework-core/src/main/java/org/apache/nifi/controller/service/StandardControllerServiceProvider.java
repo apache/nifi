@@ -25,12 +25,12 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
@@ -55,10 +55,8 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardValidationContextFactory;
-
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,7 +144,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
 
             final ControllerService originalService = controllerServiceClass.newInstance();
-            final ObjectHolder<ControllerServiceNode> serviceNodeHolder = new ObjectHolder<>(null);
+            final AtomicReference<ControllerServiceNode> serviceNodeHolder = new AtomicReference<>(null);
             final InvocationHandler invocationHandler = new InvocationHandler() {
                 @Override
                 public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
@@ -385,17 +383,11 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         if (shouldStart) {
-            List<ControllerServiceNode> services = new ArrayList<>(serviceNodes);
-            Collections.sort(services, new Comparator<ControllerServiceNode>() {
-                @Override
-                public int compare(ControllerServiceNode s1, ControllerServiceNode s2) {
-                    return s2.getRequiredControllerServices().contains(s1) ? -1 : 1;
-                }
-            });
-
-            for (ControllerServiceNode controllerServiceNode : services) {
+            for (ControllerServiceNode controllerServiceNode : serviceNodes) {
                 try {
-                    this.enableControllerService(controllerServiceNode);
+                    if (!controllerServiceNode.isActive()) {
+                        this.enableControllerServiceDependenciesFirst(controllerServiceNode);
+                    }
                 } catch (Exception e) {
                     logger.error("Failed to enable " + controllerServiceNode + " due to " + e);
                     if (this.bulletinRepo != null) {
@@ -405,6 +397,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 }
             }
         }
+    }
+
+    private void enableControllerServiceDependenciesFirst(ControllerServiceNode serviceNode) {
+        for (ControllerServiceNode depNode : serviceNode.getRequiredControllerServices()) {
+            if (!depNode.isActive()) {
+                this.enableControllerServiceDependenciesFirst(depNode);
+            }
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Enabling " + serviceNode);
+        }
+        this.enableControllerService(serviceNode);
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {

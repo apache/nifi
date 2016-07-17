@@ -43,6 +43,12 @@ public class StubPublishKafka extends PublishKafka {
 
     private volatile boolean failed;
 
+    private final int ackCheckSize;
+
+    StubPublishKafka(int ackCheckSize) {
+        this.ackCheckSize = ackCheckSize;
+    }
+
     public Producer<byte[], byte[]> getProducer() {
         return producer;
     }
@@ -65,7 +71,12 @@ public class StubPublishKafka extends PublishKafka {
             Field kf = KafkaPublisher.class.getDeclaredField("kafkaProducer");
             kf.setAccessible(true);
             kf.set(publisher, producer);
+
+            Field ackCheckSizeField = KafkaPublisher.class.getDeclaredField("ackCheckSize");
+            ackCheckSizeField.setAccessible(true);
+            ackCheckSizeField.set(publisher, this.ackCheckSize);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new IllegalStateException(e);
         }
         return publisher;

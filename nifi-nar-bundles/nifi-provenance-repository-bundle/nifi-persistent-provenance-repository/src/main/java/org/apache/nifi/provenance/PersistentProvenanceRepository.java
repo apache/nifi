@@ -45,6 +45,7 @@ import org.apache.nifi.provenance.lucene.IndexSearch;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.lucene.LineageQuery;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -111,14 +112,13 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class PersistentProvenanceRepository implements ProvenanceEventRepository {
+public class PersistentProvenanceRepository implements ProvenanceRepository {
 
-    public static final String DEPRECATED_CLASS_NAME = "nifi.controller.repository.provenance.PersistentProvenanceRepository";
     public static final String EVENT_CATEGORY = "Provenance Repository";
     private static final String FILE_EXTENSION = ".prov";
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
     private static final long PURGE_EVENT_MILLISECONDS = 2500L; //Determines the frequency over which the task to delete old events will occur
-    public static final int SERIALIZATION_VERSION = 8;
+    public static final int SERIALIZATION_VERSION = 9;
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
     public static final Pattern INDEX_PATTERN = Pattern.compile("index-\\d+");
     public static final Pattern LOG_FILENAME_PATTERN = Pattern.compile("(\\d+).*\\.prov");
@@ -263,7 +263,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     }
                 }, rolloverCheckMillis, rolloverCheckMillis, TimeUnit.MILLISECONDS);
 
-                expirationActions.add(new DeleteIndexAction(this, indexConfig, indexManager));
+                expirationActions.add(new UpdateMinimumEventId(indexConfig));
                 expirationActions.add(new FileRemovalAction());
 
                 scheduledExecService.scheduleWithFixedDelay(new RemoveExpiredQueryResults(), 30L, 3L, TimeUnit.SECONDS);
@@ -1042,13 +1042,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         try (final RecordReader reader = RecordReaders.newRecordReader(firstLogFile, null, Integer.MAX_VALUE)) {
             final StandardProvenanceEventRecord event = reader.nextRecord();
             earliestEventTime = event.getEventTime();
-
-            try {
-                maxEventId = reader.getMaxEventId();
-            } catch (final IOException ioe) {
-                logger.warn("Unable to determine the maximum ID for Provenance Event Log File {}; values reported for the number of "
-                    + "events in the Provenance Repository may be inaccurate.", firstLogFile);
-            }
+            maxEventId = reader.getMaxEventId();
+        } catch (final IOException ioe) {
+            logger.warn("Unable to determine the maximum ID for Provenance Event Log File {}; values reported for the number of "
+                + "events in the Provenance Repository may be inaccurate.", firstLogFile);
         }
 
         // check if we can delete the index safely.
@@ -2267,7 +2264,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         throw new AccessDeniedException("Cannot retrieve Provenance Query Submission because " + user.getIdentity() + " is not the user who submitted the request");
     }
 
-    private ProvenanceEventRecord getEvent(final long id) throws IOException {
+    public ProvenanceEventRecord getEvent(final long id) throws IOException {
         final List<ProvenanceEventRecord> records = getEvents(id, 1);
         if (records.isEmpty()) {
             return null;
@@ -2321,6 +2318,11 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             files.add(path.toFile());
         }
         return files;
+    }
+
+    @Override
+    public ProvenanceEventRepository getProvenanceEventRepository() {
+        return this;
     }
 
     /**

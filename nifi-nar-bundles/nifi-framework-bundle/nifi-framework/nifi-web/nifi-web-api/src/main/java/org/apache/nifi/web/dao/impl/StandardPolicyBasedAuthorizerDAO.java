@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.UsersAndAccessPolicies;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.UserDTO;
@@ -151,6 +152,13 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
         }
     }
 
+    private AccessPolicy findAccessPolicy(final RequestAction requestAction, final String resource) {
+        return authorizer.getAccessPolicies().stream()
+                .filter(policy -> policy.getAction().equals(requestAction) && policy.getResource().equals(resource))
+                .findFirst()
+                .orElse(null);
+    }
+
     @Override
     public boolean hasAccessPolicy(final String accessPolicyId) {
         return authorizer.getAccessPolicy(accessPolicyId) != null;
@@ -158,7 +166,8 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public AccessPolicy createAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
-        return authorizer.addAccessPolicy(buildAccessPolicy(accessPolicyDTO.getId(), accessPolicyDTO));
+        return authorizer.addAccessPolicy(buildAccessPolicy(accessPolicyDTO.getId(),
+                accessPolicyDTO.getResource(), RequestAction.valueOfValue(accessPolicyDTO.getAction()), accessPolicyDTO));
     }
 
     @Override
@@ -171,8 +180,27 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
+    public AccessPolicy getAccessPolicy(final RequestAction requestAction, final Authorizable authorizable) {
+        final String resource = authorizable.getResource().getIdentifier();
+
+        final AccessPolicy accessPolicy = findAccessPolicy(requestAction, authorizable.getResource().getIdentifier());
+        if (accessPolicy == null) {
+            final Authorizable parentAuthorizable = authorizable.getParentAuthorizable();
+            if (parentAuthorizable == null) {
+                throw new ResourceNotFoundException(String.format("Unable to find access policy for %s on %s", requestAction.toString(), resource));
+            } else {
+                return getAccessPolicy(requestAction, parentAuthorizable);
+            }
+        }
+
+        return accessPolicy;
+    }
+
+    @Override
     public AccessPolicy updateAccessPolicy(final AccessPolicyDTO accessPolicyDTO) {
-        return authorizer.updateAccessPolicy(buildAccessPolicy(getAccessPolicy(accessPolicyDTO.getId()).getIdentifier(), accessPolicyDTO));
+        final AccessPolicy currentAccessPolicy = getAccessPolicy(accessPolicyDTO.getId());
+        return authorizer.updateAccessPolicy(buildAccessPolicy(currentAccessPolicy.getIdentifier(),
+                currentAccessPolicy.getResource(), currentAccessPolicy.getAction(), accessPolicyDTO));
     }
 
     @Override
@@ -180,23 +208,19 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
         return authorizer.deleteAccessPolicy(getAccessPolicy(accessPolicyId));
     }
 
-    private AccessPolicy buildAccessPolicy(final String identifier, final AccessPolicyDTO accessPolicyDTO) {
+    private AccessPolicy buildAccessPolicy(final String identifier, final String resource, final RequestAction action, final AccessPolicyDTO accessPolicyDTO) {
         final Set<TenantEntity> userGroups = accessPolicyDTO.getUserGroups();
         final Set<TenantEntity> users = accessPolicyDTO.getUsers();
         final AccessPolicy.Builder builder = new AccessPolicy.Builder()
                 .identifier(identifier)
-                .resource(accessPolicyDTO.getResource());
+                .resource(resource);
         if (userGroups != null) {
             builder.addGroups(userGroups.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
         }
         if (users != null) {
             builder.addUsers(users.stream().map(ComponentEntity::getId).collect(Collectors.toSet()));
         }
-        if (Boolean.TRUE == accessPolicyDTO.getCanWrite()) {
-            builder.action(RequestAction.WRITE);
-        } else {
-            builder.action(RequestAction.READ);
-        }
+        builder.action(action);
         return builder.build();
     }
 
@@ -223,6 +247,21 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     public Set<Group> getUserGroupsForUser(String userId) {
         return authorizer.getGroups().stream()
                 .filter(g -> g.getUsers().contains(userId))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<AccessPolicy> getAccessPoliciesForUser(String userId) {
+        return authorizer.getAccessPolicies().stream()
+                .filter(p -> {
+                    // policy contains the user
+                    if (p.getUsers().contains(userId)) {
+                        return true;
+                    }
+
+                    // policy contains a group with the user
+                    return !p.getGroups().stream().filter(g -> authorizer.getGroup(g).getUsers().contains(userId)).collect(Collectors.toSet()).isEmpty();
+                })
                 .collect(Collectors.toSet());
     }
 
@@ -281,12 +320,12 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
 
     @Override
     public User deleteUser(final String userId) {
-        return authorizer.deleteUser(getUser(userId));
+        final User user = getUser(userId);
+        return authorizer.deleteUser(user);
     }
 
     private User buildUser(final String identifier, final UserDTO userDTO) {
         final User.Builder builder = new User.Builder().identifier(identifier).identity(userDTO.getIdentity());
         return builder.build();
     }
-
 }

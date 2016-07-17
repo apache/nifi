@@ -27,14 +27,24 @@ public class StandardNiFiUser implements NiFiUser {
 
     private final String identity;
     private final NiFiUser chain;
+    private final String clientAddress;
 
     public StandardNiFiUser(String identity) {
-        this(identity, null);
+        this(identity, null, null);
+    }
+
+    public StandardNiFiUser(String identity, String clientAddress) {
+        this(identity, null, clientAddress);
     }
 
     public StandardNiFiUser(String identity, NiFiUser chain) {
+        this(identity, chain, null);
+    }
+
+    public StandardNiFiUser(String identity, NiFiUser chain, String clientAddress) {
         this.identity = identity;
         this.chain = chain;
+        this.clientAddress = clientAddress;
     }
 
 
@@ -51,6 +61,11 @@ public class StandardNiFiUser implements NiFiUser {
     @Override
     public boolean isAnonymous() {
         return this == ANONYMOUS;
+    }
+
+    @Override
+    public String getClientAddress() {
+        return clientAddress;
     }
 
     @Override

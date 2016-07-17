@@ -35,7 +35,7 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface WritesAttribute {
 
-    public String attribute();
+    String attribute();
 
-    public String description() default "";
+    String description() default "";
 }

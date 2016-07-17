@@ -733,7 +733,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public int compare(final FlowFileRecord f1, final FlowFileRecord f2) {
             int returnVal = 0;
             final boolean f1Penalized = f1.isPenalized();

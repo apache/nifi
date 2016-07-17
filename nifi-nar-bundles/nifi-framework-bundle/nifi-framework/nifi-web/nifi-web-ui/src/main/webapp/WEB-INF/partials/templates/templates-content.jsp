@@ -20,7 +20,7 @@
     <span id="template-group-id" class="hidden"><c:out value="${param.groupId}"/></span>
     <div id="templates-header-and-filter">
         <div id="templates-header-text">NiFi Templates</div>
-        <div id="templates-filter-controls" class="filter-controls">
+        <div id="templates-filter-controls">
             <div id="templates-filter-stats" class="filter-status">
                 Displaying&nbsp;<span id="displayed-templates"></span>&nbsp;of&nbsp;<span id="total-templates"></span>
             </div>

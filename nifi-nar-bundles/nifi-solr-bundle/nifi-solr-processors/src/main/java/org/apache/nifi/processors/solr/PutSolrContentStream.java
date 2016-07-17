@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -47,7 +48,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.ContentStreamUpdateRequest;
@@ -166,8 +166,8 @@ public class PutSolrContentStream extends SolrProcessor {
             return;
         }
 
-        final ObjectHolder<Exception> error = new ObjectHolder<>(null);
-        final ObjectHolder<Exception> connectionError = new ObjectHolder<>(null);
+        final AtomicReference<Exception> error = new AtomicReference<>(null);
+        final AtomicReference<Exception> connectionError = new AtomicReference<>(null);
 
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions(flowFile).getValue();

@@ -38,7 +38,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         method               | daoMethod
-        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', canRead: true)) }
+        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
         'createUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUser(new UserDTO(id: '1', identity: 'a')) }
         'createUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
         'deleteAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteAccessPolicy('1') }
@@ -50,7 +50,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         'hasAccessPolicy'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasAccessPolicy('1') }
         'hasUser'            | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUser('1') }
         'hasUserGroup'       | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUserGroup('1') }
-        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', canRead: true)) }
+        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
         'updateUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUser(new UserDTO(id: '1', identity: 'a')) }
         'updateUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
     }
@@ -81,8 +81,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -144,8 +143,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -169,8 +167,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 

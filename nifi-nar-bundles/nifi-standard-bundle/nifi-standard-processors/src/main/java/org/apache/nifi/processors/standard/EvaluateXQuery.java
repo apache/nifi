@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -66,7 +67,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.ObjectHolder;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
@@ -264,8 +264,8 @@ public class EvaluateXQuery extends AbstractProcessor {
                 return;
             }
 
-            final ObjectHolder<Throwable> error = new ObjectHolder<>(null);
-            final ObjectHolder<XdmNode> sourceRef = new ObjectHolder<>(null);
+            final AtomicReference<Throwable> error = new AtomicReference<>(null);
+            final AtomicReference<XdmNode> sourceRef = new AtomicReference<>(null);
 
             session.read(flowFile, new InputStreamCallback() {
                 @Override

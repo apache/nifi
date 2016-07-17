@@ -17,7 +17,7 @@
 package org.apache.nifi.web.security.x509;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.apache.nifi.web.security.NiFiAuthenticationRequestToken;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
 import java.security.cert.X509Certificate;
@@ -25,7 +25,7 @@ import java.security.cert.X509Certificate;
 /**
  * This is an authentication request with a given JWT token.
  */
-public class X509AuthenticationRequestToken extends AbstractAuthenticationToken {
+public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestToken {
 
     private final String proxiedEntitiesChain;
     private final X509PrincipalExtractor principalExtractor;
@@ -37,8 +37,8 @@ public class X509AuthenticationRequestToken extends AbstractAuthenticationToken 
      * @param proxiedEntitiesChain   The http servlet request
      * @param certificates  The certificate chain
      */
-    public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates) {
-        super(null);
+    public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates, final String clientAddress) {
+        super(clientAddress);
         setAuthenticated(false);
         this.proxiedEntitiesChain = proxiedEntitiesChain;
         this.principalExtractor = principalExtractor;

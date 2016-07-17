@@ -74,6 +74,22 @@ nf.TemplatesTable = (function () {
     };
 
     /**
+     * Opens the access policies for the specified template.
+     * 
+     * @param templateEntity
+     */
+    var openAccessPolicies = function (templateEntity) {
+        // only attempt this if we're within a frame
+        if (top !== window) {
+            // and our parent has canvas utils and shell defined
+            if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.PolicyManagement) && nf.Common.isDefinedAndNotNull(parent.nf.Shell)) {
+                parent.nf.PolicyManagement.showTemplatePolicy(templateEntity);
+                parent.$('#shell-close-button').click();
+            }
+        }
+    };
+
+    /**
      * Deletes the template with the specified id.
      * 
      * @argument {string} templateEntity     The template
@@ -212,7 +228,7 @@ nf.TemplatesTable = (function () {
             });
 
             var timestampFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -220,7 +236,7 @@ nf.TemplatesTable = (function () {
             };
 
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '<span class="blank">' + dataContext.id + '</span>';
                 }
 
@@ -228,7 +244,7 @@ nf.TemplatesTable = (function () {
             };
 
             var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -236,7 +252,7 @@ nf.TemplatesTable = (function () {
             };
 
             var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -247,14 +263,21 @@ nf.TemplatesTable = (function () {
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                 var markup = '';
 
-                if (dataContext.accessPolicy.canRead === true) {
-                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px;"></div>';
+                if (dataContext.permissions.canRead === true) {
+                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
                 // all DFMs to remove templates
-                if (dataContext.accessPolicy.canWrite === true) {
-                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-left: 3px;"></div>';
+                if (dataContext.permissions.canWrite === true) {
+                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
+
+                // if we in the shell
+                // TODO - only if we can adminster policies
+                if (top !== window) {
+                    markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                }
+
                 return markup;
             };
 
@@ -317,6 +340,8 @@ nf.TemplatesTable = (function () {
                         downloadTemplate(item);
                     } else if (target.hasClass('prompt-to-delete-template')) {
                         promptToDeleteTemplate(item);
+                    } else if (target.hasClass('edit-access-policies')) {
+                        openAccessPolicies(item);
                     }
                 }
             });

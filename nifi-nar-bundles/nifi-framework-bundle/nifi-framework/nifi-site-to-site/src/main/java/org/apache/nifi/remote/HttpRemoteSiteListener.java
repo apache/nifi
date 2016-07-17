@@ -47,7 +47,6 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private final Map<String, TransactionWrapper> transactions = new ConcurrentHashMap<>();
     private final ScheduledExecutorService taskExecutor;
-    private final int httpListenPort;
     private ProcessGroup rootGroup;
     private ScheduledFuture<?> transactionMaintenanceTask;
 
@@ -76,9 +75,6 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
                     SITE_TO_SITE_HTTP_TRANSACTION_TTL, e.getMessage(), txTtlSec);
         }
         transactionTtlSec = txTtlSec;
-
-        httpListenPort = properties.getRemoteInputHttpPort() != null ? properties.getRemoteInputHttpPort() : 0;
-
     }
 
     public static HttpRemoteSiteListener getInstance() {
@@ -130,9 +126,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             try {
                 Set<String> transactionIds = transactions.keySet().stream().collect(Collectors.toSet());
                 transactionIds.stream().filter(tid -> !isTransactionActive(tid))
-                    .forEach(tid -> {
-                        cancelTransaction(tid);
-                    });
+                    .forEach(tid -> cancelTransaction(tid));
             } catch (Exception e) {
                 // Swallow exception so that this thread can keep working.
                 logger.error("An exception occurred while maintaining transactions", e);
@@ -161,10 +155,6 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         }
     }
 
-    @Override
-    public int getPort() {
-        return httpListenPort;
-    }
 
     @Override
     public void stop() {
@@ -225,7 +215,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         return transaction.transaction;
     }
 
-    public void extendsTransaction(final String transactionId) throws IllegalStateException {
+    public void extendTransaction(final String transactionId) throws IllegalStateException {
         if (!isTransactionActive(transactionId)){
             throw new IllegalStateException("Transaction was not found or not active anymore. transactionId=" + transactionId);
         }

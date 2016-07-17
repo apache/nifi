@@ -21,14 +21,12 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
-import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -710,54 +708,4 @@ public class StandardValidators {
         }
     }
 
-    /**
-     * Creates a validator based on existence of a {@link ControllerService}.
-     *
-     * @param serviceClass the controller service API your
-     * {@link ConfigurableComponent} depends on
-     * @return a Validator
-     * @deprecated As of release 0.1.0-incubating, replaced by
-     * {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesControllerService(Class)}
-     */
-    @Deprecated
-    public static Validator createControllerServiceExistsValidator(final Class<? extends ControllerService> serviceClass) {
-        return new Validator() {
-            @Override
-            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
-                }
-
-                final ControllerService svc = context.getControllerServiceLookup().getControllerService(input);
-
-                if (svc == null) {
-                    return new ValidationResult.Builder().valid(false).input(input).subject(subject).explanation("No Controller Service exists with this ID").build();
-                }
-
-                if (!serviceClass.isAssignableFrom(svc.getClass())) {
-                    return new ValidationResult.Builder()
-                            .valid(false)
-                            .input(input)
-                            .subject(subject)
-                            .explanation("Controller Service with this ID is of type " + svc.getClass().getName() + " but is expected to be of type " + serviceClass.getName())
-                            .build();
-                }
-
-                final ValidationContext serviceValidationContext = context.getControllerServiceValidationContext(svc);
-                final Collection<ValidationResult> serviceValidationResults = svc.validate(serviceValidationContext);
-                for (final ValidationResult result : serviceValidationResults) {
-                    if (!result.isValid()) {
-                        return new ValidationResult.Builder()
-                                .valid(false)
-                                .input(input)
-                                .subject(subject)
-                                .explanation("Controller Service " + input + " is not valid: " + result.getExplanation())
-                                .build();
-                    }
-                }
-
-                return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();
-            }
-        };
-    }
 }

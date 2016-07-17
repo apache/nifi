@@ -50,24 +50,26 @@ nf.ng.OutputPortComponent = function (serviceProvider) {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // add the port to the graph
-                nf.Graph.add({
-                    'outputPorts': [response]
-                }, {
-                    'selectAll': true
-                });
+            // add the port to the graph
+            nf.Graph.add({
+                'outputPorts': [response]
+            }, {
+                'selectAll': true
+            });
 
-                // update component visibility
-                nf.Canvas.View.updateVisibility();
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
 
-                // update the birdseye
-                nf.Birdseye.refresh();
-            }
+            // update the birdseye
+            nf.Birdseye.refresh();
         }).fail(nf.Common.handleAjaxError);
     };
 
     function OutputPortComponent() {
+
+        this.icon = 'icon icon-port-out';
+
+        this.hoverIcon = 'icon icon-port-out-add';
 
         /**
          * The output port component's modal.

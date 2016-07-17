@@ -288,7 +288,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             // update the style for the specified component
                                             $.ajax({
                                                 type: 'PUT',
-                                                url: selectedData.component.uri,
+                                                url: selectedData.uri,
                                                 data: JSON.stringify(entity),
                                                 dataType: 'json',
                                                 contentType: 'application/json'
@@ -298,7 +298,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             }).fail(function (xhr, status, error) {
                                                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                                     nf.Dialog.showOkDialog({
-                                                        headerText: 'Malformed Request',
+                                                        headerText: 'Error',
                                                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                                     });
                                                 }
@@ -385,7 +385,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 $('#fill-color-value').val(hex);
 
                                 // always update the preview
-                                $('#fill-color-processor-preview, #fill-color-label-preview').css({
+                                $('#fill-color-processor-preview').css('color', hex);
+                                $('#fill-color-label-preview').css({
                                     'border-color': hex,
                                     'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
                                     'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'

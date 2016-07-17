@@ -230,9 +230,6 @@ public class ListenHTTPServlet extends HttpServlet {
                                     }
                                 }
 
-                                // remove deprecated FlowFile attribute that was used in older versions of NiFi
-                                attributes.remove("parent.uuid");
-
                                 hasMoreData.set(unpackager.hasMoreData());
                             }
                         }

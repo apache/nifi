@@ -42,6 +42,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -63,16 +64,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 public class InvokeScriptedProcessor extends AbstractScriptProcessor {
 
     private final AtomicReference<Processor> processor = new AtomicReference<>();
-    private final AtomicReference<Collection<ValidationResult>> validationResults =
-            new AtomicReference<>((Collection<ValidationResult>) new ArrayList<ValidationResult>());
+    private final AtomicReference<Collection<ValidationResult>> validationResults = new AtomicReference<>(new ArrayList<>());
 
     private AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
     private ScriptEngine scriptEngine = null;
 
     /**
-     * Returns the valid relationships for this processor. SUCCESS and FAILURE are always returned, and if the script
-     * processor has defined additional relationships, those will be added as well.
+     * Returns the valid relationships for this processor as supplied by the script itself.
      *
      * @return a Set of Relationships supported by this processor
      */
@@ -82,7 +81,10 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         final Processor instance = processor.get();
         if (instance != null) {
             try {
-                relationships.addAll(instance.getRelationships());
+                final Set<Relationship> rels = instance.getRelationships();
+                if(rels != null && !rels.isEmpty()){
+                    relationships.addAll(rels);
+                }
             } catch (final Throwable t) {
                 final ComponentLog logger = getLogger();
                 final String message = "Unable to get relationships from scripted Processor: " + t;
@@ -92,10 +94,6 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                     logger.error(message, t);
                 }
             }
-        } else {
-            // Return defaults for now
-            relationships.add(REL_SUCCESS);
-            relationships.add(REL_FAILURE);
         }
         return Collections.unmodifiableSet(relationships);
     }
@@ -351,6 +349,11 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                                 public ControllerServiceLookup getControllerServiceLookup() {
                                     return InvokeScriptedProcessor.super.getControllerServiceLookup();
                                 }
+
+                                @Override
+                                public NodeTypeProvider getNodeTypeProvider() {
+                                    return InvokeScriptedProcessor.super.getNodeTypeProvider();
+                                }
                             });
                         } catch (final Exception e) {
                             logger.error("Unable to initialize scripted Processor: " + e.getLocalizedMessage(), e);
@@ -493,6 +496,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     @OnStopped
+    @Override
     public void stop() {
         super.stop();
         processor.set(null);

@@ -99,6 +99,12 @@
                                 ng-disabled="false">
                             <div class="graph-control-action-icon fa fa-gear"></div></button>
                     </div>
+                    <div class="button-spacer-small">&nbsp;</div>
+                    <div id="operate-policy" class="action-button" title="Access Policies">
+                        <button ng-click="appCtrl.nf.Actions['managePolicies'](appCtrl.nf.CanvasUtils.getSelection());"
+                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().size() > 1">
+                            <div class="graph-control-action-icon fa fa-key"></div></button>
+                    </div>
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-enable" class="action-button" title="Enable">
                         <button ng-click="appCtrl.nf.Actions['enable'](appCtrl.nf.CanvasUtils.getSelection());"

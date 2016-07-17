@@ -20,7 +20,6 @@ package org.apache.nifi.provenance;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A Provenance Event that is used to replace another Provenance Event when authorizations
@@ -57,11 +56,6 @@ public class PlaceholderProvenanceEvent implements ProvenanceEventRecord {
     @Override
     public long getLineageStartDate() {
         return 0;
-    }
-
-    @Override
-    public Set<String> getLineageIdentifiers() {
-        return Collections.emptySet();
     }
 
     @Override

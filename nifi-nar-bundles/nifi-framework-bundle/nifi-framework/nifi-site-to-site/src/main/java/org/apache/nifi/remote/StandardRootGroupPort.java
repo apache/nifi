@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.remote;
 
-import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.ResourceFactory;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.AbstractPort;
@@ -355,17 +356,10 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return new StandardPortAuthorizationResult(false, "User DN is not known");
         }
 
-        // build the request
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .identity(dn)
-                .anonymous(false)
-                .accessAttempt(true)
-                .action(RequestAction.WRITE)
-                .resource(ResourceFactory.getSiteToSiteResource(getIdentifier(), getName()))
-                .build();
-
         // perform the authorization
-        final AuthorizationResult result = authorizer.authorize(request);
+        final Authorizable dataTransferAuthorizable = new DataTransferAuthorizable(this);
+        final AuthorizationResult result = dataTransferAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, new StandardNiFiUser(dn));
+
         if (!Result.Approved.equals(result.getResult())) {
             final String message = String.format("%s authorization failed for user %s because %s", this, dn, result.getExplanation());
             logger.warn(message);

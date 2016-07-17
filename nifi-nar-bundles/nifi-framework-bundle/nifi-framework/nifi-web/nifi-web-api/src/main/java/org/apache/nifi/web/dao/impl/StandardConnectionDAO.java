@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
@@ -57,6 +59,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -416,8 +420,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // If destination is changing, ensure that current destination is not running. This check is done here, rather than
             // in the Connection object itself because the Connection object itself does not know which updates are to occur and
             // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
-            if (connectionDTO.getDestination() != null && connection.getDestination().isRunning()) {
-                throw new IllegalStateException("Cannot change the destination of connection because the current destination is running");
+            final Connectable destination = connection.getDestination();
+            if (destination != null && destination.isRunning() && destination.getConnectableType() != ConnectableType.FUNNEL && destination.getConnectableType() != ConnectableType.INPUT_PORT) {
+                throw new ValidationException(Collections.singletonList("Cannot change the destination of connection because the current destination is running"));
             }
 
             // verify that this connection supports modification
@@ -598,6 +603,14 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
             dnChain.forEach(identity -> {
                 // build the request
+                final Map<String,String> userContext;
+                if (!StringUtils.isBlank(user.getClientAddress())) {
+                    userContext = new HashMap<>();
+                    userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+                } else {
+                    userContext = null;
+                }
+
                 final AuthorizationRequest request = new AuthorizationRequest.Builder()
                         .identity(identity)
                         .anonymous(user.isAnonymous())
@@ -605,6 +618,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                         .action(RequestAction.WRITE)
                         .resource(connection.getResource())
                         .resourceContext(attributes)
+                        .userContext(userContext)
                         .build();
 
                 // perform the authorization

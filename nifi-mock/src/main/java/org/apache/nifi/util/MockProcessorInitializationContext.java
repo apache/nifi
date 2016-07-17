@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
@@ -79,5 +80,10 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     @Override
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
+    }
+
+    @Override
+    public NodeTypeProvider getNodeTypeProvider() {
+        return context;
     }
 }

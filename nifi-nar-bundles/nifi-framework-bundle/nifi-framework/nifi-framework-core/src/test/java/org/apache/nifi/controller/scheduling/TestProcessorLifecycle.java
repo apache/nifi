@@ -42,7 +42,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
@@ -656,7 +656,7 @@ public class TestProcessorLifecycle {
      */
     private FlowController buildFlowControllerForTest() throws Exception {
         NiFiProperties properties = NiFiProperties.getInstance();
-        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceEventRepository.class.getName());
+        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
 

@@ -17,9 +17,7 @@
 package org.apache.nifi.provenance;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.nifi.flowfile.FlowFile;
 
@@ -36,11 +34,6 @@ public class TestUtil {
             @Override
             public long getEntryDate() {
                 return System.currentTimeMillis();
-            }
-
-            @Override
-            public Set<String> getLineageIdentifiers() {
-                return new HashSet<String>();
             }
 
             @Override

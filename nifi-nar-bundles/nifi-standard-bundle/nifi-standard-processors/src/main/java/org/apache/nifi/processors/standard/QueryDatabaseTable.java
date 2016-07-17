@@ -41,7 +41,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
-import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
@@ -93,6 +92,7 @@ import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TINYINT;
 import static java.sql.Types.VARBINARY;
 import static java.sql.Types.VARCHAR;
+import java.util.concurrent.atomic.AtomicLong;
 
 @EventDriven
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -296,7 +296,7 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
 
-            final LongHolder nrOfRows = new LongHolder(0L);
+            final AtomicLong nrOfRows = new AtomicLong(0L);
 
             fileToProcess = session.create();
             fileToProcess = session.write(fileToProcess, new OutputStreamCallback() {
@@ -317,7 +317,7 @@ public class QueryDatabaseTable extends AbstractSessionFactoryProcessor {
 
             if (nrOfRows.get() > 0) {
                 // set attribute how many rows were selected
-                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, nrOfRows.get().toString());
+                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
 
                 logger.info("{} contains {} Avro records; transferring to 'success'",
                         new Object[]{fileToProcess, nrOfRows.get()});

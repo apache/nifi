@@ -17,6 +17,8 @@
 package org.apache.nifi.web.dao;
 
 import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 
 public interface AccessPolicyDAO {
@@ -36,12 +38,21 @@ public interface AccessPolicyDAO {
     AccessPolicy createAccessPolicy(AccessPolicyDTO accessPolicyDTO);
 
     /**
-     * Gets the acess policy with the specified ID.
+     * Gets the access policy with the specified ID.
      *
      * @param accessPolicyId The access policy ID
      * @return The access policy transfer object
      */
     AccessPolicy getAccessPolicy(String accessPolicyId);
+
+    /**
+     * Gets the access policy according to the action and authorizable.
+     *
+     * @param requestAction action
+     * @param authorizable authorizable
+     * @return access policy
+     */
+    AccessPolicy getAccessPolicy(RequestAction requestAction, Authorizable authorizable);
 
     /**
      * Updates the specified access policy.

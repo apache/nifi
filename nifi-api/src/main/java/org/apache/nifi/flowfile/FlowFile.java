@@ -17,7 +17,6 @@
 package org.apache.nifi.flowfile;
 
 import java.util.Map;
-import java.util.Set;
 
 /**
  * <p>
@@ -30,13 +29,13 @@ import java.util.Set;
 public interface FlowFile extends Comparable<FlowFile> {
 
     /**
-     * @return the unique identifier for this flow file
-     * @deprecated This method has been deprecated in favor of using the attribute
-     *             {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
-     *             If an identifier is needed use {@link #getAttribute(String)} to retrieve the value for this attribute.
-     *             For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
+     * @return the unique identifier for this flow file which is guaranteed
+     * to be unique within a single running instance of nifi.  This identifier
+     * should not be used for true universal unique type needs.  For that consider
+     * using the attribute found in the flow file's attribute map keyed by
+     * {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
+     * For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
      */
-    @Deprecated
     long getId();
 
     /**
@@ -69,7 +68,7 @@ public interface FlowFile extends Comparable<FlowFile> {
      * @return the time at which the FlowFile was most recently added to a
      * FlowFile queue, or {@code null} if the FlowFile has never been enqueued.
      * This value will always be populated before it is passed to a
-     * {@link FlowFilePrioritizer}
+     * FlowFilePrioritizer
      */
     Long getLastQueueDate();
 
@@ -85,25 +84,6 @@ public interface FlowFile extends Comparable<FlowFile> {
      * to understand the order in which the two FlowFiles were enqueued.
      */
     long getQueueDateIndex();
-
-    /**
-     * <p>
-     * If a FlowFile is derived from multiple "parent" FlowFiles, all of the
-     * parents' Lineage Identifiers will be in the set.
-     * </p>
-     *
-     * @return a set of identifiers that are unique to this FlowFile's lineage.
-     * If FlowFile X is derived from FlowFile Y, both FlowFiles will have the
-     * same value for the Lineage Claim ID.
-     *
-     * @deprecated this collection was erroneously unbounded and caused a lot of OutOfMemoryError problems
-     *             when dealing with FlowFiles with many ancestors. This Collection is
-     *             now capped at 100 lineage identifiers. This method was introduced with the idea of providing
-     *             future performance improvements but due to the high cost of heap consumption will not be used
-     *             in such a manner. As a result, this method will be removed in a future release.
-     */
-    @Deprecated
-    Set<String> getLineageIdentifiers();
 
     /**
      * @return true if flow file is currently penalized; false otherwise;

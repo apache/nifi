@@ -16,6 +16,54 @@
  */
 package org.apache.nifi.web.api;
 
+import com.sun.jersey.api.core.HttpContext;
+import com.sun.jersey.api.representation.Form;
+import com.sun.jersey.core.util.MultivaluedMapImpl;
+import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
+import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.controller.Snippet;
+import org.apache.nifi.remote.HttpRemoteSiteListener;
+import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.exception.BadRequestException;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NotAuthorizedException;
+import org.apache.nifi.remote.protocol.ResponseCode;
+import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.web.AuthorizableLookup;
+import org.apache.nifi.web.AuthorizeAccess;
+import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SnippetDTO;
+import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.TransactionResultEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.CacheControl;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
+import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -30,45 +78,10 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.CacheControl;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
-import javax.ws.rs.core.UriInfo;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.AuthorizableLookup;
-import org.apache.nifi.web.AuthorizeAccess;
-import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.SnippetDTO;
-import org.apache.nifi.web.api.entity.ComponentEntity;
-import org.apache.nifi.web.api.request.ClientIdParameter;
-import org.apache.nifi.web.concurrent.LockExpiredException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.sun.jersey.api.core.HttpContext;
-import com.sun.jersey.api.representation.Form;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
-import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
 
 /**
  * Base class for controllers.
@@ -188,7 +201,19 @@ public abstract class ApplicationResource {
 
     protected String generateUuid() {
         final Optional<String> seed = getIdGenerationSeed();
-        return seed.isPresent() ? UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8)).toString() : UUID.randomUUID().toString();
+        UUID uuid;
+        if (seed.isPresent()) {
+            try {
+                UUID seedId = UUID.fromString(seed.get());
+                uuid = TypeOneUUIDGenerator.generateId(seedId.getMostSignificantBits(), Math.abs(seed.get().hashCode()));
+            } catch (Exception e) {
+                logger.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
+                uuid = UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8));
+            }
+        } else {
+            uuid = TypeOneUUIDGenerator.generateId();
+        }
+        return uuid.toString();
     }
 
     protected Optional<String> getIdGenerationSeed() {
@@ -278,16 +303,6 @@ public abstract class ApplicationResource {
         return entity;
     }
 
-    protected MultivaluedMap<String, String> getRequestParameters(final boolean forceClientId) {
-        final MultivaluedMap<String, String> params = getRequestParameters();
-        if (forceClientId) {
-            if (StringUtils.isBlank(params.getFirst(CLIENT_ID))) {
-                params.putSingle(CLIENT_ID, new ClientIdParameter().getClientId());
-            }
-        }
-        return params;
-    }
-
     protected Map<String, String> getHeaders() {
         return getHeaders(new HashMap<String, String>());
     }
@@ -296,7 +311,9 @@ public abstract class ApplicationResource {
 
         final Map<String, String> result = new HashMap<>();
         final Map<String, String> overriddenHeadersIgnoreCaseMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        overriddenHeadersIgnoreCaseMap.putAll(overriddenHeaders);
+        if (overriddenHeaders != null) {
+            overriddenHeadersIgnoreCaseMap.putAll(overriddenHeaders);
+        }
 
         final Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
         while (headerNames.hasMoreElements()) {
@@ -344,10 +361,6 @@ public abstract class ApplicationResource {
      */
     protected boolean isValidationPhase(final HttpServletRequest httpServletRequest) {
         return isTwoPhaseRequest(httpServletRequest) && httpServletRequest.getHeader(RequestReplicator.REQUEST_VALIDATION_HTTP_HEADER) != null;
-    }
-
-    protected boolean isLockCancelationPhase(final HttpServletRequest httpServletRequest) {
-        return httpServletRequest.getHeader(RequestReplicator.LOCK_CANCELATION_HEADER) != null;
     }
 
     /**
@@ -482,59 +495,21 @@ public abstract class ApplicationResource {
             final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
         final Runnable verifyRevision) {
 
-        if (isLockCancelationPhase(httpServletRequest)) {
-            final String lockVersionId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
-            try {
-                serviceFacade.releaseWriteLock(lockVersionId);
-            } catch (final Exception e) {
-                // If the lock has expired, then it has already been unlocked.
-            }
-
-            return generateOkResponse().build();
+        final boolean validationPhase = isValidationPhase(httpServletRequest);
+        if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
+            // authorize access
+            serviceFacade.authorizeAccess(authorizer);
+            verifyRevision.run();
         }
 
-        String lockId = null;
-        try {
-            final boolean validationPhase = isValidationPhase(httpServletRequest);
-            if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
-                // authorize access
-                serviceFacade.authorizeAccess(authorizer);
-
-                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
-                lockId = serviceFacade.obtainWriteLock(lockId);
-                verifyRevision.run();
-            } else {
-                lockId = httpServletRequest.getHeader(RequestReplicator.LOCK_VERSION_ID_HEADER);
+        if (validationPhase) {
+            if (verifier != null) {
+                verifier.run();
             }
-
-            if (validationPhase) {
-                if (verifier != null) {
-                    verifier.run();
-                }
-                return generateContinueResponse().build();
-            }
-
-            try {
-                return serviceFacade.withWriteLock(lockId, () -> action.get());
-            } finally {
-                try {
-                    serviceFacade.releaseWriteLock(lockId);
-                } catch (final LockExpiredException e) {
-                    // If the lock expires here, it's okay. We've already completed our action,
-                    // so the expiration of the lock is of no consequence to us.
-                }
-            }
-        } catch (final RuntimeException t) {
-            if (lockId != null) {
-                try {
-                    serviceFacade.releaseWriteLock(lockId);
-                } catch (final Exception e) {
-                    t.addSuppressed(e);
-                }
-            }
-
-            throw t;
+            return generateContinueResponse().build();
         }
+
+        return action.get();
     }
 
     /**
@@ -546,7 +521,7 @@ public abstract class ApplicationResource {
      * @throws UnknownNodeException if the nodeUuid given does not map to any node in the cluster
      */
     protected Response replicate(final String method, final String nodeUuid) {
-        return replicate(method, getRequestParameters(true), nodeUuid);
+        return replicate(method, getRequestParameters(), nodeUuid);
     }
 
     /**
@@ -582,13 +557,54 @@ public abstract class ApplicationResource {
             throw new UnknownNodeException("Cannot replicate request " + method + " " + getAbsolutePath() + " to node with ID " + nodeUuid + " because the specified node does not exist.");
         }
 
-        final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
         final URI path = getAbsolutePath();
         try {
             final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
-            return requestReplicator.replicate(targetNodes, method, path, entity, headers).awaitMergedResponse().getResponse();
+
+            // Determine if we should replicate to the node directly or if we should replicate to the Cluster Coordinator,
+            // and have it replicate the request on our behalf.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                // If we are to replicate directly to the nodes, we need to indicate that the replication source is
+                // the cluster coordinator so that the node knows to service the request.
+                final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
+                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true).awaitMergedResponse().getResponse();
+            } else {
+                headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
+                return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method,
+                    path, entity, headers, false).awaitMergedResponse().getResponse();
+            }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    protected NodeIdentifier getClusterCoordinatorNode() {
+        final NodeIdentifier activeClusterCoordinator = clusterCoordinator.getElectedActiveCoordinatorNode();
+        if (activeClusterCoordinator != null) {
+            return activeClusterCoordinator;
+        }
+
+        throw new NoClusterCoordinatorException();
+    }
+
+    protected ReplicationTarget getReplicationTarget() {
+        return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
+    }
+
+    protected Response replicate(final String method, final NodeIdentifier targetNode) {
+        try {
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+            // to the cluster nodes themselves.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
+                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(), getHeaders(), true).awaitMergedResponse().getResponse();
+            } else {
+                final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
+                final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
+                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(), headers, false).awaitMergedResponse().getResponse();
+            }
+        } catch (final InterruptedException ie) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
         }
     }
 
@@ -600,7 +616,19 @@ public abstract class ApplicationResource {
      * @return the response from the request
      */
     protected Response replicate(final String method) {
-        return replicate(method, getRequestParameters(true));
+        return replicate(method, getRequestParameters());
+    }
+
+    /**
+     * Convenience method for calling {@link #replicateNodeResponse(String, Object, Map)} with an entity of
+     * {@link #getRequestParameters() getRequestParameters(true)} and overriding no headers
+     *
+     * @param method the HTTP method to use
+     * @return the response from the request
+     * @throws InterruptedException if interrupted while replicating the request
+     */
+    protected NodeResponse replicateNodeResponse(final String method) throws InterruptedException {
+        return replicateNodeResponse(method, getRequestParameters(), (Map<String, String>) null);
     }
 
     /**
@@ -621,18 +649,45 @@ public abstract class ApplicationResource {
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
      * that provided by the {@link #getAbsolutePath()} method
      *
-     * @param method            the HTTP method to use
-     * @param entity            the entity to replicate
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
+     * @see #replicateNodeResponse(String, Object, Map)
      */
     protected Response replicate(final String method, final Object entity, final Map<String, String> headersToOverride) {
-        final URI path = getAbsolutePath();
         try {
-            final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
-            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse().getResponse();
+            return replicateNodeResponse(method, entity, headersToOverride).getResponse();
         } catch (final InterruptedException ie) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    /**
+     * Replicates the request to all nodes in the cluster using the provided method and entity. The headers
+     * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
+     * that provided by the {@link #getAbsolutePath()} method. This method returns the NodeResponse,
+     * rather than a Response object.
+     *
+     * @param method the HTTP method to use
+     * @param entity the entity to replicate
+     * @param headersToOverride the headers to override
+     *
+     * @return the response from the request
+     *
+     * @throws InterruptedException if interrupted while replicating the request
+     * @see #replicate(String, Object, Map)
+     */
+    protected NodeResponse replicateNodeResponse(final String method, final Object entity, final Map<String, String> headersToOverride) throws InterruptedException {
+        final URI path = getAbsolutePath();
+        final Map<String, String> headers = headersToOverride == null ? getHeaders() : getHeaders(headersToOverride);
+
+        // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+        // to the cluster nodes themselves.
+        if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+            return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
+        } else {
+            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false).awaitMergedResponse();
         }
     }
 
@@ -641,7 +696,11 @@ public abstract class ApplicationResource {
      * if running in standalone mode or disconnected from cluster
      */
     boolean isConnectedToCluster() {
-        return clusterCoordinator != null && clusterCoordinator.isConnected();
+        return isClustered() && clusterCoordinator.isConnected();
+    }
+
+    boolean isClustered() {
+        return clusterCoordinator != null;
     }
 
     public void setRequestReplicator(final RequestReplicator requestReplicator) {
@@ -666,5 +725,157 @@ public abstract class ApplicationResource {
 
     protected NiFiProperties getProperties() {
         return properties;
+    }
+
+    public static enum ReplicationTarget {
+        CLUSTER_NODES, CLUSTER_COORDINATOR;
+    }
+
+    // -----------------
+    // HTTP site to site
+    // -----------------
+
+    protected Integer negotiateTransportProtocolVersion(final HttpServletRequest req, final VersionNegotiator transportProtocolVersionNegotiator) throws BadRequestException {
+        String protocolVersionStr = req.getHeader(HttpHeaders.PROTOCOL_VERSION);
+        if (isEmpty(protocolVersionStr)) {
+            throw new BadRequestException("Protocol version was not specified.");
+        }
+
+        final Integer requestedProtocolVersion;
+        try {
+            requestedProtocolVersion = Integer.valueOf(protocolVersionStr);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("Specified protocol version was not in a valid number format: " + protocolVersionStr);
+        }
+
+        Integer protocolVersion;
+        if (transportProtocolVersionNegotiator.isVersionSupported(requestedProtocolVersion)) {
+            return requestedProtocolVersion;
+        } else {
+            protocolVersion = transportProtocolVersionNegotiator.getPreferredVersion(requestedProtocolVersion);
+        }
+
+        if (protocolVersion == null) {
+            throw new BadRequestException("Specified protocol version is not supported: " + protocolVersionStr);
+        }
+        return protocolVersion;
+    }
+
+    protected Response.ResponseBuilder setCommonHeaders(final Response.ResponseBuilder builder, final Integer transportProtocolVersion, final HttpRemoteSiteListener transactionManager) {
+        return builder.header(HttpHeaders.PROTOCOL_VERSION, transportProtocolVersion)
+                .header(HttpHeaders.SERVER_SIDE_TRANSACTION_TTL, transactionManager.getTransactionTtlSec());
+    }
+
+    protected class ResponseCreator {
+
+        public Response nodeTypeErrorResponse(String errMsg) {
+            return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity(errMsg).build();
+        }
+
+        public Response httpSiteToSiteIsNotEnabledResponse() {
+            return noCache(Response.status(Response.Status.FORBIDDEN)).type(MediaType.TEXT_PLAIN).entity("HTTP(S) Site-to-Site is not enabled on this host.").build();
+        }
+
+        public Response wrongPortTypeResponse(String portType, String portId) {
+            logger.debug("Port type was wrong. portType={}, portId={}", portType, portId);
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.ABORT.getCode());
+            entity.setMessage("Port was not found.");
+            entity.setFlowFileSent(0);
+            return Response.status(NOT_FOUND).entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
+
+        public Response transactionNotFoundResponse(String portId, String transactionId) {
+            logger.debug("Transaction was not found. portId={}, transactionId={}", portId, transactionId);
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.ABORT.getCode());
+            entity.setMessage("Transaction was not found.");
+            entity.setFlowFileSent(0);
+            return Response.status(NOT_FOUND).entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
+
+        public Response unexpectedErrorResponse(String portId, Exception e) {
+            logger.error("Unexpected exception occurred. portId={}", portId);
+            logger.error("Exception detail:", e);
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.ABORT.getCode());
+            entity.setMessage("Server encountered an exception.");
+            entity.setFlowFileSent(0);
+            return Response.serverError().entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
+
+        public Response unexpectedErrorResponse(String portId, String transactionId, Exception e) {
+            logger.error("Unexpected exception occurred. portId={}, transactionId={}", portId, transactionId);
+            logger.error("Exception detail:", e);
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.ABORT.getCode());
+            entity.setMessage("Server encountered an exception.");
+            entity.setFlowFileSent(0);
+            return Response.serverError().entity(entity).type(MediaType.APPLICATION_JSON_TYPE).build();
+        }
+
+        public Response unauthorizedResponse(NotAuthorizedException e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Client request was not authorized. {}", e.getMessage());
+            }
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.UNAUTHORIZED.getCode());
+            entity.setMessage(e.getMessage());
+            entity.setFlowFileSent(0);
+            return Response.status(Response.Status.UNAUTHORIZED).type(MediaType.APPLICATION_JSON_TYPE).entity(e.getMessage()).build();
+        }
+
+        public Response badRequestResponse(Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Client sent a bad request. {}", e.getMessage());
+            }
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(ResponseCode.ABORT.getCode());
+            entity.setMessage(e.getMessage());
+            entity.setFlowFileSent(0);
+            return Response.status(Response.Status.BAD_REQUEST).type(MediaType.APPLICATION_JSON_TYPE).entity(entity).build();
+        }
+
+        public Response handshakeExceptionResponse(HandshakeException e) {
+            if(logger.isDebugEnabled()){
+                logger.debug("Handshake failed, {}", e.getMessage());
+            }
+            ResponseCode handshakeRes = e.getResponseCode();
+            Response.Status statusCd;
+            TransactionResultEntity entity = new TransactionResultEntity();
+            entity.setResponseCode(handshakeRes != null ? handshakeRes.getCode() : ResponseCode.ABORT.getCode());
+            entity.setMessage(e.getMessage());
+            entity.setFlowFileSent(0);
+            switch (handshakeRes) {
+                case PORT_NOT_IN_VALID_STATE:
+                case PORTS_DESTINATION_FULL:
+                    return Response.status(Response.Status.SERVICE_UNAVAILABLE).type(MediaType.APPLICATION_JSON_TYPE).entity(entity).build();
+                case UNAUTHORIZED:
+                    statusCd = Response.Status.UNAUTHORIZED;
+                    break;
+                case UNKNOWN_PORT:
+                    statusCd = NOT_FOUND;
+                    break;
+                default:
+                    statusCd = Response.Status.BAD_REQUEST;
+            }
+            return Response.status(statusCd).type(MediaType.APPLICATION_JSON_TYPE).entity(entity).build();
+        }
+
+        public Response acceptedResponse(final HttpRemoteSiteListener transactionManager, final Object entity, final Integer protocolVersion) {
+            return noCache(setCommonHeaders(Response.status(Response.Status.ACCEPTED), protocolVersion, transactionManager))
+                    .entity(entity).build();
+        }
+
+        public Response locationResponse(UriInfo uriInfo, String portType, String portId, String transactionId, Object entity,
+                                         Integer protocolVersion, final HttpRemoteSiteListener transactionManager) {
+
+            String path = "/data-transfer/" + portType + "/" + portId + "/transactions/" + transactionId;
+            URI location = uriInfo.getBaseUriBuilder().path(path).build();
+            return noCache(setCommonHeaders(Response.created(location), protocolVersion, transactionManager)
+                    .header(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE))
+                    .entity(entity).build();
+        }
+
     }
 }

@@ -61,22 +61,17 @@
     padding-top: 10px;
 }
 
-div.status-text {
-    padding-left: 4px;
-    line-height: normal;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 /* view options */
 
 #view-options-container {
     display: none;
-    float: right;
-    margin-top: 12px;
     font-family: Roboto;
     font-size: 13px;
     font-weight: normal;
+    position: absolute;
+    top: 50px;
+    right: 0px;
+    z-index: 1;
 }
 
 /* view single node dialog */

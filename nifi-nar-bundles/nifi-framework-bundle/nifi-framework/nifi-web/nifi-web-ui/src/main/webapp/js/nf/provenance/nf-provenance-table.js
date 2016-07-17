@@ -99,7 +99,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the uri to the data
-        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = controllerUri + 'provenance-events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -461,24 +461,10 @@ nf.ProvenanceTable = (function () {
      * Initializes the provenance query dialog.
      */
     var initProvenanceQueryDialog = function () {
-        // initialize the progress bar
-        $('#provenance-percent-complete').progressbar();
-
         // initialize the dialog
         $('#provenance-query-dialog').modal({
             scrollableContentStyle: 'scrollable',
-            headerText: 'Searching provenance events...',
-            handler: {
-                close: function () {
-                    // reset the progress bar
-                    var provenanceProgressBar = $('#provenance-percent-complete');
-                    provenanceProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    provenanceProgressBar.progressbar('value', 0).append(label);
-                }
-            }
+            headerText: 'Searching provenance events...'
         });
     };
 
@@ -914,9 +900,9 @@ nf.ProvenanceTable = (function () {
      */
     var getProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 
@@ -935,9 +921,9 @@ nf.ProvenanceTable = (function () {
      */
     var cancelProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 
@@ -1088,13 +1074,12 @@ nf.ProvenanceTable = (function () {
         updateProgress: function (progressBar, value) {
             // remove existing labels
             progressBar.find('div.progress-label').remove();
+            progressBar.find('md-progress-linear').remove();
 
             // update the progress bar
             var label = $('<div class="progress-label"></div>').text(value + '%');
-            if (value > 0) {
-                label.css('margin-top', '-19px');
-            }
-            progressBar.progressbar('value', value).append(label);
+            (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+            progressBar.append(label);
         },
 
         /**

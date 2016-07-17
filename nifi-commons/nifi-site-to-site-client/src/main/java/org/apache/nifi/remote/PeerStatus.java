@@ -20,10 +20,12 @@ public class PeerStatus {
 
     private final PeerDescription description;
     private final int numFlowFiles;
+    private final boolean queryForPeers;
 
-    public PeerStatus(final PeerDescription description, final int numFlowFiles) {
+    public PeerStatus(final PeerDescription description, final int numFlowFiles, final boolean queryForPeers) {
         this.description = description;
         this.numFlowFiles = numFlowFiles;
+        this.queryForPeers = queryForPeers;
     }
 
     public PeerDescription getPeerDescription() {
@@ -32,6 +34,13 @@ public class PeerStatus {
 
     public int getFlowFileCount() {
         return numFlowFiles;
+    }
+
+    /**
+     * @return <code>true</code> if this node can be queried for its peers, <code>false</code> otherwise.
+     */
+    public boolean isQueryForPeers() {
+        return queryForPeers;
     }
 
     @Override
