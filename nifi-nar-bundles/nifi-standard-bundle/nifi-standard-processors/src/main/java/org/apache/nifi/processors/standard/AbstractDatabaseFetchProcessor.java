@@ -113,7 +113,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                     + "for each column that has been returned since the processor started running. This can be used to "
                     + "retrieve only those rows that have been added/updated since the last retrieval. Note that some "
                     + "JDBC types such as bit/boolean are not conducive to maintaining maximum value, so columns of these "
-                    + "types should not be listed in this property, and will result in error(s) during processing.")
+                    + "types should not be listed in this property, and will result in error(s) during processing. If no columns "
+                    + "are provided, all rows from the table will be considered, which could have a performance impact.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -185,10 +186,10 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
     }
 
     protected static String getMaxValueFromRow(ResultSet resultSet,
-                                            int columnIndex,
-                                            Integer type,
-                                            String maxValueString,
-                                            String preProcessStrategy)
+                                               int columnIndex,
+                                               Integer type,
+                                               String maxValueString,
+                                               String databaseType)
             throws ParseException, IOException, SQLException {
 
         // Skip any columns we're not keeping track of or whose value is null
@@ -287,7 +288,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
             case TIMESTAMP:
                 // Oracle timestamp queries must use literals in java.sql.Date format
-                if ("Oracle".equals(preProcessStrategy)) {
+                if ("Oracle".equals(databaseType)) {
                     Date rawColOracleTimestampValue = resultSet.getDate(columnIndex);
                     java.sql.Date oracleTimestampValue = new java.sql.Date(rawColOracleTimestampValue.getTime());
                     java.sql.Date maxOracleTimestampValue = null;
@@ -332,7 +333,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
      * @param value The value to be converted to a SQL literal
      * @return A String representing the given value as a literal of the given type
      */
-    protected static String getLiteralByType(int type, String value, String preProcessStrategy) {
+    protected static String getLiteralByType(int type, String value, String databaseType) {
         // Format value based on column type. For example, strings and timestamps need to be quoted
         switch (type) {
             // For string-represented values, put in single quotes
@@ -348,7 +349,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 return "'" + value + "'";
             case TIMESTAMP:
                 // Timestamp literals in Oracle need to be cast with TO_DATE
-                if ("Oracle".equals(preProcessStrategy)) {
+                if ("Oracle".equals(databaseType)) {
                     return "to_date('" + value + "', 'yyyy-mm-dd HH24:MI:SS')";
                 } else {
                     return "'" + value + "'";
