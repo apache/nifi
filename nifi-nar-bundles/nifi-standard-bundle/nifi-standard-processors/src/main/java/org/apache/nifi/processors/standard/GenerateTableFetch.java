@@ -61,7 +61,7 @@ import java.util.concurrent.TimeUnit;
 @TriggerSerially
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "select", "jdbc", "query", "database", "fetch", "generate"})
-@SeeAlso(QueryDatabaseTable.class)
+@SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class})
 @CapabilityDescription("Generates SQL select queries that fetch \"pages\" of rows from a table. The partition size property, along with the table's row count, "
         + "determine the size and number of pages and generated FlowFiles. In addition, incremental fetching can be achieved by setting Maximum-Value Columns, "
         + "which causes the processor to track the columns' maximum values, thus only fetching rows whose columns' values exceed the observed maximums. This "
@@ -135,7 +135,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
         try {
             stateMap = stateManager.getState(Scope.CLUSTER);
         } catch (final IOException ioe) {
-            getLogger().error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
+            logger.error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
                     + "query until this is accomplished.", ioe);
             context.yield();
             return;
@@ -241,11 +241,14 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 // Update the state
                 stateManager.setState(statePropertyMap, Scope.CLUSTER);
             } catch (IOException ioe) {
-                getLogger().error("{} failed to update State Manager, observed maximum values will not be recorded. "
+                logger.error("{} failed to update State Manager, observed maximum values will not be recorded. "
                                 + "Also, any generated SQL statements may be duplicated.",
                         new Object[]{this, ioe});
             }
         } catch (final ProcessException pe) {
+            // Log the cause of the ProcessException if it is available
+            Throwable t = (pe.getCause() == null ? pe : pe.getCause());
+            logger.error("Error during processing: {}", new Object[]{t.getMessage()}, t);
             session.rollback();
             context.yield();
         }
