@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -225,8 +224,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                                 attributes.put(componentKey, componentValue);
                             }
                         }
-                    }
-                    else {
+                    } else {
                         final String fieldValue = HL7_ESCAPING.unescape(field.encode(), HL7_ENCODING);
                         if (!StringUtils.isEmpty(fieldValue)) {
                             attributes.put(fieldKey, fieldValue);
@@ -251,8 +249,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                 for (final Structure structure : group.getAll(name)) {
                     if (group.isGroup(name) && structure instanceof Group) {
                         addSegments((Group) structure, segments);
-                    }
-                    else if (structure instanceof Segment) {
+                    } else if (structure instanceof Segment) {
                         addSegments((Segment) structure, segments);
                     }
                 }
@@ -285,8 +282,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
                 final String fieldName;
                 if (useNames) {
                     fieldName = WordUtils.capitalize(segmentNames[i-1]).replaceAll("\\W+", "");
-                }
-                else {
+                } else {
                     fieldName = String.valueOf(i);
                 }
 
