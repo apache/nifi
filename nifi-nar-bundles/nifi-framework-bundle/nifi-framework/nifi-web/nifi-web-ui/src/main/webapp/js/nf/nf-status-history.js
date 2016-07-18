@@ -229,18 +229,31 @@ nf.StatusHistory = (function () {
                     $('#status-history-dialog').data('status-history', statusHistory);
 
                     // update the chart
-                    updateChart(statusHistory);
+                    updateChart();
                 }
             }
         });
     };
 
+    var getChartMaxHeight = function () {
+        return $('body').height() - $('#status-history-chart-control-container').outerHeight() -
+            $('#status-history-refresh-container').outerHeight() -
+            parseInt($('#status-history-chart-control-container').css('margin-top'), 10) -
+            parseInt($('.dialog-content').css('top')) - parseInt($('.dialog-content').css('bottom'));
+    };
+
+    var getChartMaxWidth = function () {
+        return $('body').width() - $('#status-history-details').innerWidth() -
+            parseInt($('#status-history-dialog').css('left'), 10) -
+            parseInt($('.dialog-content').css('left')) - parseInt($('.dialog-content').css('right'));
+    };
+
     /**
      * Updates the chart with the specified status history and the selected field.
-     *
-     * @param {type} statusHistory
      */
-    var updateChart = function (statusHistory) {
+    var updateChart = function () {
+        var statusHistory = $('#status-history-dialog').data('status-history');
+
         // get the selected descriptor
         var selectedDescriptor = statusHistory.selectedDescriptor;
 
@@ -255,7 +268,7 @@ nf.StatusHistory = (function () {
 
         var margin = {
             top: 15,
-            right: 10,
+            right: 20,
             bottom: 25,
             left: 75
         };
@@ -349,8 +362,18 @@ nf.StatusHistory = (function () {
         }
 
         // calculate the dimensions
-        var width = chartContainer.parent().width() - margin.left - margin.right;
-        var height = chartContainer.height() - margin.top - margin.bottom;
+        var width = chartContainer.parent().outerWidth() - margin.left - margin.right;
+        var height = chartContainer.outerHeight() - margin.top - margin.bottom;
+
+        maxWidth = getChartMaxWidth();
+        if (width > maxWidth) {
+            width = maxWidth;
+        }
+
+        maxHeight = getChartMaxHeight();
+        if (height > maxHeight) {
+            height = maxHeight;
+        }
 
         // define the x axis for the main chart
         var x = d3.time.scale()
@@ -384,9 +407,8 @@ nf.StatusHistory = (function () {
         // build the chart svg
         var chartSvg = d3.select('#status-history-chart-container').append('svg')
             .attr('style', 'pointer-events: none;')
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom);
-
+            .attr('width', chartContainer.parent().width())
+            .attr('height', chartContainer.innerHeight());
         // define a clip the path
         var clipPath = chartSvg.append('defs').append('clipPath')
             .attr('id', 'clip')
@@ -502,7 +524,7 @@ nf.StatusHistory = (function () {
 
         // the container for the main chart control
         var chartControlContainer = $('#status-history-chart-control-container').empty();
-        var controlHeight = chartControlContainer.height() - margin.top - margin.bottom;
+        var controlHeight = chartControlContainer.innerHeight() - margin.top - margin.bottom;
 
         var xControl = d3.time.scale()
             .range([0, width]);
@@ -534,7 +556,7 @@ nf.StatusHistory = (function () {
 
         // build the svg
         var controlChartSvg = d3.select('#status-history-chart-control-container').append('svg')
-            .attr('width', width + margin.left + margin.right)
+            .attr('width', chartContainer.parent().width())
             .attr('height', controlHeight + margin.top + margin.bottom);
 
         // build the control chart
@@ -841,7 +863,7 @@ nf.StatusHistory = (function () {
         // handle resizing
         // ---------------
 
-        var maxWidth, maxHeight, resizeExtent;
+        var maxWidth, maxHeight, resizeExtent, dialog;
         chartContainer.append('<div class="ui-resizable-handle ui-resizable-se"></div>').resizable({
             minWidth: 425,
             minHeight: 150,
@@ -849,73 +871,75 @@ nf.StatusHistory = (function () {
                 'se': '.ui-resizable-se'
             },
             start: function (e, ui) {
-                var helperOffset = ui.helper.offset();
-                var dialogOuter = ((statusHistoryDialog.outerWidth() - statusHistoryDialog.width()) / 2);
-                var dialogContent = statusHistoryDialog.find('.dialog-content');
-                var dialogContentPaddingRight = ((dialogContent.outerWidth() - dialogContent.width()) / 2);
-                var chartOuter = chartContainer.outerWidth() - chartContainer.width();
-
-                // calculate the max width of the component
-                maxWidth = $('body').width() - helperOffset.left - dialogOuter - dialogContentPaddingRight - chartOuter;
-
-                // calculate the max height of the component
-                var dialogContentPaddingBottom = dialogContent.outerHeight() - dialogContent.height() - parseInt(dialogContent.css('padding-top'), 10);
-                maxHeight = $('body').height() - helperOffset.top - dialogOuter - chartOuter - dialogContentPaddingBottom - chartControlContainer.outerHeight(true);
-
                 // record the current extent so it can be reset on stop
                 if (!brush.empty()) {
                     resizeExtent = brush.extent();
                 }
             },
             resize: function (e, ui) {
-
                 // -----------
                 // containment
                 // -----------
+                dialog = $('#status-history-dialog');
+                var nfDialog = {};
+                if (nf.Common.isDefinedAndNotNull(dialog.data('nf-dialog'))) {
+                    nfDialog = dialog.data('nf-dialog');
+                }
+                nfDialog['min-width'] = (dialog.width()/$(window).width())*100 + '%';
+                nfDialog['min-height'] = (dialog.height()/$(window).height())*100 + '%';
+                nfDialog.responsive['fullscreen-width'] = dialog.outerWidth() + 'px';
+                nfDialog.responsive['fullscreen-height'] = dialog.outerHeight() + 'px';
 
+                maxWidth = getChartMaxWidth();
                 if (ui.helper.width() > maxWidth) {
                     ui.helper.width(maxWidth);
+
+                    nfDialog.responsive['fullscreen-width'] = $(window).width() + 'px';
+                    nfDialog['min-width'] = '100%';
                 }
 
+                maxHeight = getChartMaxHeight();
                 if (ui.helper.height() > maxHeight) {
                     ui.helper.height(maxHeight);
+
+                    nfDialog.responsive['fullscreen-height'] = $(window).height() + 'px';
+                    nfDialog['min-height'] = '100%';
                 }
 
-                // -------------
-                // control chart
-                // -------------
+                nfDialog['min-width'] = (parseInt(nfDialog['min-width'], 10) >= 100) ? '100%': nfDialog['min-width'];
+                nfDialog['min-height'] = (parseInt(nfDialog['min-height'], 10) >= 100) ? '100%': nfDialog['min-height'];
 
-                chartControlContainer.width(chartContainer.width());
+                //persist data attribute
+                dialog.data('nfDialog', nfDialog);
 
                 // ----------------------
-                // status history details
+                // status history dialog
                 // ----------------------
 
-                resizeDetailsContainer();
+                dialog.css('min-width', (chartContainer.outerWidth() + $('#status-history-details').outerWidth() + 40));
+                dialog.css('min-height', (chartContainer.outerHeight() +
+                    $('#status-history-refresh-container').outerHeight() + $('#status-history-chart-control-container').outerHeight() +
+                    $('.dialog-buttons').outerHeight() + $('.dialog-header').outerHeight() + 40 + 5));
+
+                dialog.center();
             },
             stop: function () {
-
-                // ----------------------
-                // status history details
-                // ----------------------
-
-                resizeDetailsContainer();
 
                 // ----------
                 // main chart
                 // ----------
 
                 // determine the new width/height
-                width = chartContainer.width() - margin.left - margin.right;
-                height = chartContainer.height() - margin.top - margin.bottom;
+                width = chartContainer.outerWidth() - margin.left - margin.right;
+                height = chartContainer.outerHeight() - margin.top - margin.bottom;
 
                 // update the range
                 x.range([0, width]);
                 y.range([height, 0]);
 
                 // update the size of the chart
-                chartSvg.attr('width', width + margin.left + margin.right)
-                    .attr('height', height + margin.top + margin.bottom);
+                chartSvg.attr('width', chartContainer.parent().width())
+                    .attr('height', chartContainer.innerHeight());
 
                 // update the size of the clipper
                 clipPath.attr('width', width)
@@ -936,7 +960,7 @@ nf.StatusHistory = (function () {
                 yControl.range([controlHeight, 0]);
 
                 // update the size of the control chart
-                controlChartSvg.attr('width', width + margin.left + margin.right)
+                controlChartSvg.attr('width', chartContainer.parent().width())
                     .attr('height', controlHeight + margin.top + margin.bottom);
 
                 // update the chart lines
@@ -961,11 +985,15 @@ nf.StatusHistory = (function () {
 
                 // reset the resize extent
                 resizeExtent = null;
+
+                // resize chart container
+                chartContainer.width(Math.round( chartContainer.parent().width()));
+                chartControlContainer.width(Math.round( chartContainer.parent().width()));
+
+                // toggle scrollable style
+                nf.Common.toggleScrollable(dialog.find('.dialog-content').get(0));
             }
         });
-
-        // set the initial size of the details container
-        resizeDetailsContainer();
     };
 
     /**
@@ -1008,17 +1036,6 @@ nf.StatusHistory = (function () {
             });
         });
         return totalValue / snapshotCount;
-    };
-
-    /**
-     * Updates the size of the details container
-     */
-    var resizeDetailsContainer = function () {
-        var detailsContainer = $('#status-history-details');
-        var detailsVerticalOffset = detailsContainer.outerWidth() - detailsContainer.width();
-
-        // update the height but account for the offset (border/padding/etc)
-        $('#status-history-details').height($('#status-history-container').height() - detailsVerticalOffset);
     };
 
     /**
@@ -1107,9 +1124,6 @@ nf.StatusHistory = (function () {
                         instances = null;
                     }
                 }
-            }).draggable({
-                cancel: '#status-history-chart-container, #status-history-chart-control-container, div.status-history-detail, div.button, div.combo, div.summary-refresh',
-                containment: 'parent'
             });
         },
 
