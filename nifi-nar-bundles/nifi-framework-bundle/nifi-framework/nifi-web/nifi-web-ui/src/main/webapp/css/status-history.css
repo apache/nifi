@@ -16,10 +16,6 @@
  */
 /* status history dialog */
 
-#status-history-dialog {
-    cursor: move;
-}
-
 #status-history-containment {
     position: absolute;
     left: 0;
@@ -30,8 +26,10 @@
 }
 
 #status-history-refresh-container {
-    width: 100%;
-    height: 32px;
+    position: absolute;
+    top: 0px;
+    left: 40%;
+    right: 0px;
 }
 
 #status-history-loading-container {
@@ -58,17 +56,18 @@
 
 #status-history-metric-combo {
     float: right;
-    width: 175px;
 }
 
 #status-history-container {
-    float: left;
+    position: absolute;
+    top: 32px;
+    left: 40%;
+    right: 0px;
+    bottom: 0px;
 }
 
 #status-history-chart-container {
-    width: 100%;
-    height: 325px;
-    border: 1px solid #aaa;
+    height: 265px;
     background-color: #fff;
     overflow: hidden;
     cursor: default;
@@ -81,8 +80,11 @@
 }
 
 #status-history-details {
-    float: left;
-    overflow: auto;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 60%;
+    bottom: 0px;
 }
 
 div.status-history-detail {
@@ -115,12 +117,10 @@ div.detail-item-value {
 
 #status-history-chart-control-container {
     height: 125px;
-    border: 1px solid #aaa;
     background-color: #fff;
     margin-top: 5px;
     cursor: default;
     overflow: hidden;
-    width: 100%;
 }
 
 div.legend-entry {
