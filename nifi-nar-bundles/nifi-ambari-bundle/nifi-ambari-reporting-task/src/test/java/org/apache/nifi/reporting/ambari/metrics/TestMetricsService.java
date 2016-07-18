@@ -71,7 +71,8 @@ public class TestMetricsService {
         Assert.assertTrue(metrics.containsKey(MetricNames.BYTES_READ));
         Assert.assertTrue(metrics.containsKey(MetricNames.BYTES_WRITTEN));
         Assert.assertTrue(metrics.containsKey(MetricNames.ACTIVE_THREADS));
-        Assert.assertTrue(metrics.containsKey(MetricNames.TOTAL_TASK_DURATION));
+        Assert.assertTrue(metrics.containsKey(MetricNames.TOTAL_TASK_DURATION_SECONDS));
+        Assert.assertTrue(metrics.containsKey(MetricNames.TOTAL_TASK_DURATION_NANOS));
     }
 
     @Test

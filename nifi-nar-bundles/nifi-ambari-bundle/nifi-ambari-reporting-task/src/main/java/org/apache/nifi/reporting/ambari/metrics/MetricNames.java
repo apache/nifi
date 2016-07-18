@@ -31,7 +31,8 @@ public interface MetricNames {
     String BYTES_READ = "BytesReadLast5Minutes";
     String BYTES_WRITTEN = "BytesWrittenLast5Minutes";
     String ACTIVE_THREADS = "ActiveThreads";
-    String TOTAL_TASK_DURATION = "TotalTaskDurationSeconds";
+    String TOTAL_TASK_DURATION_SECONDS = "TotalTaskDurationSeconds";
+    String TOTAL_TASK_DURATION_NANOS = "TotalTaskDurationNanoSeconds";
 
     // JVM Metrics
     String JVM_UPTIME = "jvm.uptime";
