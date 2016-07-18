@@ -89,7 +89,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
         try {
             // copy the template which pre-processes all ids
             TemplateDTO templateDetails = template.getDetails();
-            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed);
+            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed, false);
 
             // calculate scaling factors based on the template encoding version
             // attempt to parse the encoding version

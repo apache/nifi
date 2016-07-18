@@ -1402,7 +1402,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setName(name);
         templateDTO.setDescription(description);
         templateDTO.setTimestamp(new Date());
-        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true));
+        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true, true));
         templateDTO.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
 
         // set the id based on the specified seed

@@ -205,7 +205,7 @@ public abstract class ApplicationResource {
         if (seed.isPresent()) {
             try {
                 UUID seedId = UUID.fromString(seed.get());
-                uuid = TypeOneUUIDGenerator.generateId(seedId.getMostSignificantBits(), Math.abs(seed.get().hashCode()));
+                uuid = new UUID(seedId.getMostSignificantBits(), Math.abs(seed.get().hashCode()));
             } catch (Exception e) {
                 logger.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
                 uuid = UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8));
