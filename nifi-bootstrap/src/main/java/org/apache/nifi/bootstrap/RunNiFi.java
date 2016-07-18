@@ -54,6 +54,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
@@ -95,7 +96,10 @@ public class RunNiFi {
     public static final String NIFI_PID_DIR_PROP = "org.apache.nifi.bootstrap.config.pid.dir";
 
     public static final String NIFI_PID_FILE_NAME = "nifi.pid";
+    public static final String NIFI_STATUS_FILE_NAME = "nifi.status";
     public static final String NIFI_LOCK_FILE_NAME = "nifi.lock";
+
+    public static final String PID_KEY = "pid";
 
     public static final int STARTUP_WAIT_SECONDS = 60;
 
@@ -349,8 +353,12 @@ public class RunNiFi {
         return statusFile;
     }
 
-    File getStatusFile(final Logger logger) throws IOException{
+    File getPidFile(final Logger logger) throws IOException{
         return getBootstrapFile(logger,NIFI_PID_DIR_PROP,DEFAULT_PID_DIR,NIFI_PID_FILE_NAME);
+    }
+
+    File getStatusFile(final Logger logger) throws IOException{
+        return getBootstrapFile(logger,NIFI_PID_DIR_PROP,DEFAULT_PID_DIR,NIFI_STATUS_FILE_NAME);
     }
 
     File getLockFile(final Logger logger) throws IOException{
@@ -381,6 +389,11 @@ public class RunNiFi {
     }
 
     private synchronized void saveProperties(final Properties nifiProps, final Logger logger) throws IOException {
+        final String pid = nifiProps.getProperty(PID_KEY);
+        if (!StringUtils.isBlank(pid)) {
+            writePidFile(pid, logger);
+        }
+
         final File statusFile = getStatusFile(logger);
         if (statusFile.exists() && !statusFile.delete()) {
             logger.warn("Failed to delete {}", statusFile);
@@ -407,6 +420,35 @@ public class RunNiFi {
         }
 
         logger.debug("Saved Properties {} to {}", new Object[]{nifiProps, statusFile});
+    }
+
+    private synchronized void writePidFile(final String pid, final Logger logger) throws IOException {
+        final File pidFile = getPidFile(logger);
+        if (pidFile.exists() && !pidFile.delete()) {
+            logger.warn("Failed to delete {}", pidFile);
+        }
+
+        if (!pidFile.createNewFile()) {
+            throw new IOException("Failed to create file " + pidFile);
+        }
+
+        try {
+            final Set<PosixFilePermission> perms = new HashSet<>();
+            perms.add(PosixFilePermission.OWNER_READ);
+            perms.add(PosixFilePermission.OWNER_WRITE);
+            Files.setPosixFilePermissions(pidFile.toPath(), perms);
+        } catch (final Exception e) {
+            logger.warn("Failed to set permissions so that only the owner can read pid file {}; "
+                    + "this may allows others to have access to the key needed to communicate with NiFi. "
+                    + "Permissions should be changed so that only the owner can read this file", pidFile);
+        }
+
+        try (final FileOutputStream fos = new FileOutputStream(pidFile)) {
+            fos.write(pid.getBytes(StandardCharsets.UTF_8));
+            fos.getFD().sync();
+        }
+
+        logger.debug("Saved Pid {} to {}", new Object[]{pid, pidFile});
     }
 
     private boolean isPingSuccessful(final int port, final String secretKey, final Logger logger) {
@@ -449,7 +491,7 @@ public class RunNiFi {
             return port;
         }
 
-        final String pid = props.getProperty("pid");
+        final String pid = props.getProperty(PID_KEY);
         logger.debug("PID in status file is {}", pid);
         if (pid != null) {
             final boolean procRunning = isProcessRunning(pid, logger);
@@ -512,7 +554,7 @@ public class RunNiFi {
         }
 
         final String portValue = props.getProperty("port");
-        final String pid = props.getProperty("pid");
+        final String pid = props.getProperty(PID_KEY);
         final String secretKey = props.getProperty("secret.key");
 
         if (portValue == null && pid == null) {
@@ -696,8 +738,9 @@ public class RunNiFi {
 
         final Properties nifiProps = loadProperties(logger);
         final String secretKey = nifiProps.getProperty("secret.key");
-        final String pid = nifiProps.getProperty("pid");
+        final String pid = nifiProps.getProperty(PID_KEY);
         final File statusFile = getStatusFile(logger);
+        final File pidFile = getPidFile(logger);
 
         try (final Socket socket = new Socket()) {
             logger.debug("Connecting to NiFi instance");
@@ -766,6 +809,11 @@ public class RunNiFi {
                     if (statusFile.exists() && !statusFile.delete()) {
                         logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
                     }
+
+                    if (pidFile.exists() && !pidFile.delete()) {
+                        logger.error("Failed to delete pid file {}; this file should be cleaned up manually", pidFile);
+                    }
+
                     logger.info("NiFi has finished shutting down.");
                 }
             } else {
@@ -1008,7 +1056,7 @@ public class RunNiFi {
         if (pid != null) {
             nifiPid = pid;
             final Properties nifiProps = new Properties();
-            nifiProps.setProperty("pid", String.valueOf(nifiPid));
+            nifiProps.setProperty(PID_KEY, String.valueOf(nifiPid));
             saveProperties(nifiProps, cmdLogger);
         }
 
@@ -1070,7 +1118,7 @@ public class RunNiFi {
                     if (pid != null) {
                         nifiPid = pid;
                         final Properties nifiProps = new Properties();
-                        nifiProps.setProperty("pid", String.valueOf(nifiPid));
+                        nifiProps.setProperty(PID_KEY, String.valueOf(nifiPid));
                         saveProperties(nifiProps, defaultLogger);
                     }
 
@@ -1223,7 +1271,7 @@ public class RunNiFi {
 
         final Properties nifiProps = new Properties();
         if (nifiPid != -1) {
-            nifiProps.setProperty("pid", String.valueOf(nifiPid));
+            nifiProps.setProperty(PID_KEY, String.valueOf(nifiPid));
         }
         nifiProps.setProperty("port", String.valueOf(ccPort));
         nifiProps.setProperty("secret.key", secretKey);
