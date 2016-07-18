@@ -213,29 +213,41 @@ nf.PolicyManagement = (function () {
         // policy type listing
         $('#policy-type-list').combo({
             options: [{
-                text: 'access the user interface',
-                value: 'flow'
+                text: 'view the user interface',
+                value: 'flow',
+                description: 'Allows users to view the user interface'
             }, {
                 text: 'access the controller',
-                value: 'controller'
+                value: 'controller',
+                description: 'Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster'
             }, {
                 text: 'query provenance',
-                value: 'provenance'
+                value: 'provenance',
+                description: 'Allows users to submit a Provenance Search and request Event Lineage'
             }, {
                 text: 'access all policies',
-                value: 'policies'
+                value: 'policies',
+                description: 'Allows users to view/modify the policies for all components'
+            }, {
+                text: 'access users/user groups',
+                value: 'tenants',
+                description: 'Allows users to view/modify the users and user groups'
             }, {
                 text: 'retrieve site-to-site details',
-                value: 'site-to-site'
+                value: 'site-to-site',
+                description: 'Allows other NiFi instances to retrieve Site-To-Site details of this NiFi'
             }, {
                 text: 'view system diagnostics',
-                value: 'system'
+                value: 'system',
+                description: 'Allows users to view System Diagnostics'
             }, {
                 text: 'proxy user requests',
-                value: 'proxy'
+                value: 'proxy',
+                description: 'Allows proxy machines to send requests on the behalf of others'
             }, {
                 text: 'access counters',
-                value: 'counters'
+                value: 'counters',
+                description: 'Allows users to view/modify Counters'
             }],
             select: function (option) {
                 if (initialized) {
@@ -243,7 +255,7 @@ nf.PolicyManagement = (function () {
                     $('#selected-policy-type').text(option.value);
 
                     // if the option is for a specific component
-                    if (option.value === 'controller' || option.value === 'counters' || option.value === 'policies') {
+                    if (option.value === 'controller' || option.value === 'counters' || option.value === 'policies' || option.value === 'tenants') {
                         // update the policy target and let it relaod the policy
                         $('#controller-policy-target').combo('setSelectedOption', {
                             'value': 'read'
@@ -289,26 +301,33 @@ nf.PolicyManagement = (function () {
         $('#component-policy-target').combo({
             options: [{
                 text: 'view the component',
-                value: 'read-component'
+                value: 'read-component',
+                description: 'Allows users to view component configuration details'
             }, {
                 text: 'modify the component',
-                value: 'write-component'
+                value: 'write-component',
+                description: 'Allows users to modify component configuration details'
             }, {
                 text: 'view the provenance events',
-                value: 'read-provenance-events'
+                value: 'read-provenance-events',
+                description: 'Allows users to access provenance events and content for this component'
             }, {
                 text: 'view the policies',
-                value: 'read-policies'
+                value: 'read-policies',
+                description: 'Allows users to view the list of users who can view/modify this component'
             }, {
                 text: 'modify the policies',
-                value: 'write-policies'
+                value: 'write-policies',
+                description: 'Allows users to modify the list of users who can view/modify this component'
             }, {
                 text: 'receive data via site-to-site',
                 value: 'write-receive-data',
+                description: 'Allows this port to receive data from these NiFi instances',
                 disabled: true
-            },  {
+            }, {
                 text: 'send data via site-to-site',
                 value: 'write-send-data',
+                description: 'Allows this port to send data to these NiFi instances',
                 disabled: true
             }],
             select: function (option) {
@@ -618,9 +637,6 @@ nf.PolicyManagement = (function () {
         
         // allow removal and modification as the policy is not inherited
         $('#new-policy-user-button').prop('disabled', false);
-        
-        // update the refresh timestamp
-        $('#policy-last-refreshed').text(policyEntity.generated);
 
         // see if the policy is for this resource
         if (resourceAndAction.resource === policy.resource) {
@@ -651,33 +667,54 @@ nf.PolicyManagement = (function () {
                 url: '../nifi-api/policies/' + resourceAndAction.action + resourceAndAction.resource,
                 dataType: 'json'
             }).done(function (policyEntity) {
-                var policy = policyEntity.component;
+                // return OK so we either have access to the policy or we don't have access to an inherited policy
 
-                $('#policy-message').text(policy.resource);
+                // update the refresh timestamp
+                $('#policy-last-refreshed').text(policyEntity.generated);
 
-                // populate the policy details
-                populatePolicy(policyEntity);
+                // ensure appropriate actions for the loaded policy
+                if (policyEntity.permissions.canRead === true && policyEntity.permissions.canWrite === true) {
+                    var policy = policyEntity.component;
+
+                    $('#policy-message').text(policy.resource);
+
+                    // populate the policy details
+                    populatePolicy(policyEntity);
+                } else {
+                    // reset the policy
+                    resetPolicy();
+
+                    // show an appropriate message
+                    $('#policy-message').text('No policy for the specified resource and not authorized to access the inherited policy. ');
+                    $('#new-policy-message').hide();
+                    $('#override-policy-message').show();
+                }
 
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 404) {
-                    // show an appropriate messate
-                    $('#policy-message').text('No policy for the specified resource. ');
+                    // reset the policy
+                    resetPolicy();
+
+                    // show an appropriate message
+                    $('#policy-message').text('No policy for the specified resource.');
                     $('#new-policy-message').show();
                     $('#override-policy-message').hide();
 
-                    // reset the current policy
-                    $('#policy-table').removeData('policy');
+                    deferred.resolve();
+                } else if (xhr.status === 403) {
+                    // reset the policy
+                    resetPolicy();
 
-                    // require non inherited policy for removal and modification
-                    $('#new-policy-user-button').prop('disabled', true);
-                    $('#delete-policy-button').prop('disabled', true);
-
-                    // populate the table with no users
-                    populateTable([], []);
+                    // show an appropriate message
+                    $('#policy-message').text('Not authorized to access the policy for the specified resource.');
+                    $('#new-policy-message').hide();
+                    $('#override-policy-message').hide();
 
                     deferred.resolve();
                 } else {
+                    resetPolicy();
+
                     deferred.reject();
                     nf.Common.handleAjaxError(xhr, status, error);
                 }
@@ -754,7 +791,23 @@ nf.PolicyManagement = (function () {
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (policyEntity) {
-                populatePolicy(policyEntity);
+                // ensure appropriate actions for the loaded policy
+                if (policyEntity.permissions.canRead === true && policyEntity.permissions.canWrite === true) {
+                    var policy = policyEntity.component;
+
+                    $('#policy-message').text(policy.resource);
+
+                    // populate the policy details
+                    populatePolicy(policyEntity);
+                } else {
+                    // reset the policy
+                    resetPolicy();
+
+                    // show an appropriate message
+                    $('#policy-message').text('No policy for the specified resource and not authorized to access the inherited policy. ');
+                    $('#new-policy-message').hide();
+                    $('#override-policy-message').show();
+                }
             }).fail(nf.Common.handleAjaxError);
         } else {
             nf.Dialog.showOkDialog({
@@ -769,7 +822,7 @@ nf.PolicyManagement = (function () {
      */
     var showPolicy = function () {
         // show the configuration dialog
-        nf.Shell.showContent('#policy-management').done(function () {
+        nf.Shell.showContent('#policy-management').always(function () {
             reset();
         });
 
@@ -787,10 +840,27 @@ nf.PolicyManagement = (function () {
     };
 
     /**
+     * Reset the policy.
+     */
+    var resetPolicy = function () {
+        resetPolicyMessage();
+
+        // reset button state
+        $('#delete-policy-button').prop('disabled', true);
+        $('#new-policy-user-button').prop('disabled', true);
+
+        // reset the current policy
+        $('#policy-table').removeData('policy');
+
+        // populate the table with no users
+        populateTable([], []);
+    }
+
+    /**
      * Resets the policy management dialog.
      */
     var reset = function () {
-        resetPolicyMessage();
+        resetPolicy();
 
         // clear the selected policy details
         $('#selected-policy-type').text('');
@@ -800,10 +870,6 @@ nf.PolicyManagement = (function () {
         
         // clear the selected component details
         $('div.policy-selected-component-container').hide();
-
-        // reset button state
-        $('#delete-policy-button').prop('disabled', false);
-        $('#new-policy-user-button').prop('disabled', false);
     };
 
     /**
@@ -885,7 +951,7 @@ nf.PolicyManagement = (function () {
             $('#selected-policy-component-id').text(d.id);
             populateComponentResource('controller-services');
 
-            return loadPolicy().done(showPolicy);
+            return loadPolicy().always(showPolicy);
         },
 
         /**
@@ -913,7 +979,7 @@ nf.PolicyManagement = (function () {
             $('#selected-policy-component-id').text(d.id);
             populateComponentResource('reporting-tasks');
 
-            return loadPolicy().done(showPolicy);
+            return loadPolicy().always(showPolicy);
         },
 
         /**
@@ -941,7 +1007,7 @@ nf.PolicyManagement = (function () {
             $('#selected-policy-component-id').text(d.id);
             populateComponentResource('templates');
 
-            return loadPolicy().done(showPolicy);
+            return loadPolicy().always(showPolicy);
         },
 
         /**
@@ -995,7 +1061,7 @@ nf.PolicyManagement = (function () {
             // populate the initial resource
             populateComponentResource(resource);
 
-            return loadPolicy().done(showPolicy);
+            return loadPolicy().always(showPolicy);
         },
 
         /**
@@ -1021,7 +1087,7 @@ nf.PolicyManagement = (function () {
                 $('#selected-policy-action').text('read');
             }
 
-            return loadPolicy().done(showPolicy);
-        },
+            return loadPolicy().always(showPolicy);
+        }
     };
 }());

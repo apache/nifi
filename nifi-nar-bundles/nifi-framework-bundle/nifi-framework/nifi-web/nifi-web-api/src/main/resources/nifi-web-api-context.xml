@@ -491,6 +491,21 @@
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
+    <bean id="policyAuditor" class="org.apache.nifi.audit.AccessPolicyAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="userAuditor" class="org.apache.nifi.audit.UserAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
+    <bean id="userGroupAuditor" class="org.apache.nifi.audit.UserGroupAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
     
     <!-- NiFi locking -->
     <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
