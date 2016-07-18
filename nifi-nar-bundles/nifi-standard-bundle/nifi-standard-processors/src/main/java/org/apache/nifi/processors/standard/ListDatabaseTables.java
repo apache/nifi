@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
@@ -37,6 +36,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -52,6 +52,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -61,7 +62,9 @@ import java.util.stream.Stream;
 @TriggerSerially
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"sql", "list", "jdbc", "table", "database"})
-@CapabilityDescription("Generates a set of flow files, each containing attributes corresponding to metadata about a table from a database connection.")
+@CapabilityDescription("Generates a set of flow files, each containing attributes corresponding to metadata about a table from a database connection. Once "
+        + "metadata about a table has been fetched, it will not be fetched again until the Refresh Interval (if set) has elapsed, or until state has been "
+        + "manually cleared.")
 @WritesAttributes({
         @WritesAttribute(attribute = "db.table.name", description = "Contains the name of a database table from the connection"),
         @WritesAttribute(attribute = "db.table.catalog", description = "Contains the name of the catalog to which the table belongs (may be null)"),
@@ -73,10 +76,10 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = "db.table.remarks", description = "Contains the name of a database table from the connection"),
         @WritesAttribute(attribute = "db.table.count", description = "Contains the number of rows in the table")
 })
-@Stateful(scopes = {Scope.LOCAL}, description = "After performing a listing of tables, the timestamp of the query is stored. "
-        + "This allows the Processor to not re-list tables the next time that the Processor is run. Changing any of the processor properties will "
-        + "indicate that the processor should reset state and thus re-list the tables using the new configuration. This processor is meant to be "
-        + "run on the primary node only.")
+@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of tables, the timestamp of the query is stored. "
+        + "This allows the Processor to not re-list tables the next time that the Processor is run. Specifying the refresh interval in the processor properties will "
+        + "indicate that when the processor detects the interval has elapsed, the state will be reset and tables will be re-listed as a result. "
+        + "This processor is meant to be run on the primary node only.")
 public class ListDatabaseTables extends AbstractProcessor {
 
     // Attribute names
@@ -154,10 +157,20 @@ public class ListDatabaseTables extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor REFRESH_INTERVAL = new PropertyDescriptor.Builder()
+            .name("list-db-refresh-interval")
+            .displayName("Refresh Interval")
+            .description("The amount of time to elapse before resetting the processor state, thereby causing all current tables to be listed. "
+                    + "During this interval, the processor may continue to run, but tables that have already been listed will not be re-listed. However new/added "
+                    + "tables will be listed as the processor runs. A value of zero means the state will never be automatically reset, the user must "
+                    + "Clear State manually.")
+            .required(true)
+            .defaultValue("0 sec")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     private static final List<PropertyDescriptor> propertyDescriptors;
     private static final Set<Relationship> relationships;
-
-    private boolean resetState = false;
 
     /*
      * Will ensure that the list of property descriptors is build only once.
@@ -171,6 +184,7 @@ public class ListDatabaseTables extends AbstractProcessor {
         _propertyDescriptors.add(TABLE_NAME_PATTERN);
         _propertyDescriptors.add(TABLE_TYPES);
         _propertyDescriptors.add(INCLUDE_COUNT);
+        _propertyDescriptors.add(REFRESH_INTERVAL);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -188,18 +202,6 @@ public class ListDatabaseTables extends AbstractProcessor {
         return relationships;
     }
 
-    @OnScheduled
-    public void setup(ProcessContext context) {
-        try {
-            if (resetState) {
-                context.getStateManager().clear(Scope.LOCAL);
-                resetState = false;
-            }
-        } catch (IOException ioe) {
-            throw new ProcessException(ioe);
-        }
-    }
-
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
@@ -211,15 +213,35 @@ public class ListDatabaseTables extends AbstractProcessor {
                 ? context.getProperty(TABLE_TYPES).getValue().split("\\s*,\\s*")
                 : null;
         final boolean includeCount = context.getProperty(INCLUDE_COUNT).asBoolean();
+        final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
         final Map<String, String> stateMapProperties;
         try {
-            stateMap = stateManager.getState(Scope.LOCAL);
+            stateMap = stateManager.getState(Scope.CLUSTER);
             stateMapProperties = new HashMap<>(stateMap.toMap());
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
+        }
+
+        try {
+            // Refresh state if the interval has elapsed
+            long lastRefreshed = -1;
+            final long currentTime = System.currentTimeMillis();
+            String lastTimestamp = stateMapProperties.get(this.getIdentifier());
+            if (!StringUtils.isEmpty(lastTimestamp)) {
+                lastRefreshed = Long.parseLong(lastTimestamp);
+            }
+            if (lastRefreshed > 0 && refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval)) {
+                stateManager.clear(Scope.CLUSTER);
+                stateMapProperties.clear();
+            }
+        } catch (final NumberFormatException | IOException ioe) {
+            getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
+                    + "query until this is accomplished.", ioe);
+            context.yield();
+            return;
         }
 
         try (final Connection con = dbcpService.getConnection()) {
@@ -238,7 +260,7 @@ public class ListDatabaseTables extends AbstractProcessor {
                         .filter(segment -> !StringUtils.isEmpty(segment))
                         .collect(Collectors.joining("."));
 
-                String fqTableName = stateMap.get(fqn);
+                String fqTableName = stateMapProperties.get(fqn);
                 if (fqTableName == null) {
                     FlowFile flowFile = session.create();
                     logger.info("Found {}: {}", new Object[]{tableType, fqn});
@@ -281,24 +303,12 @@ public class ListDatabaseTables extends AbstractProcessor {
                     stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
                 }
             }
-            stateManager.replace(stateMap, stateMapProperties, Scope.LOCAL);
+            // Update the last time the processor finished successfully
+            stateMapProperties.put(this.getIdentifier(), Long.toString(System.currentTimeMillis()));
+            stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
 
         } catch (final SQLException | IOException e) {
             throw new ProcessException(e);
-        }
-    }
-
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        super.onPropertyModified(descriptor, oldValue, newValue);
-        // If any of the properties that define the retrieved list have changed, then reset the state
-        if (DBCP_SERVICE.equals(descriptor)
-                || CATALOG.equals(descriptor)
-                || SCHEMA_PATTERN.equals(descriptor)
-                || TABLE_NAME_PATTERN.equals(descriptor)
-                || TABLE_TYPES.equals(descriptor)
-                || INCLUDE_COUNT.equals(descriptor)) {
-            resetState = true;
         }
     }
 }

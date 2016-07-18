@@ -144,10 +144,46 @@ public class TestListDatabaseTables {
 
     }
 
+    @Test
+    public void testListTablesAfterRefresh() throws Exception {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_TABLE1");
+            stmt.execute("drop table TEST_TABLE2");
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        stmt.close();
+
+        runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
+        runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "100 millis");
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
+        assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        assertEquals("0", results.get(1).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        runner.clearTransferState();
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 0);
+
+        // Now wait longer than 100 millis and assert the refresh has happened (the two tables are re-listed)
+        Thread.sleep(200);
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
+    }
+
     /**
      * Simple implementation only for ListDatabaseTables processor testing.
      */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {
