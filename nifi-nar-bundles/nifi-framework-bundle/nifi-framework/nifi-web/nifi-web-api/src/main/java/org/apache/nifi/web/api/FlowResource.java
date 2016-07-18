@@ -30,7 +30,6 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -50,8 +49,8 @@ import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
-import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -235,30 +234,6 @@ public class FlowResource extends ApplicationResource {
             final String message = StringUtils.isNotBlank(result.getExplanation()) ? result.getExplanation() : "Access is denied";
             throw new AccessDeniedException(message);
         }
-    }
-
-    private boolean isAuthorized(final RequestAction action, final Resource resource) {
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-
-        final Map<String,String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(resource)
-                .identity(user.getIdentity())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(false)
-                .action(action)
-                .userContext(userContext)
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        return Result.Approved.equals(result.getResult());
     }
 
     // ----
@@ -2146,9 +2121,7 @@ public class FlowResource extends ApplicationResource {
             }
         }
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
+        // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
         // create a history query
         final HistoryQueryDTO query = new HistoryQueryDTO();
@@ -2231,9 +2204,7 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("The action id must be specified.");
         }
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
+        // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
         // get the specified action
         final ActionDTO action = serviceFacade.getAction(id.getInteger());
@@ -2284,9 +2255,7 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.GET);
-        }
+        // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
         // create the response entity
         final ComponentHistoryEntity entity = new ComponentHistoryEntity();

@@ -646,9 +646,7 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("The end date must be specified.");
         }
 
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.DELETE);
-        }
+        // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
         // handle expects request (usually from the cluster manager)
         final boolean validationPhase = isValidationPhase(httpServletRequest);

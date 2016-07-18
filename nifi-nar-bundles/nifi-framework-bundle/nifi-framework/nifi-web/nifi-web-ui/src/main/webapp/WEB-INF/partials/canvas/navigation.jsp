@@ -102,7 +102,7 @@
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-policy" class="action-button" title="Access Policies">
                         <button ng-click="appCtrl.nf.Actions['managePolicies'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="appCtrl.nf.CanvasUtils.getSelection().size() > 1">
+                                ng-disabled="!(appCtrl.nf.CanvasUtils.getSelection().size() <= 1 && appCtrl.nf.Common.canAccessTenants())">
                             <div class="graph-control-action-icon fa fa-key"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>

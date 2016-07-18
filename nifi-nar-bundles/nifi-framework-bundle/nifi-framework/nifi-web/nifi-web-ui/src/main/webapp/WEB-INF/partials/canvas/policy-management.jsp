@@ -28,7 +28,7 @@
         </div>
         <div id="global-policy-controls" class="hidden policy-controls">
             <div id="policy-type-list"></div>
-            <div id="controller-policy-target"></div>
+            <div id="controller-policy-target" class="hidden"></div>
             <div class="clear"></div>
         </div>
         <div id="component-policy-controls" class="hidden policy-controls">

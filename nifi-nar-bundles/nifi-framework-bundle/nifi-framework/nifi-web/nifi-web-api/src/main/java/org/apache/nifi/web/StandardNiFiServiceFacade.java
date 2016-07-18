@@ -16,28 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
@@ -215,7 +194,26 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -977,6 +975,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
                 logger.debug("Deletion of component {} was successful", authorizable);
+
+                try {
+                    // since the component is being deleted, also delete any relevant access policies
+                    final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(RequestAction.READ, authorizable);
+                    if (authorizable.getResource().getIdentifier().equals(readPolicy.getResource())) {
+                        accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
+                    }
+                    final AccessPolicy writePolicy = accessPolicyDAO.getAccessPolicy(RequestAction.WRITE, authorizable);
+                    if (authorizable.getResource().getIdentifier().equals(writePolicy.getResource())) {
+                        accessPolicyDAO.deleteAccessPolicy(writePolicy.getIdentifier());
+                    }
+                } catch (final Exception e) {
+                    logger.warn(String.format("Unable to remove access policy for %s after component removal.", authorizable.getResource().getIdentifier()), e);
+                }
 
                 return dto;
             }
@@ -2649,6 +2661,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     break;
                 case Connection:
                     authorizable = authorizableLookup.getConnection(sourceId);
+                    break;
+                case AccessPolicy:
+                    authorizable = authorizableLookup.getAccessPolicyById(sourceId);
+                    break;
+                case User:
+                case UserGroup:
+                    authorizable = authorizableLookup.getTenant();
                     break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());
