@@ -271,7 +271,7 @@ run() {
     if [ "$1" = "start" ]; then
         (eval $RUN_NIFI_CMD $@ &)
     else
-        (eval $RUN_NIFI_CMD $@)
+        (eval $RUN_NIFI_CMD $@ "| tee "$LSB_NIFI_STATUS_TEMPFILE)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
