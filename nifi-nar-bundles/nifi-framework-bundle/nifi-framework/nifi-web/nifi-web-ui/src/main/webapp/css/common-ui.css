@@ -1,0 +1,495 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 300;
+    src: local('Roboto Light'),
+    local('Roboto-Light'),
+    url('../fonts/Roboto/Roboto-Light.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: 300;
+    src: local('Roboto LightItalic'),
+    local('Roboto-LightItalic'),
+    url('../fonts/Roboto/Roboto-LightItalic.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Roboto Regular'),
+    local('Roboto-Regular'),
+    url('../fonts/Roboto/Roboto-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    src: local('Roboto Medium'),
+    local('Roboto-Medium'),
+    url('../fonts/Roboto/Roboto-Medium.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: bold;
+    src: local('Roboto Bold'),
+    local('Roboto-Bold'),
+    url('../fonts/Roboto/Roboto-Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    font-style: italic;
+    font-weight: normal;
+    src: local('Roboto Italic'),
+    local('Roboto-Italic'),
+    url('../fonts/Roboto/Roboto-Italic.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: normal;
+    src: local('RobotoSlab Regular'),
+    local('RobotoSlab-Regular'),
+    url('../fonts/Roboto_Slab/RobotoSlab-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    src: local('RobotoSlab Bold'),
+    local('RobotoSlab-Bold'),
+    url('../fonts/Roboto_Slab/RobotoSlab-Bold.ttf') format('truetype');
+}
+
+/*remove margin from font awesome*/
+i[class^="fa-"]:before, i[class*=" fa-"]:before {
+    margin: -1px;
+}
+
+/*remove margin from flowfont*/
+i[class^="icon-"]:before, i[class*=" icon-"]:before {
+    margin: -2px;
+}
+
+body {
+    display: block;
+    font-family: Roboto, sans-serif;
+    font-size: 62.5%;
+    overflow: hidden;
+    color: #262626;
+}
+
+.value-color {
+    color: #775351;
+}
+
+ul.links li {
+    float: left;
+    display: block;
+    margin-left: 10px;
+    padding: 4px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: normal;
+    text-decoration: none;
+}
+
+ul.links span.header-link-over {
+    color: #264c58;
+    text-decoration: underline;
+}
+
+/*
+    General Styles
+*/
+
+.unselectable {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.clear {
+    clear: both;
+}
+
+.pointer {
+    cursor: pointer !important;
+}
+
+.hidden {
+    display: none;
+}
+
+.blank, .unset, .sensitive {
+    font-style: italic;
+    font-weight: normal;
+    color: #aaa;
+}
+
+.required {
+    font-weight: bold !important;
+}
+
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ellipsis.multiline {
+    white-space: normal;
+}
+
+input.filter-list {
+    color: #888;
+}
+
+.table-cell {
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: normal;
+    float: left;
+    margin-top: 4px;
+}
+
+label {
+    font-family: 'Roboto Slab', serif;
+    font-size: 12px;
+    color: #262626; /*base-font-color*/
+    letter-spacing: 0.05rem;
+    display: block;
+    margin-bottom: 2px;
+}
+
+input::placeholder {
+    color: #728e9b; /*base-color*/
+}
+
+input[type=text], input[type=password], textarea {
+    background-color: #eaeef0;
+    border: 1px solid #eaeef0;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    padding: 0px 0px 0px 10px;
+    resize: none;
+    height: 32px;
+    width: 100%;
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box;
+    color: #262626;
+}
+
+input:focus, textarea:focus {
+    background-color: #fff;
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    outline: none;
+}
+
+textarea {
+    overflow: hidden;
+    padding: 10px 10px;
+    resize: vertical;
+    color: #262626;
+    font-size: 13px !important;
+}
+
+ul.property-info {
+    list-style-type: disc;
+    margin-left: 10px;
+}
+
+ul.property-info li {
+    padding: 0px 0px;
+    margin-left: 10px;
+}
+
+div.nf-checkbox {
+    cursor: default;
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 4px;
+}
+
+div.checkbox-unchecked {
+    background: transparent url(../images/inputCheckbox.png) no-repeat scroll top left;
+}
+
+div.checkbox-checked {
+    background: transparent url(../images/inputCheckbox.png) no-repeat scroll top right;
+}
+
+div.ajax-loading {
+    background-image: url(../images/iconLoading.gif);
+}
+
+div.ajax-complete {
+    background-image: url(../images/iconCommit.png);
+}
+
+div.ajax-error {
+    background-image: url(../images/iconDelete.png);
+}
+
+.refresh-button {
+    float: left;
+}
+
+.ui-draggable .dialog-header {
+    cursor: move;
+}
+
+span.link {
+    cursor: pointer;
+    color: #004849; /*link-color*/
+    font-weight: normal;
+    display: inline-block;
+    border-bottom: 1px solid #CCDADB;
+    font-size: 13px;
+    font-family: Roboto;
+}
+
+span.link-over {
+    border-bottom: 1px solid #004849;
+}
+
+span.link-bold {
+    font-weight: bold;
+    border-bottom: none;
+}
+
+button {
+    height: 28px;
+    width: 28px;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+    background-color: rgba(249, 250, 251, 0.97);
+    color: #004849;
+}
+
+button.refresh-button {
+    font-size: 16px;
+}
+
+button:hover {
+    border: 1px solid #004849; /*link-color*/
+}
+
+button:disabled {
+    color: #CCDADB !important; /*tint link-color 80%*/
+    cursor: not-allowed;
+    border: 1px solid #CCDADB; /*tint link-color 80%*/
+}
+
+/* angular material override */
+
+button:focus {
+    outline: none;
+}
+
+div:focus {
+    outline: none;
+}
+
+input:focus {
+    background-color: #fff;
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+    outline: none;
+}
+
+/* filter controls */
+
+.filter-controls {
+    position: absolute;
+    top: 10px;
+}
+
+.filter-container {
+    height: 32px;
+    width: 318px;
+    float: left;
+}
+
+.filter {
+    margin-right: 3px;
+    float: left;
+}
+
+input.filter {
+    width: 173px;
+}
+
+.filter-type {
+    width: 120px;
+    float: left;
+}
+
+.filter-status {
+    margin-top: 10px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* buttons */
+
+button.fa {
+    color: #004849;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button.icon {
+    color: #004849;
+    font-size: 16px;
+}
+
+div.button {
+    height: 32px;
+    width: 90px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 33px;
+    text-align: center;
+    border: 0px;
+    float: right;
+    position: relative;
+    background: #728E9B;
+    color: #fff;
+    cursor: pointer;
+}
+
+div.button:hover {
+    background-color: #004849;
+}
+
+div.secondary-button {
+    height: 32px;
+    width: 90px;
+    padding: 0 8px;
+    text-transform: uppercase;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 33px;
+    text-align: center;
+    border: 0px;
+    float: right;
+    position: relative;
+    background: #E3E8EB;
+    color: #004849;
+}
+
+div.secondary-button:hover {
+    background-color: #C7D2D7;
+}
+
+/* tooltips */
+
+.qtip-nifi {
+    border: 0px !important;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.54) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 13px;
+    color: #fff !important;
+}
+
+div.nifi-tooltip {
+    border: 0px !important;
+    border-radius: 2px;
+    background-color: rgba(0, 0, 0, 0.80) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 13px;
+    color: #fff !important;
+    max-width: 500px;
+    word-wrap: break-word;
+}
+
+.scrollable {
+    border-bottom: 1px solid #d0dbe0;
+}
+
+/* progress bars */
+
+md-progress-linear > div {
+    background-color: #eaeef0 !important;
+}
+
+.setting {
+    margin-bottom: 15px;
+}
+
+.setting-name {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+.setting-name .fa {
+    color: #004849;
+    margin-left: 5px;
+}
+
+.setting-field .fa {
+    color: #004849;
+    margin-left: 5px;
+}
+
+.setting-field {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+}
+
+.setting-header{
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    padding-bottom: 20px;
+    text-overflow: ellipsis;
+}
