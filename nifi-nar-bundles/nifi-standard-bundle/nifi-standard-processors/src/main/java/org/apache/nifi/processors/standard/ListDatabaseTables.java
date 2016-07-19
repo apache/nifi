@@ -303,8 +303,8 @@ public class ListDatabaseTables extends AbstractProcessor {
                     stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
                 }
             }
-            // Update the last time the processor finished successfully
-            stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
+            // Update the timestamps for listed tables
+            stateManager.setState(stateMapProperties, Scope.CLUSTER);
 
         } catch (final SQLException | IOException e) {
             throw new ProcessException(e);
