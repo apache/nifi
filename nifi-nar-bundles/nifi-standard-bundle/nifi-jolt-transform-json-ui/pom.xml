@@ -24,7 +24,7 @@ language governing permissions and limitations under the License. -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <jersey.version>1.19.1</jersey.version>
-        <jolt.version>0.0.20</jolt.version>
+        <jolt.version>0.0.21</jolt.version>
     </properties>
 
     <dependencies>
