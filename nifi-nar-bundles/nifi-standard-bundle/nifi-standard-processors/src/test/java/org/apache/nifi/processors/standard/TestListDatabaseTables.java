@@ -104,6 +104,7 @@ public class TestListDatabaseTables {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
         } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
         }
 
         stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
@@ -129,6 +130,7 @@ public class TestListDatabaseTables {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
         } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
         }
 
         stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
@@ -155,6 +157,7 @@ public class TestListDatabaseTables {
             stmt.execute("drop table TEST_TABLE1");
             stmt.execute("drop table TEST_TABLE2");
         } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
         }
 
         stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
@@ -180,6 +183,47 @@ public class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
+    @Test
+    public void testListTablesMultipleRefresh() throws Exception {
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_TABLE1");
+            stmt.execute("drop table TEST_TABLE2");
+        } catch (final SQLException sqle) {
+            // Do nothing, may not have existed
+        }
+
+        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+
+        runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
+        runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "200 millis");
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
+        assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        runner.clearTransferState();
+
+        // Add another table immediately, the first table should not be listed again but the second should
+        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        stmt.close();
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
+        results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
+        assertEquals("0", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        runner.clearTransferState();
+
+        // Now wait longer than the refresh interval and assert the refresh has happened (i.e. the two tables are re-listed)
+        Thread.sleep(500);
+        runner.run();
+        runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
+    }
+
     /**
      * Simple implementation only for ListDatabaseTables processor testing.
      */
@@ -194,8 +238,7 @@ public class TestListDatabaseTables {
         public Connection getConnection() throws ProcessException {
             try {
                 Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-                return con;
+                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
             } catch (final Exception e) {
                 throw new ProcessException("getConnection failed: " + e);
             }

@@ -225,25 +225,6 @@ public class ListDatabaseTables extends AbstractProcessor {
             throw new ProcessException(ioe);
         }
 
-        try {
-            // Refresh state if the interval has elapsed
-            long lastRefreshed = -1;
-            final long currentTime = System.currentTimeMillis();
-            String lastTimestamp = stateMapProperties.get(this.getIdentifier());
-            if (!StringUtils.isEmpty(lastTimestamp)) {
-                lastRefreshed = Long.parseLong(lastTimestamp);
-            }
-            if (lastRefreshed > 0 && refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval)) {
-                stateManager.clear(Scope.CLUSTER);
-                stateMapProperties.clear();
-            }
-        } catch (final NumberFormatException | IOException ioe) {
-            getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
-                    + "query until this is accomplished.", ioe);
-            context.yield();
-            return;
-        }
-
         try (final Connection con = dbcpService.getConnection()) {
 
             DatabaseMetaData dbMetaData = con.getMetaData();
@@ -260,8 +241,27 @@ public class ListDatabaseTables extends AbstractProcessor {
                         .filter(segment -> !StringUtils.isEmpty(segment))
                         .collect(Collectors.joining("."));
 
-                String fqTableName = stateMapProperties.get(fqn);
-                if (fqTableName == null) {
+                String lastTimestampForTable = stateMapProperties.get(fqn);
+                boolean refreshTable = true;
+                try {
+                    // Refresh state if the interval has elapsed
+                    long lastRefreshed = -1;
+                    final long currentTime = System.currentTimeMillis();
+                    if (!StringUtils.isEmpty(lastTimestampForTable)) {
+                        lastRefreshed = Long.parseLong(lastTimestampForTable);
+                    }
+                    if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval))) {
+                        stateMapProperties.remove(lastTimestampForTable);
+                    } else {
+                        refreshTable = false;
+                    }
+                } catch (final NumberFormatException nfe) {
+                    getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
+                            + "query until this is accomplished.", nfe);
+                    context.yield();
+                    return;
+                }
+                if (refreshTable) {
                     FlowFile flowFile = session.create();
                     logger.info("Found {}: {}", new Object[]{tableType, fqn});
                     if (includeCount) {
@@ -304,7 +304,6 @@ public class ListDatabaseTables extends AbstractProcessor {
                 }
             }
             // Update the last time the processor finished successfully
-            stateMapProperties.put(this.getIdentifier(), Long.toString(System.currentTimeMillis()));
             stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
 
         } catch (final SQLException | IOException e) {
