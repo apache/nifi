@@ -24,11 +24,14 @@ import com.microsoft.azure.servicebus.ServiceBusException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -40,11 +43,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Set;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Collections;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -56,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends the contents of a FlowFile to a Windows Azure Event Hub. Note: the content of the FlowFile will be buffered into memory before being sent, "
         + "so care should be taken to avoid sending FlowFiles to this Processor that exceed the amount of Java Heap Space available.")
+@WritesAttribute(attribute = "eventhub.partitionId", description = "The partitionId used for the message that was pulled")
 public class PutAzureEventHub extends AbstractProcessor {
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
@@ -86,6 +86,13 @@ public class PutAzureEventHub extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor PARTITION_KEY = new PropertyDescriptor.Builder()
+            .name("Partition ID for Event")
+            .description("The partition key that should be used for events. If this is left blank then a GUID will be used")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Any FlowFile that is successfully sent to the Azure Event Hub will be transferred to this Relationship.")
@@ -110,6 +117,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         _propertyDescriptors.add(NAMESPACE);
         _propertyDescriptors.add(ACCESS_POLICY);
         _propertyDescriptors.add(POLICY_PRIMARY_KEY);
+        _propertyDescriptors.add(PARTITION_KEY);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -117,6 +125,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         _relationships.add(REL_FAILURE);
         relationships = Collections.unmodifiableSet(_relationships);
     }
+
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
@@ -128,7 +137,7 @@ public class PutAzureEventHub extends AbstractProcessor {
     }
 
     @OnScheduled
-    public final void setupClient(final ProcessContext context) throws ProcessException{
+    public final void setupClient(final ProcessContext context) throws ProcessException {
         final String policyName = context.getProperty(ACCESS_POLICY).getValue();
         final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
         final String namespace = context.getProperty(NAMESPACE).getValue();
@@ -139,7 +148,7 @@ public class PutAzureEventHub extends AbstractProcessor {
         senderQueue = new LinkedBlockingQueue<>(numThreads);
         for (int i = 0; i < numThreads; i++) {
             final EventHubClient client = createEventHubClient(namespace, eventHubName, policyName, policyKey);
-            if(null != client) {
+            if (null != client) {
                 senderQueue.offer(client);
             }
         }
@@ -161,25 +170,38 @@ public class PutAzureEventHub extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-            final byte[] buffer = new byte[(int) flowFile.getSize()];
-            session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
+        final Map<String, String> attributes = new HashMap<>();
+        final byte[] buffer = new byte[(int) flowFile.getSize()];
+        session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer));
 
-            try {
-                sendMessage(buffer);
-            } catch (final ProcessException processException) {
-                getLogger().error("Failed to send {} to EventHub due to {}; routing to failure", new Object[]{flowFile, processException}, processException);
-                session.transfer(session.penalize(flowFile), REL_FAILURE);
-                return;
-            }
+        final PropertyValue idPropertyValue = context.getProperty(PARTITION_KEY);
 
-            final String namespace = context.getProperty(NAMESPACE).getValue();
-            final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
-            session.getProvenanceReporter().send(flowFile, "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
+        final String partitionId = (null == idPropertyValue || !idPropertyValue.isSet()) ?
+                UUID.randomUUID().toString() : idPropertyValue.getValue();
+
+
+
+        try {
+            sendMessage(buffer, partitionId);
+        } catch (final ProcessException processException) {
+            getLogger().error("Failed to send {} to EventHub due to {}; routing to failure", new Object[]{flowFile, processException}, processException);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            return;
+        }
+
+        //only going to put the paritionId on the flowfile IF the send was sucessful. The only way we know the send was
+        //successful is if it did not throw an exception above.
+        attributes.put("eventhub.partitionId", partitionId);
+        flowFile = session.putAllAttributes(flowFile, attributes);
+
+        final String namespace = context.getProperty(NAMESPACE).getValue();
+        final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
+        session.getProvenanceReporter().send(flowFile, "amqps://" + namespace + ".servicebus.windows.net" + "/" + eventHubName, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.transfer(flowFile, REL_SUCCESS);
 
     }
 
-    protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException{
+    protected EventHubClient createEventHubClient(final String namespace, final String eventHubName, final String policyName, final String policyKey) throws ProcessException {
 
         try {
             return EventHubClient.createFromConnectionString(getConnectionString(namespace, eventHubName, policyName, policyKey)).get();
@@ -188,21 +210,23 @@ public class PutAzureEventHub extends AbstractProcessor {
             throw new ProcessException(e);
         }
     }
-    protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey){
+
+    protected String getConnectionString(final String namespace, final String eventHubName, final String policyName, final String policyKey) {
         return new ConnectionStringBuilder(namespace, eventHubName, policyName, policyKey).toString();
     }
-    protected void sendMessage(final byte[] buffer) throws ProcessException {
+
+    protected void sendMessage(final byte[] buffer, final String partitionId) throws ProcessException {
 
         final EventHubClient sender = senderQueue.poll();
-        if(null != sender) {
+        if (null != sender) {
             try {
-                sender.sendSync(new EventData(buffer));
+                sender.sendSync(new EventData(buffer), partitionId);
             } catch (final ServiceBusException sbe) {
                 throw new ProcessException("Caught exception trying to send message to eventbus", sbe);
             } finally {
                 senderQueue.offer(sender);
             }
-        }else{
+        } else {
             throw new ProcessException("No EventHubClients are configured for sending");
         }
 
