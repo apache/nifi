@@ -231,13 +231,38 @@
                             }
 
                             if (!isBlank(option.description)) {
-                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip($.extend({}, nf.Common.config.tooltipConfig, {
-                                    content: option.description,
-                                    position: {
-                                        at: 'top right',
-                                        my: 'bottom left'
+                                $('<div style="float: right; line-height: 32px;" class="fa fa-question-circle"></div>').appendTo(optionElement).qtip($.extend({},
+                                    {
+                                        style: {
+                                            classes: 'nifi-tooltip'
+                                        },
+                                        show: {
+                                            solo: true,
+                                            effect: function(offset) {
+                                                $(this).slideDown(100);
+                                            }
+                                        },
+                                        hide: {
+                                            effect: function(offset) {
+                                                $(this).slideUp(100);
+                                            }
+                                        },
+                                        position: {
+                                            at: 'bottom center',
+                                            my: 'top center',
+                                            adjust: {
+                                                y: 5
+                                            }
+                                        }
+                                    },
+                                    {
+                                        content: option.description,
+                                        position: {
+                                            at: 'top right',
+                                            my: 'bottom left'
+                                        }
                                     }
-                                }));
+                                ));
                             }
 
                             actualHeight += 16;
