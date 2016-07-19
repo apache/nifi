@@ -532,7 +532,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             return null;
         }
 
-        final Set<NodeIdentifier> connectedNodeIds = getNodeIdentifiers(NodeConnectionState.CONNECTED);
+        final Set<NodeIdentifier> connectedNodeIds = getNodeIdentifiers();
         final NodeIdentifier electedNodeId = connectedNodeIds.stream()
             .filter(nodeId -> nodeId.getSocketAddress().equals(electedNodeHostname) && nodeId.getSocketPort() == electedNodePort)
             .findFirst()
