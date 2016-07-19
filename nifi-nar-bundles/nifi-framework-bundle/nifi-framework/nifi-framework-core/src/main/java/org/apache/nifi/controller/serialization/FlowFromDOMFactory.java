@@ -260,7 +260,9 @@ public class FlowFromDOMFactory {
         dto.setProxyHost(getString(element, "proxyHost"));
         dto.setProxyPort(getOptionalInt(element, "proxyPort"));
         dto.setProxyUser(getString(element, "proxyUser"));
-        String proxyPassword = decrypt(getString(element, "proxyPassword"), encryptor);
+
+        final String rawPassword = getString(element, "proxyPassword");
+        final String proxyPassword = encryptor == null ? rawPassword : decrypt(rawPassword, encryptor);
         dto.setProxyPassword(proxyPassword);
 
         return dto;
@@ -395,7 +397,9 @@ public class FlowFromDOMFactory {
         final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
         for (final Element propertyElement : propertyNodeList) {
             final String name = getString(propertyElement, "name");
-            final String value = decrypt(getString(propertyElement, "value"), encryptor);
+
+            final String rawPropertyValue = getString(propertyElement, "value");
+            final String value = encryptor == null ? rawPropertyValue : decrypt(rawPropertyValue, encryptor);
             properties.put(name, value);
         }
         return properties;

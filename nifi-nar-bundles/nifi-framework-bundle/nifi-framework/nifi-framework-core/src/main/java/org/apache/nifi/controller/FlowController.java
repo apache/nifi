@@ -565,7 +565,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }, snapshotMillis, snapshotMillis, TimeUnit.MILLISECONDS);
 
-        heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false, new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED)));
+        this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
+        heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
 
         if (configuredForClustering) {
             leaderElectionManager = new CuratorLeaderElectionManager(4);
@@ -1459,7 +1460,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
         } finally {
             writeLock.unlock();
         }
@@ -3317,7 +3318,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
         } finally {
             writeLock.unlock();
         }
@@ -3354,7 +3355,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         eventDrivenWorkerQueue.setPrimary(primary);
 
         // update the heartbeat bean
-        final HeartbeatBean oldBean = this.heartbeatBeanRef.getAndSet(new HeartbeatBean(rootGroup, primary, connectionStatus));
+        final HeartbeatBean oldBean = this.heartbeatBeanRef.getAndSet(new HeartbeatBean(rootGroup, primary));
 
         // Emit a bulletin detailing the fact that the primary node state has changed
         if (oldBean == null || oldBean.isPrimary() != primary) {
@@ -3722,7 +3723,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     public boolean isConnected() {
         rwLock.readLock().lock();
         try {
-            return connectionStatus.getState() == NodeConnectionState.CONNECTED;
+            return connectionStatus != null && connectionStatus.getState() == NodeConnectionState.CONNECTED;
         } finally {
             rwLock.readLock().unlock();
         }
@@ -3734,7 +3735,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             this.connectionStatus = connectionStatus;
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary(), connectionStatus));
+            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
         } finally {
             rwLock.writeLock().unlock();
         }
@@ -3805,8 +3806,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             if (bean == null) {
                 readLock.lock();
                 try {
-                    final NodeConnectionStatus connectionStatus = new NodeConnectionStatus(getNodeId(), DisconnectionCode.NOT_YET_CONNECTED);
-                    bean = new HeartbeatBean(getGroup(getRootGroupId()), isPrimary(), connectionStatus);
+                    bean = new HeartbeatBean(getGroup(getRootGroupId()), isPrimary());
                 } finally {
                     readLock.unlock();
                 }
@@ -3836,7 +3836,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 roles.add(ClusterRoles.CLUSTER_COORDINATOR);
             }
 
-            final Heartbeat heartbeat = new Heartbeat(nodeId, roles, bean.getConnectionStatus(), hbPayload.marshal());
+            final Heartbeat heartbeat = new Heartbeat(nodeId, roles, connectionStatus, hbPayload.marshal());
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 
@@ -3970,12 +3970,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private static class HeartbeatBean {
         private final ProcessGroup rootGroup;
         private final boolean primary;
-        private final NodeConnectionStatus connectionStatus;
 
-        public HeartbeatBean(final ProcessGroup rootGroup, final boolean primary, final NodeConnectionStatus connectionStatus) {
+        public HeartbeatBean(final ProcessGroup rootGroup, final boolean primary) {
             this.rootGroup = rootGroup;
             this.primary = primary;
-            this.connectionStatus = connectionStatus;
         }
 
         public ProcessGroup getRootGroup() {
@@ -3984,10 +3982,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         public boolean isPrimary() {
             return primary;
-        }
-
-        public NodeConnectionStatus getConnectionStatus() {
-            return connectionStatus;
         }
     }
 }
