@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -770,6 +771,55 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
     }
 
+    private String summarizeStatusChange(final NodeConnectionStatus oldStatus, final NodeConnectionStatus status) {
+        final StringBuilder sb = new StringBuilder();
+
+        if (oldStatus != null && status.getState() == oldStatus.getState()) {
+            // Check if roles changed
+            final Set<String> oldRoles = oldStatus.getRoles();
+            final Set<String> newRoles = status.getRoles();
+
+            final Set<String> rolesRemoved = new HashSet<>(oldRoles);
+            rolesRemoved.removeAll(newRoles);
+
+            final Set<String> rolesAdded = new HashSet<>(newRoles);
+            rolesAdded.removeAll(oldRoles);
+
+            if (!rolesRemoved.isEmpty()) {
+                sb.append("Relinquished role");
+                if (rolesRemoved.size() != 1) {
+                    sb.append("s");
+                }
+
+                sb.append(" ").append(rolesRemoved);
+            }
+
+            if (!rolesAdded.isEmpty()) {
+                if (sb.length() > 0) {
+                    sb.append("; ");
+                }
+
+                sb.append("Acquired role");
+                if (rolesAdded.size() != 1) {
+                    sb.append("s");
+                }
+
+                sb.append(" ").append(rolesAdded);
+            }
+        } else {
+            sb.append("Node Status changed from ").append(oldStatus == null ? "[Unknown Node]" : oldStatus.getState().toString()).append(" to ").append(status.getState().toString());
+            if (status.getState() == NodeConnectionState.CONNECTED) {
+                sb.append(" (Roles=").append(status.getRoles().toString()).append(")");
+            } else if (status.getDisconnectReason() != null) {
+                sb.append(" due to ").append(status.getDisconnectReason());
+            } else if (status.getDisconnectCode() != null) {
+                sb.append(" due to ").append(status.getDisconnectCode().toString());
+            }
+        }
+
+        return sb.toString();
+    }
+
     private void handleNodeStatusChange(final NodeStatusChangeMessage statusChangeMessage) {
         final NodeConnectionStatus updatedStatus = statusChangeMessage.getNodeConnectionStatus();
         final NodeIdentifier nodeId = statusChangeMessage.getNodeId();
@@ -790,14 +840,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
 
                     final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
-                    final StringBuilder sb = new StringBuilder();
-                    sb.append("Connection Status changed to ").append(status.getState().toString());
-                    if (status.getDisconnectReason() != null) {
-                        sb.append(" due to ").append(status.getDisconnectReason());
-                    } else if (status.getDisconnectCode() != null) {
-                        sb.append(" due to ").append(status.getDisconnectCode().toString());
+                    final String summary = summarizeStatusChange(oldStatus, status);
+                    if (!StringUtils.isEmpty(summary)) {
+                        addNodeEvent(nodeId, summary);
                     }
-                    addNodeEvent(nodeId, sb.toString());
 
                     // Update our counter so that we are in-sync with the cluster on the
                     // most up-to-date version of the NodeConnectionStatus' Update Identifier.

@@ -124,7 +124,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         autoResumeState = NiFiProperties.getInstance().getAutoResumeState();
     }
 
-    public static boolean isEmpty(final DataFlow dataFlow, final StringEncryptor encryptor) {
+    public static boolean isEmpty(final DataFlow dataFlow) {
         if (dataFlow == null || dataFlow.getFlow() == null || dataFlow.getFlow().length == 0) {
             return true;
         }
@@ -135,7 +135,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
         final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootGroupElement);
 
-        final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor, encodingVersion);
+        final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, null, encodingVersion);
         return isEmpty(rootGroupDto);
     }
 
