@@ -265,6 +265,8 @@ run() {
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
     RUN_NIFI_CMD="cd "\""${NIFI_HOME}"\"" && ${sudo_cmd_prefix} "\""${JAVA}"\"" -cp "\""${BOOTSTRAP_CLASSPATH}"\"" -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS}  org.apache.nifi.bootstrap.RunNiFi"
+    LSB_EXIT_STATUS=0
+    LSB_NIFI_STATUS_TEMPFILE=`mktemp -t LSB_NIFI_STATUS_TEMPFILE.XXXXXXXXXX`
 
     if [ "$1" = "start" ]; then
         (eval $RUN_NIFI_CMD $@ &)
@@ -277,7 +279,39 @@ run() {
     # control back to the user
     sleep 3
     echo
+    if [ "$1" = "status" ]; then
+        LSB_EXIT_STATUS= getLSBStatus
+    fi
+    return $LSB_EXIT_STATUS
 }
+
+# Standard Status codes for LSB compliance
+# See: http://refspecs.linuxbase.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html
+# If the status action is requested, the init script will return the following exit status codes.
+# 0	program is running or service is OK
+# 1	program is dead and /var/run pid file exists
+# 2	program is dead and /var/lock lock file exists
+# 3	program is not running
+# 4	program or service status is unknown
+# 5-99	reserved for future LSB use
+# 100-149	reserved for distribution use
+# 150-199	reserved for application use
+# 200-254	reserved
+
+getLSBStatus() {
+  LSB_EXIT_STATUS=4
+  if [ `grep -c "not.*running" ${LSB_NIFI_STATUS_TEMPFILE}` -gt 0 ]; then
+    LSB_EXIT_STATUS=3
+    if [ -f "${NIFI_PID_DIR}/nifi.pid" ]; then
+      LSB_EXIT_STATUS=1
+    fi
+  elif [ `grep -c "currently.*running" ${LSB_NIFI_STATUS_TEMPFILE}` -gt 0 ]; then
+    LSB_EXIT_STATUS=0
+  fi
+  rm -f ${LSB_NIFI_STATUS_TEMPFILE}
+  return $LSB_EXIT_STATUS
+}
+
 
 main() {
     init "$1"
