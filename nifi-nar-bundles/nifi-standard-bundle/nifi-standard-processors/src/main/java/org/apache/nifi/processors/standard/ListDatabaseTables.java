@@ -304,7 +304,11 @@ public class ListDatabaseTables extends AbstractProcessor {
                 }
             }
             // Update the timestamps for listed tables
-            stateManager.setState(stateMapProperties, Scope.CLUSTER);
+            if (stateMap.getVersion() == -1) {
+                stateManager.setState(stateMapProperties, Scope.CLUSTER);
+            } else {
+                stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
+            }
 
         } catch (final SQLException | IOException e) {
             throw new ProcessException(e);
