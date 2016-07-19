@@ -49,11 +49,11 @@ public class TypeOneUUIDGenerator {
         long time;
 
         synchronized (lock) {
-            if (currentTime > lastTime) {
+            if (currentTime == lastTime) {
+                ++clockSequence;
+            } else {
                 lastTime = currentTime;
                 clockSequence = 0;
-            } else {
-                ++clockSequence;
             }
         }
 
