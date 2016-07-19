@@ -124,8 +124,10 @@ public class ListFlowFilesEndpointMerger extends AbstractSingleDTOEndpoint<Listi
 
             if (nodeRequest.getFlowFileSummaries() != null) {
                 for (final FlowFileSummaryDTO summaryDTO : nodeRequest.getFlowFileSummaries()) {
-                    summaryDTO.setClusterNodeId(nodeIdentifier.getId());
-                    summaryDTO.setClusterNodeAddress(nodeAddress);
+                    if (summaryDTO.getClusterNodeId() == null || summaryDTO.getClusterNodeAddress() == null) {
+                        summaryDTO.setClusterNodeId(nodeIdentifier.getId());
+                        summaryDTO.setClusterNodeAddress(nodeAddress);
+                    }
 
                     flowFileSummaries.add(summaryDTO);
 

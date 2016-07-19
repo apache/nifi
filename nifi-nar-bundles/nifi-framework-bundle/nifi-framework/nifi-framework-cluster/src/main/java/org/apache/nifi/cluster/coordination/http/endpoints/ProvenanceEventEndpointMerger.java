@@ -48,8 +48,13 @@ public class ProvenanceEventEndpointMerger extends AbstractSingleDTOEndpoint<Pro
     @Override
     protected void mergeResponses(ProvenanceEventDTO clientDto, Map<NodeIdentifier, ProvenanceEventDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
         // The request for a Provenance Event is replicated to a single Node. We simply update its cluster node info.
-        final NodeIdentifier nodeId = successfulResponses.iterator().next().getNodeId();
-        clientDto.setClusterNodeId(nodeId.getId());
-        clientDto.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        // However, we only do this if the cluster node info isn't set, because if this is replicated across the cluster,
+        // the cluster coordinator will have already set it, and we will be receiving the response from the cluster
+        // coordinator. We do not want to overwrite this value on all DTO's with the cluster coordinator's information.
+        if (clientDto.getClusterNodeId() == null || clientDto.getClusterNodeAddress() == null) {
+            final NodeIdentifier nodeId = successfulResponses.iterator().next().getNodeId();
+            clientDto.setClusterNodeId(nodeId.getId());
+            clientDto.setClusterNodeAddress(nodeId.getApiAddress() + ":" + nodeId.getApiPort());
+        }
     }
 }
