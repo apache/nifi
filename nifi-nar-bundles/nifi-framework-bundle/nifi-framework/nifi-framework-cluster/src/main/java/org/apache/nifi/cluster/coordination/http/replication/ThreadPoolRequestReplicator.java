@@ -303,7 +303,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final int numRequests = responseMap.size();
         if (numRequests >= MAX_CONCURRENT_REQUESTS) {
-            logger.debug("Cannot replicate request because there are {} outstanding HTTP Requests already", numRequests);
+            final Map<String, Long> countsByUri = responseMap.values().stream().collect(
+                Collectors.groupingBy(
+                    StandardAsyncClusterResponse::getURIPath,
+                    Collectors.counting()));
+
+            logger.error("Cannot replicate request {} {} because there are {} outstanding HTTP Requests already. Request Counts Per URI = {}", method, uri.getPath(), numRequests, countsByUri);
             throw new IllegalStateException("There are too many outstanding HTTP requests with a total " + numRequests + " outstanding requests");
         }
 
