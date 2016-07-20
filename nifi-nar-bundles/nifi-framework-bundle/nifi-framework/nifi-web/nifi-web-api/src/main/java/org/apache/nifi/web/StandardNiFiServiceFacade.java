@@ -740,6 +740,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         // schedule the components
                         processGroupDAO.scheduleComponents(processGroupId, state, componentRevisions.keySet());
 
+                        controllerFacade.save();
+                        
                         // update the revisions
                         final Map<String, Revision> updatedRevisions = new HashMap<>();
                         for (final Revision revision : componentRevisions.values()) {
