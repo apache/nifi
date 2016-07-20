@@ -162,7 +162,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         try {
             if (initialized) {
                 existingFlow = toBytes(controller);
-                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty();
+                existingFlowEmpty = controller.getGroup(controller.getRootGroupId()).isEmpty() && controller.getAllReportingTasks().isEmpty() && controller.getAllControllerServices().isEmpty();
             } else {
                 existingFlow = readFlowFromDisk();
                 if (existingFlow == null || existingFlow.length == 0) {
