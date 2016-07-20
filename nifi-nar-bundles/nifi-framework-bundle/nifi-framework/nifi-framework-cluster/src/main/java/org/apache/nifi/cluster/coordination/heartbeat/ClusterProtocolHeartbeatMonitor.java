@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,16 +89,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         this.clusterNodesPath = zkClientConfig.resolvePath("cluster/nodes");
 
         String hostname = properties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
-        if (hostname == null) {
-            try {
-                hostname = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                throw new RuntimeException("Unable to determine local hostname and the '" + NiFiProperties.CLUSTER_NODE_ADDRESS + "' property is not set");
-            }
+        if (hostname == null || hostname.trim().isEmpty()) {
+            hostname = "localhost";
         }
 
         final String port = properties.getProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
-        if (port == null) {
+        if (port == null || port.trim().isEmpty()) {
             throw new RuntimeException("Unable to determine which port Cluster Coordinator Protocol is listening on because the '"
                 + NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT + "' property is not set");
         }
