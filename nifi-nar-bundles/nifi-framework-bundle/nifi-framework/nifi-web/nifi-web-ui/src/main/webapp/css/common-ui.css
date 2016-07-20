@@ -100,7 +100,6 @@ i[class^="icon-"]:before, i[class*=" icon-"]:before {
 body {
     display: block;
     font-family: Roboto, sans-serif;
-    font-size: 62.5%;
     overflow: hidden;
     color: #262626;
 }
@@ -338,7 +337,7 @@ input:focus {
 
 .filter-container {
     height: 32px;
-    width: 318px;
+    width: 100%;
     float: left;
 }
 
@@ -352,7 +351,6 @@ input.filter {
 }
 
 .filter-type {
-    width: 120px;
     float: left;
 }
 
@@ -492,4 +490,12 @@ md-progress-linear > div {
     font-weight: bold;
     padding-bottom: 20px;
     text-overflow: ellipsis;
+}
+
+.CodeMirror {
+    border: 1px solid #aaa;
+    font-family: monospace;
+    background-color: #fff;
+    cursor: default;
+    line-height: normal;
 }

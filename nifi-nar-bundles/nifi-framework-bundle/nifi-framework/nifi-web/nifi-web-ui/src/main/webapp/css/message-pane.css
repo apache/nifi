@@ -20,25 +20,26 @@
     left: 0px;
     bottom: 0px;
     right: 0px;
-    background: #d1dee5 url(../images/bg-error.png) left top no-repeat;
-    font-family: Verdana, Geneva, sans-serif;
-    color: #191919;
+    background: #ffffff url(../images/bg-error.png) left top no-repeat;
     z-index: 999999;
 }
 
 .message-pane-content {
-    font-size: 11px;
-    color: #191919;
+    font-size: 12px;
+    color: #262626;
     line-height: normal;
 }
 
 .message-pane-message-box {
-    margin-top: 100px;
+    margin-top: 72px;
     padding-left: 100px;
 }
 
 .message-pane-title {
-    font-size: 18px;
-    color: #294c58;
     margin-bottom: 16px;
+    color: #728e9b;
+    font-size: 16px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
 }
