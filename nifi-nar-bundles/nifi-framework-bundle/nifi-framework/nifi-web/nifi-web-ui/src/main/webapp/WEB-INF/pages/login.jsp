@@ -22,6 +22,8 @@
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
         <link rel="shortcut icon" href="images/nifi16.ico"/>
         <link rel="stylesheet" href="css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         ${nf.login.style.tags}
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />

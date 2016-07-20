@@ -21,12 +21,15 @@
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
         <title>NiFi</title>
-        <link href="css/main.css" rel="stylesheet" type="text/css" />
-        <link href="../nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
-        <link href="../nifi/css/message-page.css" rel="stylesheet" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="css/main.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/common-ui.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/message-pane.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/message-page.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
@@ -43,6 +46,11 @@
                     overlayBackground: false,
                     buttons: [{
                         buttonText: 'Ok',
+                        color: {
+                            base: '#728E9B',
+                            hover: '#004849',
+                            text: '#ffffff'
+                        },
                         handler: {
                             click: function () {
                                 $$('#content-viewer-message-dialog').modal('hide');
@@ -146,8 +154,8 @@
                 <div id="content-viewer-message"></div>
             </div>
         </div>
-        <div id="view-as-label">View as</div>
+        <div id="view-as-label">View as:</div>
         <div id="view-as" class="pointer button-normal"></div>
-        <div id="content-filename"><span class="content-label">filename</span><%= request.getAttribute("filename") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("filename").toString()) %></div>
-        <div id="content-type"><span class="content-label">content type</span><%= request.getAttribute("contentType") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("contentType").toString()) %></div>
+        <div id="content-filename"><span class="content-label">Filename:</span><%= request.getAttribute("filename") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("filename").toString()) %></div>
+        <div id="content-type"><span class="content-label">Content Type:</span><%= request.getAttribute("contentType") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("contentType").toString()) %></div>
         <div class="message-pane-message-box">

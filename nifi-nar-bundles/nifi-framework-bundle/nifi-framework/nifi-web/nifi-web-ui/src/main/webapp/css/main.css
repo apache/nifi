@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+body {
+    font-size: 62.5%;
+}
+
 #splash {
     position: absolute;
     top: 0px;

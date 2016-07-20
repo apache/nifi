@@ -68,7 +68,7 @@
 
 #templates-filter-container {
     height: 32px;
-    width: 318px;
+    width: 100%;
 }
 
 #templates-filter {
@@ -82,7 +82,6 @@ input.templates-filter-list {
 }
 
 #templates-filter-type {
-    width: 120px;
     float: left;
 }
 

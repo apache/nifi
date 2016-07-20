@@ -25,8 +25,8 @@
     padding:0 10px;
     height: 30px;
     line-height: 30px;
-    border-top: 1px solid #eaeef0;
-    border-bottom: 1px solid #eaeef0;
+    border: 1px solid #eaeef0;
+    width: 148px;
 }
 
 .combo-options {
