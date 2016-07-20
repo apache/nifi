@@ -38,7 +38,7 @@ import static org.apache.nifi.reporting.BulletinRepository.MAX_BULLETINS_FOR_CON
 import static org.apache.nifi.reporting.BulletinRepository.MAX_BULLETINS_PER_COMPONENT;
 
 public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpoint<ControllerBulletinsEntity> implements EndpointResponseMerger {
-    public static final Pattern CONTROLLER_BULLETINS_URI_PATTERN = Pattern.compile("/nifi-api/controller/bulletins");
+    public static final Pattern CONTROLLER_BULLETINS_URI_PATTERN = Pattern.compile("/nifi-api/flow/controller/bulletins");
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -60,24 +60,38 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         for (final Map.Entry<NodeIdentifier, ControllerBulletinsEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerBulletinsEntity entity = entry.getValue();
+            final String nodeAddress = nodeIdentifier.getApiAddress() + ":" + nodeIdentifier.getApiPort();
 
             // consider the bulletins if present and authorized
             if (entity.getBulletins() != null) {
                 entity.getBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
                     bulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
             if (entity.getControllerServiceBulletins() != null) {
                 entity.getControllerServiceBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
                     controllerServiceBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
             if (entity.getReportingTaskBulletins() != null) {
                 entity.getReportingTaskBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
                     reportingTaskBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
         }
+
         clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
         clientEntity.setControllerServiceBulletins(BulletinMerger.mergeBulletins(controllerServiceBulletinDtos));
         clientEntity.setReportingTaskBulletins(BulletinMerger.mergeBulletins(reportingTaskBulletinDtos));
