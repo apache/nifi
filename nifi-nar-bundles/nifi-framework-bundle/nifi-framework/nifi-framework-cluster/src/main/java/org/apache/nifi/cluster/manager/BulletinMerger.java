@@ -62,7 +62,10 @@ public final class BulletinMerger {
             final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
 
             for (final BulletinDTO bulletin : nodeBulletins) {
-                bulletin.setNodeAddress(nodeAddress);
+                if (bulletin.getNodeAddress() == null) {
+                    bulletin.setNodeAddress(nodeAddress);
+                }
+
                 bulletinDtos.add(bulletin);
             }
         }
