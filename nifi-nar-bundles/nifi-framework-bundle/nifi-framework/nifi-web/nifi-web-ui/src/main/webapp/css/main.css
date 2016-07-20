@@ -26,9 +26,12 @@
 }
 
 #splash-img {
-    display: block;
-    padding-top: 250px;
-    margin: 0px auto;
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 10%;
+    right: 10%;
+    background: transparent url(../images/nifi-drop-splash.svg) no-repeat center center;
 }
 
 #context-menu {
