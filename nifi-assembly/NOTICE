@@ -44,6 +44,21 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
          Copyright 2006 Envoi Solutions LLC
 
+  (ASLv2) Jets3t
+    The following NOTICE information applies:
+
+         This product includes software developed by:
+
+         The Apache Software Foundation (http://www.apache.org/).
+
+         The ExoLab Project (http://www.exolab.org/)
+
+         Sun Microsystems (http://www.sun.com/)
+
+         Codehaus (http://castor.codehaus.org)
+
+         Tatu Saloranta (http://wiki.fasterxml.com/TatuSaloranta)
+
   (ASLv2) Jasypt
     The following NOTICE information applies:    
 	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
@@ -585,6 +600,11 @@ The following binary components are provided under the Apache Software License v
       from and not be held liable to the user for any such damages as noted
       above as far as the program is concerned.
 
+  (ASLv2) Apache Solr
+    The following NOTICE information applies:
+      Apache Solrj
+      Copyright 2006-2014 The Apache Software Foundation
+
   (ASLv2) Joda Time
     The following NOTICE information applies:
       This product includes software developed by
@@ -920,6 +940,9 @@ The following binary components are provided under the Eclipse Public License 1.
         The following NOTICE information applies:
             Copyright (c) 2007-2015 The JRuby project
     (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.0.2 - https://github.com/eclipse/paho.mqtt.java)
+    (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
+    (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
+    (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
 
 *****************
 Mozilla Public License v2.0
