@@ -238,7 +238,7 @@ public class JettyServer implements NiFiServer {
                     String warContextPath = String.format("/%s", warName);
 
                     // attempt to locate the nar class loader for this war
-                    ClassLoader narClassLoaderForWar = NarClassLoaders.getExtensionClassLoader(warToNarWorkingDirectoryLookup.get(war));
+                    ClassLoader narClassLoaderForWar = NarClassLoaders.getInstance().getExtensionClassLoader(warToNarWorkingDirectoryLookup.get(war));
 
                     // this should never be null
                     if (narClassLoaderForWar == null) {

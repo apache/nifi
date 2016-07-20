@@ -108,16 +108,16 @@ public class NiFi {
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
 
         // load the extensions classloaders
-        NarClassLoaders.load(properties);
+        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
         // load the framework classloader
-        final ClassLoader frameworkClassLoader = NarClassLoaders.getFrameworkClassLoader();
+        final ClassLoader frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkClassLoader();
         if (frameworkClassLoader == null) {
             throw new IllegalStateException("Unable to find the framework NAR ClassLoader.");
         }
 
         // discover the extensions
-        ExtensionManager.discoverExtensions();
+        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
         ExtensionManager.logClassLoaderMapping();
 
         DocGenerator.generate(properties);
