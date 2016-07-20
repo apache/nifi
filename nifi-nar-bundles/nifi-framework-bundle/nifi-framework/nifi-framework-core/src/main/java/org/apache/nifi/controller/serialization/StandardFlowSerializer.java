@@ -68,6 +68,7 @@ import org.w3c.dom.Node;
  * NOT THREAD-SAFE.
  */
 public class StandardFlowSerializer implements FlowSerializer {
+
     private static final String MAX_ENCODING_VERSION = "1.0";
 
     private final StringEncryptor encryptor;

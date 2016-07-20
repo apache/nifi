@@ -38,8 +38,8 @@ public class StandardControllerServiceProviderTest {
     public static void setupSuite() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardFlowServiceTest.class.getResource("/conf/nifi.properties").getFile());
         NiFiProperties properties = NiFiProperties.getInstance();
-        NarClassLoaders.load(properties);
-        ExtensionManager.discoverExtensions();
+        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
     }
 
     @Before

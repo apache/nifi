@@ -17,7 +17,6 @@
 package org.apache.nifi.persistence;
 
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
 import javax.xml.bind.JAXBContext;
@@ -34,10 +33,13 @@ import com.sun.xml.txw2.output.IndentingXMLStreamWriter;
 
 public final class TemplateSerializer {
 
+    /**
+     * This method when called assumes the Framework Nar ClassLoader is in the
+     * classloader hierarchy of the current context class loader.
+     * @param dto the template dto to serialize
+     * @return serialized representation of the DTO
+     */
     public static byte[] serialize(final TemplateDTO dto) {
-        final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
-        final ClassLoader cl = NarClassLoaders.getFrameworkClassLoader();
-        Thread.currentThread().setContextClassLoader(cl);
         try {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final BufferedOutputStream bos = new BufferedOutputStream(baos);
@@ -49,13 +51,9 @@ public final class TemplateSerializer {
             marshaller.marshal(dto, writer);
 
             bos.flush();
-            return baos.toByteArray();
+            return baos.toByteArray(); //Note: For really large templates this could use a lot of heap space
         } catch (final IOException | JAXBException | XMLStreamException e) {
             throw new FlowSerializationException(e);
-        } finally {
-            if (currentCl != null) {
-                Thread.currentThread().setContextClassLoader(currentCl);
-            }
         }
     }
 
