@@ -126,11 +126,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     protected synchronized void monitorHeartbeats() {
         final Map<NodeIdentifier, NodeHeartbeat> latestHeartbeats = getLatestHeartbeats();
         if (latestHeartbeats == null || latestHeartbeats.isEmpty()) {
-            if (!clusterCoordinator.isActiveClusterCoordinator()) {
-                logger.info("This node is no longer the Cluster Coordinator, so will stop monitoring heartbeats");
-                stop();
-            }
-
+            logger.debug("Received no new heartbeats. Will not disconnect any nodes due to lack of heartbeat");
             return;
         }
 
@@ -215,7 +211,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             } else {
                 // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
                 logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
-                clusterCoordinator.requestNodeDisconnect(nodeId, connectionStatus.getDisconnectCode(), connectionStatus.getDisconnectReason());
+                clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE.toString());
                 removeHeartbeat(nodeId);
             }
 

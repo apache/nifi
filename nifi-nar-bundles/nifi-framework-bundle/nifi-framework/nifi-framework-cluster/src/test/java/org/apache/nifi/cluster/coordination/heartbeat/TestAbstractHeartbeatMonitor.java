@@ -305,6 +305,11 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public void removeRole(String clusterRole) {
         }
+
+        @Override
+        public NodeIdentifier getLocalNodeIdentifier() {
+            return null;
+        }
     }
 
     public static class ReportedEvent {
