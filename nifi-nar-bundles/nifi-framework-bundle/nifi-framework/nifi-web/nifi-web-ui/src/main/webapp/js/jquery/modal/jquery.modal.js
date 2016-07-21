@@ -108,15 +108,16 @@
             var buttonWrapper = $('<div class="dialog-buttons"></div>');
             var button;
             $.each(buttonModel, function (i, buttonConfig) {
+                var clazz = isDefinedAndNotNull(buttonConfig.clazz) ? buttonConfig.clazz : '';
                 if (buttonConfig.color) {
-                    button = $('<div class="button" style="color:' + buttonConfig.color.text + '; background:' + buttonConfig.color.base + ';"></div>').text(buttonConfig.buttonText);
+                    button = $('<div class="button ' + clazz + '" style="color:' + buttonConfig.color.text + '; background:' + buttonConfig.color.base + ';"><span>' + buttonConfig.buttonText + '</span></div>');
                     button.hover(function () {
                         $(this).css("background-color", buttonConfig.color.hover);
                     }, function () {
                         $(this).css("background-color", buttonConfig.color.base);
                     });
                 } else {
-                    button = $('<div class="button"></div>').text(buttonConfig.buttonText)
+                    button = $('<div class="button ' + clazz + '"><span>' + buttonConfig.buttonText + '</span></div>');
                 }
                 button.click(function () {
                     var handler = $(this).data('handler');

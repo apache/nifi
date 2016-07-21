@@ -153,6 +153,7 @@ ul.links span.header-link-over {
     font-style: italic;
     font-weight: normal;
     color: #aaa;
+    font-size:13px;
 }
 
 .required {
@@ -374,6 +375,20 @@ button.fa {
 button.icon {
     color: #004849;
     font-size: 16px;
+}
+
+div.button-icon span {
+    padding-left: 5px;
+    vertical-align: middle;
+    font-style: normal;
+    font-family: Roboto;
+    font-size: 11px;
+}
+
+div.button-icon {
+    float: left !important;
+    margin-left: 20px;
+    font-size: 18px !important;
 }
 
 div.button {
