@@ -15,3 +15,4 @@
 org.apache.nifi.processors.hive.SelectHiveQL
 org.apache.nifi.processors.hive.PutHiveQL
 org.apache.nifi.processors.hive.ConvertAvroToORC
+org.apache.nifi.processors.hive.PutHiveStreaming
