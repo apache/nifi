@@ -22,17 +22,9 @@ import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import java.security.NoSuchAlgorithmException;
 
 public class TlsConfig {
-    public static final String NIFI_TOOLKIT_TLS_KEY_STORE = "nifi.toolkit.tls.keyStore";
-    public static final String NIFI_TOOLKIT_TLS_KEY_STORE_TYPE = "nifi.toolkit.tls.keyStoreType";
-    public static final String NIFI_TOOLKIT_TLS_KEY_STORE_PASSWORD = "nifi.toolkit.tls.keyStorePassword";
-    public static final String NIFI_TOOLKIT_TLS_KEY_PASSWORD = "nifi.toolkit.tls.keyPassword";
-    public static final String NIFI_TOOLKIT_TLS_TOKEN = "nifi.toolkit.tls.token";
-    public static final String NIFI_TOOLKIT_TLS_HOSTNAME = "nifi.toolkit.tls.hostname";
-    public static final String NIFI_TOOLKIT_TLS_PORT = "nifi.toolkit.tls.port";
-
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final String DEFAULT_KEY_STORE_TYPE = "jks";
-    public static final String DEFAULT_PORT = "8443";
+    public static final int DEFAULT_PORT = 8443;
 
     private TlsHelperConfig tlsHelperConfig;
     private String keyStore;
@@ -41,7 +33,7 @@ public class TlsConfig {
     private String keyPassword;
     private String token;
     private String hostname = DEFAULT_HOSTNAME;
-    private int port = Integer.parseInt(DEFAULT_PORT);
+    private int port = DEFAULT_PORT;
 
     public int getPort() {
         return port;

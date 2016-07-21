@@ -20,8 +20,8 @@
         <artifactId>nifi-toolkit</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-toolkit-ssl</artifactId>
-    <description>Tooling to make ssl configuration easier</description>
+    <artifactId>nifi-toolkit-tls</artifactId>
+    <description>Tooling to make tls configuration easier</description>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

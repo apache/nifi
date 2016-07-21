@@ -22,10 +22,6 @@ import org.apache.nifi.toolkit.tls.service.TlsCertificateSigningRequestPerformer
 import java.security.NoSuchAlgorithmException;
 
 public class TlsClientConfig extends TlsConfig {
-    public static final String NIFI_TOOLKIT_TLS_CLIENT_CA_HOSTNAME = "nifi.toolkit.tls.client.caHostname";
-    public static final String NIFI_TOOLKIT_TLS_CLIENT_TRUST_STORE = "nifi.toolkit.tls.client.trustStore";
-    public static final String NIFI_TOOLKIT_TLS_CLIENT_TRUST_STORE_PASSWORD = "nifi.toolkit.tls.client.trustStorePassword";
-    public static final String NIFI_TOOLKIT_TLS_CLIENT_TRUST_STORE_TYPE = "nifi.toolkit.tls.client.trustStoreType";
     private String caHostname;
     private String trustStore;
     private String trustStorePassword;

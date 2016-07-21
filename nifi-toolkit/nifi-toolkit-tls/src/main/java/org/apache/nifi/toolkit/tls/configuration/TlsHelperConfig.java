@@ -18,11 +18,6 @@
 package org.apache.nifi.toolkit.tls.configuration;
 
 public class TlsHelperConfig {
-    public static final String NIFI_TOOLKIT_TLS_HELPER_DAYS = "nifi.toolkit.tls.helper.days";
-    public static final String NIFI_TOOLKIT_TLS_HELPER_KEY_SIZE = "nifi.toolkit.tls.helper.keySize";
-    public static final String NIFI_TOOLKIT_TLS_HELPER_KEY_PAIR_ALGORITHM = "nifi.toolkit.tls.helper.keyPairAlgorithm";
-    public static final String NIFI_TOOLKIT_TLS_HELPER_SIGNING_ALGORITHM = "nifi.toolkit.tls.helper.signingAlgorithm";
-    public static final String NIFI_TOOLKIT_TLS_HELPER_KEY_STORE_TYPE = "nifi.toolkit.tls.helper.keyStoreType";
     public static final int DEFAULT_DAYS = 365;
     public static final int DEFAULT_KEY_SIZE = 2048;
     public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";

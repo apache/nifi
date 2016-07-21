@@ -24,7 +24,7 @@
     <artifactId>nifi-toolkit</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>nifi-toolkit-ssl</module>
+        <module>nifi-toolkit-tls</module>
         <module>nifi-toolkit-assembly</module>
     </modules>
 </project>
