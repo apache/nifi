@@ -44,6 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
+import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.orc.OrcFlowFileWriter;
 import org.apache.nifi.util.orc.OrcUtils;
 import org.apache.orc.CompressionKind;
@@ -98,7 +99,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             .displayName("ORC Configuration Resources")
             .description("A file or comma separated list of files which contains the ORC configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Please see the ORC documentation for more details.")
-            .required(false).addValidator(HiveJdbcCommon.createMultipleFilesExistValidator()).build();
+            .required(false).addValidator(HiveUtils.createMultipleFilesExistValidator()).build();
 
     public static final PropertyDescriptor STRIPE_SIZE = new PropertyDescriptor.Builder()
             .name("orc-stripe-size")

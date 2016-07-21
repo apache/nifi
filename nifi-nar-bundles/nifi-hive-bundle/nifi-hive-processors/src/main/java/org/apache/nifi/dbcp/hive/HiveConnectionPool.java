@@ -30,13 +30,16 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.hadoop.KerberosTicketRenewer;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.hive.HiveJdbcCommon;
+import org.apache.nifi.util.hive.AuthenticationFailedException;
+import org.apache.nifi.util.hive.HiveConfigurator;
+import org.apache.nifi.util.hive.HiveUtils;
+import org.apache.nifi.util.hive.ValidationResources;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -74,7 +77,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .description("A file or comma separated list of files which contains the Hive configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
-            .required(false).addValidator(HiveJdbcCommon.createMultipleFilesExistValidator()).build();
+            .required(false).addValidator(HiveUtils.createMultipleFilesExistValidator()).build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
             .name("hive-db-user")
@@ -116,10 +119,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             .sensitive(false)
             .build();
 
-    static final long TICKET_RENEWAL_PERIOD = 60000;
-
-    private volatile UserGroupInformation ugi;
-    private volatile KerberosTicketRenewer renewer;
+    private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     private final static List<PropertyDescriptor> properties;
     private static KerberosProperties kerberosProperties;
@@ -131,6 +131,8 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     private volatile BasicDataSource dataSource;
 
+    private volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
+    private volatile UserGroupInformation ugi;
 
     static {
         kerberosProperties = KerberosProperties.create(NiFiProperties.getInstance());
@@ -160,22 +162,9 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
         if (confFileProvided) {
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
-            ValidationResources resources = validationResourceHolder.get();
-
-            // if no resources in the holder, or if the holder has different resources loaded,
-            // then load the Configuration and set the new resources in the holder
-            if (resources == null || !configFiles.equals(resources.getConfigResources())) {
-                getLogger().debug("Reloading validation resources");
-                resources = new ValidationResources(configFiles, HiveJdbcCommon.getConfigurationFromFiles(configFiles));
-                validationResourceHolder.set(resources);
-            }
-
-            final Configuration hiveConfig = resources.getConfiguration();
             final String principal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
-            final String keytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
-
-            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(
-                    this.getClass().getSimpleName(), hiveConfig, principal, keytab, getLogger()));
+            final String keyTab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
+            problems.addAll(hiveConfigurator.validate(configFiles, principal, keyTab, validationResourceHolder, getLogger()));
         }
 
         return problems;
@@ -194,12 +183,14 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
      * @throws InitializationException if unable to create a database connection
      */
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) throws InitializationException, IOException {
+    public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
         connectionUrl = context.getProperty(DATABASE_URL).getValue();
 
+        ComponentLog log = getLogger();
+
         final String configFiles = context.getProperty(HIVE_CONFIGURATION_RESOURCES).getValue();
-        final Configuration hiveConfig = HiveJdbcCommon.getConfigurationFromFiles(configFiles);
+        final Configuration hiveConfig = hiveConfigurator.getConfigurationFromFiles(configFiles);
 
         // add any dynamic properties to the Hive configuration
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
@@ -214,15 +205,15 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
             final String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).getValue();
             final String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).getValue();
 
-            getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
-            ugi = SecurityUtil.loginKerberos(hiveConfig, principal, keyTab);
+            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[]{principal, keyTab});
+            try {
+                ugi = hiveConfigurator.authenticate(hiveConfig, principal, keyTab, TICKET_RENEWAL_PERIOD, log);
+            } catch (AuthenticationFailedException ae) {
+                log.error(ae.getMessage(), ae);
+            }
             getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[]{principal, keyTab});
 
-            // if we got here then we have a ugi so start a renewer
-            if (ugi != null) {
-                final String id = getClass().getSimpleName();
-                renewer = SecurityUtil.startTicketRenewalThread(id, ugi, TICKET_RENEWAL_PERIOD, getLogger());
-            }
+
         }
         final String user = context.getProperty(DB_USER).getValue();
         final String passw = context.getProperty(DB_PASSWORD).getValue();
@@ -248,9 +239,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     @OnDisabled
     public void shutdown() {
 
-        if (renewer != null) {
-            renewer.stop();
-        }
+        hiveConfigurator.stopRenewer();
 
         try {
             dataSource.close();
@@ -288,24 +277,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     @Override
     public String getConnectionURL() {
         return connectionUrl;
-    }
-
-    private static class ValidationResources {
-        private final String configResources;
-        private final Configuration configuration;
-
-        public ValidationResources(String configResources, Configuration configuration) {
-            this.configResources = configResources;
-            this.configuration = configuration;
-        }
-
-        public String getConfigResources() {
-            return configResources;
-        }
-
-        public Configuration getConfiguration() {
-            return configuration;
-        }
     }
 
 }
