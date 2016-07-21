@@ -176,31 +176,25 @@ div.searchable-field-value {
 
 div.flowfile-container {
     width: 282px;
-    height: 120px;
     overflow: auto;
-    padding: 5px;
-    font-family: monospace;
-    font-size: 12px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    line-height:1.4
 }
 
 #child-flowfiles {
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 div.event-header {
     color: #728e9b;
-    font-size: 12pt;
+    font-size: 15px;
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
+    padding-bottom: 10px;
     text-overflow: ellipsis;
-}
-
-#attributes-container {
-    height: 290px;
-    overflow: auto;
-    padding: 5px;
 }
 
 div.detail-name {
@@ -217,7 +211,9 @@ div.detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 div.attribute-detail {
@@ -238,7 +234,9 @@ div.attribute-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #attributes-header {
@@ -251,12 +249,15 @@ div.attribute-value {
 
 #modified-attribute-toggle-label {
     float: left;
+    font-size:13px;
+    line-height: 20px;
 }
 
 #modified-attribute-toggle {
     float: left;
-    margin-left: 5px;
-    margin-right: 0;
+    margin-right: 5px;
+    margin-left: 0;
+    margin-top: 3px;
 }
 
 div.modified-attribute-label {
@@ -270,11 +271,14 @@ div.modified-attribute-label {
 
 div.modified-attribute-value {
     float: left;
-    width: 490px;
-    margin-left: 175px;
+    width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;
+    color: #ad9897;
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 div.event-detail {
@@ -286,9 +290,13 @@ div.event-detail {
     margin: 0;
 }
 
+#replay-content-message {
+    font-size: 13px;
+}
+
 #input-content-view, #output-content-view {
     float: left;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 div.content-detail-name {
@@ -305,7 +313,9 @@ div.content-detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #replay-details {
@@ -401,7 +411,9 @@ div.content-detail-value {
 #event-timeline {
     margin-top: 8px;
     color: #9F6000;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
     line-height: normal;
 }
 
@@ -479,8 +491,10 @@ text.event-type {
 }
 
 text.event-type.expand-parents, text.event-type.expand-children {
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-size: 13px;
 }
 
 g.flowfile circle.context, g.event circle.context {
@@ -510,4 +524,12 @@ path.flowfile-icon-arc {
 
 path.flowfile-icon-top {
     pointer-events: none;
+}
+
+#child-flowfile-count {
+    font-weight: normal;
+}
+
+#parent-flowfile-count {
+    font-weight: normal;
 }

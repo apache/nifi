@@ -96,8 +96,8 @@ div.context-menu-provenance {
 
 #user-links-container {
     position: absolute;
-    left: 550px;
-    top: 100px;
+    right: 20px;
+    top: 69px;
     z-index: 1300;
 }
 

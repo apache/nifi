@@ -527,11 +527,11 @@ nf.ControllerServices = (function () {
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px; float: left;" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px;"></div>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px; float: left;"></div>';
             }
 
             if (hasErrors || hasBulletins) {

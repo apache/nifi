@@ -150,9 +150,8 @@ ul.links span.header-link-over {
 }
 
 .blank, .unset, .sensitive {
-    font-style: italic;
-    font-weight: normal;
-    color: #aaa;
+    font-weight: normal !important;
+    color: #a8a8a8 !important;
 }
 
 .required {
@@ -352,6 +351,7 @@ input.filter {
 
 .filter-type {
     float: left;
+    width: 148px;
 }
 
 .filter-status {
@@ -374,6 +374,20 @@ button.fa {
 button.icon {
     color: #004849;
     font-size: 16px;
+}
+
+div.button-icon span {
+    padding-left: 5px;
+    vertical-align: middle;
+    font-style: normal;
+    font-family: Roboto;
+    font-size: 11px;
+}
+
+div.button-icon {
+    float: left !important;
+    margin-left: 20px;
+    font-size: 18px !important;
 }
 
 div.button {
@@ -411,6 +425,7 @@ div.secondary-button {
     position: relative;
     background: #E3E8EB;
     color: #004849;
+    cursor:pointer
 }
 
 div.secondary-button:hover {

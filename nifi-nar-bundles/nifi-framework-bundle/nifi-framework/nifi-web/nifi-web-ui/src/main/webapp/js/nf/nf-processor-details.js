@@ -230,6 +230,7 @@ nf.ProcessorDetails = (function () {
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',

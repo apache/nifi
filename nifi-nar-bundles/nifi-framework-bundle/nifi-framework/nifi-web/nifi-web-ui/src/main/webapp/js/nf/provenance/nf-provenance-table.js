@@ -1345,10 +1345,15 @@ nf.ProvenanceTable = (function () {
 
                 // show the previous value if the property has changed
                 if (attribute.value !== attribute.previousValue) {
-                    attributeRecord
-                        .append('<div class="modified-attribute-label">previous</div>')
-                        .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
-                        .append('<div class="clear"></div>');
+                    if (nf.Common.isDefinedAndNotNull(attribute.previousValue)) {
+                        attributeRecord
+                            .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    } else {
+                        attributeRecord
+                            .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    }
                 } else {
                     // mark this attribute as not modified
                     attributeRecord.addClass('attribute-unmodified');
@@ -1359,7 +1364,7 @@ nf.ProvenanceTable = (function () {
                 if (nf.Common.isDefinedAndNotNull(value)) {
                     element.removeClass('unset').text(value);
                 } else {
-                    element.addClass('unset').text('No value set');
+                    element.addClass('unset').text('No value previously set');
                 }
             };
 
