@@ -3260,7 +3260,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private void registerForClusterCoordinator() {
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
-            public void onLeaderRelinquish() {
+            public synchronized void onLeaderRelinquish() {
                 heartbeatMonitor.stop();
 
                 if (clusterCoordinator != null) {
@@ -3269,7 +3269,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             @Override
-            public void onLeaderElection() {
+            public synchronized void onLeaderElection() {
                 heartbeatMonitor.start();
 
                 if (clusterCoordinator != null) {
