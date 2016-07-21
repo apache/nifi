@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -77,6 +78,8 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
@@ -125,6 +128,14 @@ public class DataTransferResource extends ApplicationResource {
             throw new IllegalArgumentException("The resource must be an Input or Output Port.");
         }
 
+        final Map<String,String> userContext;
+        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         // TODO - use DataTransferAuthorizable after looking up underlying component for consistentency
         final Resource resource = ResourceFactory.getComponentResource(resourceType, identifier, identifier);
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -133,6 +144,7 @@ public class DataTransferResource extends ApplicationResource {
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.WRITE)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);

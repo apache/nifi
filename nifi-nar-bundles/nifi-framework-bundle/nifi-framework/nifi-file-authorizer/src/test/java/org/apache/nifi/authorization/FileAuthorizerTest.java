@@ -111,6 +111,7 @@ public class FileAuthorizerTest {
     private File primary;
     private File restore;
     private File flow;
+    private File flowNoPorts;
 
     private AuthorizerConfigurationContext configurationContext;
 
@@ -126,6 +127,9 @@ public class FileAuthorizerTest {
 
         flow = new File("src/test/resources/flow.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
+
+        flowNoPorts = new File("src/test/resources/flow-no-ports.xml.gz");
+        FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
 
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
@@ -166,6 +170,29 @@ public class FileAuthorizerTest {
     }
 
     @Test
+    public void testOnConfiguredWhenLegacyUsersFileProvidedAndFlowHasNoPorts() throws Exception {
+        properties = mock(NiFiProperties.class);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(flowNoPorts);
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        boolean foundDataTransferPolicy = false;
+        for (AccessPolicy policy : authorizer.getAccessPolicies()) {
+            if (policy.getResource().contains(ResourceType.DataTransfer.name())) {
+                foundDataTransferPolicy = true;
+                break;
+            }
+        }
+
+        assertFalse(foundDataTransferPolicy);
+    }
+
+    @Test
     public void testOnConfiguredWhenLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
@@ -198,7 +225,8 @@ public class FileAuthorizerTest {
         // verify one group got created
         final Set<Group> groups = authorizer.getGroups();
         assertEquals(1, groups.size());
-        assertEquals("group1", groups.iterator().next().getName());
+        final Group group1 = groups.iterator().next();
+        assertEquals("group1", group1.getName());
 
         // verify more than one policy got created
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
@@ -238,7 +266,7 @@ public class FileAuthorizerTest {
 
         // verify user4's policies
         final Map<String,Set<RequestAction>> user4Policies = getResourceActions(policies, user4);
-        assertEquals(5, user4Policies.size());
+        assertEquals(6, user4Policies.size());
 
         assertTrue(user4Policies.containsKey(ResourceType.Flow.getValue()));
         assertEquals(1, user4Policies.get(ResourceType.Flow.getValue()).size());
@@ -266,11 +294,25 @@ public class FileAuthorizerTest {
 
         // verify user6's policies
         final Map<String,Set<RequestAction>> user6Policies = getResourceActions(policies, user6);
-        assertEquals(2, user6Policies.size());
+        assertEquals(3, user6Policies.size());
 
         assertTrue(user6Policies.containsKey(ResourceType.SiteToSite.getValue()));
         assertEquals(2, user6Policies.get(ResourceType.SiteToSite.getValue()).size());
         assertTrue(user6Policies.get(ResourceType.SiteToSite.getValue()).contains(RequestAction.WRITE));
+
+        final Resource inputPortResource = ResourceFactory.getDataTransferResource(true, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input");
+        final AccessPolicy inputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
+        assertNotNull(inputPortPolicy);
+        assertEquals(1, inputPortPolicy.getUsers().size());
+        assertTrue(inputPortPolicy.getUsers().contains(user6.getIdentifier()));
+        assertEquals(1, inputPortPolicy.getGroups().size());
+        assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
+
+        final Resource outputPortResource = ResourceFactory.getDataTransferResource(false, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output");
+        final AccessPolicy outputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
+        assertNotNull(outputPortPolicy);
+        assertEquals(1, outputPortPolicy.getUsers().size());
+        assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
     }
 
     private Map<String,Set<RequestAction>> getResourceActions(final Set<AccessPolicy> policies, final User user) {
@@ -342,7 +384,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(7, policies.size());
+        assertEquals(9, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -379,7 +421,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(5, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 
@@ -416,7 +458,7 @@ public class FileAuthorizerTest {
         assertEquals(adminIdentity, adminUser.getIdentity());
 
         final Set<AccessPolicy> policies = authorizer.getAccessPolicies();
-        assertEquals(5, policies.size());
+        assertEquals(7, policies.size());
 
         final String rootGroupResource = ResourceType.ProcessGroup.getValue() + "/" + ROOT_GROUP_ID;
 

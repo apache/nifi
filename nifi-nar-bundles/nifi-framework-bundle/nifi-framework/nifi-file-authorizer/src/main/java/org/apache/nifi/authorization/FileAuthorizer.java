@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -26,14 +25,14 @@ import org.apache.nifi.authorization.file.generated.Groups;
 import org.apache.nifi.authorization.file.generated.Policies;
 import org.apache.nifi.authorization.file.generated.Policy;
 import org.apache.nifi.authorization.file.generated.Users;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
@@ -42,20 +41,12 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -68,7 +59,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
 /**
  * Provides authorizes requests to resources using policies persisted in a file.
@@ -82,8 +72,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
     private static final String USERS_XSD = "/users.xsd";
     private static final String JAXB_USERS_PATH = "org.apache.nifi.user.generated";
-
-    private static final String FLOW_XSD = "/FlowConfiguration.xsd";
 
     private static final JAXBContext JAXB_AUTHORIZATIONS_CONTEXT = initializeJaxbContext(JAXB_AUTHORIZATIONS_PATH);
     private static final JAXBContext JAXB_USERS_CONTEXT = initializeJaxbContext(JAXB_USERS_PATH);
@@ -107,7 +95,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
     static final Pattern NODE_IDENTITY_PATTERN = Pattern.compile("Node Identity \\S+");
 
-    private Schema flowSchema;
     private Schema usersSchema;
     private Schema authorizationsSchema;
     private SchemaFactory schemaFactory;
@@ -118,6 +105,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
+    private List<PortDTO> ports = new ArrayList<>();
 
     private final AtomicReference<AuthorizationsHolder> authorizationsHolder = new AtomicReference<>();
 
@@ -127,7 +115,6 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             authorizationsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(AUTHORIZATIONS_XSD));
             usersSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(USERS_XSD));
-            flowSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(FLOW_XSD));
         } catch (Exception e) {
             throw new AuthorizerCreationException(e);
         }
@@ -200,7 +187,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
             logger.info(String.format("Authorizations file loaded at %s", new Date().toString()));
 
-        } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
+        } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException | SAXException e) {
             throw new AuthorizerCreationException(e);
         }
     }
@@ -212,7 +199,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      * @throws IOException              Unable to sync file with restore
      * @throws IllegalStateException    Unable to sync file with restore
      */
-    private synchronized void load() throws JAXBException, IOException, IllegalStateException {
+    private synchronized void load() throws JAXBException, IOException, IllegalStateException, SAXException {
         // attempt to unmarshal
         final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
         unmarshaller.setSchema(authorizationsSchema);
@@ -237,8 +224,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // if we are starting fresh then we might need to populate an initial admin or convert legacy users
         if (emptyAuthorizations) {
-            // try to extract the root group id from the flow configuration file specified in nifi.properties
-            rootGroupId = getRootGroupId();
+            parseFlow();
 
             if (hasInitialAdminIdentity && hasLegacyAuthorizedUsers) {
                 throw new AuthorizerCreationException("Cannot provide an Initial Admin Identity and a Legacy Authorized Users File");
@@ -260,68 +246,17 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     /**
-     * Extracts the root group id from the flow configuration file provided in nifi.properties.
+     * Try to parse the flow configuration file to extract the root group id and port information.
      *
-     * @return the root group id, or null if the files doesn't exist, was empty, or could not be parsed
+     * @throws SAXException if an error occurs creating the schema
      */
-    private String getRootGroupId() {
-        final File flowFile = properties.getFlowConfigurationFile();
-        if (flowFile == null) {
-            logger.debug("Flow Configuration file was null");
-            return null;
-        }
+    private void parseFlow() throws SAXException {
+        final FlowParser flowParser = new FlowParser();
+        final FlowInfo flowInfo = flowParser.parse(properties.getFlowConfigurationFile());
 
-        // if the flow doesn't exist or is 0 bytes, then return null
-        final Path flowPath = flowFile.toPath();
-        try {
-            if (!Files.exists(flowPath) || Files.size(flowPath) == 0) {
-                logger.debug("Flow Configuration does not exist or was empty");
-                return null;
-            }
-        } catch (IOException e) {
-            logger.debug("An error occurred determining the size of the Flow Configuration file");
-            return null;
-        }
-
-        // otherwise create the appropriate input streams to read the file
-        try (final InputStream in = Files.newInputStream(flowPath, StandardOpenOption.READ);
-             final InputStream gzipIn = new GZIPInputStream(in)) {
-
-            final byte[] flowBytes = IOUtils.toByteArray(gzipIn);
-            if (flowBytes == null || flowBytes.length == 0) {
-                logger.debug("Could not extract root group id because Flow Configuration File was empty");
-                return null;
-            }
-
-            // create validating document builder
-            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            docFactory.setNamespaceAware(true);
-            docFactory.setSchema(flowSchema);
-
-            // parse the flow
-            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            final Document document = docBuilder.parse(new ByteArrayInputStream(flowBytes));
-
-            // extract the root group id
-            final Element rootElement = document.getDocumentElement();
-
-            final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-            if (rootGroupElement == null) {
-                logger.debug("rootGroup element not found in Flow Configuration file");
-                return null;
-            }
-
-            final Element rootGroupIdElement = (Element) rootGroupElement.getElementsByTagName("id").item(0);
-            if (rootGroupIdElement == null) {
-                logger.debug("id element not found under rootGroup in Flow Configuration file");
-                return null;
-            }
-
-            return rootGroupIdElement.getTextContent();
-
-        } catch (final SAXException | ParserConfigurationException | IOException ex) {
-            logger.error("Unable to find root group id in {} due to {}", new Object[] { flowPath.toAbsolutePath(), ex });
-            return null;
+        if (flowInfo != null) {
+            rootGroupId = flowInfo.getRootGroupId();
+            ports = flowInfo.getPorts() == null ? new ArrayList<>() : flowInfo.getPorts();
         }
     }
 
@@ -352,6 +287,10 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         // grant the user read/write access to the /policies resource
         addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), READ_CODE);
         addAccessPolicy(authorizations, ResourceType.Policy.getValue(), adminUser.getIdentifier(), WRITE_CODE);
+
+        // grant the user read/write access to the /controller resource
+        addAccessPolicy(authorizations, ResourceType.Controller.getValue(), adminUser.getIdentifier(), READ_CODE);
+        addAccessPolicy(authorizations, ResourceType.Controller.getValue(), adminUser.getIdentifier(), WRITE_CODE);
     }
 
     /**
@@ -428,8 +367,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
             // create the identifier of the new user based on the DN
-            String legacyUserDn = legacyUser.getDn();
-            String userIdentifier = UUID.nameUUIDFromBytes(legacyUserDn.getBytes(StandardCharsets.UTF_8)).toString();
+            final String legacyUserDn = legacyUser.getDn();
+            final String userIdentifier = UUID.nameUUIDFromBytes(legacyUserDn.getBytes(StandardCharsets.UTF_8)).toString();
 
             // create the new User and add it to the list of users
             org.apache.nifi.authorization.file.generated.User user = new org.apache.nifi.authorization.file.generated.User();
@@ -459,27 +398,126 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                             roleAccessPolicy.getResource(),
                             roleAccessPolicy.getAction());
 
-                    // determine if the user already exists in the policy
-                    boolean userExists = false;
-                    for (Policy.User policyUser : policy.getUser()) {
-                        if (policyUser.getIdentifier().equals(userIdentifier)) {
-                            userExists = true;
-                            break;
-                        }
-                    }
-
-                    // add the user to the policy if doesn't already exist
-                    if (!userExists) {
-                        Policy.User policyUser = new Policy.User();
-                        policyUser.setIdentifier(userIdentifier);
-                        policy.getUser().add(policyUser);
-                    }
+                    // add the user to the policy if it doesn't exist
+                    addUserToPolicy(userIdentifier, policy);
                 }
             }
 
         }
 
+        // convert any access controls on ports to the appropriate policies
+        for (PortDTO portDTO : ports) {
+            final boolean isInputPort = portDTO.getType() != null && portDTO.getType().equals("inputPort");
+            final Resource resource = ResourceFactory.getDataTransferResource(isInputPort, portDTO.getId(), portDTO.getName());
+
+            if (portDTO.getUserAccessControl() != null) {
+                for (String userAccessControl : portDTO.getUserAccessControl()) {
+                    // find a user where the identity is the userAccessControl
+                    org.apache.nifi.authorization.file.generated.User foundUser = null;
+                    for (org.apache.nifi.authorization.file.generated.User jaxbUser : authorizations.getUsers().getUser()) {
+                        if (jaxbUser.getIdentity().equals(userAccessControl)) {
+                            foundUser = jaxbUser;
+                            break;
+                        }
+                    }
+
+                    // couldn't find the user matching the access control so log a warning and skip
+                    if (foundUser == null) {
+                        logger.warn("Found port with user access control for {} but no user exists with this identity, skipping...",
+                                new Object[] {userAccessControl});
+                        continue;
+                    }
+
+                    // we found the user so create the appropriate policy and add the user to it
+                    Policy policy = getOrCreatePolicy(
+                            allPolicies,
+                            seedIdentity,
+                            resource.getIdentifier(),
+                            WRITE_CODE);
+
+                    addUserToPolicy(foundUser.getIdentifier(), policy);
+                }
+            }
+
+            if (portDTO.getGroupAccessControl() != null) {
+                for (String groupAccessControl : portDTO.getGroupAccessControl()) {
+                    // find a group where the name is the groupAccessControl
+                    org.apache.nifi.authorization.file.generated.Group foundGroup = null;
+                    for (org.apache.nifi.authorization.file.generated.Group jaxbGroup : authorizations.getGroups().getGroup()) {
+                        if (jaxbGroup.getName().equals(groupAccessControl)) {
+                            foundGroup = jaxbGroup;
+                            break;
+                        }
+                    }
+
+                    // couldn't find the group matching the access control so log a warning and skip
+                    if (foundGroup == null) {
+                        logger.warn("Found port with group access control for {} but no group exists with this name, skipping...",
+                                new Object[] {groupAccessControl});
+                        continue;
+                    }
+
+                    // we found the group so create the appropriate policy and add all the users to it
+                    Policy policy = getOrCreatePolicy(
+                            allPolicies,
+                            seedIdentity,
+                            resource.getIdentifier(),
+                            WRITE_CODE);
+
+                    addGroupToPolicy(foundGroup.getIdentifier(), policy);
+                }
+            }
+        }
+
         authorizations.getPolicies().getPolicy().addAll(allPolicies);
+    }
+
+    /**
+     * Adds the given user identifier to the policy if it doesn't already exist.
+     *
+     * @param userIdentifier a user identifier
+     * @param policy a policy to add the user to
+     */
+    private void addUserToPolicy(final String userIdentifier, final Policy policy) {
+        // determine if the user already exists in the policy
+        boolean userExists = false;
+        for (Policy.User policyUser : policy.getUser()) {
+            if (policyUser.getIdentifier().equals(userIdentifier)) {
+                userExists = true;
+                break;
+            }
+        }
+
+        // add the user to the policy if doesn't already exist
+        if (!userExists) {
+            Policy.User policyUser = new Policy.User();
+            policyUser.setIdentifier(userIdentifier);
+            policy.getUser().add(policyUser);
+        }
+    }
+
+    /**
+     * Adds the given group identifier to the policy if it doesn't already exist.
+     *
+     * @param groupIdentifier a group identifier
+     * @param policy a policy to add the user to
+     */
+    private void addGroupToPolicy(final String groupIdentifier, final Policy policy) {
+        // determine if the group already exists in the policy
+        boolean groupExists = false;
+        for (Policy.Group policyGroup : policy.getGroup()) {
+            if (policyGroup.getIdentifier().equals(groupIdentifier)) {
+                groupExists = true;
+                break;
+            }
+        }
+
+        // add the group to the policy if doesn't already exist
+        if (!groupExists) {
+            Policy.Group policyGroup = new Policy.Group();
+            policyGroup.setIdentifier(groupIdentifier);
+            policy.getGroup().add(policyGroup);
+        }
     }
 
     /**
