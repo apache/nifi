@@ -215,7 +215,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             } else {
                 // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
                 logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
-                clusterCoordinator.requestNodeDisconnect(nodeId, connectionStatus.getDisconnectCode(), connectionStatus.getDisconnectReason());
+                clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE.toString());
                 removeHeartbeat(nodeId);
             }
 
