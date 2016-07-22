@@ -22,11 +22,11 @@ Apache NiFi Team <dev@nifi.apache.org>
 What is Apache NiFi?
 --------------------
 Put simply NiFi was built to automate the flow of data between systems.  While
-the term 'dataflow' is used in a variety of contexts, we use it here 
-to mean the automated and managed flow of information between systems.  This 
-problem space has been around ever since enterprises had more than one system, 
+the term 'dataflow' is used in a variety of contexts, we use it here
+to mean the automated and managed flow of information between systems.  This
+problem space has been around ever since enterprises had more than one system,
 where some of the systems created data and some of the systems consumed data.
-The problems and solution patterns that emerged have been discussed and 
+The problems and solution patterns that emerged have been discussed and
 articulated extensively.  A comprehensive and readily consumed form is found in
 the _Enterprise Integration Patterns_ <<eip>>.
 
@@ -53,63 +53,63 @@ Laws, regulations, and policies change.  Business to business agreements change.
 Continuous improvement occurs in production::
 It is often not possible to come even close to replicating production environments in the lab.
 
-Over the years dataflow has been one of those necessary evils in an 
-architecture.  Now though there are a number of active and rapidly evolving 
-movements making dataflow a lot more interesting and a lot more vital to the 
-success of a given enterprise.  These include things like; Service Oriented 
+Over the years dataflow has been one of those necessary evils in an
+architecture.  Now though there are a number of active and rapidly evolving
+movements making dataflow a lot more interesting and a lot more vital to the
+success of a given enterprise.  These include things like; Service Oriented
 Architecture <<soa>>, the rise of the API <<api>><<api2>>, Internet of Things <<iot>>,
-and Big Data <<bigdata>>.  In addition, the level of rigor necessary for 
-compliance, privacy, and security is constantly on the rise.  Even still with 
-all of these new concepts coming about, the patterns and needs of dataflow are 
+and Big Data <<bigdata>>.  In addition, the level of rigor necessary for
+compliance, privacy, and security is constantly on the rise.  Even still with
+all of these new concepts coming about, the patterns and needs of dataflow are
 still largely the same.  The primary differences then are the scope of
-complexity, the rate of change necessary to adapt, and that at scale  
-the edge case becomes common occurrence.  NiFi is built to help tackle these 
+complexity, the rate of change necessary to adapt, and that at scale
+the edge case becomes common occurrence.  NiFi is built to help tackle these
 modern dataflow challenges.
 
 The core concepts of NiFi
 -------------------------
 
 NiFi's fundamental design concepts closely relate to the main ideas of Flow Based
-Programming <<fbp>>.  Here are some of 
+Programming <<fbp>>.  Here are some of
 the main NiFi concepts and how they map to FBP:
 [grid="rows"]
 [options="header",cols="3,3,10"]
 |===========================
 | NiFi Term | FBP Term| Description
 
-| FlowFile | Information Packet | 
+| FlowFile | Information Packet |
 A FlowFile represents each object moving through the system and for each one, NiFi
-keeps track of a map of key/value pair attribute strings and its associated 
+keeps track of a map of key/value pair attribute strings and its associated
 content of zero or more bytes.
 
-| FlowFile Processor | Black Box | 
-Processors actually perform the work.  In <<eip>> terms a processor is 
+| FlowFile Processor | Black Box |
+Processors actually perform the work.  In <<eip>> terms a processor is
 doing some combination of data routing, transformation, or mediation between
-systems.  Processors have access to attributes of a given FlowFile and its 
+systems.  Processors have access to attributes of a given FlowFile and its
 content stream.  Processors can operate on zero or more FlowFiles in a given unit of work
 and either commit that work or rollback.
 
-| Connection | Bounded Buffer | 
+| Connection | Bounded Buffer |
 Connections provide the actual linkage between processors.  These act as queues
-and allow various processes to interact at differing rates.  These queues  
+and allow various processes to interact at differing rates.  These queues
 can be prioritized dynamically and can have upper bounds on load, which enable
 back pressure.
 
-| Flow Controller | Scheduler | 
-The Flow Controller maintains the knowledge of how processes connect 
+| Flow Controller | Scheduler |
+The Flow Controller maintains the knowledge of how processes connect
 and manages the threads and allocations thereof which all processes use.  The
-Flow Controller acts as the broker facilitating the exchange of FlowFiles 
+Flow Controller acts as the broker facilitating the exchange of FlowFiles
 between processors.
 
-| Process Group | subnet | 
+| Process Group | subnet |
 A Process Group is a specific set of processes and their connections, which can
-receive data via input ports and send data out via output ports.  In 
+receive data via input ports and send data out via output ports.  In
 this manner, process groups allow creation of entirely new components simply by
 composition of other components.
 
 |===========================
 
-This design model, also similar to <<seda>>, provides many beneficial consequences that help NiFi 
+This design model, also similar to <<seda>>, provides many beneficial consequences that help NiFi
 to be a very effective platform for building powerful and scalable dataflows.
 A few of these benefits include:
 
@@ -138,7 +138,7 @@ Extensions::
 There are various types of NiFi extensions which are described in other documents.  The key point here is that extensions operate and execute within the JVM.
 
 FlowFile Repository::
-The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log located on a specified disk partition. 
+The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log located on a specified disk partition.
 
 Content Repository::
 The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism, which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
@@ -150,45 +150,44 @@ NiFi is also able to operate within a cluster.
 
 image::zero-master-cluster.png["NiFi Cluster Architecture Diagram"]
 
-Starting with the NiFi 1.0 release, NiFi employs a Zero-Master Clustering paradigm. Each of the nodes in a NiFi cluster performs the same tasks on the data but each operates on a different set of data. Apache ZooKeeper elects one of the nodes as the Cluster Coordinator, and failover is handled automatically by ZooKeeper. All cluster nodes report heartbeat and status information to the Cluster Coordinator. The Cluster Coordinator is responsible for disconnecting and connecting nodes. As a DataFlow manager, you can interact with the NiFi cluster through the UI of any node in the cluster. Any change you make is replicated to all nodes in the cluster, allowing for multiple entry points to the cluster. 
-
+Starting with the NiFi 1.0 release, a Zero-Master Clustering paradigm is employed. Each node in a NiFi cluster performs the same tasks on the data, but each operates on a different set of data. Apache ZooKeeper elects a single node as the Cluster Coordinator, and failover is handled automatically by ZooKeeper. All cluster nodes report heartbeat and status information to the Cluster Coordinator. The Cluster Coordinator is responsible for disconnecting and connecting nodes. Additionally, every cluster has one Primary Node, also elected by ZooKeeper. As a DataFlow manager, you can interact with the NiFi cluster through the user interface (UI) of any node. Any change you make is replicated to all nodes in the cluster, allowing for multiple entry points.
 
 Performance Expectations and Characteristics of NiFi
 ----------------------------------------------------
 NiFi is designed to fully leverage the capabilities of the underlying host system
 on which it is operating.  This maximization of resources is particularly strong with
-regard to CPU and disk.  For additional details, see the best practices and configuration tips in the Administration Guide. 
+regard to CPU and disk.  For additional details, see the best practices and configuration tips in the Administration Guide.
 
 For IO::
 The throughput or latency
 one can expect to see varies greatly, depending on how the system is configured.  Given
-that there are pluggable approaches to most of the major NiFi subsystems, 
+that there are pluggable approaches to most of the major NiFi subsystems,
 performance depends on the implementation.  But, for something concrete and broadly
 applicable, consider the out-of-the-box default implementations.
-These are all persistent with guaranteed delivery and do so using local disk.  So 
-being conservative, assume roughly 50 MB per second read/write rate on modest disks or RAID volumes 
-within a typical server.  NiFi for a large class of dataflows then should be able to 
+These are all persistent with guaranteed delivery and do so using local disk.  So
+being conservative, assume roughly 50 MB per second read/write rate on modest disks or RAID volumes
+within a typical server.  NiFi for a large class of dataflows then should be able to
 efficiently reach 100 MB per second or more of throughput.  That is because linear growth
-is expected for each physical partition and content repository added to NiFi.  This will 
-bottleneck at some point on the FlowFile repository and provenance repository.  
-We plan to provide a benchmarking and performance test template to 
-include in the build, which allows users to easily test their system and 
-to identify where bottlenecks are, and at which point they might become a factor.  This template 
+is expected for each physical partition and content repository added to NiFi.  This will
+bottleneck at some point on the FlowFile repository and provenance repository.
+We plan to provide a benchmarking and performance test template to
+include in the build, which allows users to easily test their system and
+to identify where bottlenecks are, and at which point they might become a factor.  This template
 should also make it easy for system administrators to make changes and to verify the impact.
 
 For CPU::
 The Flow Controller acts as the engine dictating when a particular processor is
 given a thread to execute.  Processors are written to return the thread
-as soon as they are done executing a task.  The Flow Controller can be given a 
+as soon as they are done executing a task.  The Flow Controller can be given a
 configuration value indicating available threads for the various
-thread pools it maintains.  The ideal number of threads to use depends on the 
+thread pools it maintains.  The ideal number of threads to use depends on the
 host system resources in terms of numbers of cores, whether that system is
 running other services as well, and the nature of the processing in the flow.  For
 typical IO-heavy flows, it is reasonable to make many dozens of threads
 to be available.
 
 For RAM::
-NiFi lives within the JVM and is thus limited to the memory space it 
+NiFi lives within the JVM and is thus limited to the memory space it
 is afforded by the JVM.  JVM garbage collection becomes a very important
 factor to both restricting the total practical heap size, as well as optimizing
 how well the application runs over time. NiFi jobs can be I/O intensive when reading the same content regularly. Configure a large enough disk to optimize performance.
@@ -200,12 +199,12 @@ This sections provides a 20,000 foot view of NiFi's cornerstone fundamentals, so
 Flow Management::
     Guaranteed Delivery;;
         A core philosophy of NiFi has been that even at very high scale, guaranteed delivery
-        is a must.  This is achieved through effective use of a purpose-built persistent 
+        is a must.  This is achieved through effective use of a purpose-built persistent
         write-ahead log and content repository.  Together they are designed in such a way
         as to allow for very high transaction rates, effective load-spreading, copy-on-write,
         and play to the strengths of traditional disk read/writes.
     Data Buffering w/ Back Pressure and Pressure Release;;
-        NiFi supports buffering of all queued data as well as the ability to 
+        NiFi supports buffering of all queued data as well as the ability to
         provide back pressure as those queues reach specified limits or to age off data
         as it reaches a specified age (its value has perished).
     Prioritized Queuing;;
@@ -226,7 +225,7 @@ Ease of Use::
         it does so in real-time.  Rather than being 'design and deploy' it is much more like
         molding clay.  If you make a change to the dataflow that change immediately takes effect.  Changes
         are fine-grained and isolated to the affected components.  You don't need to stop an entire
-        flow or set of flows just to make some specific modification. 
+        flow or set of flows just to make some specific modification.
     Flow Templates;;
         Dataflows tend to be highly pattern oriented and while there are often many different
         ways to solve a problem, it helps greatly to be able to share those best practices.  Templates
@@ -235,41 +234,41 @@ Ease of Use::
     Data Provenance;;
         NiFi automatically records, indexes, and makes available provenance data as
         objects flow through the system even across fan-in, fan-out, transformations, and
-        more.  This information becomes extremely critical in supporting compliance, 
+        more.  This information becomes extremely critical in supporting compliance,
         troubleshooting, optimization, and other scenarios.
     Recovery / Recording a rolling buffer of fine-grained history;;
         NiFi's content repository is designed to act as a rolling buffer of history.  Data
         is removed only as it ages off the content repository or as space is needed.  This
         combined with the data provenance capability makes for an incredibly useful basis
-        to enable click-to-content, download of content, and replay, all at a specific 
+        to enable click-to-content, download of content, and replay, all at a specific
         point in an object's lifecycle which can even span generations.
 
 Security::
     System to System;;
         A dataflow is only as good as it is secure.  NiFi at every point in a dataflow offers secure
         exchange through the use of protocols with encryption such as 2-way SSL.  In addition
-        NiFi enables the flow to encrypt and decrypt content and use shared-keys or other mechanisms on 
+        NiFi enables the flow to encrypt and decrypt content and use shared-keys or other mechanisms on
         either side of the sender/recipient equation.
     User to System;;
         NiFi enables 2-Way SSL authentication and provides pluggable authorization so that it can properly control
-        a user's access and at particular levels (read-only, dataflow manager, admin).  If a user enters a 
+        a user's access and at particular levels (read-only, dataflow manager, admin).  If a user enters a
         sensitive property like a password into the flow, it is immediately encrypted server side and never again exposed
         on the client side even in its encrypted form.
     Multi-tenant Authorization;;
-        The authority level of a given dataflow applies to each component, allowing the admin user to have fine grained level of access control. This means each NiFi cluster is capable of handling the requirements of one or more organizations. Compared to isolated topologies, multi-tenant authorization enables a self-service model for dataflow management, allowing each team or organization to manage flows with a full awareness of the rest of the flow, to which they do not have access. 
-    
-    
+        The authority level of a given dataflow applies to each component, allowing the admin user to have fine grained level of access control. This means each NiFi cluster is capable of handling the requirements of one or more organizations. Compared to isolated topologies, multi-tenant authorization enables a self-service model for dataflow management, allowing each team or organization to manage flows with a full awareness of the rest of the flow, to which they do not have access.
+
+
 
 Extensible Architecture::
     Extension;;
         NiFi is at its core built for extension and as such it is a platform on which dataflow processes can execute and interact in a predictable and repeatable manner. Points of extension include: processors, Controller Services, Reporting Tasks, Prioritizers, and Customer User Interfaces.
     Classloader Isolation;;
         For any component-based system, dependency problems can quickly occur.  NiFi addresses this by providing a custom class loader model,
-        ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result, extensions can be built with little concern for whether 
-        they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and is discussed in greater detail 
+        ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result, extensions can be built with little concern for whether
+        they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and is discussed in greater detail
         in the Developer's Guide.
     Site-to-Site Communication Protocol;;
-        The preferred communication protocol between NiFi instances is the NiFi Site-to-Site (S2S) Protocol. S2S makes it easy to transfer data from one NiFi instance to another easily, efficiently, and securely. NiFi client libraries can be easily built and bundled into other applications or devices to communicate back to NiFi via S2S. Both the socket based protocol and HTTP(S) protocol are supported in S2S as the underlying transport protocol, making it possible to embed a proxy server into the S2S communication. 
+        The preferred communication protocol between NiFi instances is the NiFi Site-to-Site (S2S) Protocol. S2S makes it easy to transfer data from one NiFi instance to another easily, efficiently, and securely. NiFi client libraries can be easily built and bundled into other applications or devices to communicate back to NiFi via S2S. Both the socket based protocol and HTTP(S) protocol are supported in S2S as the underlying transport protocol, making it possible to embed a proxy server into the S2S communication.
 
 Flexible Scaling Model::
     Scale-out (Clustering);;
@@ -280,10 +279,10 @@ Flexible Scaling Model::
         about loading, and to exchange data on specific authorized ports.
     Scale-up & down;;
         NiFi is also designed to scale-up and down in a very flexible manner. In terms of increasing throughput from the standpoint of the NiFi framework, it is possible to increase the number of concurrent tasks on the processor under the Scheduling tab when configuring. This allows more processes to execute simultaneously, providing greater throughput. On the other side of the spectrum, you can perfectly scale NiFi down to be suitable to run on edge devices where a small footprint is desired due to limited hardware resources. To specifically solve the first mile data collection challenge and edge use cases, you can find more details here: https://cwiki.apache.org/confluence/display/NIFI/MiNiFi regarding a child project effort of Apache NiFi, MiNiFi (pronounced "minify", [min-uh-fahy]).
-    
 
-    
-    
+
+
+
 References
 ----------
 [bibliography]
@@ -295,4 +294,3 @@ References
 - [[[bigdata]]] Wikipedia.  Big Data [online].  Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Big_data
 - [[[fbp]]] Wikipedia.  Flow Based Programming [online].  Retrieved: 28 Dec 2014, from: http://en.wikipedia.org/wiki/Flow-based_programming#Concepts
 - [[[seda]]] Matt Welsh.  Harvard.  SEDA: An Architecture for Highly Concurrent Server Applications [online].  Retrieved: 28 Dec 2014, from: http://www.eecs.harvard.edu/~mdw/proj/seda/
-
