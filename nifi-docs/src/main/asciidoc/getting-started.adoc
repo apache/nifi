@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 Who is This Guide For?
 ----------------------
 
-This guide is written for user who have never used, have had limited exposure to, or only accomplished specific tasks within NiFi.
+This guide is written for users who have never used, have had limited exposure to, or only accomplished specific tasks within NiFi.
 This guide is not intended to be an exhaustive instruction manual or a reference guide. The
 link:user-guide.html[User Guide] provides a great deal of information
 and is intended to be a much more exhaustive resource and is very useful as a reference guide, as well.
@@ -62,15 +62,15 @@ Downloading and Installing NiFi
 -------------------------------
 
 NiFi can be downloaded from the link:http://nifi.apache.org/download.html[NiFi Downloads Page]. There are two packaging options
-available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OSX users
+available: a "tarball" that is tailored more to Linux and a zip file that is more applicable for Windows users. Mac OS X users
 may also use the tarball or can install via Homebrew.
 
 To install via Homebrew, simply run the command `brew install nifi`.
 
-For users who are not running OSX or do not have Homebrew installed, after downloading the version of NiFi that you
+For users who are not running OS X or do not have Homebrew installed, after downloading the version of NiFi that you
 would like to use simply extract the archive to the location that you wish to run the application from.
 
-For information on how to configure the instance of NiFi (for instance, to configure security, data storage
+For information on how to configure the instance of NiFi (for example, to configure security, data storage
 configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
 
 
@@ -89,9 +89,9 @@ This will launch NiFi and leave it running in the foreground. To shut down NiFi,
 was launched and hold the Ctrl key while pressing C.
 
 
-=== For Linux/Mac OSX users
+=== For Linux/Mac OS X users
 
-For Linux and OSX users, use a Terminal window to navigate to the directory where NiFi was installed.
+For Linux and OS X users, use a Terminal window to navigate to the directory where NiFi was installed.
 To run NiFi in the foreground, run `bin/nifi.sh run`. This will leave the application running until
 the user presses Ctrl-C. At that time, it will initiate shutdown of the application.
 
@@ -102,7 +102,7 @@ NiFi can be shutdown by executing the command `bin/nifi.sh stop`.
 
 === Installing as a Service
 
-Currently, installing NiFi as a service is supported only for Linux and Mac OSX users. To install the application
+Currently, installing NiFi as a service is supported only for Linux and Mac OS X users. To install the application
 as a service, navigate to the installation directory in a Terminal window and execute the command `bin/nifi.sh install`
 to install the service with the default name `nifi`. To specify a custom name for the service, execute the command
 with an optional second argument that is the name of the service. For example, to install NiFi as a service with the
@@ -124,9 +124,13 @@ This will bring up the User Interface, which at this point is a blank canvas for
 
 image:new-flow.png["New Flow"]
 
-Near the top of the UI are a few toolbars that will be very important to create your first dataflow:
+The UI has multiple tools to create and manage your first dataflow:
 
 image:nifi-toolbar-components.png["Toolbar Components"]
+
+The Global Menu contains the following options:
+
+image:global-menu.png["Global Menu"]
 
 
 === Adding a Processor
@@ -138,7 +142,7 @@ background) and drop it there. This will give us a dialog that allows us to choo
 image:add-processor.png["Add Processor"]
 
 We have quite a few options to choose from. For the sake of becoming oriented with the system, let's say that we
-just want to bring in files from our local disk into NiFi. When a developer creates a Processor, the developer can 
+just want to bring in files from our local disk into NiFi. When a developer creates a Processor, the developer can
 assign "tags" to that Processor. These can be thought of as keywords. We can filter by these tags or by Processor
 name by typing into the Filter box in the top-right corner of the dialog. Type in the keywords that you would think
 of when wanting to ingest files from a local disk. Typing in keyword "file", for instance, will provide us a few
@@ -216,12 +220,12 @@ the Processor that is bringing data into the system will eventually experience t
 data so that our system has the ability to recover.
 
 Finally, we have the Prioritizers on the right-hand side. This allows us to control how the data in this queue is ordered.
-We can drag Prioritizers from the "Available prioritizers" list to the "Selected prioritizers" list in order to active
+We can drag Prioritizers from the "Available prioritizers" list to the "Selected prioritizers" list in order to activate
 the prioritizer. If multiple prioritizers are activated, they will be evaluated such that the Prioritizer listed first
-will be evaluated first and if two FlowFiles are determined to be equal according to that Prioritizers, the second Prioritizer
+will be evaluated first and if two FlowFiles are determined to be equal according to that Prioritizer, the second Prioritizer
 will be used.
 
-For the sake of this discussion, we can simply click `Add`. to add the Connection to our graph. We should now see that the Alert 
+For the sake of this discussion, we can simply click `Add` to add the Connection to our graph. We should now see that the Alert
 icon has changed to a Stopped icon (
 image:iconStop.png[Stopped]
 ). The LogAttribute Processor, however, is now invalid because its `success` Relationship has not been connected to
@@ -237,21 +241,21 @@ At this point, we have two Processors on our graph, but nothing is happening. In
 click on each one individually and then right-click and choose the `Start` menu item. Alternatively, we can select the first
 Processor, and then hold the Shift key while selecting the other Processor in order to select both. Then, we can
 right-click and choose the `Start` menu item. As an alternative to using the context menu, we can select the Processors and
-then click the Start icon in the toolbar at the top of the screen.
+then click the Start icon in the Operate palette.
 
 Once started, the icon in the top-left corner of the Processors will change from a stopped icon to a running icon. We can then
-stop the Processors by using the Stop icon in the toolbar or the `Stop` menu item.
+stop the Processors by using the Stop icon in the Operate palette or the `Stop` menu item.
 
 Once a Processor has started, we are not able to configure it anymore. Instead, when we right-click on the Processor, we are
 given the option to view its current configuration. In order to configure a Processor, we must first stop the Processor and
-wait for any tasks that may be executing to finish. The number of tasks currently executing is shown in the top-right
+wait for any tasks that may be executing to finish. The number of tasks currently executing is shown near the top-right
 corner of the Processor, but nothing is shown there if there are currently no tasks.
 
 
 === Getting More Info for a Processor
 
-With each Processor having the ability to expose multiple different Properties and Relationships, it can become quite
-difficult to remember how all of the different pieces work for each Processor. To address this, you are able to right-click
+With each Processor having the ability to expose multiple different Properties and Relationships, it can be challenging
+to remember how all of the different pieces work for each Processor. To address this, you are able to right-click
 on a Processor and choose the `Usage` menu item. This will provide you with the Processor's usage information, such as a
 description of the Processor, the different Relationships that are available, when the different Relationships are used,
 Properties that are exposed by the Processor and their documentation, as well as which FlowFile Attributes (if any) are
@@ -285,7 +289,7 @@ categorizing them by their functions.
 - *EncryptContent*: Encrypt or Decrypt Content
 - *ReplaceText*: Use Regular Expressions to modify textual Content
 - *TransformXml*: Apply an XSLT transform to XML Content
-- *TransformJSON*: Apply a JOLT specification to transform JSON Content
+- *JoltTransformJSON*: Apply a JOLT specification to transform JSON Content
 
 === Routing and Mediation
 - *ControlRate*: Throttle the rate at which data can flow through one part of the flow
@@ -458,8 +462,8 @@ carried along with the content.
 
 Each FlowFile has a minimum set of Attributes:
 
-	- *filename*: A filename that can be used to store the data to a local or remote file system
-	- *path*: The name of a directory that can be used to store the data to a local or remote file system
+	- *filename*: A filename that can be used to store the data to a local or remote file system.
+	- *path*: The name of a directory that can be used to store the data to a local or remote file system.
 	- *uuid*: A Universally Unique Identifier that distinguishes the FlowFile from other FlowFiles in the system.
 	- *entryDate*: The date and time at which the FlowFile entered the system (i.e., was created). The value of this
 		attribute is a number that represents the number of milliseconds since midnight, Jan. 1, 1970 (UTC).
@@ -529,7 +533,7 @@ As we extract Attributes from FlowFiles' contents and add user-defined Attribute
 we have some mechanism by which we can use them. The NiFi Expression Language allows us to access and manipulate FlowFile Attribute
 values as we configure our flows. Not all Processor properties allow the Expression Language to be used, but many do. In order to
 determine whether or not a property supports the Expression Language, a user can hover over the Help icon (
-icon:iconInfo.png["Help"]
+image:iconInfo.png["Help"]
 ) in the Properties tab of the Processor Configure dialog. This will provide a tooltip that shows a description of the property, the
 default value, if any, and whether or not the property supports the Expression Language.
 
@@ -551,7 +555,7 @@ the value of the `attr2` Attribute, we can do this with the following expression
 
 The Expression Language contains many different functions that can be used in order to perform the tasks needed for routing and manipulating
 Attributes. Functions exist for parsing and manipulating strings, comparing string and numeric values, manipulating and replacing values,
-and comparing values. A full explanation of the different functions available is out of scope of this document, but the
+and comparing values. A full explanation of the different functions available is out of the scope of this document, but the
 link:expression-language-guide.html[Expression Language Guide] provides far greater detail for each of the functions.
 
 In addition, this Expression Language guide is built in to the application so that users are able to easily see which functions are available
@@ -573,21 +577,25 @@ A template can be thought of as a reusable sub-flow. To create a template, follo
 	while dragging a box around the desired components on the canvas.
 - Select the Create Template Icon (
 	image:iconNewTemplate.png[New Template Icon]
-	) from the middle toolbar at the top of the screen.
-- Provide a name and optionally comments about the template.
+	) from the Operate palette.
+- Provide a name and optionally a description for the template.
 - Click the `Create` button.
 
 Once we have created a template, we can now use it as a building block in our flow, just as we would a Processor. To do this, we will
-click and drag the Template icon from the left-most toolbar onto our canvas. We can then choose the template that we would like to add
-or our canvas and click the `Add` button.
+click and drag the Template icon (
+	image:iconTemplate.png[Template]
+	) from the Component toolbar onto our canvas. We can then choose the template that we would like to add
+to our canvas and click the `Add` button.
 
-Finally, we have the ability to manage our templates by using the Template Management dialog. To access this dialog, click the Template
-icon in the top-right toolbar. From here, we can see which templates exist and filter the templates to find the templates of interest.
-On the right-hand side of the table is icon to Export, or Download, the template as an XML file. This can then be provided to others so
+Finally, we have the ability to manage our templates by using the Template Management dialog. To access this dialog, select Templates
+from the Global Menu. From here, we can see which templates exist and filter the templates to find the templates of interest.
+On the right-hand side of the table is an icon to Export, or Download, the template as an XML file. This can then be provided to others so
 that they can use your template.
 
-To import a template into your NiFi instance, click the `Browse` button in the top-right corner of the dialog and navigate to the file on
-your computer. Then click the `Import` button. The template will now show up in your table, and you can drag it onto your canvas as you would
+To import a template into your NiFi instance, select the Upload Template icon (
+	image:iconUploadTemplate.png[Upload Template]
+	) from the Operator palette, click the Search Icon and navigate to the file on
+your computer. Then click the `Upload` button. The template will now show up in your table, and you can drag it onto your canvas as you would
 any other template that you have created.
 
 There are a few important notes to remember when working with templates:
@@ -605,7 +613,7 @@ your system.
 
 === Status Bar
 
-Near the top of the NiFi screen is a blue bar that is referred to as the Status Bar. It contains a few important statistics about the current
+Near the top of the NiFi screen under the Component toolbar is a bar that is referred to as the Status Bar. It contains a few important statistics about the current
 health of NiFi. The number of Active Threads can indicate how hard NiFi is currently working, and the Queued stat indicates how many FlowFiles
 are currently queued across the entire flow, as well as the total size of those FlowFiles.
 
@@ -626,7 +634,7 @@ In order to see this information, we can right-click on a component and choose t
 the time since NiFi was started, or up to 24 hours, whichever is less. The amount of time that is shown here can be extended or reduced
 by changing the configuration in the properties file.
 
-In the top-right corner is a drop-down that allows the user to select which metric they are viewing. The graph on the bottom allows the
+In the top-right corner of this dialog is a drop-down that allows the user to select which metric they are viewing. The graph on the bottom allows the
 user to select a smaller portion of the graph to zoom in.
 
 
@@ -634,15 +642,14 @@ user to select a smaller portion of the graph to zoom in.
 
 In addition to the statistics provided by each component, a user will want to know if any problems occur. While we could monitor the
 logs for anything interesting, it is much more convenient to have notifications pop up on the screen. If a Processor logs
-anything as a WARNING or ERROR, we will see a "Bulletin Indicator" show up in the top-left-hand corner of the Processor. This indicator
+anything as a WARNING or ERROR, we will see a "Bulletin Indicator" show up in the top-right-hand corner of the Processor. This indicator
 looks like a sticky note and will be shown for five minutes after the event occurs. Hovering over the bulletin provides information about
 what happened so that the user does not have to sift through log messages to find it. If in a cluster, the bulletin will also indicate which
 node in the cluster emitted the bulletin. We can also change the log level at which bulletins will occur in the Settings tab of the Configure
 dialog for a Processor.
 
-If the framework emits a bulletin, we will also see this bulletin indicator occur in the Status Bar at the top of the screen.
-The right-most icon in the NiFi Toolbar is the Bulletin Board icon. Clicking this icon will take us to the bulletin board where
-we can see all bulletins that occur across the NiFi instance and can filter based on the component, the message, etc.
+If the framework emits a bulletin, we will also see a bulletin indicator highlighted at the top-right of the screen.
+In the Global Menu is a Bulletin Board option. Clicking this option will take us to the bulletin board where we can see all bulletins that occur across the NiFi instance and can filter based on the component, the message, etc.
 
 
 Data Provenance
@@ -650,8 +657,7 @@ Data Provenance
 
 NiFi keeps a very granular level of detail about each piece of data that it ingests. As the data is processed through
 the system and is transformed, routed, split, aggregated, and distributed to other endpoints, this information is
-all stored within NiFi's Provenance Repository. In order to search and view this information, we can click the Data Provenance icon (
-image:iconProvenance.png[Data Provenance, width=28]) in the top-right corner of the canvas. This will provide us a table that lists
+all stored within NiFi's Provenance Repository. In order to search and view this information, we can select Data Provenance from the Global Menu. This will provide us a table that lists
 the Provenance events that we have searched for:
 
 image:provenance-table.png[Provenance Table]
@@ -696,7 +702,11 @@ of the FlowFile, we will see the 'before' and 'after' content claims. We are the
 content within NiFi itself, if the data format is one that NiFi understands how to render.
 
 Additionally, in the Replay section of the tab, there is a 'Submit' button that allows the user to re-insert the FlowFile into the flow and re-process it from exactly the point
-at which the event happened. This provides a very powerful mechanism, as we are able to modify our flow in real time, re-process a FlowFile,
+at which the event happened.
+
+image:event-content-replay.png[Event Content Replay]
+
+This provides a very powerful mechanism, as we are able to modify our flow in real time, re-process a FlowFile,
 and then view the results. If they are not as expected, we can modify the flow again, and re-process the FlowFile again. We are able to perform
 this iterative development of the flow until it is processing the data exactly as intended.
 
@@ -730,13 +740,13 @@ addition to this Getting Started Guide:
 
 - link:overview.html[Apache NiFi Overview] - Provides an overview of what Apache NiFi is, what it does, and why it was created.
 - link:user-guide.html[Apache NiFi User Guide] - A fairly extensive guide that is often used more as a Reference Guide, as it has pretty
-  lengthy in discussing all of the different components that comprise the application. This guide is written with the NiFi Operator as its
+  lengthy discussions of all of the different components that comprise the application. This guide is written with the NiFi Operator as its
 	audience. It provides information on each of the different components available in NiFi and explains how to use the different features
 	provided by the application.
 - link:administration-guide.html[Administration Guide] - A guide for setting up and administering Apache NiFi for production environments.
   This guide provides information about the different system-level settings, such as setting up clusters of NiFi and securing access to the
 	web UI and data.
-- link:expression-language-guide.html[Express Language Guide] - A far more exhaustive guide for understanding the Expression Language than
+- link:expression-language-guide.html[Expression Language Guide] - A far more exhaustive guide for understanding the Expression Language than
   is provided above. This guide is the definitive documentation for the NiFi Expression Language. It provides an introduction to the EL
 	and an explanation of each function, its arguments, and return types as well as providing examples.
 - link:developer-guide.html[Developer's Guide] - While not an exhaustive guide to All Things NiFi Development, this guide does provide a
