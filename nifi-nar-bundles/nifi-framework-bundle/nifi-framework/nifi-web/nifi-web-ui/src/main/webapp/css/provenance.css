@@ -177,7 +177,6 @@ div.searchable-field-value {
 div.flowfile-container {
     width: 282px;
     overflow: auto;
-    padding: 0px 5px;
     color: #775351;
     font-size: 13px;
     font-weight: 500;

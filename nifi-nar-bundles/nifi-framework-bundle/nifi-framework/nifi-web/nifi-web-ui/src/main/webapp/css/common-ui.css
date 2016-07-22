@@ -150,7 +150,7 @@ ul.links span.header-link-over {
 }
 
 .blank, .unset, .sensitive {
-    font-weight: normal;
+    font-weight: normal !important;
     color: #a8a8a8 !important;
 }
 
