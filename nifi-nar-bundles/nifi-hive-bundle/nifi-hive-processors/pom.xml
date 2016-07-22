@@ -26,8 +26,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <hive.version>2.0.1</hive.version>
-        <orc.version>1.1.2</orc.version>
+        <hive.version>1.2.1</hive.version>
     </properties>
 
 
@@ -140,11 +139,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.apache.orc</groupId>
-            <artifactId>orc-core</artifactId>
-            <version>${orc.version}</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-streaming</artifactId>
             <version>${hive.version}</version>
@@ -167,6 +161,10 @@
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
             <version>${hive.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
