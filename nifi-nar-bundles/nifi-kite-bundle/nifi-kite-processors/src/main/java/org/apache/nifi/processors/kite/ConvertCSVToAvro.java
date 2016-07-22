@@ -73,12 +73,12 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             // Allows special, escaped characters as input, which is then unescaped and converted to a single character.
             // Examples for special characters: \t (or \u0009), \f.
             input = unescapeString(input);
-
+            
             return new ValidationResult.Builder()
                 .subject(subject)
                 .input(input)
                 .explanation("Only non-null single characters are supported")
-                .valid(input.length() == 1 && input.charAt(0) != 0)
+                .valid((input.length() == 1 && input.charAt(0) != 0) || context.isExpressionLanguagePresent(input))
                 .build();
         }
     };
@@ -112,6 +112,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("CSV charset")
         .description("Character set for CSV files")
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+        .expressionLanguageSupported(true)
         .defaultValue(DEFAULTS.charset)
         .build();
 
@@ -120,6 +121,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("CSV delimiter")
         .description("Delimiter character for CSV records")
         .addValidator(CHAR_VALIDATOR)
+        .expressionLanguageSupported(true)
         .defaultValue(DEFAULTS.delimiter)
         .build();
 
@@ -128,6 +130,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("CSV quote character")
         .description("Quote character for CSV values")
         .addValidator(CHAR_VALIDATOR)
+        .expressionLanguageSupported(true)
         .defaultValue(DEFAULTS.quote)
         .build();
 
@@ -136,6 +139,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("CSV escape character")
         .description("Escape character for CSV values")
         .addValidator(CHAR_VALIDATOR)
+        .expressionLanguageSupported(true)
         .defaultValue(DEFAULTS.escape)
         .build();
 
@@ -144,6 +148,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("Use CSV header line")
         .description("Whether to use the first line as a header")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .expressionLanguageSupported(true)
         .defaultValue(String.valueOf(DEFAULTS.useHeader))
         .build();
 
@@ -152,6 +157,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .name("Lines to skip")
         .description("Number of lines to skip before reading header or data")
         .addValidator(createLongValidator(0L, Integer.MAX_VALUE, true))
+        .expressionLanguageSupported(true)
         .defaultValue(String.valueOf(DEFAULTS.linesToSkip))
         .build();
 
@@ -172,10 +178,6 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         .add(INCOMPATIBLE)
         .build();
 
-    // Immutable configuration
-    @VisibleForTesting
-    volatile CSVProperties props;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -189,15 +191,6 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
     @OnScheduled
     public void createCSVProperties(ProcessContext context) throws IOException {
         super.setDefaultConfiguration(context);
-
-        this.props = new CSVProperties.Builder()
-            .charset(context.getProperty(CHARSET).getValue())
-            .delimiter(context.getProperty(DELIMITER).getValue())
-            .quote(context.getProperty(QUOTE).getValue())
-            .escape(context.getProperty(ESCAPE).getValue())
-            .hasHeader(context.getProperty(HAS_HEADER).asBoolean())
-            .linesToSkip(context.getProperty(LINES_TO_SKIP).asInteger())
-            .build();
     }
 
     @Override
@@ -208,6 +201,15 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             return;
         }
 
+        CSVProperties props = new CSVProperties.Builder()
+                .charset(context.getProperty(CHARSET).evaluateAttributeExpressions(incomingCSV).getValue())
+                .delimiter(context.getProperty(DELIMITER).evaluateAttributeExpressions(incomingCSV).getValue())
+                .quote(context.getProperty(QUOTE).evaluateAttributeExpressions(incomingCSV).getValue())
+                .escape(context.getProperty(ESCAPE).evaluateAttributeExpressions(incomingCSV).getValue())
+                .hasHeader(context.getProperty(HAS_HEADER).evaluateAttributeExpressions(incomingCSV).asBoolean())
+                .linesToSkip(context.getProperty(LINES_TO_SKIP).evaluateAttributeExpressions(incomingCSV).asInteger())
+                .build();
+        
         String schemaProperty = context.getProperty(SCHEMA)
             .evaluateAttributeExpressions(incomingCSV)
             .getValue();
