@@ -353,6 +353,7 @@ input.filter {
 
 .filter-type {
     float: left;
+    width: 148px;
 }
 
 .filter-status {
