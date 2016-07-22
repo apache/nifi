@@ -123,10 +123,11 @@ div.policy-selected-component-type-icon i.icon {
     font-size: 28px;
     font-family: flowfont;
     color: #ad9897;
+    margin-left: 2px;
 }
 
 div.policy-selected-component-name {
-    height: 14px;
+    height: 16px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
@@ -140,7 +141,6 @@ div.policy-selected-component-type {
     font-size: 12px;
     font-family: Roboto;
     color: #728e9b;
-    margin-top: 3px;
 }
 
 /*
