@@ -79,7 +79,7 @@
  *          "fullscreen-height": "420px", //optional, default is original dialog height (accepts 'px' values)
  *          "fullscreen-width": "470px", //optional, default is original dialog width (accepts 'px' values)
  *      },
- *      "glasspane": "false" //optional, displays a modal glasspane behind the dialog...default true
+ *      "glasspane": "#728E9B" //optional, set the color of modal glasspane...default if unset is the dialog header color
  *  }
  *
  * @argument {jQuery} $
@@ -470,23 +470,23 @@
                 nfDialog = dialog.data('nf-dialog');
             }
 
-            // determine if dialog needs a glass pane overlay
-            var hasGlasspane;
+            var glasspane;
             if (isDefinedAndNotNull(nfDialog.glasspane)) {
-                hasGlasspane = nfDialog.glasspane;
+                glasspane = nfDialog.glasspane;
             } else {
-                nfDialog.glasspane = hasGlasspane = true;
+                nfDialog.glasspane = glasspane = dialog.find('.dialog-header').css('background-color'); //default to header color
+                if(top !== window || !isDefinedAndNotNull(nfDialog.glasspane)) {
+                    nfDialog.glasspane = glasspane = 'transparent';
+                }
             }
 
             //create glass pane overlay
-            if(hasGlasspane && (top === window)) {
-                // build the dialog modal
-                var modalGlassMarkup = '<div data-nf-dialog-parent="' + dialog.attr('id') + '" class="modal-glass"></div>';
+            var modalGlassMarkup = '<div data-nf-dialog-parent="' +
+                dialog.attr('id') + '" class="modal-glass" style="background-color: ' + glasspane + ';"></div>';
 
-                var modalGlass = $(modalGlassMarkup);
+            var modalGlass = $(modalGlassMarkup);
 
-                modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
-            }
+            modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
 
             //persist data attribute
             dialog.data('nfDialog', nfDialog);

@@ -27,9 +27,6 @@ $(document).ready(function () {
                 $('#nf-ok-dialog-content').empty();
             }
         }
-    }).draggable({
-        containment: 'parent',
-        handle: '.dialog-header'
     });
 
     // configure the yes/no dialog
