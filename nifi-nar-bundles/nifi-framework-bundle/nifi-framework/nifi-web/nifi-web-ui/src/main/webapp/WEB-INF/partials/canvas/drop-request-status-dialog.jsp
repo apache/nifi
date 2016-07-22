@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="drop-request-status-dialog" layout="column" class="hidden large-dialog">
+<div id="drop-request-status-dialog" layout="column" class="hidden small-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-field">
