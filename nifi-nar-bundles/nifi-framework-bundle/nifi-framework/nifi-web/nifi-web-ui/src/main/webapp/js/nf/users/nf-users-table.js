@@ -530,9 +530,11 @@ nf.UsersTable = (function () {
         var actionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
-
-            markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
+            // ensure user can modify the user
+            if (nf.Common.canModifyTenants()) {
+                markup += '<div title="Edit" class="pointer edit-user fa fa-pencil" style="margin-right: 3px;"></div>';
+                markup += '<div title="Remove" class="pointer delete-user fa fa-trash"></div>';
+            }
 
             return markup;
         };
@@ -824,11 +826,17 @@ nf.UsersTable = (function () {
             initUserDeleteDialog();
             initUsersTable();
 
-            $('#new-user-button').on('click', function () {
-                buildUsersList();
-                buildGroupsList();
-                $('#user-dialog').modal('show');
-            });
+            if (nf.Common.canModifyTenants()) {
+                $('#new-user-button').on('click', function () {
+                    buildUsersList();
+                    buildGroupsList();
+                    $('#user-dialog').modal('show');
+                });
+
+                $('#new-user-button').prop('disabled', false);
+            } else {
+                $('#new-user-button').prop('disabled', true);
+            }
         },
 
         /**

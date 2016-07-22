@@ -22,18 +22,6 @@ import java.util.Objects;
 
 public final class ResourceFactory {
 
-    private final static Resource CONNECTION_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Connection.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Connection";
-        }
-    };
-
     private final static Resource CONTROLLER_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -298,15 +286,6 @@ public final class ResourceFactory {
             return "Access Policies";
         }
     };
-
-    /**
-     * Gets the Resource for accessing Connections.
-     *
-     * @return The resource for accessing connections
-     */
-    public static Resource getConnectionResource() {
-        return CONNECTION_RESOURCE;
-    }
 
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
@@ -598,30 +577,6 @@ public final class ResourceFactory {
             @Override
             public String getName() {
                 return "Provenance Events for " + resource.getName();
-            }
-        };
-    }
-
-    /**
-     * Gets a Resource fo accessing a flowfile queue for the specified connection.
-     *
-     * @param connectionIdentifier  The identifier of the connection
-     * @param connectionName        The name of the connection
-     * @return                      The resource
-     */
-    public static Resource getFlowFileQueueResource(final String connectionIdentifier, final String connectionName) {
-        Objects.requireNonNull(connectionIdentifier, "The connection identifier must be specified.");
-        Objects.requireNonNull(connectionName, "The connection name must be specified.");
-
-        return new Resource() {
-            @Override
-            public String getIdentifier() {
-                return String.format("/flowfile-queue/%s", connectionIdentifier);
-            }
-
-            @Override
-            public String getName() {
-                return connectionName + " queue";
             }
         };
     }

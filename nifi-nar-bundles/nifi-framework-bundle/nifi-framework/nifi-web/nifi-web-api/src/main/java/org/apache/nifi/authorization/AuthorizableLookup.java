@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web;
+package org.apache.nifi.authorization;
 
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.controller.Snippet;
@@ -72,7 +72,7 @@ public interface AuthorizableLookup {
      * @param id connection id
      * @return authorizable
      */
-    Authorizable getConnection(String id);
+    ConnectionAuthorizable getConnection(String id);
 
     /**
      * Get the authorizable ProcessGroup.

@@ -34,10 +34,13 @@ public class ConnectionEntity extends ComponentEntity {
     private ConnectionStatusDTO status;
     private List<PositionDTO> bends;
     private Integer labelIndex;
+    private Long zIndex;
     private String sourceId;
     private String sourceGroupId;
+    private String sourceType;
     private String destinationId;
     private String destinationGroupId;
+    private String destinationType;
 
     /**
      * @return RelationshipDTO that is being serialized
@@ -93,6 +96,20 @@ public class ConnectionEntity extends ComponentEntity {
     }
 
     /**
+     * @return z index for this connection
+     */
+    @ApiModelProperty(
+            value = "The z index of the connection."
+    )
+    public Long getzIndex() {
+        return zIndex;
+    }
+
+    public void setzIndex(Long zIndex) {
+        this.zIndex = zIndex;
+    }
+
+    /**
      * @return The identifier of the source of this connection
      */
     @ApiModelProperty(
@@ -135,6 +152,22 @@ public class ConnectionEntity extends ComponentEntity {
     }
 
     /**
+     * @return type of this source connectable component
+     */
+    @ApiModelProperty(
+            value = "The type of component the source connectable is.",
+            required = true,
+            allowableValues = "PROCESSOR, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT, INPUT_PORT, OUTPUT_PORT, FUNNEL"
+    )
+    public String getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(String sourceType) {
+        this.sourceType = sourceType;
+    }
+
+    /**
      * @return The identifier of the group of the destination of this connection
      */
     @ApiModelProperty(
@@ -146,5 +179,21 @@ public class ConnectionEntity extends ComponentEntity {
 
     public void setDestinationGroupId(String destinationGroupId) {
         this.destinationGroupId = destinationGroupId;
+    }
+
+    /**
+     * @return type of this destination connectable component
+     */
+    @ApiModelProperty(
+            value = "The type of component the destination connectable is.",
+            required = true,
+            allowableValues = "PROCESSOR, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT, INPUT_PORT, OUTPUT_PORT, FUNNEL"
+    )
+    public String getDestinationType() {
+        return destinationType;
+    }
+
+    public void setDestinationType(String destinationType) {
+        this.destinationType = destinationType;
     }
 }

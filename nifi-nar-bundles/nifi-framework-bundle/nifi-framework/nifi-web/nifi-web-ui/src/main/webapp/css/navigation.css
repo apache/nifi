@@ -145,9 +145,9 @@ div.graph-control-header-action {
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    width: 210px;
+    width: 230px;
     text-overflow: ellipsis;
-    overflow-x: hidden;
+    overflow: hidden;
     white-space: nowrap;
 }
 

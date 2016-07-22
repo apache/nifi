@@ -33,7 +33,8 @@ nf.Users = (function () {
     var config = {
         urls: {
             banners: '../nifi-api/flow/banners',
-            controllerAbout: '../nifi-api/flow/about'
+            controllerAbout: '../nifi-api/flow/about',
+            currentUser: '../nifi-api/flow/current-user'
         }
     };
 
@@ -41,9 +42,13 @@ nf.Users = (function () {
      * Loads the current users authorities.
      */
     var ensureAccess = function () {
-        return $.Deferred(function(deferred) {
-            deferred.resolve();
-        }).promise();
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.currentUser,
+            dataType: 'json'
+        }).done(function (currentUser) {
+            nf.Common.setCurrentUser(currentUser);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     var initializeUsersPage = function () {

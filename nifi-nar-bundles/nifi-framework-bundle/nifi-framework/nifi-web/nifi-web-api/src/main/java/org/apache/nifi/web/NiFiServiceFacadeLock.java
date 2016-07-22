@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web;
 
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Aspect to limit access into the core.
@@ -134,6 +135,17 @@ public class NiFiServiceFacadeLock {
     @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
             + "execution(* submit*(..))")
     public Object submitLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        writeLock.lock();
+        try {
+            return proceedingJoinPoint.proceed();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+            + "execution(* schedule*(..))")
+    public Object scheduleLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         writeLock.lock();
         try {
             return proceedingJoinPoint.proceed();

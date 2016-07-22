@@ -119,7 +119,7 @@
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
     </bean>
-    <bean id="authorizableLookup" class="org.apache.nifi.web.StandardAuthorizableLookup">
+    <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
         <property name="controllerFacade" ref="controllerFacade"/>
         <property name="processorDAO" ref="processorDAO"/>
         <property name="inputPortDAO" ref="inputPortDAO"/>

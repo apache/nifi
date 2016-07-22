@@ -31,7 +31,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.web.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -1533,20 +1533,37 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         connectionEntity.getComponent().setParentGroupId(groupId);
 
+        // get the connection
+        final ConnectionDTO connection = connectionEntity.getComponent();
+
+        if (connection.getSource() == null || connection.getSource().getId() == null) {
+            throw new IllegalArgumentException("The source of the connection must be specified.");
+        }
+
+        if (connection.getDestination() == null || connection.getDestination().getId() == null) {
+            throw new IllegalArgumentException("The destination of the connection must be specified.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, connectionEntity);
         }
-
-        // get the connection
-        final ConnectionDTO connection = connectionEntity.getComponent();
 
         // handle expects request (usually from the cluster manager)
         final boolean validationPhase = isValidationPhase(httpServletRequest);
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
+                // ensure write access to the group
                 final Authorizable processGroup = lookup.getProcessGroup(groupId);
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // ensure write access to the source
+                final Authorizable source = lookup.getConnectable(connection.getSource().getId());
+                source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // ensure write access to the destination
+                final Authorizable destination = lookup.getConnectable(connection.getDestination().getId());
+                destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {

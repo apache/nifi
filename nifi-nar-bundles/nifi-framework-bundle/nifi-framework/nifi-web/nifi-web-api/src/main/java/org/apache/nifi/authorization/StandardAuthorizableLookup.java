@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web;
+package org.apache.nifi.authorization;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.AccessPolicy;
-import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
@@ -26,12 +24,15 @@ import org.apache.nifi.authorization.resource.ProvenanceEventAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -125,8 +126,29 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getConnection(final String id) {
-        return connectionDAO.getConnection(id);
+    public ConnectionAuthorizable getConnection(final String id) {
+        final Connection connection = connectionDAO.getConnection(id);
+        return new ConnectionAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return connection;
+            }
+
+            @Override
+            public Connectable getSource() {
+                return connection.getSource();
+            }
+
+            @Override
+            public Connectable getDestination() {
+                return connection.getDestination();
+            }
+
+            @Override
+            public ProcessGroup getParentGroup() {
+                return connection.getProcessGroup();
+            }
+        };
     }
 
     @Override
@@ -288,9 +310,6 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private Authorizable getAccessPolicyByResource(final ResourceType resourceType, final String componentId) {
         Authorizable authorizable = null;
         switch (resourceType) {
-            case Connection:
-                authorizable = getConnection(componentId);
-                break;
             case ControllerService:
                 authorizable = getControllerService(componentId);
                 break;

@@ -20,10 +20,14 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.StandardFlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -42,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -103,23 +108,51 @@ public final class StandardConnection implements Connection {
 
     @Override
     public Authorizable getParentAuthorizable() {
-        return getSource();
+        return null;
     }
 
     @Override
     public Resource getResource() {
-        String name = getName();
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return "/connections/" + StandardConnection.this.getIdentifier();
+            }
 
-        final Collection<Relationship> relationships = getRelationships();
-        if (name == null && CollectionUtils.isNotEmpty(relationships)) {
-            name = StringUtils.join(relationships.stream().map(relationship -> relationship.getName()).collect(Collectors.toSet()), ", ");
+            @Override
+            public String getName() {
+                String name = StandardConnection.this.getName();
+
+                final Collection<Relationship> relationships = getRelationships();
+                if (name == null && CollectionUtils.isNotEmpty(relationships)) {
+                    name = StringUtils.join(relationships.stream().map(relationship -> relationship.getName()).collect(Collectors.toSet()), ", ");
+                }
+
+                if (name == null) {
+                    name = "Connection";
+                }
+
+                return name;
+            }
+        };
+    }
+
+    @Override
+    public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        // check the source
+        final AuthorizationResult sourceResult = getSource().checkAuthorization(authorizer, action, user, resourceContext);
+        if (Result.Denied.equals(sourceResult.getResult())) {
+            return sourceResult;
         }
 
-        if (name == null) {
-            name = "Connection";
-        }
+        // check the destination
+        return getDestination().checkAuthorization(authorizer, action, user, resourceContext);
+    }
 
-        return ResourceFactory.getComponentResource(ResourceType.Connection, getIdentifier(), name);
+    @Override
+    public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        getSource().authorize(authorizer, action, user, resourceContext);
+        getDestination().authorize(authorizer, action, user, resourceContext);
     }
 
     @Override

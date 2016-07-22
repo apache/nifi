@@ -1034,8 +1034,6 @@ nf.PolicyManagement = (function () {
 
                 if (nf.CanvasUtils.isProcessor(selection)) {
                     resource = 'processors';
-                } else if (nf.CanvasUtils.isConnection(selection)) {
-                    resource = 'connections';
                 } else if (nf.CanvasUtils.isProcessGroup(selection)) {
                     resource = 'process-groups';
                 } else if (nf.CanvasUtils.isInputPort(selection)) {
@@ -1046,6 +1044,8 @@ nf.PolicyManagement = (function () {
                     resource = 'remote-process-groups';
                 } else if (nf.CanvasUtils.isLabel(selection)) {
                     resource = 'labels';
+                } else if (nf.CanvasUtils.isFunnel(selection)) {
+                    resource = 'funnels';
                 }
 
                 // enable site to site option
