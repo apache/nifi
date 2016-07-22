@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -48,6 +49,7 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.web.revision.RevisionManager;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -336,8 +338,9 @@ public class TestNodeClusterCoordinator {
     @Test(timeout = 5000)
     public void testRequestNodeDisconnect() throws InterruptedException {
         // Add a connected node
-        final NodeIdentifier nodeId = createNodeId(1);
-        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, Collections.emptySet()));
+        final NodeIdentifier nodeId1 = createNodeId(1);
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
+        coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.CONNECTED, Collections.emptySet()));
 
         // wait for the status change message and clear it
         while (nodeStatusChangeMessages.isEmpty()) {
@@ -345,15 +348,36 @@ public class TestNodeClusterCoordinator {
         }
         nodeStatusChangeMessages.clear();
 
-        coordinator.requestNodeDisconnect(nodeId, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
-        assertEquals(NodeConnectionState.DISCONNECTED, coordinator.getConnectionStatus(nodeId).getState());
+        coordinator.requestNodeDisconnect(nodeId1, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
+        assertEquals(NodeConnectionState.DISCONNECTED, coordinator.getConnectionStatus(nodeId1).getState());
 
         while (nodeStatusChangeMessages.isEmpty()) {
             Thread.sleep(10L);
         }
         final NodeStatusChangeMessage msg = nodeStatusChangeMessages.get(0);
-        assertEquals(nodeId, msg.getNodeId());
+        assertEquals(nodeId1, msg.getNodeId());
         assertEquals(NodeConnectionState.DISCONNECTED, msg.getNodeConnectionStatus().getState());
+    }
+
+
+    @Test(timeout = 5000)
+    public void testCannotDisconnectLastNode() throws InterruptedException {
+        // Add a connected node
+        final NodeIdentifier nodeId1 = createNodeId(1);
+        coordinator.updateNodeStatus(new NodeConnectionStatus(nodeId1, NodeConnectionState.CONNECTED, Collections.emptySet()));
+
+        // wait for the status change message and clear it
+        while (nodeStatusChangeMessages.isEmpty()) {
+            Thread.sleep(10L);
+        }
+        nodeStatusChangeMessages.clear();
+
+        try {
+            coordinator.requestNodeDisconnect(nodeId1, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
+            Assert.fail("Expected an IllegalNodeDisconnectionException when trying to disconnect last node but it wasn't thrown");
+        } catch (final IllegalNodeDisconnectionException inde) {
+            // expected
+        }
     }
 
 
