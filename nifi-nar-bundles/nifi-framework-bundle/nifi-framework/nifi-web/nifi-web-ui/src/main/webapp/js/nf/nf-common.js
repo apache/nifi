@@ -531,9 +531,9 @@ nf.Common = (function () {
          */
         populateField: function (target, value) {
             if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                return $('#' + target).addClass('unset').text('No value set');
+                return $('#' + target).addClass('unset').text('No value previously set');
             } else if (value === '') {
-                return $('#' + target).addClass('blank').text('Empty string set');
+                return $('#' + target).addClass('blank').text('Empty string previously set');
             } else {
                 return $('#' + target).text(value);
             }
@@ -623,12 +623,12 @@ nf.Common = (function () {
         formatValue: function (value) {
             if (nf.Common.isDefinedAndNotNull(value)) {
                 if (value === '') {
-                    return '<span class="blank">Empty string set</span>';
+                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string previously set</span>';
                 } else {
                     return nf.Common.escapeHtml(value);
                 }
             } else {
-                return '<span class="unset">No value set</span>';
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value previously set</span>';
             }
         },
 
@@ -1023,10 +1023,10 @@ nf.Common = (function () {
             if (!nf.Common.isDefinedAndNotNull(rawDateTime)) {
                 return new Date();
             }
-            if (rawDateTime === 'No value set') {
+            if (rawDateTime === 'No value previously set') {
                 return new Date();
             }
-            if (rawDateTime === 'Empty string set') {
+            if (rawDateTime === 'Empty string previously set') {
                 return new Date();
             }
 

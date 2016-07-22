@@ -94,8 +94,8 @@
                             <div class="clear"></div>
                         </div>
                         <div class="flowfile-detail">
-                            <div id="content-download" class="button">Download</div>
-                            <div id="content-view" class="button hidden">View</div>
+                            <div id="content-download" class="secondary-button fa fa-download button-icon"><span>Download</span></div>
+                            <div id="content-view" class="secondary-button fa fa-eye button-icon hidden"><span>View</span></div>
                             <div class="clear"></div>
                         </div>
                     </div>

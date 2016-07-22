@@ -150,10 +150,8 @@ ul.links span.header-link-over {
 }
 
 .blank, .unset, .sensitive {
-    font-style: italic;
     font-weight: normal;
-    color: #aaa;
-    font-size:13px;
+    color: #a8a8a8 !important;
 }
 
 .required {
@@ -427,6 +425,7 @@ div.secondary-button {
     position: relative;
     background: #E3E8EB;
     color: #004849;
+    cursor:pointer
 }
 
 div.secondary-button:hover {
