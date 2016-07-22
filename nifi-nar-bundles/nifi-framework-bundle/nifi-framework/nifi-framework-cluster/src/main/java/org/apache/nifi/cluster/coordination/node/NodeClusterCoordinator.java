@@ -37,7 +37,7 @@ import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryForever;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
@@ -46,6 +46,7 @@ import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
@@ -61,8 +62,8 @@ import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
@@ -106,7 +107,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         this.firewall = firewall;
         this.revisionManager = revisionManager;
 
-        final RetryPolicy retryPolicy = new RetryForever(5000);
+        final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
         final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(nifiProperties);
 
         curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
@@ -278,6 +279,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
+        final int numConnected = getNodeIdentifiers(NodeConnectionState.CONNECTED).size();
+        if (numConnected == 1) {
+            throw new IllegalNodeDisconnectionException("Cannot disconnect node " + nodeId + " because it is the only node currently connected");
+        }
+
         logger.info("Requesting that {} disconnect due to {}", nodeId, explanation == null ? disconnectionCode : explanation);
 
         updateNodeStatus(new NodeConnectionStatus(nodeId, disconnectionCode, explanation));
@@ -548,15 +554,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public boolean isActiveClusterCoordinator() {
         final NodeIdentifier self = getLocalNodeIdentifier();
-        if (self == null) {
-            return false;
-        }
-
-        final NodeConnectionStatus selfStatus = getConnectionStatus(self);
-        if (selfStatus == null) {
-            return false;
-        }
-        return selfStatus.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR);
+        return self != null && self.equals(getElectedActiveCoordinatorNode());
     }
 
     @Override

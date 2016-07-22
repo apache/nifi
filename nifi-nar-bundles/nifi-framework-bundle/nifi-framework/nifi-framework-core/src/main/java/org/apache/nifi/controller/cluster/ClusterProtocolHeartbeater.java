@@ -24,7 +24,7 @@ import java.util.Properties;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryForever;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -52,7 +52,7 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
     public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final Properties properties) {
         this.protocolSender = protocolSender;
 
-        final RetryPolicy retryPolicy = new RetryForever(5000);
+        final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
         final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(properties);
 
         curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),

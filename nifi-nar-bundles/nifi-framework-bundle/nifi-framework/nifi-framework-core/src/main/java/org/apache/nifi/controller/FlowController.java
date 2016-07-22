@@ -18,6 +18,38 @@ package org.apache.nifi.controller;
 
 import com.sun.jersey.api.client.ClientHandlerException;
 import org.apache.commons.collections4.Predicate;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.admin.service.AuditService;
@@ -206,37 +238,6 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.LockSupport;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -3333,51 +3334,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();
 
-                    // Start ZooKeeper State Server if necessary
-                    if (zooKeeperStateServer != null) {
-                        processScheduler.submitFrameworkTask(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    zooKeeperStateServer.start();
-                                } catch (final Exception e) {
-                                    LOG.error("NiFi was connected to the cluster but failed to start embedded ZooKeeper Server", e);
-                                    final Bulletin bulletin = BulletinFactory.createBulletin("Embedded ZooKeeper Server", Severity.ERROR.name(),
-                                        "Unable to started embedded ZooKeeper Server. See logs for more details. Will continue trying to start embedded server.");
-                                    getBulletinRepository().addBulletin(bulletin);
-
-                                    // We failed to start the server. Wait a bit and try again.
-                                    try {
-                                        Thread.sleep(TimeUnit.SECONDS.toMillis(5));
-                                    } catch (final InterruptedException ie) {
-                                        // If we are interrupted, stop trying.
-                                        Thread.currentThread().interrupt();
-                                        return;
-                                    }
-
-                                    processScheduler.submitFrameworkTask(this);
-                                }
-                            }
-                        });
-
-                        // Give the server just a bit to start up, so that we don't get connection
-                        // failures on startup if we are using the embedded ZooKeeper server. We need to launch
-                        // the ZooKeeper Server in the background because ZooKeeper blocks indefinitely when we start
-                        // the server. Unfortunately, we have no way to know when it's up & ready. So we wait 1 second.
-                        // We could still get connection failures if we are on a slow machine but this at least makes it far
-                        // less likely. If we do get connection failures, we will still reconnect, but we will get bulletins
-                        // showing failures. This 1-second sleep is an attempt to at least make that occurrence rare.
-                        LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1L));
-                    }
-
                     heartbeat();
                 } else {
                     leaderElectionManager.unregister(ClusterRoles.PRIMARY_NODE);
                     leaderElectionManager.unregister(ClusterRoles.CLUSTER_COORDINATOR);
-
-                    if (zooKeeperStateServer != null) {
-                        zooKeeperStateServer.shutdown();
-                    }
                     stateManagerProvider.disableClusterProvider();
 
                     setPrimary(false);
