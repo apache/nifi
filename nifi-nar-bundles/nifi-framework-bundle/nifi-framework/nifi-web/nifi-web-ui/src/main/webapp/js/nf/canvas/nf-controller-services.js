@@ -441,6 +441,28 @@ nf.ControllerServices = (function () {
     };
 
     /**
+     * Formatter for the name column.
+     *
+     * @param {type} row
+     * @param {type} cell
+     * @param {type} value
+     * @param {type} columnDef
+     * @param {type} dataContext
+     * @returns {String}
+     */
+    var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
+        if (!dataContext.permissions.canRead) {
+            return '';
+        }
+
+        if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+            return dataContext.component.parentGroupId;
+        } else {
+            return 'Controller'
+        }
+    };
+
+    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -583,7 +605,8 @@ nf.ControllerServices = (function () {
             {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', name: 'Name', formatter: nameFormatter, sortable: true, resizable: true},
             {id: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
+            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true},
+            {id: 'parentGroupId', name: 'Process Group', formatter: groupIdFormatter, sortable: true, resizeable: true}
         ];
 
         // action column should always be last
@@ -608,7 +631,7 @@ nf.ControllerServices = (function () {
         controllerServicesGrid.setSortColumn('name', true);
         controllerServicesGrid.onSort.subscribe(function (e, args) {
             sort({
-                columnId: args.sortCol.field,
+                columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, controllerServicesData);
         });

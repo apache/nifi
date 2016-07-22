@@ -23,7 +23,7 @@
         <div id="users-filter-status" class="filter-status">
             Displaying&nbsp;<span id="displayed-users"></span>&nbsp;of&nbsp;<span id="total-users"></span>
         </div>
-        <div id="users-filter-container" class="filter-container">
+        <div id="users-filter-container">
             <input type="text" placeholder="Filter" id="users-filter" class="filter"/>
             <div id="users-filter-type" class="filter-type"></div>
         </div>

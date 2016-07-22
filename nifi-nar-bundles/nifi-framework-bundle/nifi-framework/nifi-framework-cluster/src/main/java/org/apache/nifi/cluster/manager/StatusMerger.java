@@ -378,15 +378,6 @@ public class StatusMerger {
 
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
 
-        final List<String> authIssues = new ArrayList<>();
-        if (target.getAuthorizationIssues() != null) {
-            authIssues.addAll(target.getAuthorizationIssues());
-        }
-        if (toMerge.getAuthorizationIssues() != null) {
-            authIssues.addAll(toMerge.getAuthorizationIssues());
-        }
-        target.setAuthorizationIssues(authIssues);
-
         target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
         target.setBytesSent(target.getBytesSent() + toMerge.getBytesSent());
         target.setFlowFilesReceived(target.getFlowFilesReceived() + toMerge.getFlowFilesReceived());

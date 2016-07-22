@@ -215,7 +215,7 @@ nf.Connection = (function () {
      */
     var sort = function (connections) {
         connections.sort(function (a, b) {
-            return a.component.zIndex === b.component.zIndex ? 0 : a.component.zIndex > b.component.zIndex ? 1 : -1;
+            return a.zIndex === b.zIndex ? 0 : a.zIndex > b.zIndex ? 1 : -1;
         });
     };
 
@@ -501,7 +501,9 @@ nf.Connection = (function () {
                 var endpoints = connection.selectAll('rect.endpoint');
                 var midpoints = connection.selectAll('rect.midpoint');
 
-                if (d.permissions.canWrite) {
+                // require read and write permissions as it's required to read the connections available relationships
+                // when connecting to a group or remote group
+                if (d.permissions.canWrite && d.permissions.canRead) {
 
                     // ------------------
                     // bends - startpoint
@@ -695,13 +697,15 @@ nf.Connection = (function () {
                     var backgrounds = [];
                     var borders = [];
 
+                    var connectionFrom = connectionLabelContainer.select('g.connection-from-container');
+                    var connectionTo = connectionLabelContainer.select('g.connection-to-container');
+                    var connectionName = connectionLabelContainer.select('g.connection-name-container');
+
                     if (d.permissions.canRead) {
 
                         // -----------------------
                         // connection label - from
                         // -----------------------
-
-                        var connectionFrom = connectionLabelContainer.select('g.connection-from-container');
 
                         // determine if the connection require a from label
                         if (isGroup(d.component.source)) {
@@ -790,18 +794,13 @@ nf.Connection = (function () {
                                     return d.component.source.exists === false;
                                 });
                         } else {
-                            // there is no connection from, but check if the name was previous
-                            // rendered so it can be removed
-                            if (!connectionFrom.empty()) {
-                                connectionFrom.remove();
-                            }
+                            // there is no connection from, remove the previous if necessary
+                            connectionFrom.remove();
                         }
 
                         // ---------------------
                         // connection label - to
                         // ---------------------
-
-                        var connectionTo = connectionLabelContainer.select('g.connection-to-container');
 
                         // determine if the connection require a to label
                         if (isGroup(d.component.destination)) {
@@ -890,11 +889,8 @@ nf.Connection = (function () {
                                     return d.component.destination.exists === false;
                                 });
                         } else {
-                            // there is no connection to, but check if the name was previous
-                            // rendered so it can be removed
-                            if (!connectionTo.empty()) {
-                                connectionTo.remove();
-                            }
+                            // there is no connection to, remove the previous if necessary
+                            connectionTo.remove();
                         }
 
                         // -----------------------
@@ -903,7 +899,6 @@ nf.Connection = (function () {
 
                         // get the connection name
                         var connectionNameValue = nf.CanvasUtils.formatConnectionName(d.component);
-                        var connectionName = connectionLabelContainer.select('g.connection-name-container');
 
                         // is there a name to render
                         if (!nf.Common.isBlank(connectionNameValue)) {
@@ -970,12 +965,14 @@ nf.Connection = (function () {
                                 return connectionNameValue;
                             });
                         } else {
-                            // there is no connection name, but check if the name was previous
-                            // rendered so it can be removed
-                            if (!connectionName.empty()) {
-                                connectionName.remove();
-                            }
+                            // there is no connection name, remove the previous if necessary
+                            connectionName.remove();
                         }
+                    } else {
+                        // no permissions to read to remove previous if necessary
+                        connectionFrom.remove();
+                        connectionTo.remove();
+                        connectionName.remove();
                     }
 
                     // -------------------------
@@ -1033,43 +1030,12 @@ nf.Connection = (function () {
                                 'class': 'size'
                             });
 
-                        var expiration = queued.append('g')
+                        queued.append('text')
                             .attr({
                                 'class': 'expiration-icon',
-                                'transform': 'translate(167, 2)'
-                            });
-
-                        expiration.append('circle')
-                            .attr({
-                                'cx': 5,
-                                'cy': 5,
-                                'r': 4.75,
-                                'stroke-width': 0.5,
-                                'stroke': '#87888a',
-                                'fill': 'url(#expiration)'
-                            });
-
-                        expiration.append('line')
-                            .attr({
-                                'x1': 6,
-                                'y1': 5,
-                                'x2': 3,
-                                'y2': 4,
-                                'stroke': '#fff',
-                                'stroke-width': 1
-                            });
-
-                        expiration.append('line')
-                            .attr({
-                                'x1': 6,
-                                'y1': 5,
-                                'x2': 3,
-                                'y2': 7,
-                                'stroke': '#fff',
-                                'stroke-width': 1
-                            });
-
-                        expiration.append('title');
+                                'x': 185,
+                                'y': 14
+                            }).append('title');
                     } else {
                         backgrounds.push(queued.select('rect.connection-label-background'));
                         borders.push(queued.select('rect.connection-label-border'));
@@ -1115,16 +1081,25 @@ nf.Connection = (function () {
                         }
                     });
 
-                    if (d.permissions.canRead) {
-                        // determine whether or not to show the expiration icon
-                        connectionLabelContainer.select('g.expiration-icon')
-                            .classed('hidden', function () {
+                    // determine whether or not to show the expiration icon
+                    connectionLabelContainer.select('text.expiration-icon')
+                        .classed('hidden', function () {
+                            if (d.permissions.canRead) {
                                 return !isExpirationConfigured(d.component);
-                            })
-                            .select('title').text(function () {
-                            return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
+                            } else {
+                                return true;
+                            }
+                        })
+                        .text(function () {
+                            return '\uf017';
+                        })
+                        .select('title', function () {
+                            if (d.permissions.canRead) {
+                                return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
+                            } else {
+                                return '';
+                            }
                         });
-                    }
 
                     if (d.permissions.canWrite) {
                         // only support dragging the label when appropriate
@@ -1333,7 +1308,7 @@ nf.Connection = (function () {
                     // get the corresponding connection
                     var connection = d3.select(this.parentNode);
                     var connectionData = connection.datum();
-                    var previousDestinationId = connectionData.component.destination.id;
+                    var previousDestinationId = connectionData.destinationId;
 
                     // attempt to select a new destination
                     var destination = d3.select('g.connectable-destination');
@@ -1376,7 +1351,7 @@ nf.Connection = (function () {
                             };
 
                             // if this is a self loop and there are less than 2 bends, add them
-                            if (connectionData.bends.length < 2 && connectionData.component.source.id === destinationData.id) {
+                            if (connectionData.bends.length < 2 && connectionData.sourceId === destinationData.id) {
                                 var rightCenter = {
                                     x: destinationData.position.x + (destinationData.dimensions.width),
                                     y: destinationData.position.y + (destinationData.dimensions.height / 2)
@@ -1409,7 +1384,7 @@ nf.Connection = (function () {
 
                                 // reload the previous destination and the new source/destination
                                 nf.CanvasUtils.reloadConnectionSourceAndDestination(null, previousDestinationId);
-                                nf.CanvasUtils.reloadConnectionSourceAndDestination(updatedConnectionData.source.id, updatedConnectionData.destination.id);
+                                nf.CanvasUtils.reloadConnectionSourceAndDestination(response.sourceId, response.destinationId);
                             }).fail(function (xhr, status, error) {
                                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                     nf.Dialog.showOkDialog({

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
@@ -28,6 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ProcessorEntity extends ComponentEntity {
 
     private ProcessorDTO component;
+    private String inputRequirement;
     private ProcessorStatusDTO status;
 
     /**
@@ -54,5 +56,19 @@ public class ProcessorEntity extends ComponentEntity {
 
     public void setStatus(ProcessorStatusDTO status) {
         this.status = status;
+    }
+
+    /**
+     * @return the input requirement of this processor
+     */
+    @ApiModelProperty(
+            value = "The input requirement for this processor."
+    )
+    public String getInputRequirement() {
+        return inputRequirement;
+    }
+
+    public void setInputRequirement(String inputRequirement) {
+        this.inputRequirement = inputRequirement;
     }
 }

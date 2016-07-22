@@ -130,7 +130,7 @@ div.policy-selected-component-name {
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
-    max-width: 300px;
+    width: 300px;
     text-overflow: ellipsis;
     overflow-x: hidden;
     white-space: nowrap;

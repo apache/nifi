@@ -16,15 +16,23 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.Date;
-
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+
+import java.util.Date;
 
 /**
  * A repository for storing and retrieving components' historical status
  * information
  */
 public interface ComponentStatusRepository {
+
+    String COMPONENT_DETAIL_ID = "Id";
+    String COMPONENT_DETAIL_GROUP_ID = "Group Id";
+    String COMPONENT_DETAIL_NAME = "Name";
+    String COMPONENT_DETAIL_TYPE = "Type";
+    String COMPONENT_DETAIL_SOURCE_NAME = "Source Name";
+    String COMPONENT_DETAIL_DESTINATION_NAME = "Destination Name";
+    String COMPONENT_DETAIL_URI = "Uri";
 
     /**
      * Captures the status information provided in the given report

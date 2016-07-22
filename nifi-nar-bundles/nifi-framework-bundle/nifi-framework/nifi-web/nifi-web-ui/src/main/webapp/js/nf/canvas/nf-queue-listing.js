@@ -703,7 +703,10 @@ nf.QueueListing = (function () {
             // perform the initial listing
             performListing(connection).done(function () {
                 // update the connection name
-                var connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                var connectionName = '';
+                if (connection.permissions.canRead) {
+                    connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                }
                 if (connectionName === '') {
                     connectionName = 'Connection';
                 }

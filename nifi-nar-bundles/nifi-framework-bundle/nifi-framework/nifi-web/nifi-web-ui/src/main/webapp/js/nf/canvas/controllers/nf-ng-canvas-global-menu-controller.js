@@ -193,7 +193,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  * Launch the users shell.
                  */
                 launch: function () {
-                    if (nf.Common.canModifyTenants()) {
+                    if (nf.Common.canAccessTenants()) {
                         nf.Shell.showPage('users');
                     }
                 }

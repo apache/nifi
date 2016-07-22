@@ -66,7 +66,7 @@ public class ITFlowAccessControl {
      */
     @Test
     public void testGetIdentity() throws Exception {
-        helper.testGenericGetUri(helper.getBaseUrl() + "/flow/identity");
+        helper.testGenericGetUri(helper.getBaseUrl() + "/flow/current-user");
     }
 
     /**

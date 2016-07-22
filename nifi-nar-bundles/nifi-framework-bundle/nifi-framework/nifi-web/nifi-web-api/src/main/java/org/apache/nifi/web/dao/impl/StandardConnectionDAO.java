@@ -18,7 +18,6 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
@@ -26,6 +25,7 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -611,18 +611,8 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                     userContext = null;
                 }
 
-                final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                        .identity(identity)
-                        .anonymous(user.isAnonymous())
-                        .accessAttempt(false)
-                        .action(RequestAction.WRITE)
-                        .resource(connection.getResource())
-                        .resourceContext(attributes)
-                        .userContext(userContext)
-                        .build();
-
-                // perform the authorization
-                final AuthorizationResult result = authorizer.authorize(request);
+                final NiFiUser chainUser = new StandardNiFiUser(identity, user.getClientAddress());
+                final AuthorizationResult result = connection.checkAuthorization(authorizer, RequestAction.WRITE, chainUser, attributes);
                 if (!Result.Approved.equals(result.getResult())) {
                     throw new AccessDeniedException(result.getExplanation());
                 }

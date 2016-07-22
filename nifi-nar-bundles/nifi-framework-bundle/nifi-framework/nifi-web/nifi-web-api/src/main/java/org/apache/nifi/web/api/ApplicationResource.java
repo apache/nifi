@@ -42,8 +42,8 @@ import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TypeOneUUIDGenerator;
-import org.apache.nifi.web.AuthorizableLookup;
-import org.apache.nifi.web.AuthorizeAccess;
+import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -420,8 +420,7 @@ public abstract class ApplicationResource {
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
         snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
         snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
     }
 
@@ -440,8 +439,7 @@ public abstract class ApplicationResource {
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
         snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
-        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(authorize);
+        snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
         snippet.getFunnels().keySet().stream().map(id -> lookup.getFunnel(id)).forEach(authorize);
     }
 

@@ -97,7 +97,7 @@ public interface Authorizable {
             if (parent == null) {
                 return AuthorizationResult.denied();
             } else {
-                return parent.checkAuthorization(authorizer, action, user);
+                return parent.checkAuthorization(authorizer, action, user, resourceContext);
             }
         } else {
             return result;
@@ -152,7 +152,7 @@ public interface Authorizable {
             if (parent == null) {
                 throw new AccessDeniedException("Access is denied");
             } else {
-                parent.authorize(authorizer, action, user);
+                parent.authorize(authorizer, action, user, resourceContext);
             }
         } else if (Result.Denied.equals(result.getResult())) {
             throw new AccessDeniedException(result.getExplanation());
