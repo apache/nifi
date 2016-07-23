@@ -248,6 +248,10 @@ public class TestStandardProcessorTestRunner {
                 session.transfer(ff, REL_FAILURE);
             }
             counter++;
+
+            for( FlowFile incoming : session.get(20)) {
+                session.transfer(incoming, REL_SUCCESS);
+            }
         }
     }
 }
