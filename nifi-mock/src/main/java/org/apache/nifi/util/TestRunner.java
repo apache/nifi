@@ -902,7 +902,7 @@ public interface TestRunner {
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
-    
+
     /**
      * Asserts that all FlowFiles meet all conditions.
      *
