@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+<head>
+<meta charset="utf-8" />
+<title>ConsumePOP3</title>
+<link rel="stylesheet" href="../../css/component-usage.css"
+	type="text/css" />
+</head>
+
+<body>
+	<!-- Processor Documentation ================================================== -->
+	<h2>Description:</h2>
+	<p>This Processor consumes email messages via POP3 protocol and sends the content of an email message as content of the Flow File. 
+	   Content of the incoming email message is written as raw bytes to the content of the outgoing Flow File.
+    </p>
+
+	<p>Since different serves may require different Java Mail
+		properties such properties could be provided via dynamic properties.
+		For example, below is a sample configuration for GMail:
+	</p>
+	<p>
+		<b>Processor's static properties:</b>
+		<ul>
+			<li><b>Host Name</b> - pop.gmail.com</li>
+			<li><b>Port</b> - 995</li>
+			<li><b>User Name</b> - <i>[your user name]</i></li>
+			<li><b>Password</b> - <i>[your password]</i></li>
+			<li><b>Folder</b> - INBOX</li>
+		</ul>
+		<b>Processor's dynamic properties:</b>
+		<ul>
+			<li><b>mail.pop3.socketFactory.class</b> - javax.net.ssl.SSLSocketFactory</li>
+			<li><b>mail.pop3.socketFactory.fallback</b> - false</li>
+		</ul>
+	</p>
+	<p>
+	Another useful property is	<b>mail.debug</b> which allows Java Mail API to print protocol messages to the console helping you to both understand what's going on as well as debug issues.
+	</p>
+	<p>
+	For the full list of available Java Mail properties please refer to <a href="http://connector.sourceforge.net/doc-files/Properties.html">here</a>
+	</p>
+</body>
+</html>
