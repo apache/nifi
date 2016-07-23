@@ -495,6 +495,55 @@ public class TestFileSystemRepository {
     }
 
 
+    @Test
+    public void testWriteCannotProvideNullOutput() throws IOException {
+        FileSystemRepository repository = null;
+        try {
+            final List<Path> archivedPathsWithOpenStream = Collections.synchronizedList(new ArrayList<Path>());
+
+            // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
+            shutdown();
+
+            repository = new FileSystemRepository() {
+                @Override
+                protected boolean archive(Path curPath) throws IOException {
+                    if (getOpenStreamCount() > 0) {
+                        archivedPathsWithOpenStream.add(curPath);
+                    }
+
+                    return true;
+                }
+            };
+
+            final StandardResourceClaimManager claimManager = new StandardResourceClaimManager();
+            repository.initialize(claimManager);
+            repository.purge();
+
+            final ContentClaim claim = repository.create(false);
+
+            assertEquals(1, claimManager.getClaimantCount(claim.getResourceClaim()));
+
+            int claimantCount = claimManager.decrementClaimantCount(claim.getResourceClaim());
+            assertEquals(0, claimantCount);
+            assertTrue(archivedPathsWithOpenStream.isEmpty());
+
+            OutputStream out = repository.write(claim);
+            out.close();
+            repository.decrementClaimantCount(claim);
+
+            ContentClaim claim2 = repository.create(false);
+            assertEquals(claim.getResourceClaim(), claim2.getResourceClaim());
+            out = repository.write(claim2);
+
+            final boolean archived = repository.archive(claim.getResourceClaim());
+            assertFalse(archived);
+        } finally {
+            if (repository != null) {
+                repository.shutdown();
+            }
+        }
+    }
+
     /**
      * We have encountered a situation where the File System Repo is moving files to archive and then eventually
      * aging them off while there is still an open file handle. This test is meant to replicate the conditions under

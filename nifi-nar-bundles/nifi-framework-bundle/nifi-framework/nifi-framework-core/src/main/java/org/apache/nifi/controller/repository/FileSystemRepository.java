@@ -1080,7 +1080,8 @@ public class FileSystemRepository implements ContentRepository {
         return Files.exists(getArchivePath(contentClaim.getResourceClaim()));
     }
 
-    private boolean archive(final ResourceClaim claim) throws IOException {
+    // visible for testing
+    boolean archive(final ResourceClaim claim) throws IOException {
         if (!archiveData) {
             return false;
         }
