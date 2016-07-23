@@ -15,18 +15,18 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="status-history-dialog" class="hidden" data-nf-dialog='{"resizable": "true", "glasspane": "true", "responsive": {"x": "false", "y": "false"}}'>
+<div id="status-history-dialog" class="hidden large-dialog">
     <div class="dialog-content">
         <div id="status-history-details"></div>
-        <div id="status-history-container">
-            <div id="status-history-refresh-container">
-                <button id="status-history-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
-                <div id="status-history-last-refreshed-container" class="last-refreshed-container">
-                    Last updated:&nbsp;<span id="status-history-last-refreshed"></span>
-                </div>
-                <div id="status-history-loading-container" class="loading-container"></div>
-                <div id="status-history-metric-combo"></div>
+        <div id="status-history-refresh-container">
+            <button id="status-history-refresh-button" class="refresh-button pointer fa fa-refresh" title="Refresh"></button>
+            <div id="status-history-last-refreshed-container" class="last-refreshed-container">
+                Last updated:&nbsp;<span id="status-history-last-refreshed"></span>
             </div>
+            <div id="status-history-loading-container" class="loading-container"></div>
+            <div id="status-history-metric-combo"></div>
+        </div>
+        <div id="status-history-container">
             <div id="status-history-chart-container"></div>
             <div id="status-history-chart-control-container"></div>
         </div>

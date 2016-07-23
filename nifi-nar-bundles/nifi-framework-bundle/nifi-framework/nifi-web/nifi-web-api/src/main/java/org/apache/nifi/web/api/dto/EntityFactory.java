@@ -78,6 +78,7 @@ public final class EntityFactory {
             entity.setPermissions(permissions);
             entity.setStatus(status);
             entity.setId(dto.getId());
+            entity.setInputRequirement(dto.getInputRequirement());
             entity.setPosition(dto.getPosition());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
@@ -245,10 +246,13 @@ public final class EntityFactory {
             entity.setPosition(dto.getPosition());
             entity.setBends(dto.getBends());
             entity.setLabelIndex(dto.getLabelIndex());
+            entity.setzIndex(dto.getzIndex());
             entity.setSourceId(dto.getSource().getId());
             entity.setSourceGroupId(dto.getSource().getGroupId());
+            entity.setSourceType(dto.getSource().getType());
             entity.setDestinationId(dto.getDestination().getId());
             entity.setDestinationGroupId(dto.getDestination().getGroupId());
+            entity.setDestinationType(dto.getDestination().getType());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }

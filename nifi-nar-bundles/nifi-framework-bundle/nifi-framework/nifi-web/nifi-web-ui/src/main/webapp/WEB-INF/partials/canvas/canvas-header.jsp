@@ -151,7 +151,7 @@
                     <md-menu-item layout-align="space-around center">
                         <a id="users-link" layout="row"
                            ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.users.shell.launch();"
-                           ng-class="{disabled: !appCtrl.nf.Common.canModifyTenants()}">
+                           ng-class="{disabled: !appCtrl.nf.Common.canAccessTenants()}">
                             <i class="fa fa-users"></i>Users
                         </a>
                     </md-menu-item>

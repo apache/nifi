@@ -79,13 +79,13 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
 
             // generate the snippet contents
-            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false);
+            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false, false);
 
             // resolve sensitive properties
             lookupSensitiveProperties(snippetContents);
 
             // copy snippet
-            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed);
+            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed, true);
 
             // move the snippet if necessary
             if (originX != null && originY != null) {

@@ -290,7 +290,7 @@ See also <<kerberos_service>> to allow single sign-on access via client Kerberos
 Encryption Configuration
 ------------------------
 
-This section provides an overview of the capabilities of NiFi to encrypt and decrypt data. 
+This section provides an overview of the capabilities of NiFi to encrypt and decrypt data.
 
 The `EncryptContent` processor allows for the encryption and decryption of data, both internal to NiFi and integrated with external systems, such as `openssl` and other data sources and consumers.
 
@@ -470,7 +470,7 @@ On a JVM with limited strength cryptography, some PBE algorithms limit the maxim
 * http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[JCE Unlimited Strength Jurisdiction Policy files for Java 7]
 * http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8]
 
-If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above). 
+If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above).
 
 [WARNING]
 .Allowing Weak Crypto
@@ -488,8 +488,10 @@ Clustering Configuration
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster.
 In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth.
 
-NiFi employs a Zero-Master Clustering paradigm. Each of the nodes in the cluster performs the same tasks on
-the data but each operates on a different set of data. One of the nodes is automatically elected (via Apache
+image::zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
+
+NiFi employs a Zero-Master Clustering paradigm. Each node in the cluster performs the same tasks on
+the data, but each operates on a different set of data. One of the nodes is automatically elected (via Apache
 ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send heartbeat/status information
 to this node, and this node is responsible for disconnecting nodes that do not report any heartbeat status
 for some amount of time. Additionally, when a new node elects to join the cluster, the new node must first
@@ -599,12 +601,12 @@ For each Node, the minimum properties to configure are as follows:
    defaults to 10, but for large clusters, this value may need to be larger.
 ** nifi.zookeeper.connect.string - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separted list
    of hostname:port pairs. For example, localhost:2181,localhost:2182,localhost:2183. This should contain a list of all ZooKeeper
-   instances in the ZooKeeper quorum. 
+   instances in the ZooKeeper quorum.
 ** nifi.zookeeper.root.node - The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like structure
    for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
    that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
    the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
-   that is specified. 
+   that is specified.
 ** nifi.cluster.request.replication.claim.timeout - Specifies how long a component can be 'locked' during a request replication
    before the lock expires and is automatically unlocked. See <<claim_management>> for more information.
 
@@ -1332,11 +1334,11 @@ Providing three total locations, including  _nifi.provenance.repository.director
 The Component Status Repository contains the information for the Component Status History tool in the User Interface. These
 properties govern how that tool works.
 
-The buffer.size and snapshot.frequency work together to determine the amount of historical data to retain. As an example to 
-configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure 
-snapshot.frequency to be "5 mins" and the buffer.size to be "576". To further explain this example for every 60 minutes there 
+The buffer.size and snapshot.frequency work together to determine the amount of historical data to retain. As an example to
+configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure
+snapshot.frequency to be "5 mins" and the buffer.size to be "576". To further explain this example for every 60 minutes there
 are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size
-of 576. 
+of 576.
 
 |====
 |*Property*|*Description*
@@ -1473,7 +1475,7 @@ instances in the ZooKeeper quorum. This property must be specified to join a clu
 for storing data. Each 'directory' in this structure is referred to as a ZNode. This denotes the root ZNode, or 'directory',
 that should be used for storing data. The default value is _/root_. This is important to set correctly, as which cluster
 the NiFi instance attempts to join is determined by which ZooKeeper instance it connects to and the ZooKeeper Root Node
-that is specified. 
+that is specified.
 |====
 
 [[kerberos_properties]]

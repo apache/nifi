@@ -587,6 +587,13 @@
                                         </aggregation>
                                         <aggregation>
                                             <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/css/nf-common-ui.css</output>
+                                            <includes>
+                                                <include>${staging.dir}/css/common-ui.css</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
                                             <output>${project.build.directory}/${project.build.finalName}/css/nf-history-all.css</output>
                                             <includes>
                                                 <include>${staging.dir}/css/main.css</include>
@@ -696,10 +703,14 @@
                                 assets/**/*,
                                 css/reset.css,
                                 css/reset.css.gz,
+                                css/common-ui.css,
+                                css/common-ui.css.gz,
                                 css/message-page.css,
                                 css/message-page.css.gz,
                                 css/message-pane.css,
                                 css/message-pane.css.gz,
+                                css/nf-common-ui.css,
+                                css/nf-common-ui.css.gz,
                                 css/nf-canvas-all.css,
                                 css/nf-canvas-all.css.gz,
                                 css/nf-history-all.css,

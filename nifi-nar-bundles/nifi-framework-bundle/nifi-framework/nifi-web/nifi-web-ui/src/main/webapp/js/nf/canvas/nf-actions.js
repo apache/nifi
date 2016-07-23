@@ -202,16 +202,16 @@ nf.Actions = (function () {
                 var selectionData = selection.datum();
 
                 // the source is in the current group
-                if (selectionData.component.source.groupId === nf.Canvas.getGroupId()) {
-                    var source = d3.select('#id-' + selectionData.component.source.id);
+                if (selectionData.sourceGroupId === nf.Canvas.getGroupId()) {
+                    var source = d3.select('#id-' + selectionData.sourceId);
                     nf.Actions.show(source);
-                } else if (selectionData.component.source.type === 'REMOTE_OUTPUT_PORT') {
+                } else if (selectionData.sourceType === 'REMOTE_OUTPUT_PORT') {
                     // if the source is remote
-                    var remoteSource = d3.select('#id-' + selectionData.component.source.groupId);
+                    var remoteSource = d3.select('#id-' + selectionData.sourceGroupId);
                     nf.Actions.show(remoteSource);
                 } else {
                     // if the source is local but in a sub group
-                    nf.CanvasUtils.showComponent(selectionData.component.source.groupId, selectionData.component.source.id);
+                    nf.CanvasUtils.showComponent(selectionData.sourceGroupId, selectionData.sourceId);
                 }
             }
         },
@@ -226,16 +226,16 @@ nf.Actions = (function () {
                 var selectionData = selection.datum();
 
                 // the destination is in the current group or its remote
-                if (selectionData.component.destination.groupId === nf.Canvas.getGroupId()) {
-                    var destination = d3.select('#id-' + selectionData.component.destination.id);
+                if (selectionData.destinationGroupId === nf.Canvas.getGroupId()) {
+                    var destination = d3.select('#id-' + selectionData.destinationId);
                     nf.Actions.show(destination);
-                } else if (selectionData.component.destination.type === 'REMOTE_INPUT_PORT') {
+                } else if (selectionData.destinationType === 'REMOTE_INPUT_PORT') {
                     // if the destination is remote
-                    var remoteDestination = d3.select('#id-' + selectionData.component.destination.groupId);
+                    var remoteDestination = d3.select('#id-' + selectionData.destinationGroupId);
                     nf.Actions.show(remoteDestination);
                 } else {
                     // if the destination is local but in a sub group
-                    nf.CanvasUtils.showComponent(selectionData.component.destination.groupId, selectionData.component.destination.id);
+                    nf.CanvasUtils.showComponent(selectionData.destinationGroupId, selectionData.destinationId);
                 }
             }
         },
@@ -1083,7 +1083,7 @@ nf.Actions = (function () {
             var processor = selection.datum();
 
             // view the state for the selected processor
-            nf.ComponentState.showState(processor, nf.CanvasUtils.supportsModification(selection));
+            nf.ComponentState.showState(processor, nf.CanvasUtils.isConfigurable(selection));
         },
 
         /**
@@ -1403,8 +1403,8 @@ nf.Actions = (function () {
             // determine the current max zIndex
             var maxZIndex = -1;
             $.each(nf.Connection.get(), function (_, otherConnection) {
-                if (connection.id !== otherConnection.id && otherConnection.component.zIndex > maxZIndex) {
-                    maxZIndex = otherConnection.component.zIndex;
+                if (connection.id !== otherConnection.id && otherConnection.zIndex > maxZIndex) {
+                    maxZIndex = otherConnection.zIndex;
                 }
             });
 

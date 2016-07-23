@@ -798,6 +798,21 @@ The following binary components are provided under the Apache Software License v
              This product includes software developed by
              The Groovy community (http://groovy.codehaus.org/).
 
+    (ASLv2) Apache Ignite
+      The following NOTICE information applies:
+        Apache Ignite
+        Copyright 2015 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+
+        This software includes code from IntelliJ IDEA Community Edition
+        Copyright (C) JetBrains s.r.o.
+        https://www.jetbrains.com/idea/
+        Licensed under Apache License, Version 2.0.
+        http://search.maven.org/#artifactdetails%7Corg.jetbrains%7Cannotations%7C13.0%7Cjar
+
 (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
       HPPC borrowed code, ideas or both from:
@@ -814,6 +829,15 @@ The following binary components are provided under the Apache Software License v
        The code for the t-digest was originally authored by Ted Dunning
        A number of small but very helpful changes have been contributed by Adrien Grand (https://github.com/jpountz)
 
+    (ASLv2) subethasmtp
+       The following NOTICE information applies:
+
+       Copyright (C) 2006-2007 SubEthaMail.org
+
+    (ASLv2) Apache Commons Email
+       The following NOTICE information applies:
+       Apache Commons Email
+       Copyright 2002-2015 The Apache Software Foundation
 
 This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
 Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com

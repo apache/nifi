@@ -631,9 +631,11 @@ public final class DtoFactory {
             return null;
         }
 
+        boolean isAuthorized = connectable.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
         final ConnectableDTO dto = new ConnectableDTO();
         dto.setId(connectable.getIdentifier());
-        dto.setName(connectable.getName());
+        dto.setName(isAuthorized ? connectable.getName() : connectable.getIdentifier());
         dto.setType(connectable.getConnectableType().name());
 
         if (connectable instanceof RemoteGroupPort) {
@@ -643,11 +645,15 @@ public final class DtoFactory {
             dto.setRunning(remoteGroupPort.isTargetRunning());
             dto.setTransmitting(remoteGroupPort.isRunning());
             dto.setExists(remoteGroupPort.getTargetExists());
-            dto.setComments(remoteGroup.getComments());
+            if (isAuthorized) {
+                dto.setComments(remoteGroup.getComments());
+            }
         } else {
             dto.setGroupId(connectable.getProcessGroup().getIdentifier());
             dto.setRunning(connectable.isRunning());
-            dto.setComments(connectable.getComments());
+            if (isAuthorized) {
+                dto.setComments(connectable.getComments());
+            }
         }
 
         return dto;

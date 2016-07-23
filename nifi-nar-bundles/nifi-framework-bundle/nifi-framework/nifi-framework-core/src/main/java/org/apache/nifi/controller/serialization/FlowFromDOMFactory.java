@@ -133,16 +133,6 @@ public class FlowFromDOMFactory {
         final Set<ProcessGroupDTO> processGroups = new HashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new HashSet<>();
 
-        final FlowSnippetDTO groupContents = new FlowSnippetDTO();
-        groupContents.setConnections(connections);
-        groupContents.setFunnels(funnels);
-        groupContents.setInputPorts(inputPorts);
-        groupContents.setLabels(labels);
-        groupContents.setOutputPorts(outputPorts);
-        groupContents.setProcessGroups(processGroups);
-        groupContents.setProcessors(processors);
-        groupContents.setRemoteProcessGroups(remoteProcessGroups);
-
         NodeList nodeList = DomUtils.getChildNodesByTagName(element, "processor");
         for (int i = 0; i < nodeList.getLength(); i++) {
             processors.add(getProcessor((Element) nodeList.item(i), encryptor));
@@ -182,6 +172,16 @@ public class FlowFromDOMFactory {
         for (int i = 0; i < nodeList.getLength(); i++) {
             connections.add(getConnection((Element) nodeList.item(i)));
         }
+
+        final FlowSnippetDTO groupContents = new FlowSnippetDTO();
+        groupContents.setConnections(connections);
+        groupContents.setFunnels(funnels);
+        groupContents.setInputPorts(inputPorts);
+        groupContents.setLabels(labels);
+        groupContents.setOutputPorts(outputPorts);
+        groupContents.setProcessGroups(processGroups);
+        groupContents.setProcessors(processors);
+        groupContents.setRemoteProcessGroups(remoteProcessGroups);
 
         dto.setContents(groupContents);
         return dto;

@@ -21,14 +21,10 @@ import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -68,18 +64,6 @@ public class GroupStatusEndpointMerger extends AbstractNodeStatusEndpoint<Proces
             final ProcessGroupStatusDTO nodeProcessGroupStatus = entry.getValue();
             if (nodeProcessGroupStatus == mergedProcessGroupStatus) {
                 continue;
-            }
-
-            final ProcessGroupStatusSnapshotDTO nodeSnapshot = nodeProcessGroupStatus.getAggregateSnapshot();
-            for (final RemoteProcessGroupStatusSnapshotDTO remoteProcessGroupStatus : nodeSnapshot.getRemoteProcessGroupStatusSnapshots()) {
-                final List<String> nodeAuthorizationIssues = remoteProcessGroupStatus.getAuthorizationIssues();
-                if (nodeAuthorizationIssues != null && !nodeAuthorizationIssues.isEmpty()) {
-                    for (final ListIterator<String> iter = nodeAuthorizationIssues.listIterator(); iter.hasNext();) {
-                        final String Issue = iter.next();
-                        iter.set("[" + nodeId.getApiAddress() + ":" + nodeId.getApiPort() + "] -- " + Issue);
-                    }
-                    remoteProcessGroupStatus.setAuthorizationIssues(nodeAuthorizationIssues);
-                }
             }
 
             StatusMerger.merge(mergedProcessGroupStatus, nodeProcessGroupStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());

@@ -23,7 +23,7 @@
                 Displaying&nbsp;<span id="displayed-counters"></span>&nbsp;of&nbsp;<span id="total-counters"></span>
             </div>
             <div id="counters-filter-container" class="filter-container">
-                <input type="text" id="counters-filter" class="filter"/>
+                <input type="text" id="counters-filter" placeholder="Filter" class="filter"/>
                 <div id="counters-filter-type" class="filter-type"></div>
             </div>
         </div>

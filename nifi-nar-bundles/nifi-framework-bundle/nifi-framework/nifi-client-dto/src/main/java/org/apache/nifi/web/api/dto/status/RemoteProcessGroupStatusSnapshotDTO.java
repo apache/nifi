@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import javax.xml.bind.annotation.XmlType;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * The status of a remote process group in this NiFi.
@@ -35,8 +32,6 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     private String targetUri;
     private String transmissionStatus;
     private Integer activeThreadCount;
-
-    private List<String> authorizationIssues;
 
     private Integer flowFilesSent = 0;
     private Long bytesSent = 0L;
@@ -119,18 +114,6 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
     }
 
     /**
-     * @return any remote authorization issues for this remote process group
-     */
-    @ApiModelProperty("Any remote authorization issues for the remote process group.")
-    public List<String> getAuthorizationIssues() {
-        return authorizationIssues;
-    }
-
-    public void setAuthorizationIssues(List<String> authorizationIssues) {
-        this.authorizationIssues = authorizationIssues;
-    }
-
-    /**
      * @return Formatted description of the amount of data sent to this remote process group
      */
     @ApiModelProperty("The count/size of the flowfiles sent to the remote process group in the last 5 minutes.")
@@ -201,7 +184,6 @@ public class RemoteProcessGroupStatusSnapshotDTO implements Cloneable {
         other.setTargetUri(getTargetUri());
         other.setTransmissionStatus(getTransmissionStatus());
         other.setActiveThreadCount(getActiveThreadCount());
-        other.setAuthorizationIssues(getAuthorizationIssues() == null ? null : new ArrayList<String>(getAuthorizationIssues()));
         other.setFlowFilesSent(getFlowFilesSent());
         other.setBytesSent(getBytesSent());
         other.setFlowFilesReceived(getFlowFilesReceived());

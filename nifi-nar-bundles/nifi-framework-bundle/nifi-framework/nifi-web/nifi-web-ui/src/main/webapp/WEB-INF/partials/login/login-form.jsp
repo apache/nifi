@@ -20,13 +20,13 @@
     <div class="setting">
         <div class="setting-name">Username</div>
         <div class="setting-field">
-            <input type="text" id="username"/>
+            <input type="text" placeholder="username" id="username"/>
         </div>
     </div>
     <div class="setting">
         <div class="setting-name">Password</div>
         <div class="setting-field">
-            <input type="password" id="password"/>
+            <input type="password" placeholder="password" id="password"/>
         </div>
     </div>
 </div>

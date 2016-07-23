@@ -26,7 +26,6 @@
     bottom: 0px;
     right: 0px;
     background: #fff url(../images/bg-error.png) left top no-repeat;
-    font-family: Verdana, Geneva, sans-serif;
     padding-top: 100px;
     padding-left: 100px;
 }
@@ -42,10 +41,11 @@
 }
 
 .login-title {
-    font-size: 12px;
+    font-size: 18px;
     font-weight: bold;
+    font-family: Roboto Slab;
     margin-bottom: 10px;
-    color: #000;
+    color: #728e9b;
 }
 
 #login-user-links-container {

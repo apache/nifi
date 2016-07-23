@@ -17,11 +17,10 @@
 package org.apache.nifi.authorization.resource;
 
 public enum ResourceType {
-    Connection("/connections"),
     Controller("/controller"),
     ControllerService("/controller-services"),
     Counters("/counters"),
-    Funnel("/funnel"),
+    Funnel("/funnels"),
     Flow("/flow"),
     InputPort("/input-ports"),
     Label("/labels"),

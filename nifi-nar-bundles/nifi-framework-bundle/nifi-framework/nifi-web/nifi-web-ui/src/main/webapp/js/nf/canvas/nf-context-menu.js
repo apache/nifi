@@ -34,22 +34,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components
      */
     var isConfigurable = function (selection) {
-        // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
-            return false;
-        }
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-
-        var isConfigurableComponent = nf.CanvasUtils.isLabel(selection) || nf.CanvasUtils.isProcessGroup(selection);
-        if (!isConfigurableComponent) {
-            if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isConnection(selection)) {
-                isConfigurableComponent = nf.CanvasUtils.supportsModification(selection);
-            }
-        }
-
-        return isConfigurableComponent;
+        return nf.CanvasUtils.isConfigurable(selection);
     };
 
     /**
@@ -58,23 +43,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components
      */
     var hasDetails = function (selection) {
-        // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
-            return false;
-        }
-        if (nf.CanvasUtils.canRead(selection) === false) {
-            return false;
-        }
-
-        if (nf.CanvasUtils.canModify(selection)) {
-            if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isConnection(selection)) {
-                return !nf.CanvasUtils.supportsModification(selection);
-            }
-        } else {
-            return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
-        }
-
-        return false;
+        return nf.CanvasUtils.hasDetails(selection);
     };
 
     /**
@@ -83,10 +52,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components 
      */
     var isDeletable = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return nf.CanvasUtils.areDeletable(selection);
     };
 
@@ -96,10 +61,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components 
      */
     var isRunnable = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return nf.CanvasUtils.areRunnable(selection);
     };
 
@@ -109,10 +70,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components 
      */
     var isStoppable = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return nf.CanvasUtils.areStoppable(selection);
     };
 
@@ -140,6 +97,9 @@ nf.ContextMenu = (function () {
         if (selection.size() !== 1) {
             return false;
         }
+        if (nf.CanvasUtils.canRead(selection) === false) {
+            return false;
+        }
 
         return nf.CanvasUtils.isProcessor(selection);
     };
@@ -159,10 +119,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components
      */
     var isCopyable = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return nf.CanvasUtils.isCopyable(selection);
     };
 
@@ -172,7 +128,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection         The selection of currently selected components
      */
     var isPastable = function (selection) {
-        return nf.Canvas.canWrite() && nf.CanvasUtils.isPastable();
+        return nf.CanvasUtils.isPastable();
     };
 
     /**
@@ -207,10 +163,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection          The selection
      */
     var isColorable = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return nf.CanvasUtils.isColorable(selection);
     };
 
@@ -265,7 +217,7 @@ nf.ContextMenu = (function () {
     };
 
     /**
-     * Determines whether the current selection is a processor.
+     * Determines whether the current selection is a stateful processor.
      *
      * @param {selection} selection
      */
@@ -274,7 +226,7 @@ nf.ContextMenu = (function () {
         if (selection.size() !== 1) {
             return false;
         }
-        if (nf.CanvasUtils.canModify(selection) === false) {
+        if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
             return false;
         }
 
@@ -323,6 +275,9 @@ nf.ContextMenu = (function () {
     var isRemoteProcessGroup = function (selection) {
         // ensure the correct number of components are selected
         if (selection.size() !== 1) {
+            return false;
+        }
+        if (nf.CanvasUtils.canRead(selection) === false) {
             return false;
         }
 

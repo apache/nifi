@@ -76,8 +76,8 @@ public class AccessControlHelper {
         }
 
         // load extensions
-        NarClassLoaders.load(props);
-        ExtensionManager.discoverExtensions();
+        NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
+        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
 
         // start the server
         server = new NiFiTestServer("src/main/webapp", CONTEXT_PATH);

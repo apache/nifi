@@ -80,7 +80,7 @@ div.provenance-panel {
 
 #provenance-filter-container {
     height: 24px;
-    width: 326px;
+    width: 100%;
 }
 
 #provenance-filter {
@@ -94,7 +94,6 @@ input.provenance-filter-list {
 }
 
 #provenance-filter-type {
-    width: 128px;
     float: left;
 }
 

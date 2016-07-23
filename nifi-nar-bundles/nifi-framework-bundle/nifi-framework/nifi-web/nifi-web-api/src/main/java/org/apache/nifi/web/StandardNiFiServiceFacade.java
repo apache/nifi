@@ -16,38 +16,20 @@
  */
 package org.apache.nifi.web;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
+import com.google.common.collect.Sets;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.RequestAction;
@@ -215,7 +197,26 @@ import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of NiFiServiceFacade that performs revision checking.
@@ -749,6 +750,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             updatedRevisions.put(revision.getComponentId(), currentRevision.incrementRevision(revision.getClientId()));
                         }
 
+                        // save
+                        controllerFacade.save();
+
                         // gather details for response
                         final ScheduleComponentsEntity entity = new ScheduleComponentsEntity();
                         entity.setId(processGroupId);
@@ -905,11 +909,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(g -> g.getIdentifier()).map(mapUserGroupIdToTenantEntity()).collect(Collectors.toSet()) : null;
         final Set<AccessPolicySummaryEntity> policyEntities = user != null ? userGroupDAO.getAccessPoliciesForUser(userId).stream()
                 .map(ap -> createAccessPolicySummaryEntity(ap)).collect(Collectors.toSet()) : null;
-        final UserDTO snapshot = deleteComponent(
-                revision,
-                authorizableLookup.getTenant(),
-                () -> userDAO.deleteUser(userId),
-                dtoFactory.createUserDto(user, userGroups, policyEntities));
+
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
+
+        // perform the deletion
+        final UserDTO snapshot = revisionManager.deleteRevision(claim, nifiUser, () -> {
+            logger.debug("Attempting to delete component {} with claim {}", user, claim);
+
+            userDAO.deleteUser(userId);
+
+            // save the flow
+            controllerFacade.save();
+            logger.debug("Deletion of component {} was successful", user);
+
+            return dtoFactory.createUserDto(user, userGroups, policyEntities);
+        });
 
         return entityFactory.createUserEntity(snapshot, null, null);
     }
@@ -920,11 +935,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<TenantEntity> users = userGroup != null ? userGroup.getUsers().stream()
                 .map(mapUserIdToTenantEntity()).collect(Collectors.toSet()) :
                 null;
-        final UserGroupDTO snapshot = deleteComponent(
-                revision,
-                authorizableLookup.getTenant(),
-                () -> userGroupDAO.deleteUserGroup(userGroupId),
-                dtoFactory.createUserGroupDto(userGroup, users));
+
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
+
+        // perform the deletion
+        final UserGroupDTO snapshot = revisionManager.deleteRevision(claim, nifiUser, () -> {
+            logger.debug("Attempting to delete component {} with claim {}", userGroup, claim);
+
+            userGroupDAO.deleteUserGroup(userGroupId);
+
+            // save the flow
+            controllerFacade.save();
+            logger.debug("Deletion of component {} was successful", userGroup);
+
+            return dtoFactory.createUserGroupDto(userGroup, users);
+        });
 
         return entityFactory.createUserGroupEntity(snapshot, null, null);
     }
@@ -977,6 +1003,32 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
                 logger.debug("Deletion of component {} was successful", authorizable);
+
+                // if configured with a policy based authorizer, attempt to remove the corresponding policies
+                if (authorizer instanceof AbstractPolicyBasedAuthorizer) {
+                    try {
+                        // since the component is being deleted, also delete any relevant read access policies
+                        final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(RequestAction.READ, authorizable);
+                        if (authorizable.getResource().getIdentifier().equals(readPolicy.getResource())) {
+                            accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
+                        }
+                    } catch (final ResourceNotFoundException e) {
+                        // no policy exists for this component... no worries
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.READ, authorizable.getResource().getIdentifier()), e);
+                    }
+                    try {
+                        // since the component is being deleted, also delete any relevant write access policies
+                        final AccessPolicy writePolicy = accessPolicyDAO.getAccessPolicy(RequestAction.WRITE, authorizable);
+                        if (authorizable.getResource().getIdentifier().equals(writePolicy.getResource())) {
+                            accessPolicyDAO.deleteAccessPolicy(writePolicy.getIdentifier());
+                        }
+                    } catch (final ResourceNotFoundException e) {
+                        // no policy exists for this component... no worries
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.WRITE, authorizable.getResource().getIdentifier()), e);
+                    }
+                }
 
                 return dto;
             }
@@ -1390,7 +1442,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setName(name);
         templateDTO.setDescription(description);
         templateDTO.setTimestamp(new Date());
-        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true));
+        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true, true));
         templateDTO.setEncodingVersion(TemplateDTO.MAX_ENCODING_VERSION);
 
         // set the id based on the specified seed
@@ -2648,7 +2700,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     authorizable = authorizableLookup.getFunnel(sourceId);
                     break;
                 case Connection:
-                    authorizable = authorizableLookup.getConnection(sourceId);
+                    authorizable = authorizableLookup.getConnection(sourceId).getAuthorizable();
+                    break;
+                case AccessPolicy:
+                    authorizable = authorizableLookup.getAccessPolicyById(sourceId);
+                    break;
+                case User:
+                case UserGroup:
+                    authorizable = authorizableLookup.getTenant();
                     break;
                 default:
                     throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this action.").build());

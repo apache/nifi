@@ -190,45 +190,6 @@ ul.result li {
     padding: 3px 0px;
 }
 
-.setting {
-    margin-bottom: 15px;
-}
-
-.setting-name {
-    font-size: 12px;
-    font-weight: 500;
-    font-family: Roboto Slab;
-    padding-bottom: 4px;
-    color: #262626;
-}
-
-.setting-name .fa {
-    color: #004849;
-    margin-left: 5px;
-}
-
-.setting-field .fa {
-    color: #004849;
-    margin-left: 5px;
-}
-
-.setting-field {
-    line-height: normal;
-    width: 100%;
-    color: #775351;
-    font-size: 13px;
-}
-
-.setting-header{
-    color: #728e9b;
-    font-size: 12pt;
-    font-family: 'Roboto Slab';
-    font-style: normal;
-    font-weight: bold;
-    padding-bottom: 20px;
-    text-overflow: ellipsis;
-}
-
 .dialog-content div.settings-left {
     float: left;
     width: 49%;

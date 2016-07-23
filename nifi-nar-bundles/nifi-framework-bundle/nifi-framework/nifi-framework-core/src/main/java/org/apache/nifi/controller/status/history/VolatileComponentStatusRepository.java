@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.Date;
-
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
@@ -29,6 +27,8 @@ import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.ForEachEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Date;
 
 public class VolatileComponentStatusRepository implements ComponentStatusRepository {
 
@@ -69,7 +69,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", processorId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, processorId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -80,9 +80,9 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Type", status.getType());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_TYPE, status.getType());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -102,7 +102,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getConnectionStatusHistory(final String connectionId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", connectionId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, connectionId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -113,10 +113,10 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Source Name", status.getSourceName());
-                history.setComponentDetail("Destination Name", status.getDestinationName());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_SOURCE_NAME, status.getSourceName());
+                history.setComponentDetail(COMPONENT_DETAIL_DESTINATION_NAME, status.getDestinationName());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -136,7 +136,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getProcessGroupStatusHistory(final String processGroupId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", processGroupId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, processGroupId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -147,7 +147,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Name", status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());
@@ -167,7 +167,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     @Override
     public StatusHistory getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date start, final Date end, final int preferredDataPoints) {
         final StandardStatusHistory history = new StandardStatusHistory();
-        history.setComponentDetail("Id", remoteGroupId);
+        history.setComponentDetail(COMPONENT_DETAIL_ID, remoteGroupId);
 
         captures.forEach(new ForEachEvaluator<Capture>() {
             @Override
@@ -178,9 +178,9 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
                     return true;
                 }
 
-                history.setComponentDetail("Group Id", status.getGroupId());
-                history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Uri", status.getTargetUri());
+                history.setComponentDetail(COMPONENT_DETAIL_GROUP_ID, status.getGroupId());
+                history.setComponentDetail(COMPONENT_DETAIL_NAME, status.getName());
+                history.setComponentDetail(COMPONENT_DETAIL_URI, status.getTargetUri());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
                 snapshot.setTimestamp(capture.getCaptureDate());

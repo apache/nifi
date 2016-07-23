@@ -21,10 +21,9 @@
 #bulletin-board {
     position: absolute;
     top: 0px;
-    bottom: 0px;
+    bottom: 40px;
     left: 20px;
     right: 20px;
-    height: 100%;
     overflow: auto;
 }
 

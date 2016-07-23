@@ -30,37 +30,50 @@
 #view-as-label {
     position: absolute;
     top: 72px;
-    left: 144px;
-    line-height: 24px;
+    left: 100px;
+    line-height: 30px;
     font-size: 12px;
+    font-weight: normal;
+    font-family: Roboto Slab;
+    color: #262626;
 }
 
 #view-as {
-    position: absolute;
+    position: relative;
     top: 72px;
-    left: 200px;
-    width: 80px;
-    height: 18px;
+    left: 150px;
 }
 
 #content-filename {
     position: absolute;
-    top: 58px;
+    top: 62px;
     right: 50px;
-    line-height: 24px;
-    font-size: 12px;
+    line-height: normal;
+    color: #775351;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'Roboto';
 }
 
 #content-type {
     position: absolute;
-    top: 75px;
+    top: 79px;
     right: 50px;
-    line-height: 24px;
-    font-size: 12px;
+    line-height: normal;
+    color: #775351;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'Roboto';
 }
 
 .content-label {
-    font-weight: bold;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
     margin-right: 8px;
 }
 

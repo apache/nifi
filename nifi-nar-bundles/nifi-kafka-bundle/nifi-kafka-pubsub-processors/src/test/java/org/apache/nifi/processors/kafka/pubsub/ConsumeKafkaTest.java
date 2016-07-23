@@ -150,6 +150,9 @@ public class ConsumeKafkaTest {
         assertEquals(2, flowFiles.size());
         MockFlowFile flowFile = flowFiles.get(0);
         String[] events = new String(flowFile.toByteArray(), StandardCharsets.UTF_8).split("blah");
+        assertEquals("0", flowFile.getAttribute("kafka.partition"));
+        assertEquals("0", flowFile.getAttribute("kafka.offset"));
+        assertEquals("validateGetAllMessagesWithProvidedDemarcator", flowFile.getAttribute("kafka.topic"));
 
         assertEquals(2, events.length);
 

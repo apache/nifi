@@ -20,11 +20,12 @@
         <div id="select-template-container">
             <div id="template-browse-container">
                 <span id="select-template-label">Select Template</span>
-                <button id="select-template-button" class="fa fa-search">
+                <div id="select-template-button">
+                    <button class="fa fa-search"></button>
                     <form id="template-upload-form" enctype="multipart/form-data" method="post">
                         <input type="file" name="template" id="template-file-field"/>
                     </form>
-                </button>
+                </div>
             </div>
         </div>
         <div id="submit-template-container">

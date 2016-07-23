@@ -79,7 +79,6 @@
  *          "fullscreen-height": "420px", //optional, default is original dialog height (accepts 'px' values)
  *          "fullscreen-width": "470px", //optional, default is original dialog width (accepts 'px' values)
  *      },
- *      "resizeable": "false", //optional, default false
  *      "glasspane": "false" //optional, displays a modal glasspane behind the dialog...default true
  *  }
  *
@@ -321,19 +320,6 @@
                 } else {
                     nfDialog.responsive.y = (nfDialog.responsive.y == "true" || nfDialog.responsive.y == true) ? true : false;
                 }
-            }
-
-            if (!isDefinedAndNotNull(nfDialog.resizable)) {
-                nfDialog.resizable = false;
-            } else {
-                nfDialog.resizable = (nfDialog.resizable == "true" || nfDialog.resizable == true) ? true : false;
-            }
-
-            if(nfDialog.resizable){
-                dialogContent.css({
-                    'position': 'static',
-                    'padding': '10px 20px 52px 20px'
-                });
             }
 
             if (nfDialog.responsive.y || nfDialog.responsive.x) {

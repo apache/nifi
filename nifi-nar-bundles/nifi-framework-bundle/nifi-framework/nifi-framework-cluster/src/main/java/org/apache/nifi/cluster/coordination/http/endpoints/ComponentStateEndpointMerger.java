@@ -74,8 +74,11 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
                 totalStateEntries += nodeLocalStateMap.getTotalEntryCount();
 
                 for (final StateEntryDTO nodeStateEntry : nodeLocalStateMap.getState()) {
-                    nodeStateEntry.setClusterNodeId(nodeId.getId());
-                    nodeStateEntry.setClusterNodeAddress(nodeAddress);
+                    if (nodeStateEntry.getClusterNodeId() == null || nodeStateEntry.getClusterNodeAddress() == null) {
+                        nodeStateEntry.setClusterNodeId(nodeId.getId());
+                        nodeStateEntry.setClusterNodeAddress(nodeAddress);
+                    }
+
                     localStateEntries.add(nodeStateEntry);
                 }
             }

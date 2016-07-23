@@ -21,16 +21,11 @@ import static org.junit.Assert.assertEquals;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
@@ -38,8 +33,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.nifi.nar.NarClassLoader;
-import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.TypeOneUUIDGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -49,18 +42,9 @@ import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.diff.HistogramDiff;
 import org.eclipse.jgit.diff.RawText;
 import org.eclipse.jgit.diff.RawTextComparator;
-import org.junit.Before;
 import org.junit.Test;
 
 public class TemplateSerializerTest {
-    @Before
-    public void before() throws Exception {
-        Field initField = NarClassLoaders.class.getDeclaredField("initialized");
-        setFinalField(initField, new AtomicBoolean(true));
-        Field clField = NarClassLoaders.class.getDeclaredField("frameworkClassLoader");
-        NarClassLoader cl = new NarClassLoader(new File(""), Thread.currentThread().getContextClassLoader());
-        setFinalField(clField, new AtomicReference<NarClassLoader>(cl));
-    }
 
     @Test
     public void validateDiffWithChangingComponentIdAndAdditionalElements() throws Exception {
@@ -130,11 +114,4 @@ public class TemplateSerializerTest {
         }
     }
 
-    public static void setFinalField(Field field, Object newValue) throws Exception {
-        field.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, newValue);
-    }
 }

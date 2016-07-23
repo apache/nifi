@@ -50,7 +50,6 @@ public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<Co
     protected void mergeResponses(ControllerStatusDTO clientDto, Map<NodeIdentifier, ControllerStatusDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
         ControllerStatusDTO mergedStatus = clientDto;
         for (final Map.Entry<NodeIdentifier, ControllerStatusDTO> entry : dtoMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
             final ControllerStatusDTO nodeStatus = entry.getValue();
 
             if (nodeStatus == mergedStatus) {
