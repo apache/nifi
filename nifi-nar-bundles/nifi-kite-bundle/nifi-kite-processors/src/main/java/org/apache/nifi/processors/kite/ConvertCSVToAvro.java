@@ -73,7 +73,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             // Allows special, escaped characters as input, which is then unescaped and converted to a single character.
             // Examples for special characters: \t (or \u0009), \f.
             input = unescapeString(input);
-            
+
             return new ValidationResult.Builder()
                 .subject(subject)
                 .input(input)
@@ -209,7 +209,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
                 .hasHeader(context.getProperty(HAS_HEADER).evaluateAttributeExpressions(incomingCSV).asBoolean())
                 .linesToSkip(context.getProperty(LINES_TO_SKIP).evaluateAttributeExpressions(incomingCSV).asInteger())
                 .build();
-        
+
         String schemaProperty = context.getProperty(SCHEMA)
             .evaluateAttributeExpressions(incomingCSV)
             .getValue();

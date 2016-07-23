@@ -19,14 +19,12 @@
 package org.apache.nifi.processors.kite;
 
 import java.io.IOException;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -212,7 +210,7 @@ public class TestCSVToAvroProcessor {
         runner.assertTransferCount("failure", 0);
         runner.assertTransferCount("incompatible", 0);
     }
-    
+
     @Test
     public void testExpresionLanguageBasedCSVProperties() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
@@ -222,14 +220,14 @@ public class TestCSVToAvroProcessor {
 
         runner.setProperty(ConvertCSVToAvro.DELIMITER, "${csv.delimiter}");
         runner.setProperty(ConvertCSVToAvro.QUOTE, "${csv.quote}");
-        
+
         HashMap<String, String> flowFileAttributes = new HashMap<String,String>();
         flowFileAttributes.put("csv.delimiter", "|");
         flowFileAttributes.put("csv.quote", "~");
-        
+
         runner.enqueue(streamFor("1|green\n2|~blue|field~|\n3|grey|12.95"), flowFileAttributes);
         runner.run();
-        
+
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
         Assert.assertEquals("Should convert 3 rows", 3, converted);
