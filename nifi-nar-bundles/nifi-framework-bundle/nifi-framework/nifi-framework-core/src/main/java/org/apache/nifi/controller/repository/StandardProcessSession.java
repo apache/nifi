@@ -330,13 +330,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (record.isMarkedForDelete()) {
                     // if the working claim is not the same as the original claim, we can immediately destroy the working claim
                     // because it was created in this session and is to be deleted. We don't need to wait for the FlowFile Repo to sync.
-                    removeContent(record.getWorkingClaim());
+                    decrementClaimCount(record.getWorkingClaim());
 
                     if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getWorkingClaim())) {
                         // if working & original claim are same, don't remove twice; we only want to remove the original
                         // if it's different from the working. Otherwise, we remove two claimant counts. This causes
                         // an issue if we only updated the FlowFile attributes.
-                        removeContent(record.getOriginalClaim());
+                        decrementClaimCount(record.getOriginalClaim());
                     }
                     final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                     final Connectable connectable = context.getConnectable();
@@ -344,7 +344,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
                 } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
                     // records which have been updated - remove original if exists
-                    removeContent(record.getOriginalClaim());
+                    decrementClaimCount(record.getOriginalClaim());
                 }
             }
 
@@ -923,12 +923,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final Set<StandardRepositoryRecord> transferRecords = new HashSet<>();
         for (final StandardRepositoryRecord record : recordsToHandle) {
             if (record.isMarkedForAbort()) {
-                removeContent(record.getWorkingClaim());
+                decrementClaimCount(record.getWorkingClaim());
                 if (record.getCurrentClaim() != null && !record.getCurrentClaim().equals(record.getWorkingClaim())) {
                     // if working & original claim are same, don't remove twice; we only want to remove the original
                     // if it's different from the working. Otherwise, we remove two claimant counts. This causes
                     // an issue if we only updated the flowfile attributes.
-                    removeContent(record.getCurrentClaim());
+                    decrementClaimCount(record.getCurrentClaim());
                 }
                 abortedRecords.add(record);
             } else {
@@ -1020,7 +1020,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
 
-    private void removeContent(final ContentClaim claim) {
+    private void decrementClaimCount(final ContentClaim claim) {
         if (claim == null) {
             return;
         }
@@ -1733,7 +1733,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             record.markForDelete();
             expiredRecords.add(record);
             expiredReporter.expire(flowFile, "Expiration Threshold = " + connection.getFlowFileQueue().getFlowFileExpiration());
-            removeContent(flowFile.getContentClaim());
+            decrementClaimCount(flowFile.getContentClaim());
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
@@ -2198,9 +2198,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 originalByteWrittenCount = outStream.getBytesWritten();
 
                 // wrap our OutputStreams so that the processor cannot close it
-                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream)) {
+                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream);
+                    final OutputStream flowFileAccessOutStream = new FlowFileAccessOutputStream(disableOnClose, source)) {
                     recursionSet.add(source);
-                    writer.process(disableOnClose);
+                    writer.process(flowFileAccessOutStream);
                 } finally {
                     recursionSet.remove(source);
                 }
@@ -2210,15 +2211,37 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newSize = outStream.getBytesWritten();
         } catch (final ContentNotFoundException nfe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+
+            // If the content claim changed, then we should destroy the new one. We do this
+            // because the new content claim will never get set as the 'working claim' for the FlowFile
+            // record since we will throw an Exception. As a result, we need to ensure that we have
+            // appropriately decremented the claimant count and can destroy the content if it is no
+            // longer in use. However, it is critical that we do this ONLY if the content claim has
+            // changed. Otherwise, the FlowFile already has a reference to this Content Claim and
+            // whenever the FlowFile is removed, the claim count will be decremented; if we decremented
+            // it here also, we would be decrementing the claimant count twice!
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
             handleContentNotFound(nfe, record);
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
-            throw new FlowFileAccessException("Exception in callback: " + ioe.toString(), ioe);
+
+            // See above explanation for why this is done only if newClaim != oldClaim
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
+            throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
         } catch (final Throwable t) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim);
+
+            // See above explanation for why this is done only if newClaim != oldClaim
+            if (newClaim != oldClaim) {
+                destroyContent(newClaim);
+            }
+
             throw t;
         } finally {
             if (outStream != null) {
@@ -2227,6 +2250,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             }
         }
 
+        // If the record already has a working claim, and this is the first time that we are appending to the FlowFile,
+        // destroy the current working claim because it is a temporary claim that
+        // is no longer going to be used, as we are about to set a new working claim. This would happen, for instance, if
+        // the FlowFile was written to, via #write() and then append() was called.
         if (newClaim != oldClaim) {
             removeTemporaryClaim(record);
         }
