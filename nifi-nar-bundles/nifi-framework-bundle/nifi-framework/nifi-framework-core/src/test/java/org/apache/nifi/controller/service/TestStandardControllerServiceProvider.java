@@ -403,26 +403,30 @@ public class TestStandardControllerServiceProvider {
         ControllerServiceNode C = provider.createControllerService(ServiceA.class.getName(), "C", false);
         ControllerServiceNode D = provider.createControllerService(ServiceB.class.getName(), "D", false);
         ControllerServiceNode E = provider.createControllerService(ServiceA.class.getName(), "E", false);
+        ControllerServiceNode F = provider.createControllerService(ServiceB.class.getName(), "F", false);
 
         procGroup.addControllerService(A);
         procGroup.addControllerService(B);
         procGroup.addControllerService(C);
         procGroup.addControllerService(D);
         procGroup.addControllerService(E);
+        procGroup.addControllerService(F);
 
         A.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
         B.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
         C.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
         C.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "D");
         E.setProperty(ServiceA.OTHER_SERVICE.getName(), "A");
+        E.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "F");
 
-        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[] { A, B, C, D, E }));
+        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[] { A, B, C, D, E, F }));
 
         assertTrue(A.isActive());
         assertTrue(B.isActive());
         assertTrue(C.isActive());
         assertTrue(D.isActive());
         assertTrue(E.isActive());
+        assertTrue(F.isActive());
     }
 
     /**
