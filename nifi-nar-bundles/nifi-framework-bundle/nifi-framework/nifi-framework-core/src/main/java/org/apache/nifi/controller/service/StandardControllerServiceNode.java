@@ -118,7 +118,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         Set<ControllerServiceNode> requiredServices = new HashSet<>();
         for (Entry<PropertyDescriptor, String> pEntry : this.getProperties().entrySet()) {
             PropertyDescriptor descriptor = pEntry.getKey();
-            if (descriptor.getControllerServiceDefinition() != null && descriptor.isRequired()) {
+            if (descriptor.getControllerServiceDefinition() != null && pEntry.getValue() != null) {
                 ControllerServiceNode rNode = this.serviceProvider.getControllerServiceNode(pEntry.getValue());
                 requiredServices.add(rNode);
                 requiredServices.addAll(rNode.getRequiredControllerServices());
