@@ -32,6 +32,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import javax.mail.Address;
+import javax.mail.Flags;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 
@@ -150,6 +151,8 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     private volatile ProcessSession processSession;
 
+    private volatile boolean shouldSetDeleteFlag;
+
     @OnStopped
     public void stop(ProcessContext processContext) {
         this.flushRemainingMessages(processContext);
@@ -174,11 +177,11 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      */
     @Override
     public void onTrigger(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        this.initializefNecessary(context, processSession);
+        this.initializeIfNecessary(context, processSession);
 
         Message emailMessage = this.receiveMessage();
         if (emailMessage != null) {
-            this.disposeMessage(emailMessage, context, processSession);
+            this.transfer(emailMessage, context, processSession);
         }
     }
 
@@ -257,15 +260,14 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * null). Upon execution of this operation the receiver is fully functional
      * and is ready to receive messages.
      */
-    private synchronized void initializefNecessary(ProcessContext context, ProcessSession processSession) {
+    private synchronized void initializeIfNecessary(ProcessContext context, ProcessSession processSession) {
         if (this.messageReceiver == null) {
             this.processSession = processSession;
             this.messageReceiver = this.buildMessageReceiver(context);
 
-            boolean shouldDelete = context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean();
+            this.shouldSetDeleteFlag = context.getProperty(SHOULD_DELETE_MESSAGES).asBoolean();
             int fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
 
-            this.messageReceiver.setShouldDeleteMessages(shouldDelete);
             this.messageReceiver.setMaxFetchSize(fetchSize);
             this.messageReceiver.setJavaMailProperties(this.buildJavaMailProperties(context));
             // need to avoid spring warning messages
@@ -322,7 +324,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
      * Disposes the message by converting it to a {@link FlowFile} transferring
      * it to the REL_SUCCESS relationship.
      */
-    private void disposeMessage(Message emailMessage, ProcessContext context, ProcessSession processSession) {
+    private void transfer(Message emailMessage, ProcessContext context, ProcessSession processSession) {
         long start = System.nanoTime();
         FlowFile flowFile = processSession.create();
 
@@ -352,6 +354,13 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         processSession.getProvenanceReporter().receive(flowFile, this.displayUrl, "Received message from " + fromAddressesString, executionDuration);
         this.getLogger().info("Successfully received {} from {} in {} millis", new Object[] { flowFile, fromAddressesString, executionDuration });
         processSession.transfer(flowFile, REL_SUCCESS);
+
+        try {
+            emailMessage.setFlag(Flags.Flag.DELETED, this.shouldSetDeleteFlag);
+        } catch (MessagingException e) {
+            this.logger.warn("Failed to set DELETE Flag on the message", e);
+            this.getLogger().warn("Failed to set DELETE Flag on the message");
+        }
     }
 
     /**
@@ -380,7 +389,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         Message emailMessage;
         try {
             while ((emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS)) != null) {
-                this.disposeMessage(emailMessage, processContext, this.processSession);
+                this.transfer(emailMessage, processContext, this.processSession);
                 this.processSession.commit();
             }
         } catch (InterruptedException e) {
