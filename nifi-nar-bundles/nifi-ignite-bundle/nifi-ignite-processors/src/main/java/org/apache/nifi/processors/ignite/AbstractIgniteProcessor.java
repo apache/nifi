@@ -18,6 +18,8 @@
  */
 package org.apache.nifi.processors.ignite;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.Ignition;
@@ -88,20 +90,28 @@ public abstract class AbstractIgniteProcessor extends AbstractProcessor  {
     public void initializeIgnite(ProcessContext context) {
 
         if ( getIgnite() != null ) {
-            getLogger().warn("Ignite already initialized");
+            getLogger().info("Ignite already initialized");
             return;
         }
 
-        Ignition.setClientMode(true);
 
-        String configuration = context.getProperty(IGNITE_CONFIGURATION_FILE).getValue();
-        getLogger().info("Initializing ignite with configuration {} ", new Object[] { configuration });
-        if ( StringUtils.isEmpty(configuration) ) {
-            ignite = Ignition.start();
-        } else {
-            ignite = Ignition.start(configuration);
+        synchronized(Ignition.class) {
+            List<Ignite> grids = Ignition.allGrids();
+
+            if ( grids.size() == 1 ) {
+                getLogger().info("Ignite grid already available");
+                ignite = grids.get(0);
+                return;
+            }
+            Ignition.setClientMode(true);
+
+            String configuration = context.getProperty(IGNITE_CONFIGURATION_FILE).getValue();
+            getLogger().info("Initializing ignite with configuration {} ", new Object[] { configuration });
+            if ( StringUtils.isEmpty(configuration) ) {
+                ignite = Ignition.start();
+            } else {
+                ignite = Ignition.start(configuration);
+            }
         }
-
     }
-
 }

@@ -47,13 +47,18 @@ public class TestPutIgniteCache {
 
     @BeforeClass
     public static void setUpClass() {
-        ignite = Ignition.start("test-ignite.xml");
+        List<Ignite> grids = Ignition.allGrids();
+        if ( grids.size() == 1 )
+            ignite = grids.get(0);
+        else
+            ignite = Ignition.start("test-ignite.xml");
 
     }
 
     @AfterClass
     public static void tearDownClass() {
-        ignite.close();
+        if ( ignite != null )
+            ignite.close();
         Ignition.stop(true);
     }
 

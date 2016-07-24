@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +35,13 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -71,6 +73,7 @@ import org.apache.nifi.stream.io.StreamUtils;
     @WritesAttribute(attribute = PutIgniteCache.IGNITE_BATCH_FLOW_FILE_FAILED_COUNT, description = "The total number of failed FlowFiles in the batch"),
     @WritesAttribute(attribute = PutIgniteCache.IGNITE_BATCH_FLOW_FILE_FAILED_REASON_ATTRIBUTE_KEY, description = "The failed reason attribute key")
     })
+@SeeAlso({GetIgniteCache.class})
 public class PutIgniteCache extends AbstractIgniteCacheProcessor {
 
     /**
@@ -138,16 +141,6 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
             .sensitive(false)
             .build();
 
-    public static final PropertyDescriptor IGNITE_CACHE_ENTRY_KEY = new PropertyDescriptor.Builder()
-            .displayName("Ignite Cache Entry Identifier")
-            .name("ignite-cache-entry-identifier")
-            .description("A FlowFile attribute, or attribute expression used " +
-                "for determining Ignite cache key for the Flow File content")
-            .required(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
-            .build();
-
     /** Flow file attribute keys and messages */
     public static final String IGNITE_BATCH_FLOW_FILE_TOTAL_COUNT = "ignite.cache.batch.flow.file.total.count";
     public static final String IGNITE_BATCH_FLOW_FILE_ITEM_NUMBER = "ignite.cache.batch.flow.file.item.number";
@@ -160,17 +153,15 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
     public static final String IGNITE_BATCH_FLOW_FILE_FAILED_MISSING_KEY_MESSAGE = "The FlowFile key attribute was missing";
     public static final String IGNITE_BATCH_FLOW_FILE_FAILED_ZERO_SIZE_MESSAGE = "The FlowFile size was zero";
 
-    static {
-        descriptors = new ArrayList<>();
-        descriptors.add(IGNITE_CONFIGURATION_FILE);
-        descriptors.add(CACHE_NAME);
-        descriptors.add(BATCH_SIZE);
-        descriptors.add(IGNITE_CACHE_ENTRY_KEY);
-        descriptors.add(DATA_STREAMER_PER_NODE_PARALLEL_OPERATIONS);
-        descriptors.add(DATA_STREAMER_PER_NODE_BUFFER_SIZE);
-        descriptors.add(DATA_STREAMER_AUTO_FLUSH_FREQUENCY);
-        descriptors.add(DATA_STREAMER_ALLOW_OVERRIDE);
-    }
+    /**
+     * Property descriptors
+     */
+    protected static final List<PropertyDescriptor> descriptors =
+        Arrays.asList(IGNITE_CONFIGURATION_FILE,CACHE_NAME,BATCH_SIZE,
+            IGNITE_CACHE_ENTRY_KEY,
+            DATA_STREAMER_PER_NODE_PARALLEL_OPERATIONS,
+            DATA_STREAMER_PER_NODE_BUFFER_SIZE,
+            DATA_STREAMER_AUTO_FLUSH_FREQUENCY,DATA_STREAMER_ALLOW_OVERRIDE);
 
     /**
      * Data streamer instance
@@ -190,9 +181,13 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
         if (igniteDataStreamer != null) {
             getLogger().info("Closing ignite data streamer");
             igniteDataStreamer.flush();
-            igniteDataStreamer.close();
             igniteDataStreamer = null;
         }
+    }
+
+    @OnShutdown
+    public final void closeIgniteDataStreamerAndCache() {
+        closeIgniteDataStreamer();
         super.closeIgniteCache();
     }
 
