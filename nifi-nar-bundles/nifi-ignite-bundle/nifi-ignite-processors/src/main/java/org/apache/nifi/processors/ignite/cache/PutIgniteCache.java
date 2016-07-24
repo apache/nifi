@@ -34,12 +34,12 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -71,6 +71,7 @@ import org.apache.nifi.stream.io.StreamUtils;
     @WritesAttribute(attribute = PutIgniteCache.IGNITE_BATCH_FLOW_FILE_FAILED_COUNT, description = "The total number of failed FlowFiles in the batch"),
     @WritesAttribute(attribute = PutIgniteCache.IGNITE_BATCH_FLOW_FILE_FAILED_REASON_ATTRIBUTE_KEY, description = "The failed reason attribute key")
     })
+@SeeAlso({GetIgniteCache.class})
 public class PutIgniteCache extends AbstractIgniteCacheProcessor {
 
     /**
@@ -136,16 +137,6 @@ public class PutIgniteCache extends AbstractIgniteCacheProcessor {
             .required(true)
             .allowableValues(new AllowableValue("true"), new AllowableValue("false"))
             .sensitive(false)
-            .build();
-
-    public static final PropertyDescriptor IGNITE_CACHE_ENTRY_KEY = new PropertyDescriptor.Builder()
-            .displayName("Ignite Cache Entry Identifier")
-            .name("ignite-cache-entry-identifier")
-            .description("A FlowFile attribute, or attribute expression used " +
-                "for determining Ignite cache key for the Flow File content")
-            .required(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
-            .expressionLanguageSupported(true)
             .build();
 
     /** Flow file attribute keys and messages */

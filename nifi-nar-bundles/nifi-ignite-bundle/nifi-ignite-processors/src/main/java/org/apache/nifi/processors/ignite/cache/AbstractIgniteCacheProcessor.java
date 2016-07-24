@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.ignite.IgniteCache;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -44,6 +45,19 @@ public abstract class AbstractIgniteCacheProcessor extends AbstractIgniteProcess
             .description("The name of the ignite cache")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    /**
+     * The Ignite cache key attribute
+     */
+    public static final PropertyDescriptor IGNITE_CACHE_ENTRY_KEY = new PropertyDescriptor.Builder()
+            .displayName("Ignite Cache Entry Identifier")
+            .name("ignite-cache-entry-identifier")
+            .description("A FlowFile attribute, or attribute expression used " +
+                "for determining Ignite cache key for the Flow File content")
+            .required(true)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
+            .expressionLanguageSupported(true)
             .build();
 
     /**
