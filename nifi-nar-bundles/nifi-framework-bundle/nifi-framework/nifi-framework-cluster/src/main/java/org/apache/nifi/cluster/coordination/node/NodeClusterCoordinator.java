@@ -288,8 +288,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
-        final int numConnected = getNodeIdentifiers(NodeConnectionState.CONNECTED).size();
-        if (numConnected == 1) {
+        final Set<NodeIdentifier> connectedNodeIds = getNodeIdentifiers(NodeConnectionState.CONNECTED);
+        if (connectedNodeIds.size() == 1 && connectedNodeIds.contains(nodeId)) {
             throw new IllegalNodeDisconnectionException("Cannot disconnect node " + nodeId + " because it is the only node currently connected");
         }
 
@@ -641,7 +641,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
     }
 
-    private void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus) {
+    void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus) {
         notifyOthersOfNodeStatusChange(updatedStatus, isActiveClusterCoordinator());
     }
 
@@ -651,7 +651,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
      * @param updatedStatus the updated status for a node in the cluster
      * @param notifyAllNodes if <code>true</code> will notify all nodes. If <code>false</code>, will notify only the cluster coordinator
      */
-    private void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes) {
+    void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes) {
         // If this node is the active cluster coordinator, then we are going to replicate to all nodes.
         // Otherwise, get the active coordinator (or wait for one to become active) and then notify the coordinator.
         final Set<NodeIdentifier> nodesToNotify;
