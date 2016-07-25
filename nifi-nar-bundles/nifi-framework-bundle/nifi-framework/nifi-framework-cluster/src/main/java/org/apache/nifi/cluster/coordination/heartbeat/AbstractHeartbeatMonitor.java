@@ -126,11 +126,9 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     protected synchronized void monitorHeartbeats() {
         final Map<NodeIdentifier, NodeHeartbeat> latestHeartbeats = getLatestHeartbeats();
         if (latestHeartbeats == null || latestHeartbeats.isEmpty()) {
-            if (!clusterCoordinator.isActiveClusterCoordinator()) {
-                logger.info("This node is no longer the Cluster Coordinator, so will stop monitoring heartbeats");
-                stop();
-            }
-
+            // failed to fetch heartbeats; don't change anything.
+            clusterCoordinator.reportEvent(null, Severity.INFO, "Failed to retrieve any new heartbeat information for nodes. "
+                + "Will not make any decisions based on heartbeats.");
             return;
         }
 

@@ -548,10 +548,6 @@ public class ControllerResource extends ApplicationResource {
                     + "not equal the node id of the requested resource (%s).", requestNodeDTO.getNodeId(), id));
         }
 
-        if (isReplicateRequest()) {
-            return replicateToCoordinator(HttpMethod.PUT, nodeEntity);
-        }
-
         // update the node
         final NodeDTO node = serviceFacade.updateNode(requestNodeDTO);
 
@@ -602,10 +598,6 @@ public class ControllerResource extends ApplicationResource {
         // ensure connected to the cluster
         if (!isConnectedToCluster()) {
             throw new IllegalClusterResourceRequestException("Only a node connected to a cluster can process the request.");
-        }
-
-        if (isReplicateRequest()) {
-            return replicateToCoordinator(HttpMethod.DELETE, getRequestParameters());
         }
 
         serviceFacade.deleteNode(id);

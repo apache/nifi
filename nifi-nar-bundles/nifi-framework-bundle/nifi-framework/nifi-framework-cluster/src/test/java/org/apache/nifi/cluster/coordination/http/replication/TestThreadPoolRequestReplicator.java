@@ -87,7 +87,7 @@ public class TestThreadPoolRequestReplicator {
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
 
-            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
+            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true);
 
             // We should get back the same response object
             assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
@@ -115,7 +115,7 @@ public class TestThreadPoolRequestReplicator {
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
 
-            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
+            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true);
 
             // We should get back the same response object
             assertTrue(response == replicator.getClusterResponse(response.getRequestIdentifier()));
@@ -151,7 +151,7 @@ public class TestThreadPoolRequestReplicator {
             final URI uri = new URI("http://localhost:8080/processors/1");
             final Entity entity = new ProcessorEntity();
 
-            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true, true);
+            final AsyncClusterResponse response = replicator.replicate(nodeIds, HttpMethod.GET, uri, entity, new HashMap<>(), true);
             assertNotNull(response.awaitMergedResponse(1, TimeUnit.SECONDS));
         } , null, 0L, new IllegalArgumentException("Exception created for unit test"));
     }
@@ -191,7 +191,7 @@ public class TestThreadPoolRequestReplicator {
 
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
-                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
+                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true);
             clusterResponse.awaitMergedResponse();
 
             // Ensure that we received two requests - the first should contain the X-NcmExpects header; the second should not.
@@ -235,8 +235,7 @@ public class TestThreadPoolRequestReplicator {
         Mockito.when(coordinator.getConnectionStates()).thenReturn(nodeMap);
         final ThreadPoolRequestReplicator replicator = new ThreadPoolRequestReplicator(2, new Client(), coordinator, "1 sec", "1 sec", null, null) {
             @Override
-            public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
-                    boolean indicateReplicated, boolean verify) {
+            public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated) {
                 return null;
             }
         };
@@ -309,7 +308,7 @@ public class TestThreadPoolRequestReplicator {
 
         try {
             final AsyncClusterResponse clusterResponse = replicator.replicate(nodeIds, HttpMethod.POST,
-                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
+                new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true);
             clusterResponse.awaitMergedResponse();
 
             Assert.fail("Expected to get an IllegalClusterStateException but did not");

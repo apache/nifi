@@ -565,11 +565,11 @@ public abstract class ApplicationResource {
                 // If we are to replicate directly to the nodes, we need to indicate that the replication source is
                 // the cluster coordinator so that the node knows to service the request.
                 final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
-                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true, true).awaitMergedResponse().getResponse();
+                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true).awaitMergedResponse().getResponse();
             } else {
                 headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
                 return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method,
-                    path, entity, headers, false, true).awaitMergedResponse().getResponse();
+                    path, entity, headers, false).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
@@ -589,33 +589,18 @@ public abstract class ApplicationResource {
         return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
     }
 
-
     protected Response replicate(final String method, final NodeIdentifier targetNode) {
-        return replicate(method, targetNode, getRequestParameters());
-    }
-
-    protected Response replicate(final String method, final NodeIdentifier targetNode, final Object entity) {
         try {
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
             // to the cluster nodes themselves.
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
                 final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
-                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), entity, getHeaders(), true, true).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(), getHeaders(), true).awaitMergedResponse().getResponse();
             } else {
                 final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
                 final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
-                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), entity, headers, false, true).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(), headers, false).awaitMergedResponse().getResponse();
             }
-        } catch (final InterruptedException ie) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
-        }
-    }
-
-    protected Response replicateToCoordinator(final String method, final Object entity) {
-        try {
-            final NodeIdentifier coordinatorNode = getClusterCoordinatorNode();
-            final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
-            return getRequestReplicator().replicate(coordinatorNodes, method, getAbsolutePath(), entity, getHeaders(), true, false).awaitMergedResponse().getResponse();
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
         }
@@ -700,7 +685,7 @@ public abstract class ApplicationResource {
         if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
             return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
         } else {
-            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false, true).awaitMergedResponse();
+            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false).awaitMergedResponse();
         }
     }
 
