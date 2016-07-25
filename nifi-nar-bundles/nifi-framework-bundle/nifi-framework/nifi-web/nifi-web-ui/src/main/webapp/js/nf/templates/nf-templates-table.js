@@ -42,14 +42,25 @@ nf.TemplatesTable = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'timestamp') {
-                var aDate = nf.Common.parseDateTime(a[sortDetails.columnId]);
-                var bDate = nf.Common.parseDateTime(b[sortDetails.columnId]);
-                return aDate.getTime() - bDate.getTime();
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'timestamp') {
+                    var aDate = nf.Common.parseDateTime(a.template[sortDetails.columnId]);
+                    var bDate = nf.Common.parseDateTime(b.template[sortDetails.columnId]);
+                    return aDate.getTime() - bDate.getTime();
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
+                }
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
