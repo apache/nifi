@@ -41,7 +41,7 @@ import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -211,8 +211,9 @@ public abstract class ApplicationResource {
                 uuid = UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8));
             }
         } else {
-            uuid = TypeOneUUIDGenerator.generateId();
+            uuid = ComponentIdGenerator.generateId();
         }
+
         return uuid.toString();
     }
 

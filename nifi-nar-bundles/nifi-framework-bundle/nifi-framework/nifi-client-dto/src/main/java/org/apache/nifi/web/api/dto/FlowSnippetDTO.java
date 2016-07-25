@@ -203,19 +203,87 @@ public class FlowSnippetDTO {
                 UUID id = UUID.fromString(componentDto.getId());
                 id = new UUID(id.getMostSignificantBits(), 0);
                 componentDto.setId(id.toString());
+
+                id = UUID.fromString(componentDto.getParentGroupId());
+                id = new UUID(id.getMostSignificantBits(), 0);
+                componentDto.setParentGroupId(id.toString());
+
                 if (componentDto instanceof ConnectionDTO) {
                     ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
+
                     ConnectableDTO cdto = connectionDTO.getSource();
                     id = UUID.fromString(cdto.getId());
                     id = new UUID(id.getMostSignificantBits(), 0);
                     cdto.setId(id.toString());
 
+                    id = UUID.fromString(cdto.getGroupId());
+                    id = new UUID(id.getMostSignificantBits(), 0);
+                    cdto.setGroupId(id.toString());
+
                     cdto = connectionDTO.getDestination();
                     id = UUID.fromString(cdto.getId());
                     id = new UUID(id.getMostSignificantBits(), 0);
                     cdto.setId(id.toString());
+
+                    id = UUID.fromString(cdto.getGroupId());
+                    id = new UUID(id.getMostSignificantBits(), 0);
+                    cdto.setGroupId(id.toString());
+                }
+                if (componentDto instanceof ProcessGroupDTO) {
+                    FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getConnections());
+                    fsDTO.connections = this.orderedById(fsDTO.getConnections());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getControllerServices());
+                    fsDTO.controllerServices = this.orderedById(fsDTO.getControllerServices());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getFunnels());
+                    fsDTO.funnels = this.orderedById(fsDTO.getFunnels());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getInputPorts());
+                    fsDTO.inputPorts = this.orderedById(fsDTO.getInputPorts());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getLabels());
+                    fsDTO.labels = this.orderedById(fsDTO.getLabels());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getOutputPorts());
+                    fsDTO.outputPorts = this.orderedById(fsDTO.getOutputPorts());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getProcessGroups());
+                    fsDTO.processGroups = this.orderedById(fsDTO.getProcessGroups());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getProcessors());
+                    fsDTO.processors = this.orderedById(fsDTO.getProcessors());
+
+                    this.removeInstanceIdentifierIfNecessary(fsDTO.getRemoteProcessGroups());
+                    fsDTO.remoteProcessGroups = this.orderedById(fsDTO.getRemoteProcessGroups());
+                } else if (componentDto instanceof RemoteProcessGroupDTO) {
+                    RemoteProcessGroupContentsDTO contentsDTO = ((RemoteProcessGroupDTO) componentDto).getContents();
+                    for (RemoteProcessGroupPortDTO portDTO : contentsDTO.getInputPorts()) {
+                        id = UUID.fromString(portDTO.getId());
+                        id = new UUID(id.getMostSignificantBits(), 0);
+                        portDTO.setId(new UUID(id.getMostSignificantBits(), 0).toString());
+                    }
+                    for (RemoteProcessGroupPortDTO portDTO : contentsDTO.getOutputPorts()) {
+                        id = UUID.fromString(portDTO.getId());
+                        portDTO.setId(new UUID(id.getMostSignificantBits(), 0).toString());
+                    }
+                    contentsDTO.setInputPorts(this.orderedRemotePortsById(contentsDTO.getInputPorts()));
+                    contentsDTO.setOutputPorts(this.orderedRemotePortsById(contentsDTO.getOutputPorts()));
                 }
             }
         }
+    }
+
+    private <T extends RemoteProcessGroupPortDTO> Set<T> orderedRemotePortsById(Set<T> dtos) {
+        TreeSet<T> components = new TreeSet<>(new Comparator<RemoteProcessGroupPortDTO>() {
+            @Override
+            public int compare(RemoteProcessGroupPortDTO c1, RemoteProcessGroupPortDTO c2) {
+                return UUID.fromString(c1.getId()).compareTo(UUID.fromString(c2.getId()));
+            }
+        });
+        components.addAll(dtos);
+        return components;
     }
 }
