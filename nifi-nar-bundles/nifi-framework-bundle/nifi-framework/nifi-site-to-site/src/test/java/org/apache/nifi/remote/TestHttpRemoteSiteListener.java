@@ -18,6 +18,7 @@ package org.apache.nifi.remote;
 
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
+import org.apache.nifi.remote.protocol.HandshakenProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -45,7 +46,9 @@ public class TestHttpRemoteSiteListener {
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
-        transactionManager.holdTransaction(transactionId, transaction);
+        transactionManager.holdTransaction(transactionId, transaction, new HandshakenProperties());
+
+        assertNotNull(transactionManager.getHandshakenProperties(transactionId));
 
         transaction = transactionManager.finalizeTransaction(transactionId);
         assertNotNull(transaction);
@@ -63,10 +66,10 @@ public class TestHttpRemoteSiteListener {
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
-        transactionManager.holdTransaction(transactionId, transaction);
+        transactionManager.holdTransaction(transactionId, transaction, null);
 
         try {
-            transactionManager.holdTransaction(transactionId, transaction);
+            transactionManager.holdTransaction(transactionId, transaction, null);
             fail("The same transaction id can't hold another transaction");
         } catch (IllegalStateException e) {
         }
@@ -83,7 +86,7 @@ public class TestHttpRemoteSiteListener {
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
         try {
-            transactionManager.holdTransaction(transactionId, transaction);
+            transactionManager.holdTransaction(transactionId, transaction, null);
         } catch (IllegalStateException e) {
             fail("Transaction can be held even if the transaction id is not valid anymore," +
                     " in order to support large file or slow network.");
