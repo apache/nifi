@@ -41,7 +41,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,7 +219,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
-        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, TypeOneUUIDGenerator.generateId().toString());
+        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, ComponentIdGenerator.generateId().toString());
         if (indicateReplicated) {
             updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
         }

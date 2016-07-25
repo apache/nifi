@@ -186,6 +186,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -515,9 +516,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.snippetManager = new SnippetManager();
 
-        rootGroup = new StandardProcessGroup(UUID.randomUUID().toString(), this, processScheduler, properties, encryptor, this, this.variableRegistry);
+        rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), this, processScheduler,
+            properties, encryptor, this, this.variableRegistry);
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
-        instanceId = UUID.randomUUID().toString();
+        instanceId = ComponentIdGenerator.generateId().toString();
 
         controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider, this.variableRegistry);
 
