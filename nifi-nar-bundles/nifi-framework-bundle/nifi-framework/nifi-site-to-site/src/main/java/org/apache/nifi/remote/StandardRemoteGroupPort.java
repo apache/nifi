@@ -76,6 +76,9 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final TransferDirection transferDirection;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
+    SiteToSiteClient getSiteToSiteClient() {
+        return clientRef.get();
+    }
 
     public StandardRemoteGroupPort(final String id, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
             final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler) {
@@ -118,7 +121,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     public void shutdown() {
         super.shutdown();
 
-        final SiteToSiteClient client = clientRef.get();
+        final SiteToSiteClient client = getSiteToSiteClient();
         if (client != null) {
             try {
                 client.close();
@@ -175,7 +178,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             firstFlowFile = null;
         }
 
-        final SiteToSiteClient client = clientRef.get();
+        final SiteToSiteClient client = getSiteToSiteClient();
         final Transaction transaction;
         try {
             transaction = client.createTransaction(transferDirection);
@@ -275,7 +278,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 bytesSent += flowFile.getSize();
                 logger.debug("{} Sent {} to {}", this, flowFile, transaction.getCommunicant().getUrl());
 
-                final String transitUri = transaction.getCommunicant().getUrl() + "/" + flowFile.getAttribute(CoreAttributes.UUID.key());
+                final String transitUri = transaction.getCommunicant().createTransitUri(flowFile.getAttribute(CoreAttributes.UUID.key()));
                 session.getProvenanceReporter().send(flowFile, transitUri, "Remote DN=" + userDn, transferMillis, false);
                 session.remove(flowFile);
 
@@ -331,13 +334,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
             flowFile = session.importFrom(dataPacket.getData(), flowFile);
             final long receiveNanos = System.nanoTime() - start;
+            flowFilesReceived.add(flowFile);
 
             String sourceFlowFileIdentifier = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
             if (sourceFlowFileIdentifier == null) {
                 sourceFlowFileIdentifier = "<Unknown Identifier>";
             }
 
-            final String transitUri = transaction.getCommunicant().getUrl() + sourceFlowFileIdentifier;
+            final String transitUri = transaction.getCommunicant().createTransitUri(sourceFlowFileIdentifier);
             session.getProvenanceReporter().receive(flowFile, transitUri, "urn:nifi:" + sourceFlowFileIdentifier,
                     "Remote DN=" + userDn, TimeUnit.NANOSECONDS.toMillis(receiveNanos));
 

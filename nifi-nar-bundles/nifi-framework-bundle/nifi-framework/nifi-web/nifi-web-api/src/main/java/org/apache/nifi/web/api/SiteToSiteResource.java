@@ -18,6 +18,8 @@ package org.apache.nifi.web.api;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -214,10 +216,22 @@ public class SiteToSiteResource extends ApplicationResource {
         } else {
             // Standalone mode.
             final PeerDTO peer = new PeerDTO();
-            // req.getLocalName returns private IP address, that can't be accessed from client in some environments.
+
+            // Private IP address or hostname may not be accessible from client in some environments.
             // So, use the value defined in nifi.properties instead when it is defined.
             final String remoteInputHost = properties.getRemoteInputHost();
-            peer.setHostname(isEmpty(remoteInputHost) ? req.getLocalName() : remoteInputHost);
+            String localName;
+            try {
+                // Get local host name using InetAddress if available, same as RAW socket does.
+                localName = InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Failed to get local host name using InetAddress.", e);
+                }
+                localName = req.getLocalName();
+            }
+
+            peer.setHostname(isEmpty(remoteInputHost) ? localName : remoteInputHost);
             peer.setPort(properties.getRemoteInputHttpPort());
             peer.setSecure(properties.isSiteToSiteSecure());
             peer.setFlowFileCount(0);  // doesn't matter how many FlowFiles we have, because we're the only host.

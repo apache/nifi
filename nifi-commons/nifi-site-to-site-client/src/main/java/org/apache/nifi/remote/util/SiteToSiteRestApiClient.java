@@ -54,6 +54,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -374,9 +375,12 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    public boolean openConnectionForReceive(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
+    public boolean openConnectionForReceive(final String transactionUrl, final Peer peer) throws IOException {
 
         final HttpGet get = createGet(transactionUrl + "/flow-files");
+        // Set uri so that it'll be used as transit uri.
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(get.getURI().toString());
+
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties(get);
@@ -414,7 +418,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                             return r;
                         }
                     };
-                    ((HttpInput) commSession.getInput()).setInputStream(streamCapture);
+                    ((HttpInput) peer.getCommunicationsSession().getInput()).setInputStream(streamCapture);
 
                     startExtendingTtl(transactionUrl, httpIn, response);
                     keepItOpen = true;
@@ -436,10 +440,13 @@ public class SiteToSiteRestApiClient implements Closeable {
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
 
-    public void openConnectionForSend(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
+    public void openConnectionForSend(final String transactionUrl, final Peer peer) throws IOException {
 
+        final CommunicationsSession commSession = peer.getCommunicationsSession();
         final String flowFilesPath = transactionUrl + "/flow-files";
         final HttpPost post = createPost(flowFilesPath);
+        // Set uri so that it'll be used as transit uri.
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(post.getURI().toString());
 
         post.setHeader("Content-Type", "application/octet-stream");
         post.setHeader("Accept", "text/plain");

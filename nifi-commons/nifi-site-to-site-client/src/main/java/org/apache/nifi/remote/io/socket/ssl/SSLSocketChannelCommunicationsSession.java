@@ -26,8 +26,8 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
     private final SSLSocketChannelInput request;
     private final SSLSocketChannelOutput response;
 
-    public SSLSocketChannelCommunicationsSession(final SSLSocketChannel channel, final String uri) {
-        super(uri);
+    public SSLSocketChannelCommunicationsSession(final SSLSocketChannel channel) {
+        super();
         request = new SSLSocketChannelInput(channel);
         response = new SSLSocketChannelOutput(channel);
         this.channel = channel;
