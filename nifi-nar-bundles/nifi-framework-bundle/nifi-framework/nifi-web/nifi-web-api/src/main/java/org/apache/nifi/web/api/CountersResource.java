@@ -168,7 +168,7 @@ public class CountersResource extends ApplicationResource {
                     nodeResponse = getRequestReplicator().replicate(HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders()).awaitMergedResponse();
                 } else {
                     final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
-                    nodeResponse = getRequestReplicator().replicate(coordinatorNode, HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders(), false).awaitMergedResponse();
+                    nodeResponse = getRequestReplicator().replicate(coordinatorNode, HttpMethod.GET, getAbsolutePath(), getRequestParameters(), getHeaders(), false, true).awaitMergedResponse();
                 }
 
                 final CountersEntity entity = (CountersEntity) nodeResponse.getUpdatedEntity();
