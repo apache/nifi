@@ -34,6 +34,7 @@ import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -65,11 +66,21 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
 
     @Override
     protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
-        HandshakenProperties confirmed = new HandshakenProperties();
 
         HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        confirmed.setCommsIdentifier(commsSession.getTransactionId());
-        validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+        final String transactionId = commsSession.getTransactionId();
+
+        HandshakenProperties confirmed = null;
+        if (!StringUtils.isEmpty(transactionId)) {
+            // If handshake is already done, use it.
+            confirmed = transactionManager.getHandshakenProperties(transactionId);
+        }
+        if (confirmed == null) {
+            // If it's not, then do handshake.
+            confirmed = new HandshakenProperties();
+            confirmed.setCommsIdentifier(transactionId);
+            validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+        }
 
         logger.debug("{} Done handshake, confirmed={}", this, confirmed);
         return confirmed;
@@ -168,7 +179,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();
         logger.debug("{} Holding transaction. transactionId={}", this, transactionId);
-        transactionManager.holdTransaction(transactionId, transaction);
+        transactionManager.holdTransaction(transactionId, transaction, handshakenProperties);
 
         return transaction.getFlowFilesSent().size();
     }
