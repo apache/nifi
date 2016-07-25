@@ -18,6 +18,7 @@
  */
 package org.apache.nifi.ranger.authorization;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -27,7 +28,9 @@ import org.apache.nifi.authorization.AuthorizerInitializationContext;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.UserContextKeys;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
@@ -40,11 +43,14 @@ import org.junit.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 
+import javax.security.auth.login.LoginException;
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
@@ -57,6 +63,7 @@ public class TestRangerNiFiAuthorizer {
     private MockRangerNiFiAuthorizer authorizer;
     private RangerBasePluginWithPolicies rangerBasePlugin;
     private AuthorizerConfigurationContext configurationContext;
+    private NiFiProperties nifiProperties;
 
     private String serviceType = "nifiService";
     private String appId = "nifiAppId";
@@ -66,6 +73,16 @@ public class TestRangerNiFiAuthorizer {
 
     @Before
     public void setup() {
+        // have to initialize this system property before anything else
+        File krb5conf = new File("src/test/resources/krb5.conf");
+        assertTrue(krb5conf.exists());
+        System.setProperty("java.security.krb5.conf", krb5conf.getAbsolutePath());
+
+        // rest the authentication to simple in case any tests set it to kerberos
+        final Configuration securityConf = new Configuration();
+        securityConf.set(RangerNiFiAuthorizer.HADOOP_SECURITY_AUTHENTICATION, "simple");
+        UserGroupInformation.setConfiguration(securityConf);
+
         configurationContext = createMockConfigContext();
         rangerBasePlugin = Mockito.mock(RangerBasePluginWithPolicies.class);
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
@@ -104,6 +121,110 @@ public class TestRangerNiFiAuthorizer {
 
         assertEquals(appId, authorizer.mockRangerBasePlugin.getAppId());
         assertEquals(serviceType, authorizer.mockRangerBasePlugin.getServiceType());
+    }
+
+    @Test
+    public void testKerberosEnabledWithoutKeytab() {
+        when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
+                .thenReturn(new MockPropertyValue("true", null));
+
+        nifiProperties = Mockito.mock(NiFiProperties.class);
+        when(nifiProperties.getKerberosServicePrincipal()).thenReturn("");
+
+        authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
+        authorizer.setNiFiProperties(nifiProperties);
+
+        try {
+            authorizer.onConfigured(configurationContext);
+            Assert.fail("Should have thrown exception");
+        } catch (AuthorizerCreationException e) {
+            // want to make sure this exception is from our authorizer code
+            veryifyOnlyAuthorizerCreationExceptions(e);
+        }
+    }
+
+    @Test
+    public void testKerberosEnabledWithoutPrincipal() {
+        when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
+                .thenReturn(new MockPropertyValue("true", null));
+
+        nifiProperties = Mockito.mock(NiFiProperties.class);
+        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
+
+        authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
+        authorizer.setNiFiProperties(nifiProperties);
+
+        try {
+            authorizer.onConfigured(configurationContext);
+            Assert.fail("Should have thrown exception");
+        } catch (AuthorizerCreationException e) {
+            // want to make sure this exception is from our authorizer code
+            veryifyOnlyAuthorizerCreationExceptions(e);
+        }
+    }
+
+    @Test
+    public void testKerberosEnabledWithoutKeytabOrPrincipal() {
+        when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
+                .thenReturn(new MockPropertyValue("true", null));
+
+        nifiProperties = Mockito.mock(NiFiProperties.class);
+        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
+        when(nifiProperties.getKerberosServicePrincipal()).thenReturn("");
+
+        authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
+        authorizer.setNiFiProperties(nifiProperties);
+
+        try {
+            authorizer.onConfigured(configurationContext);
+            Assert.fail("Should have thrown exception");
+        } catch (AuthorizerCreationException e) {
+            // want to make sure this exception is from our authorizer code
+            veryifyOnlyAuthorizerCreationExceptions(e);
+        }
+    }
+
+    private void veryifyOnlyAuthorizerCreationExceptions(AuthorizerCreationException e) {
+        boolean foundOtherException = false;
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (!(cause instanceof AuthorizerCreationException)) {
+                foundOtherException = true;
+                break;
+            }
+            cause = cause.getCause();
+        }
+        assertFalse(foundOtherException);
+    }
+
+    @Test
+    public void testKerberosEnabled() {
+        when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
+                .thenReturn(new MockPropertyValue("true", null));
+
+        nifiProperties = Mockito.mock(NiFiProperties.class);
+        when(nifiProperties.getKerberosKeytabLocation()).thenReturn("test");
+        when(nifiProperties.getKerberosServicePrincipal()).thenReturn("test");
+
+        authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
+        authorizer.setNiFiProperties(nifiProperties);
+
+        try {
+            authorizer.onConfigured(configurationContext);
+            Assert.fail("Should have thrown exception");
+        } catch (AuthorizerCreationException e) {
+            // getting a LoginException here means we attempted to login which is what we want
+            boolean foundLoginException = false;
+            Throwable cause = e.getCause();
+            while (cause != null) {
+                if (cause instanceof LoginException) {
+                    foundLoginException = true;
+                    break;
+                }
+                cause = cause.getCause();
+            }
+            assertTrue(foundLoginException);
+        }
     }
 
     @Test

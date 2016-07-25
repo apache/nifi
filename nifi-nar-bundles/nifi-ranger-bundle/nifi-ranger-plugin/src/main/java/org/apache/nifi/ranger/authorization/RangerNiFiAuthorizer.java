@@ -27,6 +27,7 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.AuthorizerInitializationContext;
 import org.apache.nifi.authorization.UserContextKeys;
+import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
@@ -70,6 +71,7 @@ public class RangerNiFiAuthorizer implements Authorizer {
     private volatile RangerDefaultAuditHandler defaultAuditHandler = null;
     private volatile String rangerAdminIdentity = null;
     private volatile boolean rangerKerberosEnabled = false;
+    private volatile NiFiProperties nifiProperties;
 
     @Override
     public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
@@ -99,8 +101,13 @@ public class RangerNiFiAuthorizer implements Authorizer {
 
                     // login with the nifi principal and keytab, RangerAdminRESTClient will use Ranger's MiscUtil which
                     // will grab UserGroupInformation.getLoginUser() and call ugi.checkTGTAndReloginFromKeytab();
-                    final String nifiPrincipal = NiFiProperties.getInstance().getKerberosServicePrincipal();
-                    final String nifiKeytab = NiFiProperties.getInstance().getKerberosKeytabLocation();
+                    final String nifiPrincipal = nifiProperties.getKerberosServicePrincipal();
+                    final String nifiKeytab = nifiProperties.getKerberosKeytabLocation();
+
+                    if (StringUtils.isBlank(nifiPrincipal) || StringUtils.isBlank(nifiKeytab)) {
+                        throw new AuthorizerCreationException("Principal and Keytab must be provided when Kerberos is enabled");
+                    }
+
                     UserGroupInformation.loginUserFromKeytab(nifiPrincipal.trim(), nifiKeytab.trim());
                 }
 
@@ -196,6 +203,11 @@ public class RangerNiFiAuthorizer implements Authorizer {
                 throw new AuthorizerDestructionException("Error cleaning up RangerBasePlugin", t);
             }
         }
+    }
+
+    @AuthorizerContext
+    public void setNiFiProperties(final NiFiProperties properties) {
+        this.nifiProperties = properties;
     }
 
     /**

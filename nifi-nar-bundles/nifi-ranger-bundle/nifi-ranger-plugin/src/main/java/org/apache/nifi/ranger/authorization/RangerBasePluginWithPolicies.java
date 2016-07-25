@@ -18,14 +18,13 @@
  */
 package org.apache.nifi.ranger.authorization;
 
-import org.apache.ranger.plugin.model.RangerPolicy;
 import org.apache.ranger.plugin.service.RangerBasePlugin;
 import org.apache.ranger.plugin.util.ServicePolicies;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Extends the base plugin to add ability to check if a policy exists for a given resource.
@@ -42,22 +41,16 @@ public class RangerBasePluginWithPolicies extends RangerBasePlugin {
     public void setPolicies(ServicePolicies policies) {
         super.setPolicies(policies);
 
-        final Set<String> newResources = new HashSet<>();
+        if (policies == null || policies.getPolicies() == null) {
+            this.resources.set(new HashSet<>());
+        } else {
+            final Set<String> newResources = policies.getPolicies().stream()
+                    .flatMap(p -> p.getResources().values().stream())
+                    .flatMap(r -> r.getValues().stream())
+                    .collect(Collectors.toSet());
 
-        if (policies.getPolicies() != null) {
-            for (RangerPolicy policy : policies.getPolicies()) {
-                if (policy.getResources() != null) {
-                    for (Map.Entry<String, RangerPolicy.RangerPolicyResource> entry : policy.getResources().entrySet()) {
-                        final RangerPolicy.RangerPolicyResource resource = entry.getValue();
-                        if (resource != null && resource.getValues() != null) {
-                            newResources.addAll(resource.getValues());
-                        }
-                    }
-                }
-            }
+            this.resources.set(newResources);
         }
-
-        this.resources.set(newResources);
     }
 
     /**
