@@ -211,11 +211,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, method, uri, entity, headers, true);
+        return replicate(nodeIdSet, method, uri, entity, headers, true, true);
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, final boolean indicateReplicated) {
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
+            final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
         updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, TypeOneUUIDGenerator.generateId().toString());
@@ -242,12 +243,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             lock.lock();
             try {
                 logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
-                return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
             } finally {
                 lock.unlock();
             }
         } else {
-            return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
         }
     }
 
@@ -259,13 +260,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param uri the URI to send the request to
      * @param entity the entity to use
      * @param headers the HTTP Headers
-     * @param performVerification whether or not to use 2-phase commit to verify that all nodes can handle the request. Ignored if request is not mutable.
+     * @param performVerification whether or not to verify that all nodes in the cluster are connected and that all nodes can perform request. Ignored if request is not mutable.
      * @param response the response to update with the results
      *
      * @return an AsyncClusterResponse that can be used to obtain the result
      */
     private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean performVerification,
-        StandardAsyncClusterResponse response) {
+            StandardAsyncClusterResponse response) {
 
         // state validation
         Objects.requireNonNull(nodeIds);
@@ -298,7 +299,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID_HEADER, key -> UUID.randomUUID().toString());
 
         if (performVerification) {
-            verifyState(method, uri.getPath());
+            verifyClusterState(method, uri.getPath());
         }
 
         int numRequests = responseMap.size();
@@ -530,7 +531,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      *
      * @throw IllegalClusterStateException if the cluster is not in a state that allows a request to made to the given URI Path using the given HTTP Method
      */
-    private void verifyState(final String httpMethod, final String uriPath) {
+    private void verifyClusterState(final String httpMethod, final String uriPath) {
         final boolean mutableRequest = HttpMethod.DELETE.equals(httpMethod) || HttpMethod.POST.equals(httpMethod) || HttpMethod.PUT.equals(httpMethod);
 
         // check that the request can be applied

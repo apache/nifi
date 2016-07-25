@@ -98,7 +98,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
                     throw new NoClusterCoordinatorException();
                 }
                 final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
-                nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false).awaitMergedResponse();
+                nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false, true).awaitMergedResponse();
             } catch (InterruptedException e) {
                 throw new IllegalClusterStateException("Interrupted while waiting for a response from node");
             }

@@ -1980,7 +1980,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 return getRequestReplicator().replicate(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
             } else {
                 final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
-                return getRequestReplicator().replicate(coordinatorNode, HttpMethod.POST, importUri, entity, getHeaders(headersToOverride), false).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(coordinatorNode, HttpMethod.POST, importUri, entity, getHeaders(headersToOverride), false, true).awaitMergedResponse().getResponse();
             }
         }
 
