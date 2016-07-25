@@ -202,6 +202,8 @@ nf.Draggable = (function () {
             connections.forEach(function (connectionId) {
                 nf.Connection.refresh(connectionId);
             });
+        }).always(function(){
+            nf.Birdseye.refresh();
         });
     };
 
