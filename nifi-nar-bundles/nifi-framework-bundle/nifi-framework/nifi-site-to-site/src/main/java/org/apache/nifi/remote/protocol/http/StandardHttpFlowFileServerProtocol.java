@@ -48,7 +48,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     private final VersionNegotiator versionNegotiator;
     private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
 
-    public StandardHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+    public StandardHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
         super();
         this.versionNegotiator = versionNegotiator;
     }
@@ -222,4 +222,5 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     public String getResourceName() {
         return RESOURCE_NAME;
     }
+
 }

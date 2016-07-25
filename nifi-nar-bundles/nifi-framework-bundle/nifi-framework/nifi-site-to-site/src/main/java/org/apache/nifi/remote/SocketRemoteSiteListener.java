@@ -154,12 +154,12 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     sslSocketChannel.connect();
                                     LOG.trace("Channel connected");
 
-                                    commsSession = new SSLSocketChannelCommunicationsSession(sslSocketChannel, peerUri);
+                                    commsSession = new SSLSocketChannelCommunicationsSession(sslSocketChannel);
                                     dn = sslSocketChannel.getDn();
                                     commsSession.setUserDn(dn);
                                 } else {
                                     LOG.trace("{} Channel is not secure", this);
-                                    commsSession = new SocketChannelCommunicationsSession(socketChannel, peerUri);
+                                    commsSession = new SocketChannelCommunicationsSession(socketChannel);
                                     dn = null;
                                 }
                             } catch (final Exception e) {

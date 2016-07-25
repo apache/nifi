@@ -31,10 +31,6 @@ public interface CommunicationsSession extends Closeable {
 
     int getTimeout() throws IOException;
 
-    void setUri(String uri);
-
-    String getUri();
-
     String getUserDn();
 
     void setUserDn(String dn);
@@ -59,4 +55,11 @@ public interface CommunicationsSession extends Closeable {
      * otherwise
      */
     boolean isClosed();
+
+    /**
+     * @param communicantUrl Communicant's url that this session is assigned to.
+     * @param sourceFlowFileIdentifier Source Flow-file's uuid.
+     * @return A transit uri to be used in a provenance event.
+     */
+    String createTransitUri(final String communicantUrl, final String sourceFlowFileIdentifier);
 }
