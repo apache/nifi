@@ -95,10 +95,9 @@ div.context-menu-provenance {
 }
 
 #user-links-container {
-    position: absolute;
-    right: 20px;
-    top: 69px;
+    float: left;
     z-index: 1300;
+    margin-left: 20px;
 }
 
 .ellipsis {
@@ -166,7 +165,7 @@ div.valid {
 }
 
 div.has-bulletins {
-    background: #ba554a;
+    color: #ba554a !important;
 }
 
 /*

@@ -28,6 +28,7 @@
     font-size: 12px;
     color: #262626;
     line-height: normal;
+    clear: both;
 }
 
 .message-pane-message-box {
@@ -42,4 +43,5 @@
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
+    float: left;
 }

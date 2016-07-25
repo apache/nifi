@@ -151,6 +151,14 @@ nf.Shell = (function () {
 
                     // register a new close handler
                     $('#shell-dialog').modal('setCloseHandler', function () {
+                        // close any open combos
+                        var combos = $('.combo');
+                        for (var i = 0, len = combos.length; i < len; i++) {
+                            if ($(combos[i]).is(':visible')){
+                                $(combos[i]).combo('close');
+                            }
+                        }
+
                         deferred.resolve();
 
                         // detach the content and add it back to the parent

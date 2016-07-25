@@ -74,7 +74,8 @@ div.new-property-button-container {
 */
 
 div.slickgrid-nfel-editor .nfel-editor, div.property-detail .nfel-editor {
-    margin-bottom: 30px;
+    margin-bottom: 5px;
+    margin-top: 10px;
 }
 
 div.edit-property-value {
@@ -89,40 +90,28 @@ textarea.value-field {
     font-size: 11px !important;
     resize: vertical;
     overflow-y: auto;
+
 }
 
 div.string-check-container {
-    float: left;
-    margin-top: 1px;
-    height: 20px;
     line-height: 20px;
 }
 
 div.string-check {
     width: 12px;
     height: 12px;
-    float: left;
     margin-top: 4px;
-    margin-left: 4px;
 }
 
 span.string-check-label {
-    font-size: 9px;
+    font-size: 13px;
     font-weight: normal;
+    color: #262626;
 }
 
 div.value pre {
     font-family: Verdana, Arial, Helvetica, sans-serif;
     overflow: hidden;
-}
-
-/*
-    Styles for the property value combo
-*/
-
-div.value-combo {
-    float: left;
-    border: 1px solid #eaeef0;
 }
 
 /*

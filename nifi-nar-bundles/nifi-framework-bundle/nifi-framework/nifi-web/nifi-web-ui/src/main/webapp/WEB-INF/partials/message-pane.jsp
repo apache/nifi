@@ -16,18 +16,18 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="message-pane" class="message-pane hidden">
-    <div id="user-links-container">
-        <ul class="links">
-            <li id="user-logout-container" style="display: none;">
-                <span id="user-logout" class="link">log out</span>
-            </li>
-            <li>
-                <span id="user-home" class="link">home</span>
-            </li>
-        </ul>
-    </div>
     <div class="message-pane-message-box">
         <div id="message-title" class="message-pane-title"></div>
+        <div id="user-links-container">
+            <ul class="links">
+                <li id="user-logout-container" style="display: none;">
+                    <span id="user-logout" class="link">log out</span>
+                </li>
+                <li>
+                    <span id="user-home" class="link">home</span>
+                </li>
+            </ul>
+        </div>
         <div id="message-content" class="message-pane-content"></div>
     </div>
 </div>
