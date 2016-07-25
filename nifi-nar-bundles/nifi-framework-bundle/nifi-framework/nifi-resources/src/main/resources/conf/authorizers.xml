@@ -31,6 +31,9 @@
             are no other users, groups, and policies defined. If this property is specified then a Legacy Authorized
             Users File can not be specified.
 
+            NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the initial admin identity,
+            so the value should be the unmapped identity.
+
         - Legacy Authorized Users File - The full path to an existing authorized-users.xml that will be automatically
             converted to the new authorizations model. If this property is specified then an Initial Admin Identity can
             not be specified, and this property will only be used when there are no other users, groups, and policies defined.
@@ -39,6 +42,9 @@
             should be defined, so that every node knows about every other node. If not clustered these properties can be ignored.
             The name of each property must be unique, for example for a three node cluster:
             "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
+
+            NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the node identities,
+            so the values should be the unmapped identities (i.e. full DN from a certificate).
     -->
     <authorizer>
         <identifier>file-provider</identifier>

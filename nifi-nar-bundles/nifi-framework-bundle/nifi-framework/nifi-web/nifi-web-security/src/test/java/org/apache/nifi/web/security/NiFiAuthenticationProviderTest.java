@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security;
 
+import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,7 +46,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
         TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<NiFiAuthenticationProvider.IdentityMapping> mappings = provider.getMappings();
+        List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(1, mappings.size());
         assertEquals("dn", mappings.get(0).getKey());
         assertEquals(pattern, mappings.get(0).getPattern().pattern());
@@ -58,7 +59,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
         TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<NiFiAuthenticationProvider.IdentityMapping> mappings = provider.getMappings();
+        List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
 
         final String identity = "john";
@@ -74,7 +75,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
         TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<NiFiAuthenticationProvider.IdentityMapping> mappings = provider.getMappings();
+        List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
     }
 
@@ -86,7 +87,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
         TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<NiFiAuthenticationProvider.IdentityMapping> mappings = provider.getMappings();
+        List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(0, mappings.size());
     }
 
@@ -103,7 +104,7 @@ public class NiFiAuthenticationProviderTest {
         final NiFiProperties nifiProperties = getNiFiProperties(properties);
 
         TestableNiFiAuthenticationProvider provider = new TestableNiFiAuthenticationProvider(nifiProperties);
-        List<NiFiAuthenticationProvider.IdentityMapping> mappings = provider.getMappings();
+        List<IdentityMapping> mappings = provider.getMappings();
         assertEquals(3, mappings.size());
     }
 

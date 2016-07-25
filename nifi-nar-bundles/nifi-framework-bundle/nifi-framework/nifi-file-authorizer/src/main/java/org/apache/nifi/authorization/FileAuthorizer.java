@@ -27,6 +27,8 @@ import org.apache.nifi.authorization.file.generated.Policy;
 import org.apache.nifi.authorization.file.generated.Users;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.authorization.util.IdentityMapping;
+import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
@@ -106,6 +108,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
     private List<PortDTO> ports = new ArrayList<>();
+    private List<IdentityMapping> identityMappings;
 
     private final AtomicReference<AuthorizationsHolder> authorizationsHolder = new AtomicReference<>();
 
@@ -160,9 +163,12 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 }
             }
 
+            // extract the identity mappings from nifi.properties if any are provided
+            identityMappings = Collections.unmodifiableList(IdentityMappingUtil.getIdentityMappings(properties));
+
             // get the value of the initial admin identity
             final PropertyValue initialAdminIdentityProp = configurationContext.getProperty(PROP_INITIAL_ADMIN_IDENTITY);
-            initialAdminIdentity = initialAdminIdentityProp == null ? null : initialAdminIdentityProp.getValue();
+            initialAdminIdentity = initialAdminIdentityProp == null ? null : IdentityMappingUtil.mapIdentity(initialAdminIdentityProp.getValue(), identityMappings);
 
             // get the value of the legacy authorized users file
             final PropertyValue legacyAuthorizedUsersProp = configurationContext.getProperty(PROP_LEGACY_AUTHORIZED_USERS_FILE);
@@ -173,7 +179,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             for (Map.Entry<String,String> entry : configurationContext.getProperties().entrySet()) {
                 Matcher matcher = NODE_IDENTITY_PATTERN.matcher(entry.getKey());
                 if (matcher.matches() && !StringUtils.isBlank(entry.getValue())) {
-                    nodeIdentities.add(entry.getValue());
+                    nodeIdentities.add(IdentityMappingUtil.mapIdentity(entry.getValue(), identityMappings));
                 }
             }
 
@@ -362,7 +368,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         // get all the user DNs into a list
         List<String> userIdentities = new ArrayList<>();
         for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
-            userIdentities.add(legacyUser.getDn());
+            userIdentities.add(IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings));
         }
 
         // sort the list and pull out the first identity
@@ -376,7 +382,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
             // create the identifier of the new user based on the DN
-            final String legacyUserDn = legacyUser.getDn();
+            final String legacyUserDn = IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings);
             final String userIdentifier = UUID.nameUUIDFromBytes(legacyUserDn.getBytes(StandardCharsets.UTF_8)).toString();
 
             // create the new User and add it to the list of users
@@ -421,10 +427,13 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
             if (portDTO.getUserAccessControl() != null) {
                 for (String userAccessControl : portDTO.getUserAccessControl()) {
+                    // need to perform the identity mapping on the access control so it matches the identities in the User objects
+                    final String mappedUserAccessControl = IdentityMappingUtil.mapIdentity(userAccessControl, identityMappings);
+
                     // find a user where the identity is the userAccessControl
                     org.apache.nifi.authorization.file.generated.User foundUser = null;
                     for (org.apache.nifi.authorization.file.generated.User jaxbUser : authorizations.getUsers().getUser()) {
-                        if (jaxbUser.getIdentity().equals(userAccessControl)) {
+                        if (jaxbUser.getIdentity().equals(mappedUserAccessControl)) {
                             foundUser = jaxbUser;
                             break;
                         }

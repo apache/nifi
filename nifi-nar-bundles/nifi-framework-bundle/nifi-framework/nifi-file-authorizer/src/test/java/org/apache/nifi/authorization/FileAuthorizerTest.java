@@ -28,6 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -43,6 +46,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +116,7 @@ public class FileAuthorizerTest {
     private File restore;
     private File flow;
     private File flowNoPorts;
+    private File flowWithDns;
 
     private AuthorizerConfigurationContext configurationContext;
 
@@ -130,6 +135,9 @@ public class FileAuthorizerTest {
 
         flowNoPorts = new File("src/test/resources/flow-no-ports.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flowNoPorts.getParentFile());
+
+        flowWithDns = new File("src/test/resources/flow-with-dns.xml.gz");
+        FileUtils.ensureDirectoryExistAndCanAccess(flowWithDns.getParentFile());
 
         properties = mock(NiFiProperties.class);
         when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
@@ -332,6 +340,62 @@ public class FileAuthorizerTest {
         return resourceActionMap;
     }
 
+    @Test
+    public void testOnConfiguredWhenLegacyUsersFileProvidedWithIdentityMappings() throws Exception {
+        final Properties props = new Properties();
+        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
+        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
+
+        properties = getNiFiProperties(props);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
+        authorizer.setNiFiProperties(properties);
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
+                .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        final User user1 = authorizer.getUserByIdentity("user1");
+        assertNotNull(user1);
+
+        final User user2 = authorizer.getUserByIdentity("user2");
+        assertNotNull(user2);
+
+        final User user3 = authorizer.getUserByIdentity("user3");
+        assertNotNull(user3);
+
+        final User user4 = authorizer.getUserByIdentity("user4");
+        assertNotNull(user4);
+
+        final User user5 = authorizer.getUserByIdentity("user5");
+        assertNotNull(user5);
+
+        final User user6 = authorizer.getUserByIdentity("user6");
+        assertNotNull(user6);
+
+        // verify one group got created
+        final Set<Group> groups = authorizer.getGroups();
+        assertEquals(1, groups.size());
+        final Group group1 = groups.iterator().next();
+        assertEquals("group1", group1.getName());
+
+        final Resource inputPortResource = ResourceFactory.getDataTransferResource(true, "2f7d1606-b090-4be7-a592-a5b70fb55531", "TCP Input");
+        final AccessPolicy inputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(inputPortResource.getIdentifier(), RequestAction.WRITE);
+        assertNotNull(inputPortPolicy);
+        assertEquals(1, inputPortPolicy.getUsers().size());
+        assertTrue(inputPortPolicy.getUsers().contains(user6.getIdentifier()));
+        assertEquals(1, inputPortPolicy.getGroups().size());
+        assertTrue(inputPortPolicy.getGroups().contains(group1.getIdentifier()));
+
+        final Resource outputPortResource = ResourceFactory.getDataTransferResource(false, "2f7d1606-b090-4be7-a592-a5b70fb55532", "TCP Output");
+        final AccessPolicy outputPortPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(outputPortResource.getIdentifier(), RequestAction.WRITE);
+        assertNotNull(outputPortPolicy);
+        assertEquals(1, outputPortPolicy.getUsers().size());
+        assertTrue(outputPortPolicy.getUsers().contains(user4.getIdentifier()));
+    }
+
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenBadLegacyUsersFileProvided() throws Exception {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
@@ -474,6 +538,31 @@ public class FileAuthorizerTest {
     }
 
     @Test
+    public void testOnConfiguredWhenInitialAdminProvidedWithIdentityMapping() throws Exception {
+        final Properties props = new Properties();
+        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
+        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1_$2_$3");
+
+        properties = getNiFiProperties(props);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        authorizer.setNiFiProperties(properties);
+
+        final String adminIdentity = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        final Set<User> users = authorizer.getUsers();
+        assertEquals(1, users.size());
+
+        final User adminUser = users.iterator().next();
+        assertEquals("localhost_Apache NiFi_Apache", adminUser.getIdentity());
+    }
+
+    @Test
     public void testOnConfiguredWhenNodeIdentitiesProvided() throws Exception {
         final String adminIdentity = "admin-user";
 
@@ -511,6 +600,43 @@ public class FileAuthorizerTest {
         assertNotNull(proxyWritePolicy);
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
         assertTrue(proxyWritePolicy.getUsers().contains(nodeUser2.getIdentifier()));
+    }
+
+    @Test
+    public void testOnConfiguredWhenNodeIdentitiesProvidedWithIdentityMappings() throws Exception {
+        final Properties props = new Properties();
+        props.setProperty("nifi.security.identity.mapping.pattern.dn1", "^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$");
+        props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
+
+        properties = getNiFiProperties(props);
+        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getFlowConfigurationFile()).thenReturn(flow);
+        authorizer.setNiFiProperties(properties);
+
+        final String adminIdentity = "CN=user1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        final String nodeIdentity1 = "CN=node1, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+        final String nodeIdentity2 = "CN=node2, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+
+        final Map<String,String> nodeProps = new HashMap<>();
+        nodeProps.put("Node Identity 1", nodeIdentity1);
+        nodeProps.put("Node Identity 2", nodeIdentity2);
+
+        when(configurationContext.getProperties()).thenReturn(nodeProps);
+
+        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+
+        User adminUser = authorizer.getUserByIdentity("user1");
+        assertNotNull(adminUser);
+
+        User nodeUser1 = authorizer.getUserByIdentity("node1");
+        assertNotNull(nodeUser1);
+
+        User nodeUser2 = authorizer.getUserByIdentity("node2");
+        assertNotNull(nodeUser2);
     }
 
     @Test
@@ -1178,4 +1304,18 @@ public class FileAuthorizerTest {
         }
         return FileUtils.deleteFile(file, null, 10);
     }
+
+    private NiFiProperties getNiFiProperties(final Properties properties) {
+        final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
+        when(nifiProperties.stringPropertyNames()).thenReturn(properties.stringPropertyNames());
+
+        when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocationOnMock) throws Throwable {
+                return properties.getProperty((String)invocationOnMock.getArguments()[0]);
+            }
+        });
+        return nifiProperties;
+    }
+
 }
