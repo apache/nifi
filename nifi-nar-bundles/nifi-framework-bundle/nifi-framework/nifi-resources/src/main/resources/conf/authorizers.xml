@@ -23,7 +23,9 @@
     <!--
         The FileAuthorizer is NiFi's provided authorizer and has the following properties:
 
-        - Authorizations File - The file where the FileAuthorizer will store authorizations.
+        - Authorizations File - The file where the FileAuthorizer will store policies.
+
+        - Users File - The file where the FileAuthorizer will store users and groups.
 
         - Initial Admin Identity - The identity of an initial admin user that will be granted access to the UI and
             given the ability to create additional users, groups, and policies. The value of this property could be
@@ -50,6 +52,7 @@
         <identifier>file-provider</identifier>
         <class>org.apache.nifi.authorization.FileAuthorizer</class>
         <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Users File">./conf/users.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File"></property>
 
