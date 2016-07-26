@@ -35,6 +35,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.groups.ProcessGroup;
 
 public class StandardValidationContext implements ValidationContext {
 
@@ -97,8 +98,9 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(controllerService.getIdentifier());
-        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(),
-            serviceNode.getProcessGroup().getIdentifier(), serviceNode.getIdentifier());
+        final ProcessGroup serviceGroup = serviceNode.getProcessGroup();
+        final String serviceGroupId = serviceGroup == null ? null : serviceGroup.getIdentifier();
+        return new StandardValidationContext(controllerServiceProvider, serviceNode.getProperties(), serviceNode.getAnnotationData(), serviceGroupId, serviceNode.getIdentifier());
     }
 
     @Override
