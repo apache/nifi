@@ -1877,14 +1877,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // validate the names of Input Ports
         for (final PortDTO port : templateContents.getInputPorts()) {
             if (group.getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("ProcessGroup already has an Input Port with name " + port.getName());
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 
         // validate the names of Output Ports
         for (final PortDTO port : templateContents.getOutputPorts()) {
             if (group.getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("ProcessGroup already has an Output Port with name " + port.getName());
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 

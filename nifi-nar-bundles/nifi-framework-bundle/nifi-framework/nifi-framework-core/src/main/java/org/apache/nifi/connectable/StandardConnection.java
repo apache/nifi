@@ -458,7 +458,7 @@ public final class StandardConnection implements Connection {
 
         if (source.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(source.getConnectableType())) {
-                throw new IllegalStateException("Source of Connection (" + source + ") is running");
+                throw new IllegalStateException("Source of Connection (" + source.getIdentifier() + ") is running");
             }
         }
 
