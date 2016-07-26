@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -66,11 +67,17 @@ public class GetIgniteCache extends AbstractIgniteCacheProcessor {
         descriptors = new ArrayList<>();
         descriptors.add(IGNITE_CONFIGURATION_FILE);
         descriptors.add(CACHE_NAME);
+        descriptors.add(IGNITE_CACHE_ENTRY_KEY);
     }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
+    }
+
+    @OnScheduled
+    public final void initialize(ProcessContext context) throws ProcessException {
+        super.initializeIgniteCache(context);
     }
 
     /**
