@@ -53,7 +53,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
         } else {
             this.authorizer = new AbstractPolicyBasedAuthorizer() {
                 @Override
-                public Group addGroup(final Group group) throws AuthorizationAccessException {
+                public Group doAddGroup(final Group group) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -63,7 +63,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public Group updateGroup(final Group group) throws AuthorizationAccessException {
+                public Group doUpdateGroup(final Group group) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -78,7 +78,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public User addUser(final User user) throws AuthorizationAccessException {
+                public User doAddUser(final User user) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 
@@ -93,7 +93,7 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                 }
 
                 @Override
-                public User updateUser(final User user) throws AuthorizationAccessException {
+                public User doUpdateUser(final User user) throws AuthorizationAccessException {
                     throw new IllegalStateException(MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
                 }
 

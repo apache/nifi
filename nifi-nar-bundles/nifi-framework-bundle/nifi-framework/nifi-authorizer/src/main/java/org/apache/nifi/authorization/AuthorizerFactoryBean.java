@@ -292,7 +292,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
             AbstractPolicyBasedAuthorizer policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) baseAuthorizer;
             return new AbstractPolicyBasedAuthorizer() {
                 @Override
-                public Group addGroup(Group group) throws AuthorizationAccessException {
+                public Group doAddGroup(Group group) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.addGroup(group);
                     }
@@ -306,7 +306,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public Group updateGroup(Group group) throws AuthorizationAccessException {
+                public Group doUpdateGroup(Group group) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.updateGroup(group);
                     }
@@ -327,7 +327,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public User addUser(User user) throws AuthorizationAccessException {
+                public User doAddUser(User user) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.addUser(user);
                     }
@@ -348,7 +348,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public User updateUser(User user) throws AuthorizationAccessException {
+                public User doUpdateUser(User user) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.updateUser(user);
                     }

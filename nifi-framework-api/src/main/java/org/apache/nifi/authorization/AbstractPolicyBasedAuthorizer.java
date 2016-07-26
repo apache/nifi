@@ -69,8 +69,21 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         // ensure that only one policy per resource-action exists
         for (AccessPolicy accessPolicy : getAccessPolicies()) {
             if (policyExists(accessPolicy)) {
-                throw new AuthorizerCreationException("Found multiple policies for " + accessPolicy.getResource()
-                        + " with " + accessPolicy.getAction());
+                throw new AuthorizerCreationException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
+            }
+        }
+
+        // ensure that only one group exists per identity
+        for (User user : getUsers()) {
+            if (tenantExists(user.getIdentifier(), user.getIdentity())) {
+                throw new AuthorizerCreationException(String.format("Found multiple users/user groups with identity '%s'.", user.getIdentity()));
+            }
+        }
+
+        // ensure that only one group exists per identity
+        for (Group group : getGroups()) {
+            if (tenantExists(group.getIdentifier(), group.getName())) {
+                throw new AuthorizerCreationException(String.format("Found multiple users/user groups with name '%s'.", group.getName()));
             }
         }
     }
@@ -100,6 +113,31 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
         return false;
     }
 
+    /**
+     * Checks if another user exists with the same identity.
+     *
+     * @param identifier identity of the user
+     * @param identity identity of the user
+     * @return true if another user exists with the same identity, false otherwise
+     */
+    private boolean tenantExists(final String identifier, final String identity) {
+        for (User user : getUsers()) {
+            if (!user.getIdentifier().equals(identifier)
+                    && user.getIdentity().equals(identity)) {
+                return true;
+            }
+        }
+
+        for (Group group : getGroups()) {
+            if (!group.getIdentifier().equals(identifier)
+                    && group.getName().equals(identity)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     @Override
     public final AuthorizationResult authorize(AuthorizationRequest request) throws AuthorizationAccessException {
         final UsersAndAccessPolicies usersAndAccessPolicies = getUsersAndAccessPolicies();
@@ -112,7 +150,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
 
         final User user = usersAndAccessPolicies.getUser(request.getIdentity());
         if (user == null) {
-            return AuthorizationResult.denied("Unknown user with identity " + request.getIdentity());
+            return AuthorizationResult.denied(String.format("Unknown user with identity '%s'.", request.getIdentity()));
         }
 
         final Set<Group> userGroups = usersAndAccessPolicies.getGroups(user.getIdentity());
@@ -151,8 +189,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @param group the Group to add
      * @return the added Group
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     * @throws IllegalStateException if a group with the same name already exists
      */
-    public abstract Group addGroup(Group group) throws AuthorizationAccessException;
+    public final synchronized Group addGroup(Group group) throws AuthorizationAccessException {
+        if (tenantExists(group.getIdentifier(), group.getName())) {
+            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
+        }
+        return doAddGroup(group);
+    }
+
+    /**
+     * Adds a new group.
+     *
+     * @param group the Group to add
+     * @return the added Group
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract Group doAddGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Retrieves a Group by id.
@@ -169,8 +222,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @param group an updated group instance
      * @return the updated group instance, or null if no matching group was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     * @throws IllegalStateException if there is already a group with the same name
      */
-    public abstract Group updateGroup(Group group) throws AuthorizationAccessException;
+    public final synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
+        if (tenantExists(group.getIdentifier(), group.getName())) {
+            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", group.getName()));
+        }
+        return doUpdateGroup(group);
+    }
+
+    /**
+     * The group represented by the provided instance will be updated based on the provided instance.
+     *
+     * @param group an updated group instance
+     * @return the updated group instance, or null if no matching group was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract Group doUpdateGroup(Group group) throws AuthorizationAccessException;
 
     /**
      * Deletes the given group.
@@ -196,8 +264,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @param user the user to add
      * @return the user that was added
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     * @throws IllegalStateException if there is already a user with the same identity
      */
-    public abstract User addUser(User user) throws AuthorizationAccessException;
+    public final synchronized User addUser(User user) throws AuthorizationAccessException {
+        if (tenantExists(user.getIdentifier(), user.getIdentity())) {
+            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
+        }
+        return doAddUser(user);
+    }
+
+    /**
+     * Adds the given user.
+     *
+     * @param user the user to add
+     * @return the user that was added
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract User doAddUser(User user) throws AuthorizationAccessException;
 
     /**
      * Retrieves the user with the given identifier.
@@ -223,8 +306,23 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      * @param user an updated user instance
      * @return the updated user instance, or null if no matching user was found
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     * @throws IllegalStateException if there is already a user with the same identity
      */
-    public abstract User updateUser(User user) throws AuthorizationAccessException;
+    public final synchronized User updateUser(final User user) throws AuthorizationAccessException {
+        if (tenantExists(user.getIdentifier(), user.getIdentity())) {
+            throw new IllegalStateException(String.format("User/user group already exists with the identity '%s'.", user.getIdentity()));
+        }
+        return doUpdateUser(user);
+    }
+
+    /**
+     * The user represented by the provided instance will be updated based on the provided instance.
+     *
+     * @param user an updated user instance
+     * @return the updated user instance, or null if no matching user was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract User doUpdateUser(User user) throws AuthorizationAccessException;
 
     /**
      * Deletes the given user.
@@ -252,8 +350,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements Authorizer {
      */
     public final synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
         if (policyExists(accessPolicy)) {
-            throw new IllegalStateException("Found multiple policies for " + accessPolicy.getResource()
-                    + " with " + accessPolicy.getAction());
+            throw new IllegalStateException(String.format("Found multiple policies for '%s' with '%s'.", accessPolicy.getResource(), accessPolicy.getAction()));
         }
         return doAddAccessPolicy(accessPolicy);
     }

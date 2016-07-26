@@ -21,6 +21,7 @@ import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Group;
+import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -40,17 +41,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestFlowController {
@@ -58,15 +56,20 @@ public class TestFlowController {
     private FlowController controller;
     private AbstractPolicyBasedAuthorizer authorizer;
     private StandardFlowSynchronizer standardFlowSynchronizer;
+    private FlowFileEventRepository flowFileEventRepo;
+    private AuditService auditService;
+    private StringEncryptor encryptor;
+    private NiFiProperties properties;
+    private BulletinRepository bulletinRepo;
 
     @Before
     public void setup() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 
-        final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
-        final AuditService auditService = Mockito.mock(AuditService.class);
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor();
-        final NiFiProperties properties = NiFiProperties.getInstance();
+        flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
+        auditService = Mockito.mock(AuditService.class);
+        encryptor = StringEncryptor.createEncryptor();
+        properties = NiFiProperties.getInstance();
         properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
@@ -107,12 +110,9 @@ public class TestFlowController {
         policies1.add(policy1);
         policies1.add(policy2);
 
-        authorizer = Mockito.mock(AbstractPolicyBasedAuthorizer.class);
-        when(authorizer.getGroups()).thenReturn(groups1);
-        when(authorizer.getUsers()).thenReturn(users1);
-        when(authorizer.getAccessPolicies()).thenReturn(policies1);
+        authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
 
-        final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
+        bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
 
         standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor());
@@ -132,10 +132,7 @@ public class TestFlowController {
 
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
 
-        // had a problem verifying the call to inheritFingerprint didn't happen, so just verify none of the add methods got called
-        verify(authorizer, times(0)).addUser(any(User.class));
-        verify(authorizer, times(0)).addGroup(any(Group.class));
-        //verify(authorizer, times(0)).addAccessPolicy(any(AccessPolicy.class));
+        assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test(expected = UninheritableFlowException.class)
@@ -146,6 +143,7 @@ public class TestFlowController {
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+        assertNotEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test(expected = UninheritableFlowException.class)
@@ -163,13 +161,13 @@ public class TestFlowController {
         final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
         when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
 
-        // reset the authorizer so it returns empty fingerprint
-        when(authorizer.getUsers()).thenReturn(new HashSet<User>());
-        when(authorizer.getGroups()).thenReturn(new HashSet<Group>());
-        when(authorizer.getAccessPolicies()).thenReturn(new HashSet<AccessPolicy>());
+        authorizer = new MockPolicyBasedAuthorizer();
+        assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
+        controller.shutdown(true);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
-        verify(authorizer, times(1)).inheritFingerprint(authFingerprint);
+        assertEquals(authFingerprint, authorizer.getFingerprint());
     }
 
     @Test
