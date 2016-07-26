@@ -3,12 +3,11 @@
     "days" : 365,
     "keySize" : 2048,
     "keyPairAlgorithm" : "RSA",
-    "signingAlgorithm" : "SHA256WITHRSA",
-    "keyStoreType" : "jks"
+    "signingAlgorithm" : "SHA256WITHRSA"
   },
   "keyStore" : "serverKeyStore",
   "keyStoreType" : "jks",
   "token" : "myTestTokenUseSomethingStronger",
-  "hostname" : "localhost",
+  "caHostname" : "localhost",
   "port" : 8443
 }

@@ -25,7 +25,6 @@ import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -45,7 +44,6 @@ import java.io.OutputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -67,7 +65,7 @@ public class TlsCertificateAuthorityService {
         String keyStoreFile = configuration.getKeyStore();
         KeyStore keyStore;
         String keyPassword;
-        String hostname = configuration.getHostname();
+        String hostname = configuration.getCaHostname();
         X509Certificate caCert;
         KeyPair keyPair;
         if (new File(keyStoreFile).exists()) {
@@ -95,14 +93,13 @@ public class TlsCertificateAuthorityService {
         } else {
             keyPair = tlsHelper.generateKeyPair();
             caCert = tlsHelper.generateSelfSignedX509Certificate(keyPair, "CN=" + hostname + ",OU=NIFI");
-            keyStore = tlsHelper.createKeyStore();
+            keyStore = tlsHelper.createKeyStore(configuration.getKeyStoreType());
             String keyStorePassword = passwordUtil.generatePassword();
             keyPassword = passwordUtil.generatePassword();
             tlsHelper.addToKeyStore(keyStore, keyPair, TlsToolkitMain.NIFI_KEY, keyPassword.toCharArray(), caCert);
             try (OutputStream outputStream = outputStreamFactory.create(new File(keyStoreFile))) {
                 keyStore.store(outputStream, keyStorePassword.toCharArray());
             }
-            configuration.setKeyStoreType(tlsHelper.getKeyStoreType());
             configuration.setKeyStorePassword(keyStorePassword);
             configuration.setKeyPassword(keyPassword);
             objectMapper.writeValue(outputStreamFactory.create(configInput), configuration);
@@ -134,7 +131,7 @@ public class TlsCertificateAuthorityService {
     }
 
     public static void main(String[] args) throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+        TlsHelper.addBouncyCastleProvider();
         if (args.length != 1 || StringUtils.isEmpty(args[0])) {
             System.out.println("Expected configuration file as only argument");
         }

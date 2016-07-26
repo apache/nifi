@@ -32,7 +32,7 @@ public class TlsConfig {
     private String keyStorePassword;
     private String keyPassword;
     private String token;
-    private String hostname = DEFAULT_HOSTNAME;
+    private String caHostname = DEFAULT_HOSTNAME;
     private int port = DEFAULT_PORT;
 
     public int getPort() {
@@ -91,12 +91,12 @@ public class TlsConfig {
         this.token = token;
     }
 
-    public String getHostname() {
-        return hostname;
+    public String getCaHostname() {
+        return caHostname;
     }
 
-    public void setHostname(String hostname) {
-        this.hostname = hostname;
+    public void setCaHostname(String caHostname) {
+        this.caHostname = caHostname;
     }
 
     public TlsHelper createTlsHelper() throws NoSuchAlgorithmException {

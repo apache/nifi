@@ -75,6 +75,8 @@ public class TlsHostConfigurationTest {
     private NiFiPropertiesWriter niFiPropertiesWriter;
     private KeyStore keyStore;
     private Properties nifiProperties;
+    private String keyStoreType;
+    private String trustStoreType;
 
     @BeforeClass
     public static void beforeClass() {
@@ -95,12 +97,14 @@ public class TlsHostConfigurationTest {
         keyPassword = "testKeyPassword";
         trustStorePassword = "testTrustStorePassword";
         hostname = "testHostName";
+        keyStoreType = TlsConfig.DEFAULT_KEY_STORE_TYPE;
+        trustStoreType = TlsConfig.DEFAULT_KEY_STORE_TYPE;
         buildSslHostConfiguration();
     }
 
     private void buildSslHostConfiguration() throws Exception {
         tlsHelper = new TlsHelper(TlsHelperConfig.DEFAULT_DAYS, TlsHelperConfig.DEFAULT_KEY_SIZE,
-                TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM, TlsHelperConfig.DEFAULT_KEY_STORE_TYPE);
+                TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
         keyStore = KeyStore.getInstance("jks");
         keyStore.load(null, null);
 
@@ -109,8 +113,8 @@ public class TlsHostConfigurationTest {
         niFiPropertiesWriter = mock(NiFiPropertiesWriter.class);
 
         nifiPropertiesFile = new File(hostDir, TlsHostConfiguration.NIFI_PROPERTIES);
-        keystoreFile = new File(hostDir, hostname + "." + tlsHelper.getKeyStoreType());
-        truststoreFile = new File(hostDir, TlsHostConfiguration.TRUSTSTORE + "." + tlsHelper.getKeyStoreType());
+        keystoreFile = new File(hostDir, hostname + "." + keyStoreType);
+        truststoreFile = new File(hostDir, TlsHostConfiguration.TRUSTSTORE + "." + trustStoreType);
 
         nifiPropertiesOutputStream = new ByteArrayOutputStream();
         keystoreOutputStream = new ByteArrayOutputStream();
@@ -132,6 +136,7 @@ public class TlsHostConfigurationTest {
                 .setKeyPassword(keyPassword)
                 .setTrustStorePassword(trustStorePassword)
                 .setHostname(hostname)
+                .setKeyStoreType(keyStoreType)
                 .createSSLHostConfiguration();
     }
 

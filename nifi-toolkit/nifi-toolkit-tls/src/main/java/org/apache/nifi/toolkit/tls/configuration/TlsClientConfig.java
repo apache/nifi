@@ -22,7 +22,7 @@ import org.apache.nifi.toolkit.tls.service.TlsCertificateSigningRequestPerformer
 import java.security.NoSuchAlgorithmException;
 
 public class TlsClientConfig extends TlsConfig {
-    private String caHostname;
+    private String dn;
     private String trustStore;
     private String trustStorePassword;
     private String trustStoreType = DEFAULT_KEY_STORE_TYPE;
@@ -51,12 +51,12 @@ public class TlsClientConfig extends TlsConfig {
         this.trustStorePassword = trustStorePassword;
     }
 
-    public String getCaHostname() {
-        return caHostname;
+    public String getDn() {
+        return dn;
     }
 
-    public void setCaHostname(String caHostname) {
-        this.caHostname = caHostname;
+    public void setDn(String dn) {
+        this.dn = dn;
     }
 
     public TlsCertificateSigningRequestPerformer createCertificateSigningRequestPerformer() throws NoSuchAlgorithmException {

@@ -52,6 +52,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -60,28 +61,31 @@ import java.security.spec.InvalidKeySpecException;
 
 public class TlsHelper {
     public static final String PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
+    public static final String PKCS12 = "PKCS12";
     private final KeyPairGenerator keyPairGenerator;
     private final int days;
     private final String signingAlgorithm;
-    private final String keyStoreType;
 
     public TlsHelper(TlsHelperConfig tlsHelperConfig) throws NoSuchAlgorithmException {
-        this(tlsHelperConfig.getDays(), tlsHelperConfig.getKeySize(), tlsHelperConfig.getKeyPairAlgorithm(), tlsHelperConfig.getSigningAlgorithm(), tlsHelperConfig.getKeyStoreType());
+        this(tlsHelperConfig.getDays(), tlsHelperConfig.getKeySize(), tlsHelperConfig.getKeyPairAlgorithm(), tlsHelperConfig.getSigningAlgorithm());
     }
 
     public TlsHelper(TlsToolkitCommandLine tlsToolkitCommandLine) throws NoSuchAlgorithmException {
         this(tlsToolkitCommandLine.getTlsHelperConfig());
     }
 
-    public TlsHelper(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm, String keyStoreType) throws NoSuchAlgorithmException {
-        this(createKeyPairGenerator(keyPairAlgorithm, keySize), days, signingAlgorithm, keyStoreType);
+    public TlsHelper(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm) throws NoSuchAlgorithmException {
+        this(createKeyPairGenerator(keyPairAlgorithm, keySize), days, signingAlgorithm);
     }
 
-    protected TlsHelper(KeyPairGenerator keyPairGenerator, int days, String signingAlgorithm, String keyStoreType) {
+    protected TlsHelper(KeyPairGenerator keyPairGenerator, int days, String signingAlgorithm) {
         this.keyPairGenerator = keyPairGenerator;
         this.days = days;
         this.signingAlgorithm = signingAlgorithm;
-        this.keyStoreType = keyStoreType;
+    }
+
+    public static void addBouncyCastleProvider() {
+        Security.addProvider(new BouncyCastleProvider());
     }
 
     private static KeyPairGenerator createKeyPairGenerator(String algorithm, int keySize) throws NoSuchAlgorithmException {
@@ -98,12 +102,13 @@ public class TlsHelper {
         keyStore.setKeyEntry(alias, keyPair.getPrivate(), passphrase, certificates);
     }
 
-    public KeyStore createKeyStore() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-        return createKeyStore(keyStoreType);
-    }
-
-    public KeyStore createKeyStore(String keyStoreType) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException {
-        KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+    public KeyStore createKeyStore(String keyStoreType) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, NoSuchProviderException {
+        KeyStore keyStore;
+        if (PKCS12.equals(keyStoreType)) {
+            keyStore = KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
+        } else {
+            keyStore = KeyStore.getInstance(keyStoreType);
+        }
         keyStore.load(null, null);
         return keyStore;
     }
@@ -168,9 +173,5 @@ public class TlsHelper {
             }
             return new JcaPKCS10CertificationRequest((PKCS10CertificationRequest) o);
         }
-    }
-
-    public String getKeyStoreType() {
-        return keyStoreType;
     }
 }

@@ -83,7 +83,7 @@ public class TlsToolkitCommandLineTest {
             tlsToolkitCommandLine.parse("-k", "badVal");
             fail("Expected bad keysize exit code");
         } catch (CommandLineParseException e) {
-            assertEquals(TlsToolkitCommandLine.ERROR_PARSING_INT_KEYSIZE, e.getExitCode());
+            assertEquals(BaseCommandLine.ERROR_PARSING_INT_ARG, e.getExitCode());
         }
     }
 
@@ -106,7 +106,7 @@ public class TlsToolkitCommandLineTest {
         try {
             tlsToolkitCommandLine.parse("-d", "badVal");
         } catch (CommandLineParseException e) {
-            assertEquals(TlsToolkitCommandLine.ERROR_PARSING_INT_DAYS, e.getExitCode());
+            assertEquals(BaseCommandLine.ERROR_PARSING_INT_ARG, e.getExitCode());
         }
     }
 
@@ -121,7 +121,7 @@ public class TlsToolkitCommandLineTest {
     public void testKeyStoreType() throws CommandLineParseException {
         String testKeyStoreType = "testKeyStoreType";
         tlsToolkitCommandLine.parse("-t", testKeyStoreType);
-        assertEquals(testKeyStoreType, tlsToolkitCommandLine.getTlsHelperConfig().getKeyStoreType());
+        assertEquals(testKeyStoreType, tlsToolkitCommandLine.getKeyStoreType());
     }
 
     @Test

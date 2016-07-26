@@ -47,6 +47,7 @@ public class TlsHostConfiguration {
     private final KeyPair certificateKeypair;
     private final X509Certificate x509Certificate;
     private final String keyStorePassword;
+    private final String keyStoreType;
     private final String keyPassword;
     private final String trustStorePassword;
     private final KeyStore trustStore;
@@ -54,7 +55,7 @@ public class TlsHostConfiguration {
 
     public TlsHostConfiguration(OutputStreamFactory outputStreamFactory, TlsHelper tlsHelper, NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, File hostDir,
                                 String httpsPort, String extension, KeyPair certificateKeypair, X509Certificate x509Certificate,
-                                String keyStorePassword, String keyPassword, String trustStorePassword, KeyStore trustStore, String hostname) {
+                                String keyStorePassword, String keyPassword, String keyStoreType, String trustStorePassword, KeyStore trustStore, String hostname) {
         this.outputStreamFactory = outputStreamFactory;
         this.tlsHelper = tlsHelper;
         this.niFiPropertiesWriterFactory = niFiPropertiesWriterFactory;
@@ -64,6 +65,7 @@ public class TlsHostConfiguration {
         this.certificateKeypair = certificateKeypair;
         this.x509Certificate = x509Certificate;
         this.keyStorePassword = keyStorePassword;
+        this.keyStoreType = keyStoreType;
         this.keyPassword = keyPassword;
         this.trustStorePassword = trustStorePassword;
         this.trustStore = trustStore;
@@ -73,7 +75,7 @@ public class TlsHostConfiguration {
     public void processHost() throws IOException, GeneralSecurityException, OperatorCreationException {
         KeyPair keyPair = tlsHelper.generateKeyPair();
 
-        KeyStore keyStore = tlsHelper.createKeyStore();
+        KeyStore keyStore = tlsHelper.createKeyStore(keyStoreType);
         tlsHelper.addToKeyStore(keyStore, keyPair, NIFI_KEY, keyPassword.toCharArray(),
                 tlsHelper.generateIssuedCertificate("CN=" + hostname + ",OU=apache.nifi", keyPair.getPublic(), x509Certificate, certificateKeypair), x509Certificate);
 
@@ -83,11 +85,11 @@ public class TlsHostConfiguration {
         NiFiPropertiesWriter niFiPropertiesWriter = niFiPropertiesWriterFactory.create();
 
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE, "./conf/" + keyStoreName);
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsHelper.getKeyStoreType());
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE_PASSWD, keyStorePassword);
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEY_PASSWD, keyPassword);
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE, "./conf/truststore" + extension);
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsHelper.getKeyStoreType());
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, trustStore.getType());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
         if (!StringUtils.isEmpty(httpsPort)) {
             niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTPS_PORT, httpsPort);

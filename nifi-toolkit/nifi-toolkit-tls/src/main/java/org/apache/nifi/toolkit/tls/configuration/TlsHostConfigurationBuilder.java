@@ -39,6 +39,7 @@ public class TlsHostConfigurationBuilder {
     private X509Certificate x509Certificate;
     private String keyStorePassword;
     private String keyPassword;
+    private String keyStoreType;
     private String trustStorePassword;
     private KeyStore trustStore;
     private String hostname;
@@ -93,13 +94,18 @@ public class TlsHostConfigurationBuilder {
         return this;
     }
 
+    public TlsHostConfigurationBuilder setKeyStoreType(String keyStoreType) {
+        this.keyStoreType = keyStoreType;
+        return this;
+    }
+
     protected TlsHostConfigurationBuilder setOutputStreamFactory(OutputStreamFactory outputStreamFactory) {
         this.outputStreamFactory = outputStreamFactory;
         return this;
     }
 
     public TlsHostConfiguration createSSLHostConfiguration() {
-        return new TlsHostConfiguration(outputStreamFactory, tlsHelper, niFiPropertiesWriterFactory, hostDir, httpsPort, "." + tlsHelper.getKeyStoreType(), certificateKeypair,
-                x509Certificate, keyStorePassword, keyPassword, trustStorePassword, trustStore, hostname);
+        return new TlsHostConfiguration(outputStreamFactory, tlsHelper, niFiPropertiesWriterFactory, hostDir, httpsPort, "." + keyStoreType, certificateKeypair,
+                x509Certificate, keyStorePassword, keyPassword, keyStoreType, trustStorePassword, trustStore, hostname);
     }
 }

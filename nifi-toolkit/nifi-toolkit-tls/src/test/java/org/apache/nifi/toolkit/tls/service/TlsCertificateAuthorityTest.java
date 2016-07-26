@@ -96,14 +96,14 @@ public class TlsCertificateAuthorityTest {
         int port = availablePort();
 
         serverConfig = new TlsConfig();
-        serverConfig.setHostname("localhost");
+        serverConfig.setCaHostname("localhost");
         serverConfig.setToken(myTestTokenUseSomethingStronger);
         serverConfig.setKeyStore(serverKeyStore);
         serverConfig.setPort(port);
 
         clientConfig = new TlsClientConfig();
         clientConfig.setCaHostname("localhost");
-        clientConfig.setHostname("otherHostname");
+        clientConfig.setDn("CN=otherHostname,OU=NIFI");
         clientConfig.setKeyStore(clientKeyStore);
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);

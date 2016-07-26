@@ -20,12 +20,12 @@ package org.apache.nifi.toolkit.tls.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.toolkit.tls.TlsToolkitMain;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,7 +36,6 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.cert.X509Certificate;
 
 /**
@@ -57,17 +56,22 @@ public class TlsCertificateAuthorityClient {
 
     public TlsCertificateAuthorityClient(File configFile, InputStreamFactory inputStreamFactory, OutputStreamFactory outputStreamFactory)
             throws IOException, NoSuchAlgorithmException {
+        this(configFile, outputStreamFactory, new ObjectMapper().readValue(inputStreamFactory.create(configFile), TlsClientConfig.class));
+    }
+
+    public TlsCertificateAuthorityClient(File configFile, OutputStreamFactory outputStreamFactory, TlsClientConfig tlsClientConfig)
+            throws NoSuchAlgorithmException {
         this.configFile = configFile;
         this.objectMapper = new ObjectMapper();
-        this.tlsClientConfig = objectMapper.readValue(inputStreamFactory.create(configFile), TlsClientConfig.class);
-        this.tlsHelper = new TlsHelper(tlsClientConfig.getTlsHelperConfig());
+        this.tlsClientConfig = tlsClientConfig;
+        this.tlsHelper = tlsClientConfig.createTlsHelper();
         this.passwordUtil = new PasswordUtil(new SecureRandom());
         this.outputStreamFactory = outputStreamFactory;
         this.tlsCertificateSigningRequestPerformer = tlsClientConfig.createCertificateSigningRequestPerformer();
     }
 
     public static void main(String[] args) throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+        TlsHelper.addBouncyCastleProvider();
         if (args.length != 1 || StringUtils.isEmpty(args[0])) {
             throw new Exception("Expected config file as only argument");
         }
@@ -86,18 +90,25 @@ public class TlsCertificateAuthorityClient {
 
         String keyStoreType = tlsClientConfig.getKeyStoreType();
         if (StringUtils.isEmpty(keyStoreType)) {
-            keyStoreType = tlsHelper.getKeyStoreType();
+            keyStoreType = TlsConfig.DEFAULT_KEY_STORE_TYPE;
             tlsClientConfig.setKeyStoreType(keyStoreType);
         }
 
         KeyStore keyStore = tlsHelper.createKeyStore(keyStoreType);
         String keyPassword = tlsClientConfig.getKeyPassword();
-        if (StringUtils.isEmpty(keyPassword)) {
-            keyPassword = passwordUtil.generatePassword();
-            tlsClientConfig.setKeyPassword(keyPassword);
+        char[] passphrase;
+        if (TlsHelper.PKCS12.equals(keyStoreType)) {
+            passphrase = null;
+            tlsClientConfig.setKeyPassword(null);
+        } else {
+            if (StringUtils.isEmpty(keyPassword)) {
+                keyPassword = passwordUtil.generatePassword();
+                tlsClientConfig.setKeyPassword(keyPassword);
+            }
+            passphrase = keyPassword.toCharArray();
         }
         X509Certificate[] certificates = tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
-        tlsHelper.addToKeyStore(keyStore, keyPair, TlsToolkitMain.NIFI_KEY, keyPassword.toCharArray(), certificates);
+        tlsHelper.addToKeyStore(keyStore, keyPair, TlsToolkitMain.NIFI_KEY, passphrase, certificates);
 
         String keyStorePassword = tlsClientConfig.getKeyStorePassword();
         if (StringUtils.isEmpty(keyStorePassword)) {
@@ -111,7 +122,7 @@ public class TlsCertificateAuthorityClient {
 
         String trustStoreType = tlsClientConfig.getTrustStoreType();
         if (StringUtils.isEmpty(trustStoreType)) {
-            trustStoreType = tlsHelper.getKeyStoreType();
+            trustStoreType = TlsConfig.DEFAULT_KEY_STORE_TYPE;
             tlsClientConfig.setTrustStoreType(trustStoreType);
         }
 

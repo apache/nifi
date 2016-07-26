@@ -17,12 +17,11 @@
 
 package org.apache.nifi.toolkit.tls;
 
-import org.apache.nifi.toolkit.tls.commandLine.TlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
+import org.apache.nifi.toolkit.tls.commandLine.TlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.configuration.TlsHostConfigurationBuilder;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -34,7 +33,6 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.SecureRandom;
-import java.security.Security;
 import java.security.cert.X509Certificate;
 import java.util.List;
 
@@ -61,7 +59,7 @@ public class TlsToolkitMain {
     }
 
     public static void main(String[] args) {
-        Security.addProvider(new BouncyCastleProvider());
+        TlsHelper.addBouncyCastleProvider();
         TlsToolkitCommandLine tlsToolkitCommandLine = new TlsToolkitCommandLine(new SecureRandom());
         try {
             tlsToolkitCommandLine.parse(args);
@@ -71,7 +69,7 @@ public class TlsToolkitMain {
         try {
             new TlsToolkitMain(new TlsHelper(tlsToolkitCommandLine), tlsToolkitCommandLine.getBaseDir(), tlsToolkitCommandLine.getNiFiPropertiesWriterFactory())
                     .createNifiKeystoresAndTrustStores("CN=nifi.root.ca,OU=apache.nifi", tlsToolkitCommandLine.getHostnames(), tlsToolkitCommandLine.getKeyStorePasswords(),
-                            tlsToolkitCommandLine.getKeyPasswords(), tlsToolkitCommandLine.getTrustStorePasswords(), tlsToolkitCommandLine.getHttpsPort());
+                            tlsToolkitCommandLine.getKeyPasswords(), tlsToolkitCommandLine.getTrustStorePasswords(), tlsToolkitCommandLine.getHttpsPort(), tlsToolkitCommandLine.getKeyStoreType());
         } catch (Exception e) {
             tlsToolkitCommandLine.printUsage("Error creating generating tls configuration. (" + e.getMessage() + ")");
             System.exit(ERROR_GENERATING_CONFIG);
@@ -80,7 +78,7 @@ public class TlsToolkitMain {
     }
 
     public void createNifiKeystoresAndTrustStores(String dn, List<String> hostnames, List<String> keyStorePasswords, List<String> keyPasswords,
-                                                  List<String> trustStorePasswords, String httpsPort) throws GeneralSecurityException, IOException, OperatorCreationException {
+                                                  List<String> trustStorePasswords, String httpsPort, String keyStoreType) throws GeneralSecurityException, IOException, OperatorCreationException {
         KeyPair certificateKeypair = tlsHelper.generateKeyPair();
         X509Certificate x509Certificate = tlsHelper.generateSelfSignedX509Certificate(certificateKeypair, dn);
 
@@ -92,7 +90,7 @@ public class TlsToolkitMain {
             pemWriter.writeObject(new JcaMiscPEMGenerator(certificateKeypair));
         }
 
-        KeyStore trustStore = tlsHelper.createKeyStore();
+        KeyStore trustStore = tlsHelper.createKeyStore(keyStoreType);
         trustStore.setCertificateEntry(NIFI_CERT, x509Certificate);
 
         TlsHostConfigurationBuilder tlsHostConfigurationBuilder = new TlsHostConfigurationBuilder(tlsHelper, niFiPropertiesWriterFactory)
@@ -115,6 +113,7 @@ public class TlsToolkitMain {
                     .setKeyPassword(keyPasswords.get(i))
                     .setTrustStorePassword(trustStorePasswords.get(i))
                     .setHostname(hostname)
+                    .setKeyStoreType(keyStoreType)
                     .createSSLHostConfiguration()
                     .processHost();
         }

@@ -22,23 +22,20 @@ public class TlsHelperConfig {
     public static final int DEFAULT_KEY_SIZE = 2048;
     public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";
     public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA";
-    public static final String DEFAULT_KEY_STORE_TYPE = "jks";
 
     private int days = DEFAULT_DAYS;
     private int keySize = DEFAULT_KEY_SIZE;
     private String keyPairAlgorithm = DEFAULT_KEY_PAIR_ALGORITHM;
     private String signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
-    private String keyStoreType = DEFAULT_KEY_STORE_TYPE;
 
     public TlsHelperConfig() {
     }
 
-    public TlsHelperConfig(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm, String keyStoreType) {
+    public TlsHelperConfig(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm) {
         this.days = days;
         this.keySize = keySize;
         this.keyPairAlgorithm = keyPairAlgorithm;
         this.signingAlgorithm = signingAlgorithm;
-        this.keyStoreType = keyStoreType;
     }
 
     public int getDays() {
@@ -71,13 +68,5 @@ public class TlsHelperConfig {
 
     public void setSigningAlgorithm(String signingAlgorithm) {
         this.signingAlgorithm = signingAlgorithm;
-    }
-
-    public String getKeyStoreType() {
-        return keyStoreType;
-    }
-
-    public void setKeyStoreType(String keyStoreType) {
-        this.keyStoreType = keyStoreType;
     }
 }
