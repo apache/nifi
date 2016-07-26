@@ -21,10 +21,11 @@ import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.file.generated.Authorizations;
-import org.apache.nifi.authorization.file.generated.Groups;
+import org.apache.nifi.authorization.file.tenants.generated.Groups;
 import org.apache.nifi.authorization.file.generated.Policies;
 import org.apache.nifi.authorization.file.generated.Policy;
-import org.apache.nifi.authorization.file.generated.Users;
+import org.apache.nifi.authorization.file.tenants.generated.Users;
+import org.apache.nifi.authorization.file.tenants.generated.Tenants;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.util.IdentityMapping;
@@ -72,10 +73,14 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     private static final String AUTHORIZATIONS_XSD = "/authorizations.xsd";
     private static final String JAXB_AUTHORIZATIONS_PATH = "org.apache.nifi.authorization.file.generated";
 
-    private static final String USERS_XSD = "/users.xsd";
+    private static final String TENANTS_XSD = "/tenants.xsd";
+    private static final String JAXB_TENANTS_PATH = "org.apache.nifi.authorization.file.tenants.generated";
+
+    private static final String USERS_XSD = "/legacy-users.xsd";
     private static final String JAXB_USERS_PATH = "org.apache.nifi.user.generated";
 
     private static final JAXBContext JAXB_AUTHORIZATIONS_CONTEXT = initializeJaxbContext(JAXB_AUTHORIZATIONS_PATH);
+    private static final JAXBContext JAXB_TENANTS_CONTEXT = initializeJaxbContext(JAXB_TENANTS_PATH);
     private static final JAXBContext JAXB_USERS_CONTEXT = initializeJaxbContext(JAXB_USERS_PATH);
 
     /**
@@ -93,16 +98,20 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     static final String WRITE_CODE = "W";
 
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
+    static final String PROP_TENANTS_FILE = "Users File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
     static final String PROP_LEGACY_AUTHORIZED_USERS_FILE = "Legacy Authorized Users File";
     static final Pattern NODE_IDENTITY_PATTERN = Pattern.compile("Node Identity \\S+");
 
     private Schema usersSchema;
+    private Schema tenantsSchema;
     private Schema authorizationsSchema;
     private SchemaFactory schemaFactory;
     private NiFiProperties properties;
+    private File tenantsFile;
     private File authorizationsFile;
     private File restoreAuthorizationsFile;
+    private File restoreTenantsFile;
     private String rootGroupId;
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
@@ -116,6 +125,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     public void initialize(final AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
         try {
             schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            tenantsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(TENANTS_XSD));
             authorizationsSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(AUTHORIZATIONS_XSD));
             usersSchema = schemaFactory.newSchema(FileAuthorizer.class.getResource(USERS_XSD));
         } catch (Exception e) {
@@ -126,6 +136,18 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     @Override
     public void doOnConfigured(final AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         try {
+            final PropertyValue tenantsPath = configurationContext.getProperty(PROP_TENANTS_FILE);
+            if (StringUtils.isBlank(tenantsPath.getValue())) {
+                throw new AuthorizerCreationException("The users file must be specified.");
+            }
+
+            // get the tenants file and ensure it exists
+            tenantsFile = new File(tenantsPath.getValue());
+            if (!tenantsFile.exists()) {
+                logger.info("Creating new users file at {}", new Object[] {tenantsFile.getAbsolutePath()});
+                saveTenants(new Tenants());
+            }
+
             final PropertyValue authorizationsPath = configurationContext.getProperty(PROP_AUTHORIZATIONS_FILE);
             if (StringUtils.isBlank(authorizationsPath.getValue())) {
                 throw new AuthorizerCreationException("The authorizations file must be specified.");
@@ -135,10 +157,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             authorizationsFile = new File(authorizationsPath.getValue());
             if (!authorizationsFile.exists()) {
                 logger.info("Creating new authorizations file at {}", new Object[] {authorizationsFile.getAbsolutePath()});
-                saveAndRefreshHolder(new Authorizations());
+                saveAuthorizations(new Authorizations());
             }
 
             final File authorizationsFileDirectory = authorizationsFile.getAbsoluteFile().getParentFile();
+            final File tenantsFileDirectory = tenantsFile.getAbsoluteFile().getParentFile();
 
             // the restore directory is optional and may be null
             final File restoreDirectory = properties.getRestoreDirectory();
@@ -146,18 +169,26 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 // sanity check that restore directory is a directory, creating it if necessary
                 FileUtils.ensureDirectoryExistAndCanAccess(restoreDirectory);
 
-                // check that restore directory is not the same as the primary directory
+                // check that restore directory is not the same as the authorizations directory
                 if (authorizationsFileDirectory.getAbsolutePath().equals(restoreDirectory.getAbsolutePath())) {
                     throw new AuthorizerCreationException(String.format("Authorizations file directory '%s' is the same as restore directory '%s' ",
                             authorizationsFileDirectory.getAbsolutePath(), restoreDirectory.getAbsolutePath()));
                 }
 
+                // check that restore directory is not the same as the user's directory
+                if (tenantsFileDirectory.getAbsolutePath().equals(restoreDirectory.getAbsolutePath())) {
+                    throw new AuthorizerCreationException(String.format("Users file directory '%s' is the same as restore directory '%s' ",
+                            tenantsFileDirectory.getAbsolutePath(), restoreDirectory.getAbsolutePath()));
+                }
+
                 // the restore copy will have same file name, but reside in a different directory
                 restoreAuthorizationsFile = new File(restoreDirectory, authorizationsFile.getName());
+                restoreTenantsFile = new File(restoreDirectory, tenantsFile.getName());
 
                 try {
                     // sync the primary copy with the restore copy
                     FileUtils.syncWithRestore(authorizationsFile, restoreAuthorizationsFile, logger);
+                    FileUtils.syncWithRestore(tenantsFile, restoreTenantsFile, logger);
                 } catch (final IOException | IllegalStateException ioe) {
                     throw new AuthorizerCreationException(ioe);
                 }
@@ -191,6 +222,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 FileUtils.copyFile(authorizationsFile, restoreAuthorizationsFile, false, false, logger);
             }
 
+            // if we've copied the authorizations file to a restore directory synchronize it
+            if (restoreTenantsFile != null) {
+                FileUtils.copyFile(tenantsFile, restoreTenantsFile, false, false, logger);
+            }
+
             logger.info(String.format("Authorizations file loaded at %s", new Date().toString()));
 
         } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException | SAXException e) {
@@ -207,23 +243,20 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      */
     private synchronized void load() throws JAXBException, IOException, IllegalStateException, SAXException {
         // attempt to unmarshal
-        final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
-        unmarshaller.setSchema(authorizationsSchema);
-        final JAXBElement<Authorizations> element = unmarshaller.unmarshal(new StreamSource(authorizationsFile), Authorizations.class);
-
-        final Authorizations authorizations = element.getValue();
-
-        if (authorizations.getUsers() == null) {
-            authorizations.setUsers(new Users());
-        }
-        if (authorizations.getGroups() == null) {
-            authorizations.setGroups(new Groups());
-        }
+        final Authorizations authorizations = unmarshallAuthorizations();
         if (authorizations.getPolicies() == null) {
             authorizations.setPolicies(new Policies());
         }
 
-        final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations);
+        final Tenants tenants = unmarshallTenants();
+        if (tenants.getUsers() == null) {
+            tenants.setUsers(new Users());
+        }
+        if (tenants.getGroups() == null) {
+            tenants.setGroups(new Groups());
+        }
+
+        final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations, tenants);
         final boolean emptyAuthorizations = authorizationsHolder.getAllUsers().isEmpty() && authorizationsHolder.getAllPolicies().isEmpty();
         final boolean hasInitialAdminIdentity = (initialAdminIdentity != null && !StringUtils.isBlank(initialAdminIdentity));
         final boolean hasLegacyAuthorizedUsers = (legacyAuthorizedUsersFile != null && !StringUtils.isBlank(legacyAuthorizedUsersFile));
@@ -236,19 +269,35 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 throw new AuthorizerCreationException("Cannot provide an Initial Admin Identity and a Legacy Authorized Users File");
             } else if (hasInitialAdminIdentity) {
                 logger.info("Populating authorizations for Initial Admin: " + initialAdminIdentity);
-                populateInitialAdmin(authorizations);
+                populateInitialAdmin(authorizations, tenants);
             } else if (hasLegacyAuthorizedUsers) {
                 logger.info("Converting " + legacyAuthorizedUsersFile + " to new authorizations model");
-                convertLegacyAuthorizedUsers(authorizations);
+                convertLegacyAuthorizedUsers(authorizations, tenants);
             }
 
-            populateNodes(authorizations);
+            populateNodes(authorizations, tenants);
 
             // save any changes that were made and repopulate the holder
-            saveAndRefreshHolder(authorizations);
+            saveAndRefreshHolder(authorizations, tenants);
         } else {
             this.authorizationsHolder.set(authorizationsHolder);
         }
+    }
+
+    private Authorizations unmarshallAuthorizations() throws JAXBException {
+        final Unmarshaller unmarshaller = JAXB_AUTHORIZATIONS_CONTEXT.createUnmarshaller();
+        unmarshaller.setSchema(authorizationsSchema);
+
+        final JAXBElement<Authorizations> element = unmarshaller.unmarshal(new StreamSource(authorizationsFile), Authorizations.class);
+        return element.getValue();
+    }
+
+    private Tenants unmarshallTenants() throws JAXBException {
+        final Unmarshaller unmarshaller = JAXB_TENANTS_CONTEXT.createUnmarshaller();
+        unmarshaller.setSchema(tenantsSchema);
+
+        final JAXBElement<Tenants> element = unmarshaller.unmarshal(new StreamSource(tenantsFile), Tenants.class);
+        return element.getValue();
     }
 
     /**
@@ -269,13 +318,13 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     /**
      *  Creates the initial admin user and policies for access the flow and managing users and policies.
      */
-    private void populateInitialAdmin(final Authorizations authorizations) {
+    private void populateInitialAdmin(final Authorizations authorizations, Tenants tenants) {
         // generate an identifier and add a User with the given identifier and identity
         final UUID adminIdentifier = UUID.nameUUIDFromBytes(initialAdminIdentity.getBytes(StandardCharsets.UTF_8));
         final User adminUser = new User.Builder().identifier(adminIdentifier.toString()).identity(initialAdminIdentity).build();
 
-        final org.apache.nifi.authorization.file.generated.User jaxbAdminUser = createJAXBUser(adminUser);
-        authorizations.getUsers().getUser().add(jaxbAdminUser);
+        final org.apache.nifi.authorization.file.tenants.generated.User jaxbAdminUser = createJAXBUser(adminUser);
+        tenants.getUsers().getUser().add(jaxbAdminUser);
 
         // grant the user read access to the /flow resource
         addAccessPolicy(authorizations, ResourceType.Flow.getValue(), adminUser.getIdentifier(), READ_CODE);
@@ -307,11 +356,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      *
      * @param authorizations the overall authorizations
      */
-    private void populateNodes(Authorizations authorizations) {
+    private void populateNodes(Authorizations authorizations, Tenants tenants) {
         for (String nodeIdentity : nodeIdentities) {
             // see if we have an existing user for the given node identity
-            org.apache.nifi.authorization.file.generated.User jaxbNodeUser = null;
-            for (org.apache.nifi.authorization.file.generated.User user : authorizations.getUsers().getUser()) {
+            org.apache.nifi.authorization.file.tenants.generated.User jaxbNodeUser = null;
+            for (org.apache.nifi.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
                 if (user.getIdentity().equals(nodeIdentity)) {
                     jaxbNodeUser = user;
                     break;
@@ -325,7 +374,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                 final User nodeUser = new User.Builder().identifier(nodeIdentifier.toString()).identity(nodeIdentity).build();
 
                 jaxbNodeUser = createJAXBUser(nodeUser);
-                authorizations.getUsers().getUser().add(jaxbNodeUser);
+                tenants.getUsers().getUser().add(jaxbNodeUser);
             }
 
             // grant access to the proxy resource
@@ -343,11 +392,12 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     /**
      * Unmarshalls an existing authorized-users.xml and converts the object model to the new model.
      *
-     * @param authorizations the current Authorizations instance that users, groups, and policies will be added to
+     * @param authorizations the current Authorizations instance that policies will be added to
+     * @param tenants the current Tenants instance users and groups will be added to
      * @throws AuthorizerCreationException if the legacy authorized users file that was provided does not exist
      * @throws JAXBException if the legacy authorized users file that was provided could not be unmarshalled
      */
-    private void convertLegacyAuthorizedUsers(final Authorizations authorizations) throws AuthorizerCreationException, JAXBException {
+    private void convertLegacyAuthorizedUsers(final Authorizations authorizations, final Tenants tenants) throws AuthorizerCreationException, JAXBException {
         final File authorizedUsersFile = new File(legacyAuthorizedUsersFile);
         if (!authorizedUsersFile.exists()) {
             throw new AuthorizerCreationException("Legacy Authorized Users File '" + legacyAuthorizedUsersFile + "' does not exists");
@@ -386,15 +436,15 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             final String userIdentifier = UUID.nameUUIDFromBytes(legacyUserDn.getBytes(StandardCharsets.UTF_8)).toString();
 
             // create the new User and add it to the list of users
-            org.apache.nifi.authorization.file.generated.User user = new org.apache.nifi.authorization.file.generated.User();
+            org.apache.nifi.authorization.file.tenants.generated.User user = new org.apache.nifi.authorization.file.tenants.generated.User();
             user.setIdentifier(userIdentifier);
             user.setIdentity(legacyUserDn);
-            authorizations.getUsers().getUser().add(user);
+            tenants.getUsers().getUser().add(user);
 
             // if there was a group name find or create the group and add the user to it
-            org.apache.nifi.authorization.file.generated.Group group = getOrCreateGroup(authorizations, legacyUser.getGroup());
+            org.apache.nifi.authorization.file.tenants.generated.Group group = getOrCreateGroup(tenants, legacyUser.getGroup());
             if (group != null) {
-                org.apache.nifi.authorization.file.generated.Group.User groupUser = new org.apache.nifi.authorization.file.generated.Group.User();
+                org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
                 groupUser.setIdentifier(userIdentifier);
                 group.getUser().add(groupUser);
             }
@@ -431,8 +481,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                     final String mappedUserAccessControl = IdentityMappingUtil.mapIdentity(userAccessControl, identityMappings);
 
                     // find a user where the identity is the userAccessControl
-                    org.apache.nifi.authorization.file.generated.User foundUser = null;
-                    for (org.apache.nifi.authorization.file.generated.User jaxbUser : authorizations.getUsers().getUser()) {
+                    org.apache.nifi.authorization.file.tenants.generated.User foundUser = null;
+                    for (org.apache.nifi.authorization.file.tenants.generated.User jaxbUser : tenants.getUsers().getUser()) {
                         if (jaxbUser.getIdentity().equals(mappedUserAccessControl)) {
                             foundUser = jaxbUser;
                             break;
@@ -442,7 +492,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                     // couldn't find the user matching the access control so log a warning and skip
                     if (foundUser == null) {
                         logger.warn("Found port with user access control for {} but no user exists with this identity, skipping...",
-                                new Object[] {userAccessControl});
+                                new Object[] {mappedUserAccessControl});
                         continue;
                     }
 
@@ -460,8 +510,8 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             if (portDTO.getGroupAccessControl() != null) {
                 for (String groupAccessControl : portDTO.getGroupAccessControl()) {
                     // find a group where the name is the groupAccessControl
-                    org.apache.nifi.authorization.file.generated.Group foundGroup = null;
-                    for (org.apache.nifi.authorization.file.generated.Group jaxbGroup : authorizations.getGroups().getGroup()) {
+                    org.apache.nifi.authorization.file.tenants.generated.Group foundGroup = null;
+                    for (org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup : tenants.getGroups().getGroup()) {
                         if (jaxbGroup.getName().equals(groupAccessControl)) {
                             foundGroup = jaxbGroup;
                             break;
@@ -541,17 +591,17 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     /**
      * Finds the Group with the given name, or creates a new one and adds it to Authorizations.
      *
-     * @param authorizations the Authorizations reference
+     * @param tenants the Authorizations reference
      * @param groupName the name of the group to look for
      * @return the Group from Authorizations with the given name, or a new instance
      */
-    private org.apache.nifi.authorization.file.generated.Group getOrCreateGroup(final Authorizations authorizations, final String groupName) {
+    private org.apache.nifi.authorization.file.tenants.generated.Group getOrCreateGroup(final Tenants tenants, final String groupName) {
         if (StringUtils.isBlank(groupName)) {
             return null;
         }
 
-        org.apache.nifi.authorization.file.generated.Group foundGroup = null;
-        for (org.apache.nifi.authorization.file.generated.Group group : authorizations.getGroups().getGroup()) {
+        org.apache.nifi.authorization.file.tenants.generated.Group foundGroup = null;
+        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
             if (group.getName().equals(groupName)) {
                 foundGroup = group;
                 break;
@@ -560,10 +610,10 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         if (foundGroup == null) {
             UUID newGroupIdentifier = UUID.nameUUIDFromBytes(groupName.getBytes(StandardCharsets.UTF_8));
-            foundGroup = new org.apache.nifi.authorization.file.generated.Group();
+            foundGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
             foundGroup.setIdentifier(newGroupIdentifier.toString());
             foundGroup.setName(groupName);
-            authorizations.getGroups().getGroup().add(foundGroup);
+            tenants.getGroups().getGroup().add(foundGroup);
         }
 
         return foundGroup;
@@ -659,21 +709,35 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      * Synchronized to ensure only one thread writes the file at a time.
      *
      * @param authorizations the authorizations to save and populate from
+     * @param tenants the tenants to save and populate from
      * @throws AuthorizationAccessException if an error occurs saving the authorizations
      */
-    private synchronized void saveAndRefreshHolder(final Authorizations authorizations) throws AuthorizationAccessException {
+    private synchronized void saveAndRefreshHolder(final Authorizations authorizations, final Tenants tenants) throws AuthorizationAccessException {
         try {
-            final Marshaller marshaller = JAXB_AUTHORIZATIONS_CONTEXT.createMarshaller();
-            marshaller.setSchema(authorizationsSchema);
-            marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            marshaller.marshal(authorizations, authorizationsFile);
+            saveTenants(tenants);
+            saveAuthorizations(authorizations);
 
-            final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations);
+            final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations, tenants);
             this.authorizationsHolder.set(authorizationsHolder);
         } catch (JAXBException e) {
             throw new AuthorizationAccessException("Unable to save Authorizations", e);
         }
     }
+
+    private void saveAuthorizations(final Authorizations authorizations) throws JAXBException {
+        final Marshaller marshaller = JAXB_AUTHORIZATIONS_CONTEXT.createMarshaller();
+        marshaller.setSchema(authorizationsSchema);
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+        marshaller.marshal(authorizations, authorizationsFile);
+    }
+
+    private void saveTenants(final Tenants tenants) throws JAXBException {
+        final Marshaller marshaller = JAXB_TENANTS_CONTEXT.createMarshaller();
+        marshaller.setSchema(tenantsSchema);
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+        marshaller.marshal(tenants, tenantsFile);
+    }
+
 
     @AuthorizerContext
     public void setNiFiProperties(NiFiProperties properties) {
@@ -693,28 +757,29 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
 
         // determine that all users in the group exist before doing anything, throw an exception if they don't
-        final Set<org.apache.nifi.authorization.file.generated.User> jaxbUsers = checkGroupUsers(group, authorizations.getUsers().getUser());
+        final Set<org.apache.nifi.authorization.file.tenants.generated.User> jaxbUsers = checkGroupUsers(group, tenants.getUsers().getUser());
 
         // create a new JAXB Group based on the incoming Group
-        final org.apache.nifi.authorization.file.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.generated.Group();
+        final org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
         jaxbGroup.setIdentifier(group.getIdentifier());
         jaxbGroup.setName(group.getName());
 
         // add each user to the group
         for (String groupUser : group.getUsers()) {
-            org.apache.nifi.authorization.file.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.generated.Group.User();
+            org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
             jaxbGroupUser.setIdentifier(groupUser);
             jaxbGroup.getUser().add(jaxbGroupUser);
         }
 
-        authorizations.getGroups().getGroup().add(jaxbGroup);
-        saveAndRefreshHolder(authorizations);
+        tenants.getGroups().getGroup().add(jaxbGroup);
+        saveAndRefreshHolder(authorizations, tenants);
 
-        final AuthorizationsHolder holder = this.authorizationsHolder.get();
-        return holder.getGroupsById().get(group.getIdentifier());
+        return this.authorizationsHolder.get().getGroupsById().get(group.getIdentifier());
     }
 
     @Override
@@ -731,11 +796,13 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
 
         // find the group that needs to be update
-        org.apache.nifi.authorization.file.generated.Group updateGroup = null;
-        for (org.apache.nifi.authorization.file.generated.Group jaxbGroup : authorizations.getGroups().getGroup()) {
+        org.apache.nifi.authorization.file.tenants.generated.Group updateGroup = null;
+        for (org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup : tenants.getGroups().getGroup()) {
             if (jaxbGroup.getIdentifier().equals(group.getIdentifier())) {
                 updateGroup = jaxbGroup;
                 break;
@@ -750,22 +817,24 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         // reset the list of users and add each user to the group
         updateGroup.getUser().clear();
         for (String groupUser : group.getUsers()) {
-            org.apache.nifi.authorization.file.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.generated.Group.User();
+            org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
             jaxbGroupUser.setIdentifier(groupUser);
             updateGroup.getUser().add(jaxbGroupUser);
         }
 
         updateGroup.setName(group.getName());
-        saveAndRefreshHolder(authorizations);
+        saveAndRefreshHolder(authorizations, tenants);
 
-        final AuthorizationsHolder holder = this.authorizationsHolder.get();
-        return holder.getGroupsById().get(group.getIdentifier());
+        return this.authorizationsHolder.get().getGroupsById().get(group.getIdentifier());
     }
 
     @Override
     public synchronized Group deleteGroup(Group group) throws AuthorizationAccessException {
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
-        final List<org.apache.nifi.authorization.file.generated.Group> groups = authorizations.getGroups().getGroup();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
+
+        final List<org.apache.nifi.authorization.file.tenants.generated.Group> groups = tenants.getGroups().getGroup();
 
         // for each policy iterate over the group reference and remove the group reference if it matches the group being deleted
         for (Policy policy : authorizations.getPolicies().getPolicy()) {
@@ -781,9 +850,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // now remove the actual group from the top-level list of groups
         boolean removedGroup = false;
-        Iterator<org.apache.nifi.authorization.file.generated.Group> iter = groups.iterator();
+        Iterator<org.apache.nifi.authorization.file.tenants.generated.Group> iter = groups.iterator();
         while (iter.hasNext()) {
-            org.apache.nifi.authorization.file.generated.Group jaxbGroup = iter.next();
+            org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = iter.next();
             if (group.getIdentifier().equals(jaxbGroup.getIdentifier())) {
                 iter.remove();
                 removedGroup = true;
@@ -792,7 +861,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         }
 
         if (removedGroup) {
-            saveAndRefreshHolder(authorizations);
+            saveAndRefreshHolder(authorizations, tenants);
             return group;
         } else {
             return null;
@@ -804,11 +873,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         return authorizationsHolder.get().getAllGroups();
     }
 
-    private Set<org.apache.nifi.authorization.file.generated.User> checkGroupUsers(final Group group, final List<org.apache.nifi.authorization.file.generated.User> users) {
-        final Set<org.apache.nifi.authorization.file.generated.User> jaxbUsers = new HashSet<>();
+    private Set<org.apache.nifi.authorization.file.tenants.generated.User> checkGroupUsers(final Group group, final List<org.apache.nifi.authorization.file.tenants.generated.User> users) {
+        final Set<org.apache.nifi.authorization.file.tenants.generated.User> jaxbUsers = new HashSet<>();
         for (String groupUser : group.getUsers()) {
             boolean found = false;
-            for (org.apache.nifi.authorization.file.generated.User jaxbUser : users) {
+            for (org.apache.nifi.authorization.file.tenants.generated.User jaxbUser : users) {
                 if (jaxbUser.getIdentifier().equals(groupUser)) {
                     jaxbUsers.add(jaxbUser);
                     found = true;
@@ -831,19 +900,20 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        final org.apache.nifi.authorization.file.generated.User jaxbUser = createJAXBUser(user);
+        final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = createJAXBUser(user);
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
-        authorizations.getUsers().getUser().add(jaxbUser);
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
+        tenants.getUsers().getUser().add(jaxbUser);
 
-        saveAndRefreshHolder(authorizations);
+        saveAndRefreshHolder(authorizations, tenants);
 
-        final AuthorizationsHolder holder = authorizationsHolder.get();
-        return holder.getUsersById().get(user.getIdentifier());
+        return this.authorizationsHolder.get().getUsersById().get(user.getIdentifier());
     }
 
-    private org.apache.nifi.authorization.file.generated.User createJAXBUser(User user) {
-        final org.apache.nifi.authorization.file.generated.User jaxbUser = new org.apache.nifi.authorization.file.generated.User();
+    private org.apache.nifi.authorization.file.tenants.generated.User createJAXBUser(User user) {
+        final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = new org.apache.nifi.authorization.file.tenants.generated.User();
         jaxbUser.setIdentifier(user.getIdentifier());
         jaxbUser.setIdentity(user.getIdentity());
         return jaxbUser;
@@ -875,12 +945,15 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
-        final List<org.apache.nifi.authorization.file.generated.User> users = authorizations.getUsers().getUser();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
+
+        final List<org.apache.nifi.authorization.file.tenants.generated.User> users = tenants.getUsers().getUser();
 
         // fine the User that needs to be updated
-        org.apache.nifi.authorization.file.generated.User updateUser = null;
-        for (org.apache.nifi.authorization.file.generated.User jaxbUser : users) {
+        org.apache.nifi.authorization.file.tenants.generated.User updateUser = null;
+        for (org.apache.nifi.authorization.file.tenants.generated.User jaxbUser : users) {
             if (user.getIdentifier().equals(jaxbUser.getIdentifier())) {
                 updateUser = jaxbUser;
                 break;
@@ -892,10 +965,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             return null;
         } else {
             updateUser.setIdentity(user.getIdentity());
-            saveAndRefreshHolder(authorizations);
+            saveAndRefreshHolder(authorizations, tenants);
 
-            final AuthorizationsHolder holder = authorizationsHolder.get();
-            return holder.getUsersById().get(user.getIdentifier());
+            return this.authorizationsHolder.get().getUsersById().get(user.getIdentifier());
         }
     }
 
@@ -905,14 +977,17 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
-        final List<org.apache.nifi.authorization.file.generated.User> users = authorizations.getUsers().getUser();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
+
+        final List<org.apache.nifi.authorization.file.tenants.generated.User> users = tenants.getUsers().getUser();
 
         // for each group iterate over the user references and remove the user reference if it matches the user being deleted
-        for (org.apache.nifi.authorization.file.generated.Group group : authorizations.getGroups().getGroup()) {
-            Iterator<org.apache.nifi.authorization.file.generated.Group.User> groupUserIter = group.getUser().iterator();
+        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
+            Iterator<org.apache.nifi.authorization.file.tenants.generated.Group.User> groupUserIter = group.getUser().iterator();
             while (groupUserIter.hasNext()) {
-                org.apache.nifi.authorization.file.generated.Group.User groupUser = groupUserIter.next();
+                org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = groupUserIter.next();
                 if (groupUser.getIdentifier().equals(user.getIdentifier())) {
                     groupUserIter.remove();
                     break;
@@ -934,9 +1009,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // remove the actual user if it exists
         boolean removedUser = false;
-        Iterator<org.apache.nifi.authorization.file.generated.User> iter = users.iterator();
+        Iterator<org.apache.nifi.authorization.file.tenants.generated.User> iter = users.iterator();
         while (iter.hasNext()) {
-            org.apache.nifi.authorization.file.generated.User jaxbUser = iter.next();
+            org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = iter.next();
             if (user.getIdentifier().equals(jaxbUser.getIdentifier())) {
                 iter.remove();
                 removedUser = true;
@@ -945,7 +1020,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         }
 
         if (removedUser) {
-            saveAndRefreshHolder(authorizations);
+            saveAndRefreshHolder(authorizations, tenants);
             return user;
         } else {
             return null;
@@ -969,13 +1044,14 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         final Policy policy = createJAXBPolicy(accessPolicy);
 
         // add the new Policy to the top-level list of policies
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
         authorizations.getPolicies().getPolicy().add(policy);
 
-        saveAndRefreshHolder(authorizations);
+        saveAndRefreshHolder(authorizations, tenants);
 
-        final AuthorizationsHolder holder = authorizationsHolder.get();
-        return holder.getPoliciesById().get(accessPolicy.getIdentifier());
+        return this.authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
     }
 
     private Policy createJAXBPolicy(final AccessPolicy accessPolicy) {
@@ -1014,7 +1090,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("AccessPolicy cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
 
         // try to find an existing Authorization that matches the policy id
         Policy updatePolicy = null;
@@ -1032,10 +1110,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // update the Policy, save, reload, and return
         transferUsersAndGroups(accessPolicy, updatePolicy);
-        saveAndRefreshHolder(authorizations);
+        saveAndRefreshHolder(authorizations, tenants);
 
-        final AuthorizationsHolder holder = authorizationsHolder.get();
-        return holder.getPoliciesById().get(accessPolicy.getIdentifier());
+        return this.authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
     }
 
     @Override
@@ -1044,7 +1121,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             throw new IllegalArgumentException("AccessPolicy cannot be null");
         }
 
-        final Authorizations authorizations = this.authorizationsHolder.get().getAuthorizations();
+        final AuthorizationsHolder holder = this.authorizationsHolder.get();
+        final Tenants tenants = holder.getTenants();
+        final Authorizations authorizations = holder.getAuthorizations();
 
         // find the matching Policy and remove it
         boolean deletedPolicy = false;
@@ -1063,7 +1142,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             return null;
         }
 
-        saveAndRefreshHolder(authorizations);
+        saveAndRefreshHolder(authorizations, tenants);
         return accessPolicy;
     }
 
