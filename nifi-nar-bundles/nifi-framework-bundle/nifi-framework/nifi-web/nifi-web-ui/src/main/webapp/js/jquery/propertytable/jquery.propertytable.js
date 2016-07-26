@@ -98,7 +98,7 @@
 
             // build the custom checkbox
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
+            $('<span class="string-check-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',
@@ -325,7 +325,7 @@
 
             // build the custom checkbox
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
+            $('<span class="string-check-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',
