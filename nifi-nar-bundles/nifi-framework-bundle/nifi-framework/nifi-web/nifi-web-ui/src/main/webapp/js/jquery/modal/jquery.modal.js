@@ -513,18 +513,19 @@
         hide: function () {
             return this.each(function () {
                 var dialog = $(this);
+
+                // invoke the handler
+                var handler = dialog.data('nf-dialog').close;
+                if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
+                    handler.call(dialog);
+                }
+
                 if (dialog.is(':visible')) {
                     // remove the modal glass pane overlay
                     $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
 
                     // hide the dialog
                     dialog.hide();
-
-                    // invoke the handler
-                    var handler = dialog.data('nf-dialog').close;
-                    if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
-                        handler.call(dialog);
-                    }
                 }
             });
         }
