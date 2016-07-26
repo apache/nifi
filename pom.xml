@@ -98,6 +98,7 @@ language governing permissions and limitations under the License. -->
         <hadoop.guava.version>12.0.1</hadoop.guava.version>
         <hadoop.http.client.version>4.2.5</hadoop.http.client.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
+        <ranger.version>0.6.0</ranger.version>
     </properties>
 
 
@@ -1150,8 +1151,8 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
-		        <type>nar</type>
-	         </dependency>
+		<type>nar</type>
+	     </dependency>
              <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-lumberjack-nar</artifactId>
@@ -1182,13 +1183,13 @@ language governing permissions and limitations under the License. -->
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	    <dependency>
+	        <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	    <dependency>
+	        <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-evtx-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
@@ -1270,6 +1271,33 @@ language governing permissions and limitations under the License. -->
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
                 <version>1.11.8</version>
+            </dependency>
+            <!-- Ranger dependencies, only included when using -Pinclude-ranger -->
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ranger-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ranger-resources</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>ranger-plugins-common</artifactId>
+                <version>${ranger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>ranger-plugins-audit</artifactId>
+                <version>${ranger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>credentialbuilder</artifactId>
+                <version>${ranger.version}</version>
             </dependency>
             <!-- Groovy support is primarily as a test dependency -->
             <dependency>
