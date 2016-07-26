@@ -17,19 +17,10 @@
 
 package org.apache.nifi.reporting;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
@@ -53,6 +44,16 @@ import org.mockito.stubbing.Answer;
 import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestSiteToSiteProvenanceReportingTask {
 
@@ -78,33 +79,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         builder.setComponentType("dummy processor");
         final ProvenanceEventRecord event = builder.build();
 
-        final List<byte[]> dataSent = new ArrayList<>();
-        final SiteToSiteProvenanceReportingTask task = new SiteToSiteProvenanceReportingTask() {
-            @SuppressWarnings("unchecked")
-            @Override
-            protected SiteToSiteClient getClient() {
-                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-                final Transaction transaction = Mockito.mock(Transaction.class);
-
-                try {
-                    Mockito.doAnswer(new Answer<Object>() {
-                        @Override
-                        public Object answer(final InvocationOnMock invocation) throws Throwable {
-                            final byte[] data = invocation.getArgumentAt(0, byte[].class);
-                            dataSent.add(data);
-                            return null;
-                        }
-                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
-
-                    Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                } catch (final Exception e) {
-                    e.printStackTrace();
-                    Assert.fail(e.toString());
-                }
-
-                return client;
-            }
-        };
+        final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : task.getSupportedPropertyDescriptors()) {
@@ -162,11 +137,55 @@ public class TestSiteToSiteProvenanceReportingTask {
         task.initialize(initContext);
         task.onTrigger(context);
 
-        assertEquals(3, dataSent.size());
-        final String msg = new String(dataSent.get(0), StandardCharsets.UTF_8);
+        assertEquals(3, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject msgArray = jsonReader.readArray().getJsonObject(0).getJsonObject("updatedAttributes");
         assertEquals(msgArray.getString("abc"), event.getAttributes().get("abc"));
+    }
+
+    @Test
+    public void testWhenProvenanceMaxIdEqualToLastEventIdInStateManager() throws IOException, InitializationException {
+        final long maxEventId = 2500;
+
+        // create the mock reporting task and mock state manager
+        final MockSiteToSiteProvenanceReportingTask task = new MockSiteToSiteProvenanceReportingTask();
+        final MockStateManager stateManager = new MockStateManager(task);
+
+        // create the state map and set the last id to the same value as maxEventId
+        final Map<String,String> state = new HashMap<>();
+        state.put(SiteToSiteProvenanceReportingTask.LAST_EVENT_ID_KEY, String.valueOf(maxEventId));
+        stateManager.setState(state, Scope.LOCAL);
+
+        // setup the mock reporting context to return the mock state manager
+        final ReportingContext context = Mockito.mock(ReportingContext.class);
+        Mockito.when(context.getStateManager()).thenReturn(stateManager);
+
+        // setup the mock provenance repository to return maxEventId
+        final ProvenanceEventRepository provenanceRepository = Mockito.mock(ProvenanceEventRepository.class);
+        Mockito.doAnswer(new Answer<Long>() {
+            @Override
+            public Long answer(final InvocationOnMock invocation) throws Throwable {
+                return maxEventId;
+            }
+        }).when(provenanceRepository).getMaxEventId();
+
+        // setup the mock EventAccess to return the mock provenance repository
+        final EventAccess eventAccess = Mockito.mock(EventAccess.class);
+        Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
+        Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+
+        // setup the mock initialization context
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ReportingInitializationContext initContext = Mockito.mock(ReportingInitializationContext.class);
+        Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        Mockito.when(initContext.getLogger()).thenReturn(logger);
+
+        task.initialize(initContext);
+
+        // execute the reporting task and should not produce any data b/c max id same as previous id
+        task.onTrigger(context);
+        assertEquals(0, task.dataSent.size());
     }
 
     public static FlowFile createFlowFile(final long id, final Map<String, String> attributes) {
@@ -174,4 +193,38 @@ public class TestSiteToSiteProvenanceReportingTask {
         mockFlowFile.putAttributes(attributes);
         return mockFlowFile;
     }
+
+    private static final class MockSiteToSiteProvenanceReportingTask extends SiteToSiteProvenanceReportingTask {
+
+        final List<byte[]> dataSent = new ArrayList<>();
+
+        @Override
+        protected SiteToSiteClient getClient() {
+            final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
+            final Transaction transaction = Mockito.mock(Transaction.class);
+
+            try {
+                Mockito.doAnswer(new Answer<Object>() {
+                    @Override
+                    public Object answer(final InvocationOnMock invocation) throws Throwable {
+                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                        dataSent.add(data);
+                        return null;
+                    }
+                }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+
+                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                Assert.fail(e.toString());
+            }
+
+            return client;
+        }
+
+        public List<byte[]> getDataSent() {
+            return dataSent;
+        }
+    }
+
 }

@@ -60,8 +60,8 @@ import java.util.concurrent.TimeUnit;
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
 
-    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    private static final String LAST_EVENT_ID_KEY = "last_event_id";
+    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    static final String LAST_EVENT_ID_KEY = "last_event_id";
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
@@ -136,7 +136,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 firstEventId = Long.parseLong(state.get(LAST_EVENT_ID_KEY)) + 1;
             }
 
-            if(currMaxId < firstEventId){
+            if(currMaxId < (firstEventId - 1)){
                 getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
                         "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
                 firstEventId = -1;
