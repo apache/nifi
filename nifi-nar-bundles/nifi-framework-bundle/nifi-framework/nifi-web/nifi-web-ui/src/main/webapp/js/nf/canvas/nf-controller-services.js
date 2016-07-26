@@ -488,11 +488,11 @@ nf.ControllerServices = (function () {
                     return aType === bType ? 0 : aType > bType ? 1 : -1;
                 } else if (sortDetails.columnId === 'state') {
                     var aState = 'Invalid';
-                    if (nf.Common.isEmpty(a.validationErrors)) {
+                    if (nf.Common.isEmpty(a.component.validationErrors)) {
                         aState = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
                     }
                     var bState = 'Invalid';
-                    if (nf.Common.isEmpty(b.validationErrors)) {
+                    if (nf.Common.isEmpty(b.component.validationErrors)) {
                         bState = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
                     }
                     return aState === bState ? 0 : aState > bState ? 1 : -1;
