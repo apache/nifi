@@ -119,7 +119,6 @@ public class ProcessorAuditor extends NiFiAuditor {
         final ProcessorNode updatedProcessor = (ProcessorNode) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the processor action...
-        // get the updated verbose state
         processor = processorDAO.getProcessor(updatedProcessor.getIdentifier());
 
         // get the current user

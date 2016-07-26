@@ -59,6 +59,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +125,14 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public ProcessGroup getParent() {
         return parent.get();
+    }
+
+    private ProcessGroup getRoot() {
+        ProcessGroup root = this;
+        while (root.getParent() != null) {
+            root = root.getParent();
+        }
+        return root;
     }
 
     @Override
@@ -1856,7 +1865,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-
     @Override
     public void addTemplate(final Template template) {
         requireNonNull(template);
@@ -2212,6 +2220,23 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (!map.containsKey(id)) {
                     throw new IllegalStateException("ID " + id + " does not refer to a(n) " + componentType + " in this ProcessGroup");
                 }
+            }
+        }
+    }
+
+    @Override
+    public void verifyCanAddTemplate(final String name) {
+        // ensure the name is specified
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("Template name cannot be blank.");
+        }
+
+        for (final Template template : getRoot().findAllTemplates()) {
+            final TemplateDTO existingDto = template.getDetails();
+
+            // ensure a template with this name doesnt already exist
+            if (name.equals(existingDto.getName())) {
+                throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
             }
         }
     }

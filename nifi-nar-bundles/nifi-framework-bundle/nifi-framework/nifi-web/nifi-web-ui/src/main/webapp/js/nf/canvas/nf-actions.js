@@ -71,9 +71,6 @@ nf.Actions = (function () {
         $.ajax({
             type: 'GET',
             url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(response.id),
-            data: {
-                verbose: true
-            },
             dataType: 'json'
         }).done(function (response) {
             nf.Graph.set(response.processGroupFlow.flow);

@@ -275,9 +275,6 @@ nf.ConnectionConfiguration = (function () {
             $.ajax({
                 type: 'GET',
                 url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupData.id),
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var processGroup = response.processGroupFlow;
@@ -363,9 +360,6 @@ nf.ConnectionConfiguration = (function () {
             $.ajax({
                 type: 'GET',
                 url: remoteProcessGroupData.uri,
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;
@@ -591,9 +585,6 @@ nf.ConnectionConfiguration = (function () {
             $.ajax({
                 type: 'GET',
                 url: remoteProcessGroupData.uri,
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;

@@ -23,7 +23,7 @@
                 <div id="select-template-button">
                     <button class="fa fa-search"></button>
                     <form id="template-upload-form" enctype="multipart/form-data" method="post">
-                        <input type="file" name="template" id="template-file-field"/>
+                        <input type="file" name="template" id="template-file-field" title="Browse"/>
                     </form>
                 </div>
             </div>

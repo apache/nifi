@@ -98,7 +98,6 @@ public class UserAuditor extends NiFiAuditor {
         final User updatedUser = (User) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the user action...
-        // get the updated verbose state
         user = userDAO.getUser(updatedUser.getIdentifier());
 
         // get the current user

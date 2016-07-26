@@ -1429,6 +1429,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanAddTemplate(String groupId, String name) {
+        templateDAO.verifyCanAddTemplate(name, groupId);
+    }
+
+    @Override
     public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
         // get the specified snippet
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
@@ -2531,7 +2536,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId, final boolean recurse) {
+    public ProcessGroupFlowEntity getProcessGroupFlow(final String groupId) {
         // get all identifiers for every child component
         final Set<String> identifiers = new HashSet<>();
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);

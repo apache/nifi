@@ -621,9 +621,6 @@ nf.Canvas = (function () {
         return $.ajax({
             type: 'GET',
             url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupId),
-            data: {
-                verbose: true
-            },
             dataType: 'json'
         }).done(function (flowResponse) {
             // get the controller and its contents

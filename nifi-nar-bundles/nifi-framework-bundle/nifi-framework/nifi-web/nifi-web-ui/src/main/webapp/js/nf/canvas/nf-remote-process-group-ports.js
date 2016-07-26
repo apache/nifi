@@ -471,9 +471,6 @@ nf.RemoteProcessGroupPorts = (function () {
                 $.ajax({
                     type: 'GET',
                     url: selectionData.uri,
-                    data: {
-                        verbose: true
-                    },
                     dataType: 'json'
                 }).done(function (response) {
                     var remoteProcessGroup = response.component;

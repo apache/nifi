@@ -16,24 +16,7 @@
  */
 package org.apache.nifi.web;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLEncoder;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
+import com.sun.jersey.core.util.MultivaluedMapImpl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
@@ -76,7 +59,22 @@ import org.apache.nifi.web.util.ClientResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Implements the NiFiWebConfigurationContext interface to support a context in both standalone and clustered environments.
@@ -84,7 +82,6 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 public class StandardNiFiWebConfigurationContext implements NiFiWebConfigurationContext {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiWebConfigurationContext.class);
-    public static final String VERBOSE_PARAM = "verbose";
 
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
@@ -353,7 +350,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // set the request parameters
                 final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
-                parameters.add(VERBOSE_PARAM, "true");
 
                 // replicate request
                 NodeResponse nodeResponse;
