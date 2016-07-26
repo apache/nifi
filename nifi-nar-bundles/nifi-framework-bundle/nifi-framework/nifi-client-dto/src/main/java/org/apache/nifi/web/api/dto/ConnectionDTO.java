@@ -232,6 +232,6 @@ public class ConnectionDTO extends ComponentDTO {
 
     @Override
     public String toString() {
-        return "ConnectionDTO [name: " + name + " from " + source + " to " + destination + "]";
+        return "ConnectionDTO [id: " + getId() + "]";
     }
 }

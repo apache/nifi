@@ -79,7 +79,7 @@ public class GhostReportingTask implements ReportingTask {
 
     @Override
     public String toString() {
-        return "GhostReportingTask[id=" + id + ", class=" + canonicalClassName + "]";
+        return "GhostReportingTask[id=" + id + "]";
     }
 
     @Override

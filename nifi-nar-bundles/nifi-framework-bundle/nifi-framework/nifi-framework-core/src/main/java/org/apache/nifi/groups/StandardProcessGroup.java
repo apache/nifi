@@ -111,8 +111,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final StandardProcessScheduler scheduler,
-         final NiFiProperties nifiProps, final StringEncryptor encryptor, final FlowController flowController,
-        final VariableRegistry variableRegistry) {
+            final NiFiProperties nifiProps, final StringEncryptor encryptor, final FlowController flowController,
+            final VariableRegistry variableRegistry) {
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
@@ -286,7 +286,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
 
         return new ProcessGroupCounts(inputPortCount, outputPortCount, running, stopped,
-            invalid, disabled, activeRemotePorts, inactiveRemotePorts);
+                invalid, disabled, activeRemotePorts, inactiveRemotePorts);
     }
 
     @Override
@@ -302,7 +302,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     node.getProcessGroup().startProcessor(node);
                 } catch (final Throwable t) {
-                    LOG.error("Unable to start {} due to {}", new Object[]{node, t});
+                    LOG.error("Unable to start processor {} due to {}", new Object[]{node.getIdentifier(), t});
                 }
             });
 
@@ -326,7 +326,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
-                    LOG.error("Unable to stop {} due to {}", new Object[]{node, t});
+                    LOG.error("Unable to stop processor {} due to {}", new Object[]{node.getIdentifier(), t});
                 }
             });
 
@@ -349,7 +349,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()),variableRegistry);
+                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()), variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
@@ -386,12 +386,9 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         writeLock.lock();
         try {
-            if (inputPorts.containsKey(requireNonNull(port).getIdentifier())) {
-                throw new IllegalStateException("Input Port with ID " + port.getIdentifier() + " already exists");
-            }
-
-            if (getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("Input Port with name " + port.getName() + " already exists");
+            if (inputPorts.containsKey(requireNonNull(port).getIdentifier())
+                    || getInputPortByName(port.getName()) != null) {
+                throw new IllegalStateException("The input port name or identifier is not available to be added.");
             }
 
             port.setProcessGroup(this);
@@ -407,7 +404,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final Port toRemove = inputPorts.get(requireNonNull(port).getIdentifier());
             if (toRemove == null) {
-                throw new IllegalStateException(port + " is not an Input Port of this Process Group");
+                throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
             port.verifyCanDelete();
@@ -427,7 +424,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             final Port removed = inputPorts.remove(port.getIdentifier());
             if (removed == null) {
-                throw new IllegalStateException(port + " is not an Input Port of this Process Group");
+                throw new IllegalStateException(port.getIdentifier() + " is not an Input Port of this Process Group");
             }
 
             LOG.info("Input Port {} removed from flow", port);
@@ -460,20 +457,17 @@ public final class StandardProcessGroup implements ProcessGroup {
     public void addOutputPort(final Port port) {
         if (isRootGroup()) {
             if (!(port instanceof RootGroupPort)) {
-                throw new IllegalArgumentException("Cannot add Output Port of type " + port.getClass().getName() + " to the Root Group");
+                throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to the Root Group");
             }
         } else if (!(port instanceof LocalPort)) {
-            throw new IllegalArgumentException("Cannot add Output Port of type " + port.getClass().getName() + " to a non-root group");
+            throw new IllegalArgumentException("Cannot add Output Port " + port.getClass().getName() + " to a non-root group");
         }
 
         writeLock.lock();
         try {
-            if (outputPorts.containsKey(requireNonNull(port).getIdentifier())) {
-                throw new IllegalStateException("Output Port with ID " + port.getIdentifier() + " already exists");
-            }
-
-            if (getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("Output Port with Name " + port.getName() + " already exists");
+            if (outputPorts.containsKey(requireNonNull(port).getIdentifier())
+                    || getOutputPortByName(port.getName()) != null) {
+                throw new IllegalStateException("Output Port with given identifier or name is not available");
             }
 
             port.setProcessGroup(this);
@@ -495,12 +489,12 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             if (!toRemove.getConnections().isEmpty()) {
-                throw new IllegalStateException(port + " cannot be removed until its connections are removed");
+                throw new IllegalStateException(port.getIdentifier() + " cannot be removed until its connections are removed");
             }
 
             final Port removed = outputPorts.remove(port.getIdentifier());
             if (removed == null) {
-                throw new IllegalStateException(port + " is not an Output Port of this Process Group");
+                throw new IllegalStateException(port.getIdentifier() + " is not an Output Port of this Process Group");
             }
 
             LOG.info("Output Port {} removed from flow", port);
@@ -572,7 +566,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final ProcessGroup toRemove = processGroups.get(group.getIdentifier());
             if (toRemove == null) {
-                throw new IllegalStateException(group + " is not a member of this Process Group");
+                throw new IllegalStateException(group.getIdentifier() + " is not a member of this Process Group");
             }
             toRemove.verifyCanDelete();
 
@@ -651,7 +645,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final RemoteProcessGroup remoteGroup = remoteGroups.get(remoteGroupId);
             if (remoteGroup == null) {
-                throw new IllegalStateException(remoteProcessGroup + " is not a member of this Process Group");
+                throw new IllegalStateException(remoteProcessGroup.getIdentifier() + " is not a member of this Process Group");
             }
 
             remoteGroup.verifyCanDelete();
@@ -705,7 +699,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             if (!processors.containsKey(id)) {
-                throw new IllegalStateException(processor + " is not a member of this Process Group");
+                throw new IllegalStateException(processor.getIdentifier() + " is not a member of this Process Group");
             }
 
             processor.verifyCanDelete();
@@ -714,10 +708,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()),variableRegistry);
+                final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()), variableRegistry);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
-                throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
+                throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of processor with id " + processor.getIdentifier(), e);
             }
 
             for (final Map.Entry<PropertyDescriptor, String> entry : processor.getProperties().entrySet()) {
@@ -836,10 +830,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
                         throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input Port that does not belong to a child Process Group");
                     }
-                } else {
-                    if (destinationGroup != this) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination does not belong to this Process Group");
-                    }
+                } else if (destinationGroup != this) {
+                    throw new IllegalStateException("Cannot add Connection to Process Group because its destination does not belong to this Process Group");
                 }
             } else { // source is not a port
                 if (sourceGroup != this) {
@@ -853,11 +845,11 @@ public final class StandardProcessGroup implements ProcessGroup {
                 } else if (isInputPort(destination)) {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
                         throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input "
-                            + "Port but the Input Port does not belong to a child Process Group");
+                                + "Port but the Input Port does not belong to a child Process Group");
                     }
                 } else if (destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection between " + source + " and " + destination
-                        + " because they are in different Process Groups and neither is an Input Port or Output Port");
+                    throw new IllegalStateException("Cannot add Connection between " + source.getIdentifier() + " and " + destination.getIdentifier()
+                            + " because they are in different Process Groups and neither is an Input Port or Output Port");
                 }
             }
 
@@ -909,7 +901,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             // verify that Connection belongs to this group
             final Connection connection = connections.get(requireNonNull(connectionToRemove).getIdentifier());
             if (connection == null) {
-                throw new IllegalStateException(connectionToRemove + " is not a member of this Process Group");
+                throw new IllegalStateException("Connection " + connectionToRemove.getIdentifier() + " is not a member of this Process Group");
             }
 
             connectionToRemove.verifyCanDelete();
@@ -1041,7 +1033,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             return inputPorts.isEmpty() && outputPorts.isEmpty() && connections.isEmpty()
-                && processGroups.isEmpty() && labels.isEmpty() && processors.isEmpty() && remoteGroups.isEmpty();
+                    && processGroups.isEmpty() && labels.isEmpty() && processors.isEmpty() && remoteGroups.isEmpty();
         } finally {
             readLock.unlock();
         }
@@ -1083,12 +1075,12 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             if (getInputPort(port.getIdentifier()) == null) {
-                throw new IllegalStateException(port + " is not a member of this Process Group");
+                throw new IllegalStateException("Port " + port.getIdentifier() + " is not a member of this Process Group");
             }
 
             final ScheduledState state = port.getScheduledState();
             if (state == ScheduledState.DISABLED) {
-                throw new IllegalStateException("InputPort " + port + " is disabled");
+                throw new IllegalStateException("InputPort " + port.getIdentifier() + " is disabled");
             } else if (state == ScheduledState.RUNNING) {
                 return;
             }
@@ -1364,7 +1356,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("name", name).toString();
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("identifier", getIdentifier()).toString();
     }
 
     @Override
@@ -1752,7 +1744,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final Funnel existing = funnels.get(requireNonNull(funnel).getIdentifier());
             if (existing == null) {
-                throw new IllegalStateException(funnel + " is not a member of this ProcessGroup");
+                throw new IllegalStateException("Funnel " + funnel.getIdentifier() + " is not a member of this ProcessGroup");
             }
 
             funnel.verifyCanDelete();
@@ -1784,7 +1776,6 @@ public final class StandardProcessGroup implements ProcessGroup {
             readLock.unlock();
         }
     }
-
 
     @Override
     public void addControllerService(final ControllerServiceNode service) {
@@ -1837,7 +1828,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final ControllerServiceNode existing = controllerServices.get(requireNonNull(service).getIdentifier());
             if (existing == null) {
-                throw new IllegalStateException(service + " is not a member of this Process Group");
+                throw new IllegalStateException("ControllerService " + service.getIdentifier() + " is not a member of this Process Group");
             }
 
             service.verifyCanDelete();
@@ -1952,7 +1943,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             final Template existing = templates.get(requireNonNull(template).getIdentifier());
             if (existing == null) {
-                throw new IllegalStateException(template + " is not a member of this ProcessGroup");
+                throw new IllegalStateException("Template " + template.getIdentifier() + " is not a member of this ProcessGroup");
             }
 
             templates.remove(template.getIdentifier());
@@ -1975,7 +1966,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final Connectable connectable : connectables) {
                 for (final Connection conn : connectable.getConnections()) {
                     if (!connections.containsKey(conn.getIdentifier())) {
-                        throw new IllegalStateException(connectable + " cannot be removed because it has incoming connections from the parent Process Group");
+                        throw new IllegalStateException("Connectable component " + connectable.getIdentifier()
+                                + " cannot be removed because it has incoming connections from the parent Process Group");
                     }
                     connectionIdsToRemove.add(conn.getIdentifier());
                 }
@@ -1990,11 +1982,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final String procId : snippet.getProcessors().keySet()) {
                 final ProcessorNode procNode = getProcessor(procId);
                 if (procNode.isRunning()) {
-                    throw new IllegalStateException(procNode + " cannot be removed because it is running");
+                    throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it is running");
                 }
                 final int activeThreadCount = scheduler.getActiveThreadCount(procNode);
                 if (activeThreadCount != 0) {
-                    throw new IllegalStateException(procNode + " cannot be removed because it still has " + activeThreadCount + " active threads");
+                    throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it still has " + activeThreadCount + " active threads");
                 }
             }
 
@@ -2003,8 +1995,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             for (final Connectable connectable : connectables) {
                 for (final Connection conn : connectable.getIncomingConnections()) {
                     if (!connectionIds.contains(conn.getIdentifier()) && !connectables.contains(conn.getSource())) {
-                        throw new IllegalStateException(connectable + " cannot be removed because it has incoming connections "
-                            + "that are not selected to be deleted");
+                        throw new IllegalStateException("Connectable component " + connectable.getIdentifier() + " cannot be removed because it has incoming connections "
+                                + "that are not selected to be deleted");
                     }
                 }
             }
@@ -2047,7 +2039,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     private Set<String> getKeys(final Map<String, Revision> map) {
         return (map == null) ? Collections.emptySet() : map.keySet();
     }
-
 
     @Override
     public void move(final Snippet snippet, final ProcessGroup destination) {
@@ -2185,11 +2176,14 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     /**
-     * Verifies that all ID's defined within the given snippet reference components within this ProcessGroup. If this is not the case, throws {@link IllegalStateException}.
+     * Verifies that all ID's defined within the given snippet reference
+     * components within this ProcessGroup. If this is not the case, throws
+     * {@link IllegalStateException}.
      *
      * @param snippet the snippet
      * @throws NullPointerException if the argument is null
-     * @throws IllegalStateException if the snippet contains an ID that references a component that is not part of this ProcessGroup
+     * @throws IllegalStateException if the snippet contains an ID that
+     * references a component that is not part of this ProcessGroup
      */
     private void verifyContents(final Snippet snippet) throws NullPointerException, IllegalStateException {
         requireNonNull(snippet);
@@ -2206,8 +2200,10 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     /**
      * <p>
-     * Verifies that all ID's specified by the given set exist as keys in the given Map. If any of the ID's does not exist as a key in the map, will throw {@link IllegalStateException} indicating the
-     * ID that is invalid and specifying the Component Type.
+     * Verifies that all ID's specified by the given set exist as keys in the
+     * given Map. If any of the ID's does not exist as a key in the map, will
+     * throw {@link IllegalStateException} indicating the ID that is invalid and
+     * specifying the Component Type.
      * </p>
      *
      * <p>
@@ -2286,8 +2282,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                         if (connection.getSource().equals(port)) {
                             connection.verifyCanDelete();
                         } else {
-                            throw new IllegalStateException("Cannot delete Process Group because Input Port " + port +
-                                " has at least one incoming connection from a component outside of the Process Group. Delete this connection first.");
+                            throw new IllegalStateException("Cannot delete Process Group because Input Port " + port.getIdentifier()
+                                    + " has at least one incoming connection from a component outside of the Process Group. Delete this connection first.");
                         }
                     }
                 }
@@ -2297,8 +2293,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                         if (connection.getDestination().equals(port)) {
                             connection.verifyCanDelete();
                         } else {
-                            throw new IllegalStateException("Cannot delete Process Group because Output Port " + port +
-                                " has at least one outgoing connection to a component outside of the Process Group. Delete this connection first.");
+                            throw new IllegalStateException("Cannot delete Process Group because Output Port " + port.getIdentifier()
+                                    + " has at least one outgoing connection to a component outside of the Process Group. Delete this connection first.");
                         }
                     }
                 }
@@ -2322,7 +2318,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         try {
             if (connectable.getScheduledState() == ScheduledState.STOPPED) {
                 if (scheduler.getActiveThreadCount(connectable) > 0) {
-                    throw new IllegalStateException("Cannot start " + connectable + " because it is currently stopping");
+                    throw new IllegalStateException("Cannot start component with id" + connectable.getIdentifier() + " because it is currently stopping");
                 }
 
                 connectable.verifyCanStart();

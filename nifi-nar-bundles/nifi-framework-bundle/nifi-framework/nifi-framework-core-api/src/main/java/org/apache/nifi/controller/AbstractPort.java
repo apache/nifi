@@ -134,11 +134,11 @@ public abstract class AbstractPort implements Port {
         final ProcessGroup parentGroup = this.processGroup.get();
         if (getConnectableType() == ConnectableType.INPUT_PORT) {
             if (parentGroup.getInputPortByName(name) != null) {
-                throw new IllegalStateException("Cannot rename port from " + this.name.get() + " to " + name + " because the ProcessGroup already has an Input Port named " + name);
+                throw new IllegalStateException("The requested new port name is not available");
             }
         } else if (getConnectableType() == ConnectableType.OUTPUT_PORT) {
             if (parentGroup.getOutputPortByName(name) != null) {
-                throw new IllegalStateException("Cannot rename port from " + this.name.get() + " to " + name + " because the ProcessGroup already has an Output Port named " + name);
+                throw new IllegalStateException("The requested new port name is not available");
             }
         }
 
@@ -292,12 +292,12 @@ public abstract class AbstractPort implements Port {
 
             if (!canConnectionBeRemoved(connection)) {
                 // TODO: Determine which processors will be broken if connection is removed, rather than just returning a boolean
-                throw new IllegalStateException(connection + " cannot be removed");
+                throw new IllegalStateException("Connection " + connection.getIdentifier() + " cannot be removed");
             }
 
             final boolean removed = outgoingConnections.remove(connection);
             if (!removed) {
-                throw new IllegalStateException(connection + " is not registered with " + this);
+                throw new IllegalStateException("Connection " + connection.getIdentifier() + " is not registered with " + this.getIdentifier());
             }
         } finally {
             writeLock.unlock();
@@ -369,7 +369,7 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("name", getName()).append("id", getIdentifier()).toString();
+        return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("id", getIdentifier()).toString();
     }
 
     @Override
@@ -528,7 +528,7 @@ public abstract class AbstractPort implements Port {
         readLock.lock();
         try {
             if (isRunning()) {
-                throw new IllegalStateException(this + " is running");
+                throw new IllegalStateException(this.getIdentifier() + " is running");
             }
 
             if (!ignoreConnections) {
@@ -540,7 +540,7 @@ public abstract class AbstractPort implements Port {
                     if (connection.getSource().equals(this)) {
                         connection.verifyCanDelete();
                     } else {
-                        throw new IllegalStateException(this + " is the destination of another component");
+                        throw new IllegalStateException(this.getIdentifier() + " is the destination of another component");
                     }
                 }
             }
@@ -555,9 +555,9 @@ public abstract class AbstractPort implements Port {
         try {
             switch (scheduledState.get()) {
                 case DISABLED:
-                    throw new IllegalStateException(this + " cannot be started because it is disabled");
+                    throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is disabled");
                 case RUNNING:
-                    throw new IllegalStateException(this + " cannot be started because it is already running");
+                    throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is already running");
                 case STOPPED:
                     break;
             }
@@ -565,7 +565,7 @@ public abstract class AbstractPort implements Port {
 
             final Collection<ValidationResult> validationResults = getValidationErrors();
             if (!validationResults.isEmpty()) {
-                throw new IllegalStateException(this + " is not in a valid state: " + validationResults.iterator().next().getExplanation());
+                throw new IllegalStateException(this.getIdentifier() + " is not in a valid state: " + validationResults.iterator().next().getExplanation());
             }
         } finally {
             readLock.unlock();
@@ -575,7 +575,7 @@ public abstract class AbstractPort implements Port {
     @Override
     public void verifyCanStop() {
         if (getScheduledState() != ScheduledState.RUNNING) {
-            throw new IllegalStateException(this + " is not scheduled to run");
+            throw new IllegalStateException(this.getIdentifier() + " is not scheduled to run");
         }
     }
 
@@ -584,7 +584,7 @@ public abstract class AbstractPort implements Port {
         readLock.lock();
         try {
             if (isRunning()) {
-                throw new IllegalStateException(this + " is not stopped");
+                throw new IllegalStateException(this.getIdentifier() + " is not stopped");
             }
         } finally {
             readLock.unlock();
@@ -596,7 +596,7 @@ public abstract class AbstractPort implements Port {
         readLock.lock();
         try {
             if (getScheduledState() != ScheduledState.DISABLED) {
-                throw new IllegalStateException(this + " is not disabled");
+                throw new IllegalStateException(this.getIdentifier() + " is not disabled");
             }
 
             verifyNoActiveThreads();
@@ -610,7 +610,7 @@ public abstract class AbstractPort implements Port {
         readLock.lock();
         try {
             if (getScheduledState() != ScheduledState.STOPPED) {
-                throw new IllegalStateException(this + " is not stopped");
+                throw new IllegalStateException(this.getIdentifier() + " is not stopped");
             }
             verifyNoActiveThreads();
         } finally {
@@ -621,7 +621,7 @@ public abstract class AbstractPort implements Port {
     private void verifyNoActiveThreads() throws IllegalStateException {
         final int threadCount = processScheduler.getActiveThreadCount(this);
         if (threadCount > 0) {
-            throw new IllegalStateException(this + " has " + threadCount + " threads still active");
+            throw new IllegalStateException(this.getIdentifier() + " has " + threadCount + " threads still active");
         }
     }
 

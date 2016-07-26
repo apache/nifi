@@ -894,14 +894,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final Set<String> userControls = portDTO.getUserAccessControl();
             if (userControls != null && !userControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
-                    throw new IllegalStateException("Attempting to add User Access Controls to " + port + ", but it is not a RootGroupPort");
+                    throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
                 ((RootGroupPort) port).setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
-                    throw new IllegalStateException("Attempting to add Group Access Controls to " + port + ", but it is not a RootGroupPort");
+                    throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
                 ((RootGroupPort) port).setGroupAccessControl(groupControls);
             }
@@ -937,14 +937,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final Set<String> userControls = portDTO.getUserAccessControl();
             if (userControls != null && !userControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
-                    throw new IllegalStateException("Attempting to add User Access Controls to " + port + ", but it is not a RootGroupPort");
+                    throw new IllegalStateException("Attempting to add User Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
                 ((RootGroupPort) port).setUserAccessControl(userControls);
             }
             final Set<String> groupControls = portDTO.getGroupAccessControl();
             if (groupControls != null && !groupControls.isEmpty()) {
                 if (!(port instanceof RootGroupPort)) {
-                    throw new IllegalStateException("Attempting to add Group Access Controls to " + port + ", but it is not a RootGroupPort");
+                    throw new IllegalStateException("Attempting to add Group Access Controls to " + port.getIdentifier() + ", but it is not a RootGroupPort");
                 }
                 ((RootGroupPort) port).setGroupAccessControl(groupControls);
             }
