@@ -104,7 +104,6 @@ public class AccessPolicyAuditor extends NiFiAuditor {
         final AccessPolicy updatedAccessPolicy = (AccessPolicy) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the policy action...
-        // get the updated verbose state
         accessPolicy = accessPolicyDAO.getAccessPolicy(updatedAccessPolicy.getIdentifier());
 
         // get the current user

@@ -71,9 +71,6 @@ nf.Actions = (function () {
         $.ajax({
             type: 'GET',
             url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(response.id),
-            data: {
-                verbose: true
-            },
             dataType: 'json'
         }).done(function (response) {
             nf.Graph.set(response.processGroupFlow.flow);
@@ -1233,58 +1230,73 @@ nf.Actions = (function () {
                 },
                 handler: {
                     click: function () {
+                        // get the template details
+                        var templateName = $('#new-template-name').val();
+
+                        // ensure the template name is not blank
+                        if (nf.Common.isBlank(templateName)) {
+                            nf.Dialog.showOkDialog({
+                                headerText: 'Create Template',
+                                dialogContent: "The template name cannot be blank."
+                            });
+                            return;
+                        }
+
                         // hide the dialog
                         $('#new-template-dialog').modal('hide');
 
-                        // get the template details
-                        var templateName = $('#new-template-name').val();
+                        // get the description
                         var templateDescription = $('#new-template-description').val();
 
-                            // create a snippet
-                            var snippet = nf.Snippet.marshal(selection);
+                        // create a snippet
+                        var snippet = nf.Snippet.marshal(selection);
 
-                            // create the snippet
-                            nf.Snippet.create(snippet).done(function (response) {
-                                var createSnippetEntity = {
-                                    'name': templateName,
-                                    'description': templateDescription,
-                                    'snippetId': response.snippet.id
-                                };
+                        // create the snippet
+                        nf.Snippet.create(snippet).done(function (response) {
+                            var createSnippetEntity = {
+                                'name': templateName,
+                                'description': templateDescription,
+                                'snippetId': response.snippet.id
+                            };
 
-                                // create the template
-                                $.ajax({
-                                    type: 'POST',
-                                    url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates',
-                                    data: JSON.stringify(createSnippetEntity),
-                                    dataType: 'json',
-                                    contentType: 'application/json'
-                                }).done(function () {
-                                    // show the confirmation dialog
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'Create Template',
-                                        dialogContent: "Template '" + nf.Common.escapeHtml(templateName) + "' was successfully created."
-                                    });
-                                }).always(function () {
-                                    // clear the template dialog fields
-                                    $('#new-template-name').val('');
-                                    $('#new-template-description').val('');
-                                }).fail(nf.Common.handleAjaxError);
+                            // create the template
+                            $.ajax({
+                                type: 'POST',
+                                url: config.urls.api + '/process-groups/' + encodeURIComponent(nf.Canvas.getGroupId()) + '/templates',
+                                data: JSON.stringify(createSnippetEntity),
+                                dataType: 'json',
+                                contentType: 'application/json'
+                            }).done(function () {
+                                // show the confirmation dialog
+                                nf.Dialog.showOkDialog({
+                                    headerText: 'Create Template',
+                                    dialogContent: "Template '" + nf.Common.escapeHtml(templateName) + "' was successfully created."
+                                });
+                            }).always(function () {
+                                // clear the template dialog fields
+                                $('#new-template-name').val('');
+                                $('#new-template-description').val('');
                             }).fail(nf.Common.handleAjaxError);
-                        }
+                        }).fail(nf.Common.handleAjaxError);
                     }
-                }, {
-                    buttonText: 'Cancel',
-                    color: {
-                        base: '#E3E8EB',
-                        hover: '#C7D2D7',
-                        text: '#004849'
-                    },
-                    handler: {
-                        click: function () {
-                            $('#new-template-dialog').modal('hide');
-                        }
+                }
+            }, {
+                buttonText: 'Cancel',
+                color: {
+                    base: '#E3E8EB',
+                    hover: '#C7D2D7',
+                    text: '#004849'
+                },
+                handler: {
+                    click: function () {
+                        // clear the template dialog fields
+                        $('#new-template-name').val('');
+                        $('#new-template-description').val('');
+
+                        $('#new-template-dialog').modal('hide');
                     }
-                }]).modal('show');
+                }
+            }]).modal('show');
 
             // auto focus on the template name
             $('#new-template-name').focus();

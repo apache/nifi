@@ -104,7 +104,6 @@ public class UserGroupAuditor extends NiFiAuditor {
         final Group updatedUserGroup = (Group) proceedingJoinPoint.proceed();
 
         // if no exceptions were thrown, add the user group action...
-        // get the updated verbose state
         user = userGroupDAO.getUserGroup(updatedUserGroup.getIdentifier());
 
         // get the current user

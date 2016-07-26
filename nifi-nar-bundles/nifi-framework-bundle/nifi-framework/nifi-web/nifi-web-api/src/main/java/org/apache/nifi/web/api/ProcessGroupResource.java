@@ -1402,7 +1402,6 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves all the of remote process groups in this NiFi.
      *
-     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @return A remoteProcessGroupEntity.
      */
     @GET
@@ -1430,11 +1429,6 @@ public class ProcessGroupResource extends ApplicationResource {
     )
     public Response getRemoteProcessGroups(
         @ApiParam(
-            value = "Whether to include any encapulated ports or just details about the remote process group.",
-            required = false
-        )
-        @QueryParam("verbose") @DefaultValue(VERBOSE) final Boolean verbose,
-        @ApiParam(
             value = "The process group id.",
             required = true
         )
@@ -1454,11 +1448,9 @@ public class ProcessGroupResource extends ApplicationResource {
         final Set<RemoteProcessGroupEntity> remoteProcessGroups = serviceFacade.getRemoteProcessGroups(groupId);
 
         // prune response as necessary
-        if (!verbose) {
-            for (RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
-                if (remoteProcessGroupEntity.getComponent() != null) {
-                    remoteProcessGroupEntity.getComponent().setContents(null);
-                }
+        for (RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
+            if (remoteProcessGroupEntity.getComponent() != null) {
+                remoteProcessGroupEntity.getComponent().setContents(null);
             }
         }
 
@@ -1893,6 +1885,7 @@ public class ProcessGroupResource extends ApplicationResource {
             });
         }
         if (validationPhase) {
+            serviceFacade.verifyCanAddTemplate(groupId, createTemplateRequestEntity.getName());
             return generateContinueResponse().build();
         }
 
@@ -1913,9 +1906,6 @@ public class ProcessGroupResource extends ApplicationResource {
      * Imports the specified template.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a
-     *            new one will be generated. This value (whether specified or generated) is
-     *            included in the response.
      * @param in The template stream
      * @return A templateEntity or an errorResponse XML snippet.
      * @throws InterruptedException if interrupted
@@ -1932,7 +1922,6 @@ public class ProcessGroupResource extends ApplicationResource {
             required = true
         )
         @PathParam("id") final String groupId,
-        @FormDataParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
         @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
@@ -2009,6 +1998,11 @@ public class ProcessGroupResource extends ApplicationResource {
         @PathParam("id") final String groupId,
         final TemplateEntity templateEntity) {
 
+        // verify the template was specified
+        if (templateEntity == null || templateEntity.getTemplate() == null || templateEntity.getTemplate().getSnippet() == null) {
+            throw new IllegalArgumentException("Template details must be specified.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, templateEntity);
         }
@@ -2023,15 +2017,11 @@ public class ProcessGroupResource extends ApplicationResource {
             });
         }
         if (validationPhase) {
+            serviceFacade.verifyCanAddTemplate(groupId, templateEntity.getTemplate().getName());
             return generateContinueResponse().build();
         }
 
         try {
-            // verify the template was specified
-            if (templateEntity == null || templateEntity.getTemplate() == null) {
-                throw new IllegalArgumentException("Template details must be specified.");
-            }
-
             // import the template
             final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId, getIdGenerationSeed());
             templateResource.populateRemainingTemplateContent(template);

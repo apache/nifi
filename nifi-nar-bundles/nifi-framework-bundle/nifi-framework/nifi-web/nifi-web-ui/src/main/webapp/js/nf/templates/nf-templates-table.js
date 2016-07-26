@@ -394,9 +394,6 @@ nf.TemplatesTable = (function () {
             return $.ajax({
                 type: 'GET',
                 url: config.urls.templates,
-                data: {
-                    verbose: false
-                },
                 dataType: 'json'
             }).done(function (response) {
                 // ensure there are groups specified

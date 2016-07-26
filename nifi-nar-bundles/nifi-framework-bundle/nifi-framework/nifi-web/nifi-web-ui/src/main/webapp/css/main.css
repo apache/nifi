@@ -280,6 +280,12 @@ span.details-title {
     margin-left: 1px;
 }
 
+#upload-template-button {
+    color: #004849;
+    font-size: 16px;
+    cursor: pointer;
+}
+
 #template-file-upload {
     position: absolute;
     top: 0;

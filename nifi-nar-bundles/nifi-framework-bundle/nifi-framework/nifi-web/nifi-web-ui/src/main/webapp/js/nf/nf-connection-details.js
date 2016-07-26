@@ -108,9 +108,6 @@ nf.ConnectionDetails = (function () {
             $.ajax({
                 type: 'GET',
                 url: '../nifi-api/remote-process-groups/' + encodeURIComponent(source.groupId),
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;
@@ -154,9 +151,6 @@ nf.ConnectionDetails = (function () {
                 $.ajax({
                     type: 'GET',
                     url: '../nifi-api/process-groups/' + encodeURIComponent(source.groupId),
-                    data: {
-                        verbose: true
-                    },
                     dataType: 'json'
                 }).done(function (response) {
                     var processGroup = response.component;
@@ -272,9 +266,6 @@ nf.ConnectionDetails = (function () {
             $.ajax({
                 type: 'GET',
                 url: '../nifi-api/remote-process-groups/' + encodeURIComponent(destination.groupId),
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;
@@ -320,9 +311,6 @@ nf.ConnectionDetails = (function () {
                 $.ajax({
                     type: 'GET',
                     url: '../nifi-api/process-groups/' + encodeURIComponent(destination.groupId),
-                    data: {
-                        verbose: true
-                    },
                     dataType: 'json'
                 }).done(function (response) {
                     var processGroup = response.component;

@@ -64,8 +64,6 @@ import java.util.Set;
 )
 public class RemoteProcessGroupResource extends ApplicationResource {
 
-    private static final String VERBOSE_DEFAULT_VALUE = "false";
-
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
 
@@ -96,7 +94,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process group.
      *
-     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @param id The id of the remote process group to retrieve
      * @return A remoteProcessGroupEntity.
      */
@@ -125,11 +122,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     )
     public Response getRemoteProcessGroup(
             @ApiParam(
-                    value = "Whether to include any encapulated ports or just details about the remote process group.",
-                    required = false
-            )
-            @QueryParam("verbose") @DefaultValue(VERBOSE_DEFAULT_VALUE) final Boolean verbose,
-            @ApiParam(
                     value = "The remote process group id.",
                     required = true
             )
@@ -148,13 +140,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the remote process group
         final RemoteProcessGroupEntity entity = serviceFacade.getRemoteProcessGroup(id);
         populateRemainingRemoteProcessGroupEntityContent(entity);
-
-        // prune the response as necessary
-        if (!verbose) {
-            if (entity.getComponent() != null) {
-                entity.getComponent().setContents(null);
-            }
-        }
 
         return clusterContext(generateOkResponse(entity)).build();
     }

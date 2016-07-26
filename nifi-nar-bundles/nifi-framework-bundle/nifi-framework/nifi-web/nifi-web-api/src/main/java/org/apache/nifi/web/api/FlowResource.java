@@ -337,8 +337,6 @@ public class FlowResource extends ApplicationResource {
     /**
      * Retrieves the contents of the specified group.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @param groupId The id of the process group.
      * @return A processGroupEntity.
      * @throws InterruptedException if interrupted
@@ -367,20 +365,10 @@ public class FlowResource extends ApplicationResource {
     )
     public Response getFlow(
         @ApiParam(
-            value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-            required = false
-        )
-        @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-        @ApiParam(
             value = "The process group id.",
             required = false
         )
-        @PathParam("id") String groupId,
-        @ApiParam(
-            value = "Whether the response should contain all encapsulated components or just the immediate children.",
-            required = false
-        )
-        @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) throws InterruptedException {
+        @PathParam("id") String groupId) throws InterruptedException {
 
         authorizeFlow();
 
@@ -389,7 +377,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get this process group flow
-        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId, recursive);
+        final ProcessGroupFlowEntity entity = serviceFacade.getProcessGroupFlow(groupId);
         populateRemainingFlowContent(entity.getProcessGroupFlow());
         return clusterContext(generateOkResponse(entity)).build();
     }
