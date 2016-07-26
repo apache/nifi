@@ -688,7 +688,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     // ------------------ Groups ------------------
 
     @Override
-    public synchronized Group addGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group doAddGroup(Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
@@ -726,7 +726,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
-    public synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group doUpdateGroup(Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
@@ -826,7 +826,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     // ------------------ Users ------------------
 
     @Override
-    public synchronized User addUser(final User user) throws AuthorizationAccessException {
+    public synchronized User doAddUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
@@ -870,7 +870,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
-    public synchronized User updateUser(final User user) throws AuthorizationAccessException {
+    public synchronized User doUpdateUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
