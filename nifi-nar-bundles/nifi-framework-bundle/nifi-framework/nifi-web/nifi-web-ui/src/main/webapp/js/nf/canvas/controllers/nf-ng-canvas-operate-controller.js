@@ -302,6 +302,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                                     });
                                                 }
+                                            }).always(function(){
+                                                nf.Birdseye.refresh();
                                             });
                                         }
                                     });
