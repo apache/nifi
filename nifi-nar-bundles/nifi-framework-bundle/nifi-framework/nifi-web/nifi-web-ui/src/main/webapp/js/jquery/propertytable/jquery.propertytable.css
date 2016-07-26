@@ -105,8 +105,9 @@ div.string-check {
 }
 
 span.string-check-label {
-    font-size: 9px;
+    font-size: 13px;
     font-weight: normal;
+    color: #262626;
 }
 
 div.value pre {
