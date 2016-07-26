@@ -139,6 +139,10 @@ public final class StandardConnection implements Connection {
 
     @Override
     public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        if (user == null) {
+            return AuthorizationResult.denied("Unknown user");
+        }
+
         // check the source
         final AuthorizationResult sourceResult = getSource().checkAuthorization(authorizer, action, user, resourceContext);
         if (Result.Denied.equals(sourceResult.getResult())) {
@@ -151,6 +155,10 @@ public final class StandardConnection implements Connection {
 
     @Override
     public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        if (user == null) {
+            throw new AccessDeniedException("Unknown user");
+        }
+
         getSource().authorize(authorizer, action, user, resourceContext);
         getDestination().authorize(authorizer, action, user, resourceContext);
     }

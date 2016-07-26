@@ -23,13 +23,14 @@ import org.apache.nifi.web.ResourceNotFoundException;
 public interface ProvenanceAuthorizableFactory {
 
     /**
-     * Generates an Authorizable object for the Provenance events of the component with the given ID
+     * Generates an Authorizable object for the Data of the component with the given ID. This includes
+     * provenance data and queue's on outgoing relationships.
      *
-     * @param componentId the ID of the component to which the Provenance events belong
+     * @param componentId the ID of the component to which the Data belongs
      *
      * @return the Authorizable that can be use to authorize access to provenance events
      * @throws ResourceNotFoundException if no component can be found with the given ID
      */
-    Authorizable createProvenanceAuthorizable(String componentId);
+    Authorizable createDataAuthorizable(String componentId);
 
 }

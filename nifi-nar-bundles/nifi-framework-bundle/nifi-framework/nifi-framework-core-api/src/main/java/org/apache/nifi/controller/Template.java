@@ -158,20 +158,26 @@ public class Template implements Authorizable {
     }
 
     @Override
-    public void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user) throws AccessDeniedException {
-        final AuthorizationResult result = checkAuthorization(authorizer, action, true, user);
-        if (Result.Denied.equals(result)) {
+    public void authorize(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) throws AccessDeniedException {
+        final AuthorizationResult result = checkAuthorization(authorizer, action, true, user, resourceContext);
+        if (Result.Denied.equals(result.getResult())) {
             final String explanation = result.getExplanation() == null ? "Access is denied" : result.getExplanation();
             throw new AccessDeniedException(explanation);
         }
     }
 
     @Override
-    public AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user) {
-        return checkAuthorization(authorizer, action, false, user);
+    public AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final NiFiUser user, final Map<String, String> resourceContext) {
+        return checkAuthorization(authorizer, action, false, user, resourceContext);
     }
 
-    private AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final boolean accessAttempt, final NiFiUser user) {
+    private AuthorizationResult checkAuthorization(final Authorizer authorizer, final RequestAction action, final boolean accessAttempt,
+                                                   final NiFiUser user, final Map<String, String> resourceContext) {
+
+        if (user == null) {
+            return AuthorizationResult.denied("Unknown user");
+        }
+
         final Map<String,String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
@@ -188,6 +194,7 @@ public class Template implements Authorizable {
             .action(action)
             .resource(getResource())
             .userContext(userContext)
+            .resourceContext(resourceContext)
             .build();
 
         // perform the authorization

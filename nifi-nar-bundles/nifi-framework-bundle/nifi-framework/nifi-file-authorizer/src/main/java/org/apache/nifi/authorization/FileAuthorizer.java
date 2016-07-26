@@ -276,6 +276,9 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
 
         // grant the user read access to the root process group resource
         if (rootGroupId != null) {
+            addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), READ_CODE);
+            addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), WRITE_CODE);
+
             addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), READ_CODE);
             addAccessPolicy(authorizations, ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, adminUser.getIdentifier(), WRITE_CODE);
         }
@@ -322,6 +325,12 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             // grant access to the proxy resource
             addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), READ_CODE);
             addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), WRITE_CODE);
+
+            // grant the user read/write access data of the root group
+            if (rootGroupId != null) {
+                addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, jaxbNodeUser.getIdentifier(), READ_CODE);
+                addAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, jaxbNodeUser.getIdentifier(), WRITE_CODE);
+            }
         }
     }
 

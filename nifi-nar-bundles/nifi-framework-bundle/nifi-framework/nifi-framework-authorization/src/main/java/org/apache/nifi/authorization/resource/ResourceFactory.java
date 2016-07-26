@@ -166,15 +166,15 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROVENANCE_EVENT_RESOURCE = new Resource() {
+    private final static Resource DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return ResourceType.ProvenanceEvent.getValue();
+            return ResourceType.Data.getValue();
         }
 
         @Override
         public String getName() {
-            return "Provenance Event";
+            return "Data";
         }
     };
 
@@ -567,16 +567,16 @@ public final class ResourceFactory {
      * @param resource The resource for the component being accessed
      * @return The resource for the provenance of the component being accessed
      */
-    public static Resource getProvenanceEventResource(final Resource resource) {
+    public static Resource getDataResource(final Resource resource) {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", PROVENANCE_EVENT_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return String.format("%s%s", DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
             }
 
             @Override
             public String getName() {
-                return "Provenance Events for " + resource.getName();
+                return "Data for " + resource.getName();
             }
         };
     }

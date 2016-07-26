@@ -180,6 +180,13 @@ public interface AuthorizableLookup {
     Authorizable getTenant();
 
     /**
+     * Get the authorizable for data of a specified component.
+     *
+     * @return authorizable
+     */
+    Authorizable getData(String id);
+
+    /**
      * Get the authorizable for access all policies.
      *
      * @return authorizable

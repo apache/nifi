@@ -180,6 +180,11 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
     }
 
     @Override
+    public AccessPolicy getAccessPolicy(final RequestAction requestAction, final String resource) {
+        return findAccessPolicy(requestAction, resource);
+    }
+
+    @Override
     public AccessPolicy getAccessPolicy(final RequestAction requestAction, final Authorizable authorizable) {
         final String resource = authorizable.getResource().getIdentifier();
 

@@ -37,6 +37,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.User;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -850,8 +851,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Connection connection = connectionDAO.getConnection(connectionId);
         final ConnectionDTO snapshot = deleteComponent(
                 revision,
-                connection,
+                connection.getResource().getIdentifier(),
                 () -> connectionDAO.deleteConnection(connectionId),
+                false,
                 dtoFactory.createConnectionDto(connection));
 
         return entityFactory.createConnectionEntity(snapshot, null, null, null);
@@ -883,8 +885,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessorNode processor = processorDAO.getProcessor(processorId);
         final ProcessorDTO snapshot = deleteComponent(
                 revision,
-                processor,
+                processor.getResource().getIdentifier(),
                 () -> processorDAO.deleteProcessor(processorId),
+                true,
                 dtoFactory.createProcessorDto(processor));
 
         return entityFactory.createProcessorEntity(snapshot, null, null, null, null);
@@ -895,8 +898,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Label label = labelDAO.getLabel(labelId);
         final LabelDTO snapshot = deleteComponent(
                 revision,
-                label,
+                label.getResource().getIdentifier(),
                 () -> labelDAO.deleteLabel(labelId),
+                true,
                 dtoFactory.createLabelDto(label));
 
         return entityFactory.createLabelEntity(snapshot, null, null);
@@ -910,21 +914,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<AccessPolicySummaryEntity> policyEntities = user != null ? userGroupDAO.getAccessPoliciesForUser(userId).stream()
                 .map(ap -> createAccessPolicySummaryEntity(ap)).collect(Collectors.toSet()) : null;
 
-        final RevisionClaim claim = new StandardRevisionClaim(revision);
-        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
-
-        // perform the deletion
-        final UserDTO snapshot = revisionManager.deleteRevision(claim, nifiUser, () -> {
-            logger.debug("Attempting to delete component {} with claim {}", user, claim);
-
-            userDAO.deleteUser(userId);
-
-            // save the flow
-            controllerFacade.save();
-            logger.debug("Deletion of component {} was successful", user);
-
-            return dtoFactory.createUserDto(user, userGroups, policyEntities);
-        });
+        final String resourceIdentifier = ResourceFactory.getTenantResource().getIdentifier() + "/" + userId;
+        final UserDTO snapshot = deleteComponent(
+                revision,
+                resourceIdentifier,
+                () -> userDAO.deleteUser(userId),
+                false, // no user specific policies to remove
+                dtoFactory.createUserDto(user, userGroups, policyEntities));
 
         return entityFactory.createUserEntity(snapshot, null, null);
     }
@@ -936,21 +932,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .map(mapUserIdToTenantEntity()).collect(Collectors.toSet()) :
                 null;
 
-        final RevisionClaim claim = new StandardRevisionClaim(revision);
-        final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
-
-        // perform the deletion
-        final UserGroupDTO snapshot = revisionManager.deleteRevision(claim, nifiUser, () -> {
-            logger.debug("Attempting to delete component {} with claim {}", userGroup, claim);
-
-            userGroupDAO.deleteUserGroup(userGroupId);
-
-            // save the flow
-            controllerFacade.save();
-            logger.debug("Deletion of component {} was successful", userGroup);
-
-            return dtoFactory.createUserGroupDto(userGroup, users);
-        });
+        final String resourceIdentifier = ResourceFactory.getTenantResource().getIdentifier() + "/" + userGroupId;
+        final UserGroupDTO snapshot = deleteComponent(
+                revision,
+                resourceIdentifier,
+                () -> userGroupDAO.deleteUserGroup(userGroupId),
+                false, // no user group specific policies to remove
+                dtoFactory.createUserGroupDto(userGroup, users));
 
         return entityFactory.createUserGroupEntity(snapshot, null, null);
     }
@@ -962,8 +950,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Set<TenantEntity> users = accessPolicy != null ? accessPolicy.getUsers().stream().map(mapUserIdToTenantEntity()).collect(Collectors.toSet()) : null;
         final AccessPolicyDTO snapshot = deleteComponent(
                 revision,
-                authorizableLookup.getAccessPolicyById(accessPolicyId),
+                accessPolicy.getResource(),
                 () -> accessPolicyDAO.deleteAccessPolicy(accessPolicyId),
+                false, // no need to clean up any policies as it's already been removed above
                 dtoFactory.createAccessPolicyDto(accessPolicy, userGroups,
                         users));
 
@@ -975,8 +964,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Funnel funnel = funnelDAO.getFunnel(funnelId);
         final FunnelDTO snapshot = deleteComponent(
                 revision,
-                funnel,
+                funnel.getResource().getIdentifier(),
                 () -> funnelDAO.deleteFunnel(funnelId),
+                true,
                 dtoFactory.createFunnelDto(funnel));
 
         return entityFactory.createFunnelEntity(snapshot, null, null);
@@ -986,47 +976,49 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      * Deletes a component using the Optimistic Locking Manager
      *
      * @param revision     the current revision
+     * @param resourceIdentifier the identifier of the resource being removed
      * @param deleteAction the action that deletes the component via the appropriate DAO object
+     * @param cleanUpPolicies whether or not the policies for this resource should be removed as well - not necessary when there are
+     *                        no component specific policies or if the policies of the component are inherited
      * @return a dto that represents the new configuration
      */
-    private <D, C> D deleteComponent(final Revision revision, final Authorizable authorizable, final Runnable deleteAction, final D dto) {
+    private <D, C> D deleteComponent(final Revision revision, final String resourceIdentifier, final Runnable deleteAction, final boolean cleanUpPolicies, final D dto) {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
         return revisionManager.deleteRevision(claim, user, new DeleteRevisionTask<D>() {
             @Override
             public D performTask() {
-                logger.debug("Attempting to delete component {} with claim {}", authorizable, claim);
+                logger.debug("Attempting to delete component {} with claim {}", resourceIdentifier, claim);
 
+                // run the delete action
                 deleteAction.run();
 
                 // save the flow
                 controllerFacade.save();
-                logger.debug("Deletion of component {} was successful", authorizable);
+                logger.debug("Deletion of component {} was successful", resourceIdentifier);
 
-                // if configured with a policy based authorizer, attempt to remove the corresponding policies
-                if (authorizer instanceof AbstractPolicyBasedAuthorizer) {
+                // clean up the policy if necessary and configured with a policy based authorizer
+                if (cleanUpPolicies && authorizer instanceof AbstractPolicyBasedAuthorizer) {
                     try {
                         // since the component is being deleted, also delete any relevant read access policies
-                        final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(RequestAction.READ, authorizable);
-                        if (authorizable.getResource().getIdentifier().equals(readPolicy.getResource())) {
+                        final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(RequestAction.READ, resourceIdentifier);
+                        if (readPolicy != null) {
                             accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
                         }
-                    } catch (final ResourceNotFoundException e) {
-                        // no policy exists for this component... no worries
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.READ, authorizable.getResource().getIdentifier()), e);
+                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.READ, resourceIdentifier), e);
                     }
                     try {
                         // since the component is being deleted, also delete any relevant write access policies
-                        final AccessPolicy writePolicy = accessPolicyDAO.getAccessPolicy(RequestAction.WRITE, authorizable);
-                        if (authorizable.getResource().getIdentifier().equals(writePolicy.getResource())) {
+                        final AccessPolicy writePolicy = accessPolicyDAO.getAccessPolicy(RequestAction.WRITE, resourceIdentifier);
+                        if (writePolicy != null) {
                             accessPolicyDAO.deleteAccessPolicy(writePolicy.getIdentifier());
                         }
                     } catch (final ResourceNotFoundException e) {
                         // no policy exists for this component... no worries
                     } catch (final Exception e) {
-                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.WRITE, authorizable.getResource().getIdentifier()), e);
+                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", RequestAction.WRITE, resourceIdentifier), e);
                     }
                 }
 
@@ -1071,8 +1063,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Port port = inputPortDAO.getPort(inputPortId);
         final PortDTO snapshot = deleteComponent(
                 revision,
-                port,
+                port.getResource().getIdentifier(),
                 () -> inputPortDAO.deletePort(inputPortId),
+                true,
                 dtoFactory.createPortDto(port));
 
         return entityFactory.createPortEntity(snapshot, null, null, null, null);
@@ -1083,8 +1076,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final Port port = outputPortDAO.getPort(outputPortId);
         final PortDTO snapshot = deleteComponent(
                 revision,
-                port,
+                port.getResource().getIdentifier(),
                 () -> outputPortDAO.deletePort(outputPortId),
+                true,
                 dtoFactory.createPortDto(port));
 
         return entityFactory.createPortEntity(snapshot, null, null, null, null);
@@ -1095,8 +1089,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final ProcessGroupDTO snapshot = deleteComponent(
                 revision,
-                processGroup,
+                processGroup.getResource().getIdentifier(),
                 () -> processGroupDAO.deleteProcessGroup(groupId),
+                true,
                 dtoFactory.createProcessGroupDto(processGroup));
 
         return entityFactory.createProcessGroupEntity(snapshot, null, null, null, null);
@@ -1107,8 +1102,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
         final RemoteProcessGroupDTO snapshot = deleteComponent(
                 revision,
-                remoteProcessGroup,
+                remoteProcessGroup.getResource().getIdentifier(),
                 () -> remoteProcessGroupDAO.deleteRemoteProcessGroup(remoteProcessGroupId),
+                true,
                 dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
 
         return entityFactory.createRemoteProcessGroupEntity(snapshot, null, null, null, null);
@@ -1740,8 +1736,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceDTO snapshot = deleteComponent(
                 revision,
-                controllerService,
+                controllerService.getResource().getIdentifier(),
                 () -> controllerServiceDAO.deleteControllerService(controllerServiceId),
+                true,
                 dtoFactory.createControllerServiceDto(controllerService));
 
         return entityFactory.createControllerServiceEntity(snapshot, null, null, null);
@@ -1793,8 +1790,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
         final ReportingTaskDTO snapshot = deleteComponent(
                 revision,
-                reportingTask,
+                reportingTask.getResource().getIdentifier(),
                 () -> reportingTaskDAO.deleteReportingTask(reportingTaskId),
+                true,
                 dtoFactory.createReportingTaskDto(reportingTask));
 
         return entityFactory.createReportingTaskEntity(snapshot, null, null, null);

@@ -16,16 +16,18 @@
  */
 package org.apache.nifi.web.security;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 
 /**
  *
@@ -72,31 +74,8 @@ public class ProxiedEntitiesUtils {
      */
     public static String buildProxiedEntitiesChainString(final NiFiUser user) {
         // calculate the dn chain
-        final List<String> proxyChain = buildProxiedEntitiesChain(user);
+        final List<String> proxyChain = NiFiUserUtils.buildProxiedEntitiesChain(user);
         return formatProxyDn(StringUtils.join(proxyChain, "><"));
-    }
-
-    /**
-     * Builds the proxy chain for the specified user.
-     *
-     * @param user The current user
-     * @return The proxy chain for that user in List form
-     */
-    public static List<String> buildProxiedEntitiesChain(final NiFiUser user) {
-        // calculate the dn chain
-        final List<String> proxyChain = new ArrayList<>();
-
-        // build the dn chain
-        NiFiUser chainedUser = user;
-        do {
-            // add the entry for this user
-            proxyChain.add(chainedUser.getIdentity());
-
-            // go to the next user in the chain
-            chainedUser = chainedUser.getChain();
-        } while (chainedUser != null);
-
-        return proxyChain;
     }
 
     /**
