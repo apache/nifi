@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
-import org.apache.nifi.authorization.resource.ProvenanceEventAuthorizable;
+import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
@@ -234,6 +234,11 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
+    public Authorizable getData(final String id) {
+        return controllerFacade.getDataAuthorizable(id);
+    }
+
+    @Override
     public Authorizable getPolicies() {
         return POLICIES_AUTHORIZABLE;
     }
@@ -269,7 +274,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         // if this is a policy or a provenance event resource, there should be another resource type
-        if (ResourceType.Policy.equals(resourceType) || ResourceType.ProvenanceEvent.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
+        if (ResourceType.Policy.equals(resourceType) || ResourceType.Data.equals(resourceType) || ResourceType.DataTransfer.equals(resourceType)) {
             final ResourceType primaryResourceType = resourceType;
 
             // get the resource type
@@ -288,8 +293,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             // must either be a policy, event, or data transfer
             if (ResourceType.Policy.equals(primaryResourceType)) {
                 return new AccessPolicyAuthorizable(getAccessPolicy(resourceType, resource));
-            } else if (ResourceType.ProvenanceEvent.equals(primaryResourceType)) {
-                return new ProvenanceEventAuthorizable(getAccessPolicy(resourceType, resource));
+            } else if (ResourceType.Data.equals(primaryResourceType)) {
+                return new DataAuthorizable(getAccessPolicy(resourceType, resource));
             } else {
                 return new DataTransferAuthorizable(getAccessPolicy(resourceType, resource));
             }
@@ -340,8 +345,8 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
             case Template:
                 authorizable = getTemplate(componentId);
                 break;
-            case ProvenanceEvent:
-                authorizable = controllerFacade.getProvenanceEventAuthorizable(componentId);
+            case Data:
+                authorizable = controllerFacade.getDataAuthorizable(componentId);
                 break;
         }
 

@@ -46,7 +46,18 @@ public interface AccessPolicyDAO {
     AccessPolicy getAccessPolicy(String accessPolicyId);
 
     /**
-     * Gets the access policy according to the action and authorizable.
+     * Gets the access policy according to the action and authorizable. Will return null
+     * if no policy exists for the specific resource.
+     *
+     * @param requestAction action
+     * @param resource resource
+     * @return access policy
+     */
+    AccessPolicy getAccessPolicy(RequestAction requestAction, String resource);
+
+    /**
+     * Gets the access policy according to the action and authorizable. Will return the
+     * effective policy if no policy exists for the specific authorizable.
      *
      * @param requestAction action
      * @param authorizable authorizable

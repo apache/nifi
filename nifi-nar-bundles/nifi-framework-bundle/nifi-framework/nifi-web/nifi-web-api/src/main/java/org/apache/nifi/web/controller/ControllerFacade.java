@@ -30,7 +30,6 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -69,8 +68,8 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
@@ -109,7 +108,6 @@ import org.apache.nifi.web.api.dto.search.ComponentSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -767,7 +765,7 @@ public class ControllerFacade implements Authorizable {
         // add each processor
         for (final ProcessorNode processor : root.findAllProcessors()) {
             resources.add(ResourceFactory.getComponentResource(ResourceType.Processor, processor.getIdentifier(), processor.getName()));
-            resources.add(ResourceFactory.getProvenanceEventResource(processor.getResource()));
+            resources.add(ResourceFactory.getDataResource(processor.getResource()));
         }
 
         // add each label
@@ -778,25 +776,25 @@ public class ControllerFacade implements Authorizable {
         // add each process group
         for (final ProcessGroup processGroup : root.findAllProcessGroups()) {
             resources.add(ResourceFactory.getComponentResource(ResourceType.ProcessGroup, processGroup.getIdentifier(), processGroup.getName()));
-            resources.add(ResourceFactory.getProvenanceEventResource(processGroup.getResource()));
+            resources.add(ResourceFactory.getDataResource(processGroup.getResource()));
         }
 
         // add each remote process group
         for (final RemoteProcessGroup remoteProcessGroup : root.findAllRemoteProcessGroups()) {
             resources.add(ResourceFactory.getComponentResource(ResourceType.RemoteProcessGroup, remoteProcessGroup.getIdentifier(), remoteProcessGroup.getName()));
-            resources.add(ResourceFactory.getProvenanceEventResource(remoteProcessGroup.getResource()));
+            resources.add(ResourceFactory.getDataResource(remoteProcessGroup.getResource()));
         }
 
         // add each input port
         for (final Port inputPort : root.findAllInputPorts()) {
             resources.add(ResourceFactory.getComponentResource(ResourceType.InputPort, inputPort.getIdentifier(), inputPort.getName()));
-            resources.add(ResourceFactory.getProvenanceEventResource(inputPort.getResource()));
+            resources.add(ResourceFactory.getDataResource(inputPort.getResource()));
         }
 
         // add each output port
         for (final Port outputPort : root.findAllOutputPorts()) {
             resources.add(ResourceFactory.getComponentResource(ResourceType.OutputPort, outputPort.getIdentifier(), outputPort.getName()));
-            resources.add(ResourceFactory.getProvenanceEventResource(outputPort.getResource()));
+            resources.add(ResourceFactory.getDataResource(outputPort.getResource()));
         }
 
         // add each controller service
@@ -1087,7 +1085,7 @@ public class ControllerFacade implements Authorizable {
             final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
             // get the event in order to get the filename
-            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId, NiFiUserUtils.getNiFiUser());
+            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId);
             if (event == null) {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
@@ -1101,7 +1099,8 @@ public class ControllerFacade implements Authorizable {
             }
 
             // authorize the event
-            authorizeEvent(event.getComponentId(), attributes);
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(event.getComponentId());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, user, attributes);
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());
@@ -1137,7 +1136,7 @@ public class ControllerFacade implements Authorizable {
             }
 
             // lookup the original event
-            final ProvenanceEventRecord originalEvent = flowController.getProvenanceRepository().getEvent(eventId, NiFiUserUtils.getNiFiUser());
+            final ProvenanceEventRecord originalEvent = flowController.getProvenanceRepository().getEvent(eventId);
             if (originalEvent == null) {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
@@ -1156,67 +1155,6 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
-     * Authorizes access to a provenance event generated by the specified component and containing the specified eventAttributes.
-     *
-     * @param componentId component id
-     * @param eventAttributes event attributes
-     */
-    private AuthorizationResult checkAuthorizationForEvent(final String componentId, final Map<String, String> eventAttributes) {
-        AuthorizationResult result = null;
-
-        // calculate the dn chain
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
-        for (final String identity : dnChain) {
-            final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
-            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
-                @Override
-                public boolean isAnonymous() {
-                    // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
-                    return user.isAnonymous();
-                }
-            };
-
-            result = eventAuthorizable.checkAuthorization(authorizer, RequestAction.READ, chainUser, eventAttributes);
-            if (!Result.Approved.equals(result.getResult())) {
-                break;
-            }
-        }
-
-        if (result == null) {
-            result = AuthorizationResult.denied();
-        }
-
-        return result;
-    }
-
-    /**
-     * Authorizes access to a provenance event generated by the specified component and containing the specified eventAttributes.
-     *
-     * @param componentId component id
-     * @param eventAttributes event attributes
-     */
-    private void authorizeEvent(final String componentId, final Map<String, String> eventAttributes) {
-        // calculate the dn chain
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
-        for (final String identity : dnChain) {
-            final Authorizable eventAuthorizable = flowController.createProvenanceAuthorizable(componentId);
-            final String clientAddress = user.getIdentity().equals(identity) ? user.getClientAddress() : null;
-            final NiFiUser chainUser = new StandardNiFiUser(identity, clientAddress) {
-                @Override
-                public boolean isAnonymous() {
-                    // allow current user to drive anonymous flag as anonymous users are never chained... supports single user case
-                    return user.isAnonymous();
-                }
-            };
-
-            eventAuthorizable.authorize(authorizer, RequestAction.READ, chainUser, eventAttributes);
-        }
-    }
-
-    /**
      * Authorizes access to replay a specified provenance event.
      *
      * @param componentId component id
@@ -1229,16 +1167,17 @@ public class ControllerFacade implements Authorizable {
             return AuthorizationResult.denied();
         }
 
-        final AuthorizationResult result = checkAuthorizationForEvent(componentId, eventAttributes);
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Authorizable dataAuthorizable = flowController.createDataAuthorizable(componentId);
+
+        // ensure we can read the data
+        final AuthorizationResult result = dataAuthorizable.checkAuthorization(authorizer, RequestAction.READ, user, eventAttributes);
         if (!Result.Approved.equals(result.getResult())) {
             return result;
         }
 
-        // authorize write permissions for the queue
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connection connection = rootGroup.findConnection(connectionId);
-        return connection.checkAuthorization(authorizer, RequestAction.WRITE, user);
+        // ensure we can write the data
+        return dataAuthorizable.checkAuthorization(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
 
     /**
@@ -1254,13 +1193,12 @@ public class ControllerFacade implements Authorizable {
             throw new AccessDeniedException("The connection id is unknown.");
         }
 
-        authorizeEvent(componentId, eventAttributes);
-
-        // authorize write permissions for the queue
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        final Connection connection = rootGroup.findConnection(connectionId);
-        connection.authorize(authorizer, RequestAction.WRITE, user);
+        final Authorizable dataAuthorizable = flowController.createDataAuthorizable(componentId);
+
+        // ensure we can read and write the data
+        dataAuthorizable.authorize(authorizer, RequestAction.READ, user, eventAttributes);
+        dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user, eventAttributes);
     }
 
     /**
@@ -1271,14 +1209,15 @@ public class ControllerFacade implements Authorizable {
      */
     public ProvenanceEventDTO getProvenanceEvent(final Long eventId) {
         try {
-            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId, NiFiUserUtils.getNiFiUser());
+            final ProvenanceEventRecord event = flowController.getProvenanceRepository().getEvent(eventId);
             if (event == null) {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
 
             // get the flowfile attributes and authorize the event
             final Map<String, String> attributes = event.getAttributes();
-            authorizeEvent(event.getComponentId(), attributes);
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(event.getComponentId());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser(), attributes);
 
             // convert the event
             return createProvenanceEventDto(event);
@@ -1293,8 +1232,8 @@ public class ControllerFacade implements Authorizable {
      * @param componentId component id
      * @return authorizable
      */
-    public Authorizable getProvenanceEventAuthorizable(final String componentId) {
-        return flowController.createProvenanceAuthorizable(componentId);
+    public Authorizable getDataAuthorizable(final String componentId) {
+        return flowController.createDataAuthorizable(componentId);
     }
 
     /**

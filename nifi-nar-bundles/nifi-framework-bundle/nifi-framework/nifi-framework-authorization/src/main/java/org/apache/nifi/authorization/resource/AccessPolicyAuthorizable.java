@@ -16,12 +16,33 @@
  */
 package org.apache.nifi.authorization.resource;
 
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.user.NiFiUser;
+
+import java.util.Map;
 
 /**
  * Authorizable for policies of an Authorizable.
  */
-public class AccessPolicyAuthorizable implements Authorizable {
+public class AccessPolicyAuthorizable implements Authorizable, EnforcePolicyPermissionsThroughBaseResource {
+
+    private static final Authorizable POLICIES_AUTHORIZABLE = new Authorizable() {
+        @Override
+        public Authorizable getParentAuthorizable() {
+            return null;
+        }
+
+        @Override
+        public Resource getResource() {
+            return ResourceFactory.getPoliciesResource();
+        }
+    };
+
     final Authorizable authorizable;
 
     public AccessPolicyAuthorizable(Authorizable authorizable) {
@@ -29,26 +50,73 @@ public class AccessPolicyAuthorizable implements Authorizable {
     }
 
     @Override
-    public Authorizable getParentAuthorizable() {
-        if (authorizable.getParentAuthorizable() == null) {
-            return new Authorizable() {
-                @Override
-                public Authorizable getParentAuthorizable() {
-                    return null;
-                }
+    public Authorizable getBaseAuthorizable() {
+        return authorizable;
+    }
 
-                @Override
-                public Resource getResource() {
-                    return ResourceFactory.getPoliciesResource();
-                }
-            };
+    @Override
+    public Authorizable getParentAuthorizable() {
+        final Authorizable effectiveAuthorizable = getEffectiveAuthorizable();
+        if (effectiveAuthorizable.getParentAuthorizable() == null) {
+            return POLICIES_AUTHORIZABLE;
         } else {
-            return new AccessPolicyAuthorizable(authorizable.getParentAuthorizable());
+            return new AccessPolicyAuthorizable(effectiveAuthorizable.getParentAuthorizable());
         }
     }
 
     @Override
     public Resource getResource() {
-        return ResourceFactory.getPolicyResource(authorizable.getResource());
+        return ResourceFactory.getPolicyResource(getEffectiveAuthorizable().getResource());
+    }
+
+    private Authorizable getEffectiveAuthorizable() {
+        // possibly consider the base resource if the authorizable uses it to enforce policy permissions
+        if (authorizable instanceof EnforcePolicyPermissionsThroughBaseResource) {
+            final Authorizable baseAuthorizable = ((EnforcePolicyPermissionsThroughBaseResource) authorizable).getBaseAuthorizable();
+
+            // if the base authorizable is for a policy, we don't want to use the base otherwise it would keep unwinding and would eventually
+            // evaluate to the policy of the component and not the policy of the policies for the component
+            if (baseAuthorizable instanceof AccessPolicyAuthorizable) {
+                return authorizable;
+            } else {
+                return baseAuthorizable;
+            }
+        } else {
+            return authorizable;
+        }
+    }
+
+    @Override
+    public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        if (user == null) {
+            throw new AccessDeniedException("Unknown user");
+        }
+
+        final AuthorizationResult resourceResult = Authorizable.super.checkAuthorization(authorizer, action, user, resourceContext);
+
+        // if we're denied from the resource try inheriting
+        if (Result.Denied.equals(resourceResult.getResult())) {
+            return getParentAuthorizable().checkAuthorization(authorizer, action, user, resourceContext);
+        } else {
+            return resourceResult;
+        }
+    }
+
+    @Override
+    public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        if (user == null) {
+            throw new AccessDeniedException("Unknown user");
+        }
+
+        try {
+            Authorizable.super.authorize(authorizer, action, user, resourceContext);
+        } catch (final AccessDeniedException resourceDenied) {
+            // if we're denied from the resource try inheriting
+            try {
+                getParentAuthorizable().authorize(authorizer, action, user, resourceContext);
+            } catch (final AccessDeniedException policiesDenied) {
+                throw resourceDenied;
+            }
+        }
     }
 }

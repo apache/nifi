@@ -63,7 +63,7 @@ public final class RoleAccessPolicy {
         final Set<RoleAccessPolicy> provenancePolicies = new HashSet<>();
         provenancePolicies.add(new RoleAccessPolicy(ResourceType.Provenance.getValue(), READ_ACTION));
         if (rootGroupId != null) {
-            provenancePolicies.add(new RoleAccessPolicy(ResourceType.ProvenanceEvent.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
+            provenancePolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
         }
         roleAccessPolicies.put(Role.ROLE_PROVENANCE, Collections.unmodifiableSet(provenancePolicies));
 
@@ -75,6 +75,8 @@ public final class RoleAccessPolicy {
         if (rootGroupId != null) {
             dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
             dfmPolicies.add(new RoleAccessPolicy(ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));
+            dfmPolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
+            dfmPolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));
         }
         roleAccessPolicies.put(Role.ROLE_DFM, Collections.unmodifiableSet(dfmPolicies));
 
@@ -93,6 +95,10 @@ public final class RoleAccessPolicy {
         final Set<RoleAccessPolicy> proxyPolicies = new HashSet<>();
         proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), READ_ACTION));
         proxyPolicies.add(new RoleAccessPolicy(ResourceType.Proxy.getValue(), WRITE_ACTION));
+        if (rootGroupId != null) {
+            proxyPolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, READ_ACTION));
+            proxyPolicies.add(new RoleAccessPolicy(ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, WRITE_ACTION));
+        }
         roleAccessPolicies.put(Role.ROLE_PROXY, Collections.unmodifiableSet(proxyPolicies));
 
         final Set<RoleAccessPolicy> nifiPolicies = new HashSet<>();

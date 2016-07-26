@@ -999,8 +999,9 @@ nf.Actions = (function () {
                         $('#drop-request-status-message').text(dropRequest.state);
 
                         // update the current number of enqueued flowfiles
-                        if (nf.Common.isDefinedAndNotNull(connection.status) && nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
+                        if (nf.Common.isDefinedAndNotNull(dropRequest.currentCount)) {
                             connection.status.queued = dropRequest.current;
+                            connection.status.aggregateSnapshot.queued = dropRequest.current;
                             nf.Connection.refresh(connection.id);
                         }
 
@@ -1028,13 +1029,19 @@ nf.Actions = (function () {
                         }).done(function (response) {
                             dropRequest = response.dropRequest;
                             processDropRequest(nextDelay);
-                        }).fail(completeDropRequest);
+                        }).fail(function (xhr, status, error) {
+                            if (xhr.status === 403) {
+                                nf.Common.handleAjaxError(xhr, status, error);
+                            } else {
+                                completeDropRequest()
+                            }
+                        });
                     };
 
                     // issue the request to delete the flow files
                     $.ajax({
                         type: 'POST',
-                        url: '../nifi-api/flowfile-queues/' + connection.id + '/drop-requests',
+                        url: '../nifi-api/flowfile-queues/' + encodeURIComponent(connection.id) + '/drop-requests',
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
@@ -1047,7 +1054,13 @@ nf.Actions = (function () {
                         // process the drop request
                         dropRequest = response.dropRequest;
                         processDropRequest(1);
-                    }).fail(completeDropRequest);
+                    }).fail(function (xhr, status, error) {
+                        if (xhr.status === 403) {
+                            nf.Common.handleAjaxError(xhr, status, error);
+                        } else {
+                            completeDropRequest()
+                        }
+                    });
                 }
             });
         },

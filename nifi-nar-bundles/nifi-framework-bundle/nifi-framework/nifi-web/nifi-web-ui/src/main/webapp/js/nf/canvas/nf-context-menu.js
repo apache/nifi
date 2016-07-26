@@ -316,10 +316,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection
      */
     var canEmptyQueue = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return isConnection(selection);
     };
 
@@ -329,10 +325,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection
      */
     var canListQueue = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return isConnection(selection);
     };
     
