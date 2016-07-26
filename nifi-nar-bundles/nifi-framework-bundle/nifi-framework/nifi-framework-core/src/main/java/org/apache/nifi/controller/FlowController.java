@@ -1957,14 +1957,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // validate the names of Input Ports
         for (final PortDTO port : templateContents.getInputPorts()) {
             if (group.getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("ProcessGroup already has an Input Port with name " + port.getName());
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 
         // validate the names of Output Ports
         for (final PortDTO port : templateContents.getOutputPorts()) {
             if (group.getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("ProcessGroup already has an Output Port with name " + port.getName());
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
             }
         }
 
@@ -2906,7 +2906,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public void startReportingTask(final ReportingTaskNode reportingTaskNode) {
         if (isTerminated()) {
-            throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode + " because the controller is terminated");
+            throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode.getIdentifier() + " because the controller is terminated");
         }
 
         reportingTaskNode.verifyCanStart();

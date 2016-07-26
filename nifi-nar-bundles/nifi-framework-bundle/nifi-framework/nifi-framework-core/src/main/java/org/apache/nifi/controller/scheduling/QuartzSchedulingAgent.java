@@ -77,7 +77,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
     public void doSchedule(final ReportingTaskNode taskNode, final ScheduleState scheduleState) {
         final List<AtomicBoolean> existingTriggers = canceledTriggers.get(taskNode);
         if (existingTriggers != null) {
-            throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask() + " because it is already scheduled to run");
+            throw new IllegalStateException("Cannot schedule " + taskNode.getReportingTask().getIdentifier() + " because it is already scheduled to run");
         }
 
         final String cronSchedule = taskNode.getSchedulingPeriod();
@@ -85,7 +85,7 @@ public class QuartzSchedulingAgent extends AbstractSchedulingAgent {
         try {
             cronExpression = new CronExpression(cronSchedule);
         } catch (final Exception pe) {
-            throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask() + " to run because its scheduling period is not valid");
+            throw new IllegalStateException("Cannot schedule Reporting Task " + taskNode.getReportingTask().getIdentifier() + " to run because its scheduling period is not valid");
         }
 
         final ReportingTaskWrapper taskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
