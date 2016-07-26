@@ -164,7 +164,7 @@ div.valid {
 }
 
 div.has-bulletins {
-    background: #ba554a;
+    color: #ba554a !important;
 }
 
 /*
