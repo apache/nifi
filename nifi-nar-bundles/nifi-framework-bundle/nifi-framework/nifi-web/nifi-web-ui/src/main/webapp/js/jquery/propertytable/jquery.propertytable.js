@@ -83,7 +83,6 @@
             // create the input field
             input = $('<textarea hidefocus rows="5"/>').css({
                 'height': '80px',
-                'width': args.position.width + 'px',
                 'margin-bottom': '5px',
                 'margin-top': '10px'
             }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
@@ -122,7 +121,9 @@
             $('<div></div>').css({
                 'position': 'relative',
                 'top': '10px',
-                'left': '20px'
+                'left': '20px',
+                'width': '212px',
+                'float': 'right'
             }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
@@ -306,7 +307,6 @@
             // create the editor
             editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                 languageId: languageId,
-                width: args.position.width,
                 minWidth: 175,
                 minHeight: 100,
                 resizable: true,
@@ -348,7 +348,9 @@
             $('<div></div>').css({
                 'position': 'relative',
                 'top': '10px',
-                'left': '20px'
+                'left': '20px',
+                'width': '212px',
+                'float': 'right'
             }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
@@ -371,7 +373,7 @@
 
         this.show = function () {
             wrapper.show();
-            editor.nfeditor('setSize', args.position.width, null).nfeditor('refresh');
+            editor.nfeditor('refresh');
         };
 
         this.position = function (position) {
@@ -564,7 +566,7 @@
                         promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, configurationOptions);
                     }
                 }
-            }).width(position.width - 16).appendTo(wrapper);
+            }).appendTo(wrapper);
 
             // add buttons for handling user input
             var cancel = $('<div class="secondary-button">Cancel</div>').css({
@@ -589,7 +591,9 @@
             $('<div></div>').css({
                 'position': 'relative',
                 'top': '10px',
-                'left': '20px'
+                'left': '20px',
+                'width': '212px',
+                'float': 'right'
             }).append(ok).append(cancel).appendTo(wrapper);
 
             // position and focus
@@ -744,10 +748,9 @@
                     // determine the max height
                     var windowHeight = $(window).height();
                     var maxHeight = windowHeight - (offset.top + cellNode.height()) - 16;
-                    var width = cellNode.width() - 16;
 
                     // build the combo field
-                    $('<div class="value-combo combo"></div>').width(width).combo({
+                    $('<div class="value-combo combo"></div>').combo({
                         options: options,
                         maxHeight: maxHeight,
                         selectedOption: {
@@ -785,7 +788,6 @@
                         // create the editor
                         editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                             languageId: languageId,
-                            width: cellNode.width(),
                             content: property.value,
                             minWidth: 175,
                             minHeight: 100,
@@ -800,7 +802,6 @@
                         // create the input field
                         $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
                             'height': '80px',
-                            'width': cellNode.width() + 'px',
                             'margin': '20px 20px'
                         }).text(property.value).on('keydown', function (evt) {
                             if (evt.which === $.ui.keyCode.ESCAPE) {
