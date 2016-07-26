@@ -96,15 +96,23 @@ public class GetIgniteCache extends AbstractIgniteCacheProcessor {
             flowFile = session.putAttribute(flowFile, IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY, IGNITE_GET_FAILED_MISSING_KEY_MESSAGE);
             session.transfer(flowFile, REL_FAILURE);
         } else {
-            byte [] value = getIgniteCache().get(key);
-            if ( value == null || value.length == 0 ) {
-                flowFile = session.putAttribute(flowFile, IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY,
+            try {
+                byte [] value = getIgniteCache().get(key);
+                if ( value == null || value.length == 0 ) {
+                    flowFile = session.putAttribute(flowFile, IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY,
                         IGNITE_GET_FAILED_MISSING_ENTRY_MESSAGE);
+                    session.transfer(flowFile, REL_FAILURE);
+                } else {
+                    ByteArrayInputStream bais = new ByteArrayInputStream(value);
+                    flowFile = session.importFrom(bais, flowFile);
+                    session.transfer(flowFile,REL_SUCCESS);
+                }
+            } catch(Exception exception) {
+                flowFile = session.putAttribute(flowFile, IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY,
+                     IGNITE_GET_FAILED_MESSAGE_PREFIX + exception);
+                getLogger().error("Failed to get value for key {} from IgniteDB due to {}", new Object[] { key, exception }, exception);
                 session.transfer(flowFile, REL_FAILURE);
-            } else {
-                ByteArrayInputStream bais = new ByteArrayInputStream(value);
-                flowFile = session.importFrom(bais, flowFile);
-                session.transfer(flowFile,REL_SUCCESS);
+                context.yield();
             }
         }
     }

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -102,6 +103,44 @@ public class TestGetIgniteCache {
 
         final MockFlowFile getOut = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_SUCCESS).get(0);
         getOut.assertContentEquals("test".getBytes());
+
+        getRunner.shutdown();
+    }
+
+    @Test
+    public void testGetIgniteCacheNullGetCacheThrowsException() throws IOException, InterruptedException {
+
+        getIgniteCache = new GetIgniteCache() {
+            @Override
+            protected Ignite getIgnite() {
+                return TestGetIgniteCache.ignite;
+            }
+
+            @Override
+            protected IgniteCache<String, byte[]> getIgniteCache() {
+                return null;
+            }
+
+        };
+        getRunner = TestRunners.newTestRunner(getIgniteCache);
+        getRunner.setProperty(GetIgniteCache.IGNITE_CACHE_ENTRY_KEY, "mykey");
+
+        getRunner.assertValid();
+        getRunner.enqueue(new byte[] {});
+
+        getIgniteCache.initialize(getRunner.getProcessContext());
+
+        getRunner.run(1, false, true);
+
+        getRunner.assertAllFlowFilesTransferred(GetIgniteCache.REL_FAILURE, 1);
+        List<MockFlowFile> getSucessfulFlowFiles = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_SUCCESS);
+        assertEquals(0, getSucessfulFlowFiles.size());
+        List<MockFlowFile> getFailureFlowFiles = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_FAILURE);
+        assertEquals(1, getFailureFlowFiles.size());
+
+        final MockFlowFile getOut = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_FAILURE).get(0);
+        getOut.assertAttributeEquals(GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY,
+            GetIgniteCache.IGNITE_GET_FAILED_MESSAGE_PREFIX + "java.lang.NullPointerException");
 
         getRunner.shutdown();
     }
