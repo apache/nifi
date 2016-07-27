@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+org.apache.nifi.processors.hive.ConvertAvroToORC
 org.apache.nifi.processors.hive.SelectHiveQL
 org.apache.nifi.processors.hive.PutHiveQL
 org.apache.nifi.processors.hive.PutHiveStreaming
