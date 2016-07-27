@@ -24,7 +24,6 @@
     bottom: 40px;
     left: 20px;
     right: 20px;
-    overflow: auto;
 }
 
 #bulletin-board-header-text {
@@ -38,7 +37,7 @@
 #bulletin-board-refresh-container {
     position: absolute;
     right: 20px;
-    bottom: 0px;
+    bottom: 40px;
     left: 20px;
 }
 
@@ -81,17 +80,20 @@
 /* bulletin board */
 
 #bulletin-board-container {
-    overflow-y: auto;
-    width: 100%;
-    padding-top: 20px;
+    position: absolute;
+    top: 100px;
+    bottom: 50px;
+    overflow: auto;
+    left: 0px;
+    right: 0px;
 }
 
 div.bulletin-action {
-    font-weight: bold;
-    margin-bottom: 4px;
     font-family: Roboto;
     font-size: 13px;
-    color: #728e9b;
+    border-bottom: 1px solid #eaeef0;
+    line-height: 1.3;
+    padding: 10px;
 }
 
 div.bulletin {

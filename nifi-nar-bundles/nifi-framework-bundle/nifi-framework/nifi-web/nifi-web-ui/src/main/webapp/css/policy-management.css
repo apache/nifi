@@ -151,7 +151,7 @@ div.policy-selected-component-type {
     position: absolute;
     top: 92px;
     left: 0px;
-    bottom: 0px;
+    bottom: 67px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
@@ -161,7 +161,7 @@ div.policy-selected-component-type {
     position: absolute;
     bottom: 20px;
     left: 0px;
-    height: 32px;
+    right: 20px;
 }
 
 #policy-refresh-button {
