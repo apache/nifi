@@ -97,6 +97,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .description("The HDFS directory from which files should be read")
     .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .expressionLanguageSupported(true)
     .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
@@ -241,7 +242,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
         final FileSystem fs = getFileSystem();
-        final Path dir = new Path(context.getProperty(DIRECTORY).getValue());
+        final Path dir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         if (!fs.exists(dir)) {
             throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
         }
@@ -341,7 +342,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
-        final Path rootDir = new Path(context.getProperty(DIRECTORY).getValue());
+        final Path rootDir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
 
         final CompressionType compressionType = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
         final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
@@ -501,7 +502,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final private PathFilter pathFilter;
 
         ProcessorConfiguration(final ProcessContext context) {
-            configuredRootDirPath = new Path(context.getProperty(DIRECTORY).getValue());
+            configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
             ignoreDottedFiles = context.getProperty(IGNORE_DOTTED_FILES).asBoolean();
             final String fileFilterRegex = context.getProperty(FILE_FILTER_REGEX).getValue();
             fileFilterPattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);

@@ -102,6 +102,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         .description("The HDFS directory from which files should be read")
         .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(true)
         .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
@@ -248,7 +249,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).getValue();
+        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
 
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {

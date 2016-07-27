@@ -21,6 +21,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -29,6 +30,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -194,6 +196,22 @@ public class GetHDFSTest {
         assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
         InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
         flowFile.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testGetFilesWithFilterAndDirectoryPropertyRetrievedFromVariableRegistry() {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        VariableRegistry variableRegistry = Mockito.mock(VariableRegistry.class);
+        when(variableRegistry.getVariableValue("dirvar")).thenReturn("src/test/resources/testdata");
+        TestRunner runner = TestRunners.newTestRunner(proc, variableRegistry);
+        runner.setProperty(GetHDFS.DIRECTORY, "${dirvar}");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(4, flowFiles.size());
+        assertEquals(4, flowFiles.stream().filter(f -> f.getAttribute(CoreAttributes.PATH.key()).contains("src/test/resources/testdata")).count());
     }
 
     private static class TestableGetHDFS extends GetHDFS {

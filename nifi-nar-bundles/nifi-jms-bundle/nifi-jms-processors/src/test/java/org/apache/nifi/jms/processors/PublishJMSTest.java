@@ -16,27 +16,27 @@
  */
 package org.apache.nifi.jms.processors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jms.BytesMessage;
-import javax.jms.ConnectionFactory;
-import javax.jms.Queue;
-
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
+
+import javax.jms.BytesMessage;
+import javax.jms.ConnectionFactory;
+import javax.jms.Queue;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PublishJMSTest {
 
@@ -45,7 +45,11 @@ public class PublishJMSTest {
         ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=false");
 
         PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
+        VariableRegistry variableRegistry = mock(VariableRegistry.class);
+        final String destinationVar = "dest";
+        final String fooQueue = "fooQueue";
+        when(variableRegistry.getVariableValue(destinationVar)).thenReturn(fooQueue);
+        TestRunner runner = TestRunners.newTestRunner(pubProc, variableRegistry);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -54,7 +58,7 @@ public class PublishJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(PublishJMS.DESTINATION, "fooQueue");
+        runner.setProperty(PublishJMS.DESTINATION, "${dest}");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "foo");
@@ -66,7 +70,7 @@ public class PublishJMSTest {
         assertNotNull(successFF);
 
         JmsTemplate jmst = new JmsTemplate(cf);
-        jmst.setDefaultDestinationName("fooQueue");
+        jmst.setDefaultDestinationName(fooQueue);
         BytesMessage message = (BytesMessage) jmst.receive();
 
         byte[] messageBytes = MessageBodyToBytesConverter.toBytes(message);
@@ -80,7 +84,10 @@ public class PublishJMSTest {
         ConnectionFactory cf = mock(ConnectionFactory.class);
 
         PublishJMS pubProc = new PublishJMS();
-        TestRunner runner = TestRunners.newTestRunner(pubProc);
+        VariableRegistry variableRegistry = mock(VariableRegistry.class);
+        final String fooQueue = "fooQueue";
+        when(variableRegistry.getVariableValue("dest")).thenReturn(fooQueue);
+        TestRunner runner = TestRunners.newTestRunner(pubProc, variableRegistry);
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(cf);
@@ -89,7 +96,7 @@ public class PublishJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(PublishJMS.DESTINATION, "fooQueue");
+        runner.setProperty(PublishJMS.DESTINATION, "${dest}");
 
         runner.enqueue("Hello Joe".getBytes());
 

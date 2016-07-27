@@ -191,9 +191,19 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-                String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
-                dir = dir == null ? "/" : dir;
-                resources = resetHDFSResources(configResources, dir, context);
+                final String dir;
+                final PropertyDescriptor directoryPropDescriptor = context.getProperties().keySet().stream()
+                        .filter(propertyDescriptor -> propertyDescriptor.getName().equals(DIRECTORY_PROP_NAME)).findFirst().orElse(null);
+                if (directoryPropDescriptor != null) {
+                    if (directoryPropDescriptor.isExpressionLanguageSupported()) {
+                        dir = context.getProperty(DIRECTORY_PROP_NAME).evaluateAttributeExpressions().getValue();
+                    } else {
+                        dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
+                    }
+                } else {
+                    dir = null;
+                }
+                resources = resetHDFSResources(configResources, dir == null ? "/" : dir, context);
                 hdfsResources.set(resources);
             }
         } catch (IOException ex) {

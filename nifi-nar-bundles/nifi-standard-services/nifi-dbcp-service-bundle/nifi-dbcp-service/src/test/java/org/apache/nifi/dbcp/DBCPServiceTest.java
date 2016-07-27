@@ -16,8 +16,17 @@
  */
 package org.apache.nifi.dbcp;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -32,16 +41,13 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 
 public class DBCPServiceTest {
 
@@ -256,6 +262,28 @@ public class DBCPServiceTest {
         connection.close();
 
         DriverManager.deregisterDriver(shim);
+    }
+
+    @Test
+    public void testPropertiesUseVariableRegistry() throws InitializationException, SQLException {
+        final VariableRegistry variableRegistry = mock(VariableRegistry.class);
+        given(variableRegistry.getVariableValue("databaseurl")).willReturn("jdbc:derby:" + DB_LOCATION + ";create=true");
+        given(variableRegistry.getVariableValue("drivername")).willReturn("org.apache.derby.jdbc.EmbeddedDriver");
+        given(variableRegistry.getVariableValue("username")).willReturn("tester");
+        given(variableRegistry.getVariableValue("password")).willReturn("testerp");
+
+        final TestRunner runner = TestRunners.newTestRunner(mock(org.apache.nifi.processor.Processor.class), variableRegistry);
+        final DBCPConnectionPool service = new DBCPConnectionPool();
+        runner.addControllerService("dbcpService", service);
+
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "${databaseurl}");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "${drivername}");
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, "${username}");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "${password}");
+
+        runner.enableControllerService(service);
+
+        then(variableRegistry).should(times(4)).getVariableValue(anyString());
     }
 
     String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";

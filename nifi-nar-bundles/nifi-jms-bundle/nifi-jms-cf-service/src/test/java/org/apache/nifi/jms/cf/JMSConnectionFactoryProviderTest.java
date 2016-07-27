@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.jms.cf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.Iterator;
-import java.util.ServiceLoader;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
@@ -32,15 +32,16 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.ServiceLoader;
 
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  *
@@ -51,7 +52,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validateFullConfigWithUserLib() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost:1234");
@@ -76,7 +77,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test(expected = AssertionError.class)
     public void validateOnConfigureFailsIfCNFonConnectionFactory() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost:1234");
@@ -88,8 +89,25 @@ public class JMSConnectionFactoryProviderTest {
     }
 
     @Test
+    public void validateOnConfigureVariableRegistryUsed() throws Exception {
+        final VariableRegistry variableRegistry = mock(VariableRegistry.class);
+        when(variableRegistry.getVariableValue("uri")).thenReturn("myhost:1234");
+        when(variableRegistry.getVariableValue("libpath")).thenReturn("test-lib");
+        when(variableRegistry.getVariableValue("impl")).thenReturn("org.apache.nifi.jms.testcflib.TestConnectionFactory");
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class), variableRegistry);
+        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
+        runner.addControllerService("cfProvider", cfProvider);
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${uri}");
+
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${libpath}");
+        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
+                "${impl}");
+        runner.enableControllerService(cfProvider);
+    }
+
+    @Test
     public void validateNotValidForNonExistingLibPath() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost:1234");
@@ -102,7 +120,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test(expected = AssertionError.class)
     public void validateFailsIfURINotHostPortAndNotActiveMQ() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost");
@@ -116,7 +134,7 @@ public class JMSConnectionFactoryProviderTest {
 
     @Test
     public void validateNotValidForNonDirectoryPath() throws Exception {
-        TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
         JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
         runner.addControllerService("cfProvider", cfProvider);
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "myhost:1234");
@@ -146,7 +164,7 @@ public class JMSConnectionFactoryProviderTest {
         try {
             String libPath = TestUtils.setupActiveMqLibForTesting(true);
 
-            TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+            TestRunner runner = TestRunners.newTestRunner(mock(Processor.class));
             JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
             runner.addControllerService("cfProvider", cfProvider);
             runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI,
