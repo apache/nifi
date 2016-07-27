@@ -141,7 +141,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                             }
                         },
                         error: function (xhr, statusText, error) {
-                            $('#upload-template-status').text(error);
+                            $('#upload-template-status').text(xhr.responseText);
                         }
                     });
                     
