@@ -276,23 +276,18 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
         init: function () {
             //alter styles if we're not in the shell
             if (top === window) {
-                $('body').css({
-                    'height': $(window).height() + 'px',
-                    'width': $(window).width() + 'px'
+                $('#bulletin-board').css({
+                    "position": "absolute",
+                    "bottom": "40px",
+                    "left": "40px",
+                    "right": "40px",
+                    "top": "40px"
                 });
-
-                $('#bulletin-board').css('margin', 40);
                 $('#bulletin-board-refresh-container').css({
                     "position": "absolute",
-                    "width": "100%",
                     "bottom": "40px",
                     "left": "40px",
                     "right": "40px"
-                });
-
-                $('#bulletin-board-status-container').css({
-                    "float": "right",
-                    "padding-right": "80px"
                 });
             }
             

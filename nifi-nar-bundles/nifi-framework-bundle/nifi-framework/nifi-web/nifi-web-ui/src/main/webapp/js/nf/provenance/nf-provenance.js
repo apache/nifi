@@ -228,7 +228,9 @@ nf.Provenance = (function () {
                             $('#provenance-table').css('bottom', 127);
                             $('#provenance-refresh-container').css({
                                 'margin': '0px 0px 40px 0px',
-                                'bottom': '40px'
+                                'bottom': '40px',
+                                'left': '0px',
+                                'right': '0px'
                             });
                         }
 
