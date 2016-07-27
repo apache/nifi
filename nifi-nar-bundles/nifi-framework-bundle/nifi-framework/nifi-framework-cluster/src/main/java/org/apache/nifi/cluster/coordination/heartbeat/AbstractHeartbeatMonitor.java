@@ -57,7 +57,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     @Override
     public synchronized final void start() {
         if (!stopped) {
-            throw new IllegalStateException("Heartbeat Monitor cannot be started because it is already started");
+            logger.warn("Attempted to start Heartbeat Monitor, but it is already started");
+            return;
         }
 
         stopped = false;
