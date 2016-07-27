@@ -43,6 +43,8 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCommandLine {
     public static final int ERROR_TOKEN_ARG_EMPTY = 4;
     public static final String KEYSTORE = "keystore.";
     public static final String TRUSTSTORE = "truststore.";
+    public static final String CERTIFICATE_FILE = "certificateFile";
+    public static final String DEFAULT_CERTIFICATE_FILE = "caCert.crt";
 
     private String caHostname;
     private String dn;
@@ -50,6 +52,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCommandLine {
     private int port;
     private String keystoreType;
     private File configFile;
+    private String certificateFile;
 
     public TlsCertificateAuthorityClientCommandLine() {
         super(HEADER);
@@ -59,6 +62,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCommandLine {
         addOptionWithArg("p", PORT, "The port to use to communicate with the Certificate Authority", TlsConfig.DEFAULT_PORT);
         addOptionWithArg("T", KEYSTORE_TYPE, "The format to write the keystore in", PKCS_12);
         addOptionWithArg("f", CONFIG_JSON, "The place to write configuration info", DEFAULT_CONFIG_JSON);
+        addOptionWithArg("C", CERTIFICATE_FILE, "The file to write the CA certificate to", DEFAULT_CERTIFICATE_FILE);
     }
 
     public static void main(String[] args) throws Exception {
@@ -70,7 +74,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCommandLine {
             System.exit(e.getExitCode());
         }
         new TlsCertificateAuthorityClient(tlsCertificateAuthorityClientCommandLine.configFile, FileOutputStream::new,
-                tlsCertificateAuthorityClientCommandLine.createClientConfig()).generateCertificateAndGetItSigned();
+                tlsCertificateAuthorityClientCommandLine.createClientConfig()).generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.getCertificateFile());
     }
 
     @Override
@@ -89,11 +93,16 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCommandLine {
         } else {
             configFile = DEFAULT_CONFIG_JSON;
         }
+        certificateFile = commandLine.getOptionValue(CERTIFICATE_FILE, DEFAULT_CERTIFICATE_FILE);
         return commandLine;
     }
 
     public File getConfigFile() {
         return configFile;
+    }
+
+    public String getCertificateFile() {
+        return certificateFile;
     }
 
     public TlsClientConfig createClientConfig() {

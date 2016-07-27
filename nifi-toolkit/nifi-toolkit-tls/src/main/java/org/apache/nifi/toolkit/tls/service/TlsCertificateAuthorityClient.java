@@ -32,6 +32,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -86,6 +88,10 @@ public class TlsCertificateAuthorityClient {
     }
 
     public void generateCertificateAndGetItSigned() throws Exception {
+        generateCertificateAndGetItSigned(null);
+    }
+
+    public void generateCertificateAndGetItSigned(String certificateFile) throws Exception {
         KeyPair keyPair = tlsHelper.generateKeyPair();
 
         String keyStoreType = tlsClientConfig.getKeyStoreType();
@@ -137,6 +143,12 @@ public class TlsCertificateAuthorityClient {
 
         try (OutputStream outputStream = outputStreamFactory.create(new File(tlsClientConfig.getTrustStore()))) {
             trustStore.store(outputStream, trustStorePassword.toCharArray());
+        }
+
+        if (!StringUtils.isEmpty(certificateFile)) {
+            try (Writer writer = new OutputStreamWriter(outputStreamFactory.create(new File(certificateFile)))) {
+                writer.write(tlsHelper.pemEncodeJcaObject(certificates[certificates.length - 1]));
+            }
         }
 
         try (OutputStream outputStream = outputStreamFactory.create(configFile)) {

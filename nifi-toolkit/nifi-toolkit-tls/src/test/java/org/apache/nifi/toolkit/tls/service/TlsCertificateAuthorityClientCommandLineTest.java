@@ -71,6 +71,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         assertEquals(testToken, clientConfig.getToken());
         assertEquals(TlsConfig.DEFAULT_PORT, clientConfig.getPort());
         assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigFile());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CERTIFICATE_FILE, tlsCertificateAuthorityClientCommandLine.getCertificateFile());
     }
 
     @Test
@@ -135,5 +136,12 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         String testPath = "/1/2/3/4";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-f", testPath);
         assertEquals(new File(testPath), tlsCertificateAuthorityClientCommandLine.getConfigFile());
+    }
+
+    @Test
+    public void testCertificateFile() throws CommandLineParseException {
+        String testCertificateFile = "testCertificateFile";
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-C", testCertificateFile);
+        assertEquals(testCertificateFile, tlsCertificateAuthorityClientCommandLine.getCertificateFile());
     }
 }
