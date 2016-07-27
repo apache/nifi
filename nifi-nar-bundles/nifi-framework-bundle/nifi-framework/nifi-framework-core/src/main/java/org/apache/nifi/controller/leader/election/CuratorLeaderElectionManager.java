@@ -221,7 +221,14 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 
             if (listener != null) {
-                listener.onLeaderElection();
+                try {
+                    listener.onLeaderElection();
+                } catch (final Exception e) {
+                    logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
+                    logger.error("", e);
+                    leader = false;
+                    return;
+                }
             }
 
             // Curator API states that we lose the leadership election when we return from this method,
@@ -241,7 +248,12 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                 logger.info("{} This node is no longer leader for role '{}'", this, roleName);
 
                 if (listener != null) {
-                    listener.onLeaderRelinquish();
+                    try {
+                        listener.onLeaderRelinquish();
+                    } catch (final Exception e) {
+                        logger.error("This node is no longer leader for role '{}' but failed to shutdown leadership responsibilities properly due to: {}", roleName, e);
+                        logger.error("", e);
+                    }
                 }
             }
         }

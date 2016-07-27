@@ -605,6 +605,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             leaderElectionManager = null;
             heartbeater = null;
         }
+
+        if (heartbeatMonitor != null) {
+            heartbeatMonitor.start();
+        }
     }
 
     @Override
@@ -615,10 +619,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     @Override
     public Resource getResource() {
         return ResourceFactory.getControllerResource();
-    }
-
-    public HeartbeatMonitor getHeartbeatMonitor() {
-        return heartbeatMonitor;
     }
 
     private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {
@@ -1295,6 +1295,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             if (leaderElectionManager != null) {
                 leaderElectionManager.stop();
+            }
+
+            if (heartbeatMonitor != null) {
+                heartbeatMonitor.stop();
             }
 
             if (kill) {
@@ -3311,6 +3315,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
             public synchronized void onLeaderRelinquish() {
+                LOG.info("This node is no longer the elected Active Cluster Coordinator");
                 heartbeatMonitor.stop();
 
                 if (clusterCoordinator != null) {
@@ -3320,6 +3325,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             @Override
             public synchronized void onLeaderElection() {
+                LOG.info("This node elected Active Cluster Coordinator");
                 heartbeatMonitor.start();
 
                 if (clusterCoordinator != null) {
