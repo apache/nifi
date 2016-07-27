@@ -58,7 +58,7 @@ public class PutHDFSTest {
     private KerberosProperties kerberosProperties;
 
     @BeforeClass
-    public static void setUpClass() throws Exception{
+    public static void setUpClass() throws Exception {
         /*
          * Running Hadoop on Windows requires a special build which will produce required binaries and native modules [1]. Since functionality
          * provided by this module and validated by these test does not have any native implication we do not distribute required binaries and native modules
@@ -199,7 +199,6 @@ public class PutHDFSTest {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        runner.setValidateExpressionUsage(false);
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
@@ -232,7 +231,6 @@ public class PutHDFSTest {
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, "GZIP");
-        runner.setValidateExpressionUsage(false);
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
@@ -281,7 +279,6 @@ public class PutHDFSTest {
         });
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        runner.setValidateExpressionUsage(false);
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();

@@ -87,7 +87,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             });
             Map<String, Object> jmsHeaders = response.getMessageHeaders();
             flowFile = this.updateFlowFileAttributesWithJmsHeaders(jmsHeaders, flowFile, processSession);
-            processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).getValue());
+            processSession.getProvenanceReporter().receive(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             processSession.transfer(flowFile, REL_SUCCESS);
         } else {
             context.yield();
