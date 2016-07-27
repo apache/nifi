@@ -97,6 +97,7 @@ div.context-menu-provenance {
 #user-links-container {
     float: left;
     z-index: 1300;
+    margin-left: 20px;
 }
 
 .ellipsis {
