@@ -101,16 +101,16 @@ public class TransformXml extends AbstractProcessor {
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("cache-size")
             .displayName("Cache size")
-            .description("Maximum size of the stylesheet cache.")
+            .description("Maximum number of stylesheets to cache. Zero disables the cache.")
             .required(true)
             .defaultValue("100")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor CACHE_DURATION = new PropertyDescriptor.Builder()
-            .name("cache-duration")
-            .displayName("Cache duration")
-            .description("How long to keep stylesheets in the cache.")
+    public static final PropertyDescriptor CACHE_TTL_AFTER_LAST_ACCESS = new PropertyDescriptor.Builder()
+            .name("cache-ttl-after-last-access")
+            .displayName("Cache TTL after last access")
+            .description("How long to keep stylesheets in the cache after last access.")
             .required(true)
             .defaultValue("60 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -136,7 +136,7 @@ public class TransformXml extends AbstractProcessor {
         properties.add(XSLT_FILE_NAME);
         properties.add(INDENT_OUTPUT);
         properties.add(CACHE_SIZE);
-        properties.add(CACHE_DURATION);
+        properties.add(CACHE_TTL_AFTER_LAST_ACCESS);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -168,15 +168,18 @@ public class TransformXml extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final Long cacheSize = context.getProperty(CACHE_SIZE).asLong();
-        final Long cacheDuration = context.getProperty(CACHE_DURATION).asTimePeriod(TimeUnit.SECONDS);
+        final ComponentLog logger = getLogger();
+        final Integer cacheSize = context.getProperty(CACHE_SIZE).asInteger();
+        final Long cacheTTL = context.getProperty(CACHE_TTL_AFTER_LAST_ACCESS).asTimePeriod(TimeUnit.SECONDS);
 
-        CacheBuilder cacheBuilder = CacheBuilder.newBuilder();
-        if (cacheSize > 0) {
-            cacheBuilder = cacheBuilder.maximumSize(cacheSize);
-            if (cacheDuration > 0) {
-                cacheBuilder = cacheBuilder.expireAfterAccess(cacheDuration, TimeUnit.SECONDS);
-            }
+        CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
+
+        if (cacheSize <= 0) {
+            logger.warn("Stylesheet cache disabled because cache size is set to 0");
+        }
+
+        if (cacheSize > 0 && cacheTTL > 0) {
+            cacheBuilder = cacheBuilder.expireAfterAccess(cacheTTL, TimeUnit.SECONDS);
         }
 
         cache = cacheBuilder.build(
