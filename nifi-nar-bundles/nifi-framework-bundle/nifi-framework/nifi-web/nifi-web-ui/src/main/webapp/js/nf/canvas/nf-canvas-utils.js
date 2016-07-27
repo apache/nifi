@@ -517,7 +517,7 @@ nf.CanvasUtils = (function () {
 
                 // update the tooltip background
                 selection.select('text.bulletin-icon').style("visibility", "visible");
-                selection.select('rect.bulletin-background').style("visibility", "visible").classed('has-bulletins', true);
+                selection.select('rect.bulletin-background').style("visibility", "visible");
             } else {
                 // update the tooltip background
                 selection.select('text.bulletin-icon').style("visibility", "hidden");
