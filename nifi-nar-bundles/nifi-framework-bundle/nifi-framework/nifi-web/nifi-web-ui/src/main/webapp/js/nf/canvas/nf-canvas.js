@@ -118,6 +118,7 @@ nf.Canvas = (function () {
     var parentGroupId = null;
     var clustered = false;
     var connectedToCluster = false;
+    var configurableAuthorizer = false;
     var svg = null;
     var canvas = null;
 
@@ -884,6 +885,9 @@ nf.Canvas = (function () {
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
+                    // record whether we can configure the authorizer
+                    configurableAuthorizer = configDetails.supportsConfigurableAuthorizer;
+
                     // init storage
                     nf.Storage.init();
 
@@ -1006,6 +1010,13 @@ nf.Canvas = (function () {
          */
         getParentGroupId: function () {
             return parentGroupId;
+        },
+
+        /**
+         * Returns whether the authorizer is configurable.
+         */
+        isConfigurableAuthorizer: function () {
+            return configurableAuthorizer;
         },
 
         /**

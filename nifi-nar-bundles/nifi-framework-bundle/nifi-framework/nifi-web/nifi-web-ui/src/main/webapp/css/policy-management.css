@@ -133,7 +133,7 @@ div.policy-selected-component-name {
     color: #262626;
     width: 300px;
     text-overflow: ellipsis;
-    overflow-x: hidden;
+    overflow: hidden;
     white-space: nowrap;
 }
 

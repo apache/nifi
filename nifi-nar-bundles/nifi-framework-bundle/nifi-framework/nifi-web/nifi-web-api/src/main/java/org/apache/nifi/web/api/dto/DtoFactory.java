@@ -34,6 +34,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
@@ -199,6 +200,7 @@ public final class DtoFactory {
         // get the refresh interval
         final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
         dto.setAutoRefreshIntervalSeconds(refreshInterval);
+        dto.setSupportsConfigurableAuthorizer(authorizer instanceof AbstractPolicyBasedAuthorizer);
 
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
