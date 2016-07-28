@@ -67,36 +67,36 @@ public class ComponentIdGenerator {
      *
      */
     public final static UUID generateId(long currentTime) {
-        return generateId(currentTime, Math.abs(randomGenerator.nextInt()));
+        return generateId(currentTime, randomGenerator.nextLong());
     }
 
     /**
      *
      */
-    public final static UUID generateId(long currentTime, int lsbInt) {
+    public final static UUID generateId(long msb, long lsb) {
         long time;
 
         synchronized (lock) {
-            if (currentTime <= lastTime) {
-                currentTime = ++lastTime;
+            if (msb <= lastTime) {
+                msb = ++lastTime;
             }
-            lastTime = currentTime;
+            lastTime = msb;
         }
 
-        time = currentTime;
+        time = msb;
 
         // low Time
-        time = currentTime << 32;
+        time = msb << 32;
 
         // mid Time
-        time |= ((currentTime & 0xFFFF00000000L) >> 16);
+        time |= ((msb & 0xFFFF00000000L) >> 16);
 
         // hi Time
-        time |= 0x1000 | ((currentTime >> 48) & 0x0FFF);
+        time |= 0x1000 | ((msb >> 48) & 0x0FFF);
 
         long clockSequenceHi = clockSequence;
         clockSequenceHi <<= 48;
-        long lsb = clockSequenceHi | lsbInt;
+        lsb = clockSequenceHi | lsb;
         return new UUID(time, lsb);
     }
 }

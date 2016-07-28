@@ -797,7 +797,7 @@ public final class SnippetUtils {
 
         UUID uuid;
         if (StringUtils.isBlank(seed)) {
-            int lsb = Math.abs(randomGenerator.nextInt());
+            long lsb = randomGenerator.nextLong();
             if (isCopy) {
                 uuid = ComponentIdGenerator.generateId(msb, lsb);
             } else {
