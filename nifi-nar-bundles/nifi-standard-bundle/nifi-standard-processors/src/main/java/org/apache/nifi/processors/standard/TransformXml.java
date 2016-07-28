@@ -103,14 +103,14 @@ public class TransformXml extends AbstractProcessor {
             .displayName("Cache size")
             .description("Maximum number of stylesheets to cache. Zero disables the cache.")
             .required(true)
-            .defaultValue("100")
+            .defaultValue("10")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CACHE_TTL_AFTER_LAST_ACCESS = new PropertyDescriptor.Builder()
             .name("cache-ttl-after-last-access")
             .displayName("Cache TTL after last access")
-            .description("How long to keep stylesheets in the cache after last access.")
+            .description("The cache TTL (time-to-live) or how long to keep stylesheets in the cache after last access.")
             .required(true)
             .defaultValue("60 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -166,29 +166,33 @@ public class TransformXml extends AbstractProcessor {
                 .build();
     }
 
+    private Templates newTemplates(String path) throws TransformerConfigurationException {
+        TransformerFactory factory = TransformerFactory.newInstance();
+        return factory.newTemplates(new StreamSource(path));
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final ComponentLog logger = getLogger();
         final Integer cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final Long cacheTTL = context.getProperty(CACHE_TTL_AFTER_LAST_ACCESS).asTimePeriod(TimeUnit.SECONDS);
 
-        CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
+        if (cacheSize > 0) {
+            CacheBuilder cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
+            if (cacheTTL > 0) {
+                cacheBuilder = cacheBuilder.expireAfterAccess(cacheTTL, TimeUnit.SECONDS);
+            }
 
-        if (cacheSize <= 0) {
+            cache = cacheBuilder.build(
+               new CacheLoader<String, Templates>() {
+                   public Templates load(String path) throws TransformerConfigurationException {
+                       return newTemplates(path);
+                   }
+               });
+        } else {
+            cache = null;
             logger.warn("Stylesheet cache disabled because cache size is set to 0");
         }
-
-        if (cacheSize > 0 && cacheTTL > 0) {
-            cacheBuilder = cacheBuilder.expireAfterAccess(cacheTTL, TimeUnit.SECONDS);
-        }
-
-        cache = cacheBuilder.build(
-           new CacheLoader<String, Templates>() {
-               public Templates load(String path) throws TransformerConfigurationException {
-                   TransformerFactory factory = TransformerFactory.newInstance();
-                   return factory.newTemplates(new StreamSource(path));
-               }
-           });
     }
 
     @Override
@@ -210,7 +214,13 @@ public class TransformXml extends AbstractProcessor {
                 @Override
                 public void process(final InputStream rawIn, final OutputStream out) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        final Templates templates = cache.get(xsltFileName);
+                        final Templates templates;
+                        if (cache != null) {
+                            templates = cache.get(xsltFileName);
+                        } else {
+                            templates = newTemplates(xsltFileName);
+                        }
+
                         final Transformer transformer = templates.newTransformer();
                         transformer.setOutputProperty(OutputKeys.INDENT, (indentOutput ? "yes" : "no"));
 

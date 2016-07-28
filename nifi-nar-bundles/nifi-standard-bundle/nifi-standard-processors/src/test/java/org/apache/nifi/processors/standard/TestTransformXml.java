@@ -132,4 +132,20 @@ public class TestTransformXml {
         transformed.assertContentEquals(expectedContent);
     }
 
+    @Test
+    public void testTransformNoCache() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.CACHE_SIZE, "0");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
+    }
+
 }
