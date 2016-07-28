@@ -23,7 +23,6 @@ import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.details.FlowChangePurgeDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -999,7 +998,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 logger.debug("Deletion of component {} was successful", resourceIdentifier);
 
                 // clean up the policy if necessary and configured with a policy based authorizer
-                if (cleanUpPolicies && authorizer instanceof AbstractPolicyBasedAuthorizer) {
+                if (cleanUpPolicies && accessPolicyDAO.supportsConfigurableAuthorizer()) {
                     try {
                         // since the component is being deleted, also delete any relevant read access policies
                         final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(RequestAction.READ, resourceIdentifier);

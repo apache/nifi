@@ -24,6 +24,13 @@ import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 public interface AccessPolicyDAO {
 
     /**
+     * Whether or not NiFi supports a configurable authorizer.
+     *
+     * @return whether or not NiFi supports a configurable authorizer
+     */
+    boolean supportsConfigurableAuthorizer();
+
+    /**
      * @param accessPolicyId access policy ID
      * @return Determines if the specified access policy exists
      */
