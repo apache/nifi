@@ -99,8 +99,8 @@
                                 ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canConfigureOrOpenDetails())">
                             <div class="graph-control-action-icon fa fa-gear"></div></button>
                     </div>
-                    <div class="button-spacer-small">&nbsp;</div>
-                    <div id="operate-policy" class="action-button" title="Access Policies">
+                    <div class="button-spacer-small" ng-if="appCtrl.nf.Canvas.isConfigurableAuthorizer()">&nbsp;</div>
+                    <div id="operate-policy" class="action-button" title="Access Policies" ng-if="appCtrl.nf.Canvas.isConfigurableAuthorizer()">
                         <button ng-click="appCtrl.nf.Actions['managePolicies'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canManagePolicies())">
                             <div class="graph-control-action-icon fa fa-key"></div></button>

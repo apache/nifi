@@ -605,8 +605,10 @@ nf.ControllerServices = (function () {
                 }
             }
 
-            // TODO - only if we can adminster policies
-            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            // allow policy configuration conditionally
+            if (nf.Canvas.isConfigurableAuthorizer() && nf.Common.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            }
 
             return markup;
         };
