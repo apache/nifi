@@ -92,10 +92,19 @@ public class StandardSnippetDAO implements SnippetDAO {
                 org.apache.nifi.util.SnippetUtils.moveSnippet(snippetContents, originX, originY);
             }
 
-            // instantiate the snippet
-            flowController.instantiateSnippet(processGroup, snippetContents);
+            try {
+                // instantiate the snippet and return the contents
+                flowController.instantiateSnippet(processGroup, snippetContents);
+                return snippetContents;
+            } catch (IllegalStateException ise) {
+                // illegal state will be thrown from instantiateSnippet when there is an issue with the snippet _before_ any of the
+                // components are actually created. if we've received this exception we want to attempt to roll back any of the
+                // policies that we've already cloned for this request
+                snippetUtils.rollbackClonedPolicies(snippetContents);
 
-            return snippetContents;
+                // rethrow the same exception
+                throw ise;
+            }
         } catch (ProcessorInstantiationException pie) {
             throw new NiFiCoreException(String.format("Unable to copy snippet because processor type '%s' is unknown to this NiFi.",
                     StringUtils.substringAfterLast(pie.getMessage(), ".")));
