@@ -553,9 +553,6 @@ nf.Canvas = (function () {
                     // ctrl-c
                     if (nf.Canvas.canWrite() && nf.CanvasUtils.isCopyable(selection)) {
                         nf.Actions.copy(selection);
-
-                        // only want to prevent default if the action was performed, otherwise default copy would be overridden
-                        evt.preventDefault();
                     }
                 } else if (evt.keyCode === 86) {
                     // ctrl-v
