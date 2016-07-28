@@ -17,6 +17,10 @@
 
 package org.apache.nifi.cluster.protocol;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -24,12 +28,6 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
-import org.apache.nifi.security.util.CertificateUtils;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.security.cert.CertificateException;
 
 public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
     private final SocketConfiguration socketConfiguration;
@@ -45,8 +43,6 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         Socket socket = null;
         try {
             socket = createSocket();
-
-            String coordinatorDN = getCoordinatorDN(socket);
 
             try {
                 // marshal message to output stream
@@ -68,7 +64,6 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
 
             if (MessageType.CONNECTION_RESPONSE == response.getType()) {
                 final ConnectionResponseMessage connectionResponse = (ConnectionResponseMessage) response;
-                connectionResponse.setCoordinatorDN(coordinatorDN);
                 return connectionResponse;
             } else {
                 throw new ProtocolException("Expected message type '" + MessageType.CONNECTION_RESPONSE + "' but found '" + response.getType() + "'");
@@ -93,13 +88,6 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         sendProtocolMessage(msg, hostname, port);
     }
 
-    private String getCoordinatorDN(Socket socket) {
-        try {
-            return CertificateUtils.extractPeerDNFromSSLSocket(socket);
-        } catch (CertificateException e) {
-            throw new ProtocolException(e);
-        }
-    }
 
     private Socket createSocket() {
         InetSocketAddress socketAddress = null;

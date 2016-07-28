@@ -353,7 +353,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * true if controller is connected or trying to connect to the cluster
      */
     private boolean clustered;
-    private String clusterManagerDN;
 
     // guarded by rwLock
     private NodeConnectionStatus connectionStatus;
@@ -3307,32 +3306,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return configuredForClustering;
     }
 
-    /**
-     * @return the DN of the Cluster Manager that we are currently connected to,
-     * if available. This will return null if the instance is not clustered or
-     * if the instance is clustered but the NCM's DN is not available - for
-     * instance, if cluster communications are not secure
-     */
-    public String getClusterManagerDN() {
-        readLock.lock();
-        try {
-            return clusterManagerDN;
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    /**
-     * Sets whether this instance is clustered. Clustered means that a node is
-     * either connected or trying to connect to the cluster.
-     *
-     * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
-     */
-    public void setClustered(final boolean clustered, final String clusterInstanceId) {
-        setClustered(clustered, clusterInstanceId, null);
-    }
 
     private void registerForClusterCoordinator() {
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
@@ -3375,11 +3348,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * either connected or trying to connect to the cluster.
      *
      * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
-     * @param clusterManagerDn the DN of the NCM
+     * @param clusterInstanceId if clustered is true, indicates the InstanceID of the Cluster Manager
      */
-    public void setClustered(final boolean clustered, final String clusterInstanceId, final String clusterManagerDn) {
+    public void setClustered(final boolean clustered, final String clusterInstanceId) {
         writeLock.lock();
         try {
             // verify whether the this node's clustered status is changing
@@ -3396,9 +3367,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // mark the new cluster status
             this.clustered = clustered;
-            if (clusterManagerDn != null) {
-                this.clusterManagerDN = clusterManagerDn;
-            }
             eventDrivenWorkerQueue.setClustered(clustered);
 
             if (clusterInstanceId != null) {
