@@ -44,6 +44,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Divide
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EndsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.EqualsIgnoreCaseEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.CharSequenceTranslatorEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FindEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.FormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDelimitedFieldEvaluator;
@@ -93,7 +94,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUppe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.functions.EscapeJsonEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.NumberLiteralEvaluator;
@@ -193,6 +193,15 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_JSON;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_CSV;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_HTML3;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_HTML4;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ESCAPE_XML;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_JSON;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_CSV;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_HTML3;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_HTML4;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UNESCAPE_XML;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
@@ -924,9 +933,45 @@ public class Query {
                 verifyArgCount(argEvaluators, 0, "urlDecode");
                 return addToken(new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
             }
+            case ESCAPE_CSV: {
+                verifyArgCount(argEvaluators, 0, "escapeCsv");
+                return addToken(CharSequenceTranslatorEvaluator.csvEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case ESCAPE_HTML3: {
+                verifyArgCount(argEvaluators, 0, "escapeHtml3");
+                return addToken(CharSequenceTranslatorEvaluator.html3EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case ESCAPE_HTML4: {
+                verifyArgCount(argEvaluators, 0, "escapeHtml4");
+                return addToken(CharSequenceTranslatorEvaluator.html4EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
             case ESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "escapeJson");
-                return addToken(new EscapeJsonEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.jsonEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case ESCAPE_XML: {
+                verifyArgCount(argEvaluators, 0, "escapeXml");
+                return addToken(CharSequenceTranslatorEvaluator.xmlEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case UNESCAPE_CSV: {
+                verifyArgCount(argEvaluators, 0, "unescapeCsv");
+                return addToken(CharSequenceTranslatorEvaluator.csvUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case UNESCAPE_HTML3: {
+                verifyArgCount(argEvaluators, 0, "unescapeHtml3");
+                return addToken(CharSequenceTranslatorEvaluator.html3UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case UNESCAPE_HTML4: {
+                verifyArgCount(argEvaluators, 0, "unescapeHtml4");
+                return addToken(CharSequenceTranslatorEvaluator.html4UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case UNESCAPE_JSON: {
+                verifyArgCount(argEvaluators, 0, "unescapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.jsonUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+            }
+            case UNESCAPE_XML: {
+                verifyArgCount(argEvaluators, 0, "unescapeXml");
+                return addToken(CharSequenceTranslatorEvaluator.xmlUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
