@@ -612,6 +612,10 @@ public final class SnippetUtils {
      * @param idGenerationSeed id generation seed
      */
     private void cloneComponentSpecificPolicies(final Resource originalComponentResource, final Resource clonedComponentResource, final String idGenerationSeed) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         final Map<Resource, Resource> resources = new HashMap<>();
         resources.put(originalComponentResource, clonedComponentResource);
         resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
@@ -661,6 +665,10 @@ public final class SnippetUtils {
      * @param snippet snippet
      */
     public void rollbackClonedPolicies(final FlowSnippetDTO snippet) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         snippet.getControllerServices().forEach(controllerServiceDTO -> {
             rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.ControllerService, controllerServiceDTO.getId(), controllerServiceDTO.getName()));
         });
@@ -699,6 +707,10 @@ public final class SnippetUtils {
      * @param componentResource component resource
      */
     private void rollbackClonedPolicy(final Resource componentResource) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         final List<Resource> resources = new ArrayList<>();
         resources.add(componentResource);
         resources.add(ResourceFactory.getDataResource(componentResource));
