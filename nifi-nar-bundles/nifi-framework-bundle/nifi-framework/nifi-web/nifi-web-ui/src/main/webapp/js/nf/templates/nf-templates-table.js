@@ -283,10 +283,11 @@ nf.TemplatesTable = (function () {
                     markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
-                // if we in the shell
-                // TODO - only if we can adminster policies
-                if (top !== window) {
-                    markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                // allow policy configuration conditionally
+                if (top !== window && nf.Common.canAccessTenants()) {
+                    if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.Canvas) && parent.nf.Canvas.isConfigurableAuthorizer()) {
+                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                    }
                 }
 
                 return markup;

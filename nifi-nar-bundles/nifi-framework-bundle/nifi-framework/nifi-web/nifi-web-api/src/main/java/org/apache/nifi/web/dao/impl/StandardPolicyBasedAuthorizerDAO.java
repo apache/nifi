@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGroupDAO, UserDAO {
 
-    static final String MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER = "This NiFi is not configured to internally manage users, groups, and policies.  Please contact your system administrator.";
     private final AbstractPolicyBasedAuthorizer authorizer;
     private final boolean supportsConfigurableAuthorizer;
 

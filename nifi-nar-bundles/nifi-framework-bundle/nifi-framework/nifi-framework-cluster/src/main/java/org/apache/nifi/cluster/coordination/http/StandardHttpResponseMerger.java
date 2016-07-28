@@ -28,7 +28,9 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceRefe
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServicesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerStatusEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.CurrentUserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpiontMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowSnippetEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.GroupStatusEndpointMerger;
@@ -105,6 +107,8 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
+        endpointMergers.add(new CurrentUserEndpointMerger());
+        endpointMergers.add(new FlowConfigurationEndpointMerger());
         endpointMergers.add(new TemplatesEndpointMerger());
     }
 

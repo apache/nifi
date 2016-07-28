@@ -23,6 +23,7 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -37,6 +38,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.dao.AccessPolicyDAO;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -130,6 +132,11 @@ public class AccessPolicyResource extends ApplicationResource {
                     required = true
             ) @PathParam("resource") String rawResource) {
 
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
+
         // parse the action and resource type
         final RequestAction requestAction = RequestAction.valueOfValue(action);
         final String resource = "/" + rawResource;
@@ -188,6 +195,11 @@ public class AccessPolicyResource extends ApplicationResource {
                     value = "The access policy configuration details.",
                     required = true
             ) final AccessPolicyEntity accessPolicyEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (accessPolicyEntity == null || accessPolicyEntity.getComponent() == null) {
             throw new IllegalArgumentException("Access policy details must be specified.");
@@ -277,6 +289,11 @@ public class AccessPolicyResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
         }
@@ -334,6 +351,11 @@ public class AccessPolicyResource extends ApplicationResource {
                     value = "The access policy configuration details.",
                     required = true
             ) final AccessPolicyEntity accessPolicyEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (accessPolicyEntity == null || accessPolicyEntity.getComponent() == null) {
             throw new IllegalArgumentException("Access policy details must be specified.");
@@ -424,6 +446,11 @@ public class AccessPolicyResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String id) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
