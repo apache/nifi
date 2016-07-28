@@ -17,7 +17,8 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.apache.nifi.toolkit.tls.service.TlsCertificateSigningRequestPerformer;
+import org.apache.nifi.toolkit.tls.service.client.TlsCertificateSigningRequestPerformer;
+import org.apache.nifi.util.StringUtils;
 
 import java.security.NoSuchAlgorithmException;
 
@@ -26,6 +27,19 @@ public class TlsClientConfig extends TlsConfig {
     private String trustStore;
     private String trustStorePassword;
     private String trustStoreType = DEFAULT_KEY_STORE_TYPE;
+
+    public TlsClientConfig() {
+    }
+
+    public TlsClientConfig(TlsConfig tlsConfig) {
+        setToken(tlsConfig.getToken());
+        setCaHostname(tlsConfig.getCaHostname());
+        setPort(tlsConfig.getPort());
+        setKeyStoreType(tlsConfig.getKeyStoreType());
+        setTrustStoreType(tlsConfig.getKeyStoreType());
+        setTlsHelperConfig(new TlsHelperConfig(tlsConfig.getTlsHelperConfig()));
+    }
+
 
     public String getTrustStoreType() {
         return trustStoreType;
@@ -61,5 +75,13 @@ public class TlsClientConfig extends TlsConfig {
 
     public TlsCertificateSigningRequestPerformer createCertificateSigningRequestPerformer() throws NoSuchAlgorithmException {
         return new TlsCertificateSigningRequestPerformer(this);
+    }
+
+    @Override
+    public void initDefaults() {
+        super.initDefaults();
+        if (StringUtils.isEmpty(trustStoreType)) {
+            trustStoreType = DEFAULT_KEY_STORE_TYPE;
+        }
     }
 }

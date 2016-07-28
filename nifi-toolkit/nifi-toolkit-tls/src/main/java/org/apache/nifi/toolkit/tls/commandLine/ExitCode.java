@@ -15,43 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.commandLine;
 
-import org.apache.nifi.util.StringUtils;
-
-public class TlsCertificateAuthorityRequest {
-    private byte[] hmac;
-    private String csr;
-
-    public TlsCertificateAuthorityRequest() {
-    }
-
-    public TlsCertificateAuthorityRequest(byte[] hmac, String csr) {
-        this.hmac = hmac;
-        this.csr = csr;
-    }
-
-    public byte[] getHmac() {
-        return hmac;
-    }
-
-    public void setHmac(byte[] hmac) {
-        this.hmac = hmac;
-    }
-
-    public boolean hasHmac() {
-        return hmac != null && hmac.length > 0;
-    }
-
-    public String getCsr() {
-        return csr;
-    }
-
-    public void setCsr(String csr) {
-        this.csr = csr;
-    }
-
-    public boolean hasCsr() {
-        return !StringUtils.isEmpty(csr);
-    }
+public enum ExitCode {
+    SUCCESS,
+    HELP,
+    INVALID_ARGS,
+    SERVICE_ERROR,
+    ERROR_PARSING_COMMAND_LINE,
+    ERROR_GENERATING_CONFIG,
+    ERROR_SAME_KEY_AND_KEY_PASSWORD,
+    ERROR_INCORRECT_NUMBER_OF_PASSWORDS,
+    ERROR_PARSING_INT_ARG,
+    ERROR_TOKEN_ARG_EMPTY,
+    ERROR_READING_NIFI_PROPERTIES
 }

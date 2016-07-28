@@ -18,10 +18,12 @@
 package org.apache.nifi.toolkit.tls.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.toolkit.tls.TlsToolkitMain;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
+import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClient;
+import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService;
+import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -54,6 +56,7 @@ import java.security.cert.CertificateException;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.AdditionalMatchers.or;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -136,17 +139,17 @@ public class TlsCertificateAuthorityTest {
     }
 
     private void mockReturnOutputStream(OutputStreamFactory outputStreamFactory, File file, OutputStream outputStream) throws FileNotFoundException {
-        when(outputStreamFactory.create(eq(file))).thenReturn(outputStream).thenReturn(null);
+        when(outputStreamFactory.create(or(eq(file), eq(new File(file.getAbsolutePath()))))).thenReturn(outputStream).thenReturn(null);
     }
 
     @Test
     public void testClientGetCert() throws Exception {
         TlsCertificateAuthorityService tlsCertificateAuthorityService = null;
         try {
-            tlsCertificateAuthorityService = new TlsCertificateAuthorityService(serverConfigFile, inputStreamFactory, outputStreamFactory);
-            tlsCertificateAuthorityService.start();
-            TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(clientConfigFile, inputStreamFactory, outputStreamFactory);
-            tlsCertificateAuthorityClient.generateCertificateAndGetItSigned();
+            tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
+            tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath());
+            TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
+            tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath());
             validate();
         } finally {
             if (tlsCertificateAuthorityService != null) {
@@ -178,7 +181,7 @@ public class TlsCertificateAuthorityTest {
 
         KeyStore serverKeyStore = KeyStore.getInstance(serverConfig.getKeyStoreType());
         serverKeyStore.load(new ByteArrayInputStream(serverKeyStoreOutputStream.toByteArray()), serverConfig.getKeyStorePassword().toCharArray());
-        KeyStore.Entry serverKeyEntry = serverKeyStore.getEntry(TlsToolkitMain.NIFI_KEY, new KeyStore.PasswordProtection(serverConfig.getKeyPassword().toCharArray()));
+        KeyStore.Entry serverKeyEntry = serverKeyStore.getEntry(TlsToolkitStandalone.NIFI_KEY, new KeyStore.PasswordProtection(serverConfig.getKeyPassword().toCharArray()));
 
         assertTrue(serverKeyEntry instanceof KeyStore.PrivateKeyEntry);
         KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) serverKeyEntry;
@@ -196,7 +199,7 @@ public class TlsCertificateAuthorityTest {
 
         KeyStore clientKeyStore = KeyStore.getInstance(clientConfig.getKeyStoreType());
         clientKeyStore.load(new ByteArrayInputStream(clientKeyStoreOutputStream.toByteArray()), clientConfig.getKeyStorePassword().toCharArray());
-        KeyStore.Entry clientKeyStoreEntry = clientKeyStore.getEntry(TlsToolkitMain.NIFI_KEY, new KeyStore.PasswordProtection(clientConfig.getKeyPassword().toCharArray()));
+        KeyStore.Entry clientKeyStoreEntry = clientKeyStore.getEntry(TlsToolkitStandalone.NIFI_KEY, new KeyStore.PasswordProtection(clientConfig.getKeyPassword().toCharArray()));
 
         assertTrue(clientKeyStoreEntry instanceof KeyStore.PrivateKeyEntry);
         KeyStore.PrivateKeyEntry clientPrivateKeyEntry = (KeyStore.PrivateKeyEntry) clientKeyStoreEntry;
@@ -208,7 +211,7 @@ public class TlsCertificateAuthorityTest {
 
         KeyStore clientTrustStore = KeyStore.getInstance(clientConfig.getTrustStoreType());
         clientTrustStore.load(new ByteArrayInputStream(clientTrustStoreOutputStream.toByteArray()), clientConfig.getTrustStorePassword().toCharArray());
-        assertEquals(caCertificate, clientTrustStore.getCertificate(TlsToolkitMain.NIFI_CERT));
+        assertEquals(caCertificate, clientTrustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT));
     }
 
     private void assertPrivateAndPublicKeyMatch(PrivateKey privateKey, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {

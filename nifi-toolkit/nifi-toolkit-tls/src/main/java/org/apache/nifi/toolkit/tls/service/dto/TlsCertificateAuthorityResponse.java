@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.service.dto;
 
 import org.apache.nifi.util.StringUtils;
 

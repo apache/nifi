@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.tls.configuration;
 
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.apache.nifi.util.StringUtils;
 
 import java.security.NoSuchAlgorithmException;
 
@@ -101,5 +102,21 @@ public class TlsConfig {
 
     public TlsHelper createTlsHelper() throws NoSuchAlgorithmException {
         return new TlsHelper(getTlsHelperConfig());
+    }
+
+    public void initDefaults() {
+        if (port == 0) {
+            port = DEFAULT_PORT;
+        }
+        if (StringUtils.isEmpty(keyStoreType)) {
+            keyStoreType = DEFAULT_KEY_STORE_TYPE;
+        }
+        if (StringUtils.isEmpty(caHostname)) {
+            caHostname = DEFAULT_HOSTNAME;
+        }
+        if (tlsHelperConfig == null) {
+            tlsHelperConfig = new TlsHelperConfig();
+        }
+        tlsHelperConfig.initDefaults();
     }
 }

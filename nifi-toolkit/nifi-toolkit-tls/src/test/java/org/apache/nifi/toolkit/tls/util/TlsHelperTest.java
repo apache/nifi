@@ -17,7 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -39,7 +38,6 @@ import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -87,7 +85,7 @@ public class TlsHelperTest {
         try (PEMParser pemParser = new PEMParser(reader)) {
             Object object = pemParser.readObject();
             assertEquals(X509CertificateHolder.class, object.getClass());
-            return new JcaX509CertificateConverter().setProvider(TlsHelper.PROVIDER).getCertificate((X509CertificateHolder) object);
+            return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate((X509CertificateHolder) object);
         }
     }
 
@@ -163,11 +161,5 @@ public class TlsHelperTest {
         assertEquals(keyPairAlgorithm, x509Certificate.getPublicKey().getAlgorithm());
 
         x509Certificate.verify(issuerKeyPair.getPublic());
-    }
-
-    @Test
-    public void testCreateKeyStore() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, NoSuchProviderException {
-        KeyStore keyStore = tlsHelper.createKeyStore(TlsConfig.DEFAULT_KEY_STORE_TYPE);
-        assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, keyStore.getType());
     }
 }

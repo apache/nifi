@@ -15,19 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.commandLine;
+package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
+import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,17 +38,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class TlsToolkitCommandLine extends BaseCommandLine {
-    public static final int HELP_EXIT_CODE = 1;
-    public static final int ERROR_PARSING_COMMAND_LINE = 2;
-    public static final int ERROR_GENERATING_CONFIG = 5;
-    public static final int ERROR_SAME_KEY_AND_KEY_PASSWORD = 6;
-    public static final int ERROR_INCORRECT_NUMBER_OF_PASSWORDS = 7;
-    public static final int ERROR_READING_NIFI_PROPERTIES = 8;
-
-    public static final String DAYS_ARG = "days";
-    public static final String SIGNING_ALGORITHM_ARG = "signingAlgorithm";
-    public static final String KEY_STORE_TYPE_ARG = "keyStoreType";
+public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String OUTPUT_DIRECTORY_ARG = "outputDirectory";
     public static final String NIFI_PROPERTIES_FILE_ARG = "nifiPropertiesFile";
     public static final String KEY_STORE_PASSWORD_ARG = "keyStorePassword";
@@ -57,8 +50,7 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = new File(".").getAbsolutePath();
 
-    public static final String HEADER = new StringBuilder(System.lineSeparator()).append("Creates certificates and config files for nifi cluster.")
-            .append(System.lineSeparator()).append(System.lineSeparator()).toString();
+    public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
 
     private final PasswordUtil passwordUtil;
     private File baseDir;
@@ -69,14 +61,14 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
     private List<String> keyPasswords;
     private List<String> trustStorePasswords;
     private TlsHelperConfig tlsHelperConfig;
-    private String keyStoreType;
 
-    public TlsToolkitCommandLine(SecureRandom secureRandom) {
-        super(HEADER);
-        this.passwordUtil = new PasswordUtil(secureRandom);
-        addOptionWithArg("s", SIGNING_ALGORITHM_ARG, "Algorithm to use for signing certificates.", TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
-        addOptionWithArg("d", DAYS_ARG, "Number of days self signed certificate should be valid for.", TlsHelperConfig.DEFAULT_DAYS);
-        addOptionWithArg("t", KEY_STORE_TYPE_ARG, "The type of keyStores to generate.", TlsConfig.DEFAULT_KEY_STORE_TYPE);
+    public TlsToolkitStandaloneCommandLine() {
+        this(new PasswordUtil());
+    }
+
+    protected TlsToolkitStandaloneCommandLine(PasswordUtil passwordUtil) {
+        super(DESCRIPTION);
+        this.passwordUtil = passwordUtil;
         addOptionWithArg("o", OUTPUT_DIRECTORY_ARG, "The directory to output keystores, truststore, config files.", DEFAULT_OUTPUT_DIRECTORY);
         addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.", TlsConfig.DEFAULT_HOSTNAME);
         addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", "");
@@ -84,16 +76,33 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
         addOptionNoArg("R", SAME_KEY_AND_KEY_STORE_PASSWORD_ARG, "Use the same password for KeyStore and Key, only KeyStore password should be specified if autogenerate not desired.");
         addOptionWithArg("S", KEY_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
-        addOptionWithArg("T", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
+        addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
+    }
+
+    public static void main(String[] args) {
+        TlsHelper.addBouncyCastleProvider();
+        TlsToolkitStandaloneCommandLine tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine();
+        try {
+            tlsToolkitStandaloneCommandLine.parse(args);
+        } catch (CommandLineParseException e) {
+            System.exit(e.getExitCode());
+        }
+        try {
+            new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.getBaseDir(), tlsToolkitStandaloneCommandLine.createConfig(),
+                    tlsToolkitStandaloneCommandLine.getNiFiPropertiesWriterFactory(), tlsToolkitStandaloneCommandLine.getHostnames(), tlsToolkitStandaloneCommandLine.getKeyStorePasswords(),
+                    tlsToolkitStandaloneCommandLine.getKeyPasswords(), tlsToolkitStandaloneCommandLine.getTrustStorePasswords(), tlsToolkitStandaloneCommandLine.getHttpsPort());
+        } catch (Exception e) {
+            tlsToolkitStandaloneCommandLine.printUsage("Error creating generating tls configuration. (" + e.getMessage() + ")");
+            System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
+        }
+        System.exit(ExitCode.SUCCESS.ordinal());
     }
 
     @Override
     protected CommandLine doParse(String... args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
         int days = getIntValue(commandLine, DAYS_ARG, TlsHelperConfig.DEFAULT_DAYS);
-        String signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
-        keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, TlsConfig.DEFAULT_KEY_STORE_TYPE);
-        tlsHelperConfig = new TlsHelperConfig(days, getKeySize(), getKeyAlgorithm(), signingAlgorithm);
+        tlsHelperConfig = new TlsHelperConfig(days, getKeySize(), getKeyAlgorithm(), getSigningAlgorithm());
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
         hostnames = Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG, TlsConfig.DEFAULT_HOSTNAME).split(",")).map(String::trim).collect(Collectors.toList());
@@ -112,7 +121,7 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
                 niFiPropertiesWriterFactory = new NiFiPropertiesWriterFactory(new FileInputStream(nifiPropertiesFile));
             }
         } catch (IOException e) {
-            printUsageAndThrow("Unable to read nifi.properties from " + (StringUtils.isEmpty(nifiPropertiesFile) ? "classpath" : nifiPropertiesFile), ERROR_READING_NIFI_PROPERTIES);
+            printUsageAndThrow("Unable to read nifi.properties from " + (StringUtils.isEmpty(nifiPropertiesFile) ? "classpath" : nifiPropertiesFile), ExitCode.ERROR_READING_NIFI_PROPERTIES);
         }
         return commandLine;
     }
@@ -127,13 +136,13 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
         } else if (optionValues.length == numHosts) {
             return Arrays.stream(optionValues).collect(Collectors.toList());
         }
-        return printUsageAndThrow("Expected either 1 value or " + numHosts + " (the number of hostnames) values for " + arg, ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
+        return printUsageAndThrow("Expected either 1 value or " + numHosts + " (the number of hostnames) values for " + arg, ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
     }
 
     private List<String> getKeyPasswords(CommandLine commandLine, List<String> keyStorePasswords) throws CommandLineParseException {
         if (commandLine.hasOption(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG)) {
             if (commandLine.hasOption(KEY_PASSWORD_ARG)) {
-                return printUsageAndThrow(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG + " and " + KEY_PASSWORD_ARG + " arguments are mutually exclusive.", ERROR_SAME_KEY_AND_KEY_PASSWORD);
+                return printUsageAndThrow(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG + " and " + KEY_PASSWORD_ARG + " arguments are mutually exclusive.", ExitCode.ERROR_SAME_KEY_AND_KEY_PASSWORD);
             }
             return new ArrayList<>(keyStorePasswords);
         }
@@ -172,7 +181,17 @@ public class TlsToolkitCommandLine extends BaseCommandLine {
         return tlsHelperConfig;
     }
 
-    public String getKeyStoreType() {
-        return keyStoreType;
+    public TlsConfig createConfig() throws IOException {
+        TlsConfig tlsConfig = new TlsConfig();
+        tlsConfig.setCaHostname(getCertificateAuthorityHostname());
+        tlsConfig.setKeyStore("nifi-ca-" + KEYSTORE + getKeyStoreType().toLowerCase());
+        tlsConfig.setKeyStoreType(getKeyStoreType());
+        TlsHelperConfig tlsHelperConfig = new TlsHelperConfig();
+        tlsHelperConfig.setKeySize(getKeySize());
+        tlsHelperConfig.setKeyPairAlgorithm(getKeyAlgorithm());
+        tlsHelperConfig.setSigningAlgorithm(getSigningAlgorithm());
+        tlsHelperConfig.setDays(getDays());
+        tlsConfig.setTlsHelperConfig(tlsHelperConfig);
+        return tlsConfig;
     }
 }

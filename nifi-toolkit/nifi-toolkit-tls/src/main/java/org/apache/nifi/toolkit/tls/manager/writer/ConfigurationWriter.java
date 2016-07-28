@@ -15,29 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.util;
+package org.apache.nifi.toolkit.tls.manager.writer;
 
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Base64;
+import java.io.IOException;
 
-public class PasswordUtil {
-    private final SecureRandom secureRandom;
-
-    public PasswordUtil() {
-        this(new SecureRandom());
-    }
-
-    public PasswordUtil(SecureRandom secureRandom) {
-        this.secureRandom = secureRandom;
-    }
-
-    public String generatePassword() {
-        // [see http://stackoverflow.com/questions/41107/how-to-generate-a-random-alpha-numeric-string#answer-41156]
-        String string = Base64.getEncoder().encodeToString(new BigInteger(256, secureRandom).toByteArray());
-        while (string.endsWith("=")) {
-            string = string.substring(0, string.length() - 1);
-        }
-        return string;
-    }
+public interface ConfigurationWriter<T> {
+    void write(T t) throws IOException;
 }

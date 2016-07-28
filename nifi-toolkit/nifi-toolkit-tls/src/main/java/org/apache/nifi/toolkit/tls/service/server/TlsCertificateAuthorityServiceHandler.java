@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.input.BoundedReader;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Request;
@@ -30,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 
 /**
@@ -58,19 +61,20 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
         try {
             TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = objectMapper.readValue(new BoundedReader(request.getReader(), 1024 * 1024), TlsCertificateAuthorityRequest.class);
 
-            if (!tlsCertificateAuthorityRequest.hasCsr()) {
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(CSR_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
-                return;
-            }
-
             if (!tlsCertificateAuthorityRequest.hasHmac()) {
                 writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(HMAC_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
                 return;
             }
 
-            JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = tlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
+            if (!tlsCertificateAuthorityRequest.hasCsr()) {
+                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(CSR_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
+                return;
+            }
 
-            if (tlsHelper.checkHMac(tlsCertificateAuthorityRequest.getHmac(), token, jcaPKCS10CertificationRequest.getPublicKey())) {
+            JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = tlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
+            byte[] expectedHmac = tlsHelper.calculateHMac(token, jcaPKCS10CertificationRequest.getPublicKey());
+
+            if (MessageDigest.isEqual(expectedHmac, tlsCertificateAuthorityRequest.getHmac())) {
                 X509Certificate x509Certificate = tlsHelper.signCsr(jcaPKCS10CertificationRequest, this.caCert, keyPair);
                 writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(tlsHelper.calculateHMac(token, caCert.getPublicKey()),
                         tlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);
@@ -80,7 +84,7 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
                 return;
             }
         } catch (Exception e) {
-            throw new ServletException(e);
+            throw new ServletException("Server error");
         } finally {
             baseRequest.setHandled(true);
         }

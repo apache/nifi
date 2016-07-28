@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -37,13 +38,13 @@ public class PasswordUtilTest {
         int value = 8675309;
         doAnswer(invocation -> {
             byte[] bytes = (byte[]) invocation.getArguments()[0];
-            assertEquals(128, bytes.length);
+            assertEquals(32, bytes.length);
             Arrays.fill(bytes, (byte) 0);
             byte[] val = ByteBuffer.allocate(Long.BYTES).putLong(value).array();
             System.arraycopy(val, 0, bytes, bytes.length - val.length, val.length);
             return null;
         }).when(secureRandom).nextBytes(any(byte[].class));
-        String expected = BigInteger.valueOf(Integer.valueOf(value).longValue()).toString(36);
+        String expected = Base64.getEncoder().encodeToString(BigInteger.valueOf(Integer.valueOf(value).longValue()).toByteArray()).split("=")[0];
         String actual = passwordUtil.generatePassword();
         assertEquals(expected, actual);
     }

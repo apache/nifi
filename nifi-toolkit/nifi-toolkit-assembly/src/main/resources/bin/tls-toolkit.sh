@@ -110,21 +110,8 @@ run() {
    export JAVA_HOME="$JAVA_HOME"
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
 
-   if [ "$1" = "start" ]; then
-     echo "Starting NiFi CA server"
-     rm "$3" "$4"
-     nohup "${JAVA}" -cp "${CLASSPATH}" -Xms12m -Xmx24m org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityService ${@:5} > "$3" 2> "$4" < /dev/null &
-     echo $! > "$2"
-
-     #Want to wait until Jetty starts
-     #See http://superuser.com/questions/270529/monitoring-a-file-until-a-string-is-found#answer-900134
-     ( tail -f -n +1 "$3" & ) | timeout 180 grep -q "Server Started"
-   elif [ "$1" = "run" ]; then
-     "${JAVA}" -cp "${CLASSPATH}" -Xms12m -Xmx24m org.apache.nifi.toolkit.tls.service.TlsCertificateAuthorityService ${@:2}
-   else
-     echo "Expected first argument to be the command (start or run)"
-     exit 1
-   fi
+   umask 0177
+   "${JAVA}" -cp "${CLASSPATH}" -Xms12m -Xmx24m org.apache.nifi.toolkit.tls.TlsToolkitMain "$@"
    return $?
 }
 

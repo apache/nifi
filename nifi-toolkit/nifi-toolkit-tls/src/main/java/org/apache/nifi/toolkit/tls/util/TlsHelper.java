@@ -18,13 +18,10 @@
 package org.apache.nifi.toolkit.tls.util;
 
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.toolkit.tls.commandLine.TlsToolkitCommandLine;
 import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.crmf.CRMFException;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.eac.EACException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
@@ -43,39 +40,21 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Security;
-import java.security.SignatureException;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
 
 public class TlsHelper {
-    public static final String PROVIDER = BouncyCastleProvider.PROVIDER_NAME;
-    public static final String PKCS12 = "PKCS12";
     private final KeyPairGenerator keyPairGenerator;
     private final int days;
     private final String signingAlgorithm;
 
     public TlsHelper(TlsHelperConfig tlsHelperConfig) throws NoSuchAlgorithmException {
-        this(tlsHelperConfig.getDays(), tlsHelperConfig.getKeySize(), tlsHelperConfig.getKeyPairAlgorithm(), tlsHelperConfig.getSigningAlgorithm());
-    }
-
-    public TlsHelper(TlsToolkitCommandLine tlsToolkitCommandLine) throws NoSuchAlgorithmException {
-        this(tlsToolkitCommandLine.getTlsHelperConfig());
-    }
-
-    public TlsHelper(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm) throws NoSuchAlgorithmException {
-        this(createKeyPairGenerator(keyPairAlgorithm, keySize), days, signingAlgorithm);
+        this(createKeyPairGenerator(tlsHelperConfig.getKeyPairAlgorithm(), tlsHelperConfig.getKeySize()), tlsHelperConfig.getDays(), tlsHelperConfig.getSigningAlgorithm());
     }
 
     protected TlsHelper(KeyPairGenerator keyPairGenerator, int days, String signingAlgorithm) {
@@ -98,21 +77,6 @@ public class TlsHelper {
         return keyPairGenerator.generateKeyPair();
     }
 
-    public void addToKeyStore(KeyStore keyStore, KeyPair keyPair, String alias, char[] passphrase, Certificate... certificates) throws GeneralSecurityException, IOException {
-        keyStore.setKeyEntry(alias, keyPair.getPrivate(), passphrase, certificates);
-    }
-
-    public KeyStore createKeyStore(String keyStoreType) throws KeyStoreException, CertificateException, NoSuchAlgorithmException, IOException, NoSuchProviderException {
-        KeyStore keyStore;
-        if (PKCS12.equals(keyStoreType)) {
-            keyStore = KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
-        } else {
-            keyStore = KeyStore.getInstance(keyStoreType);
-        }
-        keyStore.load(null, null);
-        return keyStore;
-    }
-
     public X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn) throws CertificateException {
         return CertificateUtils.generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, days);
     }
@@ -127,18 +91,13 @@ public class TlsHelper {
         return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
 
-    public X509Certificate signCsr(JcaPKCS10CertificationRequest certificationRequest, X509Certificate issuer, KeyPair issuerKeyPair) throws InvalidKeySpecException, EACException,
-            CertificateException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, InvalidKeyException, OperatorCreationException, CRMFException {
+    public X509Certificate signCsr(JcaPKCS10CertificationRequest certificationRequest, X509Certificate issuer, KeyPair issuerKeyPair) throws GeneralSecurityException {
         return generateIssuedCertificate(certificationRequest.getSubject().toString(), certificationRequest.getPublicKey(), issuer, issuerKeyPair);
     }
 
-    public boolean checkHMac(byte[] hmac, String token, PublicKey publicKey) throws CRMFException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException {
-        return MessageDigest.isEqual(hmac, calculateHMac(token, publicKey));
-    }
-
-    public byte[] calculateHMac(String token, PublicKey publicKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException {
+    public byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
         SecretKeySpec keySpec = new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "RAW");
-        Mac mac = Mac.getInstance("Hmac-SHA256", PROVIDER);
+        Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
     }

@@ -15,29 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.util;
+package org.apache.nifi.toolkit.tls.service.dto;
 
-import java.math.BigInteger;
-import java.security.SecureRandom;
-import java.util.Base64;
+import org.apache.nifi.util.StringUtils;
 
-public class PasswordUtil {
-    private final SecureRandom secureRandom;
+public class TlsCertificateAuthorityRequest {
+    private byte[] hmac;
+    private String csr;
 
-    public PasswordUtil() {
-        this(new SecureRandom());
+    public TlsCertificateAuthorityRequest() {
     }
 
-    public PasswordUtil(SecureRandom secureRandom) {
-        this.secureRandom = secureRandom;
+    public TlsCertificateAuthorityRequest(byte[] hmac, String csr) {
+        this.hmac = hmac;
+        this.csr = csr;
     }
 
-    public String generatePassword() {
-        // [see http://stackoverflow.com/questions/41107/how-to-generate-a-random-alpha-numeric-string#answer-41156]
-        String string = Base64.getEncoder().encodeToString(new BigInteger(256, secureRandom).toByteArray());
-        while (string.endsWith("=")) {
-            string = string.substring(0, string.length() - 1);
-        }
-        return string;
+    public byte[] getHmac() {
+        return hmac;
+    }
+
+    public void setHmac(byte[] hmac) {
+        this.hmac = hmac;
+    }
+
+    public boolean hasHmac() {
+        return hmac != null && hmac.length > 0;
+    }
+
+    public String getCsr() {
+        return csr;
+    }
+
+    public void setCsr(String csr) {
+        this.csr = csr;
+    }
+
+    public boolean hasCsr() {
+        return !StringUtils.isEmpty(csr);
     }
 }

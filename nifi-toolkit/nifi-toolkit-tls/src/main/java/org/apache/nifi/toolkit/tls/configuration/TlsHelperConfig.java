@@ -17,8 +17,10 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
+import org.apache.nifi.util.StringUtils;
+
 public class TlsHelperConfig {
-    public static final int DEFAULT_DAYS = 365;
+    public static final int DEFAULT_DAYS = 3 * 365;
     public static final int DEFAULT_KEY_SIZE = 2048;
     public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";
     public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA";
@@ -29,6 +31,10 @@ public class TlsHelperConfig {
     private String signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
 
     public TlsHelperConfig() {
+    }
+
+    public TlsHelperConfig(TlsHelperConfig other) {
+        this(other.days, other.keySize, other.keyPairAlgorithm, other.signingAlgorithm);
     }
 
     public TlsHelperConfig(int days, int keySize, String keyPairAlgorithm, String signingAlgorithm) {
@@ -68,5 +74,20 @@ public class TlsHelperConfig {
 
     public void setSigningAlgorithm(String signingAlgorithm) {
         this.signingAlgorithm = signingAlgorithm;
+    }
+
+    public void initDefaults() {
+        if (days == 0) {
+            days = DEFAULT_DAYS;
+        }
+        if (keySize == 0) {
+            keySize = DEFAULT_KEY_SIZE;
+        }
+        if (StringUtils.isEmpty(keyPairAlgorithm)) {
+            keyPairAlgorithm = DEFAULT_KEY_PAIR_ALGORITHM;
+        }
+        if (StringUtils.isEmpty(signingAlgorithm)) {
+            signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
+        }
     }
 }

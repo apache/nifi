@@ -15,17 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.service.client;
 
-import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
+import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
+import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -48,17 +49,17 @@ public class TlsCertificateAuthorityClientCommandLineTest {
             tlsCertificateAuthorityClientCommandLine.parse(new String[0]);
             fail("Expected failure with no token argument");
         } catch (CommandLineParseException e) {
-            assertEquals(TlsCertificateAuthorityClientCommandLine.ERROR_TOKEN_ARG_EMPTY, e.getExitCode());
+            assertEquals(ExitCode.ERROR_TOKEN_ARG_EMPTY.ordinal(), e.getExitCode());
         }
     }
 
     @Test
-    public void testDefaults() throws CommandLineParseException {
+    public void testDefaults() throws CommandLineParseException, IOException {
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken);
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        assertEquals(TlsCertificateSigningRequestPerformer.getDn(TlsConfig.DEFAULT_HOSTNAME), clientConfig.getDn());
+        Assert.assertEquals(TlsCertificateSigningRequestPerformer.getDn(TlsConfig.DEFAULT_HOSTNAME), clientConfig.getDn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsCertificateAuthorityClientCommandLine.PKCS_12.toLowerCase(), clientConfig.getKeyStore());
         assertEquals(TlsCertificateAuthorityClientCommandLine.PKCS_12, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());
@@ -70,8 +71,8 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         assertEquals(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM, clientConfig.getTlsHelperConfig().getKeyPairAlgorithm());
         assertEquals(testToken, clientConfig.getToken());
         assertEquals(TlsConfig.DEFAULT_PORT, clientConfig.getPort());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigFile());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CERTIFICATE_FILE, tlsCertificateAuthorityClientCommandLine.getCertificateFile());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigJson());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CERTIFICATE_DIRECTORY, tlsCertificateAuthorityClientCommandLine.getCertificateDirectory());
     }
 
     @Test
@@ -94,33 +95,33 @@ public class TlsCertificateAuthorityClientCommandLineTest {
             tlsCertificateAuthorityClientCommandLine.parse("-h");
             fail("Expected exception");
         } catch (CommandLineParseException e) {
-            assertEquals(BaseCommandLine.HELP_EXIT_CODE, e.getExitCode());
+            assertEquals(ExitCode.HELP.ordinal(), e.getExitCode());
         }
     }
 
     @Test
-    public void testCaHostname() throws CommandLineParseException {
+    public void testCaHostname() throws CommandLineParseException, IOException {
         String testCaHostname = "testCaHostname";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-c", testCaHostname);
         assertEquals(testCaHostname, tlsCertificateAuthorityClientCommandLine.createClientConfig().getCaHostname());
     }
 
     @Test
-    public void testDn() throws CommandLineParseException {
+    public void testDn() throws CommandLineParseException, IOException {
         String testDn = "testDn";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-d", testDn);
         assertEquals(testDn, tlsCertificateAuthorityClientCommandLine.createClientConfig().getDn());
     }
 
     @Test
-    public void testPort() throws CommandLineParseException {
+    public void testPort() throws CommandLineParseException, IOException {
         int testPort = 2345;
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-p", Integer.toString(testPort));
         assertEquals(testPort, tlsCertificateAuthorityClientCommandLine.createClientConfig().getPort());
     }
 
     @Test
-    public void testKeyStoreType() throws CommandLineParseException {
+    public void testKeyStoreType() throws CommandLineParseException, IOException {
         String testType = "testType";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-T", testType);
 
@@ -135,13 +136,13 @@ public class TlsCertificateAuthorityClientCommandLineTest {
     public void testConfigFile() throws CommandLineParseException {
         String testPath = "/1/2/3/4";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-f", testPath);
-        assertEquals(new File(testPath), tlsCertificateAuthorityClientCommandLine.getConfigFile());
+        assertEquals(testPath, tlsCertificateAuthorityClientCommandLine.getConfigJson());
     }
 
     @Test
     public void testCertificateFile() throws CommandLineParseException {
         String testCertificateFile = "testCertificateFile";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-C", testCertificateFile);
-        assertEquals(testCertificateFile, tlsCertificateAuthorityClientCommandLine.getCertificateFile());
+        assertEquals(testCertificateFile, tlsCertificateAuthorityClientCommandLine.getCertificateDirectory());
     }
 }

@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls;
+package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.nifi.toolkit.tls.commandLine.TlsToolkitCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
+import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
@@ -47,7 +48,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-public class TlsToolkitMainTest {
+public class TlsToolkitStandaloneTest {
     public static final String NIFI_FAKE_PROPERTY = "nifi.fake.property";
     public static final String FAKE_VALUE = "fake value";
     public static final String TEST_NIFI_PROPERTIES = "src/test/resources/localhost/nifi.properties";
@@ -95,13 +96,13 @@ public class TlsToolkitMainTest {
 
     @Test
     public void testBadParse() {
-        runAndAssertExitCode(TlsToolkitCommandLine.ERROR_PARSING_COMMAND_LINE, "--unknownArgument");
+        runAndAssertExitCode(ExitCode.ERROR_PARSING_COMMAND_LINE.ordinal(), "--unknownArgument");
     }
 
     @Test
     public void testHelp() {
-        runAndAssertExitCode(TlsToolkitCommandLine.HELP_EXIT_CODE, "-h");
-        runAndAssertExitCode(TlsToolkitCommandLine.HELP_EXIT_CODE, "--help");
+        runAndAssertExitCode(ExitCode.HELP.ordinal(), "-h");
+        runAndAssertExitCode(ExitCode.HELP.ordinal(), "--help");
     }
 
     @Test
@@ -169,7 +170,7 @@ public class TlsToolkitMainTest {
     @Test
     public void testTrustStorePasswordArg() throws Exception {
         String testTrustStore = "testTrustStore";
-        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-T", testTrustStore);
+        runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-P", testTrustStore);
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
@@ -177,12 +178,12 @@ public class TlsToolkitMainTest {
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
-        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitMain.ROOT_CERT_PRIVATE_KEY));
+        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_PRIVATE_KEY));
 
         assertEquals(algorithm, keyPair.getPrivate().getAlgorithm());
         assertEquals(algorithm, keyPair.getPublic().getAlgorithm());
 
-        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitMain.ROOT_CERT_CRT));
+        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_CRT));
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
         return x509Certificate;
     }
@@ -190,7 +191,7 @@ public class TlsToolkitMainTest {
     private Properties checkHostDirAndReturnNifiProperties(String hostname, X509Certificate rootCert) throws Exception {
         File hostDir = new File(tempDir, hostname);
         Properties nifiProperties = new Properties();
-        try (InputStream inputStream = new FileInputStream(new File(hostDir, TlsToolkitMain.NIFI_PROPERTIES))) {
+        try (InputStream inputStream = new FileInputStream(new File(hostDir, TlsToolkitStandalone.NIFI_PROPERTIES))) {
             nifiProperties.load(inputStream);
         }
 
@@ -200,21 +201,22 @@ public class TlsToolkitMainTest {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }
 
-        Certificate certificate = trustStore.getCertificate(TlsToolkitMain.NIFI_CERT);
+        Certificate certificate = trustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT);
         assertEquals(rootCert, certificate);
 
         String keyStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-        String keyStoreFilename = hostDir.getName() + "." + keyStoreType;
-        assertEquals("./conf/" + keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+        String keyStoreFilename = BaseCommandLine.KEYSTORE + keyStoreType;
+        File keyStoreFile = new File(hostDir, keyStoreFilename);
+        assertEquals(keyStoreFile.getAbsolutePath(), nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-        try (InputStream inputStream = new FileInputStream(new File(hostDir, keyStoreFilename))) {
+        try (InputStream inputStream = new FileInputStream(keyStoreFile)) {
             keyStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray());
         }
 
         char[] keyPassword = nifiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray();
 
-        KeyStore.Entry entry = keyStore.getEntry(TlsToolkitMain.NIFI_KEY, new KeyStore.PasswordProtection(keyPassword));
+        KeyStore.Entry entry = keyStore.getEntry(TlsToolkitStandalone.NIFI_KEY, new KeyStore.PasswordProtection(keyPassword));
         assertEquals(KeyStore.PrivateKeyEntry.class, entry.getClass());
 
         KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) entry;
@@ -230,7 +232,7 @@ public class TlsToolkitMainTest {
 
     private void runAndAssertExitCode(int exitCode, String... args) {
         try {
-            TlsToolkitMain.main(args);
+            TlsToolkitStandaloneCommandLine.main(args);
             fail("Expecting exit code: " + exitCode);
         } catch (ExitException e) {
             assertEquals(exitCode, e.getExitCode());

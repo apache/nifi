@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
+import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityServiceHandler;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.cert.crmf.CRMFException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
@@ -39,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -148,8 +152,8 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     }
 
     @Test
-    public void testSuccess() throws IOException, ServletException, NoSuchAlgorithmException, CRMFException, NoSuchProviderException, InvalidKeyException {
-        when(tlsHelper.checkHMac(testHmac, testToken, certificateRequestPublicKey)).thenReturn(true);
+    public void testSuccess() throws IOException, ServletException, GeneralSecurityException, CRMFException {
+        when(tlsHelper.calculateHMac(testToken, certificateRequestPublicKey)).thenReturn(testHmac);
         tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(testHmac, testPemEncodedCsr);
         tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
         assertEquals(Response.SC_OK, statusCode);

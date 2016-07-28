@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.toolkit.tls.service;
+package org.apache.nifi.toolkit.tls.service.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpHost;
@@ -26,6 +26,8 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
@@ -166,10 +168,10 @@ public class TlsCertificateSigningRequestPerformerTest {
     @Test
     public void testOk() throws Exception {
         certificates.add(caCertificate);
-        when(tlsHelper.checkHMac(testHmac, testToken, caCertificatePublicKey)).thenReturn(true);
+        when(tlsHelper.calculateHMac(testToken, caCertificatePublicKey)).thenReturn(testHmac);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(testHmac, testSignedCsr);
-        tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+        tlsCertificateSigningRequestPerformer.perform(keyPair);
     }
 
     @Test
@@ -177,7 +179,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         statusCode = Response.SC_FORBIDDEN;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertTrue(e.getMessage().startsWith(TlsCertificateSigningRequestPerformer.RECEIVED_RESPONSE_CODE + statusCode));
@@ -189,7 +191,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
@@ -203,7 +205,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse();
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_ONE_CERTIFICATE, e.getMessage());
@@ -216,7 +218,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(null, testSignedCsr);
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_HMAC, e.getMessage());
@@ -229,7 +231,7 @@ public class TlsCertificateSigningRequestPerformerTest {
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(testHmac, testSignedCsr);
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertEquals(TlsCertificateSigningRequestPerformer.UNEXPECTED_HMAC_RECEIVED_POSSIBLE_MAN_IN_THE_MIDDLE, e.getMessage());
@@ -239,11 +241,11 @@ public class TlsCertificateSigningRequestPerformerTest {
     @Test
     public void testNoCertificate() throws Exception {
         certificates.add(caCertificate);
-        when(tlsHelper.checkHMac(testHmac, testToken, caCertificatePublicKey)).thenReturn(true);
+        when(tlsHelper.calculateHMac(testToken, caCertificatePublicKey)).thenReturn(testHmac);
         statusCode = Response.SC_OK;
         tlsCertificateAuthorityResponse = new TlsCertificateAuthorityResponse(testHmac, null);
         try {
-            tlsCertificateSigningRequestPerformer.perform(objectMapper, keyPair);
+            tlsCertificateSigningRequestPerformer.perform(keyPair);
             fail("Expected IOE");
         } catch (IOException e) {
             assertEquals(TlsCertificateSigningRequestPerformer.EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE, e.getMessage());
