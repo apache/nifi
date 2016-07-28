@@ -1315,7 +1315,7 @@ public class TestQuery {
     }
 
     @Test
-    public void testEscapeJson() {
+    public void testEscapeFunctions() {
         final Map<String, String> attributes = new HashMap<>();
 
         attributes.put("string", "making air \"QUOTES\".");
