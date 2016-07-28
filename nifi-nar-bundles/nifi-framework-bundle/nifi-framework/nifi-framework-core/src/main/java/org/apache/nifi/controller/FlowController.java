@@ -16,7 +16,38 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -183,10 +214,10 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
-import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -208,37 +239,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.Objects.requireNonNull;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -352,7 +353,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * true if controller is connected or trying to connect to the cluster
      */
     private boolean clustered;
-    private String clusterManagerDN;
 
     // guarded by rwLock
     private NodeConnectionStatus connectionStatus;
@@ -3332,32 +3332,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return configuredForClustering;
     }
 
-    /**
-     * @return the DN of the Cluster Manager that we are currently connected to,
-     * if available. This will return null if the instance is not clustered or
-     * if the instance is clustered but the NCM's DN is not available - for
-     * instance, if cluster communications are not secure
-     */
-    public String getClusterManagerDN() {
-        readLock.lock();
-        try {
-            return clusterManagerDN;
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    /**
-     * Sets whether this instance is clustered. Clustered means that a node is
-     * either connected or trying to connect to the cluster.
-     *
-     * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
-     */
-    public void setClustered(final boolean clustered, final String clusterInstanceId) {
-        setClustered(clustered, clusterInstanceId, null);
-    }
 
     private void registerForClusterCoordinator() {
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
@@ -3400,11 +3374,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * either connected or trying to connect to the cluster.
      *
      * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
-     * @param clusterManagerDn the DN of the NCM
+     * @param clusterInstanceId if clustered is true, indicates the InstanceID of the Cluster Manager
      */
-    public void setClustered(final boolean clustered, final String clusterInstanceId, final String clusterManagerDn) {
+    public void setClustered(final boolean clustered, final String clusterInstanceId) {
         writeLock.lock();
         try {
             // verify whether the this node's clustered status is changing
@@ -3421,9 +3393,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             // mark the new cluster status
             this.clustered = clustered;
-            if (clusterManagerDn != null) {
-                this.clusterManagerDN = clusterManagerDn;
-            }
             eventDrivenWorkerQueue.setClustered(clustered);
 
             if (clusterInstanceId != null) {

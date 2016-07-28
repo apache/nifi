@@ -107,7 +107,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final FlowConfigurationDAO dao;
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
-    private final StringEncryptor encryptor;
     private final Authorizer authorizer;
 
     // Lock is used to protect the flow.xml file.
@@ -175,7 +174,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final Authorizer authorizer) throws IOException {
 
         this.controller = controller;
-        this.encryptor = encryptor;
         flowXml = Paths.get(properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
 
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
@@ -520,6 +518,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             disconnectionCode = DisconnectionCode.STARTUP_FAILURE;
         }
         clusterCoordinator.disconnectionRequestedByNode(getNodeId(), disconnectionCode, ex.toString());
+        controller.setClustered(false, null);
     }
 
     private FlowResponseMessage handleFlowRequest(final FlowRequestMessage request) throws ProtocolException {
@@ -587,7 +586,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
                 request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
 
-            connectionResponse.setCoordinatorDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
 
             clusterCoordinator.resetNodeStatuses(connectionResponse.getNodeConnectionStatuses().stream()
@@ -849,7 +847,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             revisionManager.reset(response.getComponentRevisions().stream().map(rev -> rev.toRevision()).collect(Collectors.toList()));
 
             // mark the node as clustered
-            controller.setClustered(true, response.getInstanceId(), response.getCoordinatorDN());
+            controller.setClustered(true, response.getInstanceId());
 
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
             final Set<String> roles = status == null ? Collections.emptySet() : status.getRoles();
