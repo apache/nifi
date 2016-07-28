@@ -18,12 +18,18 @@
 <div id="history">
     <div id="history-header-text">NiFi History</div>
     <div id="history-filter-container">
-        <div id="history-filter-overview">
-            A filter has been applied.&nbsp;
-            <span id="clear-history-filter" class="link">Clear filter</span>
+        <div id="cluster-history-message" class="hidden">
+            Viewing history for the current node only. Browse to another node to view its history.
         </div>
-        <button id="history-filter-button" title="Filter History" class="fa fa-filter"></button>
-        <button id="history-purge-button" title="Purge History" class="fa fa-eraser hidden"></button>
+        <div style="float: right">
+            <div id="history-filter-overview">
+                A filter has been applied.&nbsp;
+                <span id="clear-history-filter" class="link">Clear filter</span>
+            </div>
+            <button id="history-filter-button" title="Filter History" class="fa fa-filter"></button>
+            <button id="history-purge-button" title="Purge History" class="fa fa-eraser hidden"></button>
+        </div>
+        <div class="clear"></div>
     </div>
     <div id="history-table"></div>
 </div>
