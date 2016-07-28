@@ -151,7 +151,7 @@ nf.Birdseye = (function () {
         $.each(components.labels, function (_, d) {
             var color = nf.Label.defaultColor();
 
-            if (d.accessPolicy.canRead) {
+            if (d.permissions.canRead) {
                 // use the specified color if appropriate
                 if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];
@@ -189,7 +189,7 @@ nf.Birdseye = (function () {
         $.each(components.processors, function (_, d) {
             var color = '#dde4eb';
 
-            if (d.accessPolicy.canRead) {
+            if (d.permissions.canRead) {
                 // use the specified color if appropriate
                 if (nf.Common.isDefinedAndNotNull(d.component.style['background-color'])) {
                     color = d.component.style['background-color'];

@@ -98,7 +98,7 @@ nf.ProcessorConfiguration = (function () {
 
             nf.Dialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Configuration Error'
+                headerText: 'Processor Configuration'
             });
         } else {
             nf.Common.handleAjaxError(xhr, status, error);
@@ -358,7 +358,7 @@ nf.ProcessorConfiguration = (function () {
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
                 dialogContent: nf.Common.formatUnorderedList(errors),
-                headerText: 'Configuration Error'
+                headerText: 'Processor Configuration'
             });
             return false;
         } else {
@@ -374,7 +374,7 @@ nf.ProcessorConfiguration = (function () {
     var reloadProcessorConnections = function (processor) {
         var connections = nf.Connection.getComponentConnections(processor.id);
         $.each(connections, function (_, connection) {
-            if (connection.accessPolicy.canRead) {
+            if (connection.permissions.canRead) {
                 if (connection.sourceId === processor.id) {
                     nf.Connection.reload(connection.component);
                 }
@@ -433,7 +433,7 @@ nf.ProcessorConfiguration = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedProcessor),
-                url: processor.uri,
+                url: d.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -456,6 +456,7 @@ nf.ProcessorConfiguration = (function () {
             $('#processor-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'processor-standard-settings-tab-content'
@@ -491,6 +492,7 @@ nf.ProcessorConfiguration = (function () {
 
             // initialize the processor configuration dialog
             $('#processor-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Processor',
                 handler: {
                     close: function () {
@@ -502,6 +504,9 @@ nf.ProcessorConfiguration = (function () {
 
                         // removed the cached processor details
                         $('#processor-configuration').removeData('processorDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -543,9 +548,10 @@ nf.ProcessorConfiguration = (function () {
                 dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function (propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
+                    var d = nf.Processor.get(processor.id);
                     return $.ajax({
                         type: 'GET',
-                        url: processor.uri + '/descriptors',
+                        url: d.uri + '/descriptors',
                         data: {
                             propertyName: propertyName
                         },
@@ -743,6 +749,7 @@ nf.ProcessorConfiguration = (function () {
                     if (nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                         buttons.push({
                             buttonText: 'Advanced',
+                            clazz: 'fa fa-cog button-icon',
                             color: {
                                 base: '#E3E8EB',
                                 hover: '#C7D2D7',

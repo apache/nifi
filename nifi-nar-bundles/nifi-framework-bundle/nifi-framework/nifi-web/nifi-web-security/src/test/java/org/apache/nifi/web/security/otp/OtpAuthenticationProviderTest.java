@@ -17,9 +17,11 @@
 package org.apache.nifi.web.security.otp;
 
 import org.apache.nifi.authorization.user.NiFiUserDetails;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -41,6 +43,7 @@ public class OtpAuthenticationProviderTest {
 
     private OtpService otpService;
     private OtpAuthenticationProvider otpAuthenticationProvider;
+    private NiFiProperties nifiProperties;
 
     @Before
     public void setUp() throws Exception {
@@ -72,12 +75,12 @@ public class OtpAuthenticationProviderTest {
             }
         }).when(otpService).getAuthenticationFromUiExtensionToken(anyString());
 
-        otpAuthenticationProvider = new OtpAuthenticationProvider(otpService);
+        otpAuthenticationProvider = new OtpAuthenticationProvider(otpService, Mockito.mock(NiFiProperties.class));
     }
 
     @Test
     public void testUiExtensionPath() throws Exception {
-        final OtpAuthenticationRequestToken request = new OtpAuthenticationRequestToken(UI_EXTENSION_TOKEN, false);
+        final OtpAuthenticationRequestToken request = new OtpAuthenticationRequestToken(UI_EXTENSION_TOKEN, false, null);
 
         final NiFiAuthenticationToken result = (NiFiAuthenticationToken) otpAuthenticationProvider.authenticate(request);
         final NiFiUserDetails details = (NiFiUserDetails) result.getPrincipal();
@@ -89,7 +92,7 @@ public class OtpAuthenticationProviderTest {
 
     @Test
     public void testDownload() throws Exception {
-        final OtpAuthenticationRequestToken request = new OtpAuthenticationRequestToken(DOWNLOAD_TOKEN, true);
+        final OtpAuthenticationRequestToken request = new OtpAuthenticationRequestToken(DOWNLOAD_TOKEN, true, null);
 
         final NiFiAuthenticationToken result = (NiFiAuthenticationToken) otpAuthenticationProvider.authenticate(request);
         final NiFiUserDetails details = (NiFiUserDetails) result.getPrincipal();

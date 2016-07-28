@@ -42,14 +42,25 @@ nf.TemplatesTable = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'timestamp') {
-                var aDate = nf.Common.parseDateTime(a[sortDetails.columnId]);
-                var bDate = nf.Common.parseDateTime(b[sortDetails.columnId]);
-                return aDate.getTime() - bDate.getTime();
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'timestamp') {
+                    var aDate = nf.Common.parseDateTime(a.template[sortDetails.columnId]);
+                    var bDate = nf.Common.parseDateTime(b.template[sortDetails.columnId]);
+                    return aDate.getTime() - bDate.getTime();
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
+                }
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -71,6 +82,22 @@ nf.TemplatesTable = (function () {
                 deleteTemplate(templateEntity);
             }
         });
+    };
+
+    /**
+     * Opens the access policies for the specified template.
+     * 
+     * @param templateEntity
+     */
+    var openAccessPolicies = function (templateEntity) {
+        // only attempt this if we're within a frame
+        if (top !== window) {
+            // and our parent has canvas utils and shell defined
+            if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.PolicyManagement) && nf.Common.isDefinedAndNotNull(parent.nf.Shell)) {
+                parent.nf.PolicyManagement.showTemplatePolicy(templateEntity);
+                parent.$('#shell-close-button').click();
+            }
+        }
     };
 
     /**
@@ -212,7 +239,7 @@ nf.TemplatesTable = (function () {
             });
 
             var timestampFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -220,7 +247,7 @@ nf.TemplatesTable = (function () {
             };
 
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '<span class="blank">' + dataContext.id + '</span>';
                 }
 
@@ -228,7 +255,7 @@ nf.TemplatesTable = (function () {
             };
 
             var descriptionFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -236,7 +263,7 @@ nf.TemplatesTable = (function () {
             };
 
             var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
-                if (!dataContext.accessPolicy.canRead) {
+                if (!dataContext.permissions.canRead) {
                     return '';
                 }
 
@@ -247,14 +274,21 @@ nf.TemplatesTable = (function () {
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
                 var markup = '';
 
-                if (dataContext.accessPolicy.canRead === true) {
-                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px;"></div>';
+                if (dataContext.permissions.canRead === true) {
+                    markup += '<div title="Download" class="pointer export-template icon icon-template-save" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
                 // all DFMs to remove templates
-                if (dataContext.accessPolicy.canWrite === true) {
-                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-left: 3px;"></div>';
+                if (dataContext.permissions.canWrite === true) {
+                    markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
+
+                // if we in the shell
+                // TODO - only if we can adminster policies
+                if (top !== window) {
+                    markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                }
+
                 return markup;
             };
 
@@ -317,6 +351,8 @@ nf.TemplatesTable = (function () {
                         downloadTemplate(item);
                     } else if (target.hasClass('prompt-to-delete-template')) {
                         promptToDeleteTemplate(item);
+                    } else if (target.hasClass('edit-access-policies')) {
+                        openAccessPolicies(item);
                     }
                 }
             });
@@ -358,9 +394,6 @@ nf.TemplatesTable = (function () {
             return $.ajax({
                 type: 'GET',
                 url: config.urls.templates,
-                data: {
-                    verbose: false
-                },
                 dataType: 'json'
             }).done(function (response) {
                 // ensure there are groups specified

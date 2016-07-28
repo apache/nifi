@@ -83,32 +83,8 @@ public class FunnelResource extends ApplicationResource {
      * @return funnel
      */
     public FunnelEntity populateRemainingFunnelEntityContent(FunnelEntity funnelEntity) {
-        if (funnelEntity.getComponent() != null) {
-            populateRemainingFunnelContent(funnelEntity.getComponent());
-        }
+        funnelEntity.setUri(generateResourceUri("funnels", funnelEntity.getId()));
         return funnelEntity;
-    }
-
-    /**
-     * Populates the uri for the specified funnels.
-     *
-     * @param funnels funnels
-     * @return funnels
-     */
-    public Set<FunnelDTO> populateRemainingFunnelsContent(Set<FunnelDTO> funnels) {
-        for (FunnelDTO funnel : funnels) {
-            populateRemainingFunnelContent(funnel);
-        }
-        return funnels;
-    }
-
-    /**
-     * Populates the uri for the specified funnel.
-     */
-    public FunnelDTO populateRemainingFunnelContent(FunnelDTO funnel) {
-        // populate the funnel href
-        funnel.setUri(generateResourceUri("funnels", funnel.getId()));
-        return funnel;
     }
 
     /**

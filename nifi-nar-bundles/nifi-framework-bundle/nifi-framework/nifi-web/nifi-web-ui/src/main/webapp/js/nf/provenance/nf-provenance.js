@@ -18,6 +18,26 @@
 /* global nf, top */
 
 $(document).ready(function () {
+    //Create Angular App
+    var app = angular.module('ngProvenanceApp', ['ngResource', 'ngRoute', 'ngMaterial', 'ngMessages']);
+
+    //Define Dependency Injection Annotations
+    nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
+    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
+    nf.ng.ServiceProvider.$inject = [];
+
+    //Configure Angular App
+    app.config(nf.ng.AppConfig);
+
+    //Define Angular App Controllers
+    app.controller('ngProvenanceAppCtrl', nf.ng.AppCtrl);
+
+    //Define Angular App Services
+    app.service('serviceProvider', nf.ng.ServiceProvider);
+
+    //Manually Boostrap Angular App
+    nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], { strictDi: true });
+
     // initialize the status page
     nf.Provenance.init();
 });
@@ -29,7 +49,7 @@ nf.Provenance = (function () {
      */
     var config = {
         urls: {
-            flowConfig: '../nifi-api/flow/config',
+            clusterSummary: '../nifi-api/flow/cluster/summary',
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             currentUser: '../nifi-api/flow/current-user'
@@ -47,9 +67,9 @@ nf.Provenance = (function () {
     var detectedCluster = function () {
         return $.ajax({
                 type: 'GET',
-                url: config.urls.flowConfig
+                url: config.urls.clusterSummary
             }).done(function (response) {
-                isClustered = response.flowConfiguration.clustered;
+                isClustered = response.clusterSummary.connectedToCluster;
             }).fail(nf.Common.handleAjaxError);
     };
 
@@ -222,8 +242,40 @@ nf.Provenance = (function () {
                         setBodySize();
                     });
 
-                    // listen for browser resize events to reset the body size
-                    $(window).resize(setBodySize);
+                    $(window).on('resize', function (e) {
+                        setBodySize();
+                        // resize dialogs when appropriate
+                        var dialogs = $('.dialog');
+                        for (var i = 0, len = dialogs.length; i < len; i++) {
+                            if ($(dialogs[i]).is(':visible')){
+                                setTimeout(function(dialog){
+                                    dialog.modal('resize');
+                                }, 50, $(dialogs[i]));
+                            }
+                        }
+
+                        // resize grids when appropriate
+                        var gridElements = $('*[class*="slickgrid_"]');
+                        for (var j = 0, len = gridElements.length; j < len; j++) {
+                            if ($(gridElements[j]).is(':visible')){
+                                setTimeout(function(gridElement){
+                                    gridElement.data('gridInstance').resizeCanvas();
+                                }, 50, $(gridElements[j]));
+                            }
+                        }
+
+                        // toggle tabs .scrollable when appropriate
+                        var tabsContainers = $('.tab-container');
+                        var tabsContents = [];
+                        for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                            if ($(tabsContainers[k]).is(':visible')){
+                                tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                            }
+                        }
+                        $.each(tabsContents, function (index, tabsContent) {
+                            nf.Common.toggleScrollable(tabsContent.get(0));
+                        });
+                    });
                 });
             });
         }

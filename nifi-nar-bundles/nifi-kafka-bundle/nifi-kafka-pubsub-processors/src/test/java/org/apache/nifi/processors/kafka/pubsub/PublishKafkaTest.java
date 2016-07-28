@@ -81,7 +81,7 @@ public class PublishKafkaTest {
     @Test
     public void validateSingleCharacterDemarcatedMessages() {
         String topicName = "validateSingleCharacterDemarcatedMessages";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.CLIENT_ID, "foo");
@@ -99,9 +99,9 @@ public class PublishKafkaTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void validateMultiCharacterDemarcatedMessagesAndCustomPartitioner() {
+    public void validateMultiCharacterDemarcatedMessagesAndCustomPartitionerA() {
         String topicName = "validateMultiCharacterDemarcatedMessagesAndCustomPartitioner";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.CLIENT_ID, "foo");
@@ -121,9 +121,56 @@ public class PublishKafkaTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void validateOnSendFailureAndThenResendSuccess() throws Exception {
+    public void validateMultiCharacterDemarcatedMessagesAndCustomPartitionerB() {
+        String topicName = "validateMultiCharacterDemarcatedMessagesAndCustomPartitioner";
+        StubPublishKafka putKafka = new StubPublishKafka(1);
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PublishKafka.TOPIC, topicName);
+        runner.setProperty(PublishKafka.CLIENT_ID, "foo");
+        runner.setProperty(PublishKafka.KEY, "key1");
+        runner.setProperty(PublishKafka.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(PublishKafka.PARTITION_CLASS, Partitioners.RoundRobinPartitioner.class.getName());
+        runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "foo");
+
+        runner.enqueue("Hello WorldfooGoodbyefoo1foo2foo3foo4foo5".getBytes(StandardCharsets.UTF_8));
+        runner.run(1, false);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+        Producer<byte[], byte[]> producer = putKafka.getProducer();
+        verify(producer, times(7)).send(Mockito.any(ProducerRecord.class));
+
+        runner.shutdown();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void validateOnSendFailureAndThenResendSuccessA() throws Exception {
         String topicName = "validateSendFailureAndThenResendSuccess";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
+
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PublishKafka.TOPIC, topicName);
+        runner.setProperty(PublishKafka.CLIENT_ID, "foo");
+        runner.setProperty(PublishKafka.KEY, "key1");
+        runner.setProperty(PublishKafka.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "\n");
+        runner.setProperty(PublishKafka.META_WAIT_TIME, "500 millis");
+
+        final String text = "Hello World\nGoodbye\nfail\n2";
+        runner.enqueue(text.getBytes(StandardCharsets.UTF_8));
+        runner.run(1, false);
+        assertEquals(1, runner.getQueueSize().getObjectCount()); // due to failure
+        runner.run(1, false);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+        Producer<byte[], byte[]> producer = putKafka.getProducer();
+        verify(producer, times(4)).send(Mockito.any(ProducerRecord.class));
+        runner.shutdown();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void validateOnSendFailureAndThenResendSuccessB() throws Exception {
+        String topicName = "validateSendFailureAndThenResendSuccess";
+        StubPublishKafka putKafka = new StubPublishKafka(1);
 
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
@@ -148,7 +195,7 @@ public class PublishKafkaTest {
     @Test
     public void validateOnFutureGetFailureAndThenResendSuccess() throws Exception {
         String topicName = "validateSendFailureAndThenResendSuccess";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
 
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
@@ -177,7 +224,7 @@ public class PublishKafkaTest {
     @Test
     public void validateDemarcationIntoEmptyMessages() {
         String topicName = "validateDemarcationIntoEmptyMessages";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         final TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.KEY, "key1");
@@ -197,7 +244,7 @@ public class PublishKafkaTest {
     @Test
     public void validateComplexRightPartialDemarcatedMessages() {
         String topicName = "validateComplexRightPartialDemarcatedMessages";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.CLIENT_ID, "foo");
@@ -216,7 +263,7 @@ public class PublishKafkaTest {
     @Test
     public void validateComplexLeftPartialDemarcatedMessages() {
         String topicName = "validateComplexLeftPartialDemarcatedMessages";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.CLIENT_ID, "foo");
@@ -236,7 +283,7 @@ public class PublishKafkaTest {
     @Test
     public void validateComplexPartialMatchDemarcatedMessages() {
         String topicName = "validateComplexPartialMatchDemarcatedMessages";
-        StubPublishKafka putKafka = new StubPublishKafka();
+        StubPublishKafka putKafka = new StubPublishKafka(100);
         TestRunner runner = TestRunners.newTestRunner(putKafka);
         runner.setProperty(PublishKafka.TOPIC, topicName);
         runner.setProperty(PublishKafka.CLIENT_ID, "foo");

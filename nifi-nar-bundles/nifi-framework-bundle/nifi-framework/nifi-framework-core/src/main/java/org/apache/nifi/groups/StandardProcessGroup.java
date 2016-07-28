@@ -59,6 +59,7 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,6 +125,14 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public ProcessGroup getParent() {
         return parent.get();
+    }
+
+    private ProcessGroup getRoot() {
+        ProcessGroup root = this;
+        while (root.getParent() != null) {
+            root = root.getParent();
+        }
+        return root;
     }
 
     @Override
@@ -333,12 +342,11 @@ public final class StandardProcessGroup implements ProcessGroup {
         return flowController.getStateManagerProvider().getStateManager(componentId);
     }
 
-    @SuppressWarnings("deprecation")
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor, getStateManager(node.getIdentifier()));
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, node.getProcessor(), processContext);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, node.getProcessor(), processContext);
             }
         }
 
@@ -688,7 +696,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void removeProcessor(final ProcessorNode processor) {
         final String id = requireNonNull(processor).getIdentifier();
         writeLock.lock();
@@ -704,7 +711,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor, getStateManager(processor.getIdentifier()));
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, processor.getProcessor(), processContext);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
             }
@@ -1858,7 +1865,6 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-
     @Override
     public void addTemplate(final Template template) {
         requireNonNull(template);
@@ -2214,6 +2220,23 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (!map.containsKey(id)) {
                     throw new IllegalStateException("ID " + id + " does not refer to a(n) " + componentType + " in this ProcessGroup");
                 }
+            }
+        }
+    }
+
+    @Override
+    public void verifyCanAddTemplate(final String name) {
+        // ensure the name is specified
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalArgumentException("Template name cannot be blank.");
+        }
+
+        for (final Template template : getRoot().findAllTemplates()) {
+            final TemplateDTO existingDto = template.getDetails();
+
+            // ensure a template with this name doesnt already exist
+            if (name.equals(existingDto.getName())) {
+                throw new IllegalStateException(String.format("A template named '%s' already exists.", name));
             }
         }
     }

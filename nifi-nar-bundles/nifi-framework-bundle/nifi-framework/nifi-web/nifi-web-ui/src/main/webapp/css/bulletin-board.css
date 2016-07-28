@@ -18,6 +18,15 @@
     Bulletin Board Styles
 */
 
+#bulletin-board {
+    position: absolute;
+    top: 0px;
+    bottom: 40px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
 #bulletin-board-header-text {
     font-size: 18px;
     font-weight: bold;
@@ -28,8 +37,9 @@
 
 #bulletin-board-refresh-container {
     position: absolute;
-    width: 100%;
+    right: 20px;
     bottom: 0px;
+    left: 20px;
 }
 
 #bulletin-board-loading-container {
@@ -73,6 +83,7 @@
 #bulletin-board-container {
     overflow-y: auto;
     width: 100%;
+    padding-top: 20px;
 }
 
 div.bulletin-action {

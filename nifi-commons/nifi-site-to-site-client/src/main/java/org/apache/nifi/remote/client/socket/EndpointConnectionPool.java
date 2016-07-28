@@ -16,6 +16,35 @@
  */
 package org.apache.nifi.remote.client.socket;
 
+import static org.apache.nifi.remote.util.EventReportUtil.error;
+import static org.apache.nifi.remote.util.EventReportUtil.warn;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.channels.SocketChannel;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -40,33 +69,6 @@ import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.nio.channels.SocketChannel;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.remote.util.EventReportUtil.error;
-import static org.apache.nifi.remote.util.EventReportUtil.warn;
-
 public class EndpointConnectionPool implements PeerStatusProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
@@ -84,6 +86,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     private volatile int commsTimeout;
     private volatile boolean shutdown = false;
+    private volatile Set<PeerStatus> lastFetchedQueryablePeers;
 
     private final SiteInfoProvider siteInfoProvider;
     private final PeerSelector peerSelector;
@@ -145,8 +148,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         return getEndpointConnection(direction, null);
     }
 
-    public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config)
-            throws IOException {
+    public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config) throws IOException {
         //
         // Attempt to get a connection state that already exists for this URL.
         //
@@ -358,15 +360,13 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
     }
 
-    public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
-        final String hostname = clusterUrl.getHost();
-        final Integer port = siteInfoProvider.getSiteToSitePort();
-        if (port == null) {
-            throw new IOException("Remote instance of NiFi is not configured to allow RAW Socket site-to-site communications");
-        }
+    private Set<PeerStatus> fetchRemotePeerStatuses(final PeerDescription peerDescription) throws IOException {
+        final String hostname = peerDescription.getHostname();
+        final int port = peerDescription.getPort();
 
         final PeerDescription clusterPeerDescription = new PeerDescription(hostname, port, clusterUrl.toString().startsWith("https://"));
         final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
+
         final Peer peer = new Peer(clusterPeerDescription, commsSession, "nifi://" + hostname + ":" + port, clusterUrl.toString());
         final SocketClientProtocol clientProtocol = new SocketClientProtocol();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
@@ -412,6 +412,50 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
 
         return peerStatuses;
+    }
+
+    @Override
+    public Set<PeerStatus> fetchRemotePeerStatuses() throws IOException {
+        final Set<PeerDescription> peersToRequestClusterInfoFrom = new HashSet<>();
+
+        // Look at all of the peers that we fetched last time.
+        final Set<PeerStatus> lastFetched = lastFetchedQueryablePeers;
+        if (lastFetched != null && !lastFetched.isEmpty()) {
+            lastFetched.stream().map(peer -> peer.getPeerDescription())
+                .forEach(desc -> peersToRequestClusterInfoFrom.add(desc));
+        }
+
+        // Always add the configured node info to the list of peers to communicate with
+        final String hostname = clusterUrl.getHost();
+        final Integer port = siteInfoProvider.getSiteToSitePort();
+        if (port == null) {
+            throw new IOException("Remote instance of NiFi is not configured to allow RAW Socket site-to-site communications");
+        }
+
+        final boolean secure = siteInfoProvider.isSecure();
+        peersToRequestClusterInfoFrom.add(new PeerDescription(hostname, port, secure));
+
+        Exception lastFailure = null;
+        for (final PeerDescription peerDescription : peersToRequestClusterInfoFrom) {
+            try {
+                final Set<PeerStatus> statuses = fetchRemotePeerStatuses(peerDescription);
+                lastFetchedQueryablePeers = statuses.stream()
+                    .filter(p -> p.isQueryForPeers())
+                    .collect(Collectors.toSet());
+
+                return statuses;
+            } catch (final Exception e) {
+                logger.warn("Could not communicate with {}:{} to determine which nodes exist in the remote NiFi cluster", peerDescription.getHostname(), peerDescription.getPort());
+                lastFailure = e;
+            }
+        }
+
+        final IOException ioe = new IOException("Unable to communicate with remote NiFi cluster in order to determine which nodes exist in the remote cluster");
+        if (lastFailure != null) {
+            ioe.addSuppressed(lastFailure);
+        }
+
+        throw ioe;
     }
 
     private CommunicationsSession establishSiteToSiteConnection(final PeerStatus peerStatus) throws IOException {

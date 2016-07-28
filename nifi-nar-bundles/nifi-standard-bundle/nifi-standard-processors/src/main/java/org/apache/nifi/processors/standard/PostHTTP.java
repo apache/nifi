@@ -117,7 +117,6 @@ import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 import com.sun.jersey.api.client.ClientResponse.Status;
@@ -353,7 +352,7 @@ public class PostHTTP extends AbstractProcessor {
         configMap.clear();
 
         final StreamThrottler throttler = throttlerRef.getAndSet(null);
-        if(throttler != null) {
+        if (throttler != null) {
             try {
                 throttler.close();
             } catch (IOException e) {
@@ -392,12 +391,12 @@ public class PostHTTP extends AbstractProcessor {
             final SSLContext sslContext;
             try {
                 sslContext = createSSLContext(sslContextService);
+                getLogger().info("PostHTTP supports protocol: " + sslContext.getProtocol());
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
 
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext);
             // Also use a plain socket factory for regular http connections (especially proxies)
             final Registry<ConnectionSocketFactory> socketFactoryRegistry =
                     RegistryBuilder.<ConnectionSocketFactory>create()
@@ -437,6 +436,8 @@ public class PostHTTP extends AbstractProcessor {
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
+        builder = builder.useProtocol(service.getSslAlgorithm());
+
         final SSLContext sslContext = builder.build();
         return sslContext;
     }
@@ -466,7 +467,7 @@ public class PostHTTP extends AbstractProcessor {
         CloseableHttpClient client = null;
         final String transactionId = UUID.randomUUID().toString();
 
-        final ObjectHolder<String> dnHolder = new ObjectHolder<>("none");
+        final AtomicReference<String> dnHolder = new AtomicReference<>("none");
         while (true) {
             FlowFile flowFile = session.get();
             if (flowFile == null) {

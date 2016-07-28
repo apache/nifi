@@ -17,30 +17,99 @@
 
 package org.apache.nifi.processors.standard.util;
 
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.bazaarvoice.jolt.CardinalityTransform;
 import com.bazaarvoice.jolt.Chainr;
 import com.bazaarvoice.jolt.Defaultr;
+import com.bazaarvoice.jolt.JoltTransform;
 import com.bazaarvoice.jolt.Removr;
 import com.bazaarvoice.jolt.Shiftr;
 import com.bazaarvoice.jolt.Sortr;
+import com.bazaarvoice.jolt.SpecDriven;
 import com.bazaarvoice.jolt.Transform;
+import com.bazaarvoice.jolt.chainr.spec.ChainrEntry;
+import com.bazaarvoice.jolt.exception.SpecException;
 
 public class TransformFactory {
 
-    public static Transform getTransform(String transform, Object specJson) {
-        if (transform.equals("jolt-transform-default")) {
+    public static Transform getTransform(final ClassLoader classLoader,final String transformType, final Object specJson) throws Exception {
+
+        if (transformType.equals("jolt-transform-default")) {
             return new Defaultr(specJson);
-        } else if (transform.equals("jolt-transform-shift")) {
+        } else if (transformType.equals("jolt-transform-shift")) {
             return new Shiftr(specJson);
-        } else if (transform.equals("jolt-transform-remove")) {
+        } else if (transformType.equals("jolt-transform-remove")) {
             return new Removr(specJson);
-        } else if (transform.equals("jolt-transform-card")) {
+        } else if (transformType.equals("jolt-transform-card")) {
             return new CardinalityTransform(specJson);
-        } else if(transform.equals("jolt-transform-sort")){
+        } else if(transformType.equals("jolt-transform-sort")){
             return new Sortr();
-        } else {
-            return Chainr.fromSpec(specJson);
+        } else{
+            return new Chainr(getChainrJoltTransformations(classLoader,specJson));
+        }
+
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Transform getCustomTransform(final ClassLoader classLoader, final String customTransformType, final Object specJson) throws Exception {
+        final Class clazz = classLoader.loadClass(customTransformType);
+        if(SpecDriven.class.isAssignableFrom(clazz)){
+            final Constructor constructor = clazz.getConstructor(Object.class);
+            return (Transform) constructor.newInstance(specJson);
+        }else{
+            return (Transform) clazz.newInstance();
         }
     }
+
+
+    protected static List<JoltTransform> getChainrJoltTransformations(ClassLoader classLoader, Object specJson) throws Exception{
+        if(!(specJson instanceof List)) {
+            throw new SpecException("JOLT Chainr expects a JSON array of objects - Malformed spec.");
+        } else {
+
+            List operations = (List)specJson;
+
+            if(operations.isEmpty()) {
+                throw new SpecException("JOLT Chainr passed an empty JSON array.");
+            } else {
+
+                ArrayList<JoltTransform> entries = new ArrayList<JoltTransform>(operations.size());
+
+                for(Object chainrEntryObj : operations) {
+
+                    if(!(chainrEntryObj instanceof Map)) {
+                        throw new SpecException("JOLT ChainrEntry expects a JSON map - Malformed spec");
+                    } else {
+                        Map chainrEntryMap = (Map)chainrEntryObj;
+                        String opString = (String) chainrEntryMap.get("operation");
+                        String operationClassName;
+
+                        if(opString == null) {
+                            throw new SpecException("JOLT Chainr \'operation\' must implement Transform or ContextualTransform");
+                        } else {
+
+                            if(ChainrEntry.STOCK_TRANSFORMS.containsKey(opString)) {
+                                operationClassName = ChainrEntry.STOCK_TRANSFORMS.get(opString);
+                            } else {
+                                operationClassName = opString;
+                            }
+
+                            entries.add(getCustomTransform(classLoader,operationClassName,chainrEntryMap.get("spec")));
+                        }
+                    }
+                }
+
+                return entries;
+            }
+        }
+
+    }
+
+
+
 
 }

@@ -80,7 +80,7 @@ div.provenance-panel {
 
 #provenance-filter-container {
     height: 24px;
-    width: 326px;
+    width: 100%;
 }
 
 #provenance-filter {
@@ -94,7 +94,6 @@ input.provenance-filter-list {
 }
 
 #provenance-filter-type {
-    width: 128px;
     float: left;
 }
 
@@ -110,7 +109,7 @@ input.provenance-filter-list {
 #provenance-search-container {
     float: right;
     position: relative;
-    top: -38px;
+    top: 42px;
 }
 
 #provenance-search-button {
@@ -131,7 +130,6 @@ input.provenance-filter-list {
 /* provenance search dialog */
 
 #searchable-fields-container {
-    width: 100%;
     min-height: 185px;
     padding: 5px;
     overflow: auto;
@@ -174,41 +172,29 @@ div.searchable-field-value {
     display: none;
 }
 
-#provenance-search-location {
-    height: 18px;
-    line-height: 18px;
-    width: 424px;
-}
-
 /* event details dialog */
 
 div.flowfile-container {
     width: 282px;
-    height: 120px;
     overflow: auto;
-    padding: 5px;
-    font-family: monospace;
-    font-size: 12px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    line-height:1.4
 }
 
 #child-flowfiles {
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 div.event-header {
     color: #728e9b;
-    font-size: 12pt;
+    font-size: 15px;
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
+    padding-bottom: 10px;
     text-overflow: ellipsis;
-}
-
-#attributes-container {
-    height: 290px;
-    overflow: auto;
-    padding: 5px;
 }
 
 div.detail-name {
@@ -225,7 +211,9 @@ div.detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 div.attribute-detail {
@@ -246,7 +234,9 @@ div.attribute-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #attributes-header {
@@ -259,12 +249,15 @@ div.attribute-value {
 
 #modified-attribute-toggle-label {
     float: left;
+    font-size:13px;
+    line-height: 20px;
 }
 
 #modified-attribute-toggle {
     float: left;
-    margin-left: 5px;
-    margin-right: 0;
+    margin-right: 5px;
+    margin-left: 0;
+    margin-top: 3px;
 }
 
 div.modified-attribute-label {
@@ -278,11 +271,14 @@ div.modified-attribute-label {
 
 div.modified-attribute-value {
     float: left;
-    width: 490px;
-    margin-left: 175px;
+    width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;
+    color: #ad9897;
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 div.event-detail {
@@ -294,9 +290,13 @@ div.event-detail {
     margin: 0;
 }
 
+#replay-content-message {
+    font-size: 13px;
+}
+
 #input-content-view, #output-content-view {
     float: left;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 div.content-detail-name {
@@ -313,7 +313,9 @@ div.content-detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #replay-details {
@@ -334,12 +336,13 @@ div.content-detail-value {
 
 #provenance-table {
     position: absolute;
-    top: 78px;
+    top: 88px;
     left: 0px;
     bottom: 48px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
+    min-height: 150px;
 }
 
 /* provenance lineage */
@@ -408,7 +411,9 @@ div.content-detail-value {
 #event-timeline {
     margin-top: 8px;
     color: #9F6000;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
     line-height: normal;
 }
 
@@ -486,8 +491,10 @@ text.event-type {
 }
 
 text.event-type.expand-parents, text.event-type.expand-children {
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-size: 13px;
 }
 
 g.flowfile circle.context, g.event circle.context {
@@ -517,4 +524,12 @@ path.flowfile-icon-arc {
 
 path.flowfile-icon-top {
     pointer-events: none;
+}
+
+#child-flowfile-count {
+    font-weight: normal;
+}
+
+#parent-flowfile-count {
+    font-weight: normal;
 }

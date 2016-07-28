@@ -205,7 +205,7 @@ nf.ReportingTask = (function () {
 
         return $.ajax({
             type: 'PUT',
-            url: reportingTaskEntity.component.uri,
+            url: reportingTaskEntity.uri,
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
@@ -265,7 +265,7 @@ nf.ReportingTask = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedReportingTask),
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -305,6 +305,7 @@ nf.ReportingTask = (function () {
             $('#reporting-task-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'reporting-task-standard-settings-tab-content'
@@ -331,6 +332,7 @@ nf.ReportingTask = (function () {
 
             // initialize the reporting task configuration dialog
             $('#reporting-task-configuration').data('mode', config.edit).modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Reporting Task',
                 handler: {
                     close: function () {
@@ -345,6 +347,9 @@ nf.ReportingTask = (function () {
 
                         // removed the cached reporting task details
                         $('#reporting-task-configuration').removeData('reportingTaskDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -385,7 +390,7 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
 
@@ -499,6 +504,7 @@ nf.ReportingTask = (function () {
                 if (nf.Common.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -590,7 +596,7 @@ nf.ReportingTask = (function () {
             // reload the task in case the property descriptors have changed
             var reloadTask = $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             });
 
@@ -645,6 +651,7 @@ nf.ReportingTask = (function () {
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(reportingTask.customUiUrl) && reportingTask.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -710,7 +717,7 @@ nf.ReportingTask = (function () {
 
             return $.ajax({
                 type: 'GET',
-                url: reportingTaskEntity.component.uri,
+                url: reportingTaskEntity.uri,
                 dataType: 'json'
             }).done(function (response) {
                 renderReportingTask(response);
@@ -728,7 +735,7 @@ nf.ReportingTask = (function () {
             var revision = nf.Client.getRevision(reportingTaskEntity);
             $.ajax({
                 type: 'DELETE',
-                url: reportingTaskEntity.component.uri + '?' + $.param({
+                url: reportingTaskEntity.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),

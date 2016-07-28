@@ -18,39 +18,41 @@
 <div id="process-group-configuration">
     <div id="process-group-configuration-header-text" class="settings-header-text">Process Group Configuration</div>
     <div class="settings-container">
-        <div class="tab-container">
-            <div id="process-group-configuration-tabs" class="settings-tabs"></div>
+        <div>
+            <div id="process-group-configuration-tabs" class="settings-tabs tab-container"></div>
             <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus"></button>
             <div class="clear"></div>
         </div>
-        <div id="general-process-group-configuration-tab-content" class="configuration-tab">
-            <div id="general-process-group-configuration">
-                <div class="setting">
-                    <div class="setting-name">Process group name</div>
-                    <div class="editable setting-field">
-                        <input type="text" id="process-group-name" class="setting-input"/>
+        <div id="process-group-configuration-tabs-content">
+            <div id="general-process-group-configuration-tab-content" class="configuration-tab">
+                <div id="general-process-group-configuration">
+                    <div class="setting">
+                        <div class="setting-name">Process group name</div>
+                        <div class="editable setting-field">
+                            <input type="text" id="process-group-name" class="setting-input"/>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-name"></span>
+                        </div>
                     </div>
-                    <div class="read-only setting-field">
-                        <span id="read-only-process-group-name"></span>
+                    <div class="setting">
+                        <div class="setting-name">Process group comments</div>
+                        <div class="editable setting-field">
+                            <textarea id="process-group-comments" class="setting-input"></textarea>
+                        </div>
+                        <div class="read-only setting-field">
+                            <span id="read-only-process-group-comments"></span>
+                        </div>
                     </div>
-                </div>
-                <div class="setting">
-                    <div class="setting-name">Process group comments</div>
-                    <div class="editable setting-field">
-                        <textarea id="process-group-comments" class="setting-input"></textarea>
+                    <div class="editable settings-buttons">
+                        <div id="process-group-configuration-save" class="button">Apply</div>
+                        <div class="clear"></div>
                     </div>
-                    <div class="read-only setting-field">
-                        <span id="read-only-process-group-comments"></span>
-                    </div>
-                </div>
-                <div class="editable settings-buttons">
-                    <div id="process-group-configuration-save" class="button">Apply</div>
-                    <div class="clear"></div>
                 </div>
             </div>
-        </div>
-        <div id="process-group-controller-services-tab-content" class="configuration-tab">
-            <div id="process-group-controller-services-table" class="settings-table"></div>
+            <div id="process-group-controller-services-tab-content" class="configuration-tab">
+                <div id="process-group-controller-services-table" class="settings-table"></div>
+            </div>
         </div>
     </div>
     <div id="process-group-refresh-container">

@@ -43,9 +43,9 @@ public class DocGeneratorTest {
 
         NarUnpacker.unpackNars(properties);
 
-        NarClassLoaders.load(properties);
+        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions();
+        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
 
         DocGenerator.generate(properties);
 

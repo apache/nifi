@@ -78,6 +78,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
                                     }
@@ -106,6 +107,7 @@ nf.ConnectionConfiguration = (function () {
                     } else {
                         // there are no relationships for this processor
                         nf.Dialog.showOkDialog({
+                            headerText: 'Connection Configuration',
                             dialogContent: '\'' + nf.Common.escapeHtml(processor.name) + '\' does not support any relationships.'
                         });
 
@@ -183,10 +185,11 @@ nf.ConnectionConfiguration = (function () {
         return $.Deferred(function (deferred) {
             // get the input port data
             var inputPortData = source.datum();
+            var inputPortName = inputPortData.permissions.canRead ? inputPortData.component.name : inputPortData.id;
 
             // populate the port information
             $('#input-port-source').show();
-            $('#input-port-source-name').text(inputPortData.component.name);
+            $('#input-port-source-name').text(inputPortName);
 
             // populate the connection source details
             $('#connection-source-id').val(inputPortData.id);
@@ -236,11 +239,13 @@ nf.ConnectionConfiguration = (function () {
         return $.Deferred(function (deferred) {
             // get the processor data
             var processorData = source.datum();
+            var processorName = processorData.permissions.canRead ? processorData.component.name : processorData.id;
+            var processorType = processorData.permissions.canRead ? nf.Common.substringAfterLast(processorData.component.type, '.') : 'Processor';
 
             // populate the source processor information
             $('#processor-source').show();
-            $('#processor-source-name').text(processorData.component.name);
-            $('#processor-source-type').text(nf.Common.substringAfterLast(processorData.component.type, '.'));
+            $('#processor-source-name').text(processorName);
+            $('#processor-source-type').text(processorType);
 
             // populate the connection source details
             $('#connection-source-id').val(processorData.id);
@@ -270,18 +275,17 @@ nf.ConnectionConfiguration = (function () {
             $.ajax({
                 type: 'GET',
                 url: config.urls.api + '/flow/process-groups/' + encodeURIComponent(processGroupData.id),
-                data: {
-                    verbose: true
-                },
                 dataType: 'json'
             }).done(function (response) {
                 var processGroup = response.processGroupFlow;
+                var processGroupName = response.permissions.canRead ? processGroup.breadcrumb.breadcrumb.name : processGroup.id;
                 var processGroupContents = processGroup.flow;
 
                 // show the output port options
                 var options = [];
                 $.each(processGroupContents.outputPorts, function (i, outputPort) {
-                    if (outputPort.accessPolicy.canRead && outputPort.accessPolicy.canWrite) {
+                    // require explicit access to the output port as it's the source of the connection
+                    if (outputPort.permissions.canRead && outputPort.permissions.canWrite) {
                         var component = outputPort.component;
                         options.push({
                             text: component.name,
@@ -314,13 +318,19 @@ nf.ConnectionConfiguration = (function () {
 
                     // populate the group details
                     $('#connection-source-group-id').val(processGroup.id);
-                    $('#connection-source-group-name').text(processGroup.name);
+                    $('#connection-source-group-name').text(processGroupName);
 
                     deferred.resolve();
                 } else {
+                    var message = '\'' + nf.Common.escapeHtml(processGroupName) + '\' does not have any output ports.';
+                    if (nf.Common.isEmpty(processGroupContents.outputPorts) === false) {
+                        message = 'Not authorized for any output ports in \'' + nf.Common.escapeHtml(processGroupName) + '\'.';
+                    }
+
                     // there are no output ports for this process group
                     nf.Dialog.showOkDialog({
-                        dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any output ports.'
+                        headerText: 'Connection Configuration',
+                        dialogContent: message
                     });
 
                     // reset the dialog
@@ -349,10 +359,7 @@ nf.ConnectionConfiguration = (function () {
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
-                data: {
-                    verbose: true
-                },
+                url: remoteProcessGroupData.uri,
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;
@@ -398,6 +405,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any output ports.'
                     });
 
@@ -432,9 +440,10 @@ nf.ConnectionConfiguration = (function () {
     var initializeDestinationOutputPort = function (destination) {
         return $.Deferred(function (deferred) {
             var outputPortData = destination.datum();
+            var outputPortName = outputPortData.permissions.canRead ? outputPortData.component.name : outputPortData.id;
 
             $('#output-port-destination').show();
-            $('#output-port-destination-name').text(outputPortData.component.name);
+            $('#output-port-destination-name').text(outputPortName);
 
             // populate the connection destination details
             $('#connection-destination-id').val(outputPortData.id);
@@ -469,10 +478,12 @@ nf.ConnectionConfiguration = (function () {
     var initializeDestinationProcessor = function (destination) {
         return $.Deferred(function (deferred) {
             var processorData = destination.datum();
+            var processorName = processorData.permissions.canRead ? processorData.component.name : processorData.id;
+            var processorType = processorData.permissions.canRead ? nf.Common.substringAfterLast(processorData.component.type, '.') : 'Processor';
 
             $('#processor-destination').show();
-            $('#processor-destination-name').text(processorData.component.name);
-            $('#processor-destination-type').text(nf.Common.substringAfterLast(processorData.component.type, '.'));
+            $('#processor-destination-name').text(processorName);
+            $('#processor-destination-type').text(processorType);
 
             // populate the connection destination details
             $('#connection-destination-id').val(processorData.id);
@@ -501,19 +512,17 @@ nf.ConnectionConfiguration = (function () {
                 dataType: 'json'
             }).done(function (response) {
                 var processGroup = response.processGroupFlow;
+                var processGroupName = response.permissions.canRead ? processGroup.breadcrumb.breadcrumb.name : processGroup.id;
                 var processGroupContents = processGroup.flow;
 
                 // show the input port options
                 var options = [];
                 $.each(processGroupContents.inputPorts, function (i, inputPort) {
-                    if (inputPort.accessPolicy.canRead && inputPort.accessPolicy.canWrite) {
-                        var component = inputPort.component;
-                        options.push({
-                            text: component.name,
-                            value: component.id,
-                            description: nf.Common.escapeHtml(component.comments)
-                        });
-                    }
+                    options.push({
+                        text: inputPort.permissions.canRead ? inputPort.component.name : inputPort.id,
+                        value: inputPort.id,
+                        description: inputPort.permissions.canRead ? nf.Common.escapeHtml(inputPort.component.comments) : null
+                    });
                 });
 
                 // only proceed if there are output ports
@@ -539,13 +548,14 @@ nf.ConnectionConfiguration = (function () {
 
                     // populate the group details
                     $('#connection-destination-group-id').val(processGroup.id);
-                    $('#connection-destination-group-name').text(processGroup.name);
+                    $('#connection-destination-group-name').text(processGroupName);
 
                     deferred.resolve();
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
-                        dialogContent: '\'' + nf.Common.escapeHtml(processGroup.name) + '\' does not have any input ports.'
+                        headerText: 'Connection Configuration',
+                        dialogContent: '\'' + nf.Common.escapeHtml(processGroupName) + '\' does not have any input ports.'
                     });
 
                     // reset the dialog
@@ -566,17 +576,15 @@ nf.ConnectionConfiguration = (function () {
      * Initializes the source when the source is a remote process group.
      *
      * @argument {selection} destination        The destination
+     * @argument {object} connectionDestination The connection destination object
      */
-    var initializeDestinationRemoteProcessGroup = function (destination) {
+    var initializeDestinationRemoteProcessGroup = function (destination, connectionDestination) {
         return $.Deferred(function (deferred) {
             var remoteProcessGroupData = destination.datum();
 
             $.ajax({
                 type: 'GET',
-                url: remoteProcessGroupData.component.uri,
-                data: {
-                    verbose: true
-                },
+                url: remoteProcessGroupData.uri,
                 dataType: 'json'
             }).done(function (response) {
                 var remoteProcessGroup = response.component;
@@ -622,6 +630,7 @@ nf.ConnectionConfiguration = (function () {
                 } else {
                     // there are no relationships for this processor
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: '\'' + nf.Common.escapeHtml(remoteProcessGroup.name) + '\' does not have any input ports.'
                     });
 
@@ -647,6 +656,7 @@ nf.ConnectionConfiguration = (function () {
     var initializeSourceReadOnlyGroup = function (source) {
         return $.Deferred(function (deferred) {
             var sourceData = source.datum();
+            var sourceName = sourceData.permissions.canRead ? sourceData.component.name : sourceData.id;
 
             // populate the port information
             $('#read-only-output-port-source').show();
@@ -656,7 +666,7 @@ nf.ConnectionConfiguration = (function () {
 
             // populate the group details
             $('#connection-source-group-id').val(sourceData.id);
-            $('#connection-source-group-name').text(sourceData.component.name);
+            $('#connection-source-group-name').text(sourceName);
 
             // resolve the deferred
             deferred.resolve();
@@ -684,14 +694,15 @@ nf.ConnectionConfiguration = (function () {
      * Initializes the destination in the existing connection dialog.
      *
      * @argument {selection} destination        The destination
+     * @argument {object} connectionDestination The connection destination object
      */
-    var initializeDestinationEditConnectionDialog = function (destination) {
+    var initializeDestinationEditConnectionDialog = function (destination, connectionDestination) {
         if (nf.CanvasUtils.isProcessor(destination)) {
             return initializeDestinationProcessor(destination);
         } else if (nf.CanvasUtils.isOutputPort(destination)) {
             return initializeDestinationOutputPort(destination);
         } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-            return initializeDestinationRemoteProcessGroup(destination);
+            return initializeDestinationRemoteProcessGroup(destination, connectionDestination);
         } else if (nf.CanvasUtils.isFunnel(destination)) {
             return initializeDestinationFunnel(destination);
         } else {
@@ -977,16 +988,15 @@ nf.ConnectionConfiguration = (function () {
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // update this connection
-                    nf.Connection.set(response);
+                // update this connection
+                nf.Connection.set(response);
 
-                    // reload the connections source/destination components
-                    nf.CanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
-                }
+                // reload the connections source/destination components
+                nf.CanvasUtils.reloadConnectionSourceAndDestination(sourceComponentId, destinationComponentId);
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
+                        headerText: 'Connection Configuration',
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
                     });
                 } else {
@@ -1043,8 +1053,8 @@ nf.ConnectionConfiguration = (function () {
 
         if (errors.length > 0) {
             nf.Dialog.showOkDialog({
-                dialogContent: nf.Common.formatUnorderedList(errors),
-                headerText: 'Configuration Error'
+                headerText: 'Connection Configuration',
+                dialogContent: nf.Common.formatUnorderedList(errors)
             });
             return false;
         } else {
@@ -1123,11 +1133,15 @@ nf.ConnectionConfiguration = (function () {
 
             // initialize the configure connection dialog
             $('#connection-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Connection',
                 handler: {
                     close: function () {
                         // reset the dialog on close
                         resetDialog();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -1136,6 +1150,7 @@ nf.ConnectionConfiguration = (function () {
             $('#connection-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Details',
                     tabContentId: 'connection-details-tab-content'
@@ -1257,7 +1272,7 @@ nf.ConnectionConfiguration = (function () {
                 }
 
                 // initialize the connection dialog
-                $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination)).done(function () {
+                $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination, connection.destination)).done(function () {
                     var availableRelationships = connection.availableRelationships;
                     var selectedRelationships = connection.selectedRelationships;
 
@@ -1322,7 +1337,7 @@ nf.ConnectionConfiguration = (function () {
                     });
 
                     // store the connection details
-                    $('#connection-uri').val(connection.uri);
+                    $('#connection-uri').val(connectionEntry.uri);
 
                     // configure the button model
                     $('#connection-configuration').modal('setButtonModel', [{
@@ -1349,6 +1364,7 @@ nf.ConnectionConfiguration = (function () {
                                     } else {
                                         // inform users that no relationships were selected and the source is a processor
                                         nf.Dialog.showOkDialog({
+                                            headerText: 'Connection Configuration',
                                             dialogContent: 'The connection must have at least one relationship selected.'
                                         });
 

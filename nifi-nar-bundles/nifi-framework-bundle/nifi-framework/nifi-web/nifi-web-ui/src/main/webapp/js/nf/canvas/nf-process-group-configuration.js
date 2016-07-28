@@ -74,12 +74,13 @@ nf.ProcessGroupConfiguration = (function () {
             contentType: 'application/json'
         }).done(function (response) {
             // refresh the process group if necessary
-            if (response.accessPolicy.canRead && response.component.parentGroupId === nf.Canvas.getGroupId()) {
+            if (response.permissions.canRead && response.component.parentGroupId === nf.Canvas.getGroupId()) {
                 nf.ProcessGroup.set(response);
             }
 
             // show the result dialog
             nf.Dialog.showOkDialog({
+                headerText: 'Process Group Configuration',
                 dialogContent: 'Process group configuration successfully saved.'
             });
 
@@ -122,7 +123,7 @@ nf.ProcessGroupConfiguration = (function () {
                 url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
                 dataType: 'json'
             }).done(function (response) {
-                if (response.accessPolicy.canWrite) {
+                if (response.permissions.canWrite) {
                     var processGroup = response.component;
 
                     // populate the process group settings
@@ -137,7 +138,7 @@ nf.ProcessGroupConfiguration = (function () {
                         saveConfiguration(response.revision.version, response.id);
                     });
                 } else {
-                    if (response.accessPolicy.canRead) {
+                    if (response.permissions.canRead) {
                         // populate the process group settings
                         $('#read-only-process-group-name').removeClass('unset').text(response.component.name);
                         $('#read-only-process-group-comments').removeClass('unset').text(response.component.comments);
@@ -175,12 +176,6 @@ nf.ProcessGroupConfiguration = (function () {
         nf.Shell.showContent('#process-group-configuration').done(function () {
             reset();
         });
-        $('#process-group-refresh-container').width($('#shell').width());
-
-        // add a shell:resize listener
-        $('#shell').on('shell:resize', function () {
-            $('#process-group-refresh-container').width($('#shell').width());
-        });
 
         // adjust the table size
         nf.ProcessGroupConfiguration.resetTableSize();
@@ -207,6 +202,7 @@ nf.ProcessGroupConfiguration = (function () {
             $('#process-group-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-process-group-configuration-tab-content'
@@ -268,6 +264,15 @@ nf.ProcessGroupConfiguration = (function () {
 
             // load the configuration
             return loadConfiguration(groupId).done(showConfiguration);
+        },
+
+        /**
+         * Loads the configuration for the specified process group.
+         *
+         * @param groupId
+         */
+        loadConfiguration: function (groupId) {
+            return loadConfiguration(groupId);
         },
 
         /**

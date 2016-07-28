@@ -53,6 +53,20 @@ var TransformJsonController = function ($scope, $state, $q, TransformJsonService
             details['descriptors']['jolt-transform']['defaultValue'] ;
     };
 
+    $scope.getCustomClass = function(details){
+        if(details['properties']['jolt-custom-class'] != null && details['properties']['jolt-custom-class'] != "") {
+            return details['properties']['jolt-custom-class'];
+        }
+        else return '';
+    };
+
+    $scope.getCustomModules = function(details){
+        if(details['properties']['jolt-custom-modules'] != null && details['properties']['jolt-custom-modules'] != "") {
+            return details['properties']['jolt-custom-modules'];
+        }
+        else return '';
+    };
+
     $scope.getTransformOptions = function(details){
         return $scope.convertToArray(details['descriptors']['jolt-transform']['allowableValues']);
     };
@@ -61,6 +75,8 @@ var TransformJsonController = function ($scope, $state, $q, TransformJsonService
         $scope.jsonSpec = $scope.getJsonSpec(details);
         $scope.transform = $scope.getTransform(details);
         $scope.transformOptions = $scope.getTransformOptions(details);
+        $scope.customClass = $scope.getCustomClass(details);
+        $scope.modules = $scope.getCustomModules(details);
     };
 
     $scope.populateScopeWithDetails(details.data);
@@ -243,7 +259,9 @@ var TransformJsonController = function ($scope, $state, $q, TransformJsonService
         return  {
             "transform": transform,
             "specification" : jsonSpec,
-            "input" : jsonInput
+            "input" : jsonInput,
+            "customClass" : $scope.customClass,
+            "modules": $scope.modules
         };
     };
 

@@ -31,7 +31,6 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import org.slf4j.Logger
 
-//import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
 
 import javax.crypto.Cipher
@@ -345,16 +344,7 @@ public class BcryptCipherProviderGroovyTest {
         // Two different errors -- one explaining the no-salt method is not supported, and the other for an empty byte[] passed
 
         // Act
-        def msg = shouldFail(UnsupportedOperationException) {
-            Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, DEFAULT_KEY_LENGTH, true);
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ "The cipher cannot be initialized without a valid salt\\. Use BcryptCipherProvider#generateSalt\\(\\) to generate a valid salt"
-
-        // Act
-        msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail(IllegalArgumentException) {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, new byte[0], DEFAULT_KEY_LENGTH, true);
         }
         logger.expected(msg)

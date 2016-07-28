@@ -20,6 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Utility methods for retrieving information about the current application user.
  *
@@ -55,5 +58,28 @@ public final class NiFiUserUtils {
         } else {
             return user.getIdentity();
         }
+    }
+
+    /**
+     * Builds the proxy chain for the specified user.
+     *
+     * @param user The current user
+     * @return The proxy chain for that user in List form
+     */
+    public static List<String> buildProxiedEntitiesChain(final NiFiUser user) {
+        // calculate the dn chain
+        final List<String> proxyChain = new ArrayList<>();
+
+        // build the dn chain
+        NiFiUser chainedUser = user;
+        do {
+            // add the entry for this user
+            proxyChain.add(chainedUser.getIdentity());
+
+            // go to the next user in the chain
+            chainedUser = chainedUser.getChain();
+        } while (chainedUser != null);
+
+        return proxyChain;
     }
 }

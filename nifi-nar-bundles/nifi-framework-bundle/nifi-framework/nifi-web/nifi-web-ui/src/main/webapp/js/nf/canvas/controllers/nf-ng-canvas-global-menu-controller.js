@@ -124,14 +124,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                  */
                 launch: function () {
                     if (nf.Common.canAccessController()) {
-                        nf.Settings.showSettings().done(function() {
-                            $('#settings-refresh-container').width($('#shell').width());
-                            
-                            // add a shell:resize listener
-                            $('#shell').on('shell:resize', function () {
-                                $('#settings-refresh-container').width($('#shell').width());
-                            });
-                        });
+                        nf.Settings.showSettings();
                     }
                 }
             }
@@ -148,7 +141,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
              * @returns {*|boolean}
              */
             visible: function () {
-                return nf.Canvas.isClustered();
+                return nf.Canvas.isConnectedToCluster();
             },
 
             /**
@@ -202,6 +195,27 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                 launch: function () {
                     if (nf.Common.canAccessTenants()) {
                         nf.Shell.showPage('users');
+                    }
+                }
+            }
+        };
+
+        /**
+         * The policies menu item controller.
+         */
+        this.policies = {
+
+            /**
+             * The policies menu item's shell controller.
+             */
+            shell: {
+
+                /**
+                 * Launch the policies shell.
+                 */
+                launch: function () {
+                    if (nf.Common.canModifyPolicies() && nf.Common.canAccessTenants()) {
+                        nf.PolicyManagement.showGlobalPolicies();
                     }
                 }
             }
@@ -270,6 +284,7 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                     // store the content viewer url if available
                     if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
                         $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
+                        nf.QueueListing.initFlowFileDetailsDialog();
                     }
                 }).fail(nf.Common.handleAjaxError);
 
@@ -296,8 +311,18 @@ nf.ng.Canvas.GlobalMenuCtrl = function (serviceProvider) {
                 init: function () {
                     var self = this;
 
+                    var resizeAbout = function(){
+                        var dialog = $(this);
+                        var top = $('#nf-about-pic-container').height() + $('.dialog-header').height() + 10; //10 for padding-top
+                        dialog.find('.dialog-content').css('top', top);
+                    };
+
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'About Apache NiFi',
+                        handler: {
+                          resize: resizeAbout
+                        },
                         buttons: [{
                             buttonText: 'Ok',
                             color: {

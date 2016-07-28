@@ -23,7 +23,7 @@ package org.apache.nifi.processor.exception;
  * within the processor interacting with the offending session.
  *
  */
-public class FlowFileHandlingException extends ProcessException {
+public class FlowFileHandlingException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 

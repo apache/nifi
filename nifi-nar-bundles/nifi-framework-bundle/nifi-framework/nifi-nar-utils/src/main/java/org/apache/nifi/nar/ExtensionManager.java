@@ -25,7 +25,7 @@ import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,23 +53,24 @@ public class ExtensionManager {
     private static final Map<String, ClassLoader> extensionClassloaderLookup = new HashMap<>();
 
     static {
-        definitionMap.put(Processor.class, new HashSet<Class>());
-        definitionMap.put(FlowFilePrioritizer.class, new HashSet<Class>());
-        definitionMap.put(ReportingTask.class, new HashSet<Class>());
-        definitionMap.put(ControllerService.class, new HashSet<Class>());
-        definitionMap.put(Authorizer.class, new HashSet<Class>());
-        definitionMap.put(LoginIdentityProvider.class, new HashSet<Class>());
-        definitionMap.put(ProvenanceEventRepository.class, new HashSet<Class>());
-        definitionMap.put(ComponentStatusRepository.class, new HashSet<Class>());
-        definitionMap.put(FlowFileRepository.class, new HashSet<Class>());
-        definitionMap.put(FlowFileSwapManager.class, new HashSet<Class>());
-        definitionMap.put(ContentRepository.class, new HashSet<Class>());
+        definitionMap.put(Processor.class, new HashSet<>());
+        definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
+        definitionMap.put(ReportingTask.class, new HashSet<>());
+        definitionMap.put(ControllerService.class, new HashSet<>());
+        definitionMap.put(Authorizer.class, new HashSet<>());
+        definitionMap.put(LoginIdentityProvider.class, new HashSet<>());
+        definitionMap.put(ProvenanceRepository.class, new HashSet<>());
+        definitionMap.put(ComponentStatusRepository.class, new HashSet<>());
+        definitionMap.put(FlowFileRepository.class, new HashSet<>());
+        definitionMap.put(FlowFileSwapManager.class, new HashSet<>());
+        definitionMap.put(ContentRepository.class, new HashSet<>());
     }
 
     /**
      * Loads all FlowFileProcessor, FlowFileComparator, ReportingTask class types that can be found on the bootstrap classloader and by creating classloaders for all NARs found within the classpath.
+     * @param extensionLoaders the loaders to scan through in search of extensions
      */
-    public static void discoverExtensions() {
+    public static void discoverExtensions(final Set<ClassLoader> extensionLoaders) {
         final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
 
         // get the current context class loader
@@ -79,7 +80,7 @@ public class ExtensionManager {
         loadExtensions(systemClassLoader);
 
         // consider each nar class loader
-        for (final ClassLoader ncl : NarClassLoaders.getExtensionClassLoaders()) {
+        for (final ClassLoader ncl : extensionLoaders) {
 
             // Must set the context class loader to the nar classloader itself
             // so that static initialization techniques that depend on the context class loader will work properly

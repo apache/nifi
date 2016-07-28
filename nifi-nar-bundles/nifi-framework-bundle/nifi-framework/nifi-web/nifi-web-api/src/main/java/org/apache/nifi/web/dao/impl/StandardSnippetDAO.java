@@ -79,13 +79,13 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
 
             // generate the snippet contents
-            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false);
+            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false, false);
 
             // resolve sensitive properties
             lookupSensitiveProperties(snippetContents);
 
             // copy snippet
-            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed);
+            snippetContents = snippetUtils.copy(snippetContents, processGroup, idGenerationSeed, true);
 
             // move the snippet if necessary
             if (originX != null && originY != null) {
@@ -194,7 +194,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         final Snippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
-        if (snippetDTO.getParentGroupId() != null && snippet.getParentGroupId() != snippetDTO.getParentGroupId()) {
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             // get the current process group
             final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
             if (processGroup == null) {
@@ -217,7 +217,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
-        if (snippetDTO.getParentGroupId() != null && snippet.getParentGroupId() != snippetDTO.getParentGroupId()) {
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             final ProcessGroup currentProcessGroup = flowController.getGroup(snippet.getParentGroupId());
             if (currentProcessGroup == null) {
                 throw new IllegalArgumentException("The current process group could not be found.");

@@ -388,6 +388,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     private static class WriteAheadRecordSerde implements SerDe<RepositoryRecord> {
+        private static final int CURRENT_ENCODING_VERSION = 9;
 
         public static final byte ACTION_CREATE = 0;
         public static final byte ACTION_UPDATE = 1;
@@ -466,17 +467,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             out.writeLong(getRecordIdentifier(record));
             out.writeLong(flowFile.getEntryDate());
-
-            final Set<String> lineageIdentifiers = flowFile.getLineageIdentifiers();
-            out.writeInt(lineageIdentifiers.size());
-            for (final String lineageId : lineageIdentifiers) {
-                out.writeUTF(lineageId);
-            }
-
             out.writeLong(flowFile.getLineageStartDate());
+            out.writeLong(flowFile.getLineageStartIndex());
 
             final Long queueDate = flowFile.getLastQueueDate();
             out.writeLong(queueDate == null ? System.currentTimeMillis() : queueDate);
+            out.writeLong(flowFile.getQueueDateIndex());
             out.writeLong(flowFile.getSize());
 
             if (associatedQueue == null) {
@@ -546,16 +542,31 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             if (version > 1) {
                 // read the lineage identifiers and lineage start date, which were added in version 2.
-                final int numLineageIds = in.readInt();
-                final Set<String> lineageIdentifiers = new HashSet<>(numLineageIds);
-                for (int i = 0; i < numLineageIds; i++) {
-                    lineageIdentifiers.add(in.readUTF());
+                if(version < 9){
+                    final int numLineageIds = in.readInt();
+                    for (int i = 0; i < numLineageIds; i++) {
+                        in.readUTF(); //skip identifiers
+                    }
                 }
-                ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                ffBuilder.lineageStartDate(in.readLong());
+                final long lineageStartDate = in.readLong();
+                final long lineageStartIndex;
+                if (version > 7) {
+                    lineageStartIndex = in.readLong();
+                } else {
+                    lineageStartIndex = 0L;
+                }
+                ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                 if (version > 5) {
-                    ffBuilder.lastQueueDate(in.readLong());
+                    final long lastQueueDate = in.readLong();
+                    final long queueDateIndex;
+                    if (version > 7) {
+                        queueDateIndex = in.readLong();
+                    } else {
+                        queueDateIndex = 0L;
+                    }
+
+                    ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                 }
             }
 
@@ -642,16 +653,32 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
             if (version > 1) {
                 // read the lineage identifiers and lineage start date, which were added in version 2.
-                final int numLineageIds = in.readInt();
-                final Set<String> lineageIdentifiers = new HashSet<>(numLineageIds);
-                for (int i = 0; i < numLineageIds; i++) {
-                    lineageIdentifiers.add(in.readUTF());
+                if(version < 9) {
+                    final int numLineageIds = in.readInt();
+                    for (int i = 0; i < numLineageIds; i++) {
+                        in.readUTF(); //skip identifiers
+                    }
                 }
-                ffBuilder.lineageIdentifiers(lineageIdentifiers);
-                ffBuilder.lineageStartDate(in.readLong());
+
+                final long lineageStartDate = in.readLong();
+                final long lineageStartIndex;
+                if (version > 7) {
+                    lineageStartIndex = in.readLong();
+                } else {
+                    lineageStartIndex = 0L;
+                }
+                ffBuilder.lineageStart(lineageStartDate, lineageStartIndex);
 
                 if (version > 5) {
-                    ffBuilder.lastQueueDate(in.readLong());
+                    final long lastQueueDate = in.readLong();
+                    final long queueDateIndex;
+                    if (version > 7) {
+                        queueDateIndex = in.readLong();
+                    } else {
+                        queueDateIndex = 0L;
+                    }
+
+                    ffBuilder.lastQueued(lastQueueDate, queueDateIndex);
                 }
             }
 
@@ -872,7 +899,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         @Override
         public int getVersion() {
-            return 7;
+            return CURRENT_ENCODING_VERSION;
         }
 
         @Override

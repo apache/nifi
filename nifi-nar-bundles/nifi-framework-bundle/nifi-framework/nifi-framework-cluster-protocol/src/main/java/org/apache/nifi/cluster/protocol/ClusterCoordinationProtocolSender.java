@@ -25,7 +25,7 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 /**
- * An interface for sending protocol messages from the cluster manager to nodes.
+ * An interface for sending protocol messages from the cluster coordinator to nodes.
  *
  */
 public interface ClusterCoordinationProtocolSender {

@@ -20,6 +20,7 @@
 $(document).ready(function () {
     // configure the dialog
     $('#shell-dialog').modal({
+        scrollableContentStyle: 'scrollable',
         header: false,
         footer: false
     });
@@ -49,6 +50,26 @@ nf.Shell = (function () {
     var showContentResize = null;
 
     return {
+        
+        resizeContent: function (shell) {
+            var contentContainer = shell.find('.shell-content-container');
+            contentContainer.css({
+                width: shell.width(),
+                height: shell.height() - 28 - 40 //subtract shell-close-container and padding
+            });
+            shell.trigger("shell:content:resize");
+        },
+
+        // handle resize
+        resizeIframe: function (shell) {
+            var shellIframe = shell.find('#shell-iframe');
+            shellIframe.css({
+                width: shell.width(),
+                height: shell.height() - 28 - 40 //subtract shell-close-container and padding
+            });
+            shell.trigger("shell:iframe:resize");
+        },
+        
         /**
          * Shows a page in the shell.
          * 
@@ -73,10 +94,13 @@ nf.Shell = (function () {
                 shell.empty();
 
                 // register a new close handler
-                $('#shell-dialog').modal('setHandler', {
-                    close: function () {
-                        deferred.resolve();
-                    }
+                $('#shell-dialog').modal('setCloseHandler', function () {
+                    deferred.resolve();
+                });
+
+                // register a new open handler
+                $('#shell-dialog').modal('setOpenHandler', function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 });
 
                 // show the custom processor ui
@@ -98,23 +122,6 @@ nf.Shell = (function () {
                     width: shell.width(),
                     height: shell.height() - 28 //subtract shell-close-container
                 }).appendTo(shell);
-
-                // remove the window resize listener
-                if (typeof showPageResize === 'function') {
-                    $(window).off('resize', showPageResize);
-                }
-
-                // handle resize
-                showPageResize = function () {
-                    shellIframe.css({
-                        width: shell.width(),
-                        height: shell.height() - 28 //subtract shell-close-container
-                    });
-                    shell.trigger("shell:resize");
-                };
-
-                // add a window resize listener
-                $(window).resize(showPageResize);
             }).promise();
         },
         
@@ -143,13 +150,19 @@ nf.Shell = (function () {
                     content.detach();
 
                     // register a new close handler
-                    $('#shell-dialog').modal('setHandler', {
-                        close: function () {
-                            deferred.resolve();
-
-                            // detach the content and add it back to the parent
-                            content.hide().detach().appendTo(parent);
+                    $('#shell-dialog').modal('setCloseHandler', function () {
+                        // close any open combos
+                        var combos = $('.combo');
+                        for (var i = 0, len = combos.length; i < len; i++) {
+                            if ($(combos[i]).is(':visible')){
+                                $(combos[i]).combo('close');
+                            }
                         }
+
+                        deferred.resolve();
+
+                        // detach the content and add it back to the parent
+                        content.hide().detach().appendTo(parent);
                     });
 
                     // hide the undock button
@@ -159,30 +172,13 @@ nf.Shell = (function () {
                     $('#shell-dialog').modal('show');
 
                     // create the content container
-                    var contentContainer = $('<div>').css({
+                    var contentContainer = $('<div>').addClass('shell-content-container').css({
                         width: shell.width(),
                         height: shell.height()
                     }).append(content).appendTo(shell);
-
-                    // remove the window resize listener
-                    if (typeof showContentResize === 'function') {
-                        $(window).off('resize', showContentResize);
-                    }
                     
                     // show the content
                     content.show();
-
-                    // handle resizes
-                    showContentResize = function () {
-                        contentContainer.css({
-                            width: shell.width(),
-                            height: shell.height()
-                        });
-                        shell.trigger("shell:resize");
-                    };
-                    
-                    // add a window resize listener
-                    $(window).resize(showContentResize);
                 }
             }).promise();
         }

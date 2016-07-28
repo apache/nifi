@@ -64,13 +64,28 @@ div.configuration-tab {
 }
 
 div[id$=-tabs-content] {
-    height: 85%;
+    overflow: auto;
+    position: absolute;
+    top: 33px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
 }
 
 div[id$=-tab-content] {
-    height: 100%;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    left: 0px;
+    bottom: 0px;
+    padding-top: 10px;
 }
 
 div[id$=-properties] {
-    height: 100%;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    left: 0px;
+    bottom: 0px;
+    padding-top: 10px;
 }

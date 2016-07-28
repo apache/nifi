@@ -31,7 +31,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.provenance.MockProvenanceEventRepository;
+import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -67,15 +67,15 @@ public class TestFlowController {
         final AuditService auditService = Mockito.mock(AuditService.class);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor();
         final NiFiProperties properties = NiFiProperties.getInstance();
-        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceEventRepository.class.getName());
+        properties.setProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS, MockProvenanceRepository.class.getName());
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
 
-        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
-        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
-
-        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").addGroup(group1.getIdentifier()).build();
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").addUser(user1.getIdentifier()).build();
+        Group group2 = new Group.Builder().identifier("group-id-2").name("group-2").build();
 
         AccessPolicy policy1 = new AccessPolicy.Builder()
                 .identifier("policy-id-1")
@@ -135,7 +135,7 @@ public class TestFlowController {
         // had a problem verifying the call to inheritFingerprint didn't happen, so just verify none of the add methods got called
         verify(authorizer, times(0)).addUser(any(User.class));
         verify(authorizer, times(0)).addGroup(any(Group.class));
-        verify(authorizer, times(0)).addAccessPolicy(any(AccessPolicy.class));
+        //verify(authorizer, times(0)).addAccessPolicy(any(AccessPolicy.class));
     }
 
     @Test(expected = UninheritableFlowException.class)

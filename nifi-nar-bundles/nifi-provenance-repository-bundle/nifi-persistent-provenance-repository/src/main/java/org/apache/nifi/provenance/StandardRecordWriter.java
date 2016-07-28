@@ -165,8 +165,6 @@ public class StandardRecordWriter implements RecordWriter {
             out.writeLong(record.getEventTime());
             out.writeLong(record.getFlowFileEntryDate());
             out.writeLong(record.getEventDuration());
-
-            writeUUIDs(out, record.getLineageIdentifiers());
             out.writeLong(record.getLineageStartDate());
 
             writeNullableString(out, record.getComponentId());

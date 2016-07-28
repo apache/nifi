@@ -35,7 +35,6 @@ import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.util.IntegerHolder;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
@@ -51,7 +50,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -64,7 +62,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-public class VolatileProvenanceRepository implements ProvenanceEventRepository {
+public class VolatileProvenanceRepository implements ProvenanceRepository {
 
     // properties
     public static final String BUFFER_SIZE = "nifi.provenance.repository.buffer.size";
@@ -126,6 +124,11 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     @Override
+    public ProvenanceEventRepository getProvenanceEventRepository() {
+        return this;
+    }
+
+    @Override
     public ProvenanceEventBuilder eventBuilder() {
         return new StandardProvenanceEventRecord.Builder();
     }
@@ -178,7 +181,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
-    private ProvenanceEventRecord getEvent(final long id) {
+    public ProvenanceEventRecord getEvent(final long id) {
         final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
             @Override
             public boolean select(final ProvenanceEventRecord event) {
@@ -189,7 +192,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
-    @Override
     public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) {
         final ProvenanceEventRecord event = getEvent(id);
         if (event == null) {
@@ -241,7 +243,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
         final Authorizable eventAuthorizable;
         try {
-            eventAuthorizable = resourceFactory.createProvenanceAuthorizable(event.getComponentId());
+            eventAuthorizable = resourceFactory.createDataAuthorizable(event.getComponentId());
         } catch (final ResourceNotFoundException rnfe) {
             return false;
         }
@@ -255,7 +257,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
             return;
         }
 
-        final Authorizable eventAuthorizable = resourceFactory.createProvenanceAuthorizable(event.getComponentId());
+        final Authorizable eventAuthorizable = resourceFactory.createDataAuthorizable(event.getComponentId());
         eventAuthorizable.authorize(authorizer, RequestAction.READ, user, event.getAttributes());
     }
 
@@ -612,7 +614,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         @Override
         public void run() {
             // Retrieve the most recent results and count the total number of matches
-            final IntegerHolder matchingCount = new IntegerHolder(0);
+            final AtomicInteger matchingCount = new AtomicInteger(0);
             final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>(maxRecords);
             ringBuffer.forEach(new ForEachEvaluator<ProvenanceEventRecord>() {
                 @Override
@@ -707,11 +709,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         @Override
         public long getLineageStartDate() {
             return record.getLineageStartDate();
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return record.getLineageIdentifiers();
         }
 
         @Override

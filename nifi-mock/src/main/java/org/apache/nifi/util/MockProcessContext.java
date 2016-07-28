@@ -36,13 +36,14 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
-public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup {
+public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup, NodeTypeProvider {
 
     private final ConfigurableComponent component;
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -58,6 +59,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     private volatile Set<Relationship> connections = new HashSet<>();
     private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
+
+    private volatile boolean isClustered;
+    private volatile boolean isPrimaryNode;
 
     public MockProcessContext(final ConfigurableComponent component) {
         this(component, new MockStateManager(component));
@@ -363,5 +367,26 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
 
     protected void setMaxConcurrentTasks(int maxConcurrentTasks) {
         this.maxConcurrentTasks = maxConcurrentTasks;
+    }
+
+    @Override
+    public boolean isClustered() {
+        return isClustered;
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return isPrimaryNode;
+    }
+
+    public void setClustered(boolean clustered) {
+        isClustered = clustered;
+    }
+
+    public void setPrimaryNode(boolean primaryNode) {
+        if (!isClustered && primaryNode) {
+            throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
+        }
+        isPrimaryNode = primaryNode;
     }
 }

@@ -16,17 +16,19 @@
  */
 package org.apache.nifi.web.util;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -41,6 +43,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.util.TypeOneUUIDGenerator;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -65,6 +68,8 @@ public final class SnippetUtils {
     private FlowController flowController;
     private DtoFactory dtoFactory;
 
+
+
     /**
      * Populates the specified snippet and returns the details.
      *
@@ -73,8 +78,8 @@ public final class SnippetUtils {
      * @param includeControllerServices whether or not to include controller services in the flow snippet dto
      * @return snippet
      */
-    public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices) {
-        final FlowSnippetDTO snippetDto = new FlowSnippetDTO();
+    public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
+        final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
         final ProcessGroup processGroup = flowController.getGroup(groupId);
 
@@ -99,8 +104,11 @@ public final class SnippetUtils {
                     controllerServices.addAll(getControllerServices(processor.getProperties()));
                 }
             }
+            this.normalizeCoordinates(processors);
             snippetDto.setProcessors(processors);
         }
+
+
 
         // add any connections
         if (!snippet.getConnections().isEmpty()) {
@@ -254,8 +262,9 @@ public final class SnippetUtils {
     }
 
 
-    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group, final String idGenerationSeed) {
-        final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed);
+    public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group,
+            final String idGenerationSeed, boolean isCopy) {
+        final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null, idGenerationSeed, isCopy);
         resolveNameConflicts(snippetCopy, group);
         return snippetCopy;
     }
@@ -311,7 +320,7 @@ public final class SnippetUtils {
     }
 
     private FlowSnippetDTO copyContentsForGroup(final FlowSnippetDTO snippetContents, final String groupId, final Map<String, ConnectableDTO> parentConnectableMap, Map<String, String> serviceIdMap,
-        final String idGenerationSeed) {
+            final String idGenerationSeed, boolean isCopy) {
         final FlowSnippetDTO snippetContentsCopy = new FlowSnippetDTO();
 
         //
@@ -325,7 +334,7 @@ public final class SnippetUtils {
         if (snippetContents.getControllerServices() != null) {
             for (final ControllerServiceDTO serviceDTO : snippetContents.getControllerServices()) {
                 final ControllerServiceDTO service = dtoFactory.copy(serviceDTO);
-                service.setId(generateId(serviceDTO.getId(), idGenerationSeed));
+                service.setId(generateId(serviceDTO.getId(), idGenerationSeed, isCopy));
                 service.setState(ControllerServiceState.DISABLED.name());
                 services.add(service);
 
@@ -361,7 +370,7 @@ public final class SnippetUtils {
         if (snippetContents.getLabels() != null) {
             for (final LabelDTO labelDTO : snippetContents.getLabels()) {
                 final LabelDTO label = dtoFactory.copy(labelDTO);
-                label.setId(generateId(labelDTO.getId(), idGenerationSeed));
+                label.setId(generateId(labelDTO.getId(), idGenerationSeed, isCopy));
                 label.setParentGroupId(groupId);
                 labels.add(label);
             }
@@ -381,7 +390,7 @@ public final class SnippetUtils {
         if (snippetContents.getFunnels() != null) {
             for (final FunnelDTO funnelDTO : snippetContents.getFunnels()) {
                 final FunnelDTO cp = dtoFactory.copy(funnelDTO);
-                cp.setId(generateId(funnelDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(funnelDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
                 funnels.add(cp);
 
@@ -394,7 +403,7 @@ public final class SnippetUtils {
         if (snippetContents.getInputPorts() != null) {
             for (final PortDTO portDTO : snippetContents.getInputPorts()) {
                 final PortDTO cp = dtoFactory.copy(portDTO);
-                cp.setId(generateId(portDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
                 cp.setState(ScheduledState.STOPPED.toString());
                 inputPorts.add(cp);
@@ -412,7 +421,7 @@ public final class SnippetUtils {
         if (snippetContents.getOutputPorts() != null) {
             for (final PortDTO portDTO : snippetContents.getOutputPorts()) {
                 final PortDTO cp = dtoFactory.copy(portDTO);
-                cp.setId(generateId(portDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(portDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
                 cp.setState(ScheduledState.STOPPED.toString());
                 outputPorts.add(cp);
@@ -433,7 +442,7 @@ public final class SnippetUtils {
         if (snippetContents.getProcessors() != null) {
             for (final ProcessorDTO processorDTO : snippetContents.getProcessors()) {
                 final ProcessorDTO cp = dtoFactory.copy(processorDTO);
-                cp.setId(generateId(processorDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(processorDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
                 cp.setState(ScheduledState.STOPPED.toString());
                 processors.add(cp);
@@ -454,11 +463,11 @@ public final class SnippetUtils {
         if (snippetContents.getProcessGroups() != null) {
             for (final ProcessGroupDTO groupDTO : snippetContents.getProcessGroups()) {
                 final ProcessGroupDTO cp = dtoFactory.copy(groupDTO, false);
-                cp.setId(generateId(groupDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(groupDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
 
                 // copy the contents of this group - we do not copy via the dto factory since we want to specify new ids
-                final FlowSnippetDTO contentsCopy = copyContentsForGroup(groupDTO.getContents(), cp.getId(), connectableMap, serviceIdMap, idGenerationSeed);
+                final FlowSnippetDTO contentsCopy = copyContentsForGroup(groupDTO.getContents(), cp.getId(), connectableMap, serviceIdMap, idGenerationSeed, isCopy);
                 cp.setContents(contentsCopy);
                 groups.add(cp);
             }
@@ -469,7 +478,7 @@ public final class SnippetUtils {
         if (snippetContents.getRemoteProcessGroups() != null) {
             for (final RemoteProcessGroupDTO remoteGroupDTO : snippetContents.getRemoteProcessGroups()) {
                 final RemoteProcessGroupDTO cp = dtoFactory.copy(remoteGroupDTO);
-                cp.setId(generateId(remoteGroupDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(remoteGroupDTO.getId(), idGenerationSeed, isCopy));
                 cp.setParentGroupId(groupId);
 
                 final RemoteProcessGroupContentsDTO contents = cp.getContents();
@@ -504,7 +513,7 @@ public final class SnippetUtils {
                     throw new IllegalArgumentException("The flow snippet contains a Connection that references a component that is not included.");
                 }
 
-                cp.setId(generateId(connectionDTO.getId(), idGenerationSeed));
+                cp.setId(generateId(connectionDTO.getId(), idGenerationSeed, isCopy));
                 cp.setSource(source);
                 cp.setDestination(destination);
                 cp.setParentGroupId(groupId);
@@ -558,12 +567,13 @@ public final class SnippetUtils {
     /**
      * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
      */
-    private String generateId(final String currentId, final String seed) {
-        if (seed == null) {
-            return UUID.randomUUID().toString();
-        } else {
-            return UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8)).toString();
-        }
+    private String generateId(final String currentId, final String seed, boolean isCopy) {
+        long msb = UUID.fromString(currentId).getMostSignificantBits();
+        int lsb = StringUtils.isBlank(seed)
+                ? Math.abs(new Random().nextInt())
+                : Math.abs(seed.hashCode());
+
+        return isCopy ? TypeOneUUIDGenerator.generateId(msb, lsb).toString() : new UUID(msb, lsb).toString();
     }
 
     /* setters */
@@ -573,6 +583,32 @@ public final class SnippetUtils {
 
     public void setFlowController(final FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    /**
+     * Will normalize the coordinates of the processors to ensure their
+     * consistency across exports. It will do so by fist calculating the
+     * smallest X and smallest Y and then subtracting it from all X's and Y's of
+     * each processor ensuring that coordinates are consistent across export
+     * while preserving relative locations set by the user.
+     */
+    private void normalizeCoordinates(Collection<ProcessorDTO> processors) {
+        double smallestX = Double.MAX_VALUE;
+        double smallestY = Double.MAX_VALUE;
+        for (ProcessorDTO processor : processors) {
+            double d = processor.getPosition().getX();
+            if (d < smallestX) {
+                smallestX = d;
+            }
+            d = processor.getPosition().getY();
+            if (d < smallestY) {
+                smallestY = d;
+            }
+        }
+        for (ProcessorDTO processor : processors) {
+            processor.getPosition().setX(processor.getPosition().getX() - smallestX);
+            processor.getPosition().setY(processor.getPosition().getY() - smallestY);
+        }
     }
 
 }

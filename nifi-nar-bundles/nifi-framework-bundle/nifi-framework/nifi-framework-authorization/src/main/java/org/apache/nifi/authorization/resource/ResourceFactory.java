@@ -16,24 +16,11 @@
  */
 package org.apache.nifi.authorization.resource;
 
-import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Resource;
 
 import java.util.Objects;
 
 public final class ResourceFactory {
-
-    private final static Resource CONNECTION_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Connection.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Connection";
-        }
-    };
 
     private final static Resource CONTROLLER_RESOURCE = new Resource() {
         @Override
@@ -179,15 +166,15 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROVENANCE_EVENT_RESOURCE = new Resource() {
+    private final static Resource DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
-            return ResourceType.ProvenanceEvent.getValue();
+            return ResourceType.Data.getValue();
         }
 
         @Override
         public String getName() {
-            return "Provenance Event";
+            return "Data";
         }
     };
 
@@ -287,18 +274,6 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource TOKEN_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Token.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "API access token";
-        }
-    };
-
     private final static Resource POLICIES_RESOURCE = new Resource() {
 
         @Override
@@ -311,15 +286,6 @@ public final class ResourceFactory {
             return "Access Policies";
         }
     };
-
-    /**
-     * Gets the Resource for accessing Connections.
-     *
-     * @return The resource for accessing connections
-     */
-    public static Resource getConnectionResource() {
-        return CONNECTION_RESOURCE;
-    }
 
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
@@ -382,15 +348,6 @@ public final class ResourceFactory {
      */
     public static Resource getOutputPortResource() {
         return OUTPUT_PORT_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Policies which allows management of Access Policies.
-     *
-     * @return The resource for accessing Policies
-     */
-    public static Resource getPolicyResource() {
-        return POLICY_RESOURCE;
     }
 
     /**
@@ -495,15 +452,6 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for creating API access tokens.
-     *
-     * @return  The token request resource
-     */
-    public static Resource getTokenResource() {
-        return TOKEN_RESOURCE;
-    }
-
-    /**
      * Gets the Resource for accessing Tenants which includes creating, modifying, and deleting Users and UserGroups.
      *
      * @return The Resource for accessing Tenants
@@ -513,19 +461,20 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets a Resource for performing site to site on a port.
+     * Gets a Resource for performing transferring data to a port.
      *
+     * @param isInputPort   Whether this port is an input port or an output port
      * @param identifier    The identifier of the component being accessed
      * @param name          The name of the component being accessed
      * @return              The resource
      */
-    public static Resource getSiteToSiteResource(final String identifier, final String name) {
+    public static Resource getDataTransferResource(final boolean isInputPort, final String identifier, final String name) {
         Objects.requireNonNull(identifier, "The component identifier must be specified.");
 
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", ResourceType.SiteToSite.getValue(), identifier);
+                return String.format("%s/%s/%s", ResourceType.DataTransfer.getValue(), isInputPort ? "input-ports" : "output-ports", identifier);
             }
 
             @Override
@@ -536,7 +485,29 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the {@link Resource} for accessing {@link AccessPolicy}s.
+     * Gets a Resource for performing transferring data to a port.
+     *
+     * @param resource      The resource to transfer data to
+     * @return              The resource
+     */
+    public static Resource getDataTransferResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return String.format("%s%s", ResourceType.DataTransfer.getValue(), resource.getIdentifier());
+            }
+
+            @Override
+            public String getName() {
+                return "Transfer data to " + resource.getName();
+            }
+        };
+    }
+
+    /**
+     * Gets the {@link Resource} for accessing access policies.
      * @return The policies resource
      */
     public static Resource getPoliciesResource() {
@@ -544,23 +515,23 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets a Resource for accessing an {@link AccessPolicy} configuration.
+     * Gets a Resource for accessing a resources's policies.
      *
-     * @param identifier    The identifier of the component being accessed
+     * @param resource      The resource being accessed
      * @return              The resource
      */
-    public static Resource getPolicyResource(final String identifier) {
-        Objects.requireNonNull(identifier, "The component identifier must be specified.");
+    public static Resource getPolicyResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource type must be specified.");
 
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s/%s", POLICIES_RESOURCE.getIdentifier(), identifier);
+                return String.format("%s%s", POLICY_RESOURCE.getIdentifier(), resource.getIdentifier());
             }
 
             @Override
             public String getName() {
-                return identifier;
+                return "Policies for " + resource.getName();
             }
         };
     }
@@ -596,40 +567,16 @@ public final class ResourceFactory {
      * @param resource The resource for the component being accessed
      * @return The resource for the provenance of the component being accessed
      */
-    public static Resource getProvenanceEventResource(final Resource resource) {
+    public static Resource getDataResource(final Resource resource) {
         return new Resource() {
             @Override
             public String getIdentifier() {
-                return String.format("%s%s", PROVENANCE_EVENT_RESOURCE.getIdentifier(), resource.getIdentifier());
+                return String.format("%s%s", DATA_RESOURCE.getIdentifier(), resource.getIdentifier());
             }
 
             @Override
             public String getName() {
-                return "Provenance Events for " + resource.getName();
-            }
-        };
-    }
-
-    /**
-     * Gets a Resource fo accessing a flowfile queue for the specified connection.
-     *
-     * @param connectionIdentifier  The identifier of the connection
-     * @param connectionName        The name of the connection
-     * @return                      The resource
-     */
-    public static Resource getFlowFileQueueResource(final String connectionIdentifier, final String connectionName) {
-        Objects.requireNonNull(connectionIdentifier, "The connection identifier must be specified.");
-        Objects.requireNonNull(connectionName, "The connection name must be specified.");
-
-        return new Resource() {
-            @Override
-            public String getIdentifier() {
-                return String.format("/flowfile-queue/%s", connectionIdentifier);
-            }
-
-            @Override
-            public String getName() {
-                return connectionName + " queue";
+                return "Data for " + resource.getName();
             }
         };
     }

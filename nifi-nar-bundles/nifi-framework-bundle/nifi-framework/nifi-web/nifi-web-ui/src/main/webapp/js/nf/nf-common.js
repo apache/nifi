@@ -286,6 +286,32 @@ nf.Common = (function () {
         },
 
         /**
+         * Determines whether the current user can access counters.
+         *
+         * @returns {boolean}
+         */
+        canAccessPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
+         * Determines whether the current user can modify counters.
+         *
+         * @returns {boolean}
+         */
+        canModifyPolicies: function () {
+            if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                return nf.Common.currentUser.policiesPermissions.canRead === true && nf.Common.currentUser.policiesPermissions.canWrite === true;
+            } else {
+                return false;
+            }
+        },
+
+        /**
          * Determines whether the current user can access the controller.
          *
          * @returns {boolean}
@@ -326,6 +352,23 @@ nf.Common = (function () {
                 $(this).removeClass(overStyle).addClass(normalStyle);
             });
             return $(selector).addClass(normalStyle);
+        },
+
+        /**
+         * Determine if an `element` has content overflow and adds the `.scrollable` class if it does.
+         *
+         * @param {HTMLElement} element The DOM element to toggle .scrollable upon.
+         */
+        toggleScrollable: function (element) {
+            if ($(element).is(':visible')){
+                if (element.offsetHeight < element.scrollHeight ||
+                    element.offsetWidth < element.scrollWidth) {
+                    // your element has overflow
+                    $(element).addClass('scrollable');
+                } else {
+                    $(element).removeClass('scrollable');
+                }
+            }
         },
 
         /**
@@ -383,9 +426,9 @@ nf.Common = (function () {
             }
 
             // status code 400, 403, 404, and 409 are expected response codes for common errors.
-            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409) {
+            if (xhr.status === 400 || xhr.status === 403 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Malformed Request',
+                    headerText: 'Error',
                     dialogContent: nf.Common.escapeHtml(xhr.responseText)
                 });
             } else {
@@ -488,9 +531,9 @@ nf.Common = (function () {
          */
         populateField: function (target, value) {
             if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                return $('#' + target).addClass('unset').text('No value set');
+                return $('#' + target).addClass('unset').text('No value previously set');
             } else if (value === '') {
-                return $('#' + target).addClass('blank').text('Empty string set');
+                return $('#' + target).addClass('blank').text('Empty string previously set');
             } else {
                 return $('#' + target).text(value);
             }
@@ -580,12 +623,12 @@ nf.Common = (function () {
         formatValue: function (value) {
             if (nf.Common.isDefinedAndNotNull(value)) {
                 if (value === '') {
-                    return '<span class="blank">Empty string set</span>';
+                    return '<span class="blank" style="font-size: 13px; padding-top: 2px;">Empty string previously set</span>';
                 } else {
                     return nf.Common.escapeHtml(value);
                 }
             } else {
-                return '<span class="unset">No value set</span>';
+                return '<span class="unset" style="font-size: 13px; padding-top: 2px;">No value previously set</span>';
             }
         },
 
@@ -678,41 +721,6 @@ nf.Common = (function () {
                 return propertyDescriptor.supportsEl === true;
             } else {
                 return false;
-            }
-        },
-
-        /**
-         * Creates a form inline in order to submit the specified params to the specified URL
-         * using the specified method.
-         * 
-         * @param {string} url          The URL
-         * @param {object} params       An object with the params to include in the submission
-         */
-        post: function (url, params) {
-            // temporarily override beforeunload
-            var previousBeforeUnload = window.onbeforeunload;
-            window.onbeforeunload = null;
-
-            // create a form for submission
-            var form = $('<form></form>').attr({
-                'method': 'POST',
-                'action': url,
-                'style': 'display: none;'
-            });
-
-            // add each parameter when specified
-            if (nf.Common.isDefinedAndNotNull(params)) {
-                $.each(params, function (name, value) {
-                    $('<textarea></textarea>').attr('name', name).val(value).appendTo(form);
-                });
-            }
-
-            // submit the form and clean up
-            form.appendTo('body').submit().remove();
-
-            // restore previous beforeunload if necessary
-            if (previousBeforeUnload !== null) {
-                window.onbeforeunload = previousBeforeUnload;
             }
         },
 
@@ -1015,10 +1023,10 @@ nf.Common = (function () {
             if (!nf.Common.isDefinedAndNotNull(rawDateTime)) {
                 return new Date();
             }
-            if (rawDateTime === 'No value set') {
+            if (rawDateTime === 'No value previously set') {
                 return new Date();
             }
-            if (rawDateTime === 'Empty string set') {
+            if (rawDateTime === 'Empty string previously set') {
                 return new Date();
             }
 

@@ -157,7 +157,6 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void testRestartWithOneRecord() throws IOException {
         final Path path = Paths.get("target/test-repo");
         if (Files.exists(path)) {
@@ -305,7 +304,6 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             List<FlowFileRecord> records = null;
             for (final Map<String, List<FlowFileRecord>> swapMap : swappedRecords.values()) {

@@ -62,6 +62,7 @@ public class MockProcessSession implements ProcessSession {
     private final MockFlowFileQueue processorQueue;
     private final Set<Long> beingProcessed = new HashSet<>();
     private final List<MockFlowFile> penalized = new ArrayList<>();
+    private final Processor processor;
 
     private final Map<Long, MockFlowFile> currentVersions = new HashMap<>();
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
@@ -69,11 +70,15 @@ public class MockProcessSession implements ProcessSession {
     private final Map<String, Long> counterMap = new HashMap<>();
     private final MockProvenanceReporter provenanceReporter;
 
+    // A List of InputStreams that have been created by calls to {@link #read(FlowFile)} and have not yet been closed.
+    private final List<InputStream> openInputStreams = new ArrayList<>();
+
     private boolean committed = false;
     private boolean rolledback = false;
     private int removedCount = 0;
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
+        this.processor = processor;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
@@ -127,6 +132,20 @@ public class MockProcessSession implements ProcessSession {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
         }
+
+        if (!openInputStreams.isEmpty()) {
+            final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+            for (final InputStream openInputStream : openStreamCopy) {
+                try {
+                    openInputStream.close();
+                } catch (final IOException e) {
+                }
+            }
+
+            throw new FlowFileHandlingException("Cannot commit session because the following Input Streams were created via "
+                + "calls to ProcessSession.read(FlowFile) and never closed: " + openStreamCopy);
+        }
+
         committed = true;
         beingProcessed.clear();
         currentVersions.clear();
@@ -428,6 +447,46 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
+    public InputStream read(final FlowFile flowFile) {
+        if (flowFile == null) {
+            throw new IllegalArgumentException("FlowFile cannot be null");
+        }
+
+        validateState(flowFile);
+        if (!(flowFile instanceof MockFlowFile)) {
+            throw new IllegalArgumentException("Cannot export a flow file that I did not create");
+        }
+        final MockFlowFile mock = (MockFlowFile) flowFile;
+
+        final ByteArrayInputStream bais = new ByteArrayInputStream(mock.getData());
+        final InputStream errorHandlingStream = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                return bais.read();
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+                return bais.read(b, off, len);
+            }
+
+            @Override
+            public void close() throws IOException {
+                openInputStreams.remove(this);
+                bais.close();
+            }
+
+            @Override
+            public String toString() {
+                return "ErrorHandlingInputStream[flowFile=" + flowFile + "]";
+            }
+        };
+
+        openInputStreams.add(errorHandlingStream);
+        return errorHandlingStream;
+    }
+
+    @Override
     public void remove(final FlowFile flowFile) {
         validateState(flowFile);
 
@@ -531,6 +590,14 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void rollback(final boolean penalize) {
+        final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
+        for (final InputStream openInputStream : openStreamCopy) {
+            try {
+                openInputStream.close();
+            } catch (final IOException e) {
+            }
+        }
+
         for (final List<MockFlowFile> list : transferMap.values()) {
             for (final MockFlowFile flowFile : list) {
                 processorQueue.offer(flowFile);
@@ -585,6 +652,9 @@ public class MockProcessSession implements ProcessSession {
             transfer(flowFile);
             return;
         }
+        if(!processor.getRelationships().contains(relationship)){
+            throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
+        }
 
         validateState(flowFile);
         List<MockFlowFile> list = transferMap.get(relationship);
@@ -602,6 +672,9 @@ public class MockProcessSession implements ProcessSession {
         if (relationship == Relationship.SELF) {
             transfer(flowFiles);
             return;
+        }
+        if(!processor.getRelationships().contains(relationship)){
+            throw new IllegalArgumentException("this relationship " + relationship.getName() + " is not known");
         }
 
         for (final FlowFile flowFile : flowFiles) {

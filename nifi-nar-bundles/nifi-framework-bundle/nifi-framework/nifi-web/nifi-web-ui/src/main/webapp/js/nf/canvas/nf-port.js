@@ -159,7 +159,7 @@ nf.Port = (function () {
 
         // only activate dragging and connecting if appropriate
         port.filter(function (d) {
-            return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+            return d.permissions.canWrite && d.permissions.canRead;
         }).call(nf.Draggable.activate).call(nf.Connectable.activate);
     };
 
@@ -176,13 +176,13 @@ nf.Port = (function () {
         // port border authorization
         updated.select('rect.border')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // port body authorization
         updated.select('rect.body')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         updated.each(function (portData) {
@@ -250,7 +250,7 @@ nf.Port = (function () {
                     details.append('text')
                         .attr({
                             'class': 'active-thread-count-icon',
-                            'y': 68
+                            'y': 43 + offset
                         })
                         .text('\ue83f');
 
@@ -258,11 +258,11 @@ nf.Port = (function () {
                     details.append('text')
                         .attr({
                             'class': 'active-thread-count',
-                            'y': 68
+                            'y': 43 + offset
                         });
                 }
 
-                if (portData.accessPolicy.canRead) {
+                if (portData.permissions.canRead) {
                     // update the port name
                     port.select('text.port-name')
                         .each(function (d) {
@@ -291,7 +291,7 @@ nf.Port = (function () {
                 // populate the stats
                 port.call(updatePortStatus);
             } else {
-                if (portData.accessPolicy.canRead) {
+                if (portData.permissions.canRead) {
                     // update the port name
                     port.select('text.port-name')
                         .text(function (d) {
@@ -364,7 +364,7 @@ nf.Port = (function () {
                 }
 
                 // if there are validation errors generate a tooltip
-                if (d.accessPolicy.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
+                if (d.permissions.canRead && !nf.Common.isEmpty(d.component.validationErrors)) {
                     tip = d3.select('#port-tooltips').append('div')
                         .attr('id', function () {
                             return 'run-status-tip-' + d.id;
@@ -606,9 +606,10 @@ nf.Port = (function () {
          */
         reload: function (port) {
             if (portMap.has(port.id)) {
+                var portEntity = portMap.get(port.id);
                 return $.ajax({
                     type: 'GET',
-                    url: port.uri,
+                    url: portEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     if (nf.Common.isDefinedAndNotNull(response.inputPort)) {

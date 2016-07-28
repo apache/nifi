@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -70,7 +69,6 @@ public class TestFileSystemSwapManager {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
     public void testRoundTripSerializeDeserialize() throws IOException {
         final List<FlowFileRecord> toSwap = new ArrayList<>(10000);
         final Map<String, String> attrs = new HashMap<>();
@@ -110,7 +108,6 @@ public class TestFileSystemSwapManager {
             assertEquals(pre.getContentClaimOffset(), post.getContentClaimOffset());
             assertEquals(pre.getEntryDate(), post.getEntryDate());
             assertEquals(pre.getLastQueueDate(), post.getLastQueueDate());
-            assertEquals(pre.getLineageIdentifiers(), post.getLineageIdentifiers());
             assertEquals(pre.getLineageStartDate(), post.getLineageStartDate());
             assertEquals(pre.getPenaltyExpirationMillis(), post.getPenaltyExpirationMillis());
         }
@@ -199,11 +196,6 @@ public class TestFileSystemSwapManager {
         }
 
         @Override
-        public Set<String> getLineageIdentifiers() {
-            return Collections.emptySet();
-        }
-
-        @Override
         public boolean isPenalized() {
             return false;
         }
@@ -240,6 +232,16 @@ public class TestFileSystemSwapManager {
 
         @Override
         public long getContentClaimOffset() {
+            return 0;
+        }
+
+        @Override
+        public long getLineageStartIndex() {
+            return 0;
+        }
+
+        @Override
+        public long getQueueDateIndex() {
             return 0;
         }
     }

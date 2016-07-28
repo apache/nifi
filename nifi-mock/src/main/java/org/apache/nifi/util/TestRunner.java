@@ -33,7 +33,6 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 
@@ -486,12 +485,6 @@ public interface TestRunner {
     List<MockFlowFile> getPenalizedFlowFiles();
 
     /**
-     * @return the {@link ProvenanceReporter} that will be used by the
-     *         configured {@link Processor} for reporting Provenance Events
-     */
-    ProvenanceReporter getProvenanceReporter();
-
-    /**
      * @return the current size of the Processor's Input Queue
      */
     QueueSize getQueueSize();
@@ -898,4 +891,14 @@ public interface TestRunner {
      * @return the State Manager that is used to store and retrieve state for the given controller service
      */
     MockStateManager getStateManager(ControllerService service);
+
+    /**
+     * @param clustered Specify if this test emulates running in a clustered environment
+     */
+    void setClustered(boolean clustered);
+
+    /**
+     * @param primaryNode Specify if this test emulates running as a primary node
+     */
+    void setPrimaryNode(boolean primaryNode);
 }

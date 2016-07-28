@@ -55,6 +55,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,7 +69,7 @@ import java.util.regex.Pattern;
 @Tags({"cassandra", "cql", "put", "insert", "update", "set"})
 @EventDriven
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x or 2.x cluster. "
+@CapabilityDescription("Execute provided Cassandra Query Language (CQL) statement on a Cassandra 1.x, 2.x, or 3.0.x cluster. "
         + "The content of an incoming FlowFile is expected to be the CQL command to execute. The CQL command may use "
         + "the ? to escape parameters. In this case, the parameters to use must exist as FlowFile attributes with the "
         + "naming convention cql.args.N.type and cql.args.N.value, where N is a positive integer. The cql.args.N.type "
@@ -318,7 +319,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     if (mainType.equals(DataType.ascii())
                             || mainType.equals(DataType.text())
                             || mainType.equals(DataType.varchar())
-                            || mainType.equals(DataType.timestamp())
                             || mainType.equals(DataType.timeuuid())
                             || mainType.equals(DataType.uuid())
                             || mainType.equals(DataType.inet())
@@ -345,6 +345,8 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                     } else if (mainType.equals(DataType.blob())) {
                         statement.setBytes(paramIndex, (ByteBuffer) typeCodec.parse(paramValue));
 
+                    } else if (mainType.equals(DataType.timestamp())) {
+                        statement.setTimestamp(paramIndex, (Date) typeCodec.parse(paramValue));
                     }
                     return;
                 } else {

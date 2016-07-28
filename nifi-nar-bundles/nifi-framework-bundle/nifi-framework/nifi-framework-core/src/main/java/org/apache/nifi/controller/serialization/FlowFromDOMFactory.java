@@ -133,16 +133,6 @@ public class FlowFromDOMFactory {
         final Set<ProcessGroupDTO> processGroups = new HashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new HashSet<>();
 
-        final FlowSnippetDTO groupContents = new FlowSnippetDTO();
-        groupContents.setConnections(connections);
-        groupContents.setFunnels(funnels);
-        groupContents.setInputPorts(inputPorts);
-        groupContents.setLabels(labels);
-        groupContents.setOutputPorts(outputPorts);
-        groupContents.setProcessGroups(processGroups);
-        groupContents.setProcessors(processors);
-        groupContents.setRemoteProcessGroups(remoteProcessGroups);
-
         NodeList nodeList = DomUtils.getChildNodesByTagName(element, "processor");
         for (int i = 0; i < nodeList.getLength(); i++) {
             processors.add(getProcessor((Element) nodeList.item(i), encryptor));
@@ -182,6 +172,16 @@ public class FlowFromDOMFactory {
         for (int i = 0; i < nodeList.getLength(); i++) {
             connections.add(getConnection((Element) nodeList.item(i)));
         }
+
+        final FlowSnippetDTO groupContents = new FlowSnippetDTO();
+        groupContents.setConnections(connections);
+        groupContents.setFunnels(funnels);
+        groupContents.setInputPorts(inputPorts);
+        groupContents.setLabels(labels);
+        groupContents.setOutputPorts(outputPorts);
+        groupContents.setProcessGroups(processGroups);
+        groupContents.setProcessors(processors);
+        groupContents.setRemoteProcessGroups(remoteProcessGroups);
 
         dto.setContents(groupContents);
         return dto;
@@ -260,7 +260,9 @@ public class FlowFromDOMFactory {
         dto.setProxyHost(getString(element, "proxyHost"));
         dto.setProxyPort(getOptionalInt(element, "proxyPort"));
         dto.setProxyUser(getString(element, "proxyUser"));
-        String proxyPassword = decrypt(getString(element, "proxyPassword"), encryptor);
+
+        final String rawPassword = getString(element, "proxyPassword");
+        final String proxyPassword = encryptor == null ? rawPassword : decrypt(rawPassword, encryptor);
         dto.setProxyPassword(proxyPassword);
 
         return dto;
@@ -395,7 +397,9 @@ public class FlowFromDOMFactory {
         final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
         for (final Element propertyElement : propertyNodeList) {
             final String name = getString(propertyElement, "name");
-            final String value = decrypt(getString(propertyElement, "value"), encryptor);
+
+            final String rawPropertyValue = getString(propertyElement, "value");
+            final String value = encryptor == null ? rawPropertyValue : decrypt(rawPropertyValue, encryptor);
             properties.put(name, value);
         }
         return properties;

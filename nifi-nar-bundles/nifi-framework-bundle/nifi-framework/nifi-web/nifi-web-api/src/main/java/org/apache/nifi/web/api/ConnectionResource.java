@@ -24,9 +24,11 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -85,35 +87,8 @@ public class ConnectionResource extends ApplicationResource {
      * @return dto
      */
     public ConnectionEntity populateRemainingConnectionEntityContent(ConnectionEntity connectionEntity) {
-        if (connectionEntity.getComponent() != null) {
-            populateRemainingConnectionContent(connectionEntity.getComponent());
-        }
+       connectionEntity.setUri(generateResourceUri("connections", connectionEntity.getId()));
         return connectionEntity;
-    }
-
-    /**
-     * Populate the URIs for the specified connections.
-     *
-     * @param connections connections
-     * @return dtos
-     */
-    public Set<ConnectionDTO> populateRemainingConnectionsContent(Set<ConnectionDTO> connections) {
-        for (ConnectionDTO connection : connections) {
-            populateRemainingConnectionContent(connection);
-        }
-        return connections;
-    }
-
-    /**
-     * Populate the URIs for the specified connection.
-     *
-     * @param connection connection
-     * @return dto
-     */
-    public ConnectionDTO populateRemainingConnectionContent(ConnectionDTO connection) {
-        // populate the remaining properties
-        connection.setUri(generateResourceUri("connections", connection.getId()));
-        return connection;
     }
 
     /**
@@ -129,7 +104,7 @@ public class ConnectionResource extends ApplicationResource {
 
         // uri of each flowfile
         if (flowFileListing.getFlowFileSummaries() != null) {
-            for (FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
+            for (final FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
                 populateRemainingFlowFileContent(connectionId, flowFile);
             }
         }
@@ -191,8 +166,9 @@ public class ConnectionResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable conn = lookup.getConnection(id);
-            conn.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+            // ensure read access to this connection (checks source and destination)
+            final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
+            authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the specified relationship
@@ -261,6 +237,10 @@ public class ConnectionResource extends ApplicationResource {
                     + "requested resource (%s).", connection.getId(), id));
         }
 
+        if (connection.getDestination() != null && connection.getDestination().getId() == null) {
+            throw new IllegalArgumentException("When specifying a destination component, the destination id is required.");
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, connectionEntity);
         }
@@ -270,8 +250,20 @@ public class ConnectionResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                Authorizable authorizable = lookup.getConnection(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                // verifies write access to this connection (this checks the current source and destination)
+                ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                connAuth.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // if a destination has been specified and is different
+                final Connectable currentDestination = connAuth.getDestination();
+                if (connection.getDestination() != null && currentDestination.getIdentifier().equals(connection.getDestination().getId())) {
+                    // verify access of the new destination (current destination was already authorized as part of the connection check)
+                    final Authorizable newDestinationAuthorizable = lookup.getConnectable(connection.getDestination().getId());
+                    newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // verify access of the parent group (this is the same check that is performed when creating the connection)
+                    connAuth.getParentGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                }
             },
             () -> serviceFacade.verifyUpdateConnection(connection),
             () -> {
@@ -345,8 +337,9 @@ public class ConnectionResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable conn = lookup.getConnection(id);
-                conn.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                // verifies write access to the source and destination
+                final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             () -> serviceFacade.verifyDeleteConnection(id),
             () -> {

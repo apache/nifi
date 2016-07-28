@@ -50,24 +50,26 @@ nf.ng.InputPortComponent = function (serviceProvider) {
             dataType: 'json',
             contentType: 'application/json'
         }).done(function (response) {
-            if (nf.Common.isDefinedAndNotNull(response.component)) {
-                // add the port to the graph
-                nf.Graph.add({
-                    'inputPorts': [response]
-                }, {
-                    'selectAll': true
-                });
+            // add the port to the graph
+            nf.Graph.add({
+                'inputPorts': [response]
+            }, {
+                'selectAll': true
+            });
 
-                // update component visibility
-                nf.Canvas.View.updateVisibility();
+            // update component visibility
+            nf.Canvas.View.updateVisibility();
 
-                // update the birdseye
-                nf.Birdseye.refresh();
-            }
+            // update the birdseye
+            nf.Birdseye.refresh();
         }).fail(nf.Common.handleAjaxError);
     };
 
     function InputPortComponent() {
+
+        this.icon = 'icon icon-port-in';
+
+        this.hoverIcon = 'icon icon-port-in-add';
 
         /**
          * The input port component's modal.
@@ -89,6 +91,7 @@ nf.ng.InputPortComponent = function (serviceProvider) {
             init: function () {
                 // configure the new port dialog
                 this.getElement().modal({
+                    scrollableContentStyle: 'scrollable',
                     headerText: 'Add Port',
                     handler: {
                         close: function () {

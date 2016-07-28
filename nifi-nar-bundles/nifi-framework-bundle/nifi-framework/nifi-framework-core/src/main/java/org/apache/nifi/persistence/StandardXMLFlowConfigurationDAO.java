@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,10 +42,9 @@ import org.slf4j.LoggerFactory;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
-    public static final String CONFIGURATION_ARCHIVE_DIR_KEY = "nifi.flow.configuration.archive.dir";
-
     private final Path flowXmlPath;
     private final StringEncryptor encryptor;
+    private final FlowConfigurationArchiveManager archiveManager;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
@@ -65,8 +63,9 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         this.flowXmlPath = flowXml;
         this.encryptor = encryptor;
-    }
 
+        this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, NiFiProperties.getInstance());
+    }
 
     @Override
     public boolean isFlowPresent() {
@@ -80,7 +79,17 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor);
         controller.synchronize(flowSynchronizer, dataFlow);
-        save(new ByteArrayInputStream(dataFlow.getFlow()));
+
+        if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
+            // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
+            // dataflow, we need to ensure that the flow is consistent across all nodes in the cluster and that upon restart
+            // of NiFi, the root group ID does not change. However, we don't always want to save it, because if the flow is
+            // not empty, then we can get into a bad situation, since the Processors, etc. don't have the appropriate "Scheduled
+            // State" yet (since they haven't yet been scheduled). So if there are components in the flow and we save it, we
+            // may end up saving the flow in such a way that all components are stopped.
+            // We save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
+            save(controller);
+        }
     }
 
     @Override
@@ -160,8 +169,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
 
         if (archive) {
             try {
-                final File archiveFile = createArchiveFile();
-                Files.copy(configFile, archiveFile.toPath());
+                archiveManager.archive();
             } catch (final Exception ex) {
                 LOG.warn("Unable to archive flow configuration as requested due to " + ex);
                 if (LOG.isDebugEnabled()) {
@@ -171,16 +179,4 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         }
     }
 
-    @Override
-    public File createArchiveFile() throws IOException {
-        final String archiveDirVal = NiFiProperties.getInstance().getProperty(CONFIGURATION_ARCHIVE_DIR_KEY);
-        final Path archiveDir = (archiveDirVal == null || archiveDirVal.equals("")) ? flowXmlPath.getParent().resolve("archive") : new File(archiveDirVal).toPath();
-        Files.createDirectories(archiveDir);
-
-        if (!Files.isDirectory(archiveDir)) {
-            throw new IOException("Archive directory doesn't appear to be a directory " + archiveDir);
-        }
-        final Path archiveFile = archiveDir.resolve(System.nanoTime() + "-" + flowXmlPath.toFile().getName());
-        return archiveFile.toFile();
-    }
 }

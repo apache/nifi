@@ -22,6 +22,9 @@
     background-color: #ffffff;
     box-shadow: 0 5px 8px rgba(0,0,0,0.30);
     overflow: hidden;
+    position: absolute;
+    top: 0px;
+    left: 0px;
 }
 
 .small-dialog {
@@ -52,7 +55,6 @@
     right: 0px;
     bottom: 0px;
     opacity: 0.65;
-    background-color: #728E9B;
 }
 
 .dialog-header {
@@ -73,8 +75,12 @@
 }
 
 .dialog-content {
-    padding: 10px 20px 20px 20px;
-    overflow: auto;
+    position: absolute;
+    top: 76px;
+    bottom: 52px;
+    left: 20px;
+    right: 20px;
+    overflow-y: auto;
 }
 
 .dialog-buttons {

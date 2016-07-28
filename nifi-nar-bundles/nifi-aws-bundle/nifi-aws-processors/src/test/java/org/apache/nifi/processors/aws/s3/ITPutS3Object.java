@@ -796,6 +796,7 @@ public class ITPutS3Object extends AbstractS3IT {
         Assert.assertTrue(ff1.getSize() > S3_MAXIMUM_OBJECT_SIZE);
     }
 
+    @Ignore
     @Test
     public void testS3MultipartAgeoff() throws InterruptedException, IOException {
         final PutS3Object processor = new PutS3Object();

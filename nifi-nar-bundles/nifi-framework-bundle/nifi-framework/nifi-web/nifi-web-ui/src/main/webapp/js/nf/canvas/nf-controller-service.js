@@ -46,7 +46,7 @@ nf.ControllerService = (function () {
 
             nf.Dialog.showOkDialog({
                 dialogContent: content,
-                headerText: 'Configuration Error'
+                headerText: 'Controller Service'
             });
         } else {
             nf.Common.handleAjaxError(xhr, status, error);
@@ -132,7 +132,7 @@ nf.ControllerService = (function () {
 
         return $.ajax({
             type: 'GET',
-            url: controllerServiceEntity.component.uri,
+            url: controllerServiceEntity.uri,
             dataType: 'json'
         }).done(function (response) {
             renderControllerService(serviceTable, response);
@@ -179,7 +179,7 @@ nf.ControllerService = (function () {
         // reload all dependent processors if they are currently visible
         $.each(controllerService.referencingComponents, function (_, referencingComponentEntity) {
             // ensure we can read the referencing component prior to reloading
-            if (referencingComponentEntity.accessPolicy.canRead === false) {
+            if (referencingComponentEntity.permissions.canRead === false) {
                 return;
             }
 
@@ -275,9 +275,11 @@ nf.ControllerService = (function () {
                 if (bulletinIcon.data('qtip')) {
                     bulletinIcon.qtip('option', 'content.text', list);
                 } else {
-                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
                 }
             } else if (bulletinIcon.data('qtip')) {
                 bulletinIcon.removeClass('has-bulletins').removeData('bulletins').hide().qtip('api').destroy(true);
@@ -304,9 +306,11 @@ nf.ControllerService = (function () {
                 if (icon.data('qtip')) {
                     icon.qtip('option', 'content.text', list);
                 } else {
-                    icon.qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    icon.qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig,
+                        {
+                            content: list
+                        }));
                 }
             } else if (icon.data('qtip')) {
                 icon.qtip('api').destroy(true);
@@ -334,9 +338,11 @@ nf.ControllerService = (function () {
                 if (icon.data('qtip')) {
                     icon.qtip('option', 'content.text', list);
                 } else {
-                    icon.qtip($.extend({
-                        content: list
-                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                    icon.qtip($.extend({},
+                        nf.CanvasUtils.config.systemTooltipConfig, 
+                        {
+                            content: list
+                        }));
                 }
             } else if (icon.data('qtip')) {
                 icon.qtip('api').destroy(true);
@@ -395,7 +401,7 @@ nf.ControllerService = (function () {
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
-            if (referencingComponentEntity.accessPolicy.canRead === false || referencingComponentEntity.accessPolicy.canWrite === false) {
+            if (referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false) {
                 var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingComponentEntity.id);
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
@@ -596,7 +602,7 @@ nf.ControllerService = (function () {
 
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri,
+            url: controllerServiceEntity.uri,
             data: JSON.stringify(updateControllerServiceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -607,7 +613,7 @@ nf.ControllerService = (function () {
         // wait until the polling of each service finished
         return $.Deferred(function (deferred) {
             updated.done(function () {
-                var serviceUpdated = pollService(controllerServiceEntity.component, function (service, bulletins) {
+                var serviceUpdated = pollService(controllerServiceEntity, function (service, bulletins) {
                     if ($.isArray(bulletins)) {
                         if (enabled) {
                             updateBulletins(bulletins, $('#enable-controller-service-bulletins'));
@@ -691,7 +697,7 @@ nf.ControllerService = (function () {
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri + '/references',
+            url: controllerServiceEntity.uri + '/references',
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -740,12 +746,14 @@ nf.ControllerService = (function () {
      * Polls the specified services referencing components to see if the
      * specified condition is satisfied.
      *
-     * @param {object} controllerService
+     * @param {object} controllerServiceEntity
      * @param {function} completeCondition
      * @param {function} bulletinDeferred
      * @param {function} pollCondition
      */
-    var pollService = function (controllerService, completeCondition, bulletinDeferred, pollCondition) {
+    var pollService = function (controllerServiceEntity, completeCondition, bulletinDeferred, pollCondition) {
+        var controllerService = controllerServiceEntity.component;
+
         // we want to keep polling until the condition is met
         return $.Deferred(function (deferred) {
             var current = 2;
@@ -763,7 +771,7 @@ nf.ControllerService = (function () {
                 var bulletins = bulletinDeferred(controllerService);
                 var service = $.ajax({
                     type: 'GET',
-                    url: controllerService.uri,
+                    url: controllerServiceEntity.uri,
                     dataType: 'json'
                 });
 
@@ -963,7 +971,7 @@ nf.ControllerService = (function () {
         // issue the request to update the referencing components
         var updated = $.ajax({
             type: 'PUT',
-            url: controllerServiceEntity.component.uri + '/references',
+            url: controllerServiceEntity.uri + '/references',
             data: JSON.stringify(referenceEntity),
             dataType: 'json',
             contentType: 'application/json'
@@ -1023,7 +1031,7 @@ nf.ControllerService = (function () {
 
         var hasUnauthorized = false;
         $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.accessPolicy.canRead === false || referencingComponent.accessPolicy.canWrite === false) {
+            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
                 hasUnauthorized = true;
                 return false;
             }
@@ -1232,7 +1240,7 @@ nf.ControllerService = (function () {
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Action Canceled',
+                    headerText: 'Controller Service',
                     dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
                 });
             }
@@ -1257,7 +1265,7 @@ nf.ControllerService = (function () {
 
         var hasUnauthorized = false;
         $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.accessPolicy.canRead === false || referencingComponent.accessPolicy.canWrite === false) {
+            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
                 hasUnauthorized = true;
                 return false;
             }
@@ -1269,6 +1277,7 @@ nf.ControllerService = (function () {
         // ensure appropriate access
         if (scope === config.serviceAndReferencingComponents && hasUnauthorized) {
             nf.Dialog.showOkDialog({
+                headerText: 'Controller Service',
                 dialogContent: 'Unable to enable due to unauthorized referencing components.'
             });
             return;
@@ -1375,7 +1384,7 @@ nf.ControllerService = (function () {
             // inform the user if the action was canceled
             if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
                 nf.Dialog.showOkDialog({
-                    headerText: 'Action Canceled',
+                    headerText: 'Controller Service',
                     dialogContent: 'The request to enable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
                 });
             }
@@ -1391,7 +1400,7 @@ nf.ControllerService = (function () {
         var controllerServiceEntity = $('#controller-service-configuration').data('controllerServiceDetails');
         return $.ajax({
             type: 'GET',
-            url: controllerServiceEntity.component.uri + '/descriptors',
+            url: controllerServiceEntity.uri + '/descriptors',
             data: {
                 propertyName: propertyName
             },
@@ -1458,7 +1467,7 @@ nf.ControllerService = (function () {
             return $.ajax({
                 type: 'PUT',
                 data: JSON.stringify(updatedControllerService),
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
@@ -1523,6 +1532,7 @@ nf.ControllerService = (function () {
             $('#controller-service-configuration-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'controller-service-standard-settings-tab-content'
@@ -1554,6 +1564,7 @@ nf.ControllerService = (function () {
             // initialize the conroller service configuration dialog
             $('#controller-service-configuration').modal({
                 headerText: 'Configure Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         // empty the referencing components list
@@ -1573,6 +1584,9 @@ nf.ControllerService = (function () {
 
                         // removed the cached controller service details
                         $('#controller-service-configuration').removeData('controllerServiceDetails');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -1580,6 +1594,7 @@ nf.ControllerService = (function () {
             // initialize the disable service dialog
             $('#disable-controller-service-dialog').modal({
                 headerText: 'Disable Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         var disableDialog = $(this);
@@ -1624,6 +1639,7 @@ nf.ControllerService = (function () {
             // initialize the enable service dialog
             $('#enable-controller-service-dialog').modal({
                 headerText: 'Enable Controller Service',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         var enableDialog = $(this);
@@ -1684,7 +1700,7 @@ nf.ControllerService = (function () {
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json'
             });
 
@@ -1758,6 +1774,7 @@ nf.ControllerService = (function () {
                 if (nf.Common.isDefinedAndNotNull(controllerService.customUiUrl) && controllerService.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -1821,6 +1838,8 @@ nf.ControllerService = (function () {
 
                 // show the border if necessary
                 updateReferencingComponentsBorder(referenceContainer);
+
+                $('#controller-service-properties').propertytable('resetTableSize');
             }).fail(nf.Common.handleAjaxError);
         },
 
@@ -1849,7 +1868,7 @@ nf.ControllerService = (function () {
             // reload the service in case the property descriptors have changed
             var reloadService = $.ajax({
                 type: 'GET',
-                url: controllerServiceEntity.component.uri,
+                url: controllerServiceEntity.uri,
                 dataType: 'json'
             });
 
@@ -1903,6 +1922,7 @@ nf.ControllerService = (function () {
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(controllerService.customUiUrl) && controllerService.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -1936,6 +1956,8 @@ nf.ControllerService = (function () {
 
                 // show the border if necessary
                 updateReferencingComponentsBorder(referenceContainer);
+
+                $('#controller-service-properties').propertytable('resetTableSize');
             });
         },
 
@@ -1985,7 +2007,7 @@ nf.ControllerService = (function () {
             var revision = nf.Client.getRevision(controllerServiceEntity);
             $.ajax({
                 type: 'DELETE',
-                url: controllerServiceEntity.component.uri + '?' + $.param({
+                url: controllerServiceEntity.uri + '?' + $.param({
                     version: revision.version,
                     clientId: revision.clientId
                 }),

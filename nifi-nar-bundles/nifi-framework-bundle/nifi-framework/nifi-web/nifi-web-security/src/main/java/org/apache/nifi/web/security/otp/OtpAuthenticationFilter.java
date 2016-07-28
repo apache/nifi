@@ -56,11 +56,11 @@ public class OtpAuthenticationFilter extends NiFiAuthenticationFilter {
             if (request.getContextPath().equals("/nifi-api")) {
                 if (isDownloadRequest(request.getPathInfo())) {
                     // handle download requests
-                    return new OtpAuthenticationRequestToken(accessToken, true);
+                    return new OtpAuthenticationRequestToken(accessToken, true, request.getRemoteAddr());
                 }
             } else {
                 // handle requests to other context paths (other UI extensions)
-                return new OtpAuthenticationRequestToken(accessToken, false);
+                return new OtpAuthenticationRequestToken(accessToken, false, request.getRemoteAddr());
             }
 
             // the path is a support path for otp tokens

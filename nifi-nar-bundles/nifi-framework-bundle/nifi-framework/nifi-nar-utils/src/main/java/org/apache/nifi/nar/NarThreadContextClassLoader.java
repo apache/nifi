@@ -29,7 +29,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(ControllerService.class);
         narSpecificClasses.add(Authorizer.class);
         narSpecificClasses.add(LoginIdentityProvider.class);
-        narSpecificClasses.add(ProvenanceEventRepository.class);
+        narSpecificClasses.add(ProvenanceRepository.class);
         narSpecificClasses.add(ComponentStatusRepository.class);
         narSpecificClasses.add(FlowFileRepository.class);
         narSpecificClasses.add(FlowFileSwapManager.class);

@@ -79,7 +79,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * processing. Must be thread safe.
  *
  */
-public final class StandardFlowFileQueue implements FlowFileQueue {
+public class StandardFlowFileQueue implements FlowFileQueue {
 
     public static final int MAX_EXPIRED_RECORDS_PER_ITERATION = 100000;
     public static final int SWAP_RECORD_POLL_SIZE = 10000;
@@ -733,7 +733,6 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public int compare(final FlowFileRecord f1, final FlowFileRecord f2) {
             int returnVal = 0;
             final boolean f1Penalized = f1.isPenalized();

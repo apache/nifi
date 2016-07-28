@@ -23,7 +23,6 @@
     </parent>
 
     <artifactId>nifi-azure-nar</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>

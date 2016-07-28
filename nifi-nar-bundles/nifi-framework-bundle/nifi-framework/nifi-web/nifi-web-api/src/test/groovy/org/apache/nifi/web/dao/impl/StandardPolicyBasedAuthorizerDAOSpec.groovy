@@ -16,19 +16,12 @@
  */
 package org.apache.nifi.web.dao.impl
 
-import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer
-import org.apache.nifi.authorization.AccessPolicy
-import org.apache.nifi.authorization.Authorizer
-import org.apache.nifi.authorization.Group
-import org.apache.nifi.authorization.RequestAction
-import org.apache.nifi.authorization.User
+import org.apache.nifi.authorization.*
 import org.apache.nifi.web.ResourceNotFoundException
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.UserDTO
 import org.apache.nifi.web.api.dto.UserGroupDTO
 import org.apache.nifi.web.api.entity.TenantEntity
-import org.apache.nifi.web.api.entity.UserEntity
-import org.apache.nifi.web.api.entity.UserGroupEntity
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -45,7 +38,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         method               | daoMethod
-        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', canRead: true)) }
+        'createAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
         'createUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUser(new UserDTO(id: '1', identity: 'a')) }
         'createUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).createUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
         'deleteAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).deleteAccessPolicy('1') }
@@ -57,7 +50,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         'hasAccessPolicy'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasAccessPolicy('1') }
         'hasUser'            | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUser('1') }
         'hasUserGroup'       | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).hasUserGroup('1') }
-        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', canRead: true)) }
+        'updateAccessPolicy' | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateAccessPolicy(new AccessPolicyDTO(id: '1', resource: '/1', action: "read")) }
         'updateUser'         | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUser(new UserDTO(id: '1', identity: 'a')) }
         'updateUserGroup'    | { new StandardPolicyBasedAuthorizerDAO(Mock(Authorizer)).updateUserGroup(new UserGroupDTO(id: '1', identity: 'a')) }
     }
@@ -88,8 +81,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -100,14 +92,15 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.addAccessPolicy(accessPolicy) >> accessPolicy
+        1 * authorizer.getAccessPolicies() >> accessPolicies
+        1 * authorizer.doAddAccessPolicy(accessPolicy) >> accessPolicy
         0 * _
         result?.equals accessPolicy
 
         where:
-        accessPolicy                                                                  | _
+        accessPolicy                                 | accessPolicies
         new AccessPolicy.Builder().identifier('policy-id-1').resource('/fake/resource').addUser('user-id-1').addGroup('user-group-id-1')
-                .action(RequestAction.WRITE).build() | _
+                .action(RequestAction.WRITE).build() | [] as Set
     }
 
     @Unroll
@@ -150,8 +143,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -175,8 +167,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         given:
         def authorizer = Mock AbstractPolicyBasedAuthorizer
         def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
-        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', canRead: true,
-                canWrite: true,
+        def requestDTO = new AccessPolicyDTO(id: 'policy-id-1', resource: '/fake/resource', action: "read",
                 users: [new TenantEntity(id: 'user-id-1')] as Set,
                 userGroups: [new TenantEntity(id: 'user-group-id-1')] as Set)
 
@@ -409,7 +400,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -432,7 +423,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -451,7 +442,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -485,7 +476,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         users                                                                                                             | _
-        [new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build()] as Set | _
+        [new User.Builder().identifier('user-id-1').identity('user identity').build()] as Set | _
     }
 
     @Unroll
@@ -506,7 +497,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll
@@ -542,7 +533,7 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         where:
         user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').addGroup('user-group-id-1').build() | _
+        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
     }
 
     @Unroll

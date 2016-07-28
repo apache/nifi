@@ -53,7 +53,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processors.kite.AvroRecordConverter.AvroConversionException;
-import org.apache.nifi.util.LongHolder;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.SchemaNotFoundException;
@@ -63,6 +62,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Tags({ "avro", "convert", "kite" })
 @CapabilityDescription("Convert records from one Avro schema to another, including support for flattening and simple type conversions")
@@ -291,7 +291,7 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
         failureWriter.setCodec(CodecFactory.snappyCodec());
 
         try {
-            final LongHolder written = new LongHolder(0L);
+            final AtomicLong written = new AtomicLong(0L);
             final FailureTracker failures = new FailureTracker();
 
             final List<Record> badRecords = Lists.newLinkedList();

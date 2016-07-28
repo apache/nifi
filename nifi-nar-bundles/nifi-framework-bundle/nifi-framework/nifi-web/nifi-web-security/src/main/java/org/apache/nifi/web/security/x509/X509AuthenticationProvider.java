@@ -23,31 +23,36 @@ import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 /**
  *
  */
-public class X509AuthenticationProvider implements AuthenticationProvider {
+public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
     private X509IdentityProvider certificateIdentityProvider;
     private Authorizer authorizer;
 
-    public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer) {
+    public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer, final NiFiProperties nifiProperties) {
+        super(nifiProperties);
         this.certificateIdentityProvider = certificateIdentityProvider;
         this.authorizer = authorizer;
     }
@@ -65,7 +70,8 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
         }
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
-            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(authenticationResponse.getIdentity())));
+            final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
+            return new NiFiAuthenticationToken(new NiFiUserDetails(new StandardNiFiUser(mappedIdentity, request.getClientAddress())));
         } else {
             // build the entire proxy chain if applicable - <end-user><proxy1><proxy2>
             final List<String> proxyChain = new ArrayList<>(ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(request.getProxiedEntitiesChain()));
@@ -74,7 +80,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
             // add the chain as appropriate to each proxy
             NiFiUser proxy = null;
             for (final ListIterator<String> chainIter = proxyChain.listIterator(proxyChain.size()); chainIter.hasPrevious();) {
-                final String identity = chainIter.previous();
+                final String identity = mapIdentity(chainIter.previous());
 
                 if (chainIter.hasPrevious()) {
                     // authorize this proxy in order to authenticate this user
@@ -84,6 +90,7 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
                         .accessAttempt(true)
                         .action(RequestAction.WRITE)
                         .resource(ResourceFactory.getProxyResource())
+                        .userContext(proxy == null ? getUserContext(request) : null) // only set the context for the real user
                         .build();
 
                     final AuthorizationResult proxyAuthorizationResult = authorizer.authorize(proxyAuthorizationRequest);
@@ -92,11 +99,27 @@ public class X509AuthenticationProvider implements AuthenticationProvider {
                     }
                 }
 
-                proxy = new StandardNiFiUser(chainIter.previous(), proxy);
+                // only set the client address for user making the request, we don't know the client address of the proxies
+                if (proxy == null) {
+                    proxy = new StandardNiFiUser(identity, proxy, request.getClientAddress());
+                } else {
+                    proxy = new StandardNiFiUser(identity, proxy, null);
+                }
             }
 
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));
         }
+    }
+
+    private Map<String,String> getUserContext(final X509AuthenticationRequestToken request) {
+        final Map<String,String> userContext;
+        if (!StringUtils.isBlank(request.getClientAddress())) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), request.getClientAddress());
+        } else {
+            userContext = null;
+        }
+        return userContext;
     }
 
     @Override

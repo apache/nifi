@@ -60,7 +60,7 @@ nf.Draggable = (function () {
             return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
-                    url: d.component.uri,
+                    url: d.uri,
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'
@@ -76,6 +76,7 @@ nf.Draggable = (function () {
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
+                            headerText: 'Component Position',
                             dialogContent: nf.Common.escapeHtml(xhr.responseText)
                         });
                     } else {
@@ -113,7 +114,7 @@ nf.Draggable = (function () {
             return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
-                    url: d.component.uri,
+                    url: d.uri,
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'
@@ -129,6 +130,7 @@ nf.Draggable = (function () {
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
+                            headerText: 'Component Position',
                             dialogContent: nf.Common.escapeHtml(xhr.responseText)
                         });
                     } else {
@@ -140,8 +142,20 @@ nf.Draggable = (function () {
             }).promise();
         };
 
+        var selectedConnections = d3.selectAll('g.connection.selected');
+        var selectedComponents = d3.selectAll('g.component.selected');
+
+        // ensure every component is writable
+        if (nf.CanvasUtils.canModify(selectedConnections) === false || nf.CanvasUtils.canModify(selectedComponents) === false) {
+            nf.Dialog.showOkDialog({
+                headerText: 'Component Position',
+                dialogContent: 'Must be authorized to modify every component selected.'
+            });
+            return;
+        }
+
         // go through each selected connection
-        d3.selectAll('g.connection.selected').each(function (d) {
+        selectedConnections.each(function (d) {
             var connectionUpdate = updateConnectionPosition(d);
             if (connectionUpdate !== null) {
                 updates.set(d.id, connectionUpdate);
@@ -149,7 +163,7 @@ nf.Draggable = (function () {
         });
         
         // go through each selected component
-        d3.selectAll('g.component.selected').each(function (d) {
+        selectedComponents.each(function (d) {
             // consider any self looping connections
             var connections = nf.Connection.getComponentConnections(d.id);
             $.each(connections, function(_, connection) {
@@ -188,6 +202,8 @@ nf.Draggable = (function () {
             connections.forEach(function (connectionId) {
                 nf.Connection.refresh(connectionId);
             });
+        }).always(function(){
+            nf.Birdseye.refresh();
         });
     };
 
@@ -197,6 +213,21 @@ nf.Draggable = (function () {
     var updateComponentsGroup = function () {
         var selection = d3.selectAll('g.component.selected, g.connection.selected');
         var group = d3.select('g.drop');
+
+        if (nf.CanvasUtils.canModify(selection) === false) {
+            nf.Dialog.showOkDialog({
+                headerText: 'Component Position',
+                dialogContent: 'Must be authorized to modify every component selected.'
+            });
+            return;
+        }
+        if (nf.CanvasUtils.canModify(group) === false) {
+            nf.Dialog.showOkDialog({
+                headerText: 'Component Position',
+                dialogContent: 'Not authorized to modify the destination group.'
+            });
+            return;
+        }
 
         // move the seleciton into the group
         nf.CanvasUtils.moveComponents(selection, group);

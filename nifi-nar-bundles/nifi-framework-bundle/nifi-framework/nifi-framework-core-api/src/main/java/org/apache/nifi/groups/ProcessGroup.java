@@ -747,6 +747,13 @@ public interface ProcessGroup extends Authorizable, Positionable {
      */
     void move(final Snippet snippet, final ProcessGroup destination);
 
+    /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param name name of the template
+     */
+    void verifyCanAddTemplate(String name);
+
     void verifyCanDelete();
 
     /**

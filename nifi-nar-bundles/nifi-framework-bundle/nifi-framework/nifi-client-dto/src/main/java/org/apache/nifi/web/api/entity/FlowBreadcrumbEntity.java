@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -29,7 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class FlowBreadcrumbEntity extends Entity {
 
     private String id;
-    private AccessPolicyDTO accessPolicy;
+    private PermissionsDTO permissions;
     private FlowBreadcrumbDTO breadcrumb;
     private FlowBreadcrumbEntity parentBreadcrumb;
 
@@ -50,19 +50,19 @@ public class FlowBreadcrumbEntity extends Entity {
     }
 
     /**
-     * The access policy for this ancestor ProcessGroup.
+     * The permissions for this ancestor ProcessGroup.
      *
-     * @return The access policy
+     * @return The permissions
      */
     @ApiModelProperty(
-        value = "The access policy for this ancestor ProcessGroup."
+        value = "The permissions for this ancestor ProcessGroup."
     )
-    public AccessPolicyDTO getAccessPolicy() {
-        return accessPolicy;
+    public PermissionsDTO getPermissions() {
+        return permissions;
     }
 
-    public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
-        this.accessPolicy = accessPolicy;
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 
     /**

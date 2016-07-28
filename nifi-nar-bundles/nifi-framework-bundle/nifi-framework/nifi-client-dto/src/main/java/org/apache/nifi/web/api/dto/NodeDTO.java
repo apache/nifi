@@ -23,6 +23,7 @@ import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Details of a node within this NiFi.
@@ -36,7 +37,7 @@ public class NodeDTO {
     private String status;
     private Date heartbeat;
     private Date connectionRequested;
-    private Boolean primary;
+    private Set<String> roles;
     private Integer activeThreadCount;
     private String queued;
     private List<NodeEventDTO> events;
@@ -181,18 +182,18 @@ public class NodeDTO {
     }
 
     /**
-     * @return whether this node is the primary node within the cluster
+     * @return the roles of the node
      */
     @ApiModelProperty(
-            value = "Whether the node is the primary node within the cluster.",
+            value = "The roles of this node.",
             readOnly = true
     )
-    public Boolean isPrimary() {
-        return primary;
+    public Set<String> getRoles() {
+        return roles;
     }
 
-    public void setPrimary(Boolean primary) {
-        this.primary = primary;
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
     }
 
     /**

@@ -28,6 +28,7 @@ nf.LabelConfiguration = (function () {
         init: function () {
             // make the new property dialog draggable
             $('#label-configuration').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Configure Label',
                 buttons: [{
                     buttonText: 'Apply',
@@ -60,7 +61,7 @@ nf.LabelConfiguration = (function () {
                             // save the new label value
                             $.ajax({
                                 type: 'PUT',
-                                url: labelData.component.uri,
+                                url: labelData.uri,
                                 data: JSON.stringify(labelEntity),
                                 dataType: 'json',
                                 contentType: 'application/json'

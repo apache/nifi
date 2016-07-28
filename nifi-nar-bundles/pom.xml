@@ -55,21 +55,24 @@
         <module>nifi-scripting-bundle</module>
         <module>nifi-elasticsearch-bundle</module>
         <module>nifi-amqp-bundle</module>
-	    <module>nifi-splunk-bundle</module>
+	<module>nifi-splunk-bundle</module>
         <module>nifi-jms-bundle</module>
         <module>nifi-lumberjack-bundle</module>
         <module>nifi-cassandra-bundle</module>
         <module>nifi-spring-bundle</module>
         <module>nifi-hive-bundle</module>
-	    <module>nifi-site-to-site-reporting-bundle</module>
+	<module>nifi-site-to-site-reporting-bundle</module>
         <module>nifi-mqtt-bundle</module>
         <module>nifi-evtx-bundle</module>
         <module>nifi-slack-bundle</module>
         <module>nifi-snmp-bundle</module>
         <module>nifi-windows-event-log-bundle</module>
-    </modules>
-
-    <dependencyManagement>
+        <module>nifi-ignite-bundle</module>
+        <module>nifi-email-bundle</module>
+    	<module>nifi-ranger-bundle</module>
+  </modules>
+    
+  <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
@@ -130,6 +133,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-api</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>

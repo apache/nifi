@@ -20,20 +20,14 @@
 */
 
 body {
-    font-family: Verdana, Arial, Helvetica, sans-serif;
+    display: block;
+    font-family: Roboto, sans-serif;
     font-size: 62.5%;
-}
-
-textarea, input {
-    padding: 4px;
-    border: 1px solid #ccc;
-    font-family: Verdana;
-    font-size: 12px;
-    background: url('../images/bgInputText.png') repeat-x scroll center top white;
+    overflow: hidden;
+    color: #262626;
 }
 
 #update-attributes-content {
-    overflow: hidden;
     position: absolute;
     top: 0;
     right: 0;
@@ -54,13 +48,7 @@ div.new-rule {
 
 #new-rule-dialog {
     display: none;
-    width: 400px;
-    height: 205px;
     z-index: 1301;
-}
-
-#new-rule-dialog input {
-    width: 370px;
 }
 
 #update-attributes-content .ui-autocomplete {
@@ -77,98 +65,89 @@ div.new-rule {
     border-radius: 0;
 }
 
-input.search {
-    font-style: italic;
-    color: #aaa;
-}
-
 /* rule list panel */
 
 #rule-label-container {
-    margin-bottom: 5px;
-    height: 19px;
-}
-
-#rules-label {
-    float: left;
-    line-height: 19px;
+    line-height: 28px;
 }
 
 div.large-label {
-    color: #527991;
-    font-size: 13px;
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
     font-weight: bold;
-    margin-bottom: 5px;
-    line-height: 19px;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
+    float: left;
 }
 
 div.label {
-    color: #527991;
-    font-size: 10px;
-    font-weight: bold;
-    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
 }
 
 #rule-list-panel {
-    float: left;
-    margin-right: 20px;
-    width: 280px;
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 20px;
+    right: 65%;
 }
 
 #rule-list-container {
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height: 437px;
-    padding: 5px;
-    border: 1px solid #ccc;
+    overflow-y: auto;
     display: none;
+    position: absolute;
+    top: 116px;
+    bottom: 175px;
+    left: 0px;
+    right: 0px;
+    min-height: 45px;
 }
 
 #flowfile-policy-container {
     margin-bottom: 20px;
 }
 
-#flowfile-policy-label {
-    float: left;
-}
-
-#flowfile-policy {
-    height: 20px;
-    line-height: 20px;
-    float: left;
-    width: 270px;
-}
-
 #rule-list {
-    width: 253px;
     list-style-type: none;
-    margin: 0;
-    padding: 0;
+    background: #eaeef0;
+    padding: 4px 3px 1px 3px;
 }
 
 #rule-list li {
-    background: transparent url(../../nifi/images/bgButton.png) repeat-x center center;
-    border-top: 1px solid #d1d1d1;
-    border-right: 1px solid #a7a7a7;
-    border-bottom: 1px solid #828282;
-    border-left: 1px solid #a7a7a7;
-    color: #666;
-    position: relative;
+    background: #fff;
+    border-top: 1px solid #CCDADB;
+    border-right: 1px solid #CCDADB;
+    border-bottom: 1px solid #CCDADB;
+    border-left: 1px solid #CCDADB;
+    color: #004849;
+    font-weight: 500;
+    cursor: grab;
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.4);
     margin-bottom: 5px;
-    padding: 8px;
-    list-style: none;
-    height: 12px;
-    font-size: 12px;
-    cursor: pointer;
 }
 
 #rule-list li.selected {
-    background: transparent url(../../nifi/images/bgButtonSelected.png) repeat-x center center;
-    border-top: 1px solid #aac1ce;
-    border-right: 1px solid #85a6b8;
-    border-bottom: 1px solid #618ba3;
-    border-left: 1px solid #85a6b8;
-    color: #355b6a;
+    background: #355B6A;
+    border-top: 1px solid #AAC1CE;
+    border-right: 1px solid #85A6B8;
+    border-bottom: 1px solid #618BA3;
+    border-left: 1px solid #85A6B8;
+    color: #fff;
+    font-weight: bold;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
 }
 
 #rule-list li.unsaved {
@@ -179,129 +158,114 @@ div.label {
 
 div.rule-label {
     float: left;
-    width: 200px;
-    height: 12px;
-    line-height: 12px;
-    overflow: hidden;
-    white-space: nowrap;
 }
 
 div.remove-rule {
     float: right;
-    width: 16px;
-    height: 16px;
-    background-image: url(../images/iconDelete.png);
     cursor: pointer;
-    margin-top: -2px;
+    line-height: 32px;
 }
 
 #rule-filter-controls {
-    padding-top: 10px;
-    width: 280px;
-}
-
-#rule-filter-container {
-    height: 24px;
-}
-
-#rule-filter {
-    padding: 3px 0px 1px 3px;
-    font-size: 12px;
-    height: 18px;
-    line-height: 20px;
-    width: 173px;
-    margin-right: 3px;
-    float: left;
-}
-
-input.rule-filter-list {
-    color: #888;
+    position: absolute;
+    bottom: 63px;
+    left: 0px;
+    right: 0px;
 }
 
 #rule-filter-type {
-    width: 85px;
-    height: 18px;
-    line-height: 18px;
-    float: left;
-}
-
-#rule-filter-stats {
-    font-size: 9px;
-    font-weight: bold;
-    color: #9f6000;
-    clear: left; 
-    line-height: normal;
-    margin-left: 5px;
-    margin-top: 5px;
+    margin-top: 10px;
 }
 
 /* rule details panel */
 
 #rule-details-panel {
-    overflow: hidden;
+    overflow: auto;
+    position: absolute;
+    top: 5px;
+    bottom: 42px;
+    left: 37%;
+    right: 20px;
 }
 
 #no-rule-selected-label {
-    height: 25px
-}
-
-div.selected-rule-detail {
-    margin-bottom: 20px;
-}
-
-#selected-rule-name {
-    width: 500px;
+    clear: both;
+    height: 32px;
+    line-height: 32px;
 }
 
 div.large-label-container {
-    margin-bottom: 5px;
-    height: 19px;
+    margin-top: 10px;
+    line-height: 28px;
 }
 
-#conditions-label {
-    float: left;
-    line-height: 19px;
+#flowfile-policy {
+    clear: both;
 }
 
 #new-condition {
-    float: right;
-    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
     cursor: pointer;
-    height: 19px;
-    width: 19px;
+    position: absolute;
+    right: 0px;
 }
 
 #actions-label {
     float: left;
-    line-height: 19px;
+    line-height: 28px;
 }
 
 #selected-rule-conditions {
     height: 200px;
-    border: 1px solid;
+}
+
+#selected-rule-actions-container {
+    padding-top: 20px;
+}
+
+#selected-rule-conditions-container {
+    padding-top: 68px;
+}
+
+#selected-rule-name {
+    position: absolute;
+    right: 0px;
+    top: 26px;
 }
 
 #new-action {
-    float: right;
-    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
     cursor: pointer;
-    height: 19px;
-    width: 19px;
+    position: absolute;
+    right: 0px;
+}
+
+#new-rule {
+    float: right;
 }
 
 #selected-rule-actions {
     height: 200px;
-    border: 1px solid;
 }
 
 #message {
-    float: left;
+    color: #ba554a;
+    margin-left: 20px;
+    float: right;
+    margin-right: 20px;
+    line-height: 28px;
+    font-size: 13px;
     font-weight: bold;
-    color: #f00;
+}
+
+#message-and-save-container {
+    position: absolute;
+    right: 0px;
+    left: 0px;
+    bottom: 0px;
 }
 
 #selected-rule-save {
-    margin: 0;
+    margin-right: 20px;
+    float: right;
 }
 
 input.editor-text {
@@ -318,30 +282,15 @@ input.editor-text {
 
 #ok-dialog {
     display: none;
-    width: 450px;
-    height: 300px;
-    z-index: 1301;
-}
-
-#ok-dialog-content {
-    overflow: auto;
-    word-wrap: break-word;
-    height: 200px;
-    width: 410px;
 }
 
 #yes-no-dialog {
     display: none;
-    width: 400px;
-    height: 200px;
-    z-index: 1301;
 }
 
 #new-condition-dialog {
     display: none;
     z-index: 1299;
-    border: 3px solid #365c6a;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
     cursor: move;
     padding: 10px;
 }
@@ -357,7 +306,6 @@ input.editor-text {
 #new-action-button-container, #new-condition-button-container {
     bottom: 0;
     left: 0;
-    padding: 0 8px 10px;
     position: absolute;
     right: 0;
 }
@@ -365,24 +313,8 @@ input.editor-text {
 #new-action-dialog {
     display: none;
     z-index: 1299;
-    border: 3px solid #365c6a;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
     cursor: move;
     padding: 10px;
-}
-
-#new-action-attribute-container {
-    position: absolute;
-    left: 10px;
-    right: 10px;
-    margin-bottom: 10px;
-    height: 25px;
-    padding-right: 10px;
-    overflow: hidden;
-}
-
-#new-action-attribute {
-    width: 100%;
 }
 
 #new-action-dialog .nfel-editor {
@@ -390,7 +322,7 @@ input.editor-text {
 }
 
 div.slickgrid-nfel-editor .nfel-editor {
-    margin-bottom: 30px;
+    margin-bottom: 37px;
 }
 
 div.property-detail .nfel-editor {
@@ -418,9 +350,8 @@ div.rule-setting {
     cursor: pointer;
 }
 
-img.icon-info {
-    float: left;
-    position: relative;
-    left: 5px;
-    top: 5px;
+.info {
+    color: #004849;
+    margin-left: 5px;
+    font-size: 12px;
 }

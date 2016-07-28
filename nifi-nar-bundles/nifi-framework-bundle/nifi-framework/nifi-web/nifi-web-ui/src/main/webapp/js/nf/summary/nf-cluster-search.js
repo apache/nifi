@@ -32,6 +32,7 @@ nf.ClusterSearch = (function () {
         init: function () {
             // configure the view single node dialog
             $('#view-single-node-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Select node',
                 buttons: [{
                     buttonText: 'Ok',

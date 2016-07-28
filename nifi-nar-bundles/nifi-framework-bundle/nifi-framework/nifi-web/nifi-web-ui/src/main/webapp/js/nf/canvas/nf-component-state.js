@@ -90,9 +90,20 @@ nf.ComponentState = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-            var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-            return aString === bString ? 0 : aString > bString ? 1 : -1;
+            if(a.permissions.canRead && b.permissions.canRead) {
+                var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                return aString === bString ? 0 : aString > bString ? 1 : -1;
+            } else {
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
+            }
         };
 
         // perform the sort
@@ -224,6 +235,7 @@ nf.ComponentState = (function () {
 
             // initialize the processor configuration dialog
             $('#component-state-dialog').modal({
+                scrollableContentStyle: 'scrollable',
                 headerText: 'Component State',
                 buttons: [{
                     buttonText: 'Close',
@@ -255,10 +267,10 @@ nf.ComponentState = (function () {
                     var stateEntryCount = componentStateGrid.getDataLength();
 
                     if (stateEntryCount > 0) {
-                        var component = componentStateTable.data('component');
+                        var componentEntity = componentStateTable.data('component');
                         $.ajax({
                             type: 'POST',
-                            url: component.uri + '/state/clear-requests',
+                            url: componentEntity.uri + '/state/clear-requests',
                             dataType: 'json'
                         }).done(function (response) {
                             // clear the table
@@ -269,6 +281,7 @@ nf.ComponentState = (function () {
                         }).fail(nf.Common.handleAjaxError);
                     } else {
                         nf.Dialog.showOkDialog({
+                            headerText: 'Component State',
                             dialogContent: 'This component has no state to clear.'
                         });
                     }
@@ -354,13 +367,13 @@ nf.ComponentState = (function () {
         /**
          * Shows the state for a given component.
          *
-         * @param {object} component
+         * @param {object} componentEntity
          * @param {boolean} canClear
          */
-        showState: function (component, canClear) {
+        showState: function (componentEntity, canClear) {
             return $.ajax({
                 type: 'GET',
-                url: component.uri + '/state',
+                url: componentEntity.uri + '/state',
                 dataType: 'json'
             }).done(function (response) {
                 var componentState = response.componentState;
@@ -370,11 +383,11 @@ nf.ComponentState = (function () {
                 loadComponentState(componentState.localState, componentState.clusterState);
 
                 // populate the name/description
-                $('#component-state-name').text(component.name);
+                $('#component-state-name').text(componentEntity.component.name);
                 $('#component-state-description').text(componentState.stateDescription).ellipsis();
 
                 // store the component
-                componentStateTable.data('component', component);
+                componentStateTable.data('component', componentEntity);
 
                 // show the dialog
                 $('#component-state-dialog').modal('show');

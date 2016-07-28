@@ -29,7 +29,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestStandardProcessorTestRunner {
@@ -109,72 +108,6 @@ public class TestStandardProcessorTestRunner {
 
         runner.run(1, true);
         runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.KEY);
-    }
-
-    @Test(expected = AssertionError.class)
-    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
-    public void testFailOnDeprecatedTypeAnnotation() {
-        new StandardProcessorTestRunner(new DeprecatedAnnotation());
-    }
-
-    @Test
-    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
-    public void testDoesNotFailOnNonDeprecatedTypeAnnotation() {
-        new StandardProcessorTestRunner(new NewAnnotation());
-    }
-
-    @Test(expected = AssertionError.class)
-    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
-    public void testFailOnDeprecatedMethodAnnotation() {
-        new StandardProcessorTestRunner(new DeprecatedMethodAnnotation());
-    }
-
-    @Test
-    @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods")
-    public void testDoesNotFailOnNonDeprecatedMethodAnnotation() {
-        new StandardProcessorTestRunner(new NewMethodAnnotation());
-    }
-
-    @SuppressWarnings("deprecation")
-    @org.apache.nifi.processor.annotation.Tags({"deprecated"})
-    private static class DeprecatedAnnotation extends AbstractProcessor {
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-    }
-
-    @org.apache.nifi.annotation.documentation.Tags({"deprecated"})
-    private static class NewAnnotation extends AbstractProcessor {
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-    }
-
-    private static class NewMethodAnnotation extends AbstractProcessor {
-
-        @org.apache.nifi.annotation.lifecycle.OnScheduled
-        public void dummy() {
-
-        }
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
-    }
-
-    private static class DeprecatedMethodAnnotation extends AbstractProcessor {
-
-        @SuppressWarnings("deprecation")
-        @org.apache.nifi.processor.annotation.OnScheduled
-        public void dummy() {
-
-        }
-
-        @Override
-        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        }
     }
 
     private static class ProcessorWithOnStop extends AbstractProcessor {

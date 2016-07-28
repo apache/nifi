@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -51,7 +52,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.IntegerHolder;
 
 @EventDriven
 @SideEffectFree
@@ -182,7 +182,7 @@ public class RouteOnContent extends AbstractProcessor {
             final Set<Relationship> destinations = new HashSet<>();
             flowFileDestinationMap.put(flowFile, destinations);
 
-            final IntegerHolder bufferedByteCount = new IntegerHolder(0);
+            final AtomicInteger bufferedByteCount = new AtomicInteger(0);
             session.read(flowFile, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {

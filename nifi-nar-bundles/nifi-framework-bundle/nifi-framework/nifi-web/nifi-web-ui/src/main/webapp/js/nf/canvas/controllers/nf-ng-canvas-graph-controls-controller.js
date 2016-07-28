@@ -215,7 +215,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
             } else {
                 if (selection.size() === 1) {
                     var d = selection.datum();
-                    if (d.accessPolicy.canRead) {
+                    if (d.permissions.canRead) {
                         if (nf.CanvasUtils.isLabel(selection)) {
                             if ($.trim(d.component.label) !== '') {
                                 return d.component.label;
@@ -286,6 +286,56 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
                 }     
             }
         },
+
+        /**
+         * Determines whether the user can configure or open the details dialog.
+         */
+        canConfigureOrOpenDetails: function () {
+            var selection = nf.CanvasUtils.getSelection();
+
+            if (selection.empty()) {
+                return nf.Canvas.canRead() || nf.Canvas.canWrite();
+            }
+
+            return nf.CanvasUtils.isConfigurable(selection) || nf.CanvasUtils.hasDetails(selection);
+        },
+
+        /**
+         * Opens either the configuration or details view based on the current state.
+         */
+        openConfigureOrDetailsView: function () {
+            var selection = nf.CanvasUtils.getSelection();
+
+            if (selection.empty()) {
+                nf.ProcessGroupConfiguration.showConfiguration(nf.Canvas.getGroupId());
+            }
+
+            if (nf.CanvasUtils.isConfigurable(selection)) {
+                nf.Actions.showConfiguration(selection);
+            } else if (nf.CanvasUtils.hasDetails(selection)) {
+                nf.Actions.showDetails(selection);
+            }
+        },
+
+        /**
+         * Determines whether the user can configure or open the policy management page.
+         */
+        canManagePolicies: function () {
+            var selection = nf.CanvasUtils.getSelection();
+
+            // ensure 0 or 1 components selected
+            if (selection.size() <= 1) {
+                // if something is selected, ensure it's not a connection
+                if (!selection.empty() && nf.CanvasUtils.isConnection(selection)) {
+                    return false;
+                }
+
+                // ensure access to read tenants
+                return nf.Common.canAccessTenants();
+            }
+
+            return false;
+        }
     }
 
     var graphControlsCtrl = new GraphControlsCtrl(navigateCtrl, operateCtrl);

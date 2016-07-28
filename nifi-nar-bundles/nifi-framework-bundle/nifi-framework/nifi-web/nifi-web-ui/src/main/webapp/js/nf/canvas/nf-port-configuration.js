@@ -24,6 +24,7 @@ nf.PortConfiguration = (function () {
      */
     var initPortConfigurationDialog = function () {
         $('#port-configuration').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Configure Port',
             buttons: [{
                 buttonText: 'Apply',
@@ -67,7 +68,7 @@ nf.PortConfiguration = (function () {
                         $.ajax({
                             type: 'PUT',
                             data: JSON.stringify(portEntity),
-                            url: portData.component.uri,
+                            url: portData.uri,
                             dataType: 'json',
                             contentType: 'application/json'
                         }).done(function (response) {
@@ -95,7 +96,7 @@ nf.PortConfiguration = (function () {
 
                                 nf.Dialog.showOkDialog({
                                     dialogContent: content,
-                                    headerText: 'Configuration Error'
+                                    headerText: 'Port Configuration'
                                 });
                             } else {
                                 // close the details panel

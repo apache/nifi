@@ -36,20 +36,12 @@ nf.QueueListing = (function () {
      * Initializes the listing request status dialog.
      */
     var initializeListingRequestStatusDialog = function () {
-        // initialize the listing request progress bar
-        var listingRequestProgressBar = $('#listing-request-percent-complete').progressbar();
-
         // configure the drop request status dialog
         $('#listing-request-status-dialog').modal({
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Queue Listing',
             handler: {
                 close: function () {
-                    // reset the progress bar
-                    listingRequestProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    listingRequestProgressBar.progressbar('value', 0).append(label);
-
                     // clear the current button model
                     $('#listing-request-status-dialog').modal('setButtonModel', []);
                 }
@@ -175,56 +167,6 @@ nf.QueueListing = (function () {
     };
 
     /**
-     * Initializes the flowfile details dialog.
-     */
-    var initFlowFileDetailsDialog = function () {
-        $('#content-download').on('click', downloadContent);
-
-        // only show if content viewer is configured
-        if (nf.Common.isContentViewConfigured()) {
-            $('#content-view').show();
-            $('#content-view').on('click', viewContent);
-        }
-
-        $('#flowfile-details-tabs').tabbs({
-            tabStyle: 'tab',
-            selectedTabStyle: 'selected-tab',
-            tabs: [{
-                name: 'Details',
-                tabContentId: 'flowfile-details-tab-content'
-            }, {
-                name: 'Attributes',
-                tabContentId: 'flowfile-attributes-tab-content'
-            }]
-        });
-
-        $('#flowfile-details-dialog').modal({
-            headerText: 'FlowFile',
-            buttons: [{
-                buttonText: 'Ok',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                handler: {
-                    click: function () {
-                        $('#flowfile-details-dialog').modal('hide');
-                    }
-                }
-            }],
-            handler: {
-                close: function () {
-                    // clear the details
-                    $('#flowfile-attributes-container').empty();
-                    $('#flowfile-cluster-node-id').text('');
-                    $('#additional-flowfile-details').empty();
-                }
-            }
-        });
-    };
-
-    /**
      * Performs a listing on the specified connection.
      *
      * @param connection the connection
@@ -241,13 +183,12 @@ nf.QueueListing = (function () {
                 // remove existing labels
                 var progressBar = $('#listing-request-percent-complete');
                 progressBar.find('div.progress-label').remove();
+                progressBar.find('md-progress-linear').remove();
 
-                // update the progress bar
+                // update the progress
                 var label = $('<div class="progress-label"></div>').text(percentComplete + '%');
-                if (percentComplete > 0) {
-                    label.css('margin-top', '-19px');
-                }
-                progressBar.progressbar('value', percentComplete).append(label);
+                (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + percentComplete + '" class="md-hue-2" md-mode="determinate" aria-label="Searching Queue"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+                progressBar.append(label);
             };
 
             // update the button model of the drop request status dialog
@@ -501,7 +442,6 @@ nf.QueueListing = (function () {
     return {
         init: function () {
             initializeListingRequestStatusDialog();
-            initFlowFileDetailsDialog();
 
             // define mouse over event for the refresh button
             $('#queue-listing-refresh-button').click(function () {
@@ -511,7 +451,7 @@ nf.QueueListing = (function () {
 
             // define a custom formatter for showing more processor details
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<div class="pointer show-flowfile-details fa fa-info" title="View Details" style="margin-top: 5px; float: left;"></div>';
+                return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="margin-top: 5px; float: left;"></div>';
             };
 
             // function for formatting data sizes
@@ -690,6 +630,61 @@ nf.QueueListing = (function () {
         },
 
         /**
+         * Initializes the flowfile details dialog.
+         */
+        initFlowFileDetailsDialog: function () {
+            $('#content-download').on('click', downloadContent);
+
+            // only show if content viewer is configured
+            if (nf.Common.isContentViewConfigured()) {
+                $('#content-view').show();
+                $('#content-view').on('click', viewContent);
+            }
+
+            $('#flowfile-details-tabs').tabbs({
+                tabStyle: 'tab',
+                selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
+                tabs: [{
+                    name: 'Details',
+                    tabContentId: 'flowfile-details-tab-content'
+                }, {
+                    name: 'Attributes',
+                    tabContentId: 'flowfile-attributes-tab-content'
+                }]
+            });
+
+            $('#flowfile-details-dialog').modal({
+                scrollableContentStyle: 'scrollable',
+                headerText: 'FlowFile',
+                buttons: [{
+                    buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
+                    handler: {
+                        click: function () {
+                            $('#flowfile-details-dialog').modal('hide');
+                        }
+                    }
+                }],
+                handler: {
+                    close: function () {
+                        // clear the details
+                        $('#flowfile-attributes-container').empty();
+                        $('#flowfile-cluster-node-id').text('');
+                        $('#additional-flowfile-details').empty();
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
+                    }
+                }
+            });
+        },
+
+        /**
          * Update the size of the grid based on its container's current size.
          */
         resetTableSize: function () {
@@ -708,7 +703,10 @@ nf.QueueListing = (function () {
             // perform the initial listing
             performListing(connection).done(function () {
                 // update the connection name
-                var connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                var connectionName = '';
+                if (connection.permissions.canRead) {
+                    connectionName = nf.CanvasUtils.formatConnectionName(connection.component);
+                }
                 if (connectionName === '') {
                     connectionName = 'Connection';
                 }

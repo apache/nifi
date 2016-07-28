@@ -20,18 +20,69 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class TestMockProcessSession {
 
     @Test(expected = AssertionError.class)
     public void testPenalizeFlowFileFromProcessor() {
         TestRunners.newTestRunner(PoorlyBehavedProcessor.class).run();
+    }
+
+    @Test
+    public void testReadWithoutCloseThrowsExceptionOnCommit() throws IOException {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
+        final InputStream in = session.read(flowFile);
+        final byte[] buffer = new byte[12];
+        StreamUtils.fillBuffer(in, buffer);
+
+        assertEquals("hello, world", new String(buffer));
+
+        session.remove(flowFile);
+
+        try {
+            session.commit();
+            Assert.fail("Was able to commit session without closing InputStream");
+        } catch (final FlowFileHandlingException ffhe) {
+            System.out.println(ffhe.toString());
+        }
+    }
+
+    @Test
+    public void testTransferUnknownRelationship() {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor);
+        FlowFile ff1 = session.createFlowFile("hello, world".getBytes());
+        final Relationship fakeRel = new Relationship.Builder().name("FAKE").build();
+        try {
+            session.transfer(ff1, fakeRel);
+            Assert.fail("Should have thrown IllegalArgumentException");
+        } catch (final IllegalArgumentException ie) {
+
+        }
+        try {
+            session.transfer(Collections.singleton(ff1), fakeRel);
+            Assert.fail("Should have thrown IllegalArgumentException");
+        } catch (final IllegalArgumentException ie) {
+
+        }
+
     }
 
     protected static class PoorlyBehavedProcessor extends AbstractProcessor {

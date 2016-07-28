@@ -16,6 +16,37 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
@@ -62,37 +93,6 @@ import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
@@ -223,19 +223,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     @Override
-    public void archiveFlow() throws IOException {
-        writeLock.lock();
-        try {
-            final File archiveFile = dao.createArchiveFile();
-            try (final OutputStream out = new FileOutputStream(archiveFile)) {
-                dao.load(out, true);
-            }
-        } finally {
-            writeLock.unlock();
-        }
-    }
-
-    @Override
     public void saveFlowChanges() throws IOException {
         writeLock.lock();
         try {
@@ -268,7 +255,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
-        saveFlowChanges(delayUnit, delay, false);
+        final boolean archiveEnabled = NiFiProperties.getInstance().isFlowConfigurationArchiveEnabled();
+        saveFlowChanges(delayUnit, delay, archiveEnabled);
     }
 
     @Override
@@ -456,7 +444,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
              * the response will be null and we should load the local dataflow
              * and heartbeat until a manager is located.
              */
-            final boolean localFlowEmpty = StandardFlowSynchronizer.isEmpty(proposedFlow, encryptor);
+            final boolean localFlowEmpty = StandardFlowSynchronizer.isEmpty(proposedFlow);
             final ConnectionResponse response = connect(localFlowEmpty, localFlowEmpty);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't
@@ -479,7 +467,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     controller.setClustered(true, null);
                     clusterCoordinator.setConnected(false);
 
-                    controller.setClusterManagerRemoteSiteInfo(null, null, null);
                     controller.setConnectionStatus(new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED));
 
                     /*
@@ -598,9 +585,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // reconnect
             final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
-                    request.getManagerRemoteSiteListeningPort(), request.getManagerRemoteSiteListeningHttpPort(),
-                    request.isManagerRemoteSiteCommsSecure(), request.getInstanceId(),
-                    request.getNodeConnectionStatuses(), request.getComponentRevisions());
+                request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
 
             connectionResponse.setCoordinatorDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
@@ -865,9 +850,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // mark the node as clustered
             controller.setClustered(true, response.getInstanceId(), response.getCoordinatorDN());
-            controller.setClusterManagerRemoteSiteInfo(response.getManagerRemoteInputPort(), response.getManagerRemoteInputHttpPort(), response.isManagerRemoteCommsSecure());
 
-            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
+            final Set<String> roles = status == null ? Collections.emptySet() : status.getRoles();
+            controller.setConnectionStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, roles));
 
             // start the processors as indicated by the dataflow
             controller.onFlowInitialized(autoResumeState);
@@ -927,7 +913,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         @Override
         public void run() {
             final ClassLoader currentCl = Thread.currentThread().getContextClassLoader();
-            final ClassLoader cl = NarClassLoaders.getFrameworkClassLoader();
+            final ClassLoader cl = NarClassLoaders.getInstance().getFrameworkClassLoader();
             Thread.currentThread().setContextClassLoader(cl);
             try {
                 //Hang onto the SaveHolder here rather than setting it to null because if the save fails we will try again
@@ -941,7 +927,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 }
 
                 final Calendar now = Calendar.getInstance();
-                if (holder.saveTime.before(now) || holder.shouldArchive) {
+                if (holder.saveTime.before(now)) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Waiting for write lock and then will save");
                     }

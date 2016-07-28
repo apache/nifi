@@ -49,10 +49,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -62,8 +60,8 @@ import java.util.concurrent.TimeUnit;
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last event Id so that on restart the task knows where it left off.")
 public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReportingTask {
 
-    private static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-    private static final String LAST_EVENT_ID_KEY = "last_event_id";
+    static final String TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+    static final String LAST_EVENT_ID_KEY = "last_event_id";
 
     static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
         .name("Platform")
@@ -138,7 +136,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 firstEventId = Long.parseLong(state.get(LAST_EVENT_ID_KEY)) + 1;
             }
 
-            if(currMaxId < firstEventId){
+            if(currMaxId < (firstEventId - 1)){
                 getLogger().warn("Current provenance max id is {} which is less than what was stored in state as the last queried event, which was {}. This means the provenance restarted its " +
                         "ids. Restarting querying from the beginning.", new Object[]{currMaxId, firstEventId});
                 firstEventId = -1;
@@ -249,19 +247,9 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         addField(builder, "eventOrdinal", event.getEventId());
         addField(builder, "eventType", event.getEventType().name());
         addField(builder, "timestampMillis", event.getEventTime());
-
-
         addField(builder, "timestamp", df.format(event.getEventTime()));
-
         addField(builder, "durationMillis", event.getEventDuration());
         addField(builder, "lineageStart", event.getLineageStartDate());
-
-        final Set<String> lineageIdentifiers = new HashSet<>();
-        if (event.getLineageIdentifiers() != null) {
-            lineageIdentifiers.addAll(event.getLineageIdentifiers());
-        }
-        lineageIdentifiers.add(event.getFlowFileUuid());
-        addField(builder, factory, "lineageIdentifiers", lineageIdentifiers);
         addField(builder, "details", event.getDetails());
         addField(builder, "componentId", event.getComponentId());
         addField(builder, "componentType", event.getComponentType());

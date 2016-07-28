@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
@@ -35,7 +35,7 @@ public class ControllerConfigurationEntity extends Entity {
     private Date currentTime;
     private ControllerConfigurationDTO controllerConfiguration;
     private RevisionDTO revision;
-    private AccessPolicyDTO accessPolicy;
+    private PermissionsDTO permissions;
 
     /**
      * @return revision for this request/response
@@ -72,19 +72,19 @@ public class ControllerConfigurationEntity extends Entity {
     }
 
     /**
-     * The access policy for this component.
+     * The permissions for this component.
      *
-     * @return The access policy
+     * @return The permissions
      */
     @ApiModelProperty(
-            value = "The access policy for the controller."
+            value = "The permissions for this component."
     )
-    public AccessPolicyDTO getAccessPolicy() {
-        return accessPolicy;
+    public PermissionsDTO getPermissions() {
+        return permissions;
     }
 
-    public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
-        this.accessPolicy = accessPolicy;
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 
     /**

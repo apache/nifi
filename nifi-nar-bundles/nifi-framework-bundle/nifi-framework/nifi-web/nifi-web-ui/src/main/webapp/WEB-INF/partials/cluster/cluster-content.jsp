@@ -18,7 +18,7 @@
 <div id="cluster">
     <div id="cluster-header-and-filter">
         <div id="cluster-header-text">NiFi Cluster</div>
-        <div id="cluster-filter-controls" class="filter-controls">
+        <div id="cluster-filter-controls">
             <div id="cluster-filter-stats" class="filter-status">
                 Displaying&nbsp;<span id="displayed-nodes"></span>&nbsp;of&nbsp;<span id="total-nodes"></span>
             </div>

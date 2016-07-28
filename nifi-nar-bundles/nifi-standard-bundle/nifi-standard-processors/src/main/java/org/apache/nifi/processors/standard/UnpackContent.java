@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
@@ -69,7 +70,6 @@ import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
-import org.apache.nifi.util.ObjectHolder;
 
 @EventDriven
 @SideEffectFree
@@ -415,7 +415,7 @@ public class UnpackContent extends AbstractProcessor {
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         while (unpackager.hasMoreData()) {
-                            final ObjectHolder<Map<String, String>> attributesRef = new ObjectHolder<>(null);
+                            final AtomicReference<Map<String, String>> attributesRef = new AtomicReference<>(null);
                             FlowFile unpackedFile = session.create(source);
                             try {
                                 unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {

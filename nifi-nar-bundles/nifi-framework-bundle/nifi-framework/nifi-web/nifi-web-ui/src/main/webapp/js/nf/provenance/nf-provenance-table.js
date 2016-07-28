@@ -99,7 +99,7 @@ nf.ProvenanceTable = (function () {
         var eventId = $('#provenance-event-id').text();
 
         // build the uri to the data
-        var dataUri = config.urls.provenanceEvents + '/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
+        var dataUri = controllerUri + 'provenance-events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -185,6 +185,7 @@ nf.ProvenanceTable = (function () {
         $('#event-details-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'Details',
                 tabContentId: 'event-details-tab-content'
@@ -198,6 +199,7 @@ nf.ProvenanceTable = (function () {
         });
 
         $('#event-details-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Provenance Event',
             buttons: [{
                 buttonText: 'Ok',
@@ -221,6 +223,9 @@ nf.ProvenanceTable = (function () {
                     $('#child-flowfiles-container').empty();
                     $('#provenance-event-cluster-node-id').text('');
                     $('#modified-attribute-toggle').removeClass('checkbox-checked').addClass('checkbox-unchecked');
+                },
+                open: function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 }
             }
         });
@@ -359,6 +364,7 @@ nf.ProvenanceTable = (function () {
 
         // configure the search dialog
         $('#provenance-search-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Search Events',
             buttons: [{
                 buttonText: 'Search',
@@ -455,23 +461,10 @@ nf.ProvenanceTable = (function () {
      * Initializes the provenance query dialog.
      */
     var initProvenanceQueryDialog = function () {
-        // initialize the progress bar
-        $('#provenance-percent-complete').progressbar();
-
         // initialize the dialog
         $('#provenance-query-dialog').modal({
-            headerText: 'Searching provenance events...',
-            handler: {
-                close: function () {
-                    // reset the progress bar
-                    var provenanceProgressBar = $('#provenance-percent-complete');
-                    provenanceProgressBar.find('div.progress-label').remove();
-
-                    // update the progress bar
-                    var label = $('<div class="progress-label"></div>').text('0%');
-                    provenanceProgressBar.progressbar('value', 0).append(label);
-                }
-            }
+            scrollableContentStyle: 'scrollable',
+            headerText: 'Searching provenance events...'
         });
     };
 
@@ -907,9 +900,9 @@ nf.ProvenanceTable = (function () {
      */
     var getProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 
@@ -928,9 +921,9 @@ nf.ProvenanceTable = (function () {
      */
     var cancelProvenance = function (provenance) {
         var url = provenance.uri;
-        if (nf.Common.isDefinedAndNotNull(provenance.clusterNodeId)) {
+        if (nf.Common.isDefinedAndNotNull(provenance.request.clusterNodeId)) {
             url += '?' + $.param({
-                    clusterNodeId: provenance.clusterNodeId
+                    clusterNodeId: provenance.request.clusterNodeId
                 });
         }
 
@@ -1081,13 +1074,12 @@ nf.ProvenanceTable = (function () {
         updateProgress: function (progressBar, value) {
             // remove existing labels
             progressBar.find('div.progress-label').remove();
+            progressBar.find('md-progress-linear').remove();
 
             // update the progress bar
             var label = $('<div class="progress-label"></div>').text(value + '%');
-            if (value > 0) {
-                label.css('margin-top', '-19px');
-            }
-            progressBar.progressbar('value', value).append(label);
+            (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear ng-cloak ng-value="' + value + '" class="md-hue-2" md-mode="determinate" aria-label="Progress"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(progressBar);
+            progressBar.append(label);
         },
 
         /**
@@ -1353,10 +1345,15 @@ nf.ProvenanceTable = (function () {
 
                 // show the previous value if the property has changed
                 if (attribute.value !== attribute.previousValue) {
-                    attributeRecord
-                        .append('<div class="modified-attribute-label">previous</div>')
-                        .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
-                        .append('<div class="clear"></div>');
+                    if (nf.Common.isDefinedAndNotNull(attribute.previousValue)) {
+                        attributeRecord
+                            .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    } else {
+                        attributeRecord
+                            .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    }
                 } else {
                     // mark this attribute as not modified
                     attributeRecord.addClass('attribute-unmodified');
@@ -1367,7 +1364,7 @@ nf.ProvenanceTable = (function () {
                 if (nf.Common.isDefinedAndNotNull(value)) {
                     element.removeClass('unset').text(value);
                 } else {
-                    element.addClass('unset').text('No value set');
+                    element.addClass('unset').text('No value previously set');
                 }
             };
 

@@ -49,6 +49,24 @@ public class TestGetSQS {
     }
 
     @Test
+    public void testSimpleGetWithEL() {
+        System.setProperty("test-account-property", "100515378163");
+        System.setProperty("test-queue-property", "test-queue-000000000");
+        final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
+        runner.setProperty(PutSNS.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(GetSQS.TIMEOUT, "30 secs");
+        runner.setProperty(GetSQS.QUEUE_URL, "https://sqs.us-west-2.amazonaws.com/${test-account-property}/${test-queue-property}");
+
+        runner.run(1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetSQS.REL_SUCCESS);
+        for (final MockFlowFile mff : flowFiles) {
+            System.out.println(mff.getAttributes());
+            System.out.println(new String(mff.toByteArray()));
+        }
+    }
+
+    @Test
     public void testSimpleGetUsingCredentailsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new GetSQS());
 

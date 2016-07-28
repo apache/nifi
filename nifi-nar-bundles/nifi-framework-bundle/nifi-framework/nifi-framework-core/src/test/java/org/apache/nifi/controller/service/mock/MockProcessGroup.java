@@ -17,13 +17,6 @@
 
 package org.apache.nifi.controller.service.mock;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.connectable.Connectable;
@@ -40,6 +33,13 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
@@ -535,6 +535,10 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public void verifyCanMove(final Snippet snippet, final ProcessGroup newProcessGroup) {
 
+    }
+
+    @Override
+    public void verifyCanAddTemplate(String name) {
     }
 
     @Override

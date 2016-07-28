@@ -16,21 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.StringUtils;
-
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -213,6 +199,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
     /**
      * Performs common setup operations when the processor is scheduled to run. This method assumes the member
      * variables associated with properties have been filled.
+     * @param numberOfScriptEngines number of engines to setup
      */
     public void setup(int numberOfScriptEngines) {
 
@@ -231,6 +218,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * javax.script APIs. Then, if any script configurators have been defined for this engine, their init() method is
      * called, and the configurator is saved for future calls.
      *
+     * @param numberOfScriptEngines number of engines to setup
      * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
      */
     protected void setupEngines(int numberOfScriptEngines) {
@@ -316,6 +304,7 @@ public abstract class AbstractScriptProcessor extends AbstractSessionFactoryProc
      * If the parameter is null or empty, this class's classloader is returned
      *
      * @param modules An array of URLs to add to the class loader
+     * @return ClassLoader for script engine
      */
     protected ClassLoader createScriptEngineModuleClassLoader(URL[] modules) {
         ClassLoader thisClassLoader = this.getClass().getClassLoader();

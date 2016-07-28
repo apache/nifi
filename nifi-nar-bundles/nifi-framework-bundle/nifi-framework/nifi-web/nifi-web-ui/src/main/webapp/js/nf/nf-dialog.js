@@ -20,19 +20,18 @@
 $(document).ready(function () {
     // configure the ok dialog
     $('#nf-ok-dialog').modal({
+        scrollableContentStyle: 'scrollable',
         handler: {
             close: function () {
                 // clear the content
                 $('#nf-ok-dialog-content').empty();
             }
         }
-    }).draggable({
-        containment: 'parent',
-        handle: '.dialog-header'
     });
 
     // configure the yes/no dialog
     $('#nf-yes-no-dialog').modal({
+        scrollableContentStyle: 'scrollable',
         handler: {
             close: function () {
                 // clear the content and reset the button model

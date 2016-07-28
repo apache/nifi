@@ -28,6 +28,8 @@ public class JoltSpecificationDTO implements Serializable{
     private String transform;
     private String specification;
     private String input;
+    private String modules;
+    private String customClass;
 
     public JoltSpecificationDTO() {
     }
@@ -59,5 +61,21 @@ public class JoltSpecificationDTO implements Serializable{
 
     public void setInput(String input) {
         this.input = input;
+    }
+
+    public String getModules() {
+        return modules;
+    }
+
+    public void setModules(String modules) {
+        this.modules = modules;
+    }
+
+    public String getCustomClass() {
+        return customClass;
+    }
+
+    public void setCustomClass(String customClass) {
+        this.customClass = customClass;
     }
 }

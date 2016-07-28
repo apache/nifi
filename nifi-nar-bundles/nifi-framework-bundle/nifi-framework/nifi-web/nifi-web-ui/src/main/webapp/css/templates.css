@@ -66,13 +66,9 @@
 
 /* filter controls */
 
-#templates-filter-controls {
-    float: right;
-}
-
 #templates-filter-container {
     height: 32px;
-    width: 318px;
+    width: 100%;
 }
 
 #templates-filter {
@@ -86,7 +82,6 @@ input.templates-filter-list {
 }
 
 #templates-filter-type {
-    width: 120px;
     float: left;
 }
 
@@ -94,8 +89,9 @@ input.templates-filter-list {
 
 #templates-table {
     position: absolute;
-    top: 108px;
+    top: 98px;
     left: 0px;
     bottom: 47px;
     right: 0px;
+    min-height: 150px;
 }

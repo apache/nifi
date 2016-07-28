@@ -24,6 +24,7 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ConnectionAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -62,8 +63,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.Collections;
-import java.util.Set;
 
 /**
  * RESTful endpoint for managing a flowfile queue.
@@ -122,7 +121,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/flowfiles/{flowfile-uuid}")
+    @Path("{id}/flowfiles/{flowfile-uuid}")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets a FlowFile from a Connection.",
@@ -144,7 +143,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                 value = "The flowfile uuid.",
                 required = true
@@ -168,18 +167,11 @@ public class FlowFileQueueResource extends ApplicationResource {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
-
-                // replicate the request to the specific node
-                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
+                return replicate(HttpMethod.GET, targetNode);
             }
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-        });
+        // NOTE - deferred authorization so we can consider flowfile attributes in the access decision
 
         // get the flowfile
         final FlowFileDTO flowfileDto = serviceFacade.getFlowFile(connectionId, flowFileUuid);
@@ -205,7 +197,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
-    @Path("{connection-id}/flowfiles/{flowfile-uuid}/content")
+    @Path("{id}/flowfiles/{flowfile-uuid}/content")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the content for a FlowFile in a Connection.",
@@ -232,7 +224,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                 value = "The flowfile uuid.",
                 required = true
@@ -256,18 +248,11 @@ public class FlowFileQueueResource extends ApplicationResource {
                     throw new UnknownNodeException("The specified cluster node does not exist.");
                 }
 
-                final Set<NodeIdentifier> targetNodes = Collections.singleton(targetNode);
-
-                // replicate the request to the specific node
-                return getRequestReplicator().replicate(targetNodes, HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).awaitMergedResponse().getResponse();
+                return replicate(HttpMethod.GET, targetNode);
             }
         }
 
-        // authorize access
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-        });
+        // NOTE - deferred authorization so we can consider flowfile attributes in the access decision
 
         // get the uri of the request
         final String uri = generateResourceUri("flowfile-queues", connectionId, "flowfiles", flowFileUuid, "content");
@@ -308,7 +293,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/listing-requests")
+    @Path("{id}/listing-requests")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Lists the contents of the queue in this connection.",
@@ -333,7 +318,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") final String id) {
+            @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -344,8 +329,9 @@ public class FlowFileQueueResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable connection = lookup.getConnection(id);
-                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -379,7 +365,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/listing-requests/{listing-request-id}")
+    @Path("{id}/listing-requests/{listing-request-id}")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the current status of a listing request for the specified connection.",
@@ -402,7 +388,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                 value = "The listing request id.",
                 required = true
@@ -415,8 +401,9 @@ public class FlowFileQueueResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+            final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+            final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
         // get the listing request
@@ -441,7 +428,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/listing-requests/{listing-request-id}")
+    @Path("{id}/listing-requests/{listing-request-id}")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Cancels and/or removes a request to list the contents of this connection.",
@@ -465,7 +452,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                 value = "The connection id.",
                 required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                 value = "The listing request id.",
                 required = true
@@ -481,8 +468,9 @@ public class FlowFileQueueResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable connection = lookup.getConnection(connectionId);
-                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -515,7 +503,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/drop-requests")
+    @Path("{id}/drop-requests")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
         value = "Creates a request to drop the contents of the queue in this connection.",
@@ -540,7 +528,7 @@ public class FlowFileQueueResource extends ApplicationResource {
             value = "The connection id.",
             required = true
         )
-        @PathParam("connection-id") final String id) {
+        @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -551,8 +539,9 @@ public class FlowFileQueueResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable connection = lookup.getConnection(id);
-                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
@@ -585,7 +574,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/drop-requests/{drop-request-id}")
+    @Path("{id}/drop-requests/{drop-request-id}")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Gets the current status of a drop request for the specified connection.",
@@ -608,7 +597,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                     value = "The drop request id.",
                     required = true
@@ -621,8 +610,9 @@ public class FlowFileQueueResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connection = lookup.getConnection(connectionId);
-            connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+            final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+            final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
         // get the drop request
@@ -647,7 +637,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("{connection-id}/drop-requests/{drop-request-id}")
+    @Path("{id}/drop-requests/{drop-request-id}")
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Cancels and/or removes a request to drop the contents of this connection.",
@@ -671,7 +661,7 @@ public class FlowFileQueueResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-            @PathParam("connection-id") final String connectionId,
+            @PathParam("id") final String connectionId,
             @ApiParam(
                     value = "The drop request id.",
                     required = true
@@ -687,8 +677,9 @@ public class FlowFileQueueResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable connection = lookup.getConnection(connectionId);
-                connection.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final ConnectionAuthorizable connAuth = lookup.getConnection(connectionId);
+                final Authorizable dataAuthorizable = lookup.getData(connAuth.getSource().getIdentifier());
+                dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {

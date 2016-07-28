@@ -380,6 +380,7 @@ nf.ControllerServices = (function () {
         // initialize the controller service dialog
         $('#new-controller-service-dialog').modal({
             headerText: 'Add Controller Service',
+            scrollableContentStyle: 'scrollable',
             handler: {
                 close: function () {
                     // clear the selected row
@@ -414,7 +415,7 @@ nf.ControllerServices = (function () {
      * @returns {String}
      */
     var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '<span class="blank">' + dataContext.id + '</span>';
         }
         
@@ -432,11 +433,33 @@ nf.ControllerServices = (function () {
      * @returns {String}
      */
     var typeFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '';
         }
         
         return nf.Common.substringAfterLast(dataContext.component.type, '.');
+    };
+
+    /**
+     * Formatter for the name column.
+     *
+     * @param {type} row
+     * @param {type} cell
+     * @param {type} value
+     * @param {type} columnDef
+     * @param {type} dataContext
+     * @returns {String}
+     */
+    var groupIdFormatter = function (row, cell, value, columnDef, dataContext) {
+        if (!dataContext.permissions.canRead) {
+            return '';
+        }
+
+        if (nf.Common.isDefinedAndNotNull(dataContext.component.parentGroupId)) {
+            return dataContext.component.parentGroupId;
+        } else {
+            return 'Controller'
+        }
     };
 
     /**
@@ -448,34 +471,45 @@ nf.ControllerServices = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'moreDetails') {
-                var aBulletins = 0;
-                if (!nf.Common.isEmpty(a.bulletins)) {
-                    aBulletins = a.bulletins.length;
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'moreDetails') {
+                    var aBulletins = 0;
+                    if (!nf.Common.isEmpty(a.bulletins)) {
+                        aBulletins = a.bulletins.length;
+                    }
+                    var bBulletins = 0;
+                    if (!nf.Common.isEmpty(b.bulletins)) {
+                        bBulletins = b.bulletins.length;
+                    }
+                    return aBulletins - bBulletins;
+                } else if (sortDetails.columnId === 'type') {
+                    var aType = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    return aType === bType ? 0 : aType > bType ? 1 : -1;
+                } else if (sortDetails.columnId === 'state') {
+                    var aState = 'Invalid';
+                    if (nf.Common.isEmpty(a.component.validationErrors)) {
+                        aState = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    }
+                    var bState = 'Invalid';
+                    if (nf.Common.isEmpty(b.component.validationErrors)) {
+                        bState = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    }
+                    return aState === bState ? 0 : aState > bState ? 1 : -1;
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
-                var bBulletins = 0;
-                if (!nf.Common.isEmpty(b.bulletins)) {
-                    bBulletins = b.bulletins.length;
-                }
-                return aBulletins - bBulletins;
-            } else if (sortDetails.columnId === 'type') {
-                var aType = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? nf.Common.substringAfterLast(a[sortDetails.columnId], '.') : '';
-                var bType = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? nf.Common.substringAfterLast(b[sortDetails.columnId], '.') : '';
-                return aType === bType ? 0 : aType > bType ? 1 : -1;
-            } else if (sortDetails.columnId === 'state') {
-                var aState = 'Invalid';
-                if (nf.Common.isEmpty(a.validationErrors)) {
-                    aState = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                }
-                var bState = 'Invalid';
-                if (nf.Common.isEmpty(b.validationErrors)) {
-                    bState = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                }
-                return aState === bState ? 0 : aState > bState ? 1 : -1;
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -491,24 +525,24 @@ nf.ControllerServices = (function () {
     var initControllerServices = function (serviceTable) {
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
             
-            var markup = '<div class="pointer view-controller-service fa fa-info" title="View Details" style="margin-top: 5px; float: left;" ></div>';
+            var markup = '<div class="pointer view-controller-service fa fa-info-circle" title="View Details" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-left: -2px; margin-top: 5px; float: left;" ></div>';
+            markup += '<div title="Usage" class="pointer controller-service-usage fa fa-book" style="margin-top: 5px; margin-right: 3px;" ></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 6px; float: left;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px; float: left;" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-left: 5px; float: left;"></div>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px; float: left;"></div>';
             }
 
             if (hasErrors || hasBulletins) {
@@ -519,7 +553,7 @@ nf.ControllerServices = (function () {
         };
 
         var controllerServiceStateFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
             
@@ -545,31 +579,34 @@ nf.ControllerServices = (function () {
             }
 
             // format the markup
-            var formattedValue = '<div class="' + icon + '" style="margin-top: 5px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 2px; margin-left: 4px; float: left;">' + label + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + icon + '" style="margin-top: 5px;"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + label + '</div></div>';
         };
 
         var controllerServiceActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.accessPolicy.canRead && dataContext.accessPolicy.canWrite) {
+            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
                 if (dataContext.component.state === 'ENABLED' || dataContext.component.state === 'ENABLING') {
-                    markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px;" ></div>';
+                    markup += '<div class="pointer disable-controller-service icon icon-enable-false" title="Disable" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 } else if (dataContext.component.state === 'DISABLED') {
-                    markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px;" ></div>';
+                    markup += '<div class="pointer edit-controller-service fa fa-pencil" title="Edit" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                     // if there are no validation errors allow enabling
                     if (nf.Common.isEmpty(dataContext.component.validationErrors)) {
-                        markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-left: 6px;"></div>';
+                        markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
 
-                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
-                    markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div title="View State" class="pointer view-state-controller-service fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
             }
+
+            // TODO - only if we can adminster policies
+            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
 
             return markup;
         };
@@ -579,7 +616,8 @@ nf.ControllerServices = (function () {
             {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: true, width: 90, maxWidth: 90, toolTip: 'Sorts based on presence of bulletins'},
             {id: 'name', name: 'Name', formatter: nameFormatter, sortable: true, resizable: true},
             {id: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
-            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
+            {id: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true},
+            {id: 'parentGroupId', name: 'Process Group', formatter: groupIdFormatter, sortable: true, resizeable: true}
         ];
 
         // action column should always be last
@@ -604,7 +642,7 @@ nf.ControllerServices = (function () {
         controllerServicesGrid.setSortColumn('name', true);
         controllerServicesGrid.onSort.subscribe(function (e, args) {
             sort({
-                columnId: args.sortCol.field,
+                columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, controllerServicesData);
         });
@@ -627,7 +665,13 @@ nf.ControllerServices = (function () {
                 } else if (target.hasClass('delete-controller-service')) {
                     nf.ControllerService.remove(serviceTable, controllerServiceEntity);
                 } else if (target.hasClass('view-state-controller-service')) {
-                    nf.ComponentState.showState(controllerServiceEntity.component, controllerServiceEntity.state === 'DISABLED');
+                    nf.ComponentState.showState(controllerServiceEntity, controllerServiceEntity.state === 'DISABLED');
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nf.PolicyManagement.showControllerServicePolicy(controllerServiceEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-controller-service')) {
@@ -671,18 +715,20 @@ nf.ControllerServices = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    errorIcon.qtip($.extend({
-                        content: tooltip,
-                        position: {
-                            target: 'mouse',
-                            viewport: $(window),
-                            adjust: {
-                                x: 8,
-                                y: 8,
-                                method: 'flipinvert flipinvert'
+                    errorIcon.qtip($.extend({},
+                        nf.Common.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $(window),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
                             }
-                        }
-                    }, nf.Common.config.tooltipConfig));
+                        }));
                 }
             }
 
@@ -699,18 +745,20 @@ nf.ControllerServices = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend({}, nf.Common.config.tooltipConfig, {
-                        content: tooltip,
-                        position: {
-                            target: 'mouse',
-                            viewport: $(window),
-                            adjust: {
-                                x: 8,
-                                y: 8,
-                                method: 'flipinvert flipinvert'
+                    bulletinIcon.qtip($.extend({},
+                        nf.Common.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $(window),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
                             }
-                        }
-                    }));
+                        }));
                 }
             }
         });

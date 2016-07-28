@@ -25,6 +25,7 @@ nf.RemoteProcessGroupPorts = (function () {
     var initRemotePortConfigurationDialog = function () {
         $('#remote-port-configuration').modal({
             headerText: 'Configure Remote Port',
+            scrollableContentStyle: 'scrollable',
             buttons: [{
                 buttonText: 'Apply',
                 color: {
@@ -63,7 +64,7 @@ nf.RemoteProcessGroupPorts = (function () {
                             $.ajax({
                                 type: 'PUT',
                                 data: JSON.stringify(remoteProcessGroupPortEntity),
-                                url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(remotePortId),
+                                url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(remotePortId),
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
@@ -146,6 +147,7 @@ nf.RemoteProcessGroupPorts = (function () {
      */
     var initRemoteProcessGroupConfigurationDialog = function () {
         $('#remote-process-group-ports').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Remote Process Group Ports',
             buttons: [{
                 buttonText: 'Close',
@@ -251,9 +253,11 @@ nf.RemoteProcessGroupPorts = (function () {
                     editRemotePort.show();
                 }
             } else if (port.exists === false) {
-                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({
-                    content: 'This port has been removed.'
-                }, nf.Common.config.tooltipConfig));
+                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
+                    nf.Common.config.tooltipConfig,
+                    {
+                        content: 'This port has been removed.'
+                    }));
             }
 
             // only allow modifications to transmission when the swtich is defined
@@ -290,7 +294,7 @@ nf.RemoteProcessGroupPorts = (function () {
                     $.ajax({
                         type: 'PUT',
                         data: JSON.stringify(remoteProcessGroupPortEntity),
-                        url: remoteProcessGroupData.component.uri + portContextPath + encodeURIComponent(port.id),
+                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id),
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
@@ -387,9 +391,11 @@ nf.RemoteProcessGroupPorts = (function () {
             'Concurrent tasks' +
             '<div class="processor-setting concurrent-tasks-info fa fa-question-circle"></div>' +
             '</div>' +
-            '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({
-            content: 'The number of tasks that should be concurrently scheduled for this port.'
-        }, nf.Common.config.tooltipConfig));
+            '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('div.concurrent-tasks-info').qtip($.extend({},
+            nf.Common.config.tooltipConfig,
+            {
+                content: 'The number of tasks that should be concurrently scheduled for this port.'
+            }));
 
         var compressionContainer = $('<div class="compression-container"></div>').appendTo(portContainerDetailsContainer);
 
@@ -464,10 +470,7 @@ nf.RemoteProcessGroupPorts = (function () {
                 // load the properties for the specified component
                 $.ajax({
                     type: 'GET',
-                    url: selectionData.component.uri,
-                    data: {
-                        verbose: true
-                    },
+                    url: selectionData.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     var remoteProcessGroup = response.component;

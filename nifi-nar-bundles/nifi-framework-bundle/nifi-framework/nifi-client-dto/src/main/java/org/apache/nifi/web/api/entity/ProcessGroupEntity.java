@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
@@ -44,7 +44,7 @@ public class ProcessGroupEntity extends ComponentEntity {
     /**
      * The ProcessGroupDTO that is being serialized.
      *
-     * @return The ControllerDTO object
+     * @return The ProcessGroupDTO object
      */
     public ProcessGroupDTO getComponent() {
         return component;

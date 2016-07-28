@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
@@ -48,7 +45,6 @@ import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.dao.ConnectionDAO;
-import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +53,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +131,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (flowFile == null) {
                 throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
+
+            // get the attributes and ensure appropriate access
+            final Map<String, String> attributes = flowFile.getAttributes();
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser(), attributes);
 
             return flowFile;
         } catch (final IOException ioe) {
@@ -416,8 +418,9 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             // If destination is changing, ensure that current destination is not running. This check is done here, rather than
             // in the Connection object itself because the Connection object itself does not know which updates are to occur and
             // we don't want to prevent updating things like the connection name or backpressure just because the destination is running
-            if (connectionDTO.getDestination() != null && connection.getDestination().isRunning()) {
-                throw new IllegalStateException("Cannot change the destination of connection because the current destination is running");
+            final Connectable destination = connection.getDestination();
+            if (destination != null && destination.isRunning() && destination.getConnectableType() != ConnectableType.FUNNEL && destination.getConnectableType() != ConnectableType.INPUT_PORT) {
+                throw new ValidationException(Collections.singletonList("Cannot change the destination of connection because the current destination is running"));
             }
 
             // verify that this connection supports modification
@@ -592,27 +595,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
                 throw new ResourceNotFoundException(String.format("The FlowFile with UUID %s is no longer in the active queue.", flowFileUuid));
             }
 
+            // get the attributes and ensure appropriate access
             final Map<String, String> attributes = flowFile.getAttributes();
-
-            // calculate the dn chain
-            final List<String> dnChain = ProxiedEntitiesUtils.buildProxiedEntitiesChain(user);
-            dnChain.forEach(identity -> {
-                // build the request
-                final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                        .identity(identity)
-                        .anonymous(user.isAnonymous())
-                        .accessAttempt(false)
-                        .action(RequestAction.WRITE)
-                        .resource(connection.getResource())
-                        .resourceContext(attributes)
-                        .build();
-
-                // perform the authorization
-                final AuthorizationResult result = authorizer.authorize(request);
-                if (!Result.Approved.equals(result.getResult())) {
-                    throw new AccessDeniedException(result.getExplanation());
-                }
-            });
+            final Authorizable dataAuthorizable = flowController.createDataAuthorizable(connection.getSource().getIdentifier());
+            dataAuthorizable.authorize(authorizer, RequestAction.READ, user, attributes);
 
             // get the filename and fall back to the identifier (should never happen)
             String filename = attributes.get(CoreAttributes.FILENAME.key());

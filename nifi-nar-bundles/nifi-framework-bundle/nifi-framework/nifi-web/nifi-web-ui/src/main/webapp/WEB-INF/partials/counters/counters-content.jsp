@@ -18,12 +18,12 @@
 <div id="counters">
     <div id="counters-header-and-filter">
         <div id="counters-header-text">NiFi Counters</div>
-        <div id="counters-filter-controls" class="filter-controls">
+        <div id="counters-filter-controls">
             <div id="counters-filter-stats" class="filter-status">
                 Displaying&nbsp;<span id="displayed-counters"></span>&nbsp;of&nbsp;<span id="total-counters"></span>
             </div>
             <div id="counters-filter-container" class="filter-container">
-                <input type="text" id="counters-filter" class="filter"/>
+                <input type="text" id="counters-filter" placeholder="Filter" class="filter"/>
                 <div id="counters-filter-type" class="filter-type"></div>
             </div>
         </div>

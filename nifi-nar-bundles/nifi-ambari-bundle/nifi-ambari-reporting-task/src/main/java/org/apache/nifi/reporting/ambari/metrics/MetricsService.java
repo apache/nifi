@@ -46,7 +46,13 @@ public class MetricsService {
         metrics.put(MetricNames.BYTES_READ, String.valueOf(status.getBytesRead()));
         metrics.put(MetricNames.BYTES_WRITTEN, String.valueOf(status.getBytesWritten()));
         metrics.put(MetricNames.ACTIVE_THREADS, String.valueOf(status.getActiveThreadCount()));
-        metrics.put(MetricNames.TOTAL_TASK_DURATION, String.valueOf(calculateProcessingNanos(status)));
+
+        final long durationNanos = calculateProcessingNanos(status);
+        metrics.put(MetricNames.TOTAL_TASK_DURATION_NANOS, String.valueOf(durationNanos));
+
+        final long durationSeconds = TimeUnit.SECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
+        metrics.put(MetricNames.TOTAL_TASK_DURATION_SECONDS, String.valueOf(durationSeconds));
+
         return metrics;
     }
 

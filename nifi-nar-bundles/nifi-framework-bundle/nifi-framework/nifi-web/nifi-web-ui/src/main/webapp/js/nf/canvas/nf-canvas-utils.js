@@ -258,9 +258,7 @@ nf.CanvasUtils = (function () {
          * @param selection     selection
          */
         editable: function (selection) {
-            var selectionData = selection.datum();
-            
-            if (selectionData.accessPolicy.canWrite && selectionData.accessPolicy.canRead) {
+            if (nf.CanvasUtils.canModify(selection)) {
                 if (!selection.classed('connectable')) {
                     selection.call(nf.Connectable.activate);
                 }
@@ -427,11 +425,11 @@ nf.CanvasUtils = (function () {
          */
         activeThreadCount: function (selection, d, setOffset) {
             // if there is active threads show the count, otherwise hide
-            if (nf.Common.isDefinedAndNotNull(d.status) && d.status.activeThreadCount > 0) {
+            if (d.status.aggregateSnapshot.activeThreadCount > 0) {
                 // update the active thread count
                 var activeThreadCount = selection.select('text.active-thread-count')
                         .text(function () {
-                            return d.status.activeThreadCount;
+                            return d.status.aggregateSnapshot.activeThreadCount;
                         })
                         .style('display', 'block')
                         .each(function () {
@@ -518,10 +516,12 @@ nf.CanvasUtils = (function () {
                         });
 
                 // update the tooltip background
-                selection.select('rect.bulletin-background').classed('has-bulletins', true);
+                selection.select('text.bulletin-icon').style("visibility", "visible");
+                selection.select('rect.bulletin-background').style("visibility", "visible");
             } else {
                 // update the tooltip background
-                selection.select('rect.bulletin-background').classed('has-bulletins', false);
+                selection.select('text.bulletin-icon').style("visibility", "hidden");
+                selection.select('rect.bulletin-background').style("visibility", "hidden");
             }
         },
         
@@ -551,6 +551,11 @@ nf.CanvasUtils = (function () {
          */
         isColorable: function(selection) {
             if (selection.empty()) {
+                return false;
+            }
+
+            // require read and write permissions
+            if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
             
@@ -671,15 +676,22 @@ nf.CanvasUtils = (function () {
          * @return {boolean}                    Whether the selection is runnable
          */
         isRunnable: function (selection) {
-            var runnable = false;
+            if (selection.size() !== 1) {
+                return false;
+            }
 
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                return false;
+            }
+
+            var runnable = false;
             var selectionData = selection.datum();
-            if (nf.CanvasUtils.isProcessor(selection)) {
-                runnable = nf.CanvasUtils.supportsModification(selection) && nf.Common.isEmpty(selectionData.component.validationErrors);
-            } else if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
-                runnable = nf.CanvasUtils.supportsModification(selection);
-            } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                runnable = true;
+            if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
+                runnable = nf.CanvasUtils.supportsModification(selection) && selectionData.status.aggregateSnapshot.runStatus === 'Stopped';
             }
 
             return runnable;
@@ -714,13 +726,22 @@ nf.CanvasUtils = (function () {
          * @return {boolean}                    Whether the selection is runnable
          */
         isStoppable: function (selection) {
-            var stoppable = false;
+            if (selection.size() !== 1) {
+                return false;
+            }
 
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                return false;
+            }
+
+            var stoppable = false;
             var selectionData = selection.datum();
             if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
-                stoppable = selectionData.component.state === 'RUNNING';
-            } else if (nf.CanvasUtils.isProcessGroup(selection)) {
-                stoppable = true;
+                stoppable = selectionData.status.aggregateSnapshot.runStatus === 'Running';
             }
 
             return stoppable;
@@ -739,7 +760,7 @@ nf.CanvasUtils = (function () {
                 // ensure its a processor, input port, or output port and supports modification and is disabled (can enable)
                 return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
                         nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state === 'DISABLED');
+                        selectedData.status.aggregateSnapshot.runStatus === 'Disabled');
             });
         },
 
@@ -750,6 +771,10 @@ nf.CanvasUtils = (function () {
          */
         canEnable: function (selection) {
             if (selection.empty()) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
 
@@ -769,7 +794,7 @@ nf.CanvasUtils = (function () {
                 // ensure its a processor, input port, or output port and supports modification and is stopped (can disable)
                 return ((nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) &&
                         nf.CanvasUtils.supportsModification(selected) &&
-                        selectedData.component.state === 'STOPPED');
+                        selectedData.status.aggregateSnapshot.runStatus === 'Stopped');
             });
         },
 
@@ -780,6 +805,10 @@ nf.CanvasUtils = (function () {
          */
         canDisable: function (selection) {
             if (selection.empty()) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
 
@@ -813,6 +842,14 @@ nf.CanvasUtils = (function () {
          * @argument {selection} selection      The selection
          */
         canStartTransmitting: function (selection) {
+            if (selection.size() !== 1) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false || nf.CanvasUtils.canRead(selection) === false) {
+                return false;
+            }
+
             return nf.CanvasUtils.isRemoteProcessGroup(selection);
         },
         
@@ -842,6 +879,14 @@ nf.CanvasUtils = (function () {
          * @argument {selection} selection      The selection
          */
         canStopTransmitting: function (selection) {
+            if (selection.size() !== 1) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false || nf.CanvasUtils.canRead(selection) === false) {
+                return false;
+            }
+
             return nf.CanvasUtils.isRemoteProcessGroup(selection);
         },
 
@@ -872,11 +917,60 @@ nf.CanvasUtils = (function () {
          * @return {boolean}            Whether the selection is deletable
          */
         isDeletable: function (selection) {
-            if (selection.empty()) {
+            if (selection.size() !== 1) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
 
             return nf.CanvasUtils.supportsModification(selection);
+        },
+
+        /**
+         * Determines whether the specified selection is configurable.
+         *
+         * @param selection
+         */
+        isConfigurable: function (selection) {
+            // ensure the correct number of components are selected
+            if (selection.size() !== 1) {
+                return false;
+            }
+            if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
+                return false;
+            }
+            if (nf.CanvasUtils.isFunnel(selection)) {
+                return false;
+            }
+
+            return nf.CanvasUtils.supportsModification(selection);
+        },
+
+        /**
+         * Determines whether the specified selection has details.
+         *
+         * @param selection
+         */
+        hasDetails: function (selection) {
+            // ensure the correct number of components are selected
+            if (selection.size() !== 1) {
+                return false;
+            }
+            if (nf.CanvasUtils.canRead(selection) === false) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.canModify(selection)) {
+                if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isConnection(selection)) {
+                    return !nf.CanvasUtils.isConfigurable(selection);
+                }
+            } else {
+                return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
+            }
+
+            return false;
         },
 
         /**
@@ -888,7 +982,7 @@ nf.CanvasUtils = (function () {
         canModify: function (selection) {
             var selectionSize = selection.size();
             var writableSize = selection.filter(function (d) {
-                return d.accessPolicy.canWrite && d.accessPolicy.canRead;
+                return d.permissions.canWrite;
             }).size();
             
             return selectionSize === writableSize;
@@ -903,7 +997,7 @@ nf.CanvasUtils = (function () {
         canRead: function (selection) {
             var selectionSize = selection.size();
             var readableSize = selection.filter(function (d) {
-                return d.accessPolicy.canRead;
+                return d.permissions.canRead;
             }).size();
 
             return selectionSize === readableSize;
@@ -922,24 +1016,11 @@ nf.CanvasUtils = (function () {
             // get the selection data
             var selectionData = selection.datum();
 
-            // check access policies first
-            if (selectionData.accessPolicy.canRead === false || selectionData.accessPolicy.canWrite === false) {
-                return false;
-            }
-
             var supportsModification = false;
             if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {
-                if (nf.Common.isDefinedAndNotNull(selectionData.status)) {
-                    supportsModification = !(selectionData.component.state === 'RUNNING' || nf.Common.isDefinedAndNotNull(selectionData.status.activeThreadCount) && selectionData.status.activeThreadCount > 0);
-                } else {
-                    supportsModification = selectionData.component.state !== 'RUNNING';
-                }
+                supportsModification = !(selectionData.status.aggregateSnapshot.runStatus === 'Running' || selectionData.status.aggregateSnapshot.activeThreadCount > 0);
             } else if (nf.CanvasUtils.isRemoteProcessGroup(selection)) {
-                if (nf.Common.isDefinedAndNotNull(selectionData.status)) {
-                    supportsModification = !(selectionData.component.transmitting === true || nf.Common.isDefinedAndNotNull(selectionData.status.activeThreadCount) && selectionData.status.activeThreadCount > 0);
-                } else {
-                    supportsModification = selectionData.component.transmitting !== true;
-                }
+                supportsModification = !(selectionData.status.transmissionStatus === 'Transmitting' || selectionData.status.aggregateSnapshot.activeThreadCount > 0);
             } else if (nf.CanvasUtils.isProcessGroup(selection)) {
                 supportsModification = true;
             } else if (nf.CanvasUtils.isFunnel(selection)) {
@@ -1028,7 +1109,11 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            // determine how many copyable componets are selected
+            if (nf.CanvasUtils.canRead(selection) === false) {
+                return false;
+            }
+
+            // determine how many copyable components are selected
             var copyable = selection.filter(function (d) {
                 var selected = d3.select(this);
                 if (nf.CanvasUtils.isConnection(selected)) {
@@ -1054,7 +1139,7 @@ nf.CanvasUtils = (function () {
          * Determines if something is currently pastable.
          */
         isPastable: function () {
-            return nf.Clipboard.isCopied();
+            return nf.Canvas.canWrite() && nf.Clipboard.isCopied();
         },
         
         /**
@@ -1101,7 +1186,7 @@ nf.CanvasUtils = (function () {
                 if (source.empty() === false) {
                     var sourceData = source.datum();
 
-                    if (sourceData.accessPolicy.canRead) {
+                    if (sourceData.permissions.canRead) {
                         // update the source status if necessary
                         if (nf.CanvasUtils.isProcessor(source)) {
                             nf.Processor.reload(sourceData.component);
@@ -1119,7 +1204,7 @@ nf.CanvasUtils = (function () {
                 if (destination.empty() === false) {
                     var destinationData = destination.datum();
 
-                    if (destinationData.accessPolicy.canRead) {
+                    if (destinationData.permissions.canRead) {
                         // update the destination component accordingly
                         if (nf.CanvasUtils.isProcessor(destination)) {
                             nf.Processor.reload(destinationData.component);
@@ -1260,7 +1345,10 @@ nf.CanvasUtils = (function () {
             
             // if the group id is null, we're already in the top most group
             if (groupId === null) {
-                nf.Dialog.showOkDialog('Components are already in the topmost group.');
+                nf.Dialog.showOkDialog({
+                    headerText: 'Process Group',
+                    dialogContent: 'Components are already in the topmost group.'
+                });
             } else {
                 moveComponents(components, groupId);
             }
@@ -1533,9 +1621,18 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isProcessGroup(selection) ||
-                    nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) ||
-                    nf.CanvasUtils.isFunnel(selection);
+            // always allow connections from process groups
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
+
+            // require read and write for a connection source since we'll need to read the source to obtain valid relationships, etc
+            if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
+                return false;
+            }
+
+            return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) ||
+                nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isFunnel(selection);
         },
         
         /**
@@ -1549,15 +1646,23 @@ nf.CanvasUtils = (function () {
                 return false;
             }
 
-            if (nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) ||
-                    nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isFunnel(selection)) {
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
+
+            // require write for a connection destination
+            if (nf.CanvasUtils.canModify(selection) === false) {
+                return false;
+            }
+
+            if (nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isFunnel(selection)) {
                 return true;
             }
 
             // if processor, ensure it supports input
             if (nf.CanvasUtils.isProcessor(selection)) {
                 var destinationData = selection.datum();
-                return destinationData.component.inputRequirement !== 'INPUT_FORBIDDEN';
+                return destinationData.inputRequirement !== 'INPUT_FORBIDDEN';
             }
         }
     };

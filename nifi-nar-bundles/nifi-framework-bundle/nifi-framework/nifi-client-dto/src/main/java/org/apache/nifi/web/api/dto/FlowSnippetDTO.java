@@ -16,10 +16,15 @@
  */
 package org.apache.nifi.web.api.dto;
 
-import com.wordnik.swagger.annotations.ApiModelProperty;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+
 import javax.xml.bind.annotation.XmlType;
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
  * The contents of a flow snippet.
@@ -37,6 +42,15 @@ public class FlowSnippetDTO {
     private Set<FunnelDTO> funnels = new LinkedHashSet<>();
     private Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
 
+    private final boolean newTemplate;
+
+    public FlowSnippetDTO() {
+        this(false);
+    }
+
+    public FlowSnippetDTO(boolean newTemplate) {
+        this.newTemplate = newTemplate;
+    }
     /**
      * @return connections in this flow snippet
      */
@@ -48,7 +62,8 @@ public class FlowSnippetDTO {
     }
 
     public void setConnections(Set<ConnectionDTO> connections) {
-        this.connections = connections;
+        this.removeInstanceIdentifierIfNecessary(connections);
+        this.connections = this.orderedById(connections);
     }
 
     /**
@@ -62,7 +77,8 @@ public class FlowSnippetDTO {
     }
 
     public void setInputPorts(Set<PortDTO> inputPorts) {
-        this.inputPorts = inputPorts;
+        this.removeInstanceIdentifierIfNecessary(inputPorts);
+        this.inputPorts = this.orderedById(inputPorts);
     }
 
     /**
@@ -76,7 +92,8 @@ public class FlowSnippetDTO {
     }
 
     public void setLabels(Set<LabelDTO> labels) {
-        this.labels = labels;
+        this.removeInstanceIdentifierIfNecessary(labels);
+        this.labels = this.orderedById(labels);
     }
 
     /**
@@ -90,7 +107,8 @@ public class FlowSnippetDTO {
     }
 
     public void setFunnels(Set<FunnelDTO> funnels) {
-        this.funnels = funnels;
+        this.removeInstanceIdentifierIfNecessary(funnels);
+        this.funnels = this.orderedById(funnels);
     }
 
     /**
@@ -104,7 +122,8 @@ public class FlowSnippetDTO {
     }
 
     public void setOutputPorts(Set<PortDTO> outputPorts) {
-        this.outputPorts = outputPorts;
+        this.removeInstanceIdentifierIfNecessary(outputPorts);
+        this.outputPorts = this.orderedById(outputPorts);
     }
 
     /**
@@ -118,7 +137,8 @@ public class FlowSnippetDTO {
     }
 
     public void setProcessGroups(Set<ProcessGroupDTO> processGroups) {
-        this.processGroups = processGroups;
+        this.removeInstanceIdentifierIfNecessary(processGroups);
+        this.processGroups = this.orderedById(processGroups);
     }
 
     /**
@@ -132,7 +152,8 @@ public class FlowSnippetDTO {
     }
 
     public void setProcessors(Set<ProcessorDTO> processors) {
-        this.processors = processors;
+        this.removeInstanceIdentifierIfNecessary(processors);
+        this.processors = this.orderedById(processors);
     }
 
     /**
@@ -146,7 +167,8 @@ public class FlowSnippetDTO {
     }
 
     public void setRemoteProcessGroups(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
-        this.remoteProcessGroups = remoteProcessGroups;
+        this.removeInstanceIdentifierIfNecessary(remoteProcessGroups);
+        this.remoteProcessGroups = this.orderedById(remoteProcessGroups);
     }
 
     /**
@@ -160,6 +182,40 @@ public class FlowSnippetDTO {
     }
 
     public void setControllerServices(Set<ControllerServiceDTO> controllerServices) {
-        this.controllerServices = controllerServices;
+        this.removeInstanceIdentifierIfNecessary(controllerServices);
+        this.controllerServices = this.orderedById(controllerServices);
+    }
+
+    private <T extends ComponentDTO> Set<T> orderedById(Set<T> dtos) {
+        TreeSet<T> components = new TreeSet<>(new Comparator<ComponentDTO>() {
+            @Override
+            public int compare(ComponentDTO c1, ComponentDTO c2) {
+                return UUID.fromString(c1.getId()).compareTo(UUID.fromString(c2.getId()));
+            }
+        });
+        components.addAll(dtos);
+        return components;
+    }
+
+    private void removeInstanceIdentifierIfNecessary(Set<? extends ComponentDTO> componentDtos) {
+        if (this.newTemplate) {
+            for (ComponentDTO componentDto : componentDtos) {
+                UUID id = UUID.fromString(componentDto.getId());
+                id = new UUID(id.getMostSignificantBits(), 0);
+                componentDto.setId(id.toString());
+                if (componentDto instanceof ConnectionDTO) {
+                    ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
+                    ConnectableDTO cdto = connectionDTO.getSource();
+                    id = UUID.fromString(cdto.getId());
+                    id = new UUID(id.getMostSignificantBits(), 0);
+                    cdto.setId(id.toString());
+
+                    cdto = connectionDTO.getDestination();
+                    id = UUID.fromString(cdto.getId());
+                    id = new UUID(id.getMostSignificantBits(), 0);
+                    cdto.setId(id.toString());
+                }
+            }
+        }
     }
 }

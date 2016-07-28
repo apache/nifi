@@ -17,12 +17,11 @@
 package org.apache.nifi.web.api.dto.provenance;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+import java.util.Date;
 
 /**
  * A provenance submission. Incorporates the request, its current status, and the results.
@@ -32,7 +31,6 @@ public class ProvenanceDTO {
 
     private String id;
     private String uri;
-    private String clusterNodeId;
 
     private Date submissionTime;
     private Date expiration;
@@ -69,20 +67,6 @@ public class ProvenanceDTO {
 
     public void setUri(String uri) {
         this.uri = uri;
-    }
-
-    /**
-     * @return id of the node in the cluster where this provenance originated
-     */
-    @ApiModelProperty(
-            value = "The id of the node in the cluster where this provenance originated."
-    )
-    public String getClusterNodeId() {
-        return clusterNodeId;
-    }
-
-    public void setClusterNodeId(String clusterNodeId) {
-        this.clusterNodeId = clusterNodeId;
     }
 
     /**

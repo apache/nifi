@@ -35,5 +35,5 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface WritesAttributes {
 
-    public WritesAttribute[] value();
+    WritesAttribute[] value();
 }

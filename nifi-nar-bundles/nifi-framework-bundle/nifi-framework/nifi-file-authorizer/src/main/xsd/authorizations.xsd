@@ -17,6 +17,20 @@
 
     <!-- group -->
     <xs:complexType name="Group">
+        <xs:sequence>
+            <xs:element name="user" minOccurs="0" maxOccurs="unbounded" >
+                <xs:complexType>
+                    <xs:attribute name="identifier">
+                        <xs:simpleType>
+                            <xs:restriction base="xs:string">
+                                <xs:minLength value="1"/>
+                                <xs:pattern value=".*[^\s].*"/>
+                            </xs:restriction>
+                        </xs:simpleType>
+                    </xs:attribute>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
         <xs:attribute name="identifier">
             <xs:simpleType>
                 <xs:restriction base="xs:string">
@@ -44,20 +58,6 @@
 
     <!-- user -->
     <xs:complexType name="User">
-        <xs:sequence>
-            <xs:element name="group" minOccurs="0" maxOccurs="unbounded" >
-                <xs:complexType>
-                    <xs:attribute name="identifier">
-                        <xs:simpleType>
-                            <xs:restriction base="xs:string">
-                                <xs:minLength value="1"/>
-                                <xs:pattern value=".*[^\s].*"/>
-                            </xs:restriction>
-                        </xs:simpleType>
-                    </xs:attribute>
-                </xs:complexType>
-            </xs:element>
-        </xs:sequence>
         <xs:attribute name="identifier">
             <xs:simpleType>
                 <xs:restriction base="xs:string">

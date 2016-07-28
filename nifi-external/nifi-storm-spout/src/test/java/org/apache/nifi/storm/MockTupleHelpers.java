@@ -17,8 +17,8 @@
  */
 package org.apache.nifi.storm;
 
-import backtype.storm.Constants;
-import backtype.storm.tuple.Tuple;
+import org.apache.storm.Constants;
+import org.apache.storm.tuple.Tuple;
 import org.mockito.Mockito;
 
 public final class MockTupleHelpers {

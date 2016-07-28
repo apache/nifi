@@ -168,28 +168,28 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public boolean isWarnEnabled() {
-        return logger.isWarnEnabled();
-    }
-
-    @Override
     public boolean isTraceEnabled() {
         return logger.isTraceEnabled();
     }
 
     @Override
+    public boolean isDebugEnabled() {
+        return logger.isDebugEnabled() || logRepository.isDebugEnabled();
+    }
+
+    @Override
     public boolean isInfoEnabled() {
-        return logger.isInfoEnabled();
+        return logger.isInfoEnabled() || logRepository.isInfoEnabled();
+    }
+
+    @Override
+    public boolean isWarnEnabled() {
+        return logger.isWarnEnabled() || logRepository.isWarnEnabled();
     }
 
     @Override
     public boolean isErrorEnabled() {
-        return logger.isErrorEnabled();
-    }
-
-    @Override
-    public boolean isDebugEnabled() {
-        return logger.isDebugEnabled();
+        return logger.isErrorEnabled() || logRepository.isErrorEnabled();
     }
 
     @Override

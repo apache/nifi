@@ -28,15 +28,7 @@
             </div>
             <div class="setting-name" style="margin-top: 10px;">Preview</div>
             <div class="setting-field">
-                <div id="fill-color-processor-preview">
-                    <div id="fill-color-processor-preview-name">Processor</div>
-                    <div id="fill-color-processor-preview-icon"></div>
-                    <div class="clear"></div>
-                    <div id="fill-color-processor-preview-stats">
-                        <div id="fill-color-processor-preview-stats-label"></div>
-                        <div class="clear"></div>
-                    </div>
-                </div>
+                <div id="fill-color-processor-preview" class="icon icon-processor"></div>
                 <div id="fill-color-label-preview">
                     <div id="fill-color-label-preview-value">Label</div>
                 </div>

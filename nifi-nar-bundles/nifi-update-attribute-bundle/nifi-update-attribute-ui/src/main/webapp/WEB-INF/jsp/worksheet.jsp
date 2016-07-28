@@ -29,8 +29,11 @@
         <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/languages/nfel.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/fonts/flowfont/flowfont.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/assets/font-awesome/css/font-awesome.min.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
         <link rel="stylesheet" href="css/main.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/common-ui.css" type="text/css" />
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.each.js"></script>
@@ -53,7 +56,6 @@
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/slick.grid.js"></script>
         <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
-        <script type="text/javascript" src="../nifi/js/nf/nf-common.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-storage.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-ajax-setup.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-universal-capture.js"></script>
@@ -72,14 +74,14 @@
                 <div id="flowfile-policy-container">
                     <span id="selected-flowfile-policy" class="hidden"></span>
                     <div id="flowfile-policy-label" class="large-label">FlowFile Policy</div>
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="Defines the behavior when multiple rules match. Use clone will ensure that each matching rule is executed with a copy of the original flowfile. Use original will execute all matching rules with the original flowfile in the order specified below."/>
+                    <div class="info fa fa-question-circle" title="Defines the behavior when multiple rules match. Use clone will ensure that each matching rule is executed with a copy of the original flowfile. Use original will execute all matching rules with the original flowfile in the order specified below."></div>
                     <div id="flowfile-policy"></div>
                     <div class="clear"></div>
                 </div>
                 <div id="rule-label-container">
                     <div id="rules-label" class="large-label">Rules</div>
-                    <img class="icon-info" src="images/iconInfo.png" alt="Info" title="Click and drag to change the order that rules are evaluated."/>
-                    <div id="new-rule" class="new-rule hidden"></div>
+                    <div class="info fa fa-question-circle" title="Click and drag to change the order that rules are evaluated."></div>
+                    <button id="new-rule" class="new-rule hidden fa fa-plus"></button>
                     <div class="clear"></div>
                 </div>
                 <div id="rule-list-container">
@@ -88,10 +90,10 @@
                 <div id="no-rules" class="unset">No rules found.</div>
                 <div id="rule-filter-controls" class="hidden">
                     <div id="rule-filter-container">
-                        <input type="text" id="rule-filter"/>
+                        <input type="text" placeholder="Filter" id="rule-filter"/>
                         <div id="rule-filter-type"></div>
                     </div>
-                    <div id="rule-filter-stats">
+                    <div id="rule-filter-stats" class="filter-status">
                         Displaying&nbsp;<span id="displayed-rules"></span>&nbsp;of&nbsp;<span id="total-rules"></span>
                     </div>
                 </div>
@@ -106,8 +108,8 @@
                 <div id="selected-rule-conditions-container" class="selected-rule-detail">
                     <div class="large-label-container">
                         <div id="conditions-label" class="large-label">Conditions</div>
-                        <img class="icon-info" src="images/iconInfo.png" alt="Info" title="All conditions must be met for this rule to match."/>
-                        <div id="new-condition" title="New Condition" class="new-condition hidden"></div>
+                        <div class="info fa fa-question-circle" title="All conditions must be met for this rule to match."></div>
+                        <button id="new-condition" title="New Condition" class="new-condition hidden fa fa-plus"></button>
                         <div class="clear"></div>
                     </div>
                     <div id="selected-rule-conditions"></div>
@@ -115,46 +117,46 @@
                 <div id="selected-rule-actions-container" class="selected-rule-detail">
                     <div class="large-label-container">
                         <div id="actions-label" class="large-label">Actions</div>
-                        <div id="new-action" title="New Action" class="new-action hidden"></div>
+                        <button id="new-action" title="New Action" class="new-action hidden fa fa-plus"></button>
                         <div class="clear"></div>
                     </div>
                     <div id="selected-rule-actions"></div>
                 </div>
-                <div style="margin-top: -10px;">
-                    <div id="message"></div>
-                    <div id="selected-rule-save" class="button hidden">Save</div>
-                    <div class="clear"></div>
-                </div>
+                <div class="clear"></div>
+            </div>
+            <div id="message-and-save-container">
+                <div id="selected-rule-save" class="button hidden">Save</div>
+                <div id="message"></div>
                 <div class="clear"></div>
             </div>
             <div class="clear"></div>
             <div id="glass-pane"></div>
-            <div id="ok-dialog">
+            <div id="ok-dialog" class="small-dialog">
                 <div id="ok-dialog-content" class="dialog-content"></div>
             </div>
-            <div id="yes-no-dialog">
+            <div id="yes-no-dialog" class="small-dialog">
                 <div id="yes-no-dialog-content" class="dialog-content"></div>
             </div>
-            <div id="new-rule-dialog">
+            <div id="new-rule-dialog" class="small-dialog">
                 <div class="dialog-content">
                     <div class="rule-setting">
-                        <div class="label">Rule name</div>
+                        <div class="setting-name">Rule name</div>
                         <div>
                             <input id="new-rule-name" type="text" />
                         </div>
                     </div>
                     <div class="rule-setting">
-                        <div class="label">Copy from existing rule (optional)</div>
+                        <div class="setting-name">Copy from existing rule (optional)</div>
                         <div>
-                            <input id="copy-from-rule-name" type="text" class="search" />
+                            <input id="copy-from-rule-name" placeholder="Search rule name" type="text" class="search" />
                         </div>
                     </div>
                 </div>
             </div>
             <div id="new-condition-dialog" class="dialog">
-                <div style="margin-bottom: 32px;">
+                <div>
                     <div class="rule-setting">
-                        <div class="label">Expression</div>
+                        <div class="setting-name">Expression</div>
                         <div>
                             <div id="new-condition-expression"></div>
                         </div>
@@ -162,20 +164,20 @@
                 </div>
                 <div id="new-condition-button-container">
                     <div id="new-condition-add" class="button button-normal">Add</div>
-                    <div id="new-condition-cancel" class="button button-normal">Cancel</div>
+                    <div id="new-condition-cancel" class="secondary-button button-normal">Cancel</div>
                     <div class="clear"></div>
                 </div>
             </div>
             <div id="new-action-dialog" class="dialog">
                 <div style="margin-bottom: 32px;">
                     <div class="rule-setting">
-                        <div class="label">Attribute</div>
+                        <div class="setting-name">Attribute</div>
                         <div id="new-action-attribute-container">
                             <input id="new-action-attribute" type="text"></input>
                         </div>
                     </div>
-                    <div class="rule-setting" style="margin-top: 36px;">
-                        <div class="label">Value</div>
+                    <div class="rule-setting">
+                        <div class="setting-name">Value</div>
                         <div>
                             <div id="new-action-value"></div>
                         </div>
@@ -183,7 +185,7 @@
                 </div>
                 <div id="new-action-button-container">
                     <div id="new-action-add" class="button button-normal">Add</div>
-                    <div id="new-action-cancel" class="button button-normal">Cancel</div>
+                    <div id="new-action-cancel" class="secondary-button button-normal">Cancel</div>
                     <div class="clear"></div>
                 </div>
             </div>

@@ -73,6 +73,7 @@ nf.SummaryTable = (function () {
         $('#summary-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'Processors',
                 tabContentId: 'processor-summary-tab-content'
@@ -292,8 +293,8 @@ nf.SummaryTable = (function () {
                 default:
                     classes += '';
             }
-            var formattedValue = '<div class="' + classes + '"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + classes + '"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(value) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -528,6 +529,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster processor summary dialog
         $('#cluster-processor-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Processor Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -620,7 +622,7 @@ nf.SummaryTable = (function () {
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info" title="View Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Details" style="margin-top: 5px;"></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -784,6 +786,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster connection summary dialog
         $('#cluster-connection-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Connection Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1088,6 +1091,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster process group summary dialog
         $('#cluster-process-group-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Process Group Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1331,6 +1335,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster input port summary dialog
         $('#cluster-input-port-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Input Port Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1570,6 +1575,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster output port summary dialog
         $('#cluster-output-port-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Output Port Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1866,6 +1872,7 @@ nf.SummaryTable = (function () {
 
         // initialize the cluster remote process group summary dialog
         $('#cluster-remote-process-group-summary-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Cluster Remote Process Group Summary',
             buttons: [{
                 buttonText: 'Close',
@@ -1969,6 +1976,7 @@ nf.SummaryTable = (function () {
         $('#system-diagnostics-tabs').tabbs({
             tabStyle: 'tab',
             selectedTabStyle: 'selected-tab',
+            scrollableTabContentStyle: 'scrollable',
             tabs: [{
                 name: 'JVM',
                 tabContentId: 'jvm-tab-content'
@@ -1980,6 +1988,7 @@ nf.SummaryTable = (function () {
 
         // initialize the system diagnostics dialog
         $('#system-diagnostics-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'System Diagnostics',
             buttons: [{
                 buttonText: 'Close',
@@ -1998,6 +2007,9 @@ nf.SummaryTable = (function () {
                 close: function () {
                     // show the summary loading container
                     $('#summary-loading-container').show();
+                },
+                open: function () {
+                    nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                 }
             }
         });
@@ -2275,7 +2287,7 @@ nf.SummaryTable = (function () {
         }
         storage.appendTo(storageUsageContainer);
 
-        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
+        (nf.ng.Bridge.injector.get('$compile')($('<md-progress-linear class="md-hue-2" md-mode="determinate" value="' + (used/total)*100 + '" aria-label="FlowFile Repository Storage Usage"></md-progress-linear>'))(nf.ng.Bridge.rootScope)).appendTo(storageUsageContainer);
 
         var usageDetails = $('<div class="storage-usage-details"></div>').text(' (' + storageUsage.usedSpace + ' of ' + storageUsage.totalSpace + ')').prepend($('<b></b>').text(Math.round((used/total)*100) + '%'));
         $('<div class="storage-usage-header"></div>').append(usageDetails).append('<div class="clear"></div>').appendTo(storageUsageContainer);

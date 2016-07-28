@@ -54,10 +54,18 @@
         <script type="text/javascript" src="js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/slick.grid.js"></script>
+        <script type="text/javascript" src="assets/angular/angular.min.js"></script>
+        <script type="text/javascript" src="assets/angular-messages/angular-messages.min.js"></script>
+        <script type="text/javascript" src="assets/angular-resource/angular-resource.min.js"></script>
+        <script type="text/javascript" src="assets/angular-route/angular-route.min.js"></script>
+        <script type="text/javascript" src="assets/angular-aria/angular-aria.min.js"></script>
+        <script type="text/javascript" src="assets/angular-animate/angular-animate.min.js"></script>
+        <script type="text/javascript" src="assets/angular-material/angular-material.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="js/nf/nf-ng-namespace.js?${project.version}"></script>
         ${nf.provenance.script.tags}
     </head>
-    <body>
+    <body ng-controller="ngProvenanceAppCtrl">
         <jsp:include page="/WEB-INF/partials/message-pane.jsp"/>
         <jsp:include page="/WEB-INF/partials/banners-utility.jsp"/>
         <jsp:include page="/WEB-INF/partials/ok-dialog.jsp"/>

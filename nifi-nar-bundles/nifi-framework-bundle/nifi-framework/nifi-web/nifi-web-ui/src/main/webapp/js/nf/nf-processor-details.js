@@ -51,6 +51,7 @@ nf.ProcessorDetails = (function () {
             $('#processor-details-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'Settings',
                     tabContentId: 'details-standard-settings-tab-content'
@@ -84,6 +85,7 @@ nf.ProcessorDetails = (function () {
             // configure the processor details dialog
             $('#processor-details').modal({
                 headerText: 'Processor Details',
+                scrollableContentStyle: 'scrollable',
                 handler: {
                     close: function () {
                         // empty the relationship list
@@ -108,6 +110,9 @@ nf.ProcessorDetails = (function () {
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
+                    },
+                    open: function () {
+                        nf.Common.toggleScrollable($('#' + this.find('.tab-container').attr('id') + '-content').get(0));
                     }
                 }
             });
@@ -225,6 +230,7 @@ nf.ProcessorDetails = (function () {
                 if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
+                        clazz: 'fa fa-cog button-icon',
                         color: {
                             base: '#E3E8EB',
                             hover: '#C7D2D7',
@@ -256,7 +262,7 @@ nf.ProcessorDetails = (function () {
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
-                        headerText: 'Malformed Request',
+                        headerText: 'Error',
                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                     });
                 } else {

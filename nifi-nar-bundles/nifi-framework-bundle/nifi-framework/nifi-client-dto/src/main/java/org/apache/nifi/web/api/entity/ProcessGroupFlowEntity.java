@@ -17,7 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -28,23 +28,23 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "processGroupFlowEntity")
 public class ProcessGroupFlowEntity extends Entity {
 
-    private AccessPolicyDTO accessPolicy;
+    private PermissionsDTO permissions;
     private ProcessGroupFlowDTO processGroupFlow;
 
     /**
-     * The access policy for this component.
+     * The permissions for this component.
      *
-     * @return The access policy
+     * @return The permissions
      */
     @ApiModelProperty(
         value = "The access policy for this process group."
     )
-    public AccessPolicyDTO getAccessPolicy() {
-        return accessPolicy;
+    public PermissionsDTO getPermissions() {
+        return permissions;
     }
 
-    public void setAccessPolicy(AccessPolicyDTO accessPolicy) {
-        this.accessPolicy = accessPolicy;
+    public void setPermissions(PermissionsDTO permissions) {
+        this.permissions = permissions;
     }
 
     /**

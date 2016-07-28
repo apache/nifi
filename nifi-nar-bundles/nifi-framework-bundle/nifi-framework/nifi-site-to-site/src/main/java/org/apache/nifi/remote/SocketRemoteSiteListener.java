@@ -43,6 +43,7 @@ import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -266,7 +267,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                                 protocol.getPort().receiveFlowFiles(peer, protocol);
                                                 break;
                                             case REQUEST_PEER_LIST:
-                                                protocol.sendPeerList(peer);
+                                                protocol.sendPeerList(peer, nodeInformant == null ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation()));
                                                 break;
                                             case SHUTDOWN:
                                                 protocol.shutdown(peer);
@@ -321,8 +322,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.start();
     }
 
-    @Override
-    public int getPort() {
+    private int getPort() {
         return socketPort;
     }
 

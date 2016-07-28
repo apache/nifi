@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web;
 
+import org.apache.nifi.authorization.AuthorizeAccess;
+import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
@@ -70,6 +72,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
@@ -121,7 +124,7 @@ public interface NiFiServiceFacade {
      * @param user user
      * @throws InvalidRevisionException invalid revision
      */
-    void claimRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
+    void verifyRevision(Revision revision, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Claims the specified revisions for the specified user.
@@ -130,41 +133,7 @@ public interface NiFiServiceFacade {
      * @param user user
      * @throws InvalidRevisionException invalid revision
      */
-    void claimRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
-
-    /**
-     * Cancels the specified revision. Cancellation is only supported based on the current thread.
-     *
-     * @param revision revision
-     * @throws InvalidRevisionException invalid revision
-     */
-    void cancelRevision(Revision revision) throws InvalidRevisionException;
-
-    /**
-     * Cancels the specified revisions. Cancellation is only supported based on the current thread.
-     *
-     * @param revisions revision
-     * @throws InvalidRevisionException invalid revision
-     */
-    void cancelRevisions(Set<Revision> revisions) throws InvalidRevisionException;
-
-    /**
-     * Releases the claim that is held on the given revision by the given user
-     *
-     * @param revision the revision
-     * @param user the user
-     * @throws InvalidRevisionException if the revision is invalid
-     */
-    void releaseRevisionClaim(Revision revision, NiFiUser user) throws InvalidRevisionException;
-
-    /**
-     * Releases the claim that is held on the given revisions by the given user
-     *
-     * @param revisions the revisions
-     * @param user the user
-     * @throws InvalidRevisionException if the revision is invalid
-     */
-    void releaseRevisionClaims(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
+    void verifyRevisions(Set<Revision> revisions, NiFiUser user) throws InvalidRevisionException;
 
     /**
      * Gets the current revisions for the components based on the specified function.
@@ -186,7 +155,7 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Controller methods
     // ----------------------------------------
-    ControllerDTO getController();
+    ControllerDTO getSiteToSiteDetails();
 
     /**
      * Searches the controller for the specified query string.
@@ -293,6 +262,13 @@ public interface NiFiServiceFacade {
     ControllerConfigurationEntity getControllerConfiguration();
 
     /**
+     * Gets the controller level bulletins.
+     *
+     * @return Controller level bulletins
+     */
+    ControllerBulletinsEntity getControllerBulletins();
+
+    /**
      * Gets the configuration for the flow.
      *
      * @return Flow configuration transfer object
@@ -307,14 +283,6 @@ public interface NiFiServiceFacade {
      * @return Controller configuration DTO
      */
     ControllerConfigurationEntity updateControllerConfiguration(Revision revision, ControllerConfigurationDTO controllerConfigurationDTO);
-
-    /**
-     * Creates a new archive of the flow configuration.
-     *
-     * @return snapshot
-     */
-    ProcessGroupEntity createArchive();
-
 
     /**
      * Returns the process group status.
@@ -386,6 +354,15 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Template methods
     // ----------------------------------------
+
+    /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param groupId the id of the group for the template
+     * @param name name of purposed template
+     */
+    void verifyCanAddTemplate(String groupId, String name);
+
     /**
      * Creates a new Template based off the specified snippet.
      *
@@ -848,10 +825,9 @@ public interface NiFiServiceFacade {
      * Returns the flow.
      *
      * @param groupId group
-     * @param recurse recurse
      * @return the flow
      */
-    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean recurse);
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId);
 
     // ----------------------------------------
     // ProcessGroup methods
@@ -1307,6 +1283,14 @@ public interface NiFiServiceFacade {
      * @return The access policy transfer object
      */
     AccessPolicyEntity getAccessPolicy(String accessPolicyId);
+
+    /**
+     * Gets the access policy for the specified action, resource type, and component id.
+     *
+     * @param resource resource
+     * @return access policy
+     */
+    AccessPolicyEntity getAccessPolicy(RequestAction requestAction, String resource);
 
     /**
      * Updates the specified access policy.

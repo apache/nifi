@@ -35,9 +35,6 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     private NodeIdentifier nodeId;
     private StandardDataFlow dataFlow;
     private boolean primary;
-    private Integer managerRemoteSiteListeningPort;
-    private Integer managerRemoteSiteListeningHttpPort;
-    private Boolean managerRemoteSiteCommsSecure;
     private String instanceId;
     private List<NodeConnectionStatus> nodeStatuses;
     private List<ComponentRevision> componentRevisions;
@@ -73,30 +70,6 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     @Override
     public MessageType getType() {
         return MessageType.RECONNECTION_REQUEST;
-    }
-
-    public void setManagerRemoteSiteListeningPort(final Integer listeningPort) {
-        this.managerRemoteSiteListeningPort = listeningPort;
-    }
-
-    public Integer getManagerRemoteSiteListeningPort() {
-        return managerRemoteSiteListeningPort;
-    }
-
-    public void setManagerRemoteSiteListeningHttpPort(Integer managerRemoteSiteListeningHttpPort) {
-        this.managerRemoteSiteListeningHttpPort = managerRemoteSiteListeningHttpPort;
-    }
-
-    public Integer getManagerRemoteSiteListeningHttpPort() {
-        return managerRemoteSiteListeningHttpPort;
-    }
-
-    public void setManagerRemoteSiteCommsSecure(final Boolean remoteSiteCommsSecure) {
-        this.managerRemoteSiteCommsSecure = remoteSiteCommsSecure;
-    }
-
-    public Boolean isManagerRemoteSiteCommsSecure() {
-        return managerRemoteSiteCommsSecure;
     }
 
     public void setInstanceId(final String instanceId) {

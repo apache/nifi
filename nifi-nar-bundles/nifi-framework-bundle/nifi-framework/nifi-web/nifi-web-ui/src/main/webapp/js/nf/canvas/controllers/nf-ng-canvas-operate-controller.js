@@ -58,6 +58,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create template dialog
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'Create Template'
                     });
                 },
@@ -140,7 +141,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                             }
                         },
                         error: function (xhr, statusText, error) {
-                            $('#upload-template-status').text(error);
+                            $('#upload-template-status').text(xhr.responseText);
                         }
                     });
                     
@@ -156,8 +157,14 @@ nf.ng.Canvas.OperateCtrl = function () {
                             },
                             handler: {
                                 click: function () {
-                                    // submit the template
-                                    templateForm.submit();
+                                    var selectedTemplate = $('#selected-template-name').text();
+
+                                    // submit the template if necessary
+                                    if (nf.Common.isBlank(selectedTemplate)) {
+                                        $('#upload-template-status').text('No template selected. Please browse to select a template.');
+                                    } else {
+                                        templateForm.submit();
+                                    }
                                 }
                             }
                         }, {
@@ -171,9 +178,6 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 click: function () {
                                     // hide the dialog
                                     $('#upload-template-dialog').modal('hide');
-
-                                    // reset the form to ensure that the change fire will fire
-                                    templateForm.resetForm();
                                 }
                             }
                         }],
@@ -182,6 +186,9 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 // set the filename
                                 $('#selected-template-name').text('');
                                 $('#upload-template-status').text('');
+
+                                // reset the form to ensure that the change fire will fire
+                                templateForm.resetForm();
                             }
                         }
                     });
@@ -250,6 +257,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                 init: function () {
                     // configure the create fillcolor dialog
                     this.getElement().modal({
+                        scrollableContentStyle: 'scrollable',
                         headerText: 'Change Color',
                         buttons: [{
                             buttonText: 'Apply',
@@ -286,7 +294,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             // update the style for the specified component
                                             $.ajax({
                                                 type: 'PUT',
-                                                url: selectedData.component.uri,
+                                                url: selectedData.uri,
                                                 data: JSON.stringify(entity),
                                                 dataType: 'json',
                                                 contentType: 'application/json'
@@ -296,10 +304,12 @@ nf.ng.Canvas.OperateCtrl = function () {
                                             }).fail(function (xhr, status, error) {
                                                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                                     nf.Dialog.showOkDialog({
-                                                        headerText: 'Malformed Request',
+                                                        headerText: 'Error',
                                                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                                     });
                                                 }
+                                            }).always(function(){
+                                                nf.Birdseye.refresh();
                                             });
                                         }
                                     });
@@ -383,7 +393,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 $('#fill-color-value').val(hex);
 
                                 // always update the preview
-                                $('#fill-color-processor-preview, #fill-color-label-preview').css({
+                                $('#fill-color-processor-preview').css('color', hex);
+                                $('#fill-color-label-preview').css({
                                     'border-color': hex,
                                     'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
                                     'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'

@@ -128,13 +128,13 @@ nf.Funnel = (function () {
         // funnel border authorization
         updated.select('rect.border')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         // funnel body authorization
         updated.select('rect.body')
             .classed('unauthorized', function (d) {
-                return d.accessPolicy.canRead === false;
+                return d.permissions.canRead === false;
             });
 
         updated.each(function () {
@@ -281,9 +281,10 @@ nf.Funnel = (function () {
          */
         reload: function (funnel) {
             if (funnelMap.has(funnel.id)) {
+                var funnelEntity = funnelMap.get(funnel.id);
                 return $.ajax({
                     type: 'GET',
-                    url: funnel.uri,
+                    url: funnelEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
                     nf.Funnel.set(response);

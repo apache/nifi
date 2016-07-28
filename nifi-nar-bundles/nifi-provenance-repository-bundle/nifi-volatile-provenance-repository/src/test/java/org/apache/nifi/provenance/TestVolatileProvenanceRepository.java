@@ -27,10 +27,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -134,11 +132,6 @@ public class TestVolatileProvenanceRepository {
             }
 
             @Override
-            public Set<String> getLineageIdentifiers() {
-                return new HashSet<String>();
-            }
-
-            @Override
             public long getLineageStartDate() {
                 return System.currentTimeMillis();
             }
@@ -172,6 +165,16 @@ public class TestVolatileProvenanceRepository {
             public Long getLastQueueDate() {
                 return System.currentTimeMillis();
             }
+
+            @Override
+            public long getLineageStartIndex() {
+                return 0;
+            }
+
+            @Override
+            public long getQueueDateIndex() {
+                return 0;
+            }
         };
     }
 
@@ -190,6 +193,11 @@ public class TestVolatileProvenanceRepository {
             @Override
             public boolean isAnonymous() {
                 return false;
+            }
+
+            @Override
+            public String getClientAddress() {
+                return null;
             }
         };
     }

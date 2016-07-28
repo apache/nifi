@@ -71,8 +71,8 @@ public class ITAccessTokenEndpoint {
         FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());
 
         // load extensions
-        NarClassLoaders.load(props);
-        ExtensionManager.discoverExtensions();
+        NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
+        ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
 
         // start the server
         SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH);

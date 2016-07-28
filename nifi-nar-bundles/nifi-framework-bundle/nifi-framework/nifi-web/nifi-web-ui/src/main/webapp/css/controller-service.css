@@ -54,10 +54,8 @@
 
 #controller-service-referencing-components {
     border: 0 solid #CCCCCC;
-    height: 280px;
     overflow: auto;
     padding: 2px;
-    width: 376px;
 }
 
 div.referencing-component-block {
@@ -161,8 +159,6 @@ div.controller-service-canceling {
 #disable-controller-service-referencing-components {
     border: 0 solid #CCCCCC;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }
@@ -198,8 +194,6 @@ div.controller-service-canceling {
 #enable-controller-service-referencing-components {
     border: 0 solid #ccc;
     padding: 2px;
-    width: 429px;
-    height: 335px;
     overflow: auto;
     white-space: nowrap;
 }
@@ -219,4 +213,33 @@ div.disable-referencing-components, div.enable-referencing-components {
 
 #enable-controller-service-progress li, #disable-controller-service-progress li {
     line-height: 16px;
+}
+
+/*
+    New inline controller service dialog
+*/
+
+div.new-inline-controller-service-combo {    width: 50%;
+    margin-bottom: 10px;
+}
+
+div.new-inline-controller-service-tags {
+    height: 18px;
+    width: 340px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.new-inline-controller-service-description {
+    height: 115px;
+    overflow: auto;
+}
+
+div.new-inline-controller-service-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 0 8px 10px;
 }

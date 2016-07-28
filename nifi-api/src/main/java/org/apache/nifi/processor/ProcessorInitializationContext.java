@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 
 /**
@@ -44,4 +45,9 @@ public interface ProcessorInitializationContext {
      * Controller Services
      */
     ControllerServiceLookup getControllerServiceLookup();
+
+    /**
+     * @return the {@link NodeTypeProvider} which can be used to detect the node type of this NiFi instance.
+     */
+    NodeTypeProvider getNodeTypeProvider();
 }

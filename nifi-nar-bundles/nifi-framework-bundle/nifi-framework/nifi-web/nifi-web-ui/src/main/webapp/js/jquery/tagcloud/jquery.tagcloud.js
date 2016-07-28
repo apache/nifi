@@ -78,7 +78,7 @@
         if (!tagFilterExists) {
             // create the list item content
             var tagText = $('<div class="selected-tag-text"></div>').text(tag);
-            var removeTagIcon = $('<div class="fa fa-close pointer"></div>').click(function () {
+            var removeTagIcon = $('<div class="fa fa-close remove-selected-tag pointer"></div>').click(function () {
                 // remove this tag
                 $(this).closest('li').remove();
 

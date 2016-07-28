@@ -22,6 +22,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
         init: function () {
             $('#remote-process-group-configuration').modal({
                 headerText: 'Configure Remote Process Group',
+                scrollableContentStyle: 'scrollable',
                 buttons: [{
                     buttonText: 'Apply',
                     color: {
@@ -53,7 +54,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                             $.ajax({
                                 type: 'PUT',
                                 data: JSON.stringify(remoteProcessGroupEntity),
-                                url: remoteProcessGroupData.component.uri,
+                                url: remoteProcessGroupData.uri,
                                 dataType: 'json',
                                 contentType: 'application/json'
                             }).done(function (response) {
@@ -78,7 +79,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
 
                                     nf.Dialog.showOkDialog({
                                         dialogContent: content,
-                                        headerText: 'Configuration'
+                                        headerText: 'Remote Process Group Configuration'
                                     });
                                 } else {
                                     nf.Common.handleAjaxError(xhr, status, error);

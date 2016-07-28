@@ -157,8 +157,40 @@ nf.History = (function () {
                         setBodySize();
                     }).fail(nf.Common.handleAjaxError);
 
-                    // listen for browser resize events to reset the body size
-                    $(window).resize(setBodySize);
+                    $(window).on('resize', function (e) {
+                        setBodySize();
+                        // resize dialogs when appropriate
+                        var dialogs = $('.dialog');
+                        for (var i = 0, len = dialogs.length; i < len; i++) {
+                            if ($(dialogs[i]).is(':visible')){
+                                setTimeout(function(dialog){
+                                    dialog.modal('resize');
+                                }, 50, $(dialogs[i]));
+                            }
+                        }
+
+                        // resize grids when appropriate
+                        var gridElements = $('*[class*="slickgrid_"]');
+                        for (var j = 0, len = gridElements.length; j < len; j++) {
+                            if ($(gridElements[j]).is(':visible')){
+                                setTimeout(function(gridElement){
+                                    gridElement.data('gridInstance').resizeCanvas();
+                                }, 50, $(gridElements[j]));
+                            }
+                        }
+
+                        // toggle tabs .scrollable when appropriate
+                        var tabsContainers = $('.tab-container');
+                        var tabsContents = [];
+                        for (var k = 0, len = tabsContainers.length; k < len; k++) {
+                            if ($(tabsContainers[k]).is(':visible')){
+                                tabsContents.push($('#' + $(tabsContainers[k]).attr('id') + '-content'));
+                            }
+                        }
+                        $.each(tabsContents, function (index, tabsContent) {
+                            nf.Common.toggleScrollable(tabsContent.get(0));
+                        });
+                    });
                 });
             });
         }

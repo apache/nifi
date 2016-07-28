@@ -524,7 +524,7 @@ public class TestStandardFlowFileQueue {
         public String swapOut(List<FlowFileRecord> flowFiles, FlowFileQueue flowFileQueue) throws IOException {
             swapOutCalledCount++;
             final String location = UUID.randomUUID().toString();
-            swappedOut.put(location, new ArrayList<FlowFileRecord>(flowFiles));
+            swappedOut.put(location, new ArrayList<>(flowFiles));
             return location;
         }
 
@@ -560,11 +560,10 @@ public class TestStandardFlowFileQueue {
 
         @Override
         public List<String> recoverSwapLocations(FlowFileQueue flowFileQueue) throws IOException {
-            return new ArrayList<String>(swappedOut.keySet());
+            return new ArrayList<>(swappedOut.keySet());
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public SwapSummary getSwapSummary(String swapLocation) throws IOException {
             final List<FlowFileRecord> flowFiles = swappedOut.get(swapLocation);
             if (flowFiles == null) {
@@ -610,7 +609,7 @@ public class TestStandardFlowFileQueue {
         }
 
         public TestFlowFile(final long size) {
-            this(new HashMap<String, String>(), size);
+            this(new HashMap<>(), size);
         }
 
         public TestFlowFile(final Map<String, String> attributes, final long size) {
@@ -648,11 +647,6 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        public Set<String> getLineageIdentifiers() {
-            return Collections.emptySet();
-        }
-
-        @Override
         public boolean isPenalized() {
             return false;
         }
@@ -673,7 +667,6 @@ public class TestStandardFlowFileQueue {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         public int compareTo(final FlowFile o) {
             return Long.compare(id, o.getId());
         }
@@ -690,6 +683,16 @@ public class TestStandardFlowFileQueue {
 
         @Override
         public long getContentClaimOffset() {
+            return 0;
+        }
+
+        @Override
+        public long getLineageStartIndex() {
+            return 0;
+        }
+
+        @Override
+        public long getQueueDateIndex() {
             return 0;
         }
     }

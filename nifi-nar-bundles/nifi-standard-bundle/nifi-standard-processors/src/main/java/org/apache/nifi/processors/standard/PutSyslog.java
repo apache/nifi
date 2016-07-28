@@ -40,7 +40,6 @@ import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.processors.standard.syslog.SyslogParser;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
 import javax.net.ssl.SSLContext;
@@ -55,6 +54,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -321,7 +321,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         final String port = context.getProperty(PORT).getValue();
         final String host = context.getProperty(HOSTNAME).getValue();
         final String transitUri = new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
-        final ObjectHolder<IOException> exceptionHolder = new ObjectHolder<>(null);
+        final AtomicReference<IOException> exceptionHolder = new AtomicReference<>(null);
         final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
 
         try {

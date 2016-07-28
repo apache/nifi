@@ -97,7 +97,7 @@ public class PeerSelector {
 
             for (final PeerStatus status : statuses) {
                 final PeerDescription description = status.getPeerDescription();
-                final String line = description.getHostname() + ":" + description.getPort() + ":" + description.isSecure() + "\n";
+                final String line = description.getHostname() + ":" + description.getPort() + ":" + description.isSecure() + ":" + status.isQueryForPeers() + "\n";
                 out.write(line.getBytes(StandardCharsets.UTF_8));
             }
 
@@ -120,7 +120,7 @@ public class PeerSelector {
             String line;
             while ((line = reader.readLine()) != null) {
                 final String[] splits = line.split(Pattern.quote(":"));
-                if (splits.length != 3) {
+                if (splits.length != 3 && splits.length != 4) {
                     continue;
                 }
 
@@ -128,7 +128,9 @@ public class PeerSelector {
                 final int port = Integer.parseInt(splits[1]);
                 final boolean secure = Boolean.parseBoolean(splits[2]);
 
-                statuses.add(new PeerStatus(new PeerDescription(hostname, port, secure), 1));
+                final boolean supportQueryForPeer = splits.length == 4 && Boolean.parseBoolean(splits[3]);
+
+                statuses.add(new PeerStatus(new PeerDescription(hostname, port, secure), 1, supportQueryForPeer));
             }
         }
 
@@ -172,7 +174,7 @@ public class PeerSelector {
                     final int index = n % destinations.size();
                     PeerStatus status = destinations.get(index);
                     if (status == null) {
-                        status = new PeerStatus(nodeInfo.getPeerDescription(), nodeInfo.getFlowFileCount());
+                        status = new PeerStatus(nodeInfo.getPeerDescription(), nodeInfo.getFlowFileCount(), nodeInfo.isQueryForPeers());
                         destinations.set(index, status);
                         break;
                     } else {
@@ -306,7 +308,7 @@ public class PeerSelector {
         if (cache.getTimestamp() + PEER_CACHE_MILLIS < System.currentTimeMillis()) {
             final Set<PeerStatus> equalizedSet = new HashSet<>(cache.getStatuses().size());
             for (final PeerStatus status : cache.getStatuses()) {
-                final PeerStatus equalizedStatus = new PeerStatus(status.getPeerDescription(), 1);
+                final PeerStatus equalizedStatus = new PeerStatus(status.getPeerDescription(), 1, status.isQueryForPeers());
                 equalizedSet.add(equalizedStatus);
             }
 

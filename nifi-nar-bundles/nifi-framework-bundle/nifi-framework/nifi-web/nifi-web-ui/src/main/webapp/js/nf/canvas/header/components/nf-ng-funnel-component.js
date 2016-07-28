@@ -21,6 +21,9 @@ nf.ng.FunnelComponent = function (serviceProvider) {
     'use strict';
 
     function FunnelComponent() {
+        this.icon = 'icon icon-funnel';
+
+        this.hoverIcon = 'icon icon-funnel-add';
     }
     FunnelComponent.prototype = {
         constructor: FunnelComponent,
@@ -95,17 +98,15 @@ nf.ng.FunnelComponent = function (serviceProvider) {
                 dataType: 'json',
                 contentType: 'application/json'
             }).done(function (response) {
-                if (nf.Common.isDefinedAndNotNull(response.component)) {
-                    // add the funnel to the graph
-                    nf.Graph.add({
-                        'funnels': [response]
-                    }, {
-                        'selectAll': true
-                    });
+                // add the funnel to the graph
+                nf.Graph.add({
+                    'funnels': [response]
+                }, {
+                    'selectAll': true
+                });
 
-                    // update the birdseye
-                    nf.Birdseye.refresh();
-                }
+                // update the birdseye
+                nf.Birdseye.refresh();
             }).fail(nf.Common.handleAjaxError);
         }
     }

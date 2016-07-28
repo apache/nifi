@@ -27,7 +27,6 @@ nf.Settings = (function () {
         urls: {
             api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
-            controllerArchive: '../nifi-api/controller/archive',
             reportingTaskTypes: '../nifi-api/flow/reporting-task-types',
             createReportingTask: '../nifi-api/controller/reporting-tasks',
             reportingTasks: '../nifi-api/flow/reporting-tasks'
@@ -171,7 +170,7 @@ nf.Settings = (function () {
      * @returns {String}
      */
     var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '<span class="blank">' + dataContext.id + '</span>';
         }
 
@@ -189,7 +188,7 @@ nf.Settings = (function () {
      * @returns {String}
      */
     var typeFormatter = function (row, cell, value, columnDef, dataContext) {
-        if (!dataContext.accessPolicy.canRead) {
+        if (!dataContext.permissions.canRead) {
             return '';
         }
 
@@ -205,34 +204,45 @@ nf.Settings = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'moreDetails') {
-                var aBulletins = 0;
-                if (!nf.Common.isEmpty(a.bulletins)) {
-                    aBulletins = a.bulletins.length;
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'moreDetails') {
+                    var aBulletins = 0;
+                    if (!nf.Common.isEmpty(a.bulletins)) {
+                        aBulletins = a.bulletins.length;
+                    }
+                    var bBulletins = 0;
+                    if (!nf.Common.isEmpty(b.bulletins)) {
+                        bBulletins = b.bulletins.length;
+                    }
+                    return aBulletins - bBulletins;
+                } else if (sortDetails.columnId === 'type') {
+                    var aType = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    return aType === bType ? 0 : aType > bType ? 1 : -1;
+                } else if (sortDetails.columnId === 'state') {
+                    var aState = 'Invalid';
+                    if (nf.Common.isEmpty(a.component.validationErrors)) {
+                        aState = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    }
+                    var bState = 'Invalid';
+                    if (nf.Common.isEmpty(b.component.validationErrors)) {
+                        bState = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    }
+                    return aState === bState ? 0 : aState > bState ? 1 : -1;
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
-                var bBulletins = 0;
-                if (!nf.Common.isEmpty(b.bulletins)) {
-                    bBulletins = b.bulletins.length;
-                }
-                return aBulletins - bBulletins;
-            } else if (sortDetails.columnId === 'type') {
-                var aType = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? nf.Common.substringAfterLast(a[sortDetails.columnId], '.') : '';
-                var bType = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? nf.Common.substringAfterLast(b[sortDetails.columnId], '.') : '';
-                return aType === bType ? 0 : aType > bType ? 1 : -1;
-            } else if (sortDetails.columnId === 'state') {
-                var aState = 'Invalid';
-                if (nf.Common.isEmpty(a.validationErrors)) {
-                    aState = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                }
-                var bState = 'Invalid';
-                if (nf.Common.isEmpty(b.validationErrors)) {
-                    bState = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                }
-                return aState === bState ? 0 : aState > bState ? 1 : -1;
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -530,6 +540,7 @@ nf.Settings = (function () {
 
         // initialize the reporting task dialog
         $('#new-reporting-task-dialog').modal({
+            scrollableContentStyle: 'scrollable',
             headerText: 'Add Reporting Task',
             buttons: [{
                     buttonText: 'Add',
@@ -588,20 +599,20 @@ nf.Settings = (function () {
         initNewReportingTaskDialog();
 
         var moreReportingTaskDetails = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
 
             var markup = '<div title="View Details" class="pointer view-reporting-task fa fa-info-circle" style="margin-top: 5px; float: left;" ></div>';
 
             // always include a button to view the usage
-            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 6px; margin-top: 5px;"></div>';
+            markup += '<div title="Usage" class="pointer reporting-task-usage fa fa-book" style="margin-left: 6px; margin-top: 5px; float: left;"></div>';
 
             var hasErrors = !nf.Common.isEmpty(dataContext.component.validationErrors);
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 6px; float: left;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-left: 3px; float: left;" ></div>';
             }
 
             if (hasBulletins) {
@@ -616,21 +627,25 @@ nf.Settings = (function () {
         };
 
         var reportingTaskRunStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.accessPolicy.canRead) {
+            if (!dataContext.permissions.canRead) {
                 return '';
             }
 
             // determine the appropriate label
-            var label;
+            var icon = '', label = '';
             if (!nf.Common.isEmpty(dataContext.component.validationErrors)) {
                 label = 'Invalid';
+                icon = 'invalid fa fa-warning';
             } else {
                 if (dataContext.component.state === 'STOPPED') {
                     label = 'Stopped';
+                    icon = 'fa fa-stop';
                 } else if (dataContext.component.state === 'RUNNING') {
                     label = 'Running';
+                    icon = 'fa fa-play';
                 } else {
                     label = 'Disabled';
+                    icon = 'icon icon-enable-false';
                 }
             }
 
@@ -641,31 +656,34 @@ nf.Settings = (function () {
             }
 
             // format the markup
-            var formattedValue = '<div class="' + nf.Common.escapeHtml(label.toLowerCase()) + '" style="margin-top: 3px;"></div>';
-            return formattedValue + '<div class="status-text" style="margin-top: 2px; margin-left: 4px; float: left;">' + nf.Common.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div>';
+            var formattedValue = '<div layout="row"><div class="' + icon + '" style="margin-top: 3px;"></div>';
+            return formattedValue + '<div class="status-text" style="margin-top: 4px;">' + nf.Common.escapeHtml(label) + '</div><div style="float: left; margin-left: 4px;">' + nf.Common.escapeHtml(activeThreadCount) + '</div></div>';
         };
 
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.accessPolicy.canRead && dataContext.accessPolicy.canWrite) {
+            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
                 if (dataContext.component.state === 'RUNNING') {
-                    markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop" style="margin-top: 2px;" ></div>';
+                    markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 } else if (dataContext.component.state === 'STOPPED' || dataContext.component.state === 'DISABLED') {
-                    markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil" style="margin-top: 2px;" ></div>';
+                    markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil" style="margin-top: 2px; margin-right: 3px;" ></div>';
 
                     // support starting when stopped and no validation errors
                     if (dataContext.component.state === 'STOPPED' && nf.Common.isEmpty(dataContext.component.validationErrors)) {
-                        markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-left: 3px;"></div>';
+                        markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
 
-                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
-                    markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks" style="margin-top: 2px; margin-left: 3px;" ></div>';
+                    markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
             }
+
+            // TODO - only if we can adminster policies
+            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
 
             return markup;
         };
@@ -700,7 +718,7 @@ nf.Settings = (function () {
         reportingTasksGrid.setSortColumn('name', true);
         reportingTasksGrid.onSort.subscribe(function (e, args) {
             sort({
-                columnId: args.sortCol.field,
+                columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, reportingTasksData);
         });
@@ -724,7 +742,13 @@ nf.Settings = (function () {
                     nf.ReportingTask.remove(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
                     var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
-                    nf.ComponentState.showState(reportingTaskEntity.component, canClear);
+                    nf.ComponentState.showState(reportingTaskEntity, canClear);
+                } else if (target.hasClass('edit-access-policies')) {
+                    // show the policies for this service
+                    nf.PolicyManagement.showReportingTaskPolicy(reportingTaskEntity);
+
+                    // close the settings dialog
+                    $('#shell-close-button').click();
                 }
             } else if (reportingTasksGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('view-reporting-task')) {
@@ -768,18 +792,20 @@ nf.Settings = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    errorIcon.qtip($.extend({
-                        content: tooltip,
-                        position: {
-                            target: 'mouse',
-                            viewport: $(window),
-                            adjust: {
-                                x: 8,
-                                y: 8,
-                                method: 'flipinvert flipinvert'
+                    errorIcon.qtip($.extend({},
+                        nf.Common.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $(window),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
                             }
-                        }
-                    }, nf.Common.config.tooltipConfig));
+                        }));
                 }
             }
 
@@ -796,18 +822,20 @@ nf.Settings = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend({}, nf.Common.config.tooltipConfig, {
-                        content: tooltip,
-                        position: {
-                            target: 'mouse',
-                            viewport: $(window),
-                            adjust: {
-                                x: 8,
-                                y: 8,
-                                method: 'flipinvert flipinvert'
+                    bulletinIcon.qtip($.extend({},
+                        nf.Common.config.tooltipConfig,
+                        {
+                            content: tooltip,
+                            position: {
+                                target: 'mouse',
+                                viewport: $(window),
+                                adjust: {
+                                    x: 8,
+                                    y: 8,
+                                    method: 'flipinvert flipinvert'
+                                }
                             }
-                        }
-                    }));
+                        }));
                 }
             }
         });
@@ -843,7 +871,7 @@ nf.Settings = (function () {
                 // update the current time
                 $('#settings-last-refreshed').text(response.currentTime);
 
-                if (response.accessPolicy.canWrite) {
+                if (response.permissions.canWrite) {
                     // populate the settings
                     $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxTimerDrivenThreadCount);
                     $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxEventDrivenThreadCount);
@@ -855,7 +883,7 @@ nf.Settings = (function () {
                         saveSettings(response.revision.version);
                     });
                 } else {
-                    if (response.accessPolicy.canRead) {
+                    if (response.permissions.canRead) {
                         // populate the settings
                         $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxTimerDrivenThreadCount);
                         $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxEventDrivenThreadCount);
@@ -954,6 +982,7 @@ nf.Settings = (function () {
             $('#settings-tabs').tabbs({
                 tabStyle: 'tab',
                 selectedTabStyle: 'selected-tab',
+                scrollableTabContentStyle: 'scrollable',
                 tabs: [{
                     name: 'General',
                     tabContentId: 'general-settings-tab-content'

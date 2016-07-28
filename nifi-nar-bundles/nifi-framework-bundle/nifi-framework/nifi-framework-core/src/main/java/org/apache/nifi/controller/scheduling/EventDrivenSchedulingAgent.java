@@ -270,7 +270,6 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             }
         }
 
-        @SuppressWarnings("deprecation")
         private void trigger(final Connectable worker, final ScheduleState scheduleState, final ConnectableProcessContext processContext, final ProcessSessionFactory sessionFactory) {
             final int newThreadCount = scheduleState.incrementActiveThreadCount();
             if (newThreadCount > worker.getMaxConcurrentTasks() && worker.getMaxConcurrentTasks() > 0) {
@@ -303,7 +302,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             } finally {
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, worker, processContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, worker, processContext);
                     }
                 }
 

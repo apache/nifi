@@ -56,11 +56,27 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
     }
 
     @Override
+    public void verifyCanAddTemplate(String name, String groupId) {
+        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        if (processGroup == null) {
+            throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
+        }
+
+        verifyAdd(name, processGroup);
+    }
+
+    private void verifyAdd(final String name, final ProcessGroup processGroup) {
+        processGroup.verifyCanAddTemplate(name);
+    }
+
+    @Override
     public Template createTemplate(TemplateDTO templateDTO, String groupId) {
         final ProcessGroup processGroup = flowController.getGroup(groupId);
         if (processGroup == null) {
             throw new ResourceNotFoundException("Could not find Process Group with ID " + groupId);
         }
+
+        verifyAdd(templateDTO.getName(), processGroup);
 
         TemplateUtils.scrubTemplate(templateDTO);
         final Template template = new Template(templateDTO);
@@ -89,7 +105,7 @@ public class StandardTemplateDAO extends ComponentDAO implements TemplateDAO {
         try {
             // copy the template which pre-processes all ids
             TemplateDTO templateDetails = template.getDetails();
-            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed);
+            FlowSnippetDTO snippet = snippetUtils.copy(templateDetails.getSnippet(), group, idGenerationSeed, false);
 
             // calculate scaling factors based on the template encoding version
             // attempt to parse the encoding version

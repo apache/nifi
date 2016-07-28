@@ -31,7 +31,12 @@ public class FirstInFirstOutPrioritizer implements FlowFilePrioritizer {
             return 1;
         }
 
-        return o1.getLastQueueDate().compareTo(o2.getLastQueueDate());
+        final int dateComparison = o1.getLastQueueDate().compareTo(o2.getLastQueueDate());
+        if (dateComparison != 0) {
+            return dateComparison;
+        }
+
+        return Long.compare(o1.getQueueDateIndex(), o2.getQueueDateIndex());
     }
 
 }

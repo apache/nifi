@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -53,7 +54,6 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.XmlElementNotifier;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.util.BooleanHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.Attributes;
@@ -160,7 +160,7 @@ public class SplitXml extends AbstractProcessor {
             }
         }, depth);
 
-        final BooleanHolder failed = new BooleanHolder(false);
+        final AtomicBoolean failed = new AtomicBoolean(false);
         session.read(original, new InputStreamCallback() {
             @Override
             public void process(final InputStream rawIn) throws IOException {

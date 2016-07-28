@@ -23,7 +23,6 @@ $(document).ready(function () {
 });
 
 var ua = {
-    searchRules: 'Search rule name',
     newRuleIndex: 0,
     editable: false,
     
@@ -45,14 +44,40 @@ var ua = {
         var conditionsGrid = ua.initConditionsGrid();
         var actionsGrid = ua.initActionsGrid();
 
+        var toggleScrollable = function(element) {
+            if ($(element).is(':visible')){
+                if (element.offsetHeight < element.scrollHeight ||
+                    element.offsetWidth < element.scrollWidth) {
+                    // your element has overflow
+                    $(element).addClass('scrollable');
+                } else {
+                    $(element).removeClass('scrollable');
+                }
+            }
+        };
+
         // enable grid resizing
         $(window).resize(function (e) {
             if (e.target === window) {
                 conditionsGrid.resizeCanvas();
                 actionsGrid.resizeCanvas();
-                ua.resizeSelectedRuleNameField();
+
+                // toggle .scrollable when appropriate
+                toggleScrollable($('#rule-details-panel').get(0));
+
+                // resize dialogs when appropriate
+                var dialogs = $('.dialog');
+                for (var i = 0, len = dialogs.length; i < len; i++) {
+                    if ($(dialogs[i]).is(':visible')){
+                        setTimeout(function(dialog){
+                            dialog.modal('resize');
+                        }, 50, $(dialogs[i]));
+                    }
+                }
             }
         });
+
+        toggleScrollable($('#rule-details-panel').get(0));
 
         // initialize the rule list
         ua.initRuleList();
@@ -127,15 +152,7 @@ var ua = {
         // define the function for filtering the list
         $('#rule-filter').keyup(function () {
             ua.applyRuleFilter();
-        }).focus(function () {
-            if ($(this).hasClass('rule-filter-list')) {
-                $(this).removeClass('rule-filter-list').val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass('rule-filter-list').val('Filter');
-            }
-        }).addClass('rule-filter-list').val('Filter');
+        });
 
         // filter type
         $('#rule-filter-type').combo({
@@ -223,19 +240,13 @@ var ua = {
             });
         }
 
-        // add styles for buttons
-        ua.addHoverEffect('div.button', 'button-normal', 'button-over');
-
         // load the rules
         ua.loadRuleList();
 
-        // potentionally resize the name field
-        ua.resizeSelectedRuleNameField();
-
         // initialize the tooltips
-        $('img.icon-info').qtip({
+        $('.info').qtip({
             style: {
-                classes: 'ui-tooltip-tipped ui-tooltip-shadow'
+                classes: 'ui-tooltip-tipped ui-tooltip-shadow nifi-tooltip'
             },
             show: {
                 solo: true,
@@ -259,10 +270,16 @@ var ua = {
     initNewRuleDialog: function () {
         // new rule dialog configuration
         $('#new-rule-dialog').modal({
-            headerText: 'New Rule',
+            headerText: 'Add Rule',
+            scrollableContentStyle: 'scrollable',
             overlayBackground: false,
             buttons: [{
                     buttonText: 'Add',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             var ruleName = $('#new-rule-name').val();
@@ -356,6 +373,11 @@ var ua = {
                     }
                 }, {
                     buttonText: 'Cancel',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             // close the dialog
@@ -367,7 +389,7 @@ var ua = {
                 close: function () {
                     // reset the content
                     $('#new-rule-name').val('');
-                    $('#copy-from-rule-name').removeData('copy-from-rule').addClass('search').val(ua.searchRules);
+                    $('#copy-from-rule-name').removeData('copy-from-rule').val('');
                 }
             }
         });
@@ -381,7 +403,8 @@ var ua = {
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
-                ul.width(374);
+                var padding = ($('#copy-from-rule-name').outerWidth()-$('#copy-from-rule-name').width())/2;
+                ul.width($('#copy-from-rule-name').outerWidth() - padding);
             },
             _renderMenu: function (ul, items) {
                 var self = this;
@@ -440,12 +463,7 @@ var ua = {
                 // stop event propagation
                 return false;
             }
-        }).focus(function () {
-            // conditionally clear the text for the user to type
-            if ($(this).val() === ua.searchRules) {
-                $(this).val('').removeClass('search');
-            }
-        }).val(ua.searchRules).addClass('search');
+        });
     },
     
     /**
@@ -622,6 +640,11 @@ var ua = {
             overlayBackground: false,
             buttons: [{
                     buttonText: 'Ok',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             // close the dialog
@@ -657,7 +680,7 @@ var ua = {
     initConditionsGrid: function () {
         // custom formatter for the actions column
         var conditionsActionFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDelete.png" title="Delete" class="pointer" style="margin-top: 2px" onclick="javascript:ua.deleteRow(\'#selected-rule-conditions\', \'' + row + '\');"/>';
+            return '<div title="Delete" class="pointer fa fa-close" onclick="javascript:ua.deleteRow(\'#selected-rule-conditions\', \'' + row + '\');"></div>';
         };
 
         // initialize the conditions grid
@@ -735,7 +758,7 @@ var ua = {
     initActionsGrid: function () {
         // custom formatter for the actions column
         var actionsActionFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDelete.png" title="Delete" class="pointer" style="margin-top: 2px" onclick="javascript:ua.deleteRow(\'#selected-rule-actions\', \'' + row + '\');"/>';
+            return '<div title="Delete" class="pointer fa fa-close" onclick="javascript:ua.deleteRow(\'#selected-rule-actions\', \'' + row + '\');"></div>';
         };
 
         // initialize the actions grid
@@ -869,6 +892,11 @@ var ua = {
                         $('#yes-no-dialog-content').text('Rule \'' + currentlySelectedRule.name + '\' has unsaved changes. Do you want to save?');
                         $('#yes-no-dialog').modal('setHeaderText', 'Save Changes').modal('setButtonModel', [{
                                 buttonText: 'Yes',
+                                color: {
+                                    base: '#728E9B',
+                                    hover: '#004849',
+                                    text: '#ffffff'
+                                },
                                 handler: {
                                     click: function () {
                                         // close the dialog
@@ -884,6 +912,11 @@ var ua = {
                                 }
                             }, {
                                 buttonText: 'No',
+                                color: {
+                                    base: '#E3E8EB',
+                                    hover: '#C7D2D7',
+                                    text: '#004849'
+                                },
                                 handler: {
                                     click: function () {
                                         // close the dialog
@@ -1153,6 +1186,11 @@ var ua = {
             $('#yes-no-dialog-content').text('Delete rule \'' + rule.name + '\'?');
             $('#yes-no-dialog').modal('setHeaderText', 'Delete Confirmation').modal('setButtonModel', [{
                     buttonText: 'Yes',
+                    color: {
+                        base: '#728E9B',
+                        hover: '#004849',
+                        text: '#ffffff'
+                    },
                     handler: {
                         click: function () {
                             // close the dialog
@@ -1183,6 +1221,11 @@ var ua = {
                     }
                 }, {
                     buttonText: 'No',
+                    color: {
+                        base: '#E3E8EB',
+                        hover: '#C7D2D7',
+                        text: '#004849'
+                    },
                     handler: {
                         click: function () {
                             // close the dialog
@@ -1305,7 +1348,7 @@ var ua = {
         var ruleItem = $('<li></li>').attr('id', rule.id).data('rule', rule).append(ruleLabel).appendTo(ruleList);
 
         if (ua.editable) {
-            $('<div></div>').addClass('remove-rule').appendTo(ruleItem);
+            $('<div></div>').addClass('remove-rule fa fa-close').appendTo(ruleItem);
         } else {
             // remove the pointer cursor when not editable
             ruleItem.css('cursor', 'default');
@@ -1350,12 +1393,7 @@ var ua = {
      * @returns {unresolved}
      */
     getFilterText: function () {
-        var filter = '';
-        var ruleFilter = $('#rule-filter');
-        if (!ruleFilter.hasClass('rule-filter-list')) {
-            filter = ruleFilter.val();
-        }
-        return filter;
+        return $('#rule-filter').val();
     },
     
     /**
@@ -1551,8 +1589,8 @@ var ua = {
             'background': 'white',
             'padding': '5px',
             'overflow': 'hidden',
-            'border': '3px solid #365C6A',
-            'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+            'border-radius': '2px',
+            'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
             'cursor': 'move',
             'top': offset.top - 5,
             'left': offset.left - 5
@@ -1569,14 +1607,10 @@ var ua = {
 
             // create the input field
             $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
-                'background': 'white',
-                'width': (cellNode.width() - 5) + 'px',
+                'width': Math.max((cellNode.width() - 5), 202) + 'px',
                 'height': '80px',
-                'border-width': '0',
-                'outline': '0',
                 'overflow-y': 'auto',
-                'resize': 'both',
-                'margin-bottom': '28px'
+                'margin-bottom': '35px'
             }).text(value).on('keydown', function (evt) {
                 if (evt.which === $.ui.keyCode.ESCAPE) {
                     cleanUp();
@@ -1598,9 +1632,9 @@ var ua = {
             // create the editor
             editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                 languageId: languageId,
-                width: (cellNode.width() - 5) + 'px',
+                width: Math.max((cellNode.width() - 5), 200) + 'px',
                 content: value,
-                minWidth: 175,
+                minWidth: 200,
                 minHeight: 100,
                 readOnly: true,
                 resizable: true,
@@ -1629,8 +1663,7 @@ var ua = {
             'position': 'absolute',
             'bottom': '0',
             'left': '0',
-            'right': '0',
-            'padding': '0 3px 5px'
+            'right': '0'
         }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
     },
     
@@ -1662,8 +1695,8 @@ var ua = {
                 'background': 'white',
                 'padding': '5px',
                 'overflow': 'hidden',
-                'border': '3px solid #365C6A',
-                'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'cursor': 'move'
             }).draggable({
                 containment: 'parent'
@@ -1671,24 +1704,20 @@ var ua = {
 
             // create the input field
             input = $('<textarea hidefocus rows="5"/>').css({
-                'background': 'white',
                 'width': args.position.width + 'px',
+                'min-width': '202px',
                 'height': '80px',
-                'border-width': '0',
-                'outline': '0',
-                'resize': 'both',
-                'margin-bottom': '28px'
+                'margin-bottom': '35px'
             }).on('keydown', scope.handleKeyDown).appendTo(wrapper);
 
             // create the button panel
             var ok = $('<div class="button button-normal">Ok</div>').on('click', scope.save);
-            var cancel = $('<div class="button button-normal">Cancel</div>').on('click', scope.cancel);
+            var cancel = $('<div class="secondary-button button-normal">Cancel</div>').on('click', scope.cancel);
             $('<div></div>').css({
                 'position': 'absolute',
                 'bottom': '0',
                 'left': '0',
-                'right': '0',
-                'padding': '0 3px 5px'
+                'right': '0'
             }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
@@ -1792,12 +1821,13 @@ var ua = {
             // create the wrapper
             wrapper = $('<div></div>').addClass('slickgrid-nfel-editor').css({
                 'z-index': 100000,
+                'min-width': '200px',
                 'position': 'absolute',
                 'background': 'white',
                 'padding': '5px',
                 'overflow': 'hidden',
-                'border': '3px solid #365C6A',
-                'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
+                'border-radius': '2px',
+                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'cursor': 'move'
             }).draggable({
                 cancel: 'input, textarea, pre, .button, div.' + editorClass,
@@ -1807,8 +1837,8 @@ var ua = {
             // create the editor
             editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                 languageId: languageId,
-                width: args.position.width,
-                minWidth: 175,
+                width: Math.max(args.position.width, 200),
+                minWidth: 200,
                 minHeight: 80,
                 resizable: true,
                 escape: function () {
@@ -1821,13 +1851,12 @@ var ua = {
 
             // create the button panel
             var ok = $('<div class="button button-normal">Ok</div>').on('click', scope.save);
-            var cancel = $('<div class="button button-normal">Cancel</div>').on('click', scope.cancel);
+            var cancel = $('<div class="secondary-button button-normal">Cancel</div>').on('click', scope.cancel);
             $('<div></div>').css({
                 'position': 'absolute',
                 'bottom': '0',
                 'left': '0',
-                'right': '0',
-                'padding': '0 3px 5px'
+                'right': '0'
             }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
@@ -1894,15 +1923,6 @@ var ua = {
 
         // initialize the custom long text editor
         this.init();
-    },
-    
-    /**
-     * Adjust the size of the selected rule name field.
-     */
-    resizeSelectedRuleNameField: function () {
-        var ruleDetailsPanel = $('#rule-details-panel');
-        var ruleNameField = $('#selected-rule-name');
-        ruleNameField.width(Math.min(500, ruleDetailsPanel.width() - 10));
     },
     
     /**
