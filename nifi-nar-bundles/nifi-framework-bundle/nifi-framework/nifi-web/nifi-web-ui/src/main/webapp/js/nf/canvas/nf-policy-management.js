@@ -974,6 +974,12 @@ nf.PolicyManagement = (function () {
                 .combo('setOptionEnabled', {
                     value: 'write-send-data'
                 }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-data'
+                }, false)
                 .combo('setSelectedOption', {
                     value: 'read-component'
                 });
@@ -1011,6 +1017,12 @@ nf.PolicyManagement = (function () {
                 }, false)
                 .combo('setOptionEnabled', {
                     value: 'write-send-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-data'
                 }, false)
                 .combo('setSelectedOption', {
                     value: 'read-component'
@@ -1050,6 +1062,12 @@ nf.PolicyManagement = (function () {
                 .combo('setOptionEnabled', {
                     value: 'write-send-data'
                 }, false)
+                .combo('setOptionEnabled', {
+                    value: 'read-data'
+                }, false)
+                .combo('setOptionEnabled', {
+                    value: 'write-data'
+                }, false)
                 .combo('setSelectedOption', {
                     value: 'read-component'
                 });
@@ -1083,7 +1101,13 @@ nf.PolicyManagement = (function () {
                     }, false)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, false);
+                    }, false)
+                    .combo('setOptionEnabled', {
+                        value: 'read-data'
+                    }, true)
+                    .combo('setOptionEnabled', {
+                        value: 'write-data'
+                    }, true);
             } else {
                 var d = selection.datum();
                 $('#selected-policy-component-id').text(d.id);
@@ -1111,7 +1135,13 @@ nf.PolicyManagement = (function () {
                     }, nf.CanvasUtils.isInputPort(selection) && nf.Canvas.getParentGroupId() === null)
                     .combo('setOptionEnabled', {
                         value: 'write-send-data'
-                    }, nf.CanvasUtils.isOutputPort(selection) && nf.Canvas.getParentGroupId() === null);
+                    }, nf.CanvasUtils.isOutputPort(selection) && nf.Canvas.getParentGroupId() === null)
+                    .combo('setOptionEnabled', {
+                        value: 'read-data'
+                    }, !nf.CanvasUtils.isLabel(selection))
+                    .combo('setOptionEnabled', {
+                        value: 'write-data'
+                    }, !nf.CanvasUtils.isLabel(selection));
             }
 
             // populate the initial resource
