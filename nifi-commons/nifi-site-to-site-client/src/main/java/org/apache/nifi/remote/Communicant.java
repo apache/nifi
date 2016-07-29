@@ -43,4 +43,10 @@ public interface Communicant {
      * if the Distinguished Name is unknown
      */
     String getDistinguishedName();
+
+    /**
+     * @return When data is transferred via Site-to-Site, provenance events are generated.
+     * This method returns a transit url used for the provenance event.
+     */
+    String createTransitUri(final String sourceFlowFileIdentifier);
 }

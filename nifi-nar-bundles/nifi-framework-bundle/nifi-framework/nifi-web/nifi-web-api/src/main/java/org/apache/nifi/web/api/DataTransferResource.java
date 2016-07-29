@@ -45,6 +45,7 @@ import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
+import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
@@ -212,7 +213,7 @@ public class DataTransferResource extends ApplicationResource {
 
         try {
             // Execute handshake.
-            initiateServerProtocol(peer, transportProtocolVersion);
+            initiateServerProtocol(req, peer, transportProtocolVersion);
 
             TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.PROPERTIES_OK.getCode());
@@ -280,7 +281,7 @@ public class DataTransferResource extends ApplicationResource {
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
             int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
             logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
             if (numOfFlowFiles < 1) {
@@ -304,10 +305,15 @@ public class DataTransferResource extends ApplicationResource {
         return responseCreator.acceptedResponse(transactionManager, serverChecksum, transportProtocolVersion);
     }
 
-    private HttpFlowFileServerProtocol initiateServerProtocol(Peer peer, Integer transportProtocolVersion) throws IOException {
+    private HttpFlowFileServerProtocol initiateServerProtocol(final HttpServletRequest req, final Peer peer,
+                                                              final Integer transportProtocolVersion) throws IOException {
         // Switch transaction protocol version based on transport protocol version.
         TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
+
+        final String dataTransferUrl = req.getRequestURL().toString();
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
+
         HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance().setupServerProtocol(serverProtocol);
         // TODO: How should I pass cluster information?
@@ -316,11 +322,12 @@ public class DataTransferResource extends ApplicationResource {
         return serverProtocol;
     }
 
-    HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+    HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
         return new StandardHttpFlowFileServerProtocol(versionNegotiator);
     }
 
-    private Peer constructPeer(HttpServletRequest req, InputStream inputStream, OutputStream outputStream, String portId, String transactionId) {
+    private Peer constructPeer(final HttpServletRequest req, final InputStream inputStream,
+                               final OutputStream outputStream, final String portId, final String transactionId) {
         final String clientHostName = req.getRemoteHost();
         final int clientPort = req.getRemotePort();
 
@@ -357,7 +364,7 @@ public class DataTransferResource extends ApplicationResource {
             commSession.putHandshakeParam(BATCH_DURATION, batchDuration);
         }
 
-        if(peerDescription.isSecure()){
+        if (peerDescription.isSecure()) {
             final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
             logger.debug("initiating peer, nifiUser={}", nifiUser);
             commSession.setUserDn(nifiUser.getIdentity());
@@ -366,6 +373,7 @@ public class DataTransferResource extends ApplicationResource {
         // TODO: Followed how SocketRemoteSiteListener define peerUrl and clusterUrl, but it can be more meaningful values, especially for clusterUrl.
         final String peerUrl = "nifi://" + clientHostName + ":" + clientPort;
         final String clusterUrl = "nifi://localhost:" + req.getLocalPort();
+
         return new Peer(peerDescription, commSession, peerUrl, clusterUrl);
     }
 
@@ -434,7 +442,7 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
             String inputErrMessage = null;
             if (responseCode == null) {
@@ -540,7 +548,7 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
             HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             // Pass the response code sent from the client.
             String inputErrMessage = null;
@@ -653,7 +661,7 @@ public class DataTransferResource extends ApplicationResource {
         final Peer peer = constructPeer(req, inputStream, tempBos, portId, transactionId);
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
         try {
-            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
             StreamingOutput flowFileContent = new StreamingOutput() {
                 @Override
@@ -792,7 +800,7 @@ public class DataTransferResource extends ApplicationResource {
 
         try {
             // Do handshake
-            initiateServerProtocol(peer, transportProtocolVersion);
+            initiateServerProtocol(req, peer, transportProtocolVersion);
             transactionManager.extendTransaction(transactionId);
 
             final TransactionResultEntity entity = new TransactionResultEntity();

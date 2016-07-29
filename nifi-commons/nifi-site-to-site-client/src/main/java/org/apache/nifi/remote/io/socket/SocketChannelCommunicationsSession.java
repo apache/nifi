@@ -28,8 +28,8 @@ public class SocketChannelCommunicationsSession extends AbstractCommunicationsSe
     private final SocketChannelOutput response;
     private int timeout = 30000;
 
-    public SocketChannelCommunicationsSession(final SocketChannel socketChannel, final String uri) throws IOException {
-        super(uri);
+    public SocketChannelCommunicationsSession(final SocketChannel socketChannel) throws IOException {
+        super();
         request = new SocketChannelInput(socketChannel);
         response = new SocketChannelOutput(socketChannel);
         channel = socketChannel;

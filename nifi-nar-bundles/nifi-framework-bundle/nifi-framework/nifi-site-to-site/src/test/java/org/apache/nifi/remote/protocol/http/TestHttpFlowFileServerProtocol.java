@@ -297,8 +297,11 @@ public class TestHttpFlowFileServerProtocol {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
         final Peer peer = getDefaultPeer(transactionId);
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
+        final String endpointUri = "https://peer-host:8443/nifi-api/output-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
         commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
         commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
 
@@ -312,9 +315,9 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(flowFile).when(processSession).get();
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            final String peerUrl = (String)invocation.getArguments()[1];
+            final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[2];
-            assertEquals("http://peer-host:8080/", peerUrl);
+            assertEquals(endpointUri, transitUri);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter).send(eq(flowFile), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
@@ -336,13 +339,16 @@ public class TestHttpFlowFileServerProtocol {
     @Test
     public void testTransferTwoFiles() throws Exception {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
-        final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
 
         final String transactionId = "testTransferTwoFiles";
         final Peer peer = getDefaultPeer(transactionId);
+        final String endpointUri = "https://peer-host:8443/nifi-api/output-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
+        final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "2");
         commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
 
@@ -360,18 +366,18 @@ public class TestHttpFlowFileServerProtocol {
 
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            final String peerUrl = (String)invocation.getArguments()[1];
+            final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[2];
-            assertEquals("http://peer-host:8080/", peerUrl);
+            assertEquals(endpointUri, transitUri);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter).send(eq(flowFile1), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
 
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            final String peerUrl = (String)invocation.getArguments()[1];
+            final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[2];
-            assertEquals("http://peer-host:8080/", peerUrl);
+            assertEquals(endpointUri, transitUri);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter).send(eq(flowFile2), any(String.class), any(String.class), any(Long.class), any(Boolean.class));
@@ -465,9 +471,12 @@ public class TestHttpFlowFileServerProtocol {
 
     private void receiveOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer) throws IOException {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
+        final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "1");
         commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
 
@@ -499,9 +508,9 @@ public class TestHttpFlowFileServerProtocol {
         doReturn(flowFile).when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            final String peerUrl = (String)invocation.getArguments()[1];
+            final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[3];
-            assertEquals("http://peer-host:8080/", peerUrl);
+            assertEquals(endpointUri, transitUri);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter)
@@ -522,13 +531,16 @@ public class TestHttpFlowFileServerProtocol {
     @Test
     public void testReceiveTwoFiles() throws Exception {
         final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
-        final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
 
         final String transactionId = "testReceiveTwoFile";
+        final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"
+                + transactionId + "/flow-files";
+        final HttpFlowFileServerProtocol serverProtocol = getDefaultHttpFlowFileServerProtocol();
         final Peer peer = getDefaultPeer(transactionId);
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         commsSession.putHandshakeParam(HandshakeProperty.BATCH_COUNT, "2");
         commsSession.setUserDn("unit-test");
+        commsSession.setDataTransferUrl(endpointUri);
 
         serverProtocol.handshake(peer);
 
@@ -562,9 +574,9 @@ public class TestHttpFlowFileServerProtocol {
                 .when(processSession).putAttribute(any(FlowFile.class), any(String.class), any(String.class));
         doReturn(provenanceReporter).when(processSession).getProvenanceReporter();
         doAnswer(invocation -> {
-            final String peerUrl = (String)invocation.getArguments()[1];
+            final String transitUri = (String)invocation.getArguments()[1];
             final String detail = (String)invocation.getArguments()[3];
-            assertEquals("http://peer-host:8080/", peerUrl);
+            assertEquals(endpointUri, transitUri);
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", detail);
             return null;
         }).when(provenanceReporter)

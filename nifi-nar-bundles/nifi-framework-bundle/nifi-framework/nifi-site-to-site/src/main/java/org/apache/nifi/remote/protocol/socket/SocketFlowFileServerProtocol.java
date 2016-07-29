@@ -217,4 +217,10 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     public VersionNegotiator getVersionNegotiator() {
         return versionNegotiator;
     }
+
+    @Override
+    protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
+        String transitUriPrefix = handshakenProperties.getTransitUriPrefix();
+        return (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
+    }
 }
