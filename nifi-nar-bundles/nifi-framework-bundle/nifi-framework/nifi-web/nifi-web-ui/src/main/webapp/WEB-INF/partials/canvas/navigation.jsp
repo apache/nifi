@@ -120,13 +120,13 @@
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-start" class="action-button" title="Start">
                         <button ng-click="appCtrl.nf.Actions['start'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.CanvasUtils.areRunnable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <div class="graph-control-action-icon fa fa-play"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-stop" class="action-button" title="Stop">
                         <button ng-click="appCtrl.nf.Actions['stop'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.CanvasUtils.areStoppable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <div class="graph-control-action-icon fa fa-stop"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>
