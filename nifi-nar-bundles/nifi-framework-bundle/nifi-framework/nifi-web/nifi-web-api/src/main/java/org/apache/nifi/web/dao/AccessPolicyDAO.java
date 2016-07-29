@@ -33,6 +33,13 @@ public interface AccessPolicyDAO {
     boolean supportsConfigurableAuthorizer();
 
     /**
+     * Whether or not NiFi supports a configurable authorizer.
+     *
+     * @return whether or not NiFi supports a configurable authorizer
+     */
+    boolean supportsConfigurableAuthorizer();
+
+    /**
      * @param accessPolicyId access policy ID
      * @return Determines if the specified access policy exists
      */
