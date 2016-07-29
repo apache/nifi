@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.web.util;
 
+
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.RequestAction;
@@ -36,7 +52,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -58,25 +74,14 @@ import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 /**
  * Template utilities.
  */
 public final class SnippetUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(SnippetUtils.class);
+
+    private static final SecureRandom randomGenerator = new SecureRandom();
 
     private FlowController flowController;
     private DtoFactory dtoFactory;
@@ -771,15 +776,44 @@ public final class SnippetUtils {
     }
 
     /**
-     * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
+     * Generates a new type 1 id (UUID) for the current id that is specified. If
+     * seed is provided, it will be incorporated into generation logic of the
+     * new ID.
+     * The contract of this method is as follows:
+     * - The 'currentId' must never be null and it must be String representation
+     *   of type-one UUID.
+     * - If seed is provided, the new ID will be generated from the 'msb' extracted from
+     *   the 'currentId' and the 'lsb' extracted from the UUID generated via
+     *   UUID.nameUUIDFromBytes(currentId + seed).
+     * - If seed is NOT provided and 'isCopy' flag is set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'. In this case
+     *   the new ID will always be > the previous ID essentially resulting in the new ID for
+     *   the component that being copied (e.g., copy/paste).
+     * - If seed is NOT provided and 'isCopy' flag is NOT set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'.
      */
     private String generateId(final String currentId, final String seed, boolean isCopy) {
         long msb = UUID.fromString(currentId).getMostSignificantBits();
-        int lsb = StringUtils.isBlank(seed)
-                ? Math.abs(new Random().nextInt())
-                : Math.abs(seed.hashCode());
 
-        return isCopy ? TypeOneUUIDGenerator.generateId(msb, lsb).toString() : new UUID(msb, lsb).toString();
+        UUID uuid;
+        if (StringUtils.isBlank(seed)) {
+            long lsb = randomGenerator.nextLong();
+            if (isCopy) {
+                uuid = ComponentIdGenerator.generateId(msb, lsb, true); // will increment msb if necessary
+            } else {
+                // since msb is extracted from type-one UUID, the type-one semantics will be preserved
+                uuid = new UUID(msb, lsb);
+            }
+        } else {
+            UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
+            if (isCopy) {
+                // will ensure the type-one semantics for new UUID generated from msb extracted from seedId
+                uuid = ComponentIdGenerator.generateId(seedId.getMostSignificantBits(), seedId.getLeastSignificantBits(), false);
+            } else {
+                uuid = new UUID(msb, seedId.getLeastSignificantBits());
+            }
+        }
+        return uuid.toString();
     }
 
     /* setters */

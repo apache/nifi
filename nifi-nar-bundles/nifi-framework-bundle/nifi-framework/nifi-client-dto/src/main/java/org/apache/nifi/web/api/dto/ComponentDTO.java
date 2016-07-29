@@ -93,4 +93,9 @@ public class ComponentDTO {
 
         return id.equals(((ComponentDTO) obj).getId());
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + ":" + this.getId();
+    }
 }
