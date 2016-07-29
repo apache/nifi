@@ -102,7 +102,7 @@ public class HiveJdbcCommon {
                 }
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final int javaSqlType = meta.getColumnType(i);
-                    final Object value = rs.getObject(i);
+                    Object value = rs.getObject(i);
 
                     if (value == null) {
                         rec.put(i - 1, null);
@@ -125,9 +125,21 @@ public class HiveJdbcCommon {
                         // Avro can't handle BigDecimal and BigInteger as numbers - it will throw an AvroRuntimeException such as: "Unknown datum type: java.math.BigDecimal: 38"
                         rec.put(i - 1, value.toString());
 
-                    } else if (value instanceof Number || value instanceof Boolean) {
+                    } else if (value instanceof Number) {
+                        // Need to call the right getXYZ() method (instead of the getObject() method above), since Doubles are sometimes returned
+                        // when the JDBC type is 6 (Float) for example.
+                        if (javaSqlType == FLOAT) {
+                            value = rs.getFloat(i);
+                        } else if (javaSqlType == DOUBLE) {
+                            value = rs.getDouble(i);
+                        } else if (javaSqlType == INTEGER || javaSqlType == TINYINT || javaSqlType == SMALLINT) {
+                            value = rs.getInt(i);
+                        }
+
                         rec.put(i - 1, value);
 
+                    } else if (value instanceof Boolean) {
+                        rec.put(i - 1, value);
                     } else {
                         // The different types that we support are numbers (int, long, double, float),
                         // as well as boolean values and Strings. Since Avro doesn't provide
