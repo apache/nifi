@@ -169,6 +169,10 @@ public class StandardSnippetDAO implements SnippetDAO {
 
     @Override
     public void deleteSnippetComponents(String snippetId) {
+        // verify the action
+        verifyDeleteSnippetComponents(snippetId);
+
+        // locate the snippet in question
         final Snippet snippet = locateSnippet(snippetId);
 
         // remove the contents
@@ -223,6 +227,10 @@ public class StandardSnippetDAO implements SnippetDAO {
 
     @Override
     public Snippet updateSnippetComponents(final SnippetDTO snippetDTO) {
+        // verify the action
+        verifyUpdateSnippetComponent(snippetDTO);
+
+        // find the snippet in question
         final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
