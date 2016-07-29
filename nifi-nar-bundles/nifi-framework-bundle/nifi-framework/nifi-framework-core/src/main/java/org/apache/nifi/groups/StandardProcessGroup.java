@@ -2458,7 +2458,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String portName = port.getName();
 
                 if (newProcessGroup.getInputPortByName(portName) != null) {
-                    throw new IllegalStateException("Cannot perform Move Operation because the destination Process Group already has an Input Port with the name " + portName);
+                    throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
                 }
             }
 
@@ -2467,7 +2467,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String portName = port.getName();
 
                 if (newProcessGroup.getOutputPortByName(portName) != null) {
-                    throw new IllegalStateException("Cannot perform Move Operation because the destination Process Group already has an Output Port with the name " + portName);
+                    throw new IllegalStateException("Cannot perform Move Operation because of a naming conflict with another port in the destination Process Group");
                 }
             }
         } finally {

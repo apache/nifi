@@ -53,43 +53,38 @@ nf.CanvasUtils = (function () {
     
     var moveComponents = function (components, groupId) {
         return $.Deferred(function (deferred) {
-            // ensure the current selection is eligible for move into the specified group
-            nf.CanvasUtils.eligibleForMove(components, groupId).done(function () {
-                // create a snippet for the specified components
-                var snippet = nf.Snippet.marshal(components);
-                nf.Snippet.create(snippet).done(function (response) {
-                    // move the snippet into the target
-                    nf.Snippet.move(response.snippet.id, groupId).done(function () {
-                        var componentMap = d3.map();
+            // create a snippet for the specified components
+            var snippet = nf.Snippet.marshal(components);
+            nf.Snippet.create(snippet).done(function (response) {
+                // move the snippet into the target
+                nf.Snippet.move(response.snippet.id, groupId).done(function () {
+                    var componentMap = d3.map();
 
-                        // add the id to the type's array
-                        var addComponent = function (type, id) {
-                            if (!componentMap.has(type)) {
-                                componentMap.set(type, []);
-                            }
-                            componentMap.get(type).push(id);
-                        };
+                    // add the id to the type's array
+                    var addComponent = function (type, id) {
+                        if (!componentMap.has(type)) {
+                            componentMap.set(type, []);
+                        }
+                        componentMap.get(type).push(id);
+                    };
 
-                        // go through each component being removed
-                        components.each(function (d) {
-                            addComponent(d.type, d.id);
-                        });
-
-                        // refresh all component types as necessary (handle components that have been removed)
-                        componentMap.forEach(function (type, ids) {
-                            nf[type].remove(ids);
-                        });
-
-                        // refresh the birdseye
-                        nf.Birdseye.refresh();
-                        deferred.resolve();
-                    }).fail(nf.Common.handleAjaxError).fail(function () {
-                        deferred.reject();
+                    // go through each component being removed
+                    components.each(function (d) {
+                        addComponent(d.type, d.id);
                     });
+
+                    // refresh all component types as necessary (handle components that have been removed)
+                    componentMap.forEach(function (type, ids) {
+                        nf[type].remove(ids);
+                    });
+
+                    // refresh the birdseye
+                    nf.Birdseye.refresh();
+                    deferred.resolve();
                 }).fail(nf.Common.handleAjaxError).fail(function () {
                     deferred.reject();
                 });
-            }).fail(function () {
+            }).fail(nf.Common.handleAjaxError).fail(function () {
                 deferred.reject();
             });
         }).promise();
@@ -1457,157 +1452,6 @@ nf.CanvasUtils = (function () {
             }
 
             return isDisconnected;
-        },
-        
-        /**
-         * Ensures components are eligible to be moved. The new group can be optionally specified.
-         *
-         * 1) Ensuring that the input and output ports are not connected outside of this group
-         * 2) If the target is specified; ensuring there are no port name conflicts in the target group
-         *
-         * @argument {selection} selection      The selection being moved
-         * @argument {string} groupId           The id of the new group
-         */
-        eligibleForMove: function (selection, groupId) {
-            var inputPorts = [];
-            var outputPorts = [];
-
-            // separate out the component type accordingly
-            selection.each(function (d) {
-                var selected = d3.select(this);
-                if (nf.CanvasUtils.isInputPort(selected)) {
-                    inputPorts.push(selected.datum());
-                } else if (nf.CanvasUtils.isOutputPort(selected)) {
-                    outputPorts.push(selected.datum());
-                }
-            });
-
-            return $.Deferred(function (deferred) {
-                if (inputPorts.length > 0 || outputPorts.length > 0) {
-                    // create a deferred for checking input port connection status
-                    var portConnectionCheck = function () {
-                        return $.Deferred(function (portConnectionDeferred) {
-                            // ports in the root group cannot be moved
-                            if (nf.Canvas.getParentGroupId() === null) {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'Port',
-                                    dialogContent: 'Cannot move Ports out of the root group'
-                                });
-                                portConnectionDeferred.reject();
-                            } else {
-                                $.ajax({
-                                    type: 'GET',
-                                    url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
-                                    dataType: 'json'
-                                }).done(function (response) {
-                                    var connections = response.connections;
-                                    var conflictingPorts = [];
-
-                                    if (!nf.Common.isEmpty(connections)) {
-                                        // check the input ports
-                                        $.each(inputPorts, function (i, inputPort) {
-                                            $.each(connections, function (j, connection) {
-                                                if (inputPort.id === connection.destination.id) {
-                                                    conflictingPorts.push(nf.Common.escapeHtml(inputPort.component.name));
-                                                }
-                                            });
-                                        });
-
-                                        // check the output ports
-                                        $.each(outputPorts, function (i, outputPort) {
-                                            $.each(connections, function (j, connection) {
-                                                if (outputPort.id === connection.source.id) {
-                                                    conflictingPorts.push(nf.Common.escapeHtml(outputPort.component.name));
-                                                }
-                                            });
-                                        });
-                                    }
-
-                                    // inform the user of the conflicting ports
-                                    if (conflictingPorts.length > 0) {
-                                        nf.Dialog.showOkDialog({
-                                            headerText: 'Port',
-                                            dialogContent: 'The following ports are currently connected outside of this group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>'
-                                        });
-                                        portConnectionDeferred.reject();
-                                    } else {
-                                        portConnectionDeferred.resolve();
-                                    }
-
-                                }).fail(function () {
-                                    portConnectionDeferred.reject();
-                                });
-                            }
-                        }).promise();
-                    };
-
-                    // create a deferred for checking port names in the target
-                    var portNameCheck = function () {
-                        return $.Deferred(function (portNameDeferred) {
-
-                            // add the get request
-                            $.ajax({
-                                type: 'GET',
-                                url: config.urls.controller + '/process-groups/' + encodeURIComponent(groupId),
-                                data: {
-                                    verbose: true
-                                },
-                                dataType: 'json'
-                            }).done(function (response) {
-                                var processGroup = response.component;
-                                var processGroupContents = processGroup.contents;
-
-                                var conflictingPorts = [];
-                                var getConflictingPorts = function (selectedPorts, ports) {
-                                    if (selectedPorts.length > 0 && !nf.Common.isEmpty(ports)) {
-                                        $.each(selectedPorts, function (i, selectedPort) {
-                                            $.each(ports, function (j, port) {
-                                                if (selectedPort.component.name === port.name) {
-                                                    conflictingPorts.push(nf.Common.escapeHtml(port.name));
-                                                }
-                                            });
-                                        });
-                                    }
-                                };
-
-                                // check for conflicting ports
-                                getConflictingPorts(inputPorts, processGroupContents.inputPorts);
-                                getConflictingPorts(outputPorts, processGroupContents.outputPorts);
-
-                                // inform the user of the conflicting ports
-                                if (conflictingPorts.length > 0) {
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'Port',
-                                        dialogContent: 'The following ports already exist in the target process group: <b>' + conflictingPorts.join('</b>, <b>') + '</b>'
-                                    });
-                                    portNameDeferred.reject();
-                                } else {
-                                    portNameDeferred.resolve();
-                                }
-                            }).fail(function () {
-                                portNameDeferred.reject();
-                            });
-                        }).promise();
-                    };
-
-                    // execute the checks in order
-                    portConnectionCheck().done(function () {
-                        if (nf.Common.isDefinedAndNotNull(groupId)) {
-                            $.when(portNameCheck()).done(function () {
-                                deferred.resolve();
-                            }).fail(function () {
-                                deferred.reject();
-                            });
-                        } else {
-                            deferred.resolve();
-                        }
-                    }).fail(function () {
-                        deferred.reject();
-                    });
-                } else {
-                    deferred.resolve();
-                }
-            }).promise();
         },
         
         /**
