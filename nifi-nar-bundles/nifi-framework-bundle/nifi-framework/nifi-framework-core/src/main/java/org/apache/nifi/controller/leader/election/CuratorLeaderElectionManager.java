@@ -90,7 +90,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         logger.debug("{} Registering new Leader Selector for role {}", this, roleName);
 
         if (leaderRoles.containsKey(roleName)) {
-            logger.warn("{} Attempted to register Leader Election for role '{}' but this role is already registered", this, roleName);
+            logger.info("{} Attempted to register Leader Election for role '{}' but this role is already registered", this, roleName);
             return;
         }
 
@@ -130,6 +130,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         leaderSelector.close();
+        logger.info("This node is no longer registered to be elected as the Leader for Role '{}'", roleName);
     }
 
     @Override
