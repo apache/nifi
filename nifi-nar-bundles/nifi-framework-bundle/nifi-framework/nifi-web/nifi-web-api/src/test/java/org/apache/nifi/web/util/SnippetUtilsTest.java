@@ -53,13 +53,13 @@ public class SnippetUtilsTest {
     }
 
     /*
-     * This test validates condition where components that are being copied from
+     * This test validates condition where components that are being copy/pasted from
      * one another are now replicated across the cluster. Such components will
-     * have the same inception id (msb) yet different instance id (lsb). The id
+     * have different inception id (msb) yet different instance id (lsb). The id
      * of these components must be different yet their msb must be the same.
      */
     @Test
-    public void validateWithSameSeedSameInceptionIdNotSameInstanceId() throws Exception {
+    public void validateWithSameSeedSameInceptionIdNotSameInstanceIdIsCopySet() throws Exception {
         Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
                 boolean.class);
         generateIdMethod.setAccessible(true);
@@ -80,9 +80,56 @@ public class SnippetUtilsTest {
                 seed, true);
         assertNotEquals(id1, id2);
         assertNotEquals(id2, id3);
+        UUID uuid1 = UUID.fromString(id1);
+        UUID uuid2 = UUID.fromString(id2);
+        UUID uuid3 = UUID.fromString(id3);
+        // below simply validates that generated UUID is type-one, since timestamp() operation will result
+        // in exception if generated UUID is not type-one
+        uuid1.timestamp();
+        uuid2.timestamp();
+        uuid3.timestamp();
+        assertNotEquals(uuid1.getMostSignificantBits(), uuid2.getMostSignificantBits());
+        assertNotEquals(uuid2.getMostSignificantBits(), uuid3.getMostSignificantBits());
+    }
 
-        assertEquals(UUID.fromString(id1).getMostSignificantBits(), UUID.fromString(id2).getMostSignificantBits());
-        assertEquals(UUID.fromString(id2).getMostSignificantBits(), UUID.fromString(id3).getMostSignificantBits());
+    /*
+     * This test validates condition where components that are being re-created
+     * from template are now replicated across the cluster. Such components will
+     * have the same inception id (msb) yet different instance id (lsb). The id
+     * of these components must be different yet their msb must be the same.
+     */
+    @Test
+    public void validateWithSameSeedSameInceptionIdNotSameInstanceIdIsCopyNotSet() throws Exception {
+        Method generateIdMethod = SnippetUtils.class.getDeclaredMethod("generateId", String.class, String.class,
+                boolean.class);
+        generateIdMethod.setAccessible(true);
+
+        SnippetUtils utils = new SnippetUtils();
+        String seed = ComponentIdGenerator.generateId().toString();
+
+        UUID rootId = ComponentIdGenerator.generateId();
+
+        String id1 = (String) generateIdMethod.invoke(utils,
+                new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
+                seed, false);
+        String id2 = (String) generateIdMethod.invoke(utils,
+                new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
+                seed, false);
+        String id3 = (String) generateIdMethod.invoke(utils,
+                new UUID(rootId.getMostSignificantBits(), ComponentIdGenerator.generateId().getLeastSignificantBits()).toString(),
+                seed, false);
+        assertNotEquals(id1, id2);
+        assertNotEquals(id2, id3);
+        UUID uuid1 = UUID.fromString(id1);
+        UUID uuid2 = UUID.fromString(id2);
+        UUID uuid3 = UUID.fromString(id3);
+        // below simply validates that generated UUID is type-one, since timestamp() operation will result
+        // in exception if generated UUID is not type-one
+        uuid1.timestamp();
+        uuid2.timestamp();
+        uuid3.timestamp();
+        assertEquals(uuid1.getMostSignificantBits(), uuid2.getMostSignificantBits());
+        assertEquals(uuid2.getMostSignificantBits(), uuid3.getMostSignificantBits());
     }
 
     /*
@@ -103,6 +150,11 @@ public class SnippetUtilsTest {
         UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        // below simply validates that generated UUID is type-one, since timestamp() operation will result
+        // in exception if generated UUID is not type-one
+        id1.timestamp();
+        id2.timestamp();
+        id3.timestamp();
         assertTrue(id1.getMostSignificantBits() < id2.getMostSignificantBits());
         assertTrue(id2.getMostSignificantBits() < id3.getMostSignificantBits());
     }
@@ -126,6 +178,11 @@ public class SnippetUtilsTest {
         UUID id1 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         UUID id2 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
         UUID id3 = UUID.fromString((String) generateIdMethod.invoke(utils, currentId, null, isCopy));
+        // below simply validates that generated UUID is type-one, since timestamp() operation will result
+        // in exception if generated UUID is not type-one
+        id1.timestamp();
+        id2.timestamp();
+        id3.timestamp();
         assertEquals(id1.getMostSignificantBits(), id2.getMostSignificantBits());
         assertEquals(id2.getMostSignificantBits(), id3.getMostSignificantBits());
     }

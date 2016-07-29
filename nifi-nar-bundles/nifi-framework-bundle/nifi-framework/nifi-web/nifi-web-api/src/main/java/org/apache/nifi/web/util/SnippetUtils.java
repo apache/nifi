@@ -799,13 +799,19 @@ public final class SnippetUtils {
         if (StringUtils.isBlank(seed)) {
             long lsb = randomGenerator.nextLong();
             if (isCopy) {
-                uuid = ComponentIdGenerator.generateId(msb, lsb);
+                uuid = ComponentIdGenerator.generateId(msb, lsb, true); // will increment msb if necessary
             } else {
+                // since msb is extracted from type-one UUID, the type-one semantics will be preserved
                 uuid = new UUID(msb, lsb);
             }
         } else {
-            UUID tmp = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
-            uuid = new UUID(msb, tmp.getLeastSignificantBits());
+            UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
+            if (isCopy) {
+                // will ensure the type-one semantics for new UUID generated from msb extracted from seedId
+                uuid = ComponentIdGenerator.generateId(seedId.getMostSignificantBits(), seedId.getLeastSignificantBits(), false);
+            } else {
+                uuid = new UUID(msb, seedId.getLeastSignificantBits());
+            }
         }
         return uuid.toString();
     }

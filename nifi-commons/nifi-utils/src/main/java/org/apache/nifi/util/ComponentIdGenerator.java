@@ -67,17 +67,17 @@ public class ComponentIdGenerator {
      *
      */
     public final static UUID generateId(long currentTime) {
-        return generateId(currentTime, randomGenerator.nextLong());
+        return generateId(currentTime, randomGenerator.nextLong(), true);
     }
 
     /**
      *
      */
-    public final static UUID generateId(long msb, long lsb) {
+    public final static UUID generateId(long msb, long lsb, boolean ensureUnique) {
         long time;
 
         synchronized (lock) {
-            if (msb <= lastTime) {
+            if (ensureUnique && msb <= lastTime) {
                 msb = ++lastTime;
             }
             lastTime = msb;
