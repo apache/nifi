@@ -571,7 +571,23 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         if (configuredForClustering) {
             leaderElectionManager = new CuratorLeaderElectionManager(4);
             heartbeater = new ClusterProtocolHeartbeater(protocolSender, properties);
-            registerForClusterCoordinator();
+
+            // Check if there is already a cluster coordinator elected. If not, go ahead
+            // and register for coordinator role. If there is already one elected, do not register until
+            // we have connected to the cluster. This allows us to avoid becoming the coordinator with a
+            // flow that is different from the rest of the cluster (especially an empty flow) and then
+            // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
+            // the coordinator.
+            LOG.info("Checking if there is already a Cluster Coordinator Elected...");
+            final NodeIdentifier electedCoordinatorNodeId = clusterCoordinator.getElectedActiveCoordinatorNode();
+            if (electedCoordinatorNodeId == null) {
+                LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
+                registerForClusterCoordinator();
+            } else {
+                LOG.info("The Elected Cluster Coordinator is {}. Will not register to be elected for this role until after connecting "
+                    + "to the cluster and inheriting the cluster's flow.", electedCoordinatorNodeId);
+            }
+
             leaderElectionManager.start();
         } else {
             leaderElectionManager = null;
@@ -3279,6 +3295,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         });
     }
 
+    private void registerForPrimaryNode() {
+        leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
+            @Override
+            public void onLeaderElection() {
+                setPrimary(true);
+            }
+
+            @Override
+            public void onLeaderRelinquish() {
+                setPrimary(false);
+            }
+        });
+    }
+
     /**
      * Sets whether this instance is clustered. Clustered means that a node is either connected or trying to connect to the cluster.
      *
@@ -3315,17 +3345,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // update the bulletin repository
             if (isChanging) {
                 if (clustered) {
-                    leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
-                        @Override
-                        public void onLeaderElection() {
-                            setPrimary(true);
-                        }
-
-                        @Override
-                        public void onLeaderRelinquish() {
-                            setPrimary(false);
-                        }
-                    });
+                    registerForPrimaryNode();
 
                     // Participate in Leader Election for Heartbeat Monitor. Start the heartbeat monitor
                     // if/when we become leader and stop it when we lose leader role
