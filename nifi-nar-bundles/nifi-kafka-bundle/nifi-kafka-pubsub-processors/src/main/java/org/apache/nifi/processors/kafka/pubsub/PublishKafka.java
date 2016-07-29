@@ -225,8 +225,12 @@ public class PublishKafka extends AbstractKafkaProcessor<KafkaPublisher> {
     @Override
     protected KafkaPublisher buildKafkaResource(ProcessContext context, ProcessSession session) {
         Properties kafkaProperties = this.buildKafkaProperties(context);
-        kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-        kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        if (!kafkaProperties.containsKey(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG)) {
+            kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        }
+        if (!kafkaProperties.containsKey(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)) {
+            kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+        }
         this.brokers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, this.getLogger());
         return publisher;

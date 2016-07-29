@@ -115,6 +115,31 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
             .expressionLanguageSupported(true)
             .build();
 
+    static final PropertyDescriptor SSL_KEY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("ssl.key.password")
+            .displayName("SSL Key Password")
+            .description("The password of the private key in the key store file. Corresponds to Kafka's 'ssl.key.password' property.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .sensitive(true)
+            .build();
+    static final PropertyDescriptor SSL_KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("ssl.keystore.password")
+            .displayName("SSK Keystore Password")
+            .description("The store password for the key store file. Corresponds to Kafka's 'ssl.keystore.password' property.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .sensitive(true)
+            .build();
+    static final PropertyDescriptor SSL_TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
+            .name("ssl.truststore.password")
+            .displayName("SSL Truststore Password")
+            .description("The password for the trust store file. Corresponds to Kafka's 'ssl.truststore.password' property.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .sensitive(true)
+            .build();
+
     static final Builder MESSAGE_DEMARCATOR_BUILDER = new PropertyDescriptor.Builder()
             .name("message-demarcator")
             .displayName("Message Demarcator")
@@ -141,6 +166,10 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
         SHARED_DESCRIPTORS.add(CLIENT_ID);
         SHARED_DESCRIPTORS.add(SECURITY_PROTOCOL);
         SHARED_DESCRIPTORS.add(KERBEROS_PRINCIPLE);
+        SHARED_DESCRIPTORS.add(SSL_KEY_PASSWORD);
+        SHARED_DESCRIPTORS.add(SSL_KEYSTORE_PASSWORD);
+        SHARED_DESCRIPTORS.add(SSL_TRUSTSTORE_PASSWORD);
+
         SHARED_RELATIONSHIPS.add(REL_SUCCESS);
     }
 
