@@ -23,21 +23,17 @@ System Requirements
 -------------------
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 7 or newer
+* Requires Java 8 or newer
 * Supported Operating Systems:
 ** Linux
 ** Unix
 ** Windows
 ** Mac OS X
 * Supported Web Browsers:
-** Internet Explorer 9+ (see note below)
-** Mozilla FireFox 24+
-** Google Chrome 36+
-** Safari 8
-
-**Note** There is a known issue in Internet Explorer (IE) 10 and 11 that can cause problems when moving items on the NiFi graph. If you encounter this problem, we suggest using a browser other than IE. This known issue is described here: https://connect.microsoft.com/IE/Feedback/Details/1050422.
-
-**Note** Java 7 default perm gen sizing can result in 'out of memory errors' due to the amount of classes loaded by NiFi.  See the <<bootstrap_properties>> section for more information.
+** Microsoft Edge:  Current & (Current - 1)
+** Mozilla FireFox: Current & (Current - 1)
+** Google Chrome:  Current & (Current - 1)
+** Safari:  Current & (Current - 1)
 
 **Note** Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
 
@@ -613,7 +609,7 @@ For each Node, the minimum properties to configure are as follows:
 Now, it is possible to start up the cluster. It does not matter which order the instances start up. Navigate to the URL for
 one of the nodes, and the User Interface should look similar to the following:
 
-image:ncm.png["Clustered User Interface", width=940]
+image:ncm.png["Clustered User Interface"]
 
 *Troubleshooting*
 
@@ -984,17 +980,8 @@ take effect only after NiFi has been stopped and restarted.
                                  configured recipients if the bootstrap determines that NiFi has unexpectedly died.
 |====
 
-*Java 7 PermGen Sizing*
-The provided _bootstrap.conf_ file may include a line such as
-....
-#java.arg.11=-XX:PermSize=128M
-#java.arg.12=-XX:MaxPermSize=128M
-....
-If running in Java 7 it is recommended to uncomment those lines to ensure the PermGen size and maximum can be larger than is available by default.  This is important because NiFi
-can load a significant number of classes which will result in OutOfMemoryError due to PermGen being full.  You might choose a value larger than 128MB as well.
-
-*Java 7 and 8 handling of codecache*
-It has been observed in both Java 7 and Java 8 runtime environments that performance can suddenly drop by more than an order of magnitude after days or weeks of otherwise ideal
+*Java 8 handling of codecache*
+It has been observed in Java 8 runtime environments that performance can suddenly drop by more than an order of magnitude after days or weeks of otherwise ideal
 behavior.  This has only been observed under extremely high load and in cases where considerable Just in Time (JIT) compilation occurs.  The core problem is the CodeCache becomes
 full and is seemingly not properly garbage collected or grown.  When this occurs JIT seems to no longer occur or involve considerable delays and performance drops.
 This is easily overcome by ensuring the following lines are available in the _boostrap.conf_.  By default they are there but commented.  Uncomment them for maximum sustained throughput.
@@ -1007,8 +994,8 @@ This is easily overcome by ensuring the following lines are available in the _bo
 [[notification_services]]
 Notification Services
 ---------------------
-When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. At this point
-(version 0.3.0 of Apache NiFi), the only mechanism supplied is to send an e-mail notification. The notification services configuration file, however,
+When the NiFi bootstrap starts or stops NiFi, or detects that it has died unexpectedly, it is able to notify configured recipients. Currently,
+the only mechanism supplied is to send an e-mail notification. The notification services configuration file, however,
 is a configurable XML file so that as new notification capabilities are developed, they will be configured similarly.
 
 The default location of the XML file is _conf/bootstrap-notification-services.xml_, but this value can be changed in the _conf/bootstrap.conf_ file.
@@ -1356,14 +1343,13 @@ Remote Process Groups can choose transport protocol from RAW and HTTP. Propertie
 
 |====
 |*Property*|*Description*
-|[line-through]#nifi.remote.input.socket.host# +
-nifi.remote.input.host +
-(renamed since NiFi 1.0)|The host name that will be given out to clients to connect to this NiFi instance for Site-to-Site communication. By default, it is the value from InetAddress.getLocalHost().getHostName(). On UNIX-like operating systems, this is typically the output from the `hostname` command.
-|nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to _false_. In order for secure site-to-site to work, in addition to change it to _true_, many Security Properties (below) must also be configured.
+|nifi.remote.input.host|The host name that will be given out to clients to connect to this NiFi instance for Site-to-Site communication. By default, it is the value from InetAddress.getLocalHost().getHostName(). On UNIX-like operating systems, this is typically the output from the `hostname` command.
+|nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to false. In order for secure site-to-site to work, set the property to true.   Many other Security Properties (below) must also be configured.
 |nifi.remote.input.socket.port|The remote input socket port for Site-to-Site communication. By default, it is blank, but it must have a value in order to use RAW socket as transport protocol for Site-to-Site.
-|nifi.remote.input.http.enabled|Specify if HTTP Site-to-Site should be enabled on this host. By default, it is _true_. HTTP non-secure Site-to-Site is enabled by default. +
-Whether a Site-to-Site client uses HTTP or HTTPS is determined by _nifi.remote.input.secure_. If it is set to _true_, then requests are sent as HTTPS to _nifi.web.https.port_, if it is _false_, HTTP requests are sent to _nifi.web.http.port_.
-|nifi.remote.input.http.transaction.ttl|Specify how long a transaction can stay alive on server. If a Site-to-Site client didn't proceed to next action for this period of time, the transaction is discarded from remote NiFi instance. For example, a client creates a transaction but doesn't send or receive flow files, or send or received flow files but doesn't confirm that transaction. By default, it is set to 30 seconds.|
+|nifi.remote.input.http.enabled|Specifies whether HTTP Site-to-Site should be enabled on this host.  By default, it is set to true. +
+Whether a Site-to-Site client uses HTTP or HTTPS is determined by _nifi.remote.input.secure_. If it is set to true, then requests are sent as HTTPS to _nifi.web.https.port_. If set to false, HTTP requests are sent to _nifi.web.http.port_.
+|nifi.remote.input.http.transaction.ttl|Specifies how long a transaction can stay alive on the server.  By default, it is set to 30 seconds. +
+If a Site-to-Site client hasn’t proceeded to the next action after this period of time, the transaction is discarded from the remote NiFi instance. For example, when a client creates a transaction but doesn’t send or receive flow files, or when a client sends or receives flow files but doesn’t confirm that transaction.
 |====
 
 === Web Properties
@@ -1413,14 +1399,6 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |*Property*|*Description*
 |nifi.cluster.protocol.heartbeat.interval|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is 5 sec.
 |nifi.cluster.protocol.is.secure|This indicates whether cluster communications are secure. The default value is _false_.
-|nifi.cluster.node.event.history.size|When the state of a node in the cluster is changed, an event is generated
-and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is _25_.
-|nifi.cluster.node.connection.timeout|When connecting to another node in the cluster, specifies how long this node should wait before considering
-the connection a failure. The default value is _5 secs_.
-|nifi.cluster.node.read.timeout|When communicating with another node in the cluster, specifies how long this node should wait to receive information
-from the remote node before considering the communication with the node a failure. The default value is _5 secs_.
-|nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
-to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |====
 
 === Cluster Node Properties
@@ -1434,6 +1412,14 @@ Configure these properties for cluster nodes.
 |nifi.cluster.node.protocol.port|The node's protocol port. It is blank by default.
 |nifi.cluster.node.protocol.threads|The number of threads that should be used to communicate with other nodes
 in the cluster. This property defaults to 10, but for large clusters, this value may need to be larger.
+|nifi.cluster.node.event.history.size|When the state of a node in the cluster is changed, an event is generated
+and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is _25_.
+|nifi.cluster.node.connection.timeout|When connecting to another node in the cluster, specifies how long this node should wait before considering
+the connection a failure. The default value is _5 secs_.
+|nifi.cluster.node.read.timeout|When communicating with another node in the cluster, specifies how long this node should wait to receive information
+from the remote node before considering the communication with the node a failure. The default value is _5 secs_.
+|nifi.cluster.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
+to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
 |====
 
 [[claim_management]]
