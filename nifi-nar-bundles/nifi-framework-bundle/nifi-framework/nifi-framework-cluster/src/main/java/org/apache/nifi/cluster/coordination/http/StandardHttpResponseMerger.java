@@ -117,6 +117,10 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
 
     @Override
     public NodeResponse mergeResponses(final URI uri, final String httpMethod, final Set<NodeResponse> nodeResponses) {
+        if (nodeResponses.size() == 1) {
+            return nodeResponses.iterator().next();
+        }
+
         final boolean hasSuccess = hasSuccessfulResponse(nodeResponses);
         if (!hasSuccess) {
             // If we have a response that is a 3xx, 4xx, or 5xx, then we want to choose that.
