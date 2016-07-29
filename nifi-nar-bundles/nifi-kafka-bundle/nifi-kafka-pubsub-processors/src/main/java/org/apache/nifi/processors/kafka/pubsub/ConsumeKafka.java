@@ -18,6 +18,8 @@ package org.apache.nifi.processors.kafka.pubsub;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,6 +50,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -228,16 +231,59 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
                 : null;
         this.topic = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
         this.brokers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
-
         Properties kafkaProperties = this.buildKafkaProperties(context);
-        kafkaProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        kafkaProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+
+        /*
+         * Since we are using unconventional way to validate if connectivity to
+         * broker is possible we need a mechanism to be able to disable it.
+         * 'check.connection' property will serve as such mechanism
+         */
+        if (!kafkaProperties.getProperty("check.connection").equals("false")) {
+            this.checkIfInitialConnectionPossible();
+        }
+
+        System.out.println(kafkaProperties);
+        if (!kafkaProperties.containsKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)) {
+            kafkaProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        }
+        if (!kafkaProperties.containsKey(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG)) {
+            kafkaProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        }
 
         KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(kafkaProperties);
         consumer.subscribe(Collections.singletonList(this.topic));
         return consumer;
     }
 
+    /**
+     * Checks via brute force if it is possible to establish connection to at
+     * least one broker. If not this method will throw {@link ProcessException}.
+     */
+    private void checkIfInitialConnectionPossible(){
+        String[] br = this.brokers.split(",");
+        boolean connectionPossible = false;
+        for (int i = 0; i < br.length && !connectionPossible; i++) {
+            String hostPortCombo = br[i];
+            String[] hostPort = hostPortCombo.split(":");
+            Socket client = null;
+            try {
+                client = new Socket();
+                client.connect(new InetSocketAddress(hostPort[0].trim(), Integer.parseInt(hostPort[1].trim())), 10000);
+                connectionPossible = true;
+            } catch (Exception e) {
+                this.logger.error("Connection to '" + hostPortCombo + "' is not possible", e);
+            } finally {
+                try {
+                    client.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
+        if (!connectionPossible){
+            throw new ProcessException("Connection to " + this.brokers + " is not possible. See logs for more details");
+        }
+    }
     /**
      * Will release flow file. Releasing of the flow file in the context of this
      * operation implies the following:

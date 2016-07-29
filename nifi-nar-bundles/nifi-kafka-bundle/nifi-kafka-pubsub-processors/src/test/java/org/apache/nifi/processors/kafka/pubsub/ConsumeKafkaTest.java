@@ -84,6 +84,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka.CLIENT_ID, "foo");
         runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
+        runner.setProperty("check.connection", "false");
 
         byte[][] values = new byte[][] { "Hello-1".getBytes(StandardCharsets.UTF_8),
                 "Hello-2".getBytes(StandardCharsets.UTF_8), "Hello-3".getBytes(StandardCharsets.UTF_8) };
@@ -130,6 +131,7 @@ public class ConsumeKafkaTest {
         runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.setProperty(ConsumeKafka.MESSAGE_DEMARCATOR, "blah");
+        runner.setProperty("check.connection", "false");
 
         byte[][] values = new byte[][] { "Hello-1".getBytes(StandardCharsets.UTF_8),
                 "Hi-2".getBytes(StandardCharsets.UTF_8) };
