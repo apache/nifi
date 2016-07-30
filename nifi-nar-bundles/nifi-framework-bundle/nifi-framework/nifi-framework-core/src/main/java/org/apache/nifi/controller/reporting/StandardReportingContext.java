@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
@@ -152,4 +153,14 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
         return flowController.getStateManagerProvider().getStateManager(reportingTask.getIdentifier());
     }
 
+    @Override
+    public boolean isClustered() {
+        return flowController.isConfiguredForClustering();
+    }
+
+    @Override
+    public String getClusterNodeIdentifier() {
+        final NodeIdentifier nodeId = flowController.getNodeId();
+        return nodeId == null ? null : nodeId.getId();
+    }
 }

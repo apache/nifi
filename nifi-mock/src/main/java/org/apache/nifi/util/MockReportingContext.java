@@ -123,4 +123,14 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     public StateManager getStateManager() {
         return stateManager;
     }
+
+    @Override
+    public boolean isClustered() {
+        return false;
+    }
+
+    @Override
+    public String getClusterNodeIdentifier() {
+        return null;
+    }
 }
