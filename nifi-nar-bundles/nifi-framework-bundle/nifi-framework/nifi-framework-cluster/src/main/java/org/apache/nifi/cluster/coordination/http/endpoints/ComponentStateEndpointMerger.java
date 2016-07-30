@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.state.SortedStateUtils;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.StateEntryDTO;
@@ -60,41 +62,91 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
     }
 
     @Override
-    protected void mergeResponses(ComponentStateDTO clientDto, Map<NodeIdentifier, ComponentStateDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        List<StateEntryDTO> localStateEntries = new ArrayList<>();
+    public void mergeResponses(ComponentStateDTO clientDto, Map<NodeIdentifier, ComponentStateDTO> dtoMap,
+                               Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
 
-        int totalStateEntries = 0;
+        // If there're more than 1 node returning external state, then it's a per node external state.
+        final boolean externalPerNode = dtoMap.values().stream()
+                .filter(component -> (component.getExternalState() != null && component.getExternalState().getState() != null))
+                .count() > 1;
+
+        final StateMapDTOMerger[] mergers = {
+                new StateMapDTOMerger(Scope.LOCAL, node -> node.getLocalState(), (merged, state) -> merged.setLocalState(state), true),
+                new StateMapDTOMerger(Scope.CLUSTER, node -> node.getClusterState(), (merged, state) -> merged.setClusterState(state), false),
+                new StateMapDTOMerger(Scope.EXTERNAL, node -> node.getExternalState(), (merged, state) -> merged.setExternalState(state), externalPerNode)
+        };
+
+        // Loop through nodes
         for (final Map.Entry<NodeIdentifier, ComponentStateDTO> nodeEntry : dtoMap.entrySet()) {
             final ComponentStateDTO nodeComponentState = nodeEntry.getValue();
             final NodeIdentifier nodeId = nodeEntry.getKey();
             final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
 
-            final StateMapDTO nodeLocalStateMap = nodeComponentState.getLocalState();
-            if (nodeLocalStateMap.getState() != null) {
-                totalStateEntries += nodeLocalStateMap.getTotalEntryCount();
+            for (final StateMapDTOMerger merger : mergers) {
+                final StateMapDTO nodeStateMapDTO = merger.stateGetter.apply(nodeComponentState);
+                if (nodeStateMapDTO != null && nodeStateMapDTO.getState() != null) {
+                    final StateMapDTO mergedStateMapDTO = merger.getMergedStateMapDTO();
+                    final List<StateEntryDTO> stateEntries = mergedStateMapDTO.getState();
+                    mergedStateMapDTO.setTotalEntryCount(mergedStateMapDTO.getTotalEntryCount() + nodeStateMapDTO.getTotalEntryCount());
 
-                for (final StateEntryDTO nodeStateEntry : nodeLocalStateMap.getState()) {
-                    if (nodeStateEntry.getClusterNodeId() == null || nodeStateEntry.getClusterNodeAddress() == null) {
-                        nodeStateEntry.setClusterNodeId(nodeId.getId());
-                        nodeStateEntry.setClusterNodeAddress(nodeAddress);
+                    for (final StateEntryDTO nodeStateEntry : nodeStateMapDTO.getState()) {
+                        if (merger.perNode
+                                && (nodeStateEntry.getClusterNodeId() == null || nodeStateEntry.getClusterNodeAddress() == null)) {
+                            nodeStateEntry.setClusterNodeId(nodeId.getId());
+                            nodeStateEntry.setClusterNodeAddress(nodeAddress);
+                        }
+
+                        stateEntries.add(nodeStateEntry);
                     }
-
-                    localStateEntries.add(nodeStateEntry);
                 }
             }
         }
 
-        // ensure appropriate sort
-        Collections.sort(localStateEntries, SortedStateUtils.getEntryDtoComparator());
+        Arrays.stream(mergers).filter(m -> m.mergedStateMapDTO != null).forEach(m -> {
+            // ensure appropriate sort
+            final List<StateEntryDTO> stateEntries = m.mergedStateMapDTO.getState();
+            Collections.sort(stateEntries, SortedStateUtils.getEntryDtoComparator());
 
-        // sublist if necessary
-        if (localStateEntries.size() > SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES) {
-            localStateEntries = localStateEntries.subList(0, SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES);
+            // sublist if necessary
+            if (stateEntries.size() > SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES) {
+                m.mergedStateMapDTO.setState(stateEntries.subList(0, SortedStateUtils.MAX_COMPONENT_STATE_ENTRIES));
+            }
+
+            m.stateSetter.apply(clientDto, m.mergedStateMapDTO);
+        });
+
+    }
+
+    private interface StateGetter {
+        StateMapDTO apply(ComponentStateDTO node);
+    }
+    private interface StateSetter {
+        void apply(ComponentStateDTO merged, StateMapDTO state);
+    }
+
+    private static class StateMapDTOMerger {
+        private final StateGetter stateGetter;
+        private final StateSetter stateSetter;
+        private final Scope scope;
+        private final boolean perNode;
+        private StateMapDTO mergedStateMapDTO;
+
+        public StateMapDTOMerger(final Scope scope, final StateGetter stateGetter, final StateSetter stateSetter, final boolean perNode) {
+            this.scope = scope;
+            this.stateGetter = stateGetter;
+            this.stateSetter = stateSetter;
+            this.perNode = perNode;
         }
 
-        // add all the local state entries
-        clientDto.getLocalState().setTotalEntryCount(totalStateEntries);
-        clientDto.getLocalState().setState(localStateEntries);
+        public StateMapDTO getMergedStateMapDTO() {
+            if (mergedStateMapDTO == null) {
+                mergedStateMapDTO = new StateMapDTO();
+                mergedStateMapDTO.setScope(scope.toString());
+                mergedStateMapDTO.setTotalEntryCount(0);
+                mergedStateMapDTO.setState(new ArrayList<>());
+            }
+            return mergedStateMapDTO;
+        }
     }
 
 }

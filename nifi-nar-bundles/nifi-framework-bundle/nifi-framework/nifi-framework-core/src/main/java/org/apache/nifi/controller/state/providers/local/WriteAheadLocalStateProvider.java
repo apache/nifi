@@ -37,7 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
-import org.apache.nifi.controller.state.StandardStateMap;
+import org.apache.nifi.components.state.StandardStateMap;
 import org.apache.nifi.controller.state.StateMapSerDe;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;

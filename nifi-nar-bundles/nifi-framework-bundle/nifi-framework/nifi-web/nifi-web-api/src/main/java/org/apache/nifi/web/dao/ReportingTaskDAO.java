@@ -18,8 +18,6 @@ package org.apache.nifi.web.dao;
 
 import java.util.Set;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ReportingTaskNode;
 
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -87,24 +85,9 @@ public interface ReportingTaskDAO {
     void deleteReportingTask(String reportingTaskId);
 
     /**
-     * Gets the specified reporting task.
-     *
-     * @param reportingTaskId reporting task id
-     * @return state map
-     */
-    StateMap getState(String reportingTaskId, Scope scope);
-
-    /**
      * Verifies the reporting task can clear state.
      *
      * @param reportingTaskId reporting task id
      */
     void verifyClearState(String reportingTaskId);
-
-    /**
-     * Clears the state of the specified reporting task.
-     *
-     * @param reportingTaskId reporting task id
-     */
-    void clearState(String reportingTaskId);
 }

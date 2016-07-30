@@ -49,6 +49,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -313,17 +314,21 @@ public final class DtoFactory {
     /**
      * Creates a ComponentStateDTO for the given component and state's.
      *
-     * @param componentId component id
+     * @param component component
      * @param localState local state
      * @param clusterState cluster state
+     * @param externalState external state
      * @return dto
      */
-    public ComponentStateDTO createComponentStateDTO(final String componentId, final Class<?> componentClass, final StateMap localState, final StateMap clusterState) {
+    public ComponentStateDTO createComponentStateDTO(final ConfigurableComponent component, final StateMap localState,
+                                                     final StateMap clusterState, final StateMap externalState) {
         final ComponentStateDTO dto = new ComponentStateDTO();
-        dto.setComponentId(componentId);
-        dto.setStateDescription(getStateDescription(componentClass));
+        dto.setComponentId(component.getIdentifier());
+        dto.setStateDescription(getStateDescription(component.getClass()));
         dto.setLocalState(createStateMapDTO(Scope.LOCAL, localState));
         dto.setClusterState(createStateMapDTO(Scope.CLUSTER, clusterState));
+        dto.setExternalState(createStateMapDTO(Scope.EXTERNAL, externalState));
+
         return dto;
     }
 

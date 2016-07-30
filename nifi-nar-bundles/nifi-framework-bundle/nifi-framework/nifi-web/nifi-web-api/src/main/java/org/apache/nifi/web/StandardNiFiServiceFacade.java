@@ -48,9 +48,11 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.ExternalStateManager;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
@@ -146,6 +148,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.ClearComponentStateResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -172,6 +175,7 @@ import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
@@ -250,6 +254,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private AccessPolicyDAO accessPolicyDAO;
     private ClusterCoordinator clusterCoordinator;
     private HeartbeatMonitor heartbeatMonitor;
+    private ComponentStateDAO componentStateDAO;
 
     // administrative services
     private AuditService auditService;
@@ -815,14 +820,44 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createCounterDto(controllerFacade.resetCounter(counterId));
     }
 
+    private ClearComponentStateResultEntity clearComponentState(final ConfigurableComponent component) {
+
+        logger.debug("clearComponentState: component={}, shouldManageClusterState={}, shouldManageExternalState={}",
+                component, shouldManageClusterState(), shouldManageExternalState(component));
+
+        final ClearComponentStateResultEntity entity = new ClearComponentStateResultEntity();
+        componentStateDAO.clearState(component, Scope.LOCAL);
+
+        try {
+            if (shouldManageClusterState()) {
+                componentStateDAO.clearState(component, Scope.CLUSTER);
+            }
+
+            if (shouldManageExternalState(component)) {
+                componentStateDAO.clearState(component, Scope.EXTERNAL);
+            }
+        } catch (Exception e) {
+            // If an exception is thrown for these cluster-wide or external state,
+            // the cause would be related to the underlying storage system with high possibility.
+            // If we throw exception here, cluster coordinator will disconnects this node from a cluster.
+            // See: NodeClusterCoordinator.afterRequest()
+            // Removing node doesn't help since it's related to external system, and other node will have the same issue.
+            // So instead, return entity with message.
+            logger.warn("Failed to clear state for {} due to {}", component, e, e);
+            entity.setCleared(false);
+            entity.setMessage(e.getMessage());
+        }
+        return entity;
+    }
+
     @Override
     public void verifyCanClearProcessorState(final String processorId) {
         processorDAO.verifyClearState(processorId);
     }
 
     @Override
-    public void clearProcessorState(final String processorId) {
-        processorDAO.clearState(processorId);
+    public ClearComponentStateResultEntity clearProcessorState(final String processorId) {
+        return clearComponentState(processorDAO.getProcessor(processorId).getProcessor());
     }
 
     @Override
@@ -831,8 +866,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearControllerServiceState(final String controllerServiceId) {
-        controllerServiceDAO.clearState(controllerServiceId);
+    public ClearComponentStateResultEntity clearControllerServiceState(final String controllerServiceId) {
+        return clearComponentState(controllerServiceDAO.getControllerService(controllerServiceId).getControllerServiceImplementation());
     }
 
     @Override
@@ -841,8 +876,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public void clearReportingTaskState(final String reportingTaskId) {
-        reportingTaskDAO.clearState(reportingTaskId);
+    public ClearComponentStateResultEntity clearReportingTaskState(final String reportingTaskId) {
+        return clearComponentState(reportingTaskDAO.getReportingTask(reportingTaskId).getReportingTask());
     }
 
     @Override
@@ -1902,34 +1937,50 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return controllerFacade.getControllerStatus();
     }
 
+    private boolean shouldManageClusterState() {
+        return !isClustered() || controllerFacade.isPrimary();
+    }
+
+    private boolean shouldManageExternalState(final ConfigurableComponent component) {
+        return (component instanceof ExternalStateManager)
+            && (!isClustered()
+                || ExternalStateManager.ExternalStateScope.CLUSTER != ((ExternalStateManager)component).getExternalStateScope()
+                || controllerFacade.isPrimary());
+    }
+
+    private ComponentStateDTO getComponentState(final ConfigurableComponent component) {
+
+        logger.debug("getComponentState: component={}, shouldManageClusterState={}, shouldManageExternalState={}",
+                component, shouldManageClusterState(), shouldManageExternalState(component));
+
+        try {
+            final StateMap clusterState = shouldManageClusterState() ? componentStateDAO.getState(component, Scope.CLUSTER) : null;
+            logger.debug("clusterState={}", clusterState);
+            final StateMap localState = componentStateDAO.getState(component, Scope.LOCAL);
+            logger.debug("localState={}", localState);
+            final StateMap externalState = shouldManageExternalState(component) ? componentStateDAO.getState(component, Scope.EXTERNAL) : null;
+            logger.debug("externalState={}", externalState);
+
+            return dtoFactory.createComponentStateDTO(component, localState, clusterState, externalState);
+        } catch (Exception e) {
+            logger.error("Failed to retrieve state for {} due to {}", component, e, e);
+            throw e;
+        }
+    }
+
     @Override
     public ComponentStateDTO getProcessorState(final String processorId) {
-        final StateMap clusterState = isClustered() ? processorDAO.getState(processorId, Scope.CLUSTER) : null;
-        final StateMap localState = processorDAO.getState(processorId, Scope.LOCAL);
-
-        // processor will be non null as it was already found when getting the state
-        final ProcessorNode processor = processorDAO.getProcessor(processorId);
-        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
+        return getComponentState(processorDAO.getProcessor(processorId).getProcessor());
     }
 
     @Override
     public ComponentStateDTO getControllerServiceState(final String controllerServiceId) {
-        final StateMap clusterState = isClustered() ? controllerServiceDAO.getState(controllerServiceId, Scope.CLUSTER) : null;
-        final StateMap localState = controllerServiceDAO.getState(controllerServiceId, Scope.LOCAL);
-
-        // controller service will be non null as it was already found when getting the state
-        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
-        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
+        return getComponentState(controllerServiceDAO.getControllerService(controllerServiceId).getControllerServiceImplementation());
     }
 
     @Override
     public ComponentStateDTO getReportingTaskState(final String reportingTaskId) {
-        final StateMap clusterState = isClustered() ? reportingTaskDAO.getState(reportingTaskId, Scope.CLUSTER) : null;
-        final StateMap localState = reportingTaskDAO.getState(reportingTaskId, Scope.LOCAL);
-
-        // reporting task will be non null as it was already found when getting the state
-        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
-        return dtoFactory.createComponentStateDTO(reportingTaskId, reportingTask.getReportingTask().getClass(), localState, clusterState);
+        return getComponentState(reportingTaskDAO.getReportingTask(reportingTaskId).getReportingTask());
     }
 
     @Override
@@ -3007,5 +3058,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

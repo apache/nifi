@@ -86,16 +86,13 @@
     </bean>
     <bean id="processorDAO" class="org.apache.nifi.web.dao.impl.StandardProcessorDAO">
         <property name="flowController" ref="flowController"/>
-        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     <bean id="controllerServiceDAO" class="org.apache.nifi.web.dao.impl.StandardControllerServiceDAO">
         <property name="serviceProvider" ref="controllerServiceProvider"/>
-        <property name="componentStateDAO" ref="componentStateDAO"/>
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="reportingTaskDAO" class="org.apache.nifi.web.dao.impl.StandardReportingTaskDAO">
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
-        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
         <property name="stateManagerProvider" ref="stateManagerProvider"/>
@@ -165,6 +162,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
         <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
     </bean>
     
     <!-- component ui extension configuration context -->

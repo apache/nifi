@@ -41,6 +41,10 @@ public class StandardStateManager implements StateManager {
     }
 
     private StateProvider getProvider(final Scope scope) {
+        if (scope == Scope.EXTERNAL) {
+            throw new IllegalArgumentException("EXTERNAL scope is not managed by StateManager." +
+                    " A component should implement ExternalStateManager by itself to support EXTERNAL scope state.");
+        }
         if (scope == Scope.LOCAL || clusterProvider == null || !clusterProvider.isEnabled()) {
             return localProvider;
         }

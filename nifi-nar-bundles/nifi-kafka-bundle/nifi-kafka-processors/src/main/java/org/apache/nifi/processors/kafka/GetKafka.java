@@ -38,9 +38,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -50,6 +52,10 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.ExternalStateManager;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StandardStateMap;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -82,7 +88,12 @@ import kafka.message.MessageAndMetadata;
         + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"
         + " overriden with warning message describing the override."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
-public class GetKafka extends AbstractProcessor {
+@Stateful(scopes = {Scope.EXTERNAL}, description = "While consuming messages from a Kafka topic, GetKafka periodically commits" +
+        " its offset information based on Zookeeper Commit Frequency." +
+        " Offsets are persisted in Zookeeper in per consumer group ids and topic partitions manner," +
+        " so that the state of a consumer group can be retained across events such as consumer reconnect." +
+        " Once offsets are cleared, GetKafka will resume consuming messages based on Auto Offset Rest configuration when it restarts.")
+public class GetKafka extends AbstractProcessor implements ExternalStateManager {
 
     public static final String SMALLEST = "smallest";
     public static final String LARGEST = "largest";
@@ -184,6 +195,9 @@ public class GetKafka extends AbstractProcessor {
     private volatile long deadlockTimeout;
 
     private volatile ExecutorService executor;
+    private volatile String zookeeperConnectionString;
+    private volatile String groupId;
+    private volatile String topic;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -218,11 +232,10 @@ public class GetKafka extends AbstractProcessor {
     }
 
     public void createConsumers(final ProcessContext context) {
-        final String topic = context.getProperty(TOPIC).getValue();
 
         final Properties props = new Properties();
-        props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
-        props.setProperty("group.id", context.getProperty(GROUP_ID).getValue());
+        props.setProperty("zookeeper.connect", zookeeperConnectionString);
+        props.setProperty("group.id", groupId);
         props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
         props.setProperty("auto.offset.reset", context.getProperty(AUTO_OFFSET_RESET).getValue());
@@ -256,8 +269,7 @@ public class GetKafka extends AbstractProcessor {
             props.setProperty("consumer.timeout.ms", "1");
         }
 
-        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(
-                context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue(), context.getProperty(TOPIC).getValue());
+        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(zookeeperConnectionString, topic);
 
         final ConsumerConfig consumerConfig = new ConsumerConfig(props);
         consumer = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -267,12 +279,12 @@ public class GetKafka extends AbstractProcessor {
         int concurrentTaskToUse = context.getMaxConcurrentTasks();
         if (context.getMaxConcurrentTasks() < partitionCount){
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + topic + "'. "
                 + "Consider making it equal to the amount of partition count for most efficient event consumption.");
         } else if (context.getMaxConcurrentTasks() > partitionCount){
             concurrentTaskToUse = partitionCount;
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + topic + "'. "
                 + "Therefore those tasks would never see a message. To avoid that the '" + partitionCount + "'(partition count) will be used to consume events");
         }
 
@@ -481,4 +493,59 @@ public class GetKafka extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
+
+    @Override
+    public ExternalStateScope getExternalStateScope() {
+        return ExternalStateScope.CLUSTER;
+    }
+
+    @Override
+    public StateMap getExternalState() throws IOException {
+        // We don't have to synchronize with onTrigger here,
+        // since it merely retrieves state from Zk using different channel, it doesn't affect consuming.
+        if (!isReadyToAccessState()) {
+            return null;
+        }
+        final Map<String, String> partitionOffsets = KafkaUtils.retrievePartitionOffsets(zookeeperConnectionString, topic, groupId);
+
+        return new StandardStateMap(partitionOffsets, System.currentTimeMillis());
+    }
+
+    private boolean isReadyToAccessState() {
+        return !StringUtils.isEmpty(zookeeperConnectionString)
+                && !StringUtils.isEmpty(topic)
+                && !StringUtils.isEmpty(groupId);
+    }
+
+    @Override
+    public void clearExternalState() throws IOException {
+        if (!isReadyToAccessState()) {
+            return;
+        }
+        // Block onTrigger starts creating new consumer until clear offset finishes.
+        synchronized (this.consumerStreamsReady) {
+            KafkaUtils.clearPartitionOffsets(zookeeperConnectionString, topic, groupId);
+        }
+    }
+
+    /**
+     * GetKafka overrides this method in order to capture processor's property values required when it retrieves
+     * its state managed externally at Kafka. Since view/clear state operation can be executed before onTrigger() is called,
+     * we need to capture these values as it's modified. This method is also called when NiFi restarts and loads configs,
+     * so users can access external states right after restart of NiFi.
+     * @param descriptor of the modified property
+     * @param oldValue non-null property value (previous)
+     * @param newValue the new property value or if null indicates the property
+     */
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (ZOOKEEPER_CONNECTION_STRING.equals(descriptor)) {
+            zookeeperConnectionString = newValue;
+        } else if (TOPIC.equals(descriptor)) {
+            topic = newValue;
+        } else if (GROUP_ID.equals(descriptor)) {
+            groupId = newValue;
+        }
+    }
+
 }

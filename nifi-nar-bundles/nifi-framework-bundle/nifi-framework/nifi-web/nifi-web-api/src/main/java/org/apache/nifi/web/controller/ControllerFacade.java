@@ -41,6 +41,7 @@ import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -134,7 +135,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
-public class ControllerFacade implements Authorizable {
+public class ControllerFacade implements Authorizable, NodeTypeProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
@@ -367,11 +368,14 @@ public class ControllerFacade implements Authorizable {
         return flowController.getNodeId();
     }
 
-    /**
-     * @return true if is clustered
-     */
+    @Override
     public boolean isClustered() {
         return flowController.isClustered();
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return flowController.isPrimary();
     }
 
     /**

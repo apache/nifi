@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ClearComponentStateResultEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
@@ -319,7 +320,7 @@ public class ControllerServiceResource extends ApplicationResource {
      *
      * @param httpServletRequest servlet request
      * @param id The id of the controller service
-     * @return a componentStateEntity
+     * @return a clearComponentStateEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
@@ -328,7 +329,7 @@ public class ControllerServiceResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a controller service",
-        response = ComponentStateDTO.class,
+        response = ClearComponentStateResultEntity.class,
         authorizations = {
             @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
         }
@@ -367,11 +368,7 @@ public class ControllerServiceResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // get the component state
-        serviceFacade.clearControllerServiceState(id);
-
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
+        ClearComponentStateResultEntity entity = serviceFacade.clearControllerServiceState(id);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.kafka;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -36,6 +37,9 @@ import org.mockito.stubbing.Answer;
 
 import kafka.consumer.ConsumerIterator;
 import kafka.message.MessageAndMetadata;
+
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 public class TestGetKafka {
 
@@ -163,6 +167,46 @@ public class TestGetKafka {
             }).when(itr).next();
 
             return itr;
+        }
+    }
+
+    @Test
+    public void testGetState() throws Exception {
+        final GetKafka processor = new GetKafka();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        assertNull("State should be null when required properties are not specified.", processor.getExternalState());
+
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "0.0.0.0:invalid-port");
+        runner.setProperty(GetKafka.TOPIC, "testX");
+
+        assertNull("State should be null when required properties are not specified.", processor.getExternalState());
+
+        runner.setProperty(GetKafka.GROUP_ID, "consumer-group-id");
+
+        try {
+            processor.getExternalState();
+            fail("The processor should try to access Zookeeper and should fail since it can not connect.");
+        } catch (IOException e) {
+        }
+    }
+
+    @Test
+    public void testClearState() throws Exception {
+        final GetKafka processor = new GetKafka();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        // Clear doesn't do anything until required properties are set.
+        processor.clearExternalState();
+
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "0.0.0.0:invalid-port");
+        runner.setProperty(GetKafka.TOPIC, "testX");
+        runner.setProperty(GetKafka.GROUP_ID, "consumer-group-id");
+
+        try {
+            processor.clearExternalState();
+            fail("The processor should try to access Zookeeper and should fail since it can not connect Zookeeper.");
+        } catch (IOException e) {
         }
     }
 

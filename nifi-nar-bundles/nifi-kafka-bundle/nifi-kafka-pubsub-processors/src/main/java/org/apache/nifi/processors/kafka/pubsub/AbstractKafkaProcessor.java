@@ -33,6 +33,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -316,19 +317,33 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
      * Builds Kafka {@link Properties}
      */
     Properties buildKafkaProperties(ProcessContext context) {
-        Properties properties = new Properties();
+        Properties properties = getDefaultKafkaProperties();
         for (PropertyDescriptor propertyDescriptor : context.getProperties().keySet()) {
-            String pName = propertyDescriptor.getName();
-            String pValue = propertyDescriptor.isExpressionLanguageSupported()
-                    ? context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue()
-                    : context.getProperty(propertyDescriptor).getValue();
-            if (pValue != null) {
-                if (pName.endsWith(".ms")) { // kafka standard time notation
-                    pValue = String.valueOf(FormatUtils.getTimeDuration(pValue.trim(), TimeUnit.MILLISECONDS));
-                }
-                properties.setProperty(pName, pValue);
-            }
+            setKafkaProperty(properties, propertyDescriptor, context.getProperty(propertyDescriptor));
         }
         return properties;
+    }
+
+    /**
+     * Returns new Properties instance with default values.
+     * Subclasses can override this method to define default Kafka property values.
+     */
+    protected Properties getDefaultKafkaProperties() {
+        return new Properties();
+    }
+
+    protected void setKafkaProperty(final Properties properties, final PropertyDescriptor propertyDescriptor, PropertyValue propertyValue) {
+        String pName = propertyDescriptor.getName();
+        String pValue = propertyDescriptor.isExpressionLanguageSupported()
+                ? propertyValue.evaluateAttributeExpressions().getValue()
+                : propertyValue.getValue();
+        if (pValue != null) {
+            if (pName.endsWith(".ms")) { // kafka standard time notation
+                pValue = String.valueOf(FormatUtils.getTimeDuration(pValue.trim(), TimeUnit.MILLISECONDS));
+            }
+            properties.setProperty(pName, pValue);
+        } else {
+            properties.remove(pName);
+        }
     }
 }
