@@ -205,10 +205,14 @@ public class GetKafka extends AbstractProcessor implements ExternalStateManager 
                 .fromPropertyDescriptor(CLIENT_NAME)
                 .defaultValue("NiFi-" + getIdentifier())
                 .build();
+        final String defaultGroupId = getIdentifier();
         final PropertyDescriptor groupIdWithDefault = new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(GROUP_ID)
-                .defaultValue(getIdentifier())
+                .defaultValue(defaultGroupId)
                 .build();
+        if (StringUtils.isBlank(groupId)) {
+            groupId = defaultGroupId;
+        }
 
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ZOOKEEPER_CONNECTION_STRING);

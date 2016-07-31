@@ -69,6 +69,7 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
     static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
     static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
 
+    protected static final String DEFAULT_BOOTSTRAP_SERVERS = "localhost:9092";
     static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")
@@ -77,7 +78,7 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
             .expressionLanguageSupported(true)
-            .defaultValue("localhost:9092")
+            .defaultValue(DEFAULT_BOOTSTRAP_SERVERS)
             .build();
     static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
             .name(ProducerConfig.CLIENT_ID_CONFIG)

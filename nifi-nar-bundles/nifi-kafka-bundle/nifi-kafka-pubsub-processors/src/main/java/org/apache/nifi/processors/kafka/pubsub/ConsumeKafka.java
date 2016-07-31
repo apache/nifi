@@ -121,7 +121,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
     private volatile String topic;
 
-    private volatile String brokers;
+    private volatile String brokers = DEFAULT_BOOTSTRAP_SERVERS;
 
     private volatile Properties kafkaProperties;
 
@@ -491,7 +491,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         if (kafkaProperties == null) {
             kafkaProperties = getDefaultKafkaProperties();
         }
-        setKafkaProperty(kafkaProperties, descriptor, new StandardPropertyValue(newValue, null));
+        setKafkaProperty(kafkaProperties, descriptor, new StandardPropertyValue(newValue, null, null));
 
         if (TOPIC.equals(descriptor)) {
             topic = kafkaProperties.getProperty(TOPIC.getName());

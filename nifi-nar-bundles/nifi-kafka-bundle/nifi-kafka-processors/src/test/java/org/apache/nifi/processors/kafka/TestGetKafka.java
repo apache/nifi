@@ -178,11 +178,11 @@ public class TestGetKafka {
         assertNull("State should be null when required properties are not specified.", processor.getExternalState());
 
         runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "0.0.0.0:invalid-port");
-        runner.setProperty(GetKafka.TOPIC, "testX");
+        runner.setProperty(GetKafka.GROUP_ID, "consumer-group-id");
 
         assertNull("State should be null when required properties are not specified.", processor.getExternalState());
 
-        runner.setProperty(GetKafka.GROUP_ID, "consumer-group-id");
+        runner.setProperty(GetKafka.TOPIC, "testX");
 
         try {
             processor.getExternalState();
