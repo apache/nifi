@@ -18,8 +18,6 @@ package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -64,13 +62,11 @@ public class TestFetchElasticsearch {
 
     private InputStream docExample;
     private TestRunner runner;
-    private VariableRegistry variableRegistry;
 
     @Before
     public void setUp() throws IOException {
         ClassLoader classloader = Thread.currentThread().getContextClassLoader();
         docExample = classloader.getResourceAsStream("DocumentExample.json");
-        variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
 
     }
 
@@ -220,7 +216,7 @@ public class TestFetchElasticsearch {
             }
         };
 
-        MockProcessContext context = new MockProcessContext(processor, variableRegistry);
+        MockProcessContext context = new MockProcessContext(processor);
         processor.initialize(new MockProcessorInitializationContext(processor, context));
         processor.callCreateElasticsearchClient(context);
     }

@@ -986,7 +986,7 @@ public class NiFiProperties extends Properties {
 
             return vrPropertiesPaths.toArray( new Path[vrPropertiesPaths.size()]);
         } else {
-            return null;
+            return new Path[]{};
         }
     }
 

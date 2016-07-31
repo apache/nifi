@@ -47,7 +47,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,7 +76,7 @@ public class TestStandardControllerServiceProvider {
         }
     };
 
-    private static VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
+    private static VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
 
     @BeforeClass
     public static void setNiFiProps() {

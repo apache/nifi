@@ -47,7 +47,6 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -68,10 +67,10 @@ public class NotificationServiceManager {
 
 
     public NotificationServiceManager() {
-        this(VariableRegistryUtils.createSystemVariableRegistry());
+        this(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     }
 
-    NotificationServiceManager(VariableRegistry variableRegistry){
+    NotificationServiceManager(final VariableRegistry variableRegistry){
         this.variableRegistry = variableRegistry;
         notificationExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override

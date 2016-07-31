@@ -25,7 +25,6 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.registry.VariableRegistry;
 
 public class StandardPreparedQuery implements PreparedQuery {
 
@@ -39,14 +38,14 @@ public class StandardPreparedQuery implements PreparedQuery {
 
 
     @Override
-    public String evaluateExpressions(final VariableRegistry registry, final AttributeValueDecorator decorator) throws ProcessException {
+    public String evaluateExpressions(final Map<String, String> valueMap, final AttributeValueDecorator decorator) throws ProcessException {
         final StringBuilder sb = new StringBuilder();
         for (final String val : queryStrings) {
             final Tree tree = trees.get(val);
             if (tree == null) {
                 sb.append(val);
             } else {
-                final String evaluated = Query.evaluateExpression(tree, val, registry, decorator);
+                final String evaluated = Query.evaluateExpression(tree, val, valueMap, decorator);
                 if (evaluated != null) {
                     sb.append(evaluated);
                 }

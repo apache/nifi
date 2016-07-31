@@ -20,7 +20,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistryUtils;
+import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -32,7 +32,7 @@ public class CurrentTestStandardProcessorTestRunner {
     @Test
     public void testOnScheduledCalledAfterRunFinished() {
         SlowRunProcessor processor = new SlowRunProcessor();
-        StandardProcessorTestRunner runner = new StandardProcessorTestRunner(processor, VariableRegistryUtils.createSystemVariableRegistry());
+        StandardProcessorTestRunner runner = new StandardProcessorTestRunner(processor, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
         final int iterations = 5;
         runner.run(iterations);
         // if the counter is not equal to iterations, the the processor must have been unscheduled

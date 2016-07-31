@@ -46,7 +46,6 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.update.attributes.Action;
 import org.apache.nifi.update.attributes.Condition;
 import org.apache.nifi.update.attributes.Criteria;
@@ -188,7 +187,6 @@ public class RuleResource {
 
         // get the web context
         final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
-        final VariableRegistry variableRegistry = configurationContext.getVariableRegistry();
 
         // ensure the rule has been specified
         if (requestEntity == null || requestEntity.getRule() == null) {
@@ -221,7 +219,7 @@ public class RuleResource {
 
         // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
-        final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory(variableRegistry);
+        final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
 
         // create the new rule
         final Rule rule;
@@ -263,14 +261,10 @@ public class RuleResource {
         // generate a new id
         final String uuid = UUID.randomUUID().toString();
 
-        // get the variable registry
-        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
-        final VariableRegistry variableRegistry = configurationContext.getVariableRegistry();
-
         final Condition condition;
         try {
             // create the condition object
-            final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory(variableRegistry);
+            final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
             condition = factory.createCondition(requestEntity.getCondition());
             condition.setId(uuid);
         } catch (final IllegalArgumentException iae) {
@@ -301,14 +295,10 @@ public class RuleResource {
         // generate a new id
         final String uuid = UUID.randomUUID().toString();
 
-        // get the variable registry
-        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
-        final VariableRegistry variableRegistry = configurationContext.getVariableRegistry();
-
         final Action action;
         try {
             // create the condition object
-            final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory(variableRegistry);
+            final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
             action = factory.createAction(requestEntity.getAction());
             action.setId(uuid);
         } catch (final IllegalArgumentException iae) {
@@ -471,8 +461,6 @@ public class RuleResource {
 
         // get the web context
         final NiFiWebConfigurationContext nifiWebContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
-        // get the variable registry
-        final VariableRegistry variableRegistry = nifiWebContext.getVariableRegistry();
 
         // ensure the rule has been specified
         if (requestEntity == null || requestEntity.getRule() == null) {
@@ -509,7 +497,7 @@ public class RuleResource {
                 requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
 
         // load the criteria
-        final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory(variableRegistry);
+        final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
         final Criteria criteria = getCriteria(nifiWebContext, requestContext);
 
         // attempt to locate the rule

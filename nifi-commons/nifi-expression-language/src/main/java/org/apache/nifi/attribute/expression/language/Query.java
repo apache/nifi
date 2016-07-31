@@ -194,7 +194,6 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
-import org.apache.nifi.registry.VariableRegistry;
 
 /**
  * Class used for creating and evaluating NiFi Expression Language. Once a Query
@@ -364,8 +363,8 @@ public class Query {
         return -1;
     }
 
-    static String evaluateExpression(final Tree tree, final String queryText, final VariableRegistry registry, final AttributeValueDecorator decorator) throws ProcessException {
-        final Object evaluated = Query.fromTree(tree, queryText).evaluate(registry).getValue();
+    static String evaluateExpression(final Tree tree, final String queryText, final Map<String, String> valueMap, final AttributeValueDecorator decorator) throws ProcessException {
+        final Object evaluated = Query.fromTree(tree, queryText).evaluate(valueMap).getValue();
         if (evaluated == null) {
             return null;
         }
@@ -375,12 +374,12 @@ public class Query {
         return decorator == null ? escaped : decorator.decorate(escaped);
     }
 
-    static String evaluateExpressions(final String rawValue, VariableRegistry registry) throws ProcessException {
-        return evaluateExpressions(rawValue, registry, null);
+    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup) throws ProcessException {
+        return evaluateExpressions(rawValue, valueLookup, null);
     }
 
-    static String evaluateExpressions(final String rawValue, VariableRegistry registry, final AttributeValueDecorator decorator) throws ProcessException {
-        return Query.prepare(rawValue).evaluateExpressions(registry, decorator);
+    static String evaluateExpressions(final String rawValue, final Map<String, String> valueLookup, final AttributeValueDecorator decorator) throws ProcessException {
+        return Query.prepare(rawValue).evaluateExpressions(valueLookup, decorator);
     }
 
     private static Evaluator<?> getRootSubjectEvaluator(final Evaluator<?> evaluator) {
@@ -542,12 +541,12 @@ public class Query {
         return evaluator.getResultType();
     }
 
-    QueryResult<?> evaluate(final VariableRegistry registry) {
+    QueryResult<?> evaluate(final Map<String, String> map) {
         if (evaluated.getAndSet(true)) {
             throw new IllegalStateException("A Query cannot be evaluated more than once");
         }
 
-        return evaluator.evaluate(registry.getVariables());
+        return evaluator.evaluate(map);
     }
 
     Tree getTree() {

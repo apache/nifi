@@ -39,6 +39,14 @@ public class MockPropertyValue implements PropertyValue {
     private final VariableRegistry variableRegistry;
     private boolean expressionsEvaluated = false;
 
+    public MockPropertyValue(final String rawValue) {
+        this(rawValue, null);
+    }
+
+    public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup) {
+        this(rawValue, serviceLookup, VariableRegistry.EMPTY_REGISTRY, null);
+    }
+
     public MockPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final VariableRegistry variableRegistry) {
         this(rawValue, serviceLookup, variableRegistry, null);
     }

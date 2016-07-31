@@ -18,12 +18,11 @@ package org.apache.nifi.util;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 
 public class TestRunners {
 
     public static TestRunner newTestRunner(final Processor processor) {
-        return newTestRunner(processor,VariableRegistryUtils.createSystemVariableRegistry());
+        return newTestRunner(processor,VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     }
 
     public static TestRunner newTestRunner(final Processor processor, VariableRegistry variableRegistry){

@@ -26,9 +26,6 @@ import java.util.Map;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
-import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -38,12 +35,10 @@ import org.junit.Test;
 
 public class TestRouteOnAttribute {
 
-    private VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
-
     @Test
     public void testInvalidOnMisconfiguredProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
-        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager(proc), variableRegistry);
+        final MockProcessContext ctx = new MockProcessContext(proc);
         final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:equals('b')"); // Missing closing brace
         assertFalse(validationResult.isValid());
     }
@@ -51,7 +46,7 @@ public class TestRouteOnAttribute {
     @Test
     public void testInvalidOnNonBooleanProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
-        final MockProcessContext ctx = new MockProcessContext(proc, new MockStateManager(proc), variableRegistry);
+        final MockProcessContext ctx = new MockProcessContext(proc);
         final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:length()"); // Should be boolean
         assertFalse(validationResult.isValid());
     }

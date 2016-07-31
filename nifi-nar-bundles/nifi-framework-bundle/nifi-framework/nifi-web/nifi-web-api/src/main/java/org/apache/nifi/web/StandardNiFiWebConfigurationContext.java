@@ -288,12 +288,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         return componentFacade.updateComponent(requestContext, annotationData, properties);
     }
 
-
-    @Override
-    public VariableRegistry getVariableRegistry() {
-        return this.variableRegistry;
-    }
-
     private NodeResponse replicate(final String method, final URI uri, final Object entity, final Map<String, String> headers) throws InterruptedException {
         final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
         if (coordinatorNode == null) {

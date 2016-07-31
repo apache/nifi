@@ -23,8 +23,8 @@ import org.apache.nifi.controller.StandardFlowServiceTest;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -43,7 +43,7 @@ public class StandardControllerServiceProviderTest {
         NiFiProperties properties = NiFiProperties.getInstance();
         NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
         ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
-        variableRegistry = VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths());
+        variableRegistry = new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths());
     }
 
     @Before

@@ -43,6 +43,7 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
+import static java.util.Objects.requireNonNull;
 
 public class MockProcessContext extends MockControllerServiceLookup implements SchedulingContext, ControllerServiceLookup, NodeTypeProvider {
 
@@ -65,14 +66,15 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private volatile boolean isClustered;
     private volatile boolean isPrimaryNode;
 
-    public MockProcessContext(final ConfigurableComponent component, final VariableRegistry variableRegistry) {
-        this(component, new MockStateManager(component),variableRegistry);
+    public MockProcessContext(final ConfigurableComponent component) {
+        this(component, new MockStateManager(component),VariableRegistry.EMPTY_REGISTRY);
     }
 
     /**
      * Creates a new MockProcessContext for the given Processor
      *
      * @param component being mocked
+     * @param stateManager state manager
      * @param variableRegistry variableRegistry
      */
     public MockProcessContext(final ConfigurableComponent component, final StateManager stateManager, final VariableRegistry variableRegistry) {
