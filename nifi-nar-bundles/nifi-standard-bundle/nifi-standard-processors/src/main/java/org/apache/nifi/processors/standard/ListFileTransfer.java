@@ -71,6 +71,8 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         attributes.put("file.owner", fileInfo.getOwner());
         attributes.put("file.group", fileInfo.getGroup());
         attributes.put("file.permissions", fileInfo.getPermissions());
+        attributes.put("file.timestamp", String.valueOf(fileInfo.getTimestamp()));
+        attributes.put("file.lastModifiedTime", String.valueOf(fileInfo.getLastModifiedTime()));
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         attributes.put(getProtocolName() + ".listing.user", context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
 

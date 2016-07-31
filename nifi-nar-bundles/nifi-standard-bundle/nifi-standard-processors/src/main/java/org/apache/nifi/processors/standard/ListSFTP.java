@@ -48,6 +48,8 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
     @WritesAttribute(attribute = "file.owner", description = "The numeric owner id of the source file"),
     @WritesAttribute(attribute = "file.group", description = "The numeric group id of the source file"),
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = "file.timestamp", description = "The timestamp of the source file"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The last modified time of the source file"),
     @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
     @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
 })
