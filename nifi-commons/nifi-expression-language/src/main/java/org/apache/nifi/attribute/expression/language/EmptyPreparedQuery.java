@@ -17,9 +17,9 @@
 package org.apache.nifi.attribute.expression.language;
 
 
+import java.util.Map;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 
 public class EmptyPreparedQuery implements PreparedQuery {
 
@@ -30,7 +30,7 @@ public class EmptyPreparedQuery implements PreparedQuery {
     }
 
     @Override
-    public String evaluateExpressions(VariableRegistry variableRegistry, AttributeValueDecorator decorator) throws ProcessException {
+    public String evaluateExpressions(Map<String, String> valueLookup, AttributeValueDecorator decorator) throws ProcessException {
         return value;
     }
 }

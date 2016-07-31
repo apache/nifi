@@ -20,13 +20,12 @@ import java.util.Collection;
 import java.util.Map;
 
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.registry.VariableRegistryProvider;
 
 /**
  * NiFi web context providing limited access to dataflow configuration for
  * component custom UIs.
  */
-public interface NiFiWebConfigurationContext extends VariableRegistryProvider {
+public interface NiFiWebConfigurationContext {
 
     /**
      * @param serviceIdentifier of the controller service

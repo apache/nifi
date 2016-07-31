@@ -41,6 +41,10 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
 
+    public MockValidationContext(final MockProcessContext processContext) {
+        this(processContext, null, VariableRegistry.EMPTY_REGISTRY);
+    }
+
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final VariableRegistry variableRegistry) {
         this.context = processContext;
         this.stateManager = stateManager;

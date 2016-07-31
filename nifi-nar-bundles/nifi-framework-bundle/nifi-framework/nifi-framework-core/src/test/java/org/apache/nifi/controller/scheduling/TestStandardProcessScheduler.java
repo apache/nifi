@@ -62,7 +62,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -78,7 +77,7 @@ public class TestStandardProcessScheduler {
     private ReportingTaskNode taskNode = null;
     private TestReportingTask reportingTask = null;
     private final StateManagerProvider stateMgrProvider = Mockito.mock(StateManagerProvider.class);
-    private VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
+    private VariableRegistry variableRegistry = VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY;
     private FlowController controller;
     private ProcessGroup rootGroup;
 

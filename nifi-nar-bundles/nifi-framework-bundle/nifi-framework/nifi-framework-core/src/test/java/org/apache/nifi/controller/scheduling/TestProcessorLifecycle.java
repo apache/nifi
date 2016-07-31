@@ -43,7 +43,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.MockProvenanceRepository;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
@@ -66,6 +65,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -663,7 +663,7 @@ public class TestProcessorLifecycle {
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
             mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
-                VariableRegistryUtils.createCustomVariableRegistry(properties.getVariableRegistryPropertiesPaths()));
+                new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths()));
     }
 
     /**

@@ -21,12 +21,16 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryUtils;
 
 public class StandardAttributeExpression implements AttributeExpression {
 
     private final Query query;
     private final VariableRegistry variableRegistry;
+
+    public StandardAttributeExpression(final Query query) {
+        this.query = query;
+        this.variableRegistry = null;
+    }
 
     public StandardAttributeExpression(final Query query, final VariableRegistry variableRegistry) {
         this.query = query;
@@ -40,7 +44,7 @@ public class StandardAttributeExpression implements AttributeExpression {
 
     @Override
     public String evaluate() throws ProcessException {
-        return evaluate((AttributeValueDecorator) null);
+        return evaluate(null, null);
     }
 
     @Override
@@ -55,8 +59,8 @@ public class StandardAttributeExpression implements AttributeExpression {
 
     @Override
     public String evaluate(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
-        VariableRegistry flowFileRegistry = VariableRegistryUtils.createFlowVariableRegistry(variableRegistry,flowFile,null);
-        final Object evaluationResult = query.evaluate(flowFileRegistry).getValue();
+        final ValueLookup lookup = new ValueLookup(variableRegistry, flowFile);
+        final Object evaluationResult = query.evaluate(lookup).getValue();
         if (evaluationResult == null) {
             return "";
         }

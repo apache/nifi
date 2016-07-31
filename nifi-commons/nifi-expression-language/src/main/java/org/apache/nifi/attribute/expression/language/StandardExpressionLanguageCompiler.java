@@ -26,6 +26,10 @@ public class StandardExpressionLanguageCompiler implements ExpressionLanguageCom
 
     private final VariableRegistry variableRegistry;
 
+    public StandardExpressionLanguageCompiler() {
+        this.variableRegistry = VariableRegistry.EMPTY_REGISTRY;
+    }
+
     public StandardExpressionLanguageCompiler(final VariableRegistry variableRegistry) {
         this.variableRegistry = variableRegistry;
     }

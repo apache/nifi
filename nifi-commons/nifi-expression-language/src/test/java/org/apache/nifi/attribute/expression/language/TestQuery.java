@@ -35,7 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -46,8 +45,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.antlr.runtime.tree.Tree;
 
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.VariableRegistryFactory;
-import org.apache.nifi.registry.VariableRegistryUtils;
 import org.junit.Assert;
 
 import org.junit.Ignore;
@@ -56,7 +53,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 public class TestQuery {
-
 
     @Test
     public void testCompilation() {
@@ -106,9 +102,9 @@ public class TestQuery {
         Query.validateExpression("$${attr}", true);
 
         Query.validateExpression("${filename:startsWith('T8MTXBC')\n"
-            + ":or( ${filename:startsWith('C4QXABC')} )\n"
-            + ":or( ${filename:startsWith('U6CXEBC')} )"
-            + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
+                + ":or( ${filename:startsWith('C4QXABC')} )\n"
+                + ":or( ${filename:startsWith('U6CXEBC')} )"
+                + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
     }
 
     @Test
@@ -121,7 +117,7 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "x");
         attributes.put("y", "x");
-        final String result = Query.evaluateExpressions(expression,VariableRegistryFactory.getInstance(attributes), null);
+        final String result = Query.evaluateExpressions(expression, attributes, null);
         assertEquals("true", result);
 
         Query.validateExpression(expression, false);
@@ -181,14 +177,13 @@ public class TestQuery {
     public void testWithTicksOutside() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
         assertEquals(1, Query.extractExpressionRanges("\"${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}'").size());
         assertEquals(1, Query.extractExpressionRanges("${attr}").size());
 
-        assertEquals("'My Value'", Query.evaluateExpressions("'${attr}'", registry, null));
-        assertEquals("'My Value", Query.evaluateExpressions("'${attr}", registry, null));
+        assertEquals("'My Value'", Query.evaluateExpressions("'${attr}'", attributes, null));
+        assertEquals("'My Value", Query.evaluateExpressions("'${attr}", attributes, null));
     }
 
     @Test
@@ -198,7 +193,7 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
-        final QueryResult<?> result = query.evaluate(VariableRegistryFactory.getInstance(attributes));
+        final QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.NUMBER, result.getResultType());
         assertEquals(1384788147678L, result.getValue());
     }
@@ -227,7 +222,7 @@ public class TestQuery {
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
 
-        final QueryResult<?> result = query.evaluate(VariableRegistryFactory.getInstance(attributes));
+        final QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals(formatted, result.getValue());
     }
@@ -237,15 +232,14 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "abc");
         attributes.put("a", "abc");
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
 
         verifyEquals("${x:equals(${a})}", attributes, true);
 
         Query.validateExpression("${x:equals('${a}')}", false);
-        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", registry, null));
+        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", attributes, null));
 
         Query.validateExpression("${x:equals(\"${a}\")}", false);
-        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", registry, null));
+        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
     }
 
     @Test
@@ -278,18 +272,17 @@ public class TestQuery {
 
     @Test
     public void testEmbeddedExpressionsAndQuotesWithProperties() {
-        final Properties attributes = new Properties();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "abc");
         attributes.put("a", "abc");
-        VariableRegistry registry = VariableRegistryFactory.getPropertiesInstance(attributes);
 
-        verifyEquals("${x:equals(${a})}",registry,true);
+        verifyEquals("${x:equals(${a})}", attributes, true);
 
         Query.validateExpression("${x:equals('${a}')}", false);
-        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", registry, null));
+        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", attributes, null));
 
         Query.validateExpression("${x:equals(\"${a}\")}", false);
-        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", registry, null));
+        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
     }
 
     @Test
@@ -367,8 +360,8 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getSize()).thenReturn(1L);
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
 
-        final VariableRegistry variableRegistry = VariableRegistryUtils.createFlowVariableRegistry(VariableRegistryUtils.createSystemVariableRegistry(),mockFlowFile,null);
-        return Query.evaluateExpressions(queryString,variableRegistry);
+        final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
+        return Query.evaluateExpressions(queryString, lookup);
     }
 
     @Test
@@ -524,7 +517,7 @@ public class TestQuery {
         verifyEquals("${x:toNumber():gt( ${y:toNumber():plus( ${z:toNumber()} )} )}", attributes, true);
 
         attributes.put("y", "88");
-        assertEquals("true", Query.evaluateExpressions("${x:equals( '${y}' )}", VariableRegistryFactory.getInstance(attributes), null));
+        assertEquals("true", Query.evaluateExpressions("${x:equals( '${y}' )}", attributes, null));
     }
 
     @Test
@@ -572,7 +565,7 @@ public class TestQuery {
         final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
-        final String result = Query.evaluateExpressions(query, VariableRegistryFactory.getInstance(attributes), null);
+        final String result = Query.evaluateExpressions(query, attributes, null);
 
         final String expectedTime = new SimpleDateFormat(format, Locale.US).format(timestamp);
         assertEquals("startDateTime=\"" + expectedTime + "\"", result);
@@ -641,7 +634,7 @@ public class TestQuery {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         Query.validateExpression(query, false);
-        assertEquals("true", Query.evaluateExpressions(query,VariableRegistryUtils.createSystemVariableRegistry()));
+        assertEquals("true", Query.evaluateExpressions(query, Collections.EMPTY_MAP));
     }
 
     @Test
@@ -657,23 +650,22 @@ public class TestQuery {
     public void testComments() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
         final String expression
-        = "# hello, world\n"
-            + "${# ref attr\n"
-            + "\t"
-            + "abc"
-            + "\t"
-            + "#end ref attr\n"
-            + "}";
+                = "# hello, world\n"
+                + "${# ref attr\n"
+                + "\t"
+                + "abc"
+                + "\t"
+                + "#end ref attr\n"
+                + "}";
 
         Query query = Query.compile(expression);
-        QueryResult<?> result = query.evaluate(registry);
+        QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz", result.getValue());
 
         query = Query.compile("${abc:append('# hello') #good-bye \n}");
-        result = query.evaluate(registry);
+        result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz# hello", result.getValue());
     }
@@ -802,25 +794,16 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("entryDate", String.valueOf(now.getTimeInMillis()));
 
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
         verifyEquals("${entryDate:toNumber():toDate():format('yyyy')}", attributes, String.valueOf(year));
 
         attributes.clear();
         attributes.put("month", "3");
         attributes.put("day", "4");
         attributes.put("year", "2013");
-        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", registry, null));
-        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", registry, null));
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
-    }
-
-    @Test
-    public void testSystemProperty() {
-        System.setProperty("hello", "good-bye");
-        VariableRegistry variableRegistry = VariableRegistryUtils.createSystemVariableRegistry();
-        assertEquals("good-bye", Query.evaluateExpressions("${hello}",variableRegistry));
-        assertEquals("good-bye", Query.compile("${hello}").evaluate(variableRegistry).getValue());
     }
 
     @Test
@@ -860,15 +843,14 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "a,b,c");
         attributes.put("xyz", "abc");
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
 
         final String query = "${anyDelineatedValue('${abc}', ','):equals('b')}";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
 
-        assertEquals("true", Query.evaluateExpressions(query, registry, null));
-        assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('a')}", registry, null));
-        assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('c')}", registry, null));
-        assertEquals("false", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('d')}", registry, null));
+        assertEquals("true", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('a')}", attributes, null));
+        assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('c')}", attributes, null));
+        assertEquals("false", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('d')}", attributes, null));
 
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('b')}", attributes, true);
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('a')}", attributes, true);
@@ -882,15 +864,13 @@ public class TestQuery {
         attributes.put("abc", "a,b,c");
         attributes.put("xyz", "abc");
 
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
-
         final String query = "${allDelineatedValues('${abc}', ','):matches('[abc]')}";
 
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
-        assertEquals("true", Query.evaluateExpressions(query, registry, null));
-        assertEquals("true", Query.evaluateExpressions(query, registry, null));
-        assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):matches('[abd]')}",registry, null));
-        assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):equals('a'):not()}", registry, null));
+        assertEquals("true", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("true", Query.evaluateExpressions(query, attributes, null));
+        assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):matches('[abd]')}", attributes, null));
+        assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):equals('a'):not()}", attributes, null));
 
         verifyEquals("${allDelineatedValues(${abc}, ','):matches('[abc]')}", attributes, true);
         verifyEquals("${allDelineatedValues(${abc}, ','):matches('[abd]')}", attributes, false);
@@ -956,13 +936,12 @@ public class TestQuery {
         attributes.put("xyz", "4132");
         attributes.put("hello", "world!");
         attributes.put("dotted", "abc.xyz");
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
 
-        final String evaluated = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", registry, null);
+        final String evaluated = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", attributes, null);
         assertEquals("true", evaluated);
 
         attributes.put("end", "888");
-        final String secondEvaluation = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", registry, null);
+        final String secondEvaluation = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
 
         verifyEquals("${dotted:matches('abc\\.xyz')}", attributes, true);
@@ -977,13 +956,12 @@ public class TestQuery {
         attributes.put("hello", "world!");
         attributes.put("dotted", "abc.xyz");
 
-        final String evaluated = Query.evaluateExpressions("${abc:find('1234${end}4321')}", VariableRegistryFactory.getInstance(attributes), null);
+        final String evaluated = Query.evaluateExpressions("${abc:find('1234${end}4321')}", attributes, null);
         assertEquals("true", evaluated);
 
         attributes.put("end", "888");
 
-
-        final String secondEvaluation = Query.evaluateExpressions("${abc:find('${end}4321')}",VariableRegistryFactory.getInstance(attributes), null);
+        final String secondEvaluation = Query.evaluateExpressions("${abc:find('${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
 
         verifyEquals("${dotted:find('\\.')}", attributes, true);
@@ -1105,16 +1083,22 @@ public class TestQuery {
         attributes.put("filename 3", "abcxy");
 
         final String query
-        = "${"
-            + "     'non-existing':notNull():not():and(" + // true AND (
-            "     ${filename1:startsWith('y')" + // false
-            "     :or(" + // or
-            "       ${ filename1:startsWith('x'):and(false) }" + // false
-            "     ):or(" + // or
-            "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
-            "     )}"
-            + "     )"
-            + "}";
+                = "${"
+                + "     'non-existing':notNull():not():and("
+                + // true AND (
+                "     ${filename1:startsWith('y')"
+                + // false
+                "     :or("
+                + // or
+                "       ${ filename1:startsWith('x'):and(false) }"
+                + // false
+                "     ):or("
+                + // or
+                "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }"
+                + // true )
+                "     )}"
+                + "     )"
+                + "}";
 
         System.out.println(query);
         verifyEquals(query, attributes, true);
@@ -1164,7 +1148,7 @@ public class TestQuery {
         attributes.put("b", "x");
         attributes.put("abcxcba", "hello");
 
-        final String evaluated = Query.evaluateExpressions("${ 'abc${b}cba':substring(0, 1) }", VariableRegistryFactory.getInstance(attributes), null);
+        final String evaluated = Query.evaluateExpressions("${ 'abc${b}cba':substring(0, 1) }", attributes, null);
         assertEquals("h", evaluated);
     }
 
@@ -1198,21 +1182,21 @@ public class TestQuery {
         final List<String> expressions = Query.extractExpressions(query);
         assertEquals(1, expressions.size());
         assertEquals("${abc}", expressions.get(0));
-        assertEquals("{ xyz }", Query.evaluateExpressions(query, VariableRegistryFactory.getInstance(attributes)));
+        assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes));
     }
 
     @Test
     public void testLiteralFunction() {
-        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
     }
 
     @Test
     public void testRandomFunction() {
-        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
         final Long negOne = Long.valueOf(-1L);
-        final HashSet<Long> results = new HashSet<Long>(100);
+        final HashSet<Long> results = new HashSet<>(100);
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));
@@ -1222,7 +1206,7 @@ public class TestQuery {
 
     QueryResult<?> getResult(String expr, Map<String, String> attrs) {
         final Query query = Query.compile(expr);
-        final QueryResult<?> result = query.evaluate(VariableRegistryFactory.getInstance(attrs));
+        final QueryResult<?> result = query.evaluate(attrs);
         return result;
     }
 
@@ -1331,17 +1315,11 @@ public class TestQuery {
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
-
-        VariableRegistry registry = VariableRegistryFactory.getInstance(attributes);
-        verifyEquals(expression,registry,expectedResult);
-    }
-
-    private void verifyEquals(final String expression, final VariableRegistry registry, final Object expectedResult) {
         Query.validateExpression(expression, false);
-        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, registry, null));
+        assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
 
         final Query query = Query.compile(expression);
-        final QueryResult<?> result = query.evaluate(registry);
+        final QueryResult<?> result = query.evaluate(attributes);
 
         if (expectedResult instanceof Number) {
             assertEquals(ResultType.NUMBER, result.getResultType());

@@ -34,13 +34,21 @@ public class MockConfigurationContext implements ConfigurationContext {
     private final ControllerService service;
     private final VariableRegistry variableRegistry;
 
-    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup,
-                                    final VariableRegistry variableRegistry) {
+    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
+            final ControllerServiceLookup serviceLookup) {
+        this(null, properties, serviceLookup, VariableRegistry.EMPTY_REGISTRY);
+    }
+
+    public MockConfigurationContext(final Map<PropertyDescriptor, String> properties,
+            final ControllerServiceLookup serviceLookup,
+            final VariableRegistry variableRegistry) {
         this(null, properties, serviceLookup, variableRegistry);
     }
 
-    public MockConfigurationContext(final ControllerService service, final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup,
-                                    final VariableRegistry variableRegistry) {
+    public MockConfigurationContext(final ControllerService service,
+            final Map<PropertyDescriptor, String> properties,
+            final ControllerServiceLookup serviceLookup,
+            final VariableRegistry variableRegistry) {
         this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup;

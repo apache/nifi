@@ -23,7 +23,6 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.update.attributes.dto.ActionDTO;
 import org.apache.nifi.update.attributes.dto.ConditionDTO;
 import org.apache.nifi.update.attributes.dto.RuleDTO;
@@ -33,10 +32,7 @@ import org.apache.nifi.update.attributes.dto.RuleDTO;
  */
 public class UpdateAttributeModelFactory {
 
-    private final VariableRegistry variableRegistry;
-
-    public UpdateAttributeModelFactory(VariableRegistry variableRegistry) {
-        this.variableRegistry = variableRegistry;
+    public UpdateAttributeModelFactory() {
     }
 
     public Rule createRule(final RuleDTO dto) {
@@ -79,7 +75,7 @@ public class UpdateAttributeModelFactory {
         }
 
         // validate the condition's expression
-        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler(variableRegistry);
+        final StandardExpressionLanguageCompiler elCompiler = new StandardExpressionLanguageCompiler();
         final String syntaxError = elCompiler.validateExpression(dto.getExpression(), false);
         if (syntaxError != null) {
             throw new IllegalArgumentException(syntaxError);

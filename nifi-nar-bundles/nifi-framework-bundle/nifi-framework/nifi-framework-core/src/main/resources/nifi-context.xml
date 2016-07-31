@@ -28,7 +28,7 @@
     <bean id="nifiProperties" class="org.apache.nifi.util.NiFiProperties" factory-method="getInstance"/>
 
     <!-- variable registry -->
-    <bean id="variableRegistry" class="org.apache.nifi.registry.VariableRegistryUtils" factory-method="createCustomVariableRegistry">
+    <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
         <constructor-arg type="java.nio.file.Path[]" value="#{nifiProperties.getVariableRegistryPropertiesPaths()}" />
     </bean>
 

@@ -17,12 +17,12 @@
 package org.apache.nifi.attribute.expression.language;
 
 
+import java.util.Map;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 
 public interface PreparedQuery {
 
-    String evaluateExpressions(VariableRegistry registry, AttributeValueDecorator decorator) throws ProcessException;
+    String evaluateExpressions(Map<String, String> valueLookup, AttributeValueDecorator decorator) throws ProcessException;
 
 }
