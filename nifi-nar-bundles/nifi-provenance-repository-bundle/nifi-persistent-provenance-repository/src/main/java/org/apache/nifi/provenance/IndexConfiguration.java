@@ -212,13 +212,14 @@ public class IndexConfiguration {
         final List<File> dirs = new ArrayList<>();
         lock.lock();
         try {
+            // Sort directories so that we return the newest index first
             final List<File> sortedIndexDirectories = getIndexDirectories();
             Collections.sort(sortedIndexDirectories, new Comparator<File>() {
                 @Override
                 public int compare(final File o1, final File o2) {
                     final long epochTimestamp1 = getIndexStartTime(o1);
                     final long epochTimestamp2 = getIndexStartTime(o2);
-                    return Long.compare(epochTimestamp1, epochTimestamp2);
+                    return Long.compare(epochTimestamp2, epochTimestamp1);
                 }
             });
 
