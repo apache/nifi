@@ -38,6 +38,7 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
     private String configJson;
     private boolean onlyUseConfigJson;
     private int port;
+    private String dn;
 
     public BaseCertificateAuthorityCommandLine(String header) {
         super(header);
@@ -46,6 +47,7 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
         addOptionNoArg("F", USE_CONFIG_JSON_ARG, "Flag specifying that all configuration is read from " + CONFIG_JSON_ARG + " to facilitate automated use (otherwise "
                 + CONFIG_JSON_ARG + " will only be written to.");
         addOptionWithArg("p", PORT_ARG, "The port to use to communicate with the Certificate Authority", TlsConfig.DEFAULT_PORT);
+        addOptionWithArg("D", DN_ARG, "The dn to use for the certificate", TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME));
     }
 
     @Override
@@ -59,7 +61,7 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
         }
         configJson = commandLine.getOptionValue(CONFIG_JSON_ARG, DEFAULT_CONFIG_JSON);
         port = getIntValue(commandLine, PORT_ARG, TlsConfig.DEFAULT_PORT);
-
+        dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(getCertificateAuthorityHostname()));
         return commandLine;
     }
 
@@ -77,5 +79,9 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
 
     public int getPort() {
         return port;
+    }
+
+    public String getDn() {
+        return dn;
     }
 }

@@ -52,7 +52,6 @@ public abstract class BaseCommandLine {
     private String keyStoreType;
     private int days;
     private String signingAlgorithm;
-    private String dn;
 
     public BaseCommandLine(String header) {
         this.header = System.lineSeparator() + header + System.lineSeparator() + System.lineSeparator();
@@ -65,7 +64,6 @@ public abstract class BaseCommandLine {
         addOptionWithArg("c", CERTIFICATE_AUTHORITY_HOSTNAME_ARG, "Hostname of NiFi Certificate Authority", TlsConfig.DEFAULT_HOSTNAME);
         addOptionWithArg("a", KEY_ALGORITHM_ARG, "Algorithm to use for generated keys.", TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
         addOptionWithArg("k", KEY_SIZE_ARG, "Number of bits for generated keys.", TlsConfig.DEFAULT_KEY_SIZE);
-        addOptionWithArg("D", DN_ARG, "The dn to use for the certificate", TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME));
         if (shouldAddSigningAlgorithmArg()) {
             addOptionWithArg("s", SIGNING_ALGORITHM_ARG, "Algorithm to use for signing certificates.", TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         }
@@ -146,10 +144,6 @@ public abstract class BaseCommandLine {
         return signingAlgorithm;
     }
 
-    public String getDn() {
-        return dn;
-    }
-
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine;
@@ -164,7 +158,6 @@ public abstract class BaseCommandLine {
             keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
             keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, getKeyStoreTypeDefault());
             signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
-            dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(certificateAuthorityHostname));
         } catch (ParseException e) {
             return printUsageAndThrow("Error parsing command line. (" + e.getMessage() + ")", ExitCode.ERROR_PARSING_COMMAND_LINE);
         }
