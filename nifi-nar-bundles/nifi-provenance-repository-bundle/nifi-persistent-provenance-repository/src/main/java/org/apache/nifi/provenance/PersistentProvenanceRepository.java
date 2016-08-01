@@ -207,6 +207,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         rolloverExecutor = Executors.newScheduledThreadPool(numRolloverThreads, new NamedThreadFactory("Provenance Repository Rollover Thread"));
     }
 
+    protected IndexManager getIndexManager() {
+        return indexManager;
+    }
+
     @Override
     public void initialize(final EventReporter eventReporter) throws IOException {
         writeLock.lock();
@@ -641,7 +645,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             rolloverExecutor.shutdownNow();
             queryExecService.shutdownNow();
 
-            indexManager.close();
+            getIndexManager().close();
 
             if ( writers != null ) {
                 for (final RecordWriter writer : writers) {
@@ -1006,7 +1010,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             // we can safely delete the first index because the latest event in the index is an event
             // that has already been expired from the repository.
             final File indexingDirectory = indexDirs.get(0);
-            indexManager.removeIndex(indexingDirectory);
+            getIndexManager().removeIndex(indexingDirectory);
             indexConfig.removeIndexDirectory(indexingDirectory);
             deleteDirectory(indexingDirectory);
 
@@ -1474,7 +1478,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 logger.warn("Merged Journal File {} already exists; however, all partial journal files also exist "
                         + "so assuming that the merge did not finish. Repeating procedure in order to ensure consistency.");
 
-                final DeleteIndexAction deleteAction = new DeleteIndexAction(this, indexConfig, indexManager);
+                final DeleteIndexAction deleteAction = new DeleteIndexAction(this, indexConfig, getIndexManager());
                 try {
                     deleteAction.execute(suggestedMergeFile);
                 } catch (final Exception e) {
@@ -1610,7 +1614,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 final AtomicBoolean finishedAdding = new AtomicBoolean(false);
                 final List<Future<?>> futures = new ArrayList<>();
 
-                final IndexWriter indexWriter = indexManager.borrowIndexWriter(indexingDirectory);
+                final IndexWriter indexWriter = getIndexManager().borrowIndexWriter(indexingDirectory);
                 try {
                     final ExecutorService exec = Executors.newFixedThreadPool(configuration.getIndexThreadPoolSize(), new ThreadFactory() {
                         @Override
@@ -1733,7 +1737,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         }
                     }
                 } finally {
-                    indexManager.returnIndexWriter(indexingDirectory, indexWriter);
+                    getIndexManager().returnIndexWriter(indexingDirectory, indexWriter);
                 }
 
                 indexConfig.setMaxIdIndexed(maxId);
@@ -1934,7 +1938,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
      * @return an Iterator of ProvenanceEventRecord that match the query
      * @throws IOException if unable to perform the query
      */
-    public Iterator<ProvenanceEventRecord> queryLucene(final org.apache.lucene.search.Query luceneQuery) throws IOException {
+    Iterator<ProvenanceEventRecord> queryLucene(final org.apache.lucene.search.Query luceneQuery) throws IOException {
         final List<File> indexFiles = indexConfig.getIndexDirectories();
 
         final AtomicLong hits = new AtomicLong(0L);
@@ -2366,7 +2370,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         @Override
         public void run() {
             try {
-                final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager, maxAttributeChars);
+                final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, getIndexManager(), maxAttributeChars);
                 final StandardQueryResult queryResult = search.search(query, retrievalCount, firstEventTimestamp);
                 submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount());
                 if (queryResult.isFinished()) {
@@ -2408,7 +2412,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
             try {
                 final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this,
-                    indexManager, indexDir, null, flowFileUuids, maxAttributeChars);
+                    getIndexManager(), indexDir, null, flowFileUuids, maxAttributeChars);
 
                 final StandardLineageResult result = submission.getResult();
                 result.update(matchingRecords);
