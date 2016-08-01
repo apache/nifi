@@ -14,31 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.dao;
+package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
+import javax.xml.bind.annotation.XmlRootElement;
 
-import java.io.IOException;
+/**
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API.
+ * This particular entity holds a result of clear state operation.
+ */
+@XmlRootElement(name = "result")
+public class ClearComponentStateResultEntity extends Entity {
 
-public interface ComponentStateDAO {
+    private boolean cleared = true;
+    private String message = null;
 
-    /**
-     * Gets the state for the specified component.
-     *
-     * @param component component
-     * @param scope     scope
-     * @return state map
-     */
-    StateMap getState(ConfigurableComponent component, Scope scope) throws IOException;
+    public boolean isCleared() {
+        return cleared;
+    }
 
-    /**
-     * Clears the state for the specified component.
-     *
-     * @param component component
-     * @param scope     scope
-     */
-    void clearState(ConfigurableComponent component, Scope scope) throws IOException;
+    public void setCleared(boolean cleared) {
+        this.cleared = cleared;
+    }
 
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -38,9 +39,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -49,7 +52,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.ExternalStateManager;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StandardStateMap;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -82,7 +91,12 @@ import kafka.message.MessageAndMetadata;
         + " In the event a dynamic property represents a property that was already set as part of the static properties, its value wil be"
         + " overriden with warning message describing the override."
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.")
-public class GetKafka extends AbstractProcessor {
+@Stateful(scopes = {Scope.EXTERNAL}, description = "While consuming messages from a Kafka topic, GetKafka periodically commits" +
+        " its offset information based on Zookeeper Commit Frequency." +
+        " Offsets are persisted in Zookeeper in per consumer group ids and topic partitions manner," +
+        " so that the state of a consumer group can be retained across events such as consumer reconnect." +
+        " Once offsets are cleared, GetKafka will resume consuming messages based on Auto Offset Rest configuration when it restarts.")
+public class GetKafka extends AbstractProcessor implements ExternalStateManager {
 
     public static final String SMALLEST = "smallest";
     public static final String LARGEST = "largest";
@@ -184,6 +198,9 @@ public class GetKafka extends AbstractProcessor {
     private volatile long deadlockTimeout;
 
     private volatile ExecutorService executor;
+    private volatile String zookeeperConnectionString;
+    private volatile String groupId;
+    private volatile String topic;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -191,10 +208,14 @@ public class GetKafka extends AbstractProcessor {
                 .fromPropertyDescriptor(CLIENT_NAME)
                 .defaultValue("NiFi-" + getIdentifier())
                 .build();
+        final String defaultGroupId = getIdentifier();
         final PropertyDescriptor groupIdWithDefault = new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(GROUP_ID)
-                .defaultValue(getIdentifier())
+                .defaultValue(defaultGroupId)
                 .build();
+        if (StringUtils.isBlank(groupId)) {
+            groupId = defaultGroupId;
+        }
 
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ZOOKEEPER_CONNECTION_STRING);
@@ -218,11 +239,14 @@ public class GetKafka extends AbstractProcessor {
     }
 
     public void createConsumers(final ProcessContext context) {
-        final String topic = context.getProperty(TOPIC).getValue();
+
+        zookeeperConnectionString = context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue();
+        groupId = context.getProperty(GROUP_ID).getValue();
+        topic = context.getProperty(TOPIC).getValue();
 
         final Properties props = new Properties();
-        props.setProperty("zookeeper.connect", context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue());
-        props.setProperty("group.id", context.getProperty(GROUP_ID).getValue());
+        props.setProperty("zookeeper.connect", zookeeperConnectionString);
+        props.setProperty("group.id", groupId);
         props.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         props.setProperty("auto.commit.interval.ms", String.valueOf(context.getProperty(ZOOKEEPER_COMMIT_DELAY).asTimePeriod(TimeUnit.MILLISECONDS)));
         props.setProperty("auto.offset.reset", context.getProperty(AUTO_OFFSET_RESET).getValue());
@@ -256,8 +280,7 @@ public class GetKafka extends AbstractProcessor {
             props.setProperty("consumer.timeout.ms", "1");
         }
 
-        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(
-                context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue(), context.getProperty(TOPIC).getValue());
+        int partitionCount = KafkaUtils.retrievePartitionCountForTopic(zookeeperConnectionString, topic);
 
         final ConsumerConfig consumerConfig = new ConsumerConfig(props);
         consumer = Consumer.createJavaConsumerConnector(consumerConfig);
@@ -267,12 +290,12 @@ public class GetKafka extends AbstractProcessor {
         int concurrentTaskToUse = context.getMaxConcurrentTasks();
         if (context.getMaxConcurrentTasks() < partitionCount){
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is less than the amount of partitions '" + partitionCount + "' for topic '" + topic + "'. "
                 + "Consider making it equal to the amount of partition count for most efficient event consumption.");
         } else if (context.getMaxConcurrentTasks() > partitionCount){
             concurrentTaskToUse = partitionCount;
             this.getLogger().warn("The amount of concurrent tasks '" + context.getMaxConcurrentTasks() + "' configured for "
-                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + context.getProperty(TOPIC).getValue() + "'. "
+                    + "this processor is greater than the amount of partitions '" + partitionCount + "' for topic '" + topic + "'. "
                 + "Therefore those tasks would never see a message. To avoid that the '" + partitionCount + "'(partition count) will be used to consume events");
         }
 
@@ -481,4 +504,50 @@ public class GetKafka extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
+
+    @Override
+    public ExternalStateScope getExternalStateScope() {
+        return ExternalStateScope.CLUSTER;
+    }
+
+    @Override
+    public Collection<ValidationResult> validateExternalStateAccess(ValidationContext context) {
+        final Collection<ValidationResult> validationResults = validate(context);
+        if (validationResults.isEmpty()) {
+
+            // Capture settings.
+            context.getProperties().entrySet().forEach(kv -> {
+                final PropertyDescriptor descriptor = kv.getKey();
+                // If value hasn't been modified by user from the default value, the value is null.
+                final String v = StringUtils.isBlank(kv.getValue()) ? descriptor.getDefaultValue() : kv.getValue();
+                if (ZOOKEEPER_CONNECTION_STRING.equals(descriptor)) {
+                    zookeeperConnectionString = v;
+                } else if (TOPIC.equals(descriptor)) {
+                    topic = v;
+                } else if (GROUP_ID.equals(descriptor)) {
+                    groupId = v;
+                }
+            });
+        }
+
+        return validationResults;
+    }
+
+    @Override
+    public StateMap getExternalState() throws IOException {
+        // We don't have to synchronize with onTrigger here,
+        // since it merely retrieves state from Zk using different channel, it doesn't affect consuming.
+        final Map<String, String> partitionOffsets = KafkaUtils.retrievePartitionOffsets(zookeeperConnectionString, topic, groupId);
+
+        return new StandardStateMap(partitionOffsets, System.currentTimeMillis());
+    }
+
+    @Override
+    public void clearExternalState() throws IOException {
+        // Block onTrigger starts creating new consumer until clear offset finishes.
+        synchronized (this.consumerStreamsReady) {
+            KafkaUtils.clearPartitionOffsets(zookeeperConnectionString, topic, groupId);
+        }
+    }
+
 }

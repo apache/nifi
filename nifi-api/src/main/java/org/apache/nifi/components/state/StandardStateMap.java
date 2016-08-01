@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.controller.state;
+package org.apache.nifi.components.state;
 
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.nifi.components.state.StateMap;
 
 public class StandardStateMap implements StateMap {
     private final Map<String, String> stateValues;

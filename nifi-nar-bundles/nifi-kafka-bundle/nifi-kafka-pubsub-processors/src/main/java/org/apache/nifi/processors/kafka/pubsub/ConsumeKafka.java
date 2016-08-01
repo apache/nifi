@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -27,22 +28,42 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.utils.Utils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.ExternalStateManager;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StandardStateMap;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -54,7 +75,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes messages from Apache Kafka")
 @Tags({ "Kafka", "Get", "Ingest", "Ingress", "Topic", "PubSub", "Consume" })
-public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]>> {
+@Stateful(scopes = {Scope.EXTERNAL}, description = "After consuming messages, ConsumeKafka commits its offset information to Kafka" +
+        " so that the state of a consumer group can be retained across events such as consumer reconnect." +
+        " Offsets can be cleared when there is no consumer subscribing with the same consumer group id." +
+        " It may take more than 30 seconds for a consumer group to become able to be cleared after it is stopped from NiFi." +
+        " Once offsets are cleared, ConsumeKafka will resume consuming messages based on Offset Reset configuration.")
+public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]>> implements ExternalStateManager {
 
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
 
@@ -88,6 +114,8 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
             .build();
 
 
+    private static final int CONSUMER_GRP_CMD_TIMEOUT_SEC = 10;
+
     static final List<PropertyDescriptor> DESCRIPTORS;
 
     static final Set<Relationship> RELATIONSHIPS;
@@ -96,7 +124,9 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
     private volatile String topic;
 
-    private volatile String brokers;
+    private volatile String brokers = DEFAULT_BOOTSTRAP_SERVERS;
+
+    private volatile Properties kafkaProperties = getDefaultKafkaProperties();
 
     /*
      * Will ensure that the list of the PropertyDescriptors is build only once,
@@ -217,8 +247,18 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         this.kafkaResource.commitSync();
     }
 
+    @Override
+    protected void setKafkaProperty(Properties properties, PropertyDescriptor descriptor, PropertyValue propertyValue) {
+        super.setKafkaProperty(properties, descriptor, propertyValue);
+        if (TOPIC.equals(descriptor)) {
+            topic = properties.getProperty(TOPIC.getName());
+        } else if (BOOTSTRAP_SERVERS.equals(descriptor)) {
+            brokers = properties.getProperty(BOOTSTRAP_SERVERS.getName());
+        }
+    }
+
     /**
-     * Builds and instance of {@link KafkaConsumer} and subscribes to a provided
+     * Builds an instance of {@link KafkaConsumer} and subscribes to a provided
      * topic.
      */
     @Override
@@ -226,17 +266,48 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         this.demarcatorBytes = context.getProperty(MESSAGE_DEMARCATOR).isSet()
                 ? context.getProperty(MESSAGE_DEMARCATOR).evaluateAttributeExpressions().getValue().getBytes(StandardCharsets.UTF_8)
                 : null;
-        this.topic = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
-        this.brokers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
 
-        Properties kafkaProperties = this.buildKafkaProperties(context);
-        kafkaProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-        kafkaProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        kafkaProperties = this.buildKafkaProperties(context);
 
-        KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(kafkaProperties);
+        final Consumer<byte[], byte[]> consumer = buildKafkaResource();
         consumer.subscribe(Collections.singletonList(this.topic));
+
         return consumer;
     }
+
+    private Consumer<byte[], byte[]> buildKafkaResource() {
+        return buildKafkaResource(null);
+    }
+
+    /**
+     * Builds an instance of {@link KafkaConsumer}, but does not subscribe to a topic yet.
+     * @param clientIdSuffix This method creates new KafkaConsumer instance.
+     *                         If there's another KafkaConsumer instance is already connected,
+     *                         {@link javax.management.InstanceAlreadyExistsException} is thrown.
+     *                         Since external state manager methods are called from different thread than onTrigger(),
+     *                         it's possible multiple KafkaConsumer instances to connect Kafka at the same time.
+     *                         To avoid InstanceAlreadyExistsException, if clientIdSuffix is specified,
+     *                         this method updates clientId by appending clientIdSuffix to the original clientId.
+     */
+    Consumer<byte[], byte[]> buildKafkaResource(final String clientIdSuffix) {
+        if (kafkaProperties == null) {
+            return null;
+        }
+
+        Properties props = kafkaProperties;
+        if (!StringUtils.isEmpty(clientIdSuffix)) {
+            // Update client.id while keep other properties as it is.
+            props = new Properties();
+            props.putAll(kafkaProperties);
+            final String clientId = kafkaProperties.getProperty(ConsumerConfig.CLIENT_ID_CONFIG) + clientIdSuffix;
+            props.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
+        }
+
+        KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(props);
+
+        return consumer;
+    }
+
 
     /**
      * Will release flow file. Releasing of the flow file in the context of this
@@ -251,5 +322,179 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         session.getProvenanceReporter().receive(flowFile, transitUri, "Received " + msgCount + " Kafka messages", executionDuration);
         this.getLogger().info("Successfully received {} from Kafka with {} messages in {} millis", new Object[] { flowFile, msgCount, executionDuration });
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public ExternalStateScope getExternalStateScope() {
+        return ExternalStateScope.CLUSTER;
+    }
+
+    @Override
+    public Collection<ValidationResult> validateExternalStateAccess(ValidationContext context) {
+        final Collection<ValidationResult> validationResults = validate(context);
+        if (validationResults.isEmpty()) {
+
+            // Capture settings.
+            context.getProperties().entrySet().forEach(kv -> {
+                final PropertyDescriptor descriptor = kv.getKey();
+                // If value hasn't been modified by user from the default value, the value is null.
+                final String v = StringUtils.isBlank(kv.getValue()) ? descriptor.getDefaultValue() : kv.getValue();
+                setKafkaProperty(kafkaProperties, descriptor, context.newPropertyValue(v));
+            });
+        }
+
+        return validationResults;
+    }
+
+    @Override
+    public StateMap getExternalState() throws IOException {
+
+        final String groupId = kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
+        return submitConsumerGroupCommand("Fetch offsets", consumer -> {
+            final Map<String, String> partitionOffsets = consumer.partitionsFor(topic).stream()
+                    .map(p -> new TopicPartition(topic, p.partition()))
+                    .map(tp -> new ImmutablePair<>(tp, consumer.committed(tp)))
+                    .filter(tpo -> tpo.right != null)
+                    .collect(Collectors.toMap(tpo ->
+                                    "partition:" + tpo.left.partition(),
+                            tpo -> String.valueOf(tpo.right.offset())));
+
+            logger.info("Retrieved offsets from Kafka, topic={}, groupId={}, partitionOffsets={}",
+                    topic, groupId, partitionOffsets);
+
+            return new StandardStateMap(partitionOffsets, System.currentTimeMillis());
+        }, null);
+    }
+
+    /**
+     * <p>Clear offsets stored in Kafka, by committing -1 as offset of each partitions of specified topic.</p>
+     *
+     * <p>Kafka allows commitSync if one of following conditions are met,
+     * see kafka.coordinator.GroupCoordinator.handleCommitOffsets for detail:
+     * <ol>
+     * <li>The consumer is a member of the consumer group. In this case,
+     * even if there's other consumers connecting Kafka, offsets can be updated.
+     * It's dangerous to clear offsets if there're active consumers.
+     * When consumer.subscribe() and poll() are called, the consumer will be a member of the consumer group.</li>
+     *
+     * <li>There's no connected consumer within the group,
+     * and Kafka GroupCoordinator has marked the group as dead.
+     * It's safer but can take longer.</li>
+     * </ol>
+     *
+     * <p>The consumer group state transition is an async operation at Kafka group coordinator.
+     * Although clearExternalState() can only be called when the processor is stopped,
+     * the consumer group may not be fully removed at Kafka, in that case, CommitFailedException will be thrown.</p>
+     *
+     * <p>Following log msg can be found when GroupCoordinator has marked the group as dead
+     * in kafka.out on a Kafka broker server, it can take more than 30 seconds:
+     * <blockquote>[GroupCoordinator]: Group [gid] generation 1 is dead
+     * and removed (kafka.coordinator.GroupCoordinator)</blockquote></p>
+     *
+     */
+    @Override
+    public void clearExternalState() throws IOException {
+
+        synchronized (this) {
+            final String groupId = kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
+            final Boolean result = submitConsumerGroupCommand("Clear offsets", consumer -> {
+
+                final Map<TopicPartition, OffsetAndMetadata> freshOffsets = consumer.partitionsFor(topic).stream()
+                        .map(p -> new TopicPartition(topic, p.partition()))
+                        .collect(Collectors.toMap(tp -> tp, tp -> new OffsetAndMetadata(-1)));
+
+                consumer.commitSync(freshOffsets);
+                return true;
+
+            }, e -> {
+                if (e instanceof CommitFailedException) {
+                    throw new IllegalStateException("The stopped consumer may not have been removed completely." +
+                            " It can take more than 30 seconds." +
+                            " or there are other consumers connected to the same consumer group. Retrying later may succeed.", e);
+                }
+            });
+
+            if (result) {
+                logger.info("Offset is successfully cleared from Kafka. topic={}, groupId={}", topic, groupId);
+            }
+        }
+    }
+
+    private interface ConsumerGroupCommand<T> {
+        T execute(final Consumer<byte[], byte[]> consumer) throws Exception;
+    }
+
+    private interface ConsumerGroupCommandExceptionHandler {
+        void handle(Exception e) throws IOException;
+    }
+
+    /**
+     * Submit a consumer group related Kafka command.
+     * External state fetch operations can be executed at the same time as onTrigger() is running in a different thread.
+     * However, Kafka Consumer instance can not be shared among threads, so, different  Consumer instance is created
+     * and used in this method, so that uses can access state while this processor consuming messages from Kafka.
+     * Kafka's {@link Utils#getContextOrKafkaClassLoader()}uses current thread's context classloader to load Kafka classes
+     * such as ByteArrayDeserializer, but since external state operations are called through NiFi Web API,
+     * those threads has Jetty class loader as its context class loader which does not know Kafka jar.
+     * As a workaround, this method uses another thread with context classloader unset to load Kafka classes properly.
+     *
+     * @param commandName command name is used for log message to show what command outputs what log messages
+     * @param command a command to submit and execute
+     * @param exHander optional exception handler
+     * @param <T> command's return type
+     * @return command's return value
+     */
+    private <T> T submitConsumerGroupCommand(final String commandName, final ConsumerGroupCommand<T> command,
+                                             final ConsumerGroupCommandExceptionHandler exHander) throws IOException {
+        // Use different KafkaConsumer instance because it can only be used
+        // from the thread which created the instance.
+        final ExecutorService executorService = Executors.newFixedThreadPool(1);
+        final Future<T> future = executorService.submit(() -> {
+            // To use Kafka's classloader.
+            Thread.currentThread().setContextClassLoader(null);
+            final Consumer<byte[], byte[]> consumer = buildKafkaResource("-temp-command");
+            if (consumer == null) {
+                return null;
+            }
+
+            try {
+                return command.execute(consumer);
+            } catch (Exception e) {
+                if (exHander == null) {
+                    throw e;
+                }
+                exHander.handle(e);
+
+            } finally {
+                consumer.close();
+            }
+
+            return null;
+        });
+
+        try {
+            return future.get(CONSUMER_GRP_CMD_TIMEOUT_SEC, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            } else if (e.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) e.getCause();
+            } else {
+                throw new IOException(commandName + " failed due to " + e, e);
+            }
+        } catch (InterruptedException|TimeoutException e) {
+            throw new IOException(commandName + " failed due to " + e, e);
+        } finally {
+            future.cancel(true);
+            executorService.shutdown();
+        }
+    }
+
+    @Override
+    protected Properties getDefaultKafkaProperties() {
+        Properties props = new Properties();
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        return props;
     }
 }

@@ -138,6 +138,10 @@ public class MockStateManager implements StateManager {
     }
 
     private void verifyAnnotation(final Scope scope) {
+        if (scope == Scope.EXTERNAL) {
+            Assert.fail("EXTERNAL scope is not managed by StateManager." +
+                    " A component should implement ExternalStateManager by itself to support EXTERNAL scope state.");
+        }
         // ensure that the @Stateful annotation is present with the appropriate Scope
         if ((scope == Scope.LOCAL && !usesLocalState) || (scope == Scope.CLUSTER && !usesClusterState)) {
             Assert.fail("Component is attempting to set or retrieve state with a scope of " + scope + " but does not declare that it will use "

@@ -18,11 +18,14 @@ package org.apache.nifi.processors.kafka;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.BasicConfigurator;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -36,6 +39,10 @@ import org.mockito.stubbing.Answer;
 
 import kafka.consumer.ConsumerIterator;
 import kafka.message.MessageAndMetadata;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestGetKafka {
 
@@ -164,6 +171,46 @@ public class TestGetKafka {
 
             return itr;
         }
+    }
+
+    @Test
+    public void testValidateExternalStateAccess() throws Exception {
+        final GetKafka processor = new GetKafka();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        Collection<ValidationResult> validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        // Group Id has default value. These two properties are required.
+        assertEquals(2, validationResults.size());
+        final List<String> explanations = validationResults.stream().map(r -> r.getExplanation()).collect(Collectors.toList());
+        assertTrue(explanations.contains("Topic Name is required"));
+        assertTrue(explanations.contains("ZooKeeper Connection String is required"));
+
+        // Set required properties, validation passes, values are set
+        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "0.0.0.0:9092");
+        runner.setProperty(GetKafka.TOPIC, "testX");
+
+        validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        assertEquals(0, validationResults.size());
+
+        assertEquals("testX", getPrivateFieldValue(processor, "topic"));
+        assertEquals("0.0.0.0:9092", getPrivateFieldValue(processor, "zookeeperConnectionString"));
+        assertNotNull("Default groupId should be used", getPrivateFieldValue(processor, "groupId"));
+
+        // Set groupId
+        runner.setProperty(GetKafka.GROUP_ID, "consumer-group-id");
+
+        validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        assertEquals(0, validationResults.size());
+
+        assertEquals("testX", getPrivateFieldValue(processor, "topic"));
+        assertEquals("0.0.0.0:9092", getPrivateFieldValue(processor, "zookeeperConnectionString"));
+        assertNotNull("consumer-group-id", getPrivateFieldValue(processor, "groupId"));
+    }
+
+    private Object getPrivateFieldValue(GetKafka processor, String fieldName) throws NoSuchFieldException, IllegalAccessException {
+        final Field field = processor.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(processor);
     }
 
 }

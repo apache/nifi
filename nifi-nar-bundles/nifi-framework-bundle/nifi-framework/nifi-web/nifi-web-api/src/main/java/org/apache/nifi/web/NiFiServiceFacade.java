@@ -71,6 +71,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
+import org.apache.nifi.web.api.entity.ClearComponentStateResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -1092,8 +1093,9 @@ public interface NiFiServiceFacade {
      * Clears the state for the specified processor.
      *
      * @param processorId the processor id
+     * @return the result of clear operation
      */
-    void clearProcessorState(String processorId);
+    ClearComponentStateResultEntity clearProcessorState(String processorId);
 
     /**
      * Gets the state for the specified controller service.
@@ -1114,8 +1116,9 @@ public interface NiFiServiceFacade {
      * Clears the state for the specified controller service.
      *
      * @param controllerServiceId the controller service id
+     * @return the result of clear operation
      */
-    void clearControllerServiceState(String controllerServiceId);
+    ClearComponentStateResultEntity clearControllerServiceState(String controllerServiceId);
 
     /**
      * Gets the state for the specified reporting task.
@@ -1136,8 +1139,9 @@ public interface NiFiServiceFacade {
      * Clears the state for the specified reporting task.
      *
      * @param reportingTaskId the reporting task id
+     * @return the result of clear operation
      */
-    void clearReportingTaskState(String reportingTaskId);
+    ClearComponentStateResultEntity clearReportingTaskState(String reportingTaskId);
 
     // ----------------------------------------
     // Label methods

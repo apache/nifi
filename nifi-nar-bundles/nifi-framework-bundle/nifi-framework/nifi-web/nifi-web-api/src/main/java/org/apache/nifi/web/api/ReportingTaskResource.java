@@ -35,6 +35,7 @@ import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.entity.ClearComponentStateResultEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -306,7 +307,7 @@ public class ReportingTaskResource extends ApplicationResource {
      *
      * @param httpServletRequest servlet request
      * @param id The id of the reporting task
-     * @return a componentStateEntity
+     * @return a clearComponentStateEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
@@ -315,7 +316,7 @@ public class ReportingTaskResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a reporting task",
-        response = ComponentStateDTO.class,
+        response = ClearComponentStateResultEntity.class,
         authorizations = {
             @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
         }
@@ -354,11 +355,7 @@ public class ReportingTaskResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // get the component state
-        serviceFacade.clearReportingTaskState(id);
-
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
+        final ClearComponentStateResultEntity entity = serviceFacade.clearReportingTaskState(id);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

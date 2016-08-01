@@ -17,16 +17,35 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
@@ -166,5 +185,105 @@ public class ConsumeKafkaTest {
         assertEquals("Hello-5", events[2]);
 
         consumeKafka.close();
+    }
+
+    @Test
+    public void testGetState() throws Exception {
+
+        final ConsumeKafka processor = new ConsumeKafka();
+        final ConsumeKafka consumeKafka = Mockito.spy(processor);
+        final TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+
+        final String topicEL = "${literal('topic'):toUpper()}";
+        final String topic = "TOPIC";
+
+        runner.setProperty(ConsumeKafka.BOOTSTRAP_SERVERS, "0.0.0.0:1234");
+        runner.setProperty(ConsumeKafka.TOPIC, topicEL);
+        runner.setProperty(ConsumeKafka.GROUP_ID, "GroupId");
+        runner.setProperty(processor.CLIENT_ID, "ClientId");
+
+        Collection<ValidationResult> validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        assertEquals(0, validationResults.size());
+
+        assertEquals(topic, getPrivateFieldValue(processor, "topic"));
+        assertEquals("0.0.0.0:1234", getPrivateFieldValue(processor, "brokers"));
+
+        final Consumer consumer = mock(Consumer.class);
+        doReturn(consumer).when(consumeKafka).buildKafkaResource(eq("-temp-command"));
+
+        final List<PartitionInfo> partitionInfo = IntStream.range(0, 3).mapToObj(p -> new PartitionInfo(topic, p, null, null, null))
+                .collect(Collectors.toList());
+        doReturn(partitionInfo).when(consumer).partitionsFor(any());
+
+        doReturn(new OffsetAndMetadata(100))
+                .doReturn(new OffsetAndMetadata(101))
+                .doReturn(new OffsetAndMetadata(102))
+                .when(consumer).committed(any(TopicPartition.class));
+
+        final StateMap state = consumeKafka.getExternalState();
+
+        assertEquals(3, state.toMap().size());
+        assertEquals(state.get("partition:0"), "100");
+        assertEquals(state.get("partition:1"), "101");
+        assertEquals(state.get("partition:2"), "102");
+    }
+
+    @Test
+    public void testClearState() throws Exception {
+
+        System.setProperty("org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaTest.bootstrapServers", "set-from-env:9092");
+
+        final ConsumeKafka processor = new ConsumeKafka();
+        final ConsumeKafka consumeKafka = Mockito.spy(processor);
+        final TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+
+        // Without required properties.
+        Collection<ValidationResult> validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        assertEquals(3, validationResults.size());
+        final List<String> explanations = validationResults.stream().map(r -> r.getExplanation()).collect(Collectors.toList());
+        assertTrue(explanations.contains("topic is required"));
+        assertTrue(explanations.contains("client.id is required"));
+        assertTrue(explanations.contains("group.id is required"));
+
+        // brokers has default value.
+        assertNull(getPrivateFieldValue(processor, "topic"));
+        assertEquals("localhost:9092", getPrivateFieldValue(processor, "brokers"));
+
+        // Set required properties
+        final String topic = "topic";
+        runner.setProperty(processor.BOOTSTRAP_SERVERS, "${org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaTest.bootstrapServers}");
+        runner.setProperty(processor.TOPIC, topic);
+        runner.setProperty(processor.GROUP_ID, "GroupId");
+        runner.setProperty(processor.CLIENT_ID, "ClientId");
+
+        validationResults = processor.validateExternalStateAccess(runner.newValidationContext());
+        assertEquals(0, validationResults.size());
+
+        assertEquals(topic, getPrivateFieldValue(processor, "topic"));
+        assertEquals("set-from-env:9092", getPrivateFieldValue(processor, "brokers"));
+
+        final Consumer consumer = mock(Consumer.class);
+        doReturn(consumer).when(consumeKafka).buildKafkaResource(eq("-temp-command"));
+
+        final List<PartitionInfo> partitionInfo = IntStream.range(0, 3).mapToObj(p -> new PartitionInfo(topic, p, null, null, null))
+                .collect(Collectors.toList());
+        doReturn(partitionInfo).when(consumer).partitionsFor(any());
+
+        doAnswer(invocation -> {
+            Map<TopicPartition, OffsetAndMetadata> committedOffsets = (Map<TopicPartition, OffsetAndMetadata>)invocation.getArguments()[0];
+            assertEquals(3, committedOffsets.size());
+            committedOffsets.values().stream().forEach(offset -> assertEquals("Offset should be cleared with -1", -1, offset.offset()));
+            return null;
+        }).when(consumer).commitSync(any());
+
+        consumeKafka.clearExternalState();
+
+        verify(consumer).commitSync(any());
+    }
+
+    private Object getPrivateFieldValue(ConsumeKafka processor, String fieldName) throws NoSuchFieldException, IllegalAccessException {
+        final Field field = processor.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(processor);
     }
 }

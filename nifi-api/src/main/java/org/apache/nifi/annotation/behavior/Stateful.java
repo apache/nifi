@@ -26,11 +26,16 @@ import java.lang.annotation.Target;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.ExternalStateManager;
 
 /**
  * <p>
  * Annotation that a Processor, ReportingTask, or Controller Service can use to indicate
- * that the component makes use of the {@link StateManager}. This annotation provides the
+ * that the component makes use of the {@link StateManager} or implements
+ * {@link ExternalStateManager}.
+ * </p>
+ * <p>
+ * This annotation provides the
  * user with a description of what information is being stored so that the user is able to
  * understand what is shown to them and know what they are clearing should they choose to
  * clear the state. Additionally, the UI will not show any state information to users if
@@ -43,7 +48,7 @@ import org.apache.nifi.components.state.StateManager;
 @Inherited
 public @interface Stateful {
     /**
-     * Provides a description of what information is being stored in the {@link StateManager}
+     * Provides a description of what information is being stored in the {@link StateManager} or {@link ExternalStateManager}
      */
     String description();
 

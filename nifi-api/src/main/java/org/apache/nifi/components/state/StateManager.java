@@ -52,6 +52,14 @@ import org.apache.nifi.components.state.exception.StateTooLargeException;
  * a description of what state is being stored and what Scope is used. If this annotation is not present, the UI
  * will not expose such information or allow DFMs to clear the state.
  * </p>
+ *
+ * <p>
+ * Some external systems may store NiFi component state when NiFi components interact with those,
+ * and those state are scoped as {@link Scope#EXTERNAL}.
+ * A component that wishes to provide Data Flow Managers access to external state, should implement {@link ExternalStateManager}.
+ * Since StateManager doesn't manage external states, implementation of StateManager class
+ * should throw {@link IllegalArgumentException} when {@link Scope#EXTERNAL} is passed as the scope argument of each method.
+ * </p>
  */
 public interface StateManager {
 

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;
@@ -30,7 +28,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 
 import java.util.ArrayList;
@@ -44,7 +41,6 @@ import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 public class StandardControllerServiceDAO extends ComponentDAO implements ControllerServiceDAO {
 
     private ControllerServiceProvider serviceProvider;
-    private ComponentStateDAO componentStateDAO;
     private FlowController flowController;
 
     private ControllerServiceNode locateControllerService(final String controllerServiceId) {
@@ -294,30 +290,14 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public StateMap getState(final String controllerServiceId, final Scope scope) {
-        final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
-        return componentStateDAO.getState(controllerService, scope);
-    }
-
-    @Override
     public void verifyClearState(final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
         controllerService.verifyCanClearState();
     }
 
-    @Override
-    public void clearState(final String controllerServiceId) {
-        final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
-        componentStateDAO.clearState(controllerService);
-    }
-
     /* setters */
     public void setServiceProvider(final ControllerServiceProvider serviceProvider) {
         this.serviceProvider = serviceProvider;
-    }
-
-    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
-        this.componentStateDAO = componentStateDAO;
     }
 
     public void setFlowController(final FlowController flowController) {

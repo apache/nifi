@@ -36,6 +36,7 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.entity.ClearComponentStateResultEntity;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
@@ -276,7 +277,7 @@ public class ProcessorResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Gets the state for a processor",
-        response = ComponentStateDTO.class,
+        response = ComponentStateEntity.class,
         authorizations = {
             @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
         }
@@ -323,7 +324,7 @@ public class ProcessorResource extends ApplicationResource {
      *
      * @param httpServletRequest servlet request
      * @param id The id of the processor
-     * @return a componentStateEntity
+     * @return a clearComponentStateEntity
      * @throws InterruptedException if interrupted
      */
     @POST
@@ -333,7 +334,7 @@ public class ProcessorResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
         value = "Clears the state for a processor",
-        response = ComponentStateDTO.class,
+        response = ClearComponentStateResultEntity.class,
         authorizations = {
             @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
         }
@@ -372,11 +373,7 @@ public class ProcessorResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // get the component state
-        serviceFacade.clearProcessorState(id);
-
-        // generate the response entity
-        final ComponentStateEntity entity = new ComponentStateEntity();
+        final ClearComponentStateResultEntity entity = serviceFacade.clearProcessorState(id);
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

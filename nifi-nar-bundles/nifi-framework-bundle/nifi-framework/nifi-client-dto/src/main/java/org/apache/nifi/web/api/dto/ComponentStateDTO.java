@@ -30,6 +30,7 @@ public class ComponentStateDTO {
     private String stateDescription;
     private StateMapDTO clusterState;
     private StateMapDTO localState;
+    private StateMapDTO externalState;
 
     /**
      * @return The component identifier
@@ -85,5 +86,19 @@ public class ComponentStateDTO {
 
     public void setLocalState(StateMapDTO localState) {
         this.localState = localState;
+    }
+
+    /**
+     * @return The external state for this component
+     */
+    @ApiModelProperty(
+            value = "The external state for this component."
+    )
+    public StateMapDTO getExternalState() {
+        return externalState;
+    }
+
+    public void setExternalState(StateMapDTO externalState) {
+        this.externalState = externalState;
     }
 }

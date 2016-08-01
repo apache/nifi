@@ -108,7 +108,7 @@ public class ContentViewerController extends HttpServlet {
             viewerContext.getRequestDispatcher("/message").forward(request, response);
             return;
         } catch (final AccessDeniedException ade) {
-            request.setAttribute("title", "Acess Denied");
+            request.setAttribute("title", "Access Denied");
             request.setAttribute("messages", "Unable to approve access to the specified content: " + ade.getMessage());
 
             // forward to the error page

@@ -32,6 +32,7 @@ import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerService;
@@ -395,5 +396,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
             throw new IllegalArgumentException("Primary node is only available in cluster. Use setClustered(true) first.");
         }
         isPrimaryNode = primaryNode;
+    }
+
+    public ValidationContext newValidationContext() {
+        return new MockValidationContext(this, stateManager, variableRegistry);
     }
 }

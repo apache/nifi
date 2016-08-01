@@ -33,14 +33,18 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.ExternalStateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -68,6 +72,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.provenance.SearchableFields;
@@ -134,7 +139,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
-public class ControllerFacade implements Authorizable {
+public class ControllerFacade implements Authorizable, NodeTypeProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
@@ -367,11 +372,14 @@ public class ControllerFacade implements Authorizable {
         return flowController.getNodeId();
     }
 
-    /**
-     * @return true if is clustered
-     */
+    @Override
     public boolean isClustered() {
         return flowController.isClustered();
+    }
+
+    @Override
+    public boolean isPrimary() {
+        return flowController.isPrimary();
     }
 
     /**
@@ -1753,6 +1761,12 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
+    public Collection<ValidationResult> validateExternalStateAccess(final ConfiguredComponent configuredComponent, final ExternalStateManager stateManager) {
+        final StandardValidationContext validationContext = new StandardValidationContext(flowController, configuredComponent.getProperties(),
+                configuredComponent.getAnnotationData(), null, configuredComponent.getIdentifier(), variableRegistry);
+        return stateManager.validateExternalStateAccess(validationContext);
+    }
+
     /*
      * setters
      */
@@ -1787,4 +1801,5 @@ public class ControllerFacade implements Authorizable {
     public void setVariableRegistry(VariableRegistry variableRegistry) {
         this.variableRegistry = variableRegistry;
     }
+
 }

@@ -17,8 +17,6 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
@@ -36,7 +34,6 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ProcessorDAO;
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
@@ -56,7 +53,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardProcessorDAO.class);
     private FlowController flowController;
-    private ComponentStateDAO componentStateDAO;
 
     private ProcessorNode locateProcessor(final String processorId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -444,21 +440,9 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
     }
 
     @Override
-    public StateMap getState(String processorId, final Scope scope) {
-        final ProcessorNode processor = locateProcessor(processorId);
-        return componentStateDAO.getState(processor, scope);
-    }
-
-    @Override
-    public void verifyClearState(String processorId) {
+    public void verifyClearState(final String processorId) {
         final ProcessorNode processor = locateProcessor(processorId);
         processor.verifyCanClearState();
-    }
-
-    @Override
-    public void clearState(String processorId) {
-        final ProcessorNode processor = locateProcessor(processorId);
-        componentStateDAO.clearState(processor);
     }
 
     /* setters */
@@ -466,7 +450,4 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         this.flowController = flowController;
     }
 
-    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
-        this.componentStateDAO = componentStateDAO;
-    }
 }

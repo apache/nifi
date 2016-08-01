@@ -579,32 +579,35 @@ replaced. Moreover, the only implementation that is currently supported for stor
 backed by ZooKeeper. As such, the entire State Map must be less than 1 MB in size, after being serialized.
 Attempting to store more than this will result in an Exception being thrown. If the interactions required
 by the Processor for managing state are more complex than this (e.g., large amounts of data must be stored
-and retrieved, or individual keys must be stored and fetched individually) than a different mechanism should
+and retrieved, or individual keys must be stored and fetched individually) then a different mechanism should
 be used (e.g., communicating with an external database). 
 
 
 [[state_scope]]
 ==== Scope
 When communicating with the State Manager, all method calls require that a Scope be provided. This Scope will
-either be `Scope.NODE` or `Scope.CLUSTER`. If NiFi is run in a cluster, this Scope provides important information
+either be `Scope.LOCAL` or `Scope.CLUSTER`. If NiFi is run in a cluster, this Scope provides important information
 to the framework about how the operation should occur.
 
 If state as stored using `Scope.CLUSTER`, then all nodes in the cluster will be communicating with the same
-state storage mechanism. If state is stored and retrieved using `Scope.NODE`, then each node will see a different
+state storage mechanism. If state is stored and retrieved using `Scope.LOCAL`, then each node will see a different
 representation of the state.
 
 It is also worth noting that if NiFi is configured to run as a standalone instance, rather than running in a cluster,
-a scope of `Scope.NODE` is always used. This is done in order to allow the developer of a NiFi component to write the code
+a scope of `Scope.LOCAL` is always used. This is done in order to allow the developer of a NiFi component to write the code
 in one consistent way, without worrying about whether or not the NiFi instance is clustered. The developer should instead assume
 that the instance is clustered and write the code accordingly.
 
+There is also `Scope.EXTERNAL`, that is conceptually different than `Scope.LOCAL` or `Scope.CLUSTER`.
+`Scope.EXTERNAL` represents that the state is managed by external system, not by NiFi State Manager.
+See the <<external_state_manager>> for detail.
 
 ==== Storing and Retrieving State
 
 State is stored using the StateManager's `getState`, `setState`, `replace`, and `clear` methods. All of these methods
 require that a Scope be provided. It should be noted that the state that is stored with the Local scope is entirely different
 than state stored with a Cluster scope. If a Processor stores a value with the key of _My Key_ using the `Scope.CLUSTER` scope,
-and then attempts to retrieve the value using the `Scope.NODE` scope, the value retrieved will be `null` (unless a value was
+and then attempts to retrieve the value using the `Scope.LOCAL` scope, the value retrieved will be `null` (unless a value was
 also stored with the same key using the `Scope.CLUSTER` scope). Each Processor's state, is stored in isolation from other
 Processors' state.
 
@@ -612,6 +615,11 @@ It follows, then, that two Processors cannot share the same state. There are, ho
 necessary to share state between two Processors of different types, or two Processors of the same type. This can be accomplished
 by using a Controller Service. By storing and retrieving state from a Controller Service, multiple Processors can use the same
 Controller Service and the state can be exposed via the Controller Service's API.
+
+==== Accessing state from NiFi UI
+
+When a DFM view or clear state from NiFi UI, all of the `Scope.LOCAL`, `Scope.CLUSTER`, and `Scope.EXTERNAL` state are retrieved or cleared at the same time.
+To avoid accessing underlying data storage unnecessarily frequently, those operations for `Scope.CLUSTER` and `Scope.EXTERNAL` with `ExternalStateScope.CLUSTER` are executed only from a primary node in a NiFi cluster.
 
 
 ==== Unit Tests
@@ -625,8 +633,32 @@ Additionally, the `MockStateManager` exposes a handful of `assert*` methods to p
 The `MockStateManager` also provides the ability to indicate that the unit test should immediately fail if state is updated for a particular
 `Scope`.
 
+[[external_state_manager]]
+==== External State Manager
 
+Some external system stores client state in it, so that multiple clients can share workloads or for any other reasons.
+For example, Apache Kafka stores consumer group's offset per partition, to provide a mechanism for consumers to resume where they left off.
+If a DFM wants NiFi ConsumeKafka processor to replay messages from beginning of a topic, the offset information stored at Kafka server needs to be cleared.
+Also if a DFM can view the offset information from NiFi UI, it's useful to understand how far a consumer has processed.
 
+External State Manager is a mechanism to provide DFMs such interactions with external systems.
+If a Processor, Controller Service or Reporting Task interact with an external system that manages NiFi component state,
+it's advisable for those components to implement `ExternalStateManager` interface, and annotate the class with `@Stateful` using `Scope.EXTERNAL`.
+
+By doing so, NiFi UI lets a DFM access component states by calling corresponding `getExternalState` or `clearExternalState` method.
+
+To access an external system from those method implementations, configured property values of the component will be needed,
+such as Database connection URL or Kafka broker address.
+NiFi framework will call `validateExternalStateAccess` method, to determine if required properties are set to access an external system,
+before `getExternalState` or `clearExternalState` is called.
+At `valiadteExternalStateAccess` method, implementations has to validate configured properties,
+and also capture configured property values to use at `getExternalState` and `clearExternalState`.
+
+`ExternalStateManager` also has the `getExternalStateScope` method which return either `ExternalStateScope.NODE` or `ExternalStateScope.CLUSTER`
+to indicate how a NiFi cluster should access the target external system.
+With `ExternalStateScope.NODE`, each node in a NiFi cluster attempts to retrieve or clear state from an external system
+then individual responses will be merged into the final single response,
+while those operations are executed only on a Primary Node with `ExternalStateScope.CLUSTER`.
 
 === Reporting Processor Activity
 

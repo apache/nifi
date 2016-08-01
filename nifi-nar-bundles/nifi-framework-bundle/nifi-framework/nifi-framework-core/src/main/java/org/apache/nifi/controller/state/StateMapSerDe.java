@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.nifi.components.state.StandardStateMap;
 import org.apache.nifi.components.state.StateMap;
 import org.wali.SerDe;
 import org.wali.UpdateType;

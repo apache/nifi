@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.state.ExternalStateManager;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.dao.ComponentStateDAO;
 
@@ -31,6 +30,16 @@ import java.io.IOException;
 public class StandardComponentStateDAO implements ComponentStateDAO {
 
     private StateManagerProvider stateManagerProvider;
+
+    @Override
+    public StateMap getState(final ConfigurableComponent component, final Scope scope) throws IOException {
+        switch (scope) {
+            case EXTERNAL:
+                return getExternalState(component);
+            default:
+                return getState(component.getIdentifier(), scope);
+        }
+    }
 
     private StateMap getState(final String componentId, final Scope scope) {
         try {
@@ -45,49 +54,37 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         }
     }
 
-    private void clearState(final String componentId) {
-        try {
-            final StateManager manager = stateManagerProvider.getStateManager(componentId);
-            if (manager == null) {
-                throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
-            }
+    private StateMap getExternalState(final ConfigurableComponent component) throws IOException {
+        if (component instanceof ExternalStateManager) {
+            return ((ExternalStateManager)component).getExternalState();
+        }
+        return null;
+    }
 
-            // clear both state's at the same time
-            manager.clear(Scope.CLUSTER);
-            manager.clear(Scope.LOCAL);
-        } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to clear the state for the specified component %s: %s", componentId, ioe), ioe);
+    @Override
+    public void clearState(final ConfigurableComponent component, final Scope scope) throws IOException {
+        switch (scope) {
+            case EXTERNAL:
+                clearExternalState(component);
+                break;
+            default:
+                clearState(component.getIdentifier(), scope);
+                break;
         }
     }
 
-    @Override
-    public StateMap getState(ProcessorNode processor, Scope scope) {
-        return getState(processor.getIdentifier(), scope);
+    private void clearState(final String componentId, final Scope scope) throws IOException {
+        final StateManager manager = stateManagerProvider.getStateManager(componentId);
+        if (manager == null) {
+            throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
+        }
+        manager.clear(scope);
     }
 
-    @Override
-    public void clearState(ProcessorNode processor) {
-        clearState(processor.getIdentifier());
-    }
-
-    @Override
-    public StateMap getState(ControllerServiceNode controllerService, Scope scope) {
-        return getState(controllerService.getIdentifier(), scope);
-    }
-
-    @Override
-    public void clearState(ControllerServiceNode controllerService) {
-        clearState(controllerService.getIdentifier());
-    }
-
-    @Override
-    public StateMap getState(ReportingTaskNode reportingTask, Scope scope) {
-        return getState(reportingTask.getIdentifier(), scope);
-    }
-
-    @Override
-    public void clearState(ReportingTaskNode reportingTask) {
-        clearState(reportingTask.getIdentifier());
+    private void clearExternalState(final ConfigurableComponent component) throws IOException {
+        if (component instanceof ExternalStateManager) {
+            ((ExternalStateManager)component).clearExternalState();
+        }
     }
 
     /* setters */
