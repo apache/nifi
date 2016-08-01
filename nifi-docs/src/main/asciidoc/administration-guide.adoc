@@ -282,6 +282,401 @@ nifi.security.user.login.identity.provider=kerberos-provider
 
 See also <<kerberos_service>> to allow single sign-on access via client Kerberos tickets.
 
+[[multi-tenant-authorization]]
+Multi-Tenant Authorization
+--------------------------
+
+After you have configured NiFi to run securely and with an authentication mechanism, you must configure who has access to the system, and the level of their access.
+You can do this using 'multi-tenant authorization'. Multi-tenant authorization enables multiple groups of users (tenants) to command, control, and observe different
+parts of the dataflow, with varying levels of authorization. When an authenticated user attempts to view or modify a NiFi resource, the system checks whether the
+user has privileges to perform that action. These privileges are defined by policies that you can apply system-wide or to individual components.
+
+[[authorizer-configuration]]
+Authorizer Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+An 'authorizer' grants users the privileges to manage users and policies by creating preliminary authorizations at startup.
+
+Authorizers are configured using two properties in the 'nifi.properties' file:
+
+* The `nifi.authorizer.configuration.file` property specifies the configuration file where authorizers are defined.  By default, the 'authorizers.xml' file located in the root installation conf directory is selected.
+* The `nifi.security.user.authorizer` property indicates which of the configured authorizers in the 'authorizers.xml' file to use.
+
+[[authorizers-setup]]
+Authorizers.xml Setup
+~~~~~~~~~~~~~~~~~~~~~
+
+The 'authorizers.xml' file is used to define and configure available authorizers.  The default authorizer is the FileAuthorizer, however, you can develop additional authorizers as extensions.  The FileAuthorizer has the following properties:
+
+* Authorizations File - The file where the FileAuthorizer stores policies.  By default, the 'authorizations.xml' in the 'conf' directory is chosen.
+* Users File - The file where the FileAuthorizer stores users and groups.  By default, the 'users.xml' in the 'conf' directory is chosen.
+* Initial Admin Identity - The identity of an initial admin user that is granted access to the UI and given the ability to create additional users, groups, and policies. This property is only used when there are no other users, groups, and policies defined.
+* Legacy Authorized Users File - The full path to an existing authorized-users.xml that is automatically converted to the multi-tenant authorization model.  This property is only used when there  are no other users, groups, and policies defined.
+* Node Identity - The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered, these properties can be ignored.
+
+[[initial-admin-identity]]
+Initial Admin Identity  (New NiFi Instance)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are setting up a secured NiFi instance for the first time, you must manually designate an “Initial Admin Identity” in the 'authorizers.xml' file.  This initial admin user is granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN (when using certificates or LDAP) or a Kerberos principal.  If you are the NiFi administrator, add yourself as the “Initial Admin Identity”.
+
+Here is an example LDAP entry using the name John Smith:
+
+----
+<authorizer>
+        <identifier>file-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAuthorizer</class>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial Admin Identity">cn=John Smith,ou=people,dc=example,dc=com</property>
+        <property name="Legacy Authorized Users File"></property>
+        <!--
+        <property name="Node Identity 1"></property>
+        <property name="Node Identity 2"></property>
+        -->
+    </authorizer>
+</authorizers>
+----
+
+Here is a example Kerberos entry using the name John Smith and realm `NIFI.APACHE.ORG`:
+
+----
+<authorizer>
+        <identifier>file-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAuthorizer</class>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
+        <property name="Legacy Authorized Users File"></property>
+        <!--
+        <property name="Node Identity 1"></property>
+        <property name="Node Identity 2"></property>
+        -->
+    </authorizer>
+</authorizers>
+----
+
+After you have edited and saved the 'authorizers.xml' file, restart NiFi.  The “Initial Admin Identity” user and administrative policies are added to the 'authorizations.xml' file during restart. Once NiFi starts, the “Initial Admin Identity” user is able to access the UI and begin managing users, groups, and policies.
+
+NOTE: For a brand new secure flow, providing the "Initial Admin Identity" gives that user access to get into the UI and to manage users, groups and policies.  But if that user wants to start modifying the flow, they need to grant themselves policies for the root process group. The system is unable to do this automatically because in a new flow the UUID of the root process group is not permanent until the flow.xml.gz is generated.  If the NiFi instance is an upgrade from an existing flow.xml.gz or a 1.x instance going from unsecure to secure, then the "Initial Admin Identity" user is automatically given the privileges to modify the flow.
+
+[[legacy-authorized-users]]
+Legacy Authorized Users (NiFi Instance Upgrade)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are upgrading from a 0.x NiFi instance, you can convert your previously configured users and roles to the multi-tenant authorization model.  In the 'authorizers.xml' file, specify the location of your existing 'authorized-users.xml' file in the “Legacy Authorized Users File” property.
+
+Here is an example entry:
+
+----
+<authorizers>
+    <authorizer>
+        <identifier>file-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAuthorizer</class>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial Admin Identity"></property>
+        <property name="Legacy Authorized Users File">/Users/johnsmith/config_files/authorized-users.xml</property>
+    </authorizer>
+</authorizers>
+----
+
+After you have edited and saved the 'authorizers.xml' file, restart NiFi. Users and roles from the 'authorized-users.xml' file are converted and added as identities and policies in the 'authorizations.xml' file.  Once the application starts, users who previously had a legacy Admin role can access the UI and begin managing users, groups, and policies.
+
+NiFi fails to restart if values exist for both the “Initial Admin Identity” and “Legacy Authorized Users File” properties.  You can specify only one of these values to initialize authorizations.
+
+NOTE: Do not manually edit the 'authorizations.xml' file. Create authorizations only during initial setup and afterwards using the NiFi UI.
+
+[[cluster-node-identities]]
+Cluster Node Identities
+^^^^^^^^^^^^^^^^^^^^^^^
+
+If you are running NiFi in a clustered environment, you must specify the identities for each node.  The authorization policies required for the nodes to communicate are created during startup.
+
+For example, if you are setting up a 2 node cluster with the following DNs for each node:
+
+----
+cn=nifi-1,ou=people,dc=example,dc=com
+cn=nifi-2,ou=people,dc=example,dc=com
+----
+
+----
+<authorizer>
+        <identifier>file-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAuthorizer</class>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Users File">./conf/users.xml</property>
+        <property name="Initial Admin Identity">johnsmith@NIFI.APACHE.ORG</property>
+        <property name="Legacy Authorized Users File"></property>
+        <property name="Node Identity 1">cn=nifi-1,ou=people,dc=example,dc=com</property>
+        <property name="Node Identity 2">cn=nifi-2,ou=people,dc=example,dc=com</property>
+    </authorizer>
+</authorizers>
+----
+
+NOTE: In a cluster, all nodes must have the same 'authorizations.xml'.  If a node has a different 'authorizations.xml', it cannot join the cluster.   The only exception is if a node has an empty 'authorizations.xml'.  In this scenario, the node inherits the 'authorizations.xml' from the cluster.
+
+Now that initial authorizations have been created, additional users, groups and authorizations can be created and managed in the NiFi UI.
+
+[[config-users-access-policies]]
+Configuring Users & Access Policies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This section describes:
+
+* How to create users and groups
+* How access policies are used to define authorizations
+* How to configure access policies by walking through specific examples
+
+NOTE: Instructions requiring interaction with the UI assume the application is being accessed by User1, a user with administrator privileges, such as the “Initial Admin Identity” user or a converted legacy admin user (see <<authorizers-setup>>).
+
+[[creating-users-groups]]
+Creating Users and Groups
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+From the UI, select “Users” from the Global Menu.  This opens a dialog to create and manage users and groups.
+
+image:nifi-users-dialog.png["NiFi Users Dialog"]
+
+Click the Add icon (image:iconAddUser.png["Add User Icon"]).  To create a user, enter the 'Identity' information relevant to the authentication method chosen to secure your NiFi instance.  Click OK.
+
+image:user-creation-dialog.png["User Creation Dialog"]
+
+To create a group, select the “Group” radio button, enter the name of the group and select the users to be included in the group.  Click OK.
+
+
+image:group-creation-dialog.png["Group Creation Dialog"]
+
+[[access-policies]]
+Access Policies
+^^^^^^^^^^^^^^^
+
+You can manage the ability for users and groups to view or modify NiFi resources using 'access policies'.  There are two types of access policies that can be applied to a resource:
+
+* View --  If a view policy is created for a resource, only the users or groups that are added to that policy are able to see the details of that resource.
+* Modify -- If a resource has a modify policy, only the users or groups that are added to that policy can change the configuration of that resource.
+
+You can create and apply access policies on both global and component levels.
+
+[[global-access-policies]]
+===== Global Access Policies
+
+Global access policies govern the following system level authorizations:
+
+|===
+|Policy |Privilege |Global Menu Selection
+
+|view the UI
+|Allow users to view the UI
+|N/A
+
+|access the controller
+|Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
+|Controller Settings
+
+|query provenance
+|Allows users to submit a Provenance Search and request Event Lineage
+|Data Provenance
+
+|access all policies
+|Allows users to view/modify the policies for all components
+|Policies
+
+|access users/user groups
+|Allows users to view/modify the users and user groups
+|Users
+
+|retrieve site-to-site details
+|Allows other NiFi instances to retrieve Site-To-Site details
+|N/A
+
+|view system diagnostics
+|Allows users to view System Diagnostics
+|Summary
+
+|proxy user requests
+|Allows proxy machines to send requests on the behalf of others
+|N/A
+
+|access counters
+|Allows users to view/modify Counters
+|Counters
+|===
+
+[[component-level-access-policies]]
+===== Component Level Access Policies
+
+Component level access policies govern the following component level authorizations:
+
+|===
+|Policy |Privilege
+
+|view the component
+|Allows users to view component configuration details
+
+|modify the component
+|Allows users to modify component configuration details
+
+|view the provenance events
+|Allows users to access provenance events and content for a component
+
+|view the policies
+|Allows users to view the list of users who can view/modify a component
+
+|modify the policies
+|Allows users to modify the list of users who can view/modify a component
+
+|retrieve data via site-to-site
+|Allows a port to receive data from NiFi instances
+
+|send data via site-to-site
+|Allows a port to send data from NiFi instances
+|===
+
+NOTE: You can apply access policies to all component types except connections.  Connection authorizations are inferred by the individual access policies on the source and destination components of the connection, as well as the access policy of the process group containing the components.  This is discussed in more detail in the <<creating-a-connection>> and <<editing-a-connection>> examples below.
+
+[[access-policy-inheritance]]
+===== Access Policy Inheritance
+
+An administrator does not need to manually create policies for every component in the dataflow.  To reduce the amount of time admins spend on authorization management, policies are inherited from parent resource to child resource.  For example, if a user is given access to view and modify a process group, that user can also view and modify the components in the process group.  Policy inheritance enables an administrator to assign policies at one time and have the policies apply throughout the entire dataflow.
+
+You can override an inherited policy (as described in the <<moving-a-processor>> example below).  Overriding a policy removes the inherited policy, breaking the chain of inheritance from parent to child, and creates a replacement policy to add users as desired.  Inherited policies and their users can be restored by deleting the replacement policy.
+
+[[access-policy-config-examples]]
+Access Policy Configuration Examples
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The most effective way to understand how to create and apply access policies is to walk through some common examples.  The following scenarios assume User1 is an administrator and User2 is a newly added user that has only been given access to the UI.
+
+Let’s begin with two processors on the canvas as our starting point: GenerateFlowFile and LogAttribute.
+
+image:access-policy-config-start.png["Access Policy Config Start"]
+
+User1 can add components to the dataflow and is able to move, edit and connect all processors.  The details and properties of the root process group and processors are visible to User1.
+
+image:user1-full-access.png["User1 Full Access"]
+
+User1 wants to maintain their current privileges to the dataflow and its components.
+
+User2 is unable to add components to the dataflow or move, edit, or connect components.  The details and properties of the root process group and processors are hidden from User2.
+
+image:user2-restricted-access.png["User2 Restricted Access"]
+
+[[moving-a-processor]]
+===== Moving a Processor
+
+To allow User2 to move the GenerateFlowFile processor in the dataflow and only that processor, User1 performs the following steps:
+
+1. Select the GenerateFlowFile processor so that it is highlighted.
+2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+3. Select “modify the component” from the policy drop-down.
+
+image:processor-modify-policy.png["Processor Modify Policy"]
+
+The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
+[start=4]
+4. Select the Override link in the policy inheritance message to create a replacement policy.
+5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+
+image:processor-replacement-modify-policy.png["Processor Replacement Modify Policy"]
+
+With these changes, User1 maintains the ability to move both processors on the canvas.  User2 can now move the GenerateFlowFile processor but cannot move the LogAttribute processor.
+
+image:user2-moved-processor.png["User2 Moved Processor"]
+
+[[editing-a-processor]]
+===== Editing a Processor
+
+In the “Moving a Processor” example above, User2 was added to the “modify the component” policy for GenerateFlowFile.  Without the ability to view the processor properties, User2 is unable to modify the processor’s configuration.  In order to edit a component, a user must be on both the “view the component” and “modify the component” policies. To implement this, User1 performs the following steps:
+
+1. Select the GenerateFlowFile processor.
+2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+3. Select "view the component” from the policy drop-down.
+
+image:processor-view-policy.png["Processor View Policy"]
+
+The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
+[start=4]
+4. Select the Override link in the policy inheritance message to create a replacement policy.
+5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
+
+image:processor-replacement-view-policy.png["Processor Replacement View Policy"]
+
+With these changes, User1 maintains the ability to view and edit the processors on the canvas. User2 can now view and edit the GenerateFlowFile processor.
+
+image:user2-edit-processor.png["User2 Edit Processor"]
+
+[[creating-a-connection]]
+===== Creating a Connection
+
+With the access policies configured as discussed in the previous two examples, User1 is able to connect GenerateFlowFile to LogAttribute:
+
+image:user1-create-connection.png["User1 Create Connection"]
+
+User2 cannot make the connection:
+
+image:user2-no-connection.png["User2 No Connection"]
+
+This is because:
+
+* User2 does not have modify access on the process group and is therefore not able to create a connection.
+* Even though User2 has view and modify access to the source component (GenerateFlowFile), User2 does not have any access policy on the destination component (LogAttribute).
+
+To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
+
+1. Select the root process group. The Operate palette is updated with details for the root process group.
+2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
+3. Select "modify the component” from the policy drop-down.
+
+image:process-group-modify-policy.png["Process Group Modify Policy"]
+
+[start=4]
+4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
+
+image:process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
+
+By adding User2 to the “modify the component” policy on the process group, User2 is added to the “modify the component” policy on the LogAttribute processor by policy inheritance.  To confirm this, highlight the LogAttribute processor and select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette:
+
+image:processor-inherited-modify-policy.png["User2 Inherited Edit Processor"]
+
+With these changes, User2 can now connect the GenerateFlowFile processor to the LogAttribute processor.
+
+image:user2-can-connect.png["User2 Can Connect"]
+
+image:user2-connected-processors.png["User2 Connected Processors"]
+
+[[editing-a-connection]]
+===== Editing a Connection
+
+Assume User1 or User2 adds a ReplaceText processor to the root process group:
+
+image:replacetext-processor-added.png["ReplaceText Processor Added"]
+
+User1 can select and change the existing connection (between GenerateFlowFile to LogAttribute) to now connect GenerateFlowFile to ReplaceText:
+
+image:user1-edit-connection.png["User1 Edit Connection"]
+
+User 2 is unable to perform this action.
+
+image:user2-no-edit-connection.png["User2 No Edit Connection"]
+
+To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
+
+1. Select the root process group. The Operate palette is updated with details for the root process group.
+2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
+3. Select "view the component” from the policy drop-down.
+
+image:process-group-view-policy.png["Process Group View Policy"]
+
+[start=4]
+4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
+
+image:process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
+
+Being added to both the view and modify policies for the process group, User2 can now connect the GenerateFlowFile processor to the ReplaceText processor.
+
+image:user2-edit-connection.png["User2 Edit Connection"]
+
 [[encryption]]
 Encryption Configuration
 ------------------------
@@ -1142,7 +1537,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |nifi.flowservice.writedelay.interval|When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is 500 ms.
 |nifi.administrative.yield.duration|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
 |nifi.bored.yield.duration|When a component has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has new data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for components that do not constantly have work to do, as once they go into this "bored" state, they will wait this amount of time before checking for more work. The default value is 10 millis.
-|nifi.authority.provider.configuration.file*|This is the location of the file that specifies how user access is authorized. The default value is ./conf/authority-providers.xml.
+|nifi.authorizer.configuration.file*|This is the location of the file that specifies how authorizers are defined.  The default value is ./conf/authorizers.xml.
 |nifi.login.identity.provider.configuration.file*|This is the location of the file that specifies how username/password authentication is performed. This file is
 only consider if `nifi.security.user.login.identity.provider` configured with a provider identifier. The default value is ./conf/login-identity-providers.xml.
 |nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.l
@@ -1385,11 +1780,29 @@ Security Configuration section of this Administrator's Guide.
 |nifi.security.truststoreType|The truststore type. It is blank by default.
 |nifi.security.truststorePasswd|The truststore password. It is blank by default.
 |nifi.security.needClientAuth|This indicates whether client authentication in the cluster protocol. It is blank by default.
+|nifi.security.user.authorizer|Specifies which of the configured Authorizers in the authorizers.xml file to use.  By default, it is set to file-provider.
 |nifi.security.user.login.identity.provider|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
 in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
 |nifi.security.ocsp.responder.url|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
 |nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
+
+=== Identity Mapping Properties
+
+These properties can be utilized to normalize user identities.  When implemented, identities authenticated by different identity providers (certificates, LDAP, Kerberos) are treated the same internally in NiFi.  As a result, duplicate users are avoided and user-specific configurations such as authorizations only need to be setup once per user.
+
+The following examples demonstrate normalizing DNs from certificates and principals from Kerberos:
+
+----
+nifi.security.identity.mapping.pattern.dn=^CN=(.*?), OU=(.*?), O=(.*?), L=(.*?), ST=(.*?), C=(.*?)$
+nifi.security.identity.mapping.value.dn=$1@$2
+nifi.security.identity.mapping.pattern.kerb=^(.*?)/instance@(.*?)$
+nifi.security.identity.mapping.value.kerb=$1@$2
+----
+
+The last segment of each property is an identifier used to associate the pattern with the replacement value.  When a user makes a request to NiFi, their identity is checked to see if it matches each of those patterns in lexicographical order.  For the first one that matches, the replacement specified in the `nifi.security.identity.mapping.value.xxxx` property is used. So a login with `CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US` matches the DN mapping pattern above and the DN mapping value `$1@$2` is applied.  The user is normalized to `localhost@Apache NiFi`.
+
+NOTE: These mappings are also applied to the "Initial Admin Identity" and "Cluster Node Identity" properties in the authorizers.xml file (See <<authorizers-setup>>).
 
 === Cluster Common Properties
 
