@@ -153,7 +153,7 @@ public class PublishKafkaTest {
         runner.setProperty(PublishKafka.KEY, "key1");
         runner.setProperty(PublishKafka.BOOTSTRAP_SERVERS, "localhost:1234");
         runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "\n");
-        runner.setProperty(PublishKafka.META_WAIT_TIME, "500 millis");
+        runner.setProperty(PublishKafka.META_WAIT_TIME, "3000 millis");
 
         final String text = "Hello World\nGoodbye\nfail\n2";
         runner.enqueue(text.getBytes(StandardCharsets.UTF_8));
@@ -164,6 +164,7 @@ public class PublishKafkaTest {
         Producer<byte[], byte[]> producer = putKafka.getProducer();
         verify(producer, times(4)).send(Mockito.any(ProducerRecord.class));
         runner.shutdown();
+        putKafka.destroy();
     }
 
     @SuppressWarnings("unchecked")
@@ -188,6 +189,35 @@ public class PublishKafkaTest {
         assertEquals(0, runner.getQueueSize().getObjectCount());
         Producer<byte[], byte[]> producer = putKafka.getProducer();
         verify(producer, times(4)).send(Mockito.any(ProducerRecord.class));
+        runner.shutdown();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void validateOnFutureGetFailureAndThenResendSuccessFirstMessageFail() throws Exception {
+        String topicName = "validateSendFailureAndThenResendSuccess";
+        StubPublishKafka putKafka = new StubPublishKafka(100);
+
+        TestRunner runner = TestRunners.newTestRunner(putKafka);
+        runner.setProperty(PublishKafka.TOPIC, topicName);
+        runner.setProperty(PublishKafka.CLIENT_ID, "foo");
+        runner.setProperty(PublishKafka.KEY, "key1");
+        runner.setProperty(PublishKafka.BOOTSTRAP_SERVERS, "localhost:1234");
+        runner.setProperty(PublishKafka.MESSAGE_DEMARCATOR, "\n");
+        runner.setProperty(PublishKafka.META_WAIT_TIME, "500 millis");
+
+        final String text = "futurefail\nHello World\nGoodbye\n2";
+        runner.enqueue(text.getBytes(StandardCharsets.UTF_8));
+        runner.run(1, false);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(PublishKafka.REL_FAILURE).get(0);
+        assertNotNull(ff);
+        runner.enqueue(ff);
+
+        runner.run(1, false);
+        assertEquals(0, runner.getQueueSize().getObjectCount());
+        Producer<byte[], byte[]> producer = putKafka.getProducer();
+        // 6 sends due to duplication
+        verify(producer, times(5)).send(Mockito.any(ProducerRecord.class));
         runner.shutdown();
     }
 

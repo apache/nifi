@@ -388,8 +388,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
     @Override
     protected KafkaPublisher buildKafkaResource(ProcessContext context, ProcessSession session)
             throws ProcessException {
-        KafkaPublisher kafkaPublisher = new KafkaPublisher(this.buildKafkaConfigProperties(context));
-        kafkaPublisher.setProcessLog(this.getLogger());
+        KafkaPublisher kafkaPublisher = new KafkaPublisher(this.buildKafkaConfigProperties(context), this.getLogger());
         return kafkaPublisher;
     }
 

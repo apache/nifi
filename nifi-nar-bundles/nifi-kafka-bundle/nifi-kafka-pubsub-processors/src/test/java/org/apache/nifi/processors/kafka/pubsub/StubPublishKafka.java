@@ -22,14 +22,19 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -45,12 +50,18 @@ public class StubPublishKafka extends PublishKafka {
 
     private final int ackCheckSize;
 
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
     StubPublishKafka(int ackCheckSize) {
         this.ackCheckSize = ackCheckSize;
     }
 
     public Producer<byte[], byte[]> getProducer() {
         return producer;
+    }
+
+    public void destroy() {
+        this.executor.shutdownNow();
     }
 
     @SuppressWarnings("unchecked")
@@ -66,11 +77,16 @@ public class StubPublishKafka extends PublishKafka {
             f.setAccessible(true);
             f.set(this, context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue());
             publisher = (KafkaPublisher) TestUtils.getUnsafe().allocateInstance(KafkaPublisher.class);
+            publisher.setAckWaitTime(15000);
             producer = mock(Producer.class);
             this.instrumentProducer(producer, false);
             Field kf = KafkaPublisher.class.getDeclaredField("kafkaProducer");
             kf.setAccessible(true);
             kf.set(publisher, producer);
+
+            Field componentLogF = KafkaPublisher.class.getDeclaredField("componentLog");
+            componentLogF.setAccessible(true);
+            componentLogF.set(publisher, mock(ComponentLog.class));
 
             Field ackCheckSizeField = KafkaPublisher.class.getDeclaredField("ackCheckSize");
             ackCheckSizeField.setAccessible(true);
@@ -84,8 +100,8 @@ public class StubPublishKafka extends PublishKafka {
 
     @SuppressWarnings("unchecked")
     private void instrumentProducer(Producer<byte[], byte[]> producer, boolean failRandomly) {
+
         when(producer.send(Mockito.any(ProducerRecord.class))).then(new Answer<Future<RecordMetadata>>() {
-            @SuppressWarnings("rawtypes")
             @Override
             public Future<RecordMetadata> answer(InvocationOnMock invocation) throws Throwable {
                 ProducerRecord<byte[], byte[]> record = (ProducerRecord<byte[], byte[]>) invocation.getArguments()[0];
@@ -94,11 +110,19 @@ public class StubPublishKafka extends PublishKafka {
                     StubPublishKafka.this.failed = true;
                     throw new RuntimeException("intentional");
                 }
-                Future future = mock(Future.class);
-                if ("futurefail".equals(value) && !StubPublishKafka.this.failed) {
-                    StubPublishKafka.this.failed = true;
-                    when(future.get(Mockito.anyLong(), Mockito.any())).thenThrow(ExecutionException.class);
-                }
+                Future<RecordMetadata> future = executor.submit(new Callable<RecordMetadata>() {
+                    @Override
+                    public RecordMetadata call() throws Exception {
+                        if ("futurefail".equals(value) && !StubPublishKafka.this.failed) {
+                            StubPublishKafka.this.failed = true;
+                            throw new TopicAuthorizationException("Unauthorized");
+                        } else {
+                            TopicPartition partition = new TopicPartition("foo", 0);
+                            RecordMetadata meta = new RecordMetadata(partition, 0, 0);
+                            return meta;
+                        }
+                    }
+                });
                 return future;
             }
         });
