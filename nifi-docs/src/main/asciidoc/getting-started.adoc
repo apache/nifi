@@ -698,15 +698,11 @@ Finally, we have the Content tab:
 image:event-content.png[Event Content]
 
 This tab provides us information about where in the Content Repository the FlowFile's content was stored. If the event modified the content
-of the FlowFile, we will see the 'before' and 'after' content claims. We are then given the option to Download the content or to View the
+of the FlowFile, we will see the 'before' (input) and 'after' (output) content claims. We are then given the option to Download the content or to View the
 content within NiFi itself, if the data format is one that NiFi understands how to render.
 
-Additionally, in the Replay section of the tab, there is a 'Submit' button that allows the user to re-insert the FlowFile into the flow and re-process it from exactly the point
-at which the event happened.
-
-image:event-content-replay.png[Event Content Replay]
-
-This provides a very powerful mechanism, as we are able to modify our flow in real time, re-process a FlowFile,
+Additionally, in the Replay section of the tab, there is a 'Replay' button that allows the user to re-insert the FlowFile into the flow and re-process it from exactly the point
+at which the event happened. This provides a very powerful mechanism, as we are able to modify our flow in real time, re-process a FlowFile,
 and then view the results. If they are not as expected, we can modify the flow again, and re-process the FlowFile again. We are able to perform
 this iterative development of the flow until it is processing the data exactly as intended.
 
