@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -901,4 +902,10 @@ public interface TestRunner {
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
+
+    /**
+     * Returns the {@link MockValidationContext} instance that enables custom validation test cases.
+     * @return newly created validation context
+     */
+    ValidationContext newValidationContext();
 }

@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -54,9 +55,11 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.ExternalStateManager;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StandardStateMap;
@@ -123,7 +126,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
     private volatile String brokers = DEFAULT_BOOTSTRAP_SERVERS;
 
-    private volatile Properties kafkaProperties;
+    private volatile Properties kafkaProperties = getDefaultKafkaProperties();
 
     /*
      * Will ensure that the list of the PropertyDescriptors is build only once,
@@ -244,6 +247,16 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         this.kafkaResource.commitSync();
     }
 
+    @Override
+    protected void setKafkaProperty(Properties properties, PropertyDescriptor descriptor, PropertyValue propertyValue) {
+        super.setKafkaProperty(properties, descriptor, propertyValue);
+        if (TOPIC.equals(descriptor)) {
+            topic = properties.getProperty(TOPIC.getName());
+        } else if (BOOTSTRAP_SERVERS.equals(descriptor)) {
+            brokers = properties.getProperty(BOOTSTRAP_SERVERS.getName());
+        }
+    }
+
     /**
      * Builds an instance of {@link KafkaConsumer} and subscribes to a provided
      * topic.
@@ -317,11 +330,24 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
     }
 
     @Override
-    public StateMap getExternalState() throws IOException {
+    public Collection<ValidationResult> validateExternalStateAccess(ValidationContext context) {
+        final Collection<ValidationResult> validationResults = validate(context);
+        if (validationResults.isEmpty()) {
 
-        if (!isReadyToAccessState()) {
-            return null;
+            // Capture settings.
+            context.getProperties().entrySet().forEach(kv -> {
+                final PropertyDescriptor descriptor = kv.getKey();
+                // If value hasn't been modified by user from the default value, the value is null.
+                final String v = StringUtils.isBlank(kv.getValue()) ? descriptor.getDefaultValue() : kv.getValue();
+                setKafkaProperty(kafkaProperties, descriptor, context.newPropertyValue(v));
+            });
         }
+
+        return validationResults;
+    }
+
+    @Override
+    public StateMap getExternalState() throws IOException {
 
         final String groupId = kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
         return submitConsumerGroupCommand("Fetch offsets", consumer -> {
@@ -338,13 +364,6 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
             return new StandardStateMap(partitionOffsets, System.currentTimeMillis());
         }, null);
-    }
-
-    private boolean isReadyToAccessState() {
-        return !StringUtils.isEmpty(topic)
-                && !StringUtils.isEmpty(brokers)
-                && kafkaProperties != null
-                && !StringUtils.isEmpty(kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG));
     }
 
     /**
@@ -376,10 +395,6 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
     @Override
     public void clearExternalState() throws IOException {
 
-        if (!isReadyToAccessState()) {
-            return;
-        }
-
         synchronized (this) {
             final String groupId = kafkaProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG);
             final Boolean result = submitConsumerGroupCommand("Clear offsets", consumer -> {
@@ -393,7 +408,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
             }, e -> {
                 if (e instanceof CommitFailedException) {
-                    throw new IOException("The stopped consumer may not have been removed completely." +
+                    throw new IllegalStateException("The stopped consumer may not have been removed completely." +
                             " It can take more than 30 seconds." +
                             " or there are other consumers connected to the same consumer group. Retrying later may succeed.", e);
                 }
@@ -459,10 +474,16 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
 
         try {
             return future.get(CONSUMER_GRP_CMD_TIMEOUT_SEC, TimeUnit.SECONDS);
-        } catch (InterruptedException|ExecutionException|TimeoutException e) {
-            final String msg = commandName + " failed due to " + e;
-            logger.error(msg, e);
-            throw new IOException(msg, e);
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            } else if (e.getCause() instanceof RuntimeException) {
+                throw (RuntimeException) e.getCause();
+            } else {
+                throw new IOException(commandName + " failed due to " + e, e);
+            }
+        } catch (InterruptedException|TimeoutException e) {
+            throw new IOException(commandName + " failed due to " + e, e);
         } finally {
             future.cancel(true);
             executorService.shutdown();
@@ -475,28 +496,5 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         return props;
-    }
-
-    /**
-     * ConsumerKafka overrides this method in order to capture processor's property values required when it retrieves
-     * its state managed externally at Kafka. Since view/clear state operation can be executed before onTrigger() is called,
-     * we need to capture these values as it's modified. This method is also called when NiFi restarts and loads configs,
-     * so users can access external states right after restart of NiFi.
-     * @param descriptor of the modified property
-     * @param oldValue non-null property value (previous)
-     * @param newValue the new property value or if null indicates the property
-     */
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if (kafkaProperties == null) {
-            kafkaProperties = getDefaultKafkaProperties();
-        }
-        setKafkaProperty(kafkaProperties, descriptor, new StandardPropertyValue(newValue, null, null));
-
-        if (TOPIC.equals(descriptor)) {
-            topic = kafkaProperties.getProperty(TOPIC.getName());
-        } else if (BOOTSTRAP_SERVERS.equals(descriptor)) {
-            brokers = kafkaProperties.getProperty(BOOTSTRAP_SERVERS.getName());
-        }
     }
 }

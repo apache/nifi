@@ -20,6 +20,8 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 
+import java.io.IOException;
+
 public interface ComponentStateDAO {
 
     /**
@@ -29,7 +31,7 @@ public interface ComponentStateDAO {
      * @param scope     scope
      * @return state map
      */
-    StateMap getState(ConfigurableComponent component, Scope scope);
+    StateMap getState(ConfigurableComponent component, Scope scope) throws IOException;
 
     /**
      * Clears the state for the specified component.
@@ -37,6 +39,6 @@ public interface ComponentStateDAO {
      * @param component component
      * @param scope     scope
      */
-    void clearState(ConfigurableComponent component, Scope scope);
+    void clearState(ConfigurableComponent component, Scope scope) throws IOException;
 
 }

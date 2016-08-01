@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,12 +31,18 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.state.SortedStateUtils;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.StateEntryDTO;
 import org.apache.nifi.web.api.dto.StateMapDTO;
 import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.StreamingOutput;
 
 public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<ComponentStateEntity, ComponentStateDTO> {
+    private static final Logger logger = LoggerFactory.getLogger(ComponentStateEndpointMerger.class);
     public static final Pattern PROCESSOR_STATE_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/state");
     public static final Pattern CONTROLLER_SERVICE_STATE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}/state");
     public static final Pattern REPORTING_TASK_STATE_URI_PATTERN = Pattern.compile("/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/state");
@@ -64,6 +71,21 @@ public class ComponentStateEndpointMerger extends AbstractSingleDTOEndpoint<Comp
     @Override
     public void mergeResponses(ComponentStateDTO clientDto, Map<NodeIdentifier, ComponentStateDTO> dtoMap,
                                Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
+
+        // If there's a problematic response, pick it as the final response.
+        if (problematicResponses != null && problematicResponses.size() > 0) {
+            final NodeResponse problematicResponse = problematicResponses.iterator().next();
+            if (problematicResponse.getResponse().getEntity() instanceof StreamingOutput) {
+                try (
+                    final ByteArrayOutputStream errResponse = new ByteArrayOutputStream();
+                ) {
+                    ((StreamingOutput)problematicResponse.getResponse().getEntity()).write(errResponse);
+                    throw new IllegalStateException(errResponse.toString("utf-8"));
+                } catch (IOException e) {
+                    logger.error("Failed to read problematic response due to {}", e, e);
+                }
+            }
+        }
 
         // If there're more than 1 node returning external state, then it's a per node external state.
         final boolean externalPerNode = dtoMap.values().stream()

@@ -645,12 +645,14 @@ External State Manager is a mechanism to provide DFMs such interactions with ext
 If a Processor, Controller Service or Reporting Task interact with an external system that manages NiFi component state,
 it's advisable for those components to implement `ExternalStateManager` interface, and annotate the class with `@Stateful` using `Scope.EXTERNAL`.
 
-By doing so, NiFi UI lets a DFM to access component states by calling corresponding `getExternalState` or `clearExternalState` method.
+By doing so, NiFi UI lets a DFM access component states by calling corresponding `getExternalState` or `clearExternalState` method.
 
-To access an external system from those method implementations, you will need configured property values of the component,
+To access an external system from those method implementations, configured property values of the component will be needed,
 such as Database connection URL or Kafka broker address.
-Since `ExternalStateManager` methods can be called before component is fully configured or scheduled,
-it's important to use `onPropertyModified` to capture those required configuration values for an external system connection.
+NiFi framework will call `validateExternalStateAccess` method, to determine if required properties are set to access an external system,
+before `getExternalState` or `clearExternalState` is called.
+At `valiadteExternalStateAccess` method, implementations has to validate configured properties,
+and also capture configured property values to use at `getExternalState` and `clearExternalState`.
 
 `ExternalStateManager` also has the `getExternalStateScope` method which return either `ExternalStateScope.NODE` or `ExternalStateScope.CLUSTER`
 to indicate how a NiFi cluster should access the target external system.

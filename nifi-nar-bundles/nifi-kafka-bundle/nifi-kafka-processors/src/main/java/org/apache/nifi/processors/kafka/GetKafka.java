@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +52,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.ExternalStateManager;
 import org.apache.nifi.components.state.Scope;
@@ -236,6 +239,10 @@ public class GetKafka extends AbstractProcessor implements ExternalStateManager 
     }
 
     public void createConsumers(final ProcessContext context) {
+
+        zookeeperConnectionString = context.getProperty(ZOOKEEPER_CONNECTION_STRING).getValue();
+        groupId = context.getProperty(GROUP_ID).getValue();
+        topic = context.getProperty(TOPIC).getValue();
 
         final Properties props = new Properties();
         props.setProperty("zookeeper.connect", zookeeperConnectionString);
@@ -504,51 +511,42 @@ public class GetKafka extends AbstractProcessor implements ExternalStateManager 
     }
 
     @Override
+    public Collection<ValidationResult> validateExternalStateAccess(ValidationContext context) {
+        final Collection<ValidationResult> validationResults = validate(context);
+        if (validationResults.isEmpty()) {
+
+            // Capture settings.
+            context.getProperties().entrySet().forEach(kv -> {
+                final PropertyDescriptor descriptor = kv.getKey();
+                // If value hasn't been modified by user from the default value, the value is null.
+                final String v = StringUtils.isBlank(kv.getValue()) ? descriptor.getDefaultValue() : kv.getValue();
+                if (ZOOKEEPER_CONNECTION_STRING.equals(descriptor)) {
+                    zookeeperConnectionString = v;
+                } else if (TOPIC.equals(descriptor)) {
+                    topic = v;
+                } else if (GROUP_ID.equals(descriptor)) {
+                    groupId = v;
+                }
+            });
+        }
+
+        return validationResults;
+    }
+
+    @Override
     public StateMap getExternalState() throws IOException {
         // We don't have to synchronize with onTrigger here,
         // since it merely retrieves state from Zk using different channel, it doesn't affect consuming.
-        if (!isReadyToAccessState()) {
-            return null;
-        }
         final Map<String, String> partitionOffsets = KafkaUtils.retrievePartitionOffsets(zookeeperConnectionString, topic, groupId);
 
         return new StandardStateMap(partitionOffsets, System.currentTimeMillis());
     }
 
-    private boolean isReadyToAccessState() {
-        return !StringUtils.isEmpty(zookeeperConnectionString)
-                && !StringUtils.isEmpty(topic)
-                && !StringUtils.isEmpty(groupId);
-    }
-
     @Override
     public void clearExternalState() throws IOException {
-        if (!isReadyToAccessState()) {
-            return;
-        }
         // Block onTrigger starts creating new consumer until clear offset finishes.
         synchronized (this.consumerStreamsReady) {
             KafkaUtils.clearPartitionOffsets(zookeeperConnectionString, topic, groupId);
-        }
-    }
-
-    /**
-     * GetKafka overrides this method in order to capture processor's property values required when it retrieves
-     * its state managed externally at Kafka. Since view/clear state operation can be executed before onTrigger() is called,
-     * we need to capture these values as it's modified. This method is also called when NiFi restarts and loads configs,
-     * so users can access external states right after restart of NiFi.
-     * @param descriptor of the modified property
-     * @param oldValue non-null property value (previous)
-     * @param newValue the new property value or if null indicates the property
-     */
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if (ZOOKEEPER_CONNECTION_STRING.equals(descriptor)) {
-            zookeeperConnectionString = newValue;
-        } else if (TOPIC.equals(descriptor)) {
-            topic = newValue;
-        } else if (GROUP_ID.equals(descriptor)) {
-            groupId = newValue;
         }
     }
 

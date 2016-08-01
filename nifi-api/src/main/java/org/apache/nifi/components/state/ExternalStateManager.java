@@ -18,8 +18,11 @@
 package org.apache.nifi.components.state;
 
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 
 import java.io.IOException;
+import java.util.Collection;
 
 /**
  * <p>
@@ -46,6 +49,18 @@ import java.io.IOException;
  *
  */
 public interface ExternalStateManager {
+
+    /**
+     * To access an external system from those method implementations, configured property values of the component will be needed,
+     * such as Database connection URL or Kafka broker address.
+     * NiFi framework will call {@link #validateExternalStateAccess} method, to determine if required properties are set
+     * to access an external system, before {@link #getExternalState} or {@link #clearExternalState} is called.
+     * In this method, implementations has to validate configured properties,
+     * and also capture configured property values to use at getExternalState and clearExternalState.
+     * @param context validation context
+     * @return validation error result
+     */
+    Collection<ValidationResult> validateExternalStateAccess(final ValidationContext context);
 
     /**
      * Returns the current state for the component. This return value may be <code>null</code>.

@@ -32,7 +32,7 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
     private StateManagerProvider stateManagerProvider;
 
     @Override
-    public StateMap getState(final ConfigurableComponent component, final Scope scope) {
+    public StateMap getState(final ConfigurableComponent component, final Scope scope) throws IOException {
         switch (scope) {
             case EXTERNAL:
                 return getExternalState(component);
@@ -54,20 +54,15 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         }
     }
 
-    private StateMap getExternalState(final ConfigurableComponent component) {
+    private StateMap getExternalState(final ConfigurableComponent component) throws IOException {
         if (component instanceof ExternalStateManager) {
-            try {
-                return ((ExternalStateManager)component).getExternalState();
-            } catch (final IOException ioe) {
-                throw new IllegalStateException(String.format("Unable to get the external state for the specified component %s: %s",
-                        component.getIdentifier(), ioe), ioe);
-            }
+            return ((ExternalStateManager)component).getExternalState();
         }
         return null;
     }
 
     @Override
-    public void clearState(final ConfigurableComponent component, final Scope scope) {
+    public void clearState(final ConfigurableComponent component, final Scope scope) throws IOException {
         switch (scope) {
             case EXTERNAL:
                 clearExternalState(component);
@@ -78,27 +73,17 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
         }
     }
 
-    private void clearState(final String componentId, final Scope scope) {
-        try {
-            final StateManager manager = stateManagerProvider.getStateManager(componentId);
-            if (manager == null) {
-                throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
-            }
-            manager.clear(scope);
-
-        } catch (final IOException ioe) {
-            throw new IllegalStateException(String.format("Unable to clear the state for the specified component %s: %s", componentId, ioe), ioe);
+    private void clearState(final String componentId, final Scope scope) throws IOException {
+        final StateManager manager = stateManagerProvider.getStateManager(componentId);
+        if (manager == null) {
+            throw new ResourceNotFoundException(String.format("State for the specified component %s could not be found.", componentId));
         }
+        manager.clear(scope);
     }
 
-    private void clearExternalState(final ConfigurableComponent component) {
+    private void clearExternalState(final ConfigurableComponent component) throws IOException {
         if (component instanceof ExternalStateManager) {
-            try {
-                ((ExternalStateManager)component).clearExternalState();
-            } catch (final IOException ioe) {
-                throw new IllegalStateException(String.format("Unable to clear the external state for the specified component %s: %s",
-                        component.getIdentifier(), ioe), ioe);
-            }
+            ((ExternalStateManager)component).clearExternalState();
         }
     }
 

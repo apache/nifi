@@ -203,6 +203,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -820,13 +821,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return dtoFactory.createCounterDto(controllerFacade.resetCounter(counterId));
     }
 
-    private ClearComponentStateResultEntity clearComponentState(final ConfigurableComponent component) {
+    private ClearComponentStateResultEntity clearComponentState(final ConfiguredComponent configuredComponent, final ConfigurableComponent component) {
 
         logger.debug("clearComponentState: component={}, shouldManageClusterState={}, shouldManageExternalState={}",
                 component, shouldManageClusterState(), shouldManageExternalState(component));
 
         final ClearComponentStateResultEntity entity = new ClearComponentStateResultEntity();
-        componentStateDAO.clearState(component, Scope.LOCAL);
+        try {
+            componentStateDAO.clearState(component, Scope.LOCAL);
+        } catch (IOException e) {
+            final String msg = String.format("Failed to clear state for %s due to %s", component, e);
+            logger.error(msg, e);
+            throw new IllegalStateException(msg, e);
+        }
 
         try {
             if (shouldManageClusterState()) {
@@ -834,6 +841,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             if (shouldManageExternalState(component)) {
+                final Collection<ValidationResult> validationResults = controllerFacade.validateExternalStateAccess(configuredComponent, (ExternalStateManager) component);
+                if (!validationResults.isEmpty()) {
+                    throw new IllegalStateException("Invalid configuration to access external state: " + validationResults);
+                }
                 componentStateDAO.clearState(component, Scope.EXTERNAL);
             }
         } catch (Exception e) {
@@ -843,7 +854,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // See: NodeClusterCoordinator.afterRequest()
             // Removing node doesn't help since it's related to external system, and other node will have the same issue.
             // So instead, return entity with message.
-            logger.warn("Failed to clear state for {} due to {}", component, e, e);
+            if (!(e instanceof IllegalStateException)) {
+                logger.error("Failed to clear state for {} due to {}", component, e, e);
+            }
             entity.setCleared(false);
             entity.setMessage(e.getMessage());
         }
@@ -857,7 +870,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ClearComponentStateResultEntity clearProcessorState(final String processorId) {
-        return clearComponentState(processorDAO.getProcessor(processorId).getProcessor());
+        final ProcessorNode processor = processorDAO.getProcessor(processorId);
+        return clearComponentState(processor, processor.getProcessor());
     }
 
     @Override
@@ -867,7 +881,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ClearComponentStateResultEntity clearControllerServiceState(final String controllerServiceId) {
-        return clearComponentState(controllerServiceDAO.getControllerService(controllerServiceId).getControllerServiceImplementation());
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return clearComponentState(controllerService, controllerService.getControllerServiceImplementation());
     }
 
     @Override
@@ -877,7 +892,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public ClearComponentStateResultEntity clearReportingTaskState(final String reportingTaskId) {
-        return clearComponentState(reportingTaskDAO.getReportingTask(reportingTaskId).getReportingTask());
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return clearComponentState(reportingTask, reportingTask.getReportingTask());
     }
 
     @Override
@@ -1948,7 +1964,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 || controllerFacade.isPrimary());
     }
 
-    private ComponentStateDTO getComponentState(final ConfigurableComponent component) {
+    private ComponentStateDTO getComponentState(final ConfiguredComponent configuredComponent, final ConfigurableComponent component) {
 
         logger.debug("getComponentState: component={}, shouldManageClusterState={}, shouldManageExternalState={}",
                 component, shouldManageClusterState(), shouldManageExternalState(component));
@@ -1958,29 +1974,42 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             logger.debug("clusterState={}", clusterState);
             final StateMap localState = componentStateDAO.getState(component, Scope.LOCAL);
             logger.debug("localState={}", localState);
-            final StateMap externalState = shouldManageExternalState(component) ? componentStateDAO.getState(component, Scope.EXTERNAL) : null;
+            StateMap externalState = null;
+            if (shouldManageExternalState(component)) {
+                final Collection<ValidationResult> validationResults = controllerFacade.validateExternalStateAccess(configuredComponent, (ExternalStateManager) component);
+                if (!validationResults.isEmpty()) {
+                    throw new IllegalStateException("Invalid configuration to access external state: " + validationResults);
+                } else {
+                        externalState = componentStateDAO.getState(component, Scope.EXTERNAL);
+                }
+            }
             logger.debug("externalState={}", externalState);
 
             return dtoFactory.createComponentStateDTO(component, localState, clusterState, externalState);
-        } catch (Exception e) {
-            logger.error("Failed to retrieve state for {} due to {}", component, e, e);
-            throw e;
+        } catch (IOException e) {
+            final String msg = String.format("Failed to clear state for %s due to %s", component, e);
+            logger.error(msg, e);
+            throw new IllegalStateException(msg, e);
         }
+
     }
 
     @Override
     public ComponentStateDTO getProcessorState(final String processorId) {
-        return getComponentState(processorDAO.getProcessor(processorId).getProcessor());
+        final ProcessorNode processor = processorDAO.getProcessor(processorId);
+        return getComponentState(processor, processor.getProcessor());
     }
 
     @Override
     public ComponentStateDTO getControllerServiceState(final String controllerServiceId) {
-        return getComponentState(controllerServiceDAO.getControllerService(controllerServiceId).getControllerServiceImplementation());
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
+        return getComponentState(controllerService, controllerService.getControllerServiceImplementation());
     }
 
     @Override
     public ComponentStateDTO getReportingTaskState(final String reportingTaskId) {
-        return getComponentState(reportingTaskDAO.getReportingTask(reportingTaskId).getReportingTask());
+        final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskId);
+        return getComponentState(reportingTask, reportingTask.getReportingTask());
     }
 
     @Override
