@@ -90,6 +90,7 @@ public class LineageQuery {
                 }
 
                 final long searchStart = System.nanoTime();
+                logger.debug("Searching {} for {}", indexDirectory, query);
                 final TopDocs uuidQueryTopDocs = searcher.search(query, MAX_QUERY_RESULTS);
                 final long searchEnd = System.nanoTime();
 
