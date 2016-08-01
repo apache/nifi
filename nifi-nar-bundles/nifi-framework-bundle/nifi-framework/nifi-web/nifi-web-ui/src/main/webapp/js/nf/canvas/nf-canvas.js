@@ -738,9 +738,6 @@ nf.Canvas = (function () {
                     dataType: 'json'
                 }).done(function (response) {
                     nf.ng.Bridge.injector.get('flowStatusCtrl').updateBulletins(response);
-                    deferred.resolve();
-                }).fail(function (xhr, status, error) {
-                    deferred.reject(xhr, status, error);
                 });
                 var clusterSummary = loadClusterSummary().done(function (response) {
                     var clusterSummary = response.clusterSummary;
