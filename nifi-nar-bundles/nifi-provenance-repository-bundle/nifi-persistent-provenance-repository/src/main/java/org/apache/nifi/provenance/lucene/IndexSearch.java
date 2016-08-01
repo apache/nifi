@@ -92,11 +92,12 @@ public class IndexSearch {
             final long searchStartNanos = System.nanoTime();
             final long openSearcherNanos = searchStartNanos - start;
 
+            logger.debug("Searching {} for {}", this, provenanceQuery);
             final TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
             final long finishSearch = System.nanoTime();
             final long searchNanos = finishSearch - searchStartNanos;
 
-            logger.debug("Searching {} took {} millis; opening searcher took {} millis", this,
+            logger.debug("Searching {} for {} took {} millis; opening searcher took {} millis", this, provenanceQuery,
                     TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
 
             if (topDocs.totalHits == 0) {

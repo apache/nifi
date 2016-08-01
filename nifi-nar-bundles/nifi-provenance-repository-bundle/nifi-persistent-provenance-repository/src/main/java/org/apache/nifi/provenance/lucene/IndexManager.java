@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -86,7 +87,7 @@ public class IndexManager implements Closeable {
 
     public IndexWriter borrowIndexWriter(final File indexingDirectory) throws IOException {
         final File absoluteFile = indexingDirectory.getAbsoluteFile();
-        logger.debug("Borrowing index writer for {}", indexingDirectory);
+        logger.trace("Borrowing index writer for {}", indexingDirectory);
 
         lock.lock();
         try {
@@ -124,6 +125,7 @@ public class IndexManager implements Closeable {
                 final List<ActiveIndexSearcher> searchers = activeSearchers.get(absoluteFile);
                 if ( searchers != null ) {
                     for (final ActiveIndexSearcher activeSearcher : searchers) {
+                        logger.debug("Poisoning {} because it is searching {}, which is getting updated", activeSearcher, indexingDirectory);
                         activeSearcher.poison();
                     }
                 }
@@ -141,7 +143,7 @@ public class IndexManager implements Closeable {
 
     public void returnIndexWriter(final File indexingDirectory, final IndexWriter writer) {
         final File absoluteFile = indexingDirectory.getAbsoluteFile();
-        logger.debug("Returning Index Writer for {} to IndexManager", indexingDirectory);
+        logger.trace("Returning Index Writer for {} to IndexManager", indexingDirectory);
 
         lock.lock();
         try {
@@ -154,7 +156,7 @@ public class IndexManager implements Closeable {
                     writer.close();
                 } else if ( count.getCount() <= 1 ) {
                     // we are finished with this writer.
-                    logger.debug("Closing Index Writer for {}", indexingDirectory);
+                    logger.debug("Decrementing count for Index Writer for {} to {}; Closing writer", indexingDirectory, count.getCount() - 1);
                     count.close();
                 } else {
                     // decrement the count.
@@ -175,7 +177,7 @@ public class IndexManager implements Closeable {
 
     public IndexSearcher borrowIndexSearcher(final File indexDir) throws IOException {
         final File absoluteFile = indexDir.getAbsoluteFile();
-        logger.debug("Borrowing index searcher for {}", indexDir);
+        logger.trace("Borrowing index searcher for {}", indexDir);
 
         lock.lock();
         try {
@@ -210,7 +212,8 @@ public class IndexManager implements Closeable {
                                 continue;
                             }
 
-                            logger.debug("Providing previously cached index searcher for {}", indexDir);
+                            final int referenceCount = searcher.incrementReferenceCount();
+                            logger.debug("Providing previously cached index searcher for {} and incrementing Reference Count to {}", indexDir, referenceCount);
                             return searcher.getSearcher();
                         }
                     }
@@ -219,7 +222,9 @@ public class IndexManager implements Closeable {
                     // from the cache so that we don't try to use them again later.
                     for ( final ActiveIndexSearcher searcher : expired ) {
                         try {
+                            logger.debug("Closing {}", searcher);
                             searcher.close();
+                            logger.trace("Closed {}", searcher);
                         } catch (final Exception e) {
                             logger.debug("Failed to close 'expired' IndexSearcher {}", searcher);
                         }
@@ -239,11 +244,14 @@ public class IndexManager implements Closeable {
                     final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
                     // we want to cache the searcher that we create, since it's just a reader.
-                    final ActiveIndexSearcher cached = new ActiveIndexSearcher(searcher, directoryReader, directory, true);
+                    final ActiveIndexSearcher cached = new ActiveIndexSearcher(searcher, absoluteFile, directoryReader, directory, true);
                     currentlyCached.add(cached);
 
                     return cached.getSearcher();
                 } catch (final IOException e) {
+                    logger.error("Failed to create Index Searcher for {} due to {}", absoluteFile, e.toString());
+                    logger.error("", e);
+
                     try {
                         directory.close();
                     } catch (final IOException ioe) {
@@ -269,7 +277,7 @@ public class IndexManager implements Closeable {
 
                 // we don't want to cache this searcher because it's based on a writer, so we want to get
                 // new values the next time that we search.
-                final ActiveIndexSearcher activeSearcher = new ActiveIndexSearcher(searcher, directoryReader, null, false);
+                final ActiveIndexSearcher activeSearcher = new ActiveIndexSearcher(searcher, absoluteFile, directoryReader, null, false);
 
                 currentlyCached.add(activeSearcher);
                 return activeSearcher.getSearcher();
@@ -282,7 +290,7 @@ public class IndexManager implements Closeable {
 
     public void returnIndexSearcher(final File indexDirectory, final IndexSearcher searcher) {
         final File absoluteFile = indexDirectory.getAbsoluteFile();
-        logger.debug("Returning index searcher for {} to IndexManager", indexDirectory);
+        logger.trace("Returning index searcher for {} to IndexManager", indexDirectory);
 
         lock.lock();
         try {
@@ -318,7 +326,8 @@ public class IndexManager implements Closeable {
                             return;
                         } else {
                             // the searcher is cached. Just leave it open.
-                            logger.debug("Index searcher for {} is cached; leaving open", indexDirectory);
+                            final int refCount = activeSearcher.decrementReferenceCount();
+                            logger.debug("Index searcher for {} is cached; leaving open with reference count of {}", indexDirectory, refCount);
                             return;
                         }
                     } else {
@@ -439,14 +448,17 @@ public class IndexManager implements Closeable {
     private static class ActiveIndexSearcher implements Closeable {
         private final IndexSearcher searcher;
         private final DirectoryReader directoryReader;
+        private final File indexDirectory;
         private final Directory directory;
         private final boolean cache;
-        private boolean poisoned = false;
+        private final AtomicInteger referenceCount = new AtomicInteger(1);
+        private volatile boolean poisoned = false;
 
-        public ActiveIndexSearcher(final IndexSearcher searcher, final DirectoryReader directoryReader,
+        public ActiveIndexSearcher(final IndexSearcher searcher, final File indexDirectory, final DirectoryReader directoryReader,
                 final Directory directory, final boolean cache) {
             this.searcher = searcher;
             this.directoryReader = directoryReader;
+            this.indexDirectory = indexDirectory;
             this.directory = directory;
             this.cache = cache;
         }
@@ -467,9 +479,28 @@ public class IndexManager implements Closeable {
             this.poisoned = true;
         }
 
+        public int incrementReferenceCount() {
+            return referenceCount.incrementAndGet();
+        }
+
+        public int decrementReferenceCount() {
+            return referenceCount.decrementAndGet();
+        }
+
         @Override
         public void close() throws IOException {
-            IndexManager.close(directoryReader, directory);
+            final int updatedRefCount = referenceCount.decrementAndGet();
+            if (updatedRefCount <= 0) {
+                logger.debug("Decremented Reference Count for {} to {}; closing underlying directory reader", this, updatedRefCount);
+                IndexManager.close(directoryReader, directory);
+            } else {
+                logger.debug("Decremented Reference Count for {} to {}; leaving underlying directory reader open", this, updatedRefCount);
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "ActiveIndexSearcher[directory=" + indexDirectory + ", cached=" + cache + ", poisoned=" + poisoned + "]";
         }
     }
 

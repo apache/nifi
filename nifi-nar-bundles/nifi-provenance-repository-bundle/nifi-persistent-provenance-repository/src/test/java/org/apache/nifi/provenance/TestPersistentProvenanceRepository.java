@@ -36,6 +36,7 @@ import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
+import org.apache.nifi.provenance.lucene.IndexManager;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
@@ -59,6 +60,8 @@ import org.junit.rules.TestName;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -71,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -479,6 +483,165 @@ public class TestPersistentProvenanceRepository {
 
         final QueryResult newRecordSet = repo.queryEvents(query, createUser());
         assertTrue(newRecordSet.getMatchingEvents().isEmpty());
+    }
+
+    // TODO: Switch to 10,000.
+    @Test(timeout = 1000000)
+    public void testModifyIndexWhileSearching() throws IOException, InterruptedException, ParseException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxRecordLife(30, TimeUnit.SECONDS);
+        config.setMaxStorageCapacity(1024L * 1024L * 10);
+        config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
+        config.setMaxEventFileCapacity(1024L * 1024L * 10);
+        config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
+
+        final CountDownLatch obtainIndexSearcherLatch = new CountDownLatch(2);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            private IndexManager wrappedManager = null;
+
+            // Create an IndexManager that adds a delay before returning the Index Searcher.
+            @Override
+            protected synchronized IndexManager getIndexManager() {
+                if (wrappedManager == null) {
+                    final IndexManager mgr = super.getIndexManager();
+                    final Logger logger = LoggerFactory.getLogger("IndexManager");
+
+                    wrappedManager = new IndexManager() {
+                        final AtomicInteger indexSearcherCount = new AtomicInteger(0);
+
+                        @Override
+                        public IndexSearcher borrowIndexSearcher(File indexDir) throws IOException {
+                            final IndexSearcher searcher = mgr.borrowIndexSearcher(indexDir);
+                            final int idx = indexSearcherCount.incrementAndGet();
+                            obtainIndexSearcherLatch.countDown();
+
+                            // The first searcher should sleep for 3 seconds. The second searcher should
+                            // sleep for 5 seconds. This allows us to have two threads each obtain a Searcher
+                            // and then have one of them finish searching and close the searcher if it's poisoned while the
+                            // second thread is still holding the searcher
+                            try {
+                                if (idx == 1) {
+                                    Thread.sleep(3000L);
+                                } else {
+                                    Thread.sleep(5000L);
+                                }
+                            } catch (InterruptedException e) {
+                                throw new IOException("Interrupted", e);
+                            }
+
+                            logger.info("Releasing index searcher");
+                            return searcher;
+                        }
+
+                        @Override
+                        public IndexWriter borrowIndexWriter(File indexingDirectory) throws IOException {
+                            return mgr.borrowIndexWriter(indexingDirectory);
+                        }
+
+                        @Override
+                        public void close() throws IOException {
+                            mgr.close();
+                        }
+
+                        @Override
+                        public void removeIndex(File indexDirectory) {
+                            mgr.removeIndex(indexDirectory);
+                        }
+
+                        @Override
+                        public void returnIndexSearcher(File indexDirectory, IndexSearcher searcher) {
+                            mgr.returnIndexSearcher(indexDirectory, searcher);
+                        }
+
+                        @Override
+                        public void returnIndexWriter(File indexingDirectory, IndexWriter writer) {
+                            mgr.returnIndexWriter(indexingDirectory, writer);
+                        }
+                    };
+                }
+
+                return wrappedManager;
+            }
+        };
+
+        repo.initialize(getEventReporter(), null, null);
+
+        final String uuid = "10000000-0000-0000-0000-000000000000";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "xyz");
+        attributes.put("xyz", "abc");
+        attributes.put("filename", "file-" + uuid);
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", uuid);
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        for (int i = 0; i < 10; i++) {
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
+            repo.registerEvent(builder.build());
+        }
+
+        repo.waitForRollover();
+
+        // Perform a query. This will ensure that an IndexSearcher is created and cached.
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.setMaxResults(100);
+
+        // Run a query in a background thread. When this thread goes to obtain the IndexSearcher, it will have a 5 second delay.
+        // That delay will occur as the main thread is updating the index. This should result in the search creating a new Index Reader
+        // that can properly query the index.
+        final int numThreads = 2;
+        final CountDownLatch performSearchLatch = new CountDownLatch(numThreads);
+        final Runnable searchRunnable = new Runnable() {
+            @Override
+            public void run() {
+                QueryResult result;
+                try {
+                    result = repo.queryEvents(query, createUser());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Assert.fail(e.toString());
+                    return;
+                }
+
+                System.out.println("Finished search: " + result);
+                performSearchLatch.countDown();
+            }
+        };
+
+        // Kick off the searcher threads
+        for (int i = 0; i < numThreads; i++) {
+            final Thread searchThread = new Thread(searchRunnable);
+            searchThread.start();
+        }
+
+        // Wait until we've obtained the Index Searchers before modifying the index.
+        obtainIndexSearcherLatch.await();
+
+        // add more events to the repo
+        for (int i = 0; i < 10; i++) {
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
+            repo.registerEvent(builder.build());
+        }
+
+        // Force a rollover to occur. This will modify the index.
+        repo.rolloverWithLock(true);
+
+        // Wait for the repository to roll over.
+        repo.waitForRollover();
+
+        // Wait for the searches to complete.
+        performSearchLatch.await();
     }
 
     @Test
