@@ -33,17 +33,12 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper over {@link KafkaProducer} to assist {@link PublishKafka} processor
  * with sending contents of the {@link FlowFile}s to Kafka.
  */
 class KafkaPublisher implements Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
-
     private final Producer<byte[], byte[]> kafkaProducer;
 
     private volatile long ackWaitTime = 30000;
@@ -212,12 +207,10 @@ class KafkaPublisher implements Closeable {
      */
     private void warnOrError(String message, Exception e) {
         if (e == null) {
-            logger.warn(message);
             if (this.processLog != null) {
                 this.processLog.warn(message);
             }
         } else {
-            logger.error(message, e);
             if (this.processLog != null) {
                 this.processLog.error(message, e);
             }
@@ -244,7 +237,7 @@ class KafkaPublisher implements Closeable {
         }
 
         public boolean isAllAcked() {
-            return this.messagesSent - 1 == this.lastMessageAcked;
+            return this.lastMessageAcked > -1 && this.messagesSent - 1 == this.lastMessageAcked;
         }
 
         @Override
