@@ -76,10 +76,10 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
-    public void testKeyAlgorithm() throws CommandLineParseException {
+    public void testKeyAlgorithm() throws CommandLineParseException, IOException {
         String testKeyAlgorithm = "testKeyAlgorithm";
         tlsToolkitStandaloneCommandLine.parse("-a", testKeyAlgorithm);
-        assertEquals(testKeyAlgorithm, tlsToolkitStandaloneCommandLine.getTlsHelperConfig().getKeyPairAlgorithm());
+        assertEquals(testKeyAlgorithm, tlsToolkitStandaloneCommandLine.createConfig().getKeyPairAlgorithm());
     }
 
     @Test
@@ -93,17 +93,17 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
-    public void testKeySize() throws CommandLineParseException {
+    public void testKeySize() throws CommandLineParseException, IOException {
         int testKeySize = 4096;
         tlsToolkitStandaloneCommandLine.parse("-k", Integer.toString(testKeySize));
-        assertEquals(testKeySize, tlsToolkitStandaloneCommandLine.getTlsHelperConfig().getKeySize());
+        assertEquals(testKeySize, tlsToolkitStandaloneCommandLine.createConfig().getKeySize());
     }
 
     @Test
-    public void testSigningAlgorithm() throws CommandLineParseException {
+    public void testSigningAlgorithm() throws CommandLineParseException, IOException {
         String testSigningAlgorithm = "testSigningAlgorithm";
         tlsToolkitStandaloneCommandLine.parse("-s", testSigningAlgorithm);
-        assertEquals(testSigningAlgorithm, tlsToolkitStandaloneCommandLine.getTlsHelperConfig().getSigningAlgorithm());
+        assertEquals(testSigningAlgorithm, tlsToolkitStandaloneCommandLine.createConfig().getSigningAlgorithm());
     }
 
     @Test
@@ -116,10 +116,10 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
-    public void testDays() throws CommandLineParseException {
+    public void testDays() throws CommandLineParseException, IOException {
         int testDays = 29;
         tlsToolkitStandaloneCommandLine.parse("-d", Integer.toString(testDays));
-        assertEquals(testDays, tlsToolkitStandaloneCommandLine.getTlsHelperConfig().getDays());
+        assertEquals(testDays, tlsToolkitStandaloneCommandLine.createConfig().getDays());
     }
 
     @Test

@@ -17,17 +17,23 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
-
-import java.security.NoSuchAlgorithmException;
 
 public class TlsConfig {
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final String DEFAULT_KEY_STORE_TYPE = "jks";
     public static final int DEFAULT_PORT = 8443;
+    public static final int DEFAULT_DAYS = 3 * 365;
+    public static final int DEFAULT_KEY_SIZE = 2048;
+    public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";
+    public static final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA";
 
-    private TlsHelperConfig tlsHelperConfig;
+    private int days = DEFAULT_DAYS;
+    private int keySize = DEFAULT_KEY_SIZE;
+    private String keyPairAlgorithm = DEFAULT_KEY_PAIR_ALGORITHM;
+    private String signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
+
+    private String dn;
     private String keyStore;
     private String keyStoreType = DEFAULT_KEY_STORE_TYPE;
     private String keyStorePassword;
@@ -36,20 +42,16 @@ public class TlsConfig {
     private String caHostname = DEFAULT_HOSTNAME;
     private int port = DEFAULT_PORT;
 
+    public static String calcDefaultDn(String hostname) {
+        return "CN=" + hostname + ",OU=NIFI";
+    }
+
     public int getPort() {
         return port;
     }
 
     public void setPort(int port) {
         this.port = port;
-    }
-
-    public TlsHelperConfig getTlsHelperConfig() {
-        return tlsHelperConfig;
-    }
-
-    public void setTlsHelperConfig(TlsHelperConfig tlsHelperConfig) {
-        this.tlsHelperConfig = tlsHelperConfig;
     }
 
     public String getKeyStore() {
@@ -100,11 +102,59 @@ public class TlsConfig {
         this.caHostname = caHostname;
     }
 
-    public TlsHelper createTlsHelper() throws NoSuchAlgorithmException {
-        return new TlsHelper(getTlsHelperConfig());
+    public String getDn() {
+        return dn;
+    }
+
+    public void setDn(String dn) {
+        this.dn = dn;
+    }
+
+    public int getDays() {
+        return days;
+    }
+
+    public void setDays(int days) {
+        this.days = days;
+    }
+
+    public int getKeySize() {
+        return keySize;
+    }
+
+    public void setKeySize(int keySize) {
+        this.keySize = keySize;
+    }
+
+    public String getKeyPairAlgorithm() {
+        return keyPairAlgorithm;
+    }
+
+    public void setKeyPairAlgorithm(String keyPairAlgorithm) {
+        this.keyPairAlgorithm = keyPairAlgorithm;
+    }
+
+    public String getSigningAlgorithm() {
+        return signingAlgorithm;
+    }
+
+    public void setSigningAlgorithm(String signingAlgorithm) {
+        this.signingAlgorithm = signingAlgorithm;
     }
 
     public void initDefaults() {
+        if (days == 0) {
+            days = DEFAULT_DAYS;
+        }
+        if (keySize == 0) {
+            keySize = DEFAULT_KEY_SIZE;
+        }
+        if (StringUtils.isEmpty(keyPairAlgorithm)) {
+            keyPairAlgorithm = DEFAULT_KEY_PAIR_ALGORITHM;
+        }
+        if (StringUtils.isEmpty(signingAlgorithm)) {
+            signingAlgorithm = DEFAULT_SIGNING_ALGORITHM;
+        }
         if (port == 0) {
             port = DEFAULT_PORT;
         }
@@ -114,9 +164,8 @@ public class TlsConfig {
         if (StringUtils.isEmpty(caHostname)) {
             caHostname = DEFAULT_HOSTNAME;
         }
-        if (tlsHelperConfig == null) {
-            tlsHelperConfig = new TlsHelperConfig();
+        if (StringUtils.isEmpty(dn)) {
+            dn = calcDefaultDn(caHostname);
         }
-        tlsHelperConfig.initDefaults();
     }
 }

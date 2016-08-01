@@ -18,16 +18,19 @@
 package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
-import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityServiceHandler;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.cert.crmf.CRMFException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -47,8 +50,6 @@ import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -61,17 +62,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsCertificateAuthorityServiceHandlerTest {
-    @Mock
-    TlsHelper tlsHelper;
-
-    @Mock
     X509Certificate caCert;
-
-    @Mock
-    PrivateKey privateKey;
-
-    @Mock
-    PublicKey publicKey;
 
     @Mock
     Request baseRequest;
@@ -82,22 +73,11 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     @Mock
     HttpServletResponse httpServletResponse;
 
-    @Mock
     JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest;
-
-    @Mock
-    PublicKey certificateRequestPublicKey;
-
-    @Mock
-    X509Certificate signedCsr;
 
     KeyPair keyPair;
 
     String testToken;
-
-    byte[] testHmac;
-
-    byte[] testCaHmac;
 
     String testPemEncodedCsr;
 
@@ -112,15 +92,21 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     int statusCode;
 
     StringWriter response;
+    private byte[] testCaHmac;
+    private byte[] testHmac;
+    private String requestedDn;
+    private KeyPair certificateKeyPair;
+
+    @BeforeClass
+    public static void before() {
+        TlsHelper.addBouncyCastleProvider();
+    }
 
     @Before
     public void setup() throws Exception {
         testToken = "testToken";
-        testHmac = "testHmac".getBytes(StandardCharsets.UTF_8);
-        testCaHmac = "testCaHmac".getBytes(StandardCharsets.UTF_8);
-        testPemEncodedCsr = "testPemEncodedCsr";
         testPemEncodedSignedCertificate = "testPemEncodedSignedCertificate";
-        keyPair = new KeyPair(publicKey, privateKey);
+        keyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
         objectMapper = new ObjectMapper();
         when(httpServletRequest.getReader()).thenAnswer(invocation -> {
             StringWriter stringWriter = new StringWriter();
@@ -129,7 +115,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         });
         doAnswer(invocation -> statusCode = (int) invocation.getArguments()[0]).when(httpServletResponse).setStatus(anyInt());
         doAnswer(invocation -> {
-            statusCode = (int)invocation.getArguments()[0];
+            statusCode = (int) invocation.getArguments()[0];
             StringWriter stringWriter = new StringWriter();
             stringWriter.write((String) invocation.getArguments()[1]);
             response = stringWriter;
@@ -139,12 +125,14 @@ public class TlsCertificateAuthorityServiceHandlerTest {
             response = new StringWriter();
             return new PrintWriter(response);
         });
-        when(tlsHelper.parseCsr(testPemEncodedCsr)).thenReturn(jcaPKCS10CertificationRequest);
-        when(tlsHelper.signCsr(jcaPKCS10CertificationRequest, caCert, keyPair)).thenReturn(signedCsr);
-        when(tlsHelper.pemEncodeJcaObject(signedCsr)).thenReturn(testPemEncodedSignedCertificate);
-        when(jcaPKCS10CertificationRequest.getPublicKey()).thenReturn(certificateRequestPublicKey);
-        when(tlsHelper.calculateHMac(testToken, caCert.getPublicKey())).thenReturn(testCaHmac);
-        tlsCertificateAuthorityServiceHandler = new TlsCertificateAuthorityServiceHandler(tlsHelper, testToken, caCert, keyPair, objectMapper);
+        caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, "CN=fakeCa", TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS);
+        requestedDn = TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME);
+        certificateKeyPair = TlsHelper.generateKeyPair(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, TlsConfig.DEFAULT_KEY_SIZE);
+        jcaPKCS10CertificationRequest = TlsHelper.generateCertificationRequest(requestedDn, certificateKeyPair, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+        testPemEncodedCsr = TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest);
+        tlsCertificateAuthorityServiceHandler = new TlsCertificateAuthorityServiceHandler(TlsConfig.DEFAULT_SIGNING_ALGORITHM, TlsConfig.DEFAULT_DAYS, testToken, caCert, keyPair, objectMapper);
+        testHmac = TlsHelper.calculateHMac(testToken, jcaPKCS10CertificationRequest.getPublicKey());
+        testCaHmac = TlsHelper.calculateHMac(testToken, caCert.getPublicKey());
     }
 
     private TlsCertificateAuthorityResponse getResponse() throws IOException {
@@ -153,12 +141,14 @@ public class TlsCertificateAuthorityServiceHandlerTest {
 
     @Test
     public void testSuccess() throws IOException, ServletException, GeneralSecurityException, CRMFException {
-        when(tlsHelper.calculateHMac(testToken, certificateRequestPublicKey)).thenReturn(testHmac);
         tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(testHmac, testPemEncodedCsr);
         tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
         assertEquals(Response.SC_OK, statusCode);
         assertArrayEquals(testCaHmac, getResponse().getHmac());
-        assertEquals(testPemEncodedSignedCertificate, getResponse().getPemEncodedCertificate());
+        X509Certificate certificate = TlsHelper.parseCertificate(getResponse().getPemEncodedCertificate());
+        assertEquals(certificateKeyPair.getPublic(), certificate.getPublicKey());
+        assertEquals(new X500Name(requestedDn), new X500Name(certificate.getSubjectDN().toString()));
+        certificate.verify(caCert.getPublicKey());
     }
 
     @Test
@@ -179,7 +169,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
 
     @Test
     public void testForbidden() throws IOException, ServletException, NoSuchAlgorithmException, CRMFException, NoSuchProviderException, InvalidKeyException {
-        tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(testHmac, testPemEncodedCsr);
+        tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest("badHmac".getBytes(StandardCharsets.UTF_8), testPemEncodedCsr);
         tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
         assertEquals(Response.SC_FORBIDDEN, statusCode);
         assertEquals(TlsCertificateAuthorityServiceHandler.FORBIDDEN, getResponse().getError());

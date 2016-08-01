@@ -17,13 +17,13 @@
 
 package org.apache.nifi.toolkit.tls.standalone;
 
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
-import org.apache.nifi.toolkit.tls.service.client.TlsCertificateSigningRequestPerformer;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
@@ -58,8 +58,11 @@ public class TlsToolkitStandalone {
 
     public void createNifiKeystoresAndTrustStores(File baseDir, TlsConfig tlsConfig, NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, List<String> hostnames, List<String> keyStorePasswords,
                                                   List<String> keyPasswords, List<String> trustStorePasswords, String httpsPort) throws GeneralSecurityException, IOException {
+        String signingAlgorithm = tlsConfig.getSigningAlgorithm();
+        int days = tlsConfig.getDays();
+        String keyPairAlgorithm = tlsConfig.getKeyPairAlgorithm();
+        int keySize = tlsConfig.getKeySize();
         TlsCertificateAuthorityManager tlsCertificateAuthorityManager = new TlsCertificateAuthorityManager(tlsConfig);
-        TlsHelper tlsHelper = tlsCertificateAuthorityManager.getTlsHelper();
         KeyStore.PrivateKeyEntry privateKeyEntry = tlsCertificateAuthorityManager.getOrGenerateCertificateAuthority();
         X509Certificate certificate = (X509Certificate) privateKeyEntry.getCertificateChain()[0];
         KeyPair caKeyPair = new KeyPair(certificate.getPublicKey(), privateKeyEntry.getPrivateKey());
@@ -87,9 +90,9 @@ public class TlsToolkitStandalone {
             tlsClientConfig.setTrustStore(new File(hostDir, "truststore." + tlsClientConfig.getTrustStoreType().toLowerCase()).getAbsolutePath());
             tlsClientConfig.setTrustStorePassword(trustStorePasswords.get(i));
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
-            KeyPair keyPair = tlsHelper.generateKeyPair();
-            tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, tlsHelper.generateIssuedCertificate(TlsCertificateSigningRequestPerformer.getDn(hostname),
-                    keyPair.getPublic(), certificate, caKeyPair), certificate);
+            KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
+            tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(TlsConfig.calcDefaultDn(hostname),
+                    keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"), httpsPort));
             tlsClientManager.write(outputStreamFactory);

@@ -20,7 +20,6 @@ package org.apache.nifi.toolkit.tls.service.server;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -67,19 +66,18 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
                 return tlsConfig;
             }
         } else {
-            TlsConfig tlsClientConfig = new TlsConfig();
-            tlsClientConfig.setCaHostname(getCertificateAuthorityHostname());
-            tlsClientConfig.setToken(getToken());
-            tlsClientConfig.setPort(getPort());
-            tlsClientConfig.setKeyStore(NIFI_CA_KEYSTORE + getKeyStoreType().toLowerCase());
-            tlsClientConfig.setKeyStoreType(getKeyStoreType());
-            TlsHelperConfig tlsHelperConfig = new TlsHelperConfig();
-            tlsHelperConfig.setKeySize(getKeySize());
-            tlsHelperConfig.setKeyPairAlgorithm(getKeyAlgorithm());
-            tlsHelperConfig.setSigningAlgorithm(getSigningAlgorithm());
-            tlsHelperConfig.setDays(getDays());
-            tlsClientConfig.setTlsHelperConfig(tlsHelperConfig);
-            return tlsClientConfig;
+            TlsConfig tlsConfig = new TlsConfig();
+            tlsConfig.setCaHostname(getCertificateAuthorityHostname());
+            tlsConfig.setDn(getDn());
+            tlsConfig.setToken(getToken());
+            tlsConfig.setPort(getPort());
+            tlsConfig.setKeyStore(NIFI_CA_KEYSTORE + getKeyStoreType().toLowerCase());
+            tlsConfig.setKeyStoreType(getKeyStoreType());
+            tlsConfig.setKeySize(getKeySize());
+            tlsConfig.setKeyPairAlgorithm(getKeyAlgorithm());
+            tlsConfig.setSigningAlgorithm(getSigningAlgorithm());
+            tlsConfig.setDays(getDays());
+            return tlsConfig;
         }
     }
 }

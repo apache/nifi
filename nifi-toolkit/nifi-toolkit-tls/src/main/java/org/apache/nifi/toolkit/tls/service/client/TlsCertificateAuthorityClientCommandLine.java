@@ -22,8 +22,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -35,15 +33,15 @@ import java.io.InputStream;
 
 public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAuthorityCommandLine {
     public static final String DESCRIPTION = "Generates a private key and gets it signed by the certificate authority.";
-    public static final String DN = "dn";
     public static final String PKCS_12 = "PKCS12";
     public static final String CERTIFICATE_DIRECTORY = "certificateDirectory";
     public static final String DEFAULT_CERTIFICATE_DIRECTORY = ".";
+    public static final String SAME_KEY_AND_KEY_STORE_PASSWORD_ARG = "sameKeyAndKeyStorePassword";
 
     private final InputStreamFactory inputStreamFactory;
 
-    private String dn;
     private String certificateDirectory;
+    private boolean sameKeyAndKeyStorePassword;
 
     public TlsCertificateAuthorityClientCommandLine() {
         this(FileInputStream::new);
@@ -52,8 +50,22 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     public TlsCertificateAuthorityClientCommandLine(InputStreamFactory inputStreamFactory) {
         super(DESCRIPTION);
         this.inputStreamFactory = inputStreamFactory;
-        addOptionWithArg("d", DN, "The dn to generate the CSR for", TlsCertificateSigningRequestPerformer.getDn(TlsConfig.DEFAULT_HOSTNAME));
         addOptionWithArg("C", CERTIFICATE_DIRECTORY, "The file to write the CA certificate to", DEFAULT_CERTIFICATE_DIRECTORY);
+        addOptionNoArg("S", SAME_KEY_AND_KEY_STORE_PASSWORD_ARG, "When generating passwords, use the same one for KeyStore and Key");
+    }
+
+    public static void main(String[] args) throws Exception {
+        TlsHelper.addBouncyCastleProvider();
+        TlsCertificateAuthorityClientCommandLine tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
+        try {
+            tlsCertificateAuthorityClientCommandLine.parse(args);
+        } catch (CommandLineParseException e) {
+            System.exit(e.getExitCode());
+        }
+        new TlsCertificateAuthorityClient().generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.createClientConfig(),
+                tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJson(),
+                tlsCertificateAuthorityClientCommandLine.sameKeyAndKeyStorePassword());
+        System.exit(ExitCode.SUCCESS.ordinal());
     }
 
     @Override
@@ -66,19 +78,6 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         return false;
     }
 
-    public static void main(String[] args) throws Exception {
-        TlsHelper.addBouncyCastleProvider();
-        TlsCertificateAuthorityClientCommandLine tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
-        try {
-            tlsCertificateAuthorityClientCommandLine.parse(args);
-        } catch (CommandLineParseException e) {
-            System.exit(e.getExitCode());
-        }
-        new TlsCertificateAuthorityClient().generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.createClientConfig(),
-                tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJson());
-        System.exit(ExitCode.SUCCESS.ordinal());
-    }
-
     @Override
     protected String getKeyStoreTypeDefault() {
         return PKCS_12;
@@ -87,9 +86,13 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     @Override
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
-        dn = commandLine.getOptionValue(DN, TlsCertificateSigningRequestPerformer.getDn(TlsConfig.DEFAULT_HOSTNAME));
         certificateDirectory = commandLine.getOptionValue(CERTIFICATE_DIRECTORY, DEFAULT_CERTIFICATE_DIRECTORY);
+        sameKeyAndKeyStorePassword = commandLine.hasOption(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG);
         return commandLine;
+    }
+
+    public boolean sameKeyAndKeyStorePassword() {
+        return sameKeyAndKeyStorePassword;
     }
 
     public String getCertificateDirectory() {
@@ -106,17 +109,16 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         } else {
             TlsClientConfig tlsClientConfig = new TlsClientConfig();
             tlsClientConfig.setCaHostname(getCertificateAuthorityHostname());
-            tlsClientConfig.setDn(dn);
+            tlsClientConfig.setDn(getDn());
             tlsClientConfig.setToken(getToken());
             tlsClientConfig.setPort(getPort());
             tlsClientConfig.setKeyStore(KEYSTORE + getKeyStoreType().toLowerCase());
             tlsClientConfig.setKeyStoreType(getKeyStoreType());
             tlsClientConfig.setTrustStore(TRUSTSTORE + getKeyStoreType().toLowerCase());
             tlsClientConfig.setTrustStoreType(getKeyStoreType());
-            TlsHelperConfig tlsHelperConfig = new TlsHelperConfig();
-            tlsHelperConfig.setKeySize(getKeySize());
-            tlsHelperConfig.setKeyPairAlgorithm(getKeyAlgorithm());
-            tlsClientConfig.setTlsHelperConfig(tlsHelperConfig);
+            tlsClientConfig.setKeySize(getKeySize());
+            tlsClientConfig.setKeyPairAlgorithm(getKeyAlgorithm());
+            tlsClientConfig.setSigningAlgorithm(getSigningAlgorithm());
             return tlsClientConfig;
         }
     }

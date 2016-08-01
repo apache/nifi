@@ -21,7 +21,6 @@ import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +58,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        Assert.assertEquals(TlsCertificateSigningRequestPerformer.getDn(TlsConfig.DEFAULT_HOSTNAME), clientConfig.getDn());
+        Assert.assertEquals(TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME), clientConfig.getDn());
         assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsCertificateAuthorityClientCommandLine.PKCS_12.toLowerCase(), clientConfig.getKeyStore());
         assertEquals(TlsCertificateAuthorityClientCommandLine.PKCS_12, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());
@@ -67,8 +66,8 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + TlsCertificateAuthorityClientCommandLine.PKCS_12.toLowerCase(), clientConfig.getTrustStore());
         assertEquals(TlsCertificateAuthorityClientCommandLine.PKCS_12, clientConfig.getTrustStoreType());
         assertNull(clientConfig.getTrustStorePassword());
-        assertEquals(TlsHelperConfig.DEFAULT_KEY_SIZE, clientConfig.getTlsHelperConfig().getKeySize());
-        assertEquals(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM, clientConfig.getTlsHelperConfig().getKeyPairAlgorithm());
+        assertEquals(TlsConfig.DEFAULT_KEY_SIZE, clientConfig.getKeySize());
+        assertEquals(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, clientConfig.getKeyPairAlgorithm());
         assertEquals(testToken, clientConfig.getToken());
         assertEquals(TlsConfig.DEFAULT_PORT, clientConfig.getPort());
         assertEquals(TlsCertificateAuthorityClientCommandLine.DEFAULT_CONFIG_JSON, tlsCertificateAuthorityClientCommandLine.getConfigJson());
@@ -109,7 +108,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
     @Test
     public void testDn() throws CommandLineParseException, IOException {
         String testDn = "testDn";
-        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-d", testDn);
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-D", testDn);
         assertEquals(testDn, tlsCertificateAuthorityClientCommandLine.createClientConfig().getDn());
     }
 

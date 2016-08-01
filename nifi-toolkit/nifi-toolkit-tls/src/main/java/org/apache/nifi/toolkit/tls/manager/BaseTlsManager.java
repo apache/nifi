@@ -22,7 +22,6 @@ import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -44,11 +43,11 @@ import java.util.List;
 public class BaseTlsManager {
     public static final String PKCS_12 = "PKCS12";
     private final TlsConfig tlsConfig;
-    private final TlsHelper tlsHelper;
     private final PasswordUtil passwordUtil;
     private final InputStreamFactory inputStreamFactory;
     private final KeyStore keyStore;
     private final List<ConfigurationWriter<TlsConfig>> configurationWriters;
+    private boolean sameKeyAndKeyStorePassword = false;
 
     public BaseTlsManager(TlsConfig tlsConfig) throws GeneralSecurityException, IOException {
         this(tlsConfig, new PasswordUtil(), FileInputStream::new);
@@ -60,7 +59,6 @@ public class BaseTlsManager {
         this.inputStreamFactory = inputStreamFactory;
         this.keyStore = loadKeystore(tlsConfig.getKeyStore(), tlsConfig.getKeyStoreType(), getKeyStorePassword());
         this.configurationWriters = new ArrayList<>();
-        this.tlsHelper = tlsConfig.createTlsHelper();
     }
 
     public KeyStore getKeyStore() {
@@ -81,6 +79,10 @@ public class BaseTlsManager {
         return getEntry(alias);
     }
 
+    public void setSameKeyAndKeyStorePassword(boolean sameKeyAndKeyStorePassword) {
+        this.sameKeyAndKeyStorePassword = sameKeyAndKeyStorePassword;
+    }
+
     private String getKeyPassword() {
         if (keyStore.getType().equalsIgnoreCase(PKCS_12)) {
             tlsConfig.setKeyPassword(null);
@@ -88,7 +90,11 @@ public class BaseTlsManager {
         } else {
             String result = tlsConfig.getKeyPassword();
             if (StringUtils.isEmpty(result)) {
-                result = passwordUtil.generatePassword();
+                if (sameKeyAndKeyStorePassword) {
+                    result = getKeyStorePassword();
+                } else {
+                    result = passwordUtil.generatePassword();
+                }
                 tlsConfig.setKeyPassword(result);
             }
             return result;
@@ -146,9 +152,5 @@ public class BaseTlsManager {
 
     public TlsConfig getTlsConfig() {
         return tlsConfig;
-    }
-
-    public TlsHelper getTlsHelper() {
-        return tlsHelper;
     }
 }

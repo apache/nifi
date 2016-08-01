@@ -22,7 +22,6 @@ import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -47,7 +46,6 @@ import java.util.Set;
 
 public class TlsClientManager extends BaseTlsManager {
     private final TlsClientConfig tlsClientConfig;
-    private final TlsHelper tlsHelper;
     private final KeyStore trustStore;
     private final List<ConfigurationWriter<TlsClientConfig>> configurationWriters;
     private final Set<String> certificateAliases;
@@ -63,7 +61,6 @@ public class TlsClientManager extends BaseTlsManager {
         this.tlsClientConfig = tlsClientConfig;
         this.configurationWriters = new ArrayList<>();
         this.certificateAliases = new HashSet<>();
-        this.tlsHelper = tlsClientConfig.createTlsHelper();
     }
 
     public void setCertificateEntry(String alias, Certificate cert) throws KeyStoreException {

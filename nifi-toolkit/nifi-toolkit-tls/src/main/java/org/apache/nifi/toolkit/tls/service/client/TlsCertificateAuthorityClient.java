@@ -46,8 +46,9 @@ public class TlsCertificateAuthorityClient {
         this.outputStreamFactory = outputStreamFactory;
     }
 
-    public void generateCertificateAndGetItSigned(TlsClientConfig tlsClientConfig, String certificateDirectory, String configJson) throws Exception {
+    public void generateCertificateAndGetItSigned(TlsClientConfig tlsClientConfig, String certificateDirectory, String configJson, boolean sameKeyAndKeyStorePassword) throws Exception {
         TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
+        tlsClientManager.setSameKeyAndKeyStorePassword(sameKeyAndKeyStorePassword);
 
         if (!StringUtils.isEmpty(certificateDirectory)) {
             tlsClientManager.setCertificateAuthorityDirectory(new File(certificateDirectory));
@@ -58,8 +59,7 @@ public class TlsCertificateAuthorityClient {
         }
 
         if (tlsClientManager.getEntry(TlsToolkitStandalone.NIFI_KEY) == null) {
-            TlsHelper tlsHelper = tlsClientConfig.createTlsHelper();
-            KeyPair keyPair = tlsHelper.generateKeyPair();
+            KeyPair keyPair = TlsHelper.generateKeyPair(tlsClientConfig.getKeyPairAlgorithm(), tlsClientConfig.getKeySize());
 
             X509Certificate[] certificates = tlsClientConfig.createCertificateSigningRequestPerformer().perform(keyPair);
 

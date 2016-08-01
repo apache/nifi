@@ -21,7 +21,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.util.TlsHelperTest;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -108,7 +107,7 @@ public class TlsToolkitStandaloneTest {
     @Test
     public void testDirOutput() throws Exception {
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath());
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertNull(nifiProperties.get("nifi.fake.property"));
@@ -118,7 +117,7 @@ public class TlsToolkitStandaloneTest {
     @Test
     public void testFileArg() throws Exception {
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-f", TEST_NIFI_PROPERTIES);
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(FAKE_VALUE, nifiProperties.get(NIFI_FAKE_PROPERTY));
@@ -131,7 +130,7 @@ public class TlsToolkitStandaloneTest {
         String nifi3 = "nifi3";
 
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-n", nifi1 + "," + nifi2 + "," + nifi3);
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         checkHostDirAndReturnNifiProperties(nifi1, x509Certificate);
         checkHostDirAndReturnNifiProperties(nifi2, x509Certificate);
@@ -141,7 +140,7 @@ public class TlsToolkitStandaloneTest {
     @Test
     public void testSameKeyAndKeyStorePassword() throws Exception {
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-R");
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD), nifiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD));
@@ -151,7 +150,7 @@ public class TlsToolkitStandaloneTest {
     public void testKeyPasswordArg() throws Exception {
         String testKey = "testKey";
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-K", testKey);
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(testKey, nifiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD));
@@ -161,7 +160,7 @@ public class TlsToolkitStandaloneTest {
     public void testKeyStorePasswordArg() throws Exception {
         String testKeyStore = "testKeyStore";
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-S", testKeyStore);
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(testKeyStore, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD));
@@ -171,7 +170,7 @@ public class TlsToolkitStandaloneTest {
     public void testTrustStorePasswordArg() throws Exception {
         String testTrustStore = "testTrustStore";
         runAndAssertExitCode(0, "-o", tempDir.getAbsolutePath(), "-P", testTrustStore);
-        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         Properties nifiProperties = checkHostDirAndReturnNifiProperties(TlsConfig.DEFAULT_HOSTNAME, x509Certificate);
         assertEquals(testTrustStore, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD));

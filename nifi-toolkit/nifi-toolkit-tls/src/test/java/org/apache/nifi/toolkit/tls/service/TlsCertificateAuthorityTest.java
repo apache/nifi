@@ -20,7 +20,6 @@ package org.apache.nifi.toolkit.tls.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.service.client.TlsCertificateAuthorityClient;
 import org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
@@ -69,7 +68,6 @@ public class TlsCertificateAuthorityTest {
     private TlsConfig serverConfig;
     private TlsClientConfig clientConfig;
     private ObjectMapper objectMapper;
-    private TlsHelperConfig tlsHelperConfig;
     private ByteArrayOutputStream serverKeyStoreOutputStream;
     private ByteArrayOutputStream clientKeyStoreOutputStream;
     private ByteArrayOutputStream clientTrustStoreOutputStream;
@@ -103,6 +101,9 @@ public class TlsCertificateAuthorityTest {
         serverConfig.setToken(myTestTokenUseSomethingStronger);
         serverConfig.setKeyStore(serverKeyStore);
         serverConfig.setPort(port);
+        serverConfig.setDays(5);
+        serverConfig.setKeySize(2048);
+        serverConfig.initDefaults();
 
         clientConfig = new TlsClientConfig();
         clientConfig.setCaHostname("localhost");
@@ -111,12 +112,8 @@ public class TlsCertificateAuthorityTest {
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);
         clientConfig.setPort(port);
-
-        tlsHelperConfig = new TlsHelperConfig();
-        tlsHelperConfig.setDays(5);
-        tlsHelperConfig.setKeySize(2048);
-        serverConfig.setTlsHelperConfig(tlsHelperConfig);
-        clientConfig.setTlsHelperConfig(tlsHelperConfig);
+        clientConfig.setKeySize(2048);
+        clientConfig.initDefaults();
 
         outputStreamFactory = mock(OutputStreamFactory.class);
         mockReturnOutputStream(outputStreamFactory, new File(serverKeyStore), serverKeyStoreOutputStream);
@@ -149,7 +146,7 @@ public class TlsCertificateAuthorityTest {
             tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
             tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath());
             TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
-            tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath());
+            tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), false);
             validate();
         } finally {
             if (tlsCertificateAuthorityService != null) {
@@ -215,12 +212,12 @@ public class TlsCertificateAuthorityTest {
     }
 
     private void assertPrivateAndPublicKeyMatch(PrivateKey privateKey, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        Signature signature = Signature.getInstance(TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
+        Signature signature = Signature.getInstance(TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         signature.initSign(privateKey);
         byte[] bytes = "test string".getBytes(StandardCharsets.UTF_8);
         signature.update(bytes);
 
-        Signature verify = Signature.getInstance(TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
+        Signature verify = Signature.getInstance(TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         verify.initVerify(publicKey);
         verify.update(bytes);
         verify.verify(signature.sign());

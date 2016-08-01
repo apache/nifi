@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.tls.service.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.input.BoundedReader;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -42,14 +43,16 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
     public static final String CSR_FIELD_MUST_BE_SET = "csr field must be set";
     public static final String HMAC_FIELD_MUST_BE_SET = "hmac field must be set";
     public static final String FORBIDDEN = "forbidden";
-    private final TlsHelper tlsHelper;
+    private final String signingAlgorithm;
+    private final int days;
     private final String token;
     private final X509Certificate caCert;
     private final KeyPair keyPair;
     private final ObjectMapper objectMapper;
 
-    public TlsCertificateAuthorityServiceHandler(TlsHelper tlsHelper, String token, X509Certificate caCert, KeyPair keyPair, ObjectMapper objectMapper) {
-        this.tlsHelper = tlsHelper;
+    public TlsCertificateAuthorityServiceHandler(String signingAlgorithm, int days, String token, X509Certificate caCert, KeyPair keyPair, ObjectMapper objectMapper) {
+        this.signingAlgorithm = signingAlgorithm;
+        this.days = days;
         this.token = token;
         this.caCert = caCert;
         this.keyPair = keyPair;
@@ -71,13 +74,14 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
                 return;
             }
 
-            JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = tlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
-            byte[] expectedHmac = tlsHelper.calculateHMac(token, jcaPKCS10CertificationRequest.getPublicKey());
+            JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = TlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
+            byte[] expectedHmac = TlsHelper.calculateHMac(token, jcaPKCS10CertificationRequest.getPublicKey());
 
             if (MessageDigest.isEqual(expectedHmac, tlsCertificateAuthorityRequest.getHmac())) {
-                X509Certificate x509Certificate = tlsHelper.signCsr(jcaPKCS10CertificationRequest, this.caCert, keyPair);
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(tlsHelper.calculateHMac(token, caCert.getPublicKey()),
-                        tlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);
+                X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(jcaPKCS10CertificationRequest.getSubject().toString(),
+                        jcaPKCS10CertificationRequest.getPublicKey(), caCert, keyPair, signingAlgorithm, days);
+                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(TlsHelper.calculateHMac(token, caCert.getPublicKey()),
+                        TlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);
                 return;
             } else {
                 writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(FORBIDDEN), Response.SC_FORBIDDEN);

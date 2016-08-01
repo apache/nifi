@@ -17,8 +17,10 @@
 
 package org.apache.nifi.toolkit.tls.manager;
 
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -34,8 +36,9 @@ public class TlsCertificateAuthorityManager extends BaseTlsManager {
     public KeyStore.PrivateKeyEntry getOrGenerateCertificateAuthority() throws GeneralSecurityException, IOException {
         KeyStore.Entry entry = getEntry(TlsToolkitStandalone.NIFI_KEY);
         if (entry == null) {
-            KeyPair keyPair = getTlsHelper().generateKeyPair();
-            X509Certificate caCert = getTlsHelper().generateSelfSignedX509Certificate(keyPair, "CN=" + getTlsConfig().getCaHostname() + ",OU=NIFI");
+            TlsConfig tlsConfig = getTlsConfig();
+            KeyPair keyPair = TlsHelper.generateKeyPair(tlsConfig.getKeyPairAlgorithm(), tlsConfig.getKeySize());
+            X509Certificate caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, tlsConfig.getDn(), tlsConfig.getSigningAlgorithm(), tlsConfig.getDays());
             entry = addPrivateKeyToKeyStore(keyPair, TlsToolkitStandalone.NIFI_KEY, caCert);
         } else if (!KeyStore.PrivateKeyEntry.class.isInstance(entry)) {
             throw new IOException("Expected " + TlsToolkitStandalone.NIFI_KEY + " alias to contain a private key entry");

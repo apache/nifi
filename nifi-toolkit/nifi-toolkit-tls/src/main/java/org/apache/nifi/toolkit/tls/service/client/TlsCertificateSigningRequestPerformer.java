@@ -56,35 +56,31 @@ public class TlsCertificateSigningRequestPerformer {
     private final String dn;
     private final String token;
     private final int port;
-    private final TlsHelper tlsHelper;
     private final ObjectMapper objectMapper;
+    private final String signingAlgorithm;
 
     public TlsCertificateSigningRequestPerformer(TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.createTlsHelper());
+        this(HttpClientBuilder::create, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
     protected TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, TlsClientConfig tlsClientConfig) throws NoSuchAlgorithmException {
-        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.createTlsHelper());
+        this(httpClientBuilderSupplier, tlsClientConfig.getCaHostname(), tlsClientConfig.getDn(), tlsClientConfig.getToken(), tlsClientConfig.getPort(), tlsClientConfig.getSigningAlgorithm());
     }
 
-    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, TlsHelper tlsHelper) {
+    private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
         this.dn = dn;
         this.token = token;
         this.port = port;
-        this.tlsHelper = tlsHelper;
         this.objectMapper = new ObjectMapper();
-    }
-
-    public static String getDn(String hostname) {
-        return "CN=" + hostname + ",OU=NIFI";
+        this.signingAlgorithm = signingAlgorithm;
     }
 
     /**
      * Submits a CSR to the Certificate authority, checks the resulting hmac, and returns the chain if everything succeeds
      *
-     * @param keyPair      the keypair to generate the csr for
+     * @param keyPair the keypair to generate the csr for
      * @throws IOException if there is a problem during the process
      * @returnd the resulting certificate chain
      */
@@ -103,9 +99,9 @@ public class TlsCertificateSigningRequestPerformer {
             String jsonResponseString;
             int responseCode;
             try (CloseableHttpClient client = httpClientBuilder.build()) {
-                JcaPKCS10CertificationRequest request = tlsHelper.generateCertificationRequest(dn, keyPair);
-                TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(tlsHelper.calculateHMac(token, request.getPublicKey()),
-                        tlsHelper.pemEncodeJcaObject(request));
+                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, keyPair, signingAlgorithm);
+                TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(TlsHelper.calculateHMac(token, request.getPublicKey()),
+                        TlsHelper.pemEncodeJcaObject(request));
 
                 HttpPost httpPost = new HttpPost();
                 httpPost.setEntity(new ByteArrayEntity(objectMapper.writeValueAsBytes(tlsCertificateAuthorityRequest)));
@@ -130,7 +126,7 @@ public class TlsCertificateSigningRequestPerformer {
             }
 
             X509Certificate caCertificate = certificates.get(0);
-            byte[] expectedHmac = tlsHelper.calculateHMac(token, caCertificate.getPublicKey());
+            byte[] expectedHmac = TlsHelper.calculateHMac(token, caCertificate.getPublicKey());
 
             if (!MessageDigest.isEqual(expectedHmac, tlsCertificateAuthorityResponse.getHmac())) {
                 throw new IOException(UNEXPECTED_HMAC_RECEIVED_POSSIBLE_MAN_IN_THE_MIDDLE);
@@ -139,7 +135,7 @@ public class TlsCertificateSigningRequestPerformer {
             if (!tlsCertificateAuthorityResponse.hasCertificate()) {
                 throw new IOException(EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE);
             }
-            X509Certificate x509Certificate = tlsHelper.parseCertificate(tlsCertificateAuthorityResponse.getPemEncodedCertificate());
+            X509Certificate x509Certificate = TlsHelper.parseCertificate(tlsCertificateAuthorityResponse.getPemEncodedCertificate());
             x509Certificate.verify(caCertificate.getPublicKey());
             return new X509Certificate[]{x509Certificate, caCertificate};
         } catch (IOException e) {

@@ -25,7 +25,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.nifi.toolkit.tls.TlsToolkitMain;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 
 public abstract class BaseCommandLine {
     public static final String HELP_ARG = "help";
@@ -40,6 +39,7 @@ public abstract class BaseCommandLine {
     public static final String DAYS_ARG = "days";
     public static final String KEY_STORE_TYPE_ARG = "keyStoreType";
     public static final String SIGNING_ALGORITHM_ARG = "signingAlgorithm";
+    public static final String DN_ARG = "dn";
 
     public static final String KEYSTORE = "keystore.";
     public static final String TRUSTSTORE = "truststore.";
@@ -52,20 +52,22 @@ public abstract class BaseCommandLine {
     private String keyStoreType;
     private int days;
     private String signingAlgorithm;
+    private String dn;
 
     public BaseCommandLine(String header) {
         this.header = System.lineSeparator() + header + System.lineSeparator() + System.lineSeparator();
         this.options = new Options();
         if (shouldAddDaysArg()) {
-            addOptionWithArg("d", DAYS_ARG, "Number of days issued certificate should be valid for.", TlsHelperConfig.DEFAULT_DAYS);
+            addOptionWithArg("d", DAYS_ARG, "Number of days issued certificate should be valid for.", TlsConfig.DEFAULT_DAYS);
         }
         addOptionWithArg("T", KEY_STORE_TYPE_ARG, "The type of keyStores to generate.", getKeyStoreTypeDefault());
         options.addOption("h", HELP_ARG, false, "Print help and exit.");
         addOptionWithArg("c", CERTIFICATE_AUTHORITY_HOSTNAME_ARG, "Hostname of NiFi Certificate Authority", TlsConfig.DEFAULT_HOSTNAME);
-        addOptionWithArg("a", KEY_ALGORITHM_ARG, "Algorithm to use for generated keys.", TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
-        addOptionWithArg("k", KEY_SIZE_ARG, "Number of bits for generated keys.", TlsHelperConfig.DEFAULT_KEY_SIZE);
+        addOptionWithArg("a", KEY_ALGORITHM_ARG, "Algorithm to use for generated keys.", TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+        addOptionWithArg("k", KEY_SIZE_ARG, "Number of bits for generated keys.", TlsConfig.DEFAULT_KEY_SIZE);
+        addOptionWithArg("D", DN_ARG, "The dn to use for the certificate", TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME));
         if (shouldAddSigningAlgorithmArg()) {
-            addOptionWithArg("s", SIGNING_ALGORITHM_ARG, "Algorithm to use for signing certificates.", TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
+            addOptionWithArg("s", SIGNING_ALGORITHM_ARG, "Algorithm to use for signing certificates.", TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         }
     }
 
@@ -144,6 +146,10 @@ public abstract class BaseCommandLine {
         return signingAlgorithm;
     }
 
+    public String getDn() {
+        return dn;
+    }
+
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine;
@@ -153,11 +159,12 @@ public abstract class BaseCommandLine {
                 return printUsageAndThrow(null, ExitCode.HELP);
             }
             certificateAuthorityHostname = commandLine.getOptionValue(CERTIFICATE_AUTHORITY_HOSTNAME_ARG, TlsConfig.DEFAULT_HOSTNAME);
-            days = getIntValue(commandLine, DAYS_ARG, TlsHelperConfig.DEFAULT_DAYS);
-            keySize = getIntValue(commandLine, KEY_SIZE_ARG, TlsHelperConfig.DEFAULT_KEY_SIZE);
-            keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM);
+            days = getIntValue(commandLine, DAYS_ARG, TlsConfig.DEFAULT_DAYS);
+            keySize = getIntValue(commandLine, KEY_SIZE_ARG, TlsConfig.DEFAULT_KEY_SIZE);
+            keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
             keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, getKeyStoreTypeDefault());
-            signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM);
+            signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+            dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(certificateAuthorityHostname));
         } catch (ParseException e) {
             return printUsageAndThrow("Error parsing command line. (" + e.getMessage() + ")", ExitCode.ERROR_PARSING_COMMAND_LINE);
         }

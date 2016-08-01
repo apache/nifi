@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
+import org.apache.nifi.security.util.CertificateUtils;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -53,8 +54,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TlsHelperTest {
-    TlsHelper tlsHelper;
-
     private int days;
 
     private int keySize;
@@ -108,7 +107,6 @@ public class TlsHelperTest {
         secureRandom = mock(SecureRandom.class);
         keyPairGenerator = KeyPairGenerator.getInstance(keyPairAlgorithm);
         keyPairGenerator.initialize(keySize);
-        tlsHelper = new TlsHelper(keyPairGenerator, days, signingAlgorithm);
     }
 
     private Date inFuture(int days) {
@@ -119,7 +117,7 @@ public class TlsHelperTest {
     public void testGenerateSelfSignedCert() throws GeneralSecurityException, IOException, OperatorCreationException {
         String dn = "CN=testDN,O=testOrg";
 
-        X509Certificate x509Certificate = tlsHelper.generateSelfSignedX509Certificate(tlsHelper.generateKeyPair(), dn);
+        X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
 
         Date notAfter = x509Certificate.getNotAfter();
         assertTrue(notAfter.after(inFuture(days - 1)));
@@ -143,8 +141,8 @@ public class TlsHelperTest {
 
         String dn = "CN=testIssued,O=testOrg";
 
-        KeyPair keyPair = tlsHelper.generateKeyPair();
-        X509Certificate x509Certificate = tlsHelper.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair);
+        KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
+        X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair, signingAlgorithm, days);
         assertEquals(dn, x509Certificate.getSubjectDN().toString());
         assertEquals(issuer.getSubjectDN().toString(), x509Certificate.getIssuerDN().toString());
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());

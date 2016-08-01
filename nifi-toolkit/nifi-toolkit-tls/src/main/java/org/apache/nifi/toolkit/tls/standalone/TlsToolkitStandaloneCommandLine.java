@@ -22,7 +22,6 @@ import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -60,7 +59,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     private List<String> keyStorePasswords;
     private List<String> keyPasswords;
     private List<String> trustStorePasswords;
-    private TlsHelperConfig tlsHelperConfig;
 
     public TlsToolkitStandaloneCommandLine() {
         this(new PasswordUtil());
@@ -101,8 +99,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     @Override
     protected CommandLine doParse(String... args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
-        int days = getIntValue(commandLine, DAYS_ARG, TlsHelperConfig.DEFAULT_DAYS);
-        tlsHelperConfig = new TlsHelperConfig(days, getKeySize(), getKeyAlgorithm(), getSigningAlgorithm());
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
         hostnames = Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG, TlsConfig.DEFAULT_HOSTNAME).split(",")).map(String::trim).collect(Collectors.toList());
@@ -177,21 +173,16 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         return trustStorePasswords;
     }
 
-    public TlsHelperConfig getTlsHelperConfig() {
-        return tlsHelperConfig;
-    }
-
     public TlsConfig createConfig() throws IOException {
         TlsConfig tlsConfig = new TlsConfig();
         tlsConfig.setCaHostname(getCertificateAuthorityHostname());
         tlsConfig.setKeyStore("nifi-ca-" + KEYSTORE + getKeyStoreType().toLowerCase());
         tlsConfig.setKeyStoreType(getKeyStoreType());
-        TlsHelperConfig tlsHelperConfig = new TlsHelperConfig();
-        tlsHelperConfig.setKeySize(getKeySize());
-        tlsHelperConfig.setKeyPairAlgorithm(getKeyAlgorithm());
-        tlsHelperConfig.setSigningAlgorithm(getSigningAlgorithm());
-        tlsHelperConfig.setDays(getDays());
-        tlsConfig.setTlsHelperConfig(tlsHelperConfig);
+        tlsConfig.setKeySize(getKeySize());
+        tlsConfig.setKeyPairAlgorithm(getKeyAlgorithm());
+        tlsConfig.setSigningAlgorithm(getSigningAlgorithm());
+        tlsConfig.setDays(getDays());
+        tlsConfig.initDefaults();
         return tlsConfig;
     }
 }

@@ -23,7 +23,6 @@ import org.apache.nifi.util.StringUtils;
 import java.security.NoSuchAlgorithmException;
 
 public class TlsClientConfig extends TlsConfig {
-    private String dn;
     private String trustStore;
     private String trustStorePassword;
     private String trustStoreType = DEFAULT_KEY_STORE_TYPE;
@@ -37,7 +36,9 @@ public class TlsClientConfig extends TlsConfig {
         setPort(tlsConfig.getPort());
         setKeyStoreType(tlsConfig.getKeyStoreType());
         setTrustStoreType(tlsConfig.getKeyStoreType());
-        setTlsHelperConfig(new TlsHelperConfig(tlsConfig.getTlsHelperConfig()));
+        setKeyPairAlgorithm(tlsConfig.getKeyPairAlgorithm());
+        setKeySize(tlsConfig.getKeySize());
+        setSigningAlgorithm(tlsConfig.getSigningAlgorithm());
     }
 
 
@@ -63,14 +64,6 @@ public class TlsClientConfig extends TlsConfig {
 
     public void setTrustStorePassword(String trustStorePassword) {
         this.trustStorePassword = trustStorePassword;
-    }
-
-    public String getDn() {
-        return dn;
-    }
-
-    public void setDn(String dn) {
-        this.dn = dn;
     }
 
     public TlsCertificateSigningRequestPerformer createCertificateSigningRequestPerformer() throws NoSuchAlgorithmException {

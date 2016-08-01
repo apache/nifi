@@ -19,7 +19,6 @@ package org.apache.nifi.toolkit.tls.service.server;
 
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,12 +57,10 @@ public class TlsCertificateAuthorityServiceCommandLineTest {
         assertEquals(TlsCertificateAuthorityServiceCommandLine.NIFI_CA_KEYSTORE + tlsConfig.getKeyStoreType().toLowerCase(), tlsConfig.getKeyStore());
         assertNull(tlsConfig.getKeyStorePassword());
         assertNull(tlsConfig.getKeyPassword());
-
-        TlsHelperConfig tlsHelperConfig = tlsConfig.getTlsHelperConfig();
-        assertEquals(TlsHelperConfig.DEFAULT_KEY_SIZE, tlsHelperConfig.getKeySize());
-        assertEquals(TlsHelperConfig.DEFAULT_KEY_PAIR_ALGORITHM, tlsHelperConfig.getKeyPairAlgorithm());
-        assertEquals(TlsHelperConfig.DEFAULT_SIGNING_ALGORITHM, tlsHelperConfig.getSigningAlgorithm());
-        assertEquals(TlsHelperConfig.DEFAULT_DAYS, tlsHelperConfig.getDays());
+        assertEquals(TlsConfig.DEFAULT_KEY_SIZE, tlsConfig.getKeySize());
+        assertEquals(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, tlsConfig.getKeyPairAlgorithm());
+        assertEquals(TlsConfig.DEFAULT_SIGNING_ALGORITHM, tlsConfig.getSigningAlgorithm());
+        assertEquals(TlsConfig.DEFAULT_DAYS, tlsConfig.getDays());
     }
 
     @Test
@@ -93,27 +90,27 @@ public class TlsCertificateAuthorityServiceCommandLineTest {
     public void testKeySize() throws CommandLineParseException, IOException {
         int testKeySize = 8192;
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-k", Integer.toString(testKeySize));
-        assertEquals(testKeySize, tlsCertificateAuthorityServiceCommandLine.createConfig().getTlsHelperConfig().getKeySize());
+        assertEquals(testKeySize, tlsCertificateAuthorityServiceCommandLine.createConfig().getKeySize());
     }
 
     @Test
     public void testKeyPairAlgorithm() throws CommandLineParseException, IOException {
         String testAlgorithm = "testAlgorithm";
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-a", testAlgorithm);
-        assertEquals(testAlgorithm, tlsCertificateAuthorityServiceCommandLine.createConfig().getTlsHelperConfig().getKeyPairAlgorithm());
+        assertEquals(testAlgorithm, tlsCertificateAuthorityServiceCommandLine.createConfig().getKeyPairAlgorithm());
     }
 
     @Test
     public void testSigningAlgorithm() throws CommandLineParseException, IOException {
         String testSigningAlgorithm = "testSigningAlgorithm";
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-s", testSigningAlgorithm);
-        assertEquals(testSigningAlgorithm, tlsCertificateAuthorityServiceCommandLine.createConfig().getTlsHelperConfig().getSigningAlgorithm());
+        assertEquals(testSigningAlgorithm, tlsCertificateAuthorityServiceCommandLine.createConfig().getSigningAlgorithm());
     }
 
     @Test
     public void testDays() throws CommandLineParseException, IOException {
         int days = 1234;
         tlsCertificateAuthorityServiceCommandLine.parse("-t", testToken, "-d", Integer.toString(days));
-        assertEquals(days, tlsCertificateAuthorityServiceCommandLine.createConfig().getTlsHelperConfig().getDays());
+        assertEquals(days, tlsCertificateAuthorityServiceCommandLine.createConfig().getDays());
     }
 }

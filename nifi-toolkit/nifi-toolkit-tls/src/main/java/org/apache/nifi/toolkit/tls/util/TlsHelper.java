@@ -17,8 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.toolkit.tls.configuration.TlsHelperConfig;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
@@ -49,18 +47,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 public class TlsHelper {
-    private final KeyPairGenerator keyPairGenerator;
-    private final int days;
-    private final String signingAlgorithm;
+    private TlsHelper() {
 
-    public TlsHelper(TlsHelperConfig tlsHelperConfig) throws NoSuchAlgorithmException {
-        this(createKeyPairGenerator(tlsHelperConfig.getKeyPairAlgorithm(), tlsHelperConfig.getKeySize()), tlsHelperConfig.getDays(), tlsHelperConfig.getSigningAlgorithm());
-    }
-
-    protected TlsHelper(KeyPairGenerator keyPairGenerator, int days, String signingAlgorithm) {
-        this.keyPairGenerator = keyPairGenerator;
-        this.days = days;
-        this.signingAlgorithm = signingAlgorithm;
     }
 
     public static void addBouncyCastleProvider() {
@@ -73,40 +61,18 @@ public class TlsHelper {
         return instance;
     }
 
-    public KeyPair generateKeyPair() throws NoSuchAlgorithmException {
-        return keyPairGenerator.generateKeyPair();
-    }
-
-    public X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn) throws CertificateException {
-        return CertificateUtils.generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, days);
-    }
-
-    public X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, X509Certificate issuer, KeyPair issuerKeyPair) throws CertificateException {
-        return CertificateUtils.generateIssuedCertificate(dn, publicKey, issuer, issuerKeyPair, signingAlgorithm, days);
-    }
-
-    public JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, KeyPair keyPair) throws OperatorCreationException {
-        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(requestedDn), keyPair.getPublic());
-        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
-        return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
-    }
-
-    public X509Certificate signCsr(JcaPKCS10CertificationRequest certificationRequest, X509Certificate issuer, KeyPair issuerKeyPair) throws GeneralSecurityException {
-        return generateIssuedCertificate(certificationRequest.getSubject().toString(), certificationRequest.getPublicKey(), issuer, issuerKeyPair);
-    }
-
-    public byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
+    public static byte[] calculateHMac(String token, PublicKey publicKey) throws GeneralSecurityException {
         SecretKeySpec keySpec = new SecretKeySpec(token.getBytes(StandardCharsets.UTF_8), "RAW");
         Mac mac = Mac.getInstance("Hmac-SHA256", BouncyCastleProvider.PROVIDER_NAME);
         mac.init(keySpec);
         return mac.doFinal(getKeyIdentifier(publicKey));
     }
 
-    public byte[] getKeyIdentifier(PublicKey publicKey) throws NoSuchAlgorithmException {
+    public static byte[] getKeyIdentifier(PublicKey publicKey) throws NoSuchAlgorithmException {
         return new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey).getKeyIdentifier();
     }
 
-    public String pemEncodeJcaObject(Object object) throws IOException {
+    public static String pemEncodeJcaObject(Object object) throws IOException {
         StringWriter writer = new StringWriter();
         try (PemWriter pemWriter = new PemWriter(writer)) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(object));
@@ -114,7 +80,17 @@ public class TlsHelper {
         return writer.toString();
     }
 
-    public X509Certificate parseCertificate(String pemEncodedCertificate) throws IOException, CertificateException {
+    public static JcaPKCS10CertificationRequest parseCsr(String pemEncodedCsr) throws IOException {
+        try (PEMParser pemParser = new PEMParser(new StringReader(pemEncodedCsr))) {
+            Object o = pemParser.readObject();
+            if (!PKCS10CertificationRequest.class.isInstance(o)) {
+                throw new IOException("Expecting instance of " + PKCS10CertificationRequest.class + " but got " + o);
+            }
+            return new JcaPKCS10CertificationRequest((PKCS10CertificationRequest) o);
+        }
+    }
+
+    public static X509Certificate parseCertificate(String pemEncodedCertificate) throws IOException, CertificateException {
         try (PEMParser pemParser = new PEMParser(new StringReader(pemEncodedCertificate))) {
             Object object = pemParser.readObject();
             if (!X509CertificateHolder.class.isInstance(object)) {
@@ -124,13 +100,13 @@ public class TlsHelper {
         }
     }
 
-    public JcaPKCS10CertificationRequest parseCsr(String pemEncodedCsr) throws IOException {
-        try (PEMParser pemParser = new PEMParser(new StringReader(pemEncodedCsr))) {
-            Object o = pemParser.readObject();
-            if (!PKCS10CertificationRequest.class.isInstance(o)) {
-                throw new IOException("Expecting instance of " + PKCS10CertificationRequest.class + " but got " + o);
-            }
-            return new JcaPKCS10CertificationRequest((PKCS10CertificationRequest) o);
-        }
+    public static KeyPair generateKeyPair(String algorithm, int keySize) throws NoSuchAlgorithmException {
+        return createKeyPairGenerator(algorithm, keySize).generateKeyPair();
+    }
+
+    public static JcaPKCS10CertificationRequest generateCertificationRequest(String requestedDn, KeyPair keyPair, String signingAlgorithm) throws OperatorCreationException {
+        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(requestedDn), keyPair.getPublic());
+        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder(signingAlgorithm);
+        return new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
     }
 }

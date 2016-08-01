@@ -97,14 +97,16 @@ public class TlsCertificateAuthorityService {
             throw new IOException("Expected " + X509Certificate.class + " as root ca cert");
         }
         tlsManager.write(outputStreamFactory);
-        server = createServer(new TlsCertificateAuthorityServiceHandler(tlsManager.getTlsHelper(), tlsConfig.getToken(), caCert, keyPair, objectMapper), tlsConfig.getPort(), tlsManager.getKeyStore(),
+        String signingAlgorithm = tlsConfig.getSigningAlgorithm();
+        int days = tlsConfig.getDays();
+        server = createServer(new TlsCertificateAuthorityServiceHandler(signingAlgorithm, days, tlsConfig.getToken(), caCert, keyPair, objectMapper), tlsConfig.getPort(), tlsManager.getKeyStore(),
                 tlsConfig.getKeyPassword());
         server.start();
     }
 
     public synchronized void shutdown() throws Exception {
         if (server == null) {
-            throw new IllegalStateException("Server already started");
+            throw new IllegalStateException("Server already shutdown");
         }
         server.stop();
         server.join();
