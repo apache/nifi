@@ -22,6 +22,7 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -141,7 +142,18 @@ public class SnippetResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 final SnippetDTO snippet = snippetEntity.getSnippet();
-                authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+
+                // the snippet being created may be used later for batch component modifications,
+                // copy/paste, or template creation. during those subsequent actions, the snippet
+                // will again be authorized accordingly (read or write). at this point we do not
+                // know what the snippet will be used for so we need to attempt to authorize as
+                // read OR write
+
+                try {
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.READ);
+                } catch (final AccessDeniedException e) {
+                    authorizeSnippet(snippet, authorizer, lookup, RequestAction.WRITE);
+                }
             });
         }
         if (validationPhase) {
@@ -218,13 +230,13 @@ public class SnippetResource extends ApplicationResource {
         // get the revision from this snippet
         final Set<Revision> revisions = serviceFacade.getRevisionsFromSnippet(snippetId);
         return withWriteLock(
-                serviceFacade,
-                revisions,
-                lookup -> {
-                    // ensure write access to the target process group
-                    if (requestSnippetDTO.getParentGroupId() != null) {
-                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                    }
+            serviceFacade,
+            revisions,
+            lookup -> {
+                // ensure write access to the target process group
+                if (requestSnippetDTO.getParentGroupId() != null) {
+                    lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                }
 
                     // ensure write permission to every component in the snippet
                     final Snippet snippet = lookup.getSnippet(snippetId);

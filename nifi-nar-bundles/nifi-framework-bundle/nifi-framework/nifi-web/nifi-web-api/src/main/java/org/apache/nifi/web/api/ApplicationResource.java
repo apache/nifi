@@ -21,6 +21,8 @@ import com.sun.jersey.api.representation.Form;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -40,10 +42,8 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ComponentIdGenerator;
-import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.AuthorizeAccess;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -418,7 +418,13 @@ public abstract class ApplicationResource {
     protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+            // authorize the process group
+            authorize.accept(processGroupAuthorizable.getAuthorizable());
+
+            // authorize the contents of the group
+            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
@@ -437,7 +443,13 @@ public abstract class ApplicationResource {
     protected void authorizeSnippet(final SnippetDTO snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+            // authorize the process group
+            authorize.accept(processGroupAuthorizable.getAuthorizable());
+
+            // authorize the contents of the group
+            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);

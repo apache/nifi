@@ -672,6 +672,13 @@ public interface ProcessGroup extends Authorizable, Positionable {
     void removeFunnel(Funnel funnel);
 
     /**
+     * @return a List of all Funnel that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Funnel> findAllFunnels();
+
+    /**
      * Adds the given Controller Service to this group
      *
      * @param service the service to add

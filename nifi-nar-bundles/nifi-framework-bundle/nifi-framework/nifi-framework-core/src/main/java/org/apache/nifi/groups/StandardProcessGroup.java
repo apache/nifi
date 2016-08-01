@@ -1579,6 +1579,19 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<Funnel> findAllFunnels() {
+        return findAllFunnels(this);
+    }
+
+    private List<Funnel> findAllFunnels(final ProcessGroup start) {
+        final List<Funnel> allFunnels = new ArrayList<>(start.getFunnels());
+        for (final ProcessGroup group : start.getProcessGroups()) {
+            allFunnels.addAll(findAllFunnels(group));
+        }
+        return allFunnels;
+    }
+
+    @Override
     public Port getInputPortByName(final String name) {
         return getPortByName(name, this, new InputPortRetriever());
     }

@@ -2019,7 +2019,9 @@ nf.ControllerService = (function () {
                 controllerServiceData.deleteItem(controllerServiceEntity.id);
 
                 // reload the as necessary
-                reloadControllerServiceReferences(serviceTable, controllerServiceEntity.component);
+                if (controllerServiceEntity.permissions.canRead) {
+                    reloadControllerServiceReferences(serviceTable, controllerServiceEntity.component);
+                }
             }).fail(nf.Common.handleAjaxError);
         }
     };

@@ -84,9 +84,7 @@ public class ReportingTaskResource extends ApplicationResource {
      */
     public Set<ReportingTaskEntity> populateRemainingReportingTaskEntitiesContent(final Set<ReportingTaskEntity> reportingTaskEntities) {
         for (ReportingTaskEntity reportingTaskEntity : reportingTaskEntities) {
-            if (reportingTaskEntity.getComponent() != null) {
-                populateRemainingReportingTaskEntityContent(reportingTaskEntity);
-            }
+            populateRemainingReportingTaskEntityContent(reportingTaskEntity);
         }
         return reportingTaskEntities;
     }

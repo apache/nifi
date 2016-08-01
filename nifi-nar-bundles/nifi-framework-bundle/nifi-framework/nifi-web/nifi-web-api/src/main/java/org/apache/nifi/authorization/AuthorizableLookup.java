@@ -80,7 +80,7 @@ public interface AuthorizableLookup {
      * @param id process group id
      * @return authorizable
      */
-    Authorizable getProcessGroup(String id);
+    ProcessGroupAuthorizable getProcessGroup(String id);
 
     /**
      * Get the authorizable RemoteProcessGroup.
