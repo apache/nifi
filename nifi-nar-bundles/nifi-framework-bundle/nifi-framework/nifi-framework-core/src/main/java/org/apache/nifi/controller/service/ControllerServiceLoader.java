@@ -19,6 +19,7 @@ package org.apache.nifi.controller.service;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,11 +27,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -91,14 +94,17 @@ public class ControllerServiceLoader {
             final Document document = builder.parse(in);
             final Element controllerServices = document.getDocumentElement();
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
-            return new ArrayList<>(loadControllerServices(serviceElements, controller, parentGroup, encryptor, bulletinRepo, autoResumeState));
+
+            final Map<ControllerServiceNode, Element> controllerServiceMap = ControllerServiceLoader.loadControllerServices(serviceElements, controller, parentGroup, encryptor);
+            enableControllerServices(controllerServiceMap, controller, encryptor, autoResumeState);
+            return new ArrayList<>(controllerServiceMap.keySet());
         } catch (SAXException | ParserConfigurationException sxe) {
             throw new IOException(sxe);
         }
     }
 
-    public static Collection<ControllerServiceNode> loadControllerServices(final List<Element> serviceElements, final FlowController controller, final ProcessGroup parentGroup,
-        final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) {
+    public static Map<ControllerServiceNode, Element> loadControllerServices(final List<Element> serviceElements, final FlowController controller,
+                                                                             final ProcessGroup parentGroup, final StringEncryptor encryptor) {
 
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
         for (final Element serviceElement : serviceElements) {
@@ -117,6 +123,11 @@ public class ControllerServiceLoader {
             configureControllerService(entry.getKey(), entry.getValue(), encryptor);
         }
 
+        return nodeMap;
+    }
+
+    public static void enableControllerServices(final Map<ControllerServiceNode, Element> nodeMap, final FlowController controller,
+                                                final StringEncryptor encryptor, final boolean autoResumeState) {
         // Start services
         if (autoResumeState) {
             final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
@@ -135,10 +146,34 @@ public class ControllerServiceLoader {
                 }
             }
 
+            enableControllerServices(nodesToEnable, controller, autoResumeState);
+        }
+    }
+
+    public static void enableControllerServices(final Collection<ControllerServiceNode> nodesToEnable, final FlowController controller, final boolean autoResumeState) {
+        // Start services
+        if (autoResumeState) {
             controller.enableControllerServices(nodesToEnable);
         }
+    }
 
-        return nodeMap.keySet();
+    public static ControllerServiceNode cloneControllerService(final ControllerServiceProvider provider, final ControllerServiceNode controllerService) {
+        // create a new id for the clone seeded from the original id so that it is consistent in a cluster
+        final UUID id = UUID.nameUUIDFromBytes(controllerService.getIdentifier().getBytes(StandardCharsets.UTF_8));
+
+        final ControllerServiceNode clone = provider.createControllerService(controllerService.getCanonicalClassName(), id.toString(), false);
+        clone.setName(controllerService.getName());
+        clone.setComments(controllerService.getComments());
+
+        if (controllerService.getProperties() != null) {
+            for (Map.Entry<PropertyDescriptor, String> propEntry : controllerService.getProperties().entrySet()) {
+                if (propEntry.getValue() != null) {
+                    clone.setProperty(propEntry.getKey().getName(), propEntry.getValue());
+                }
+            }
+        }
+
+        return clone;
     }
 
     private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
@@ -162,4 +197,5 @@ public class ControllerServiceLoader {
             }
         }
     }
+
 }
