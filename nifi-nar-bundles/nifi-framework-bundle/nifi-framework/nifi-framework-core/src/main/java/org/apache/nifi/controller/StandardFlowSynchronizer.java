@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -103,11 +104,13 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -298,6 +301,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         }
                     }
 
+                    // get all the reporting task elements
+                    final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
+                    final List<Element> reportingTaskElements = new ArrayList<>();
+                    if (reportingTasksElement != null) {
+                        reportingTaskElements.addAll(DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask"));
+                    }
+
+                    // get/create all the reporting task nodes and DTOs, but don't apply their scheduled state yet
+                    final Map<ReportingTaskNode,ReportingTaskDTO> reportingTaskNodesToDTOs = new HashMap<>();
+                    for (final Element taskElement : reportingTaskElements) {
+                        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElement, encryptor);
+                        final ReportingTaskNode reportingTask = getOrCreateReportingTask(controller, dto, initialized, existingFlowEmpty);
+                        reportingTaskNodesToDTOs.put(reportingTask, dto);
+                    }
+
                     final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
                     if (controllerServicesElement != null) {
                         final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
@@ -308,7 +326,40 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                             // to the root Group. Otherwise, we want to use a null group, which indicates a Controller-level
                             // Controller Service.
                             final ProcessGroup group = (encodingVersion == null) ? rootGroup : null;
-                            ControllerServiceLoader.loadControllerServices(serviceElements, controller, group, encryptor, controller.getBulletinRepository(), autoResumeState);
+                            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceElements, controller, group, encryptor);
+
+                            // If we are moving controller services to the root group we also need to see if any reporting tasks
+                            // reference them, and if so we need to clone the CS and update the reporting task reference
+                            if (group != null) {
+                                // find all the controller service ids referenced by reporting tasks
+                                final Set<String> controllerServicesInReportingTasks = reportingTaskNodesToDTOs.keySet().stream()
+                                        .flatMap(r -> r.getProperties().entrySet().stream())
+                                        .filter(e -> e.getKey().getControllerServiceDefinition() != null)
+                                        .map(e -> e.getValue())
+                                        .collect(Collectors.toSet());
+
+                                // find the controller service nodes for each id referenced by a reporting task
+                                final Set<ControllerServiceNode> controllerServicesToClone = controllerServices.keySet().stream()
+                                        .filter(cs -> controllerServicesInReportingTasks.contains(cs.getIdentifier()))
+                                        .collect(Collectors.toSet());
+
+                                // clone the controller services and map the original id to the clone
+                                final Map<String,ControllerServiceNode> controllerServiceMapping = new HashMap<>();
+                                for (ControllerServiceNode controllerService : controllerServicesToClone) {
+                                    final ControllerServiceNode clone = ControllerServiceLoader.cloneControllerService(controller, controllerService);
+                                    controller.addRootControllerService(clone);
+                                    controllerServiceMapping.put(controllerService.getIdentifier(), clone);
+                                }
+
+                                // update the reporting tasks to reference the cloned controller services
+                                updateReportingTaskControllerServices(reportingTaskNodesToDTOs.keySet(), controllerServiceMapping);
+
+                                // enable all the cloned controller services
+                                ControllerServiceLoader.enableControllerServices(controllerServiceMapping.values(), controller, autoResumeState);
+                            }
+
+                            // enable all the original controller services
+                            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState);
                         } else {
                             for (final Element serviceElement : serviceElements) {
                                 updateControllerService(controller, serviceElement, encryptor);
@@ -318,16 +369,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
                     scaleRootGroup(rootGroup, encodingVersion);
 
-                    final Element reportingTasksElement = DomUtils.getChild(rootElement, "reportingTasks");
-                    if (reportingTasksElement != null) {
-                        final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
-                        for (final Element taskElement : taskElements) {
-                            if (!initialized || existingFlowEmpty) {
-                                addReportingTask(controller, taskElement, encryptor);
-                            } else {
-                                updateReportingTask(controller, taskElement, encryptor);
-                            }
-                        }
+                    // now that controller services are loaded and enabled we can apply the scheduled state to each reporting task
+                    for (Map.Entry<ReportingTaskNode,ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
+                        applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), initialized, existingFlowEmpty);
                     }
                 }
             }
@@ -356,6 +400,23 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             logger.debug("Finished syncing flows");
         } catch (final Exception ex) {
             throw new FlowSynchronizationException(ex);
+        }
+    }
+
+    private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String,ControllerServiceNode> controllerServiceMapping) {
+        for (ReportingTaskNode reportingTask : reportingTasks) {
+            if (reportingTask.getProperties() != null) {
+                final Set<Map.Entry<PropertyDescriptor,String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
+                        .filter(e -> e.getKey().getControllerServiceDefinition() != null)
+                        .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
+                        .collect(Collectors.toSet());
+
+                for (Map.Entry<PropertyDescriptor,String> propEntry : propertyDescriptors) {
+                    final PropertyDescriptor propertyDescriptor = propEntry.getKey();
+                    final ControllerServiceNode clone = controllerServiceMapping.get(propEntry.getValue());
+                    reportingTask.setProperty(propertyDescriptor.getName(), clone.getIdentifier());
+                }
+            }
         }
     }
 
@@ -461,35 +522,53 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void addReportingTask(final FlowController controller, final Element reportingTaskElement, final StringEncryptor encryptor) throws ReportingTaskInstantiationException {
-        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(reportingTaskElement, encryptor);
+    private ReportingTaskNode getOrCreateReportingTask(final FlowController controller, final ReportingTaskDTO dto, final boolean controllerInitialized, final boolean existingFlowEmpty)
+            throws ReportingTaskInstantiationException {
+        // create a new reporting task node when the controller is not initialized or the flow is empty
+        if (!controllerInitialized || existingFlowEmpty) {
+            final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), false);
+            reportingTask.setName(dto.getName());
+            reportingTask.setComments(dto.getComments());
+            reportingTask.setScheduldingPeriod(dto.getSchedulingPeriod());
+            reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
 
-        final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), false);
-        reportingTask.setName(dto.getName());
-        reportingTask.setComments(dto.getComments());
-        reportingTask.setScheduldingPeriod(dto.getSchedulingPeriod());
-        reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
+            reportingTask.setAnnotationData(dto.getAnnotationData());
 
-        reportingTask.setAnnotationData(dto.getAnnotationData());
-
-        for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
-            if (entry.getValue() == null) {
-                reportingTask.removeProperty(entry.getKey());
-            } else {
-                reportingTask.setProperty(entry.getKey(), entry.getValue());
+            for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
+                if (entry.getValue() == null) {
+                    reportingTask.removeProperty(entry.getKey());
+                } else {
+                    reportingTask.setProperty(entry.getKey(), entry.getValue());
+                }
             }
+
+            final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
+            final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
+                    SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller);
+
+            try {
+                reportingTask.getReportingTask().initialize(config);
+            } catch (final InitializationException ie) {
+                throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + dto.getType(), ie);
+            }
+
+            return reportingTask;
+        } else {
+            // otherwise return the existing reporting task node
+            return controller.getReportingTaskNode(dto.getId());
         }
+    }
 
-        final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
-        final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
-                SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller);
-
-        try {
-            reportingTask.getReportingTask().initialize(config);
-        } catch (final InitializationException ie) {
-            throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + dto.getType(), ie);
+    private void applyReportingTaskScheduleState(final FlowController controller, final ReportingTaskDTO dto, final ReportingTaskNode reportingTask,
+                                                 final boolean controllerInitialized, final boolean existingFlowEmpty) {
+        if (!controllerInitialized || existingFlowEmpty) {
+            applyNewReportingTaskScheduleState(controller, dto, reportingTask);
+        } else {
+            applyExistingReportingTaskScheduleState(controller, dto, reportingTask);
         }
+    }
 
+    private void applyNewReportingTaskScheduleState(final FlowController controller, final ReportingTaskDTO dto, final ReportingTaskNode reportingTask) {
         if (autoResumeState) {
             if (ScheduledState.RUNNING.name().equals(dto.getState())) {
                 try {
@@ -517,10 +596,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void updateReportingTask(final FlowController controller, final Element reportingTaskElement, final StringEncryptor encryptor) {
-        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(reportingTaskElement, encryptor);
-        final ReportingTaskNode taskNode = controller.getReportingTaskNode(dto.getId());
-
+    private void applyExistingReportingTaskScheduleState(final FlowController controller, final ReportingTaskDTO dto, final ReportingTaskNode taskNode) {
         if (!taskNode.getScheduledState().name().equals(dto.getState())) {
             try {
                 switch (ScheduledState.valueOf(dto.getState())) {
@@ -863,7 +939,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // Add Controller Services
         final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
         if (!serviceNodeList.isEmpty()) {
-            ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor, controller.getBulletinRepository(), autoResumeState);
+            final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceNodeList, controller, processGroup, encryptor);
+            ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState);
         }
 
         // add processors
