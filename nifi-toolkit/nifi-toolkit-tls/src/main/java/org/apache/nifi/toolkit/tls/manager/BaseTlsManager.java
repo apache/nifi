@@ -28,12 +28,14 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
@@ -110,20 +112,25 @@ public class BaseTlsManager {
         return result;
     }
 
-    protected KeyStore loadKeystore(String keyStore, String keyStoreType, String keyStorePassword) throws GeneralSecurityException, IOException {
-        KeyStore result;
+    private KeyStore getInstance(String keyStoreType) throws KeyStoreException, NoSuchProviderException {
         if (PKCS_12.equals(keyStoreType)) {
-            result = KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
+            return KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
         } else {
-            result = KeyStore.getInstance(keyStoreType);
+            return KeyStore.getInstance(keyStoreType);
         }
+    }
+
+    protected KeyStore loadKeystore(String keyStore, String keyStoreType, String keyStorePassword) throws GeneralSecurityException, IOException {
+        KeyStore result = getInstance(keyStoreType);
         File file = new File(keyStore);
         if (file.exists()) {
             try {
-                result.load(inputStreamFactory.create(file), keyStorePassword.toCharArray());
+                try (InputStream stream = inputStreamFactory.create(file)) {
+                    result.load(stream, keyStorePassword.toCharArray());
+                }
                 return result;
             } catch (Exception e) {
-                result = KeyStore.getInstance(keyStoreType);
+                result = getInstance(keyStoreType);
             }
         }
         result.load(null, null);
