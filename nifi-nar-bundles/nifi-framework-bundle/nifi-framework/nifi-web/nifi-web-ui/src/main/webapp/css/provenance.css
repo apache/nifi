@@ -25,7 +25,6 @@
     left: 20px;
     right: 20px;
     overflow: auto;
-    height: 100%;
 }
 
 #provenance-header-and-filter{
@@ -111,7 +110,8 @@ input.provenance-filter-list {
 #provenance-search-container {
     float: right;
     position: relative;
-    top: 42px;
+    top: 38px;
+    height: 0px;
 }
 
 #provenance-search-button {
@@ -340,7 +340,7 @@ div.content-detail-value {
     position: absolute;
     top: 88px;
     left: 0px;
-    bottom: 48px;
+    bottom: 47px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
@@ -350,7 +350,8 @@ div.content-detail-value {
 /* provenance lineage */
 
 #provenance-lineage {
-    border: 1px solid #aaa;
+    border: 1px solid #e5ebed;
+    background-color: #f9fafb;
 }
 
 #provenance-lineage-loading-container {
@@ -363,6 +364,11 @@ div.content-detail-value {
     background-color: transparent;
     height: 16px;
     width: 16px;
+}
+
+#provenance-lineage-container {
+    height: 100%;
+    width: 100%;
 }
 
 #provenance-lineage-close-container {
@@ -384,8 +390,10 @@ div.content-detail-value {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconClose.png") no-repeat scroll left center transparent;
+    font-size: 16px;
+    color: #004849;
     cursor: pointer;
+    margin-right: 5px;
 }
 
 #provenance-lineage-slider-container {
@@ -411,12 +419,13 @@ div.content-detail-value {
 }
 
 #event-timeline {
-    margin-top: 8px;
-    color: #9F6000;
-    font-weight: 500;
+    margin-top: 4px;
+    color: #775351;
+    line-height: normal;
     font-family: 'Roboto';
     font-style: normal;
-    line-height: normal;
+    font-weight: 500;
+    font-size: 13px;
 }
 
 #event-time {
@@ -427,69 +436,55 @@ div.content-detail-value {
     float: left;
 }
 
-#provenance-lineage-context-menu {
-    display: none;
-    border: 1px solid #000;
-    width: 140px;
-    position: absolute;
-    background-color: #fff;
-    padding: 3px 0;
+div.lineage-view-event:before {
+    font-family: FontAwesome;
+    content: "\f05a";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-event {
-    background: url("../images/iconDetails.png") no-repeat scroll center center transparent;
+div.lineage-view-parents:before {
+    font-family: FontAwesome;
+    content: "\f1e5";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-parents {
-    background: url("../images/iconExpandParents.png") no-repeat scroll center center transparent;
+div.lineage-collapse-parents:before {
+    font-family: FontAwesome;
+    content: "\f147";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-collapse-parents {
-    background: url("../images/iconCollapseParents.png") no-repeat scroll center center transparent;
+div.lineage-view-children:before {
+    font-family: FontAwesome;
+    content: "\f0fe";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-children {
-    background: url("../images/iconExpandChildren.png") no-repeat scroll center center transparent;
-}
-
-div.lineage-collapse-children {
-    background: url("../images/iconCollapseChildren.png") no-repeat scroll center center transparent;
-}
-
-div.provenance-lineage-menu-item {
-    padding: 3px 6px;
-    cursor: pointer;
-}
-
-div.provenance-lineage-menu-item.hover {
-    color: #027fd2;
-}
-
-div.provenance-lineage-menu-item-img {
-    float: left;
-    width: 16px;
-    height: 16px;
-}
-
-div.provenance-lineage-menu-item-text {
-    width: 106px;
-    margin-left: 6px;
-    line-height: 16px;
-    float: left;
-    font-family: Verdana;
-    font-size: 8pt;
+div.lineage-collapse-children:before {
+    font-family: FontAwesome;
+    content: "\f146";
+    font-size: 16px;
+    color: #004849;
 }
 
 path.link.selected {
-    stroke: #FFCC00;
+    stroke: #ba554a;
 }
 
 g.event circle.selected {
-    fill: #FFCC00;
+    fill: #ba554a;
 }
 
 text.event-type {
     cursor: pointer;
+    font-family: Roboto;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: normal;
 }
 
 text.event-type.expand-parents, text.event-type.expand-children {
@@ -500,32 +495,15 @@ text.event-type.expand-parents, text.event-type.expand-children {
 }
 
 g.flowfile circle.context, g.event circle.context {
-    stroke: #b70303;
+    stroke: #004849;
     stroke-width: 1.5px;
 }
 
-path.flowfile-icon-base {
-    pointer-events: none;
-}
-
-path.flowfile-icon-base-outline {
-    pointer-events: none;
-}
-
-path.flowfile-icon-mid {
-    pointer-events: none;
-}
-
-path.flowfile-icon-mid-outline {
-    pointer-events: none;
-}
-
-path.flowfile-icon-arc {
-    pointer-events: none;
-}
-
-path.flowfile-icon-top {
-    pointer-events: none;
+.flowfile-icon {
+    font-family: flowfont;
+    content: "\e808";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #child-flowfile-count {
