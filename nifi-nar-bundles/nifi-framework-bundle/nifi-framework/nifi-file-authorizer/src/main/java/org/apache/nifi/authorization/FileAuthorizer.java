@@ -257,7 +257,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         }
 
         final AuthorizationsHolder authorizationsHolder = new AuthorizationsHolder(authorizations, tenants);
-        final boolean emptyAuthorizations = authorizationsHolder.getAllUsers().isEmpty() && authorizationsHolder.getAllPolicies().isEmpty();
+        final boolean emptyAuthorizations = authorizationsHolder.getAllPolicies().isEmpty();
         final boolean hasInitialAdminIdentity = (initialAdminIdentity != null && !StringUtils.isBlank(initialAdminIdentity));
         final boolean hasLegacyAuthorizedUsers = (legacyAuthorizedUsersFile != null && !StringUtils.isBlank(legacyAuthorizedUsersFile));
 
@@ -319,12 +319,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      *  Creates the initial admin user and policies for access the flow and managing users and policies.
      */
     private void populateInitialAdmin(final Authorizations authorizations, Tenants tenants) {
-        // generate an identifier and add a User with the given identifier and identity
-        final UUID adminIdentifier = UUID.nameUUIDFromBytes(initialAdminIdentity.getBytes(StandardCharsets.UTF_8));
-        final User adminUser = new User.Builder().identifier(adminIdentifier.toString()).identity(initialAdminIdentity).build();
-
-        final org.apache.nifi.authorization.file.tenants.generated.User jaxbAdminUser = createJAXBUser(adminUser);
-        tenants.getUsers().getUser().add(jaxbAdminUser);
+        final org.apache.nifi.authorization.file.tenants.generated.User adminUser = getOrCreateUser(tenants, initialAdminIdentity);
 
         // grant the user read access to the /flow resource
         addAccessPolicy(authorizations, ResourceType.Flow.getValue(), adminUser.getIdentifier(), READ_CODE);
@@ -358,24 +353,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
      */
     private void populateNodes(Authorizations authorizations, Tenants tenants) {
         for (String nodeIdentity : nodeIdentities) {
-            // see if we have an existing user for the given node identity
-            org.apache.nifi.authorization.file.tenants.generated.User jaxbNodeUser = null;
-            for (org.apache.nifi.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
-                if (user.getIdentity().equals(nodeIdentity)) {
-                    jaxbNodeUser = user;
-                    break;
-                }
-            }
-
-            // if we didn't find an existing user then create a new one
-            if (jaxbNodeUser == null) {
-                // generate an identifier and add a User with the given identifier and identity
-                final UUID nodeIdentifier = UUID.nameUUIDFromBytes(nodeIdentity.getBytes(StandardCharsets.UTF_8));
-                final User nodeUser = new User.Builder().identifier(nodeIdentifier.toString()).identity(nodeIdentity).build();
-
-                jaxbNodeUser = createJAXBUser(nodeUser);
-                tenants.getUsers().getUser().add(jaxbNodeUser);
-            }
+            final org.apache.nifi.authorization.file.tenants.generated.User jaxbNodeUser = getOrCreateUser(tenants, nodeIdentity);
 
             // grant access to the proxy resource
             addAccessPolicy(authorizations, ResourceType.Proxy.getValue(), jaxbNodeUser.getIdentifier(), READ_CODE);
@@ -433,19 +411,13 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         for (org.apache.nifi.user.generated.User legacyUser : users.getUser()) {
             // create the identifier of the new user based on the DN
             final String legacyUserDn = IdentityMappingUtil.mapIdentity(legacyUser.getDn(), identityMappings);
-            final String userIdentifier = UUID.nameUUIDFromBytes(legacyUserDn.getBytes(StandardCharsets.UTF_8)).toString();
-
-            // create the new User and add it to the list of users
-            org.apache.nifi.authorization.file.tenants.generated.User user = new org.apache.nifi.authorization.file.tenants.generated.User();
-            user.setIdentifier(userIdentifier);
-            user.setIdentity(legacyUserDn);
-            tenants.getUsers().getUser().add(user);
+            org.apache.nifi.authorization.file.tenants.generated.User user = getOrCreateUser(tenants, legacyUserDn);
 
             // if there was a group name find or create the group and add the user to it
             org.apache.nifi.authorization.file.tenants.generated.Group group = getOrCreateGroup(tenants, legacyUser.getGroup());
             if (group != null) {
                 org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
-                groupUser.setIdentifier(userIdentifier);
+                groupUser.setIdentifier(user.getIdentifier());
                 group.getUser().add(groupUser);
             }
 
@@ -464,7 +436,7 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
                             roleAccessPolicy.getAction());
 
                     // add the user to the policy if it doesn't exist
-                    addUserToPolicy(userIdentifier, policy);
+                    addUserToPolicy(user.getIdentifier(), policy);
                 }
             }
 
@@ -589,11 +561,42 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     /**
-     * Finds the Group with the given name, or creates a new one and adds it to Authorizations.
+     * Finds the User with the given identity, or creates a new one and adds it to the Tenants.
      *
-     * @param tenants the Authorizations reference
+     * @param tenants the Tenants reference
+     * @param userIdentity the user identity to find or create
+     * @return the User from Tenants with the given identity, or a new instance that was added to Tenants
+     */
+    private org.apache.nifi.authorization.file.tenants.generated.User getOrCreateUser(final Tenants tenants, final String userIdentity) {
+        if (StringUtils.isBlank(userIdentity)) {
+            return null;
+        }
+
+        org.apache.nifi.authorization.file.tenants.generated.User foundUser = null;
+        for (org.apache.nifi.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
+            if (user.getIdentity().equals(userIdentity)) {
+                foundUser = user;
+                break;
+            }
+        }
+
+        if (foundUser == null) {
+            final String userIdentifier = UUID.nameUUIDFromBytes(userIdentity.getBytes(StandardCharsets.UTF_8)).toString();
+            foundUser = new org.apache.nifi.authorization.file.tenants.generated.User();
+            foundUser.setIdentifier(userIdentifier);
+            foundUser.setIdentity(userIdentity);
+            tenants.getUsers().getUser().add(foundUser);
+        }
+
+        return foundUser;
+    }
+
+    /**
+     * Finds the Group with the given name, or creates a new one and adds it to Tenants.
+     *
+     * @param tenants the Tenants reference
      * @param groupName the name of the group to look for
-     * @return the Group from Authorizations with the given name, or a new instance
+     * @return the Group from Tenants with the given name, or a new instance that was added to Tenants
      */
     private org.apache.nifi.authorization.file.tenants.generated.Group getOrCreateGroup(final Tenants tenants, final String groupName) {
         if (StringUtils.isBlank(groupName)) {
