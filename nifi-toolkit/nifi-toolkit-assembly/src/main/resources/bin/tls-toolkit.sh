@@ -110,7 +110,7 @@ run() {
    export JAVA_HOME="$JAVA_HOME"
    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
 
-   umask 0177
+   umask 0077
    "${JAVA}" -cp "${CLASSPATH}" -Xms12m -Xmx24m org.apache.nifi.toolkit.tls.TlsToolkitMain "$@"
    return $?
 }
