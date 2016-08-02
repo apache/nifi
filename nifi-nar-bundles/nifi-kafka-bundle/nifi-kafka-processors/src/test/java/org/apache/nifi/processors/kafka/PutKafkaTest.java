@@ -89,7 +89,7 @@ public class PutKafkaTest {
     }
 
     @Test
-    public void validateMultiCharacterDelimiyedMessages() {
+    public void validateMultiCharacterDelimitedMessages() {
         String topicName = "validateMultiCharacterDemarcatedMessagesAndCustomPartitioner";
         PutKafka putKafka = new PutKafka();
         TestRunner runner = TestRunners.newTestRunner(putKafka);
