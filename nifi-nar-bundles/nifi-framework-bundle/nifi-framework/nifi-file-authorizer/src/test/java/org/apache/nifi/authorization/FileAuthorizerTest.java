@@ -131,6 +131,16 @@ public class FileAuthorizerTest {
             "  </users>" +
             "</tenants>";
 
+    private static final String TENANTS_FOR_ADMIN_AND_NODES =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<tenants>" +
+                    "  <users>" +
+                    "    <user identifier=\"admin-user\" identity=\"admin-user\"/>" +
+                    "    <user identifier=\"node1\" identity=\"node1\"/>" +
+                    "    <user identifier=\"node2\" identity=\"node2\"/>" +
+                    "  </users>" +
+                    "</tenants>";
+
     // This is the root group id from the flow.xml.gz in src/test/resources
     private static final String ROOT_GROUP_ID = "e530e14c-adcf-41c2-b5d6-d9a59ba8765c";
 
@@ -628,6 +638,49 @@ public class FileAuthorizerTest {
         writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
+
+        User adminUser = authorizer.getUserByIdentity(adminIdentity);
+        assertNotNull(adminUser);
+
+        User nodeUser1 = authorizer.getUserByIdentity(nodeIdentity1);
+        assertNotNull(nodeUser1);
+
+        User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
+        assertNotNull(nodeUser2);
+
+        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
+        AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+
+        assertNotNull(proxyReadPolicy);
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
+
+        assertNotNull(proxyWritePolicy);
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser2.getIdentifier()));
+    }
+
+    @Test
+    public void testOnConfiguredWhenNodeIdentitiesProvidedAndUsersAlreadyExist() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        final String nodeIdentity1 = "node1";
+        final String nodeIdentity2 = "node2";
+
+        final Map<String,String> props = new HashMap<>();
+        props.put("Node Identity 1", nodeIdentity1);
+        props.put("Node Identity 2", nodeIdentity2);
+
+        when(configurationContext.getProperties()).thenReturn(props);
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODES);
+        authorizer.onConfigured(configurationContext);
+
+        assertEquals(3, authorizer.getUsers().size());
 
         User adminUser = authorizer.getUserByIdentity(adminIdentity);
         assertNotNull(adminUser);
