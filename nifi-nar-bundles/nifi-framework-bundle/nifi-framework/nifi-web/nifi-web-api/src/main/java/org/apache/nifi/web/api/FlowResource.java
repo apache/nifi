@@ -1075,6 +1075,7 @@ public class FlowResource extends ApplicationResource {
         aboutDTO.setTitle("NiFi");
         aboutDTO.setVersion(getProperties().getUiTitle());
         aboutDTO.setUri(generateResourceUri());
+        aboutDTO.setTimezone(new Date());
 
         // get the content viewer url
         aboutDTO.setContentViewerUrl(getProperties().getProperty(NiFiProperties.CONTENT_VIEWER_URL));

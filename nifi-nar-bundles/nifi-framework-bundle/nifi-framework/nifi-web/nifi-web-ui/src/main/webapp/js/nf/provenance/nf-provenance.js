@@ -94,6 +94,9 @@ nf.ng.Provenance = function (provenanceTableCtrl) {
             // store the controller name
             $('#nifi-controller-uri').text(aboutDetails.uri);
 
+            // set the timezone for the start and end time
+            $('.timezone').text(aboutDetails.timezone);
+
             // store the content viewer url if available
             if (!nf.Common.isBlank(aboutDetails.contentViewerUrl)) {
                 $('#nifi-content-viewer-url').text(aboutDetails.contentViewerUrl);
