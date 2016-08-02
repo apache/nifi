@@ -20,7 +20,6 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -29,6 +28,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Iterator;
+import java.util.Date;
+import java.util.Locale;
 
 public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
