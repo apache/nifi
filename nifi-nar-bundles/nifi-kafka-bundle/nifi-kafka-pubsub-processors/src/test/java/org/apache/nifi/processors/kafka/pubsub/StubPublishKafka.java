@@ -34,6 +34,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -83,6 +84,10 @@ public class StubPublishKafka extends PublishKafka {
             kf.setAccessible(true);
             kf.set(publisher, producer);
 
+            Field componentLogF = KafkaPublisher.class.getDeclaredField("componentLog");
+            componentLogF.setAccessible(true);
+            componentLogF.set(publisher, mock(ComponentLog.class));
+
             Field ackCheckSizeField = KafkaPublisher.class.getDeclaredField("ackCheckSize");
             ackCheckSizeField.setAccessible(true);
             ackCheckSizeField.set(publisher, this.ackCheckSize);
@@ -110,7 +115,6 @@ public class StubPublishKafka extends PublishKafka {
                     @Override
                     public RecordMetadata call() throws Exception {
                         if ("futurefail".equals(value) && !StubPublishKafka.this.failed) {
-                            // System.out.println("FAIL");
                             StubPublishKafka.this.failed = true;
                             throw new TopicAuthorizationException("Unauthorized");
                         } else {

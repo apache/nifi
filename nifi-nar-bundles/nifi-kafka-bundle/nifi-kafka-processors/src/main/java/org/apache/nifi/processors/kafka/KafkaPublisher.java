@@ -34,7 +34,6 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
 
 import kafka.producer.Partitioner;
@@ -49,14 +48,14 @@ class KafkaPublisher implements Closeable {
 
     private long ackWaitTime = 30000;
 
-    private ProcessorLog processLog;
+    private final ComponentLog componentLog;
 
     private final Partitioner partitioner;
 
     private final int ackCheckSize;
 
-    KafkaPublisher(Properties kafkaProperties) {
-        this(kafkaProperties, 100);
+    KafkaPublisher(Properties kafkaProperties, ComponentLog componentLog) {
+        this(kafkaProperties, 100, componentLog);
     }
 
     /**
@@ -68,7 +67,7 @@ class KafkaPublisher implements Closeable {
      *            instance of {@link Properties} used to bootstrap
      *            {@link KafkaProducer}
      */
-    KafkaPublisher(Properties kafkaProperties, int ackCheckSize) {
+    KafkaPublisher(Properties kafkaProperties, int ackCheckSize, ComponentLog componentLog) {
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
@@ -82,6 +81,7 @@ class KafkaPublisher implements Closeable {
         } catch (Exception e) {
             throw new IllegalStateException("Failed to create partitioner", e);
         }
+        this.componentLog = componentLog;
     }
 
     /**
@@ -218,25 +218,13 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will set {@link ProcessorLog} as an additional logger to forward log
-     * messages to NiFi bulletin
-     */
-    void setProcessLog(ProcessorLog processLog) {
-        this.processLog = processLog;
-    }
-
-    /**
      *
      */
     private void warnOrError(String message, Exception e) {
         if (e == null) {
-            if (this.processLog != null) {
-                this.processLog.warn(message);
-            }
+            this.componentLog.warn(message);
         } else {
-            if (this.processLog != null) {
-                this.processLog.error(message, e);
-            }
+            this.componentLog.error(message);
         }
     }
 

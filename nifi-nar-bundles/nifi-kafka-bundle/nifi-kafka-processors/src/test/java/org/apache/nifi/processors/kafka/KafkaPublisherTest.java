@@ -19,6 +19,7 @@ package org.apache.nifi.processors.kafka;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.kafka.KafkaPublisher.KafkaPublisherResult;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
@@ -70,7 +72,7 @@ public class KafkaPublisherTest {
         String topicName = "validateSuccessfulSendAsWhole";
 
         Properties kafkaProperties = this.buildProducerProperties();
-        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, mock(ComponentLog.class));
 
         PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
         KafkaPublisherResult result = publisher.publish(publishingContext);
@@ -96,7 +98,7 @@ public class KafkaPublisherTest {
         String topicName = "validateSuccessfulSendAsDelimited";
 
         Properties kafkaProperties = this.buildProducerProperties();
-        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, mock(ComponentLog.class));
 
         PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
         publishingContext.setDelimiterBytes("\n".getBytes(StandardCharsets.UTF_8));
@@ -132,7 +134,7 @@ public class KafkaPublisherTest {
 
         Properties kafkaProperties = this.buildProducerProperties();
 
-        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, mock(ComponentLog.class));
 
         // simulates the first re-try
         int lastAckedMessageIndex = 1;
@@ -179,7 +181,7 @@ public class KafkaPublisherTest {
 
         Properties kafkaProperties = this.buildProducerProperties();
 
-        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, mock(ComponentLog.class));
 
         // simulates the first re-try
         int lastAckedMessageIndex = 3;
@@ -221,7 +223,7 @@ public class KafkaPublisherTest {
 
         Properties kafkaProperties = this.buildProducerProperties();
 
-        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, mock(ComponentLog.class));
         PublishingContext publishingContext = new PublishingContext(contentStream, topicName);
 
         publisher.publish(publishingContext);
