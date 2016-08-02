@@ -14,30 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.entity;
+package org.apache.nifi.cluster.manager;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.FunnelDTO;
+import org.apache.nifi.web.api.entity.LabelEntity;
 
-/**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a FunnelDTO.
- */
-@XmlRootElement(name = "funnelEntity")
-public class FunnelEntity extends ComponentEntity implements Permissible<FunnelDTO> {
-
-    private FunnelDTO component;
-
-    /**
-     * The FunnelDTO that is being serialized.
-     *
-     * @return The FunnelDTO object
-     */
-    public FunnelDTO getComponent() {
-        return component;
-    }
-
-    public void setComponent(FunnelDTO component) {
-        this.component = component;
-    }
-
+public class LabelEntityMerger implements ComponentEntityMerger<LabelEntity> {
+    // No specific merging needs to be done beyond what the ComponentEntityMerger does by default
 }

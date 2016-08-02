@@ -23,12 +23,18 @@ import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.web.api.dto.AccessPolicyDTO
 import org.apache.nifi.web.api.dto.ConnectionDTO
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO
+import org.apache.nifi.web.api.dto.FunnelDTO
+import org.apache.nifi.web.api.dto.LabelDTO
 import org.apache.nifi.web.api.dto.PermissionsDTO
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO
 import org.apache.nifi.web.api.entity.ConnectionEntity
 import org.apache.nifi.web.api.entity.ConnectionsEntity
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity
+import org.apache.nifi.web.api.entity.FunnelEntity
+import org.apache.nifi.web.api.entity.FunnelsEntity
+import org.apache.nifi.web.api.entity.LabelEntity
+import org.apache.nifi.web.api.entity.LabelsEntity
 import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.map.SerializationConfig
 import org.codehaus.jackson.map.annotate.JsonSerialize
@@ -36,6 +42,7 @@ import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
+@Unroll
 class StandardHttpResponseMergerSpec extends Specification {
 
     def setup() {
@@ -46,7 +53,6 @@ class StandardHttpResponseMergerSpec extends Specification {
         System.clearProperty NiFiProperties.PROPERTIES_FILE_PATH
     }
 
-    @Unroll
     def "MergeResponses: mixed HTTP GET response statuses, expecting #expectedStatus"() {
         given:
         def responseMerger = new StandardHttpResponseMerger()
@@ -79,7 +85,6 @@ class StandardHttpResponseMergerSpec extends Specification {
         [[node: 1, status: 200], [node: 2, status: 200], [node: 3, status: 500]] as Set || 500
     }
 
-    @Unroll
     def "MergeResponses: #responseEntities.size() HTTP 200 #httpMethod responses for #requestUriPart"() {
         given: "json serialization setup"
         def mapper = new ObjectMapper();
@@ -119,7 +124,6 @@ class StandardHttpResponseMergerSpec extends Specification {
         where:
         requestUriPart                                             | httpMethod | responseEntities                                                                                     ||
                 expectedEntity
-        // Test for an endpoint URI that needs permission merging but has no specific merger class
         'nifi-api/controller/config'                               | 'get'      | [
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: true),
                         component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10)),
@@ -140,7 +144,6 @@ class StandardHttpResponseMergerSpec extends Specification {
                 // expectedEntity
                 new ControllerConfigurationEntity(permissions: new PermissionsDTO(canRead: true, canWrite: false),
                         component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))
-        // Test some endpoint URIs for an entity that has a specific merger class and needs permission merging
         "nifi-api/process-groups/${UUID.randomUUID()}/connections" | 'get'      | [
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
                         ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO())] as Set),
@@ -174,5 +177,41 @@ class StandardHttpResponseMergerSpec extends Specification {
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
                         status: new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 1000,
                                 input: '0 (1,000 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
+        "nifi-api/process-groups/${UUID.randomUUID()}/labels" | 'get'      | [
+                new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())] as Set),
+                new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))] as Set),
+                new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())] as Set)] ||
+                // expectedEntity
+                new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))] as Set)
+        "nifi-api/process-groups/${UUID.randomUUID()}/labels" | 'post'     | [
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO()),
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false)),
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())]      ||
+                // expectedEntity
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))
+        "nifi-api/labels/${UUID.randomUUID()}"                | 'get'      | [
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO()),
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false)),
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())]      ||
+                // expectedEntity
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))
+        "nifi-api/process-groups/${UUID.randomUUID()}/funnels" | 'get'      | [
+                new FunnelsEntity(funnels: [new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO())] as Set),
+                new FunnelsEntity(funnels: [new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))] as Set),
+                new FunnelsEntity(funnels: [new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO())] as Set)] ||
+                // expectedEntity
+                new FunnelsEntity(funnels: [new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))] as Set)
+        "nifi-api/process-groups/${UUID.randomUUID()}/funnels" | 'post'     | [
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO()),
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false)),
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO())]      ||
+                // expectedEntity
+                new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))
+        "nifi-api/funnels/${UUID.randomUUID()}"                | 'get'      | [
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO()),
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false)),
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new FunnelDTO())]      ||
+                // expectedEntity
+                new FunnelEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false))
     }
 }

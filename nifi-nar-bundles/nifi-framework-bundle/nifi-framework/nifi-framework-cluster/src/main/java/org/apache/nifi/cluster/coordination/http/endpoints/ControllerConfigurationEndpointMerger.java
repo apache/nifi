@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster.coordination.http;
+package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.coordination.http.endpoints.AbstractSingleEntityEndpoint;
 import org.apache.nifi.cluster.manager.NodeResponse;

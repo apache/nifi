@@ -14,30 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.api.entity;
+package org.apache.nifi.cluster.manager;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.FunnelDTO;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.web.api.entity.FunnelEntity;
 
-/**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a FunnelDTO.
- */
-@XmlRootElement(name = "funnelEntity")
-public class FunnelEntity extends ComponentEntity implements Permissible<FunnelDTO> {
+import java.util.Map;
+import java.util.Set;
 
-    private FunnelDTO component;
+public class FunnelsEntityMerger {
+    private static final FunnelEntityMerger funnelEntityMerger = new FunnelEntityMerger();
 
     /**
-     * The FunnelDTO that is being serialized.
+     * Merges multiple {@link FunnelEntity} responses.
      *
-     * @return The FunnelDTO object
+     * @param funnelEntities entities being returned to the client
+     * @param entityMap      all node responses
      */
-    public FunnelDTO getComponent() {
-        return component;
+    public static void mergeFunnels(final Set<FunnelEntity> funnelEntities, final Map<String, Map<NodeIdentifier, FunnelEntity>> entityMap) {
+        for (final FunnelEntity entity : funnelEntities) {
+            funnelEntityMerger.merge(entity, entityMap.get(entity.getId()));
+        }
     }
-
-    public void setComponent(FunnelDTO component) {
-        this.component = component;
-    }
-
 }
