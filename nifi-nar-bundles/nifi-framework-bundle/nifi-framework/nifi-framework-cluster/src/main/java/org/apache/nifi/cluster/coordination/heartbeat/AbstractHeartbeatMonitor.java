@@ -203,16 +203,24 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             final DisconnectionCode disconnectionCode = connectionStatus.getDisconnectCode();
 
             // Determine whether or not the node should be allowed to be in the cluster still, depending on its reason for disconnection.
-            if (disconnectionCode == DisconnectionCode.LACK_OF_HEARTBEAT || disconnectionCode == DisconnectionCode.UNABLE_TO_COMMUNICATE) {
-                clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node previously "
-                    + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
+            switch (disconnectionCode) {
+                case LACK_OF_HEARTBEAT:
+                case UNABLE_TO_COMMUNICATE:
+                case NODE_SHUTDOWN:
+                case NOT_YET_CONNECTED:
+                case STARTUP_FAILURE: {
+                    clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node previously "
+                        + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
 
-                clusterCoordinator.requestNodeConnect(nodeId, null);
-            } else {
-                // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
-                logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
-                clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE.toString());
-                removeHeartbeat(nodeId);
+                    clusterCoordinator.requestNodeConnect(nodeId, null);
+                }
+                default: {
+                    // disconnected nodes should not heartbeat, so we need to issue a disconnection request.
+                    logger.info("Ignoring received heartbeat from disconnected node " + nodeId + ".  Issuing disconnection request.");
+                    clusterCoordinator.requestNodeDisconnect(nodeId, DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE,
+                        DisconnectionCode.HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE.toString());
+                    removeHeartbeat(nodeId);
+                }
             }
 
             return;

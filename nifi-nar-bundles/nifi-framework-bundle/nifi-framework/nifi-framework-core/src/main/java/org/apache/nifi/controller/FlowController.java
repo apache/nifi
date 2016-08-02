@@ -16,7 +16,38 @@
  */
 package org.apache.nifi.controller;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import static java.util.Objects.requireNonNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import javax.net.ssl.SSLContext;
+
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -183,10 +214,10 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
-import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -208,37 +239,7 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
-import static java.util.Objects.requireNonNull;
+import com.sun.jersey.api.client.ClientHandlerException;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -303,7 +304,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final Integer remoteInputHttpPort;
     private final Boolean isSiteToSiteSecure;
 
-    private ProcessGroup rootGroup;
+    private final AtomicReference<ProcessGroup> rootGroupRef = new AtomicReference<>();
     private final List<Connectable> startConnectablesAfterInitialization;
     private final List<RemoteGroupPort> startRemoteGroupPortsAfterInitialization;
     private final LeaderElectionManager leaderElectionManager;
@@ -516,9 +517,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.snippetManager = new SnippetManager();
 
-        rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), this, processScheduler,
+
+        final ProcessGroup rootGroup = new StandardProcessGroup(ComponentIdGenerator.generateId().toString(), this, processScheduler,
             properties, encryptor, this, this.variableRegistry);
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
+        rootGroupRef.set(rootGroup);
         instanceId = ComponentIdGenerator.generateId().toString();
 
         controllerServiceProvider = new StandardControllerServiceProvider(this, processScheduler, bulletinRepository, stateManagerProvider, this.variableRegistry);
@@ -1197,6 +1200,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return new StandardRemoteProcessGroup(requireNonNull(id).intern(), requireNonNull(uri).intern(), null, this, sslContext);
     }
 
+    public ProcessGroup getRootGroup() {
+        return rootGroupRef.get();
+    }
+
     /**
      * Verifies that no output port exists with the given id or name. If this
      * does not hold true, throws an IllegalStateException
@@ -1205,6 +1212,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws IllegalStateException port already exists
      */
     private void verifyPortIdDoesNotExist(final String id) {
+        final ProcessGroup rootGroup = getRootGroup();
         Port port = rootGroup.findOutputPort(id);
         if (port != null) {
             throw new IllegalStateException("An Input Port already exists with ID " + id);
@@ -1220,12 +1228,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * Group.
      */
     public String getName() {
-        readLock.lock();
-        try {
-            return rootGroup.getName();
-        } finally {
-            readLock.unlock();
-        }
+        return getRootGroup().getName();
     }
 
     /**
@@ -1235,12 +1238,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param name of root group
      */
     public void setName(final String name) {
-        readLock.lock();
-        try {
-            rootGroup.setName(name);
-        } finally {
-            readLock.unlock();
-        }
+        getRootGroup().setName(name);
     }
 
     /**
@@ -1248,12 +1246,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * Root Group
      */
     public String getComments() {
-        readLock.lock();
-        try {
-            return rootGroup.getComments();
-        } finally {
-            readLock.unlock();
-        }
+        return getRootGroup().getComments();
     }
 
     /**
@@ -1263,12 +1256,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * the controller
      */
     public void setComments(final String comments) {
-        readLock.lock();
-        try {
-            rootGroup.setComments(comments);
-        } finally {
-            readLock.unlock();
-        }
+        getRootGroup().setComments(comments);
     }
 
     /**
@@ -1327,7 +1315,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // Trigger any processors' methods marked with @OnShutdown to be called
-            rootGroup.shutdown();
+            getRootGroup().shutdown();
 
             stateManagerProvider.shutdown();
 
@@ -1495,12 +1483,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @return the ID of the root group
      */
     public String getRootGroupId() {
-        readLock.lock();
-        try {
-            return rootGroup.getIdentifier();
-        } finally {
-            readLock.unlock();
-        }
+        return getRootGroup().getIdentifier();
     }
 
     /**
@@ -1519,14 +1502,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         writeLock.lock();
         try {
-            rootGroup = group;
-
+            rootGroupRef.set(group);
             for (final RemoteSiteListener listener : externalSiteListeners) {
-                listener.setRootGroup(rootGroup);
+                listener.setRootGroup(group);
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
+            this.heartbeatBeanRef.set(new HeartbeatBean(group, isPrimary()));
         } finally {
             writeLock.unlock();
         }
@@ -2198,14 +2180,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      */
     public ProcessGroup getGroup(final String id) {
         requireNonNull(id);
-        final ProcessGroup root;
-        readLock.lock();
-        try {
-            root = rootGroup;
-        } finally {
-            readLock.unlock();
-        }
-
+        final ProcessGroup root = getRootGroup();
         final String searchId = id.equals(ROOT_GROUP_ID_ALIAS) ? getRootGroupId() : id;
         return root == null ? null : root.findProcessGroup(searchId);
     }
@@ -3458,7 +3433,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
+            this.heartbeatBeanRef.set(new HeartbeatBean(getRootGroup(), isPrimary()));
         } finally {
             writeLock.unlock();
         }
@@ -3876,7 +3851,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             this.connectionStatus = connectionStatus;
 
             // update the heartbeat bean
-            this.heartbeatBeanRef.set(new HeartbeatBean(rootGroup, isPrimary()));
+            this.heartbeatBeanRef.set(new HeartbeatBean(getRootGroup(), isPrimary()));
         } finally {
             rwLock.writeLock().unlock();
         }
@@ -4018,9 +3993,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         // is set to the root group and otherwise assume that the ID is that of a component.
         final DataAuthorizable authorizable;
         if (rootGroupId.equals(componentId)) {
-            authorizable = new DataAuthorizable(rootGroup);
+            authorizable = new DataAuthorizable(getRootGroup());
         } else {
-            final Connectable connectable = rootGroup.findConnectable(componentId);
+            final Connectable connectable = getRootGroup().findConnectable(componentId);
 
             if (connectable == null) {
                 throw new ResourceNotFoundException("The component that generated this event is no longer part of the data flow.");

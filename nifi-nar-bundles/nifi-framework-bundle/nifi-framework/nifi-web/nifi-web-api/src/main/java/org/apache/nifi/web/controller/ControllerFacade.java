@@ -1013,7 +1013,11 @@ public class ControllerFacade implements Authorizable {
         // submit the event
         if (LineageRequestType.FLOWFILE.equals(requestDto.getLineageRequestType())) {
             // submit uuid
-            result = provenanceRepository.submitLineageComputation(requestDto.getUuid(), NiFiUserUtils.getNiFiUser());
+            if (requestDto.getEventId() == null) {
+                result = provenanceRepository.submitLineageComputation(requestDto.getUuid(), NiFiUserUtils.getNiFiUser());
+            } else {
+                result = provenanceRepository.submitLineageComputation(requestDto.getEventId(), NiFiUserUtils.getNiFiUser());
+            }
         } else {
             // submit event... (parents or children)
             if (LineageRequestType.PARENTS.equals(requestDto.getLineageRequestType())) {
