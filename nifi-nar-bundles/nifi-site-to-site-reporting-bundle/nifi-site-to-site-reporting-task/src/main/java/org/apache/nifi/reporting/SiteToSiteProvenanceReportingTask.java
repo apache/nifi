@@ -274,7 +274,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             // TO get URL Prefix, we just remove the /nifi from the end of the URL. We know that the URL ends with
             // "/nifi" because the Property Validator enforces it
             final String urlString = nifiUrl.toString();
-            final String urlPrefix = urlString.substring(0, urlString.length() - 5);
+            final String urlPrefix = urlString.substring(0, urlString.length() - DESTINATION_URL_PATH.length());
 
             final String contentUriBase = urlPrefix + "/nifi-api/provenance-events/" + event.getEventId() + "/content/";
             final String nodeIdSuffix = nodeIdentifier == null ? "" : "?clusterNodeId=" + nodeIdentifier;
