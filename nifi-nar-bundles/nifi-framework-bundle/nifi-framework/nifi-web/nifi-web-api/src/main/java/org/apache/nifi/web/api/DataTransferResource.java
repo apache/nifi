@@ -310,8 +310,6 @@ public class DataTransferResource extends ApplicationResource {
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
         HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance().setupServerProtocol(serverProtocol);
-        // TODO: How should I pass cluster information?
-        // serverProtocol.setNodeInformant(clusterManager);
         serverProtocol.handshake(peer);
         return serverProtocol;
     }
@@ -824,15 +822,6 @@ public class DataTransferResource extends ApplicationResource {
             result.errResponse = responseCreator.httpSiteToSiteIsNotEnabledResponse();
             return result;
         }
-
-        // TODO: NCM no longer exists.
-        /*
-        if (properties.isClusterManager()) {
-            result.errResponse = responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-            return result;
-        }
-        */
-
 
         try {
             result.transportProtocolVersion = negotiateTransportProtocolVersion(req, transportProtocolVersionNegotiator);
