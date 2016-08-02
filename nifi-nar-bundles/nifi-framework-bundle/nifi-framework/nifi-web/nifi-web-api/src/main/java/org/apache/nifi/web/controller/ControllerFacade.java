@@ -27,7 +27,6 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -94,7 +93,6 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
@@ -131,6 +129,7 @@ import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static org.apache.nifi.controller.FlowController.ROOT_GROUP_ID_ALIAS;
 
@@ -754,68 +753,97 @@ public class ControllerFacade implements Authorizable {
 
     public List<Resource> getResources() {
         final List<Resource> resources = new ArrayList<>();
+        resources.add(ResourceFactory.getFlowResource());
         resources.add(ResourceFactory.getSystemResource());
         resources.add(ResourceFactory.getControllerResource());
-        resources.add(ResourceFactory.getFlowResource());
+        resources.add(ResourceFactory.getCountersResource());
         resources.add(ResourceFactory.getProvenanceResource());
+        resources.add(ResourceFactory.getPoliciesResource());
+        resources.add(ResourceFactory.getTenantResource());
         resources.add(ResourceFactory.getProxyResource());
         resources.add(ResourceFactory.getResourceResource());
+        resources.add(ResourceFactory.getSiteToSiteResource());
 
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
         // add each processor
         for (final ProcessorNode processor : root.findAllProcessors()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.Processor, processor.getIdentifier(), processor.getName()));
-            resources.add(ResourceFactory.getDataResource(processor.getResource()));
+            final Resource processorResource = processor.getResource();
+            resources.add(processorResource);
+            resources.add(ResourceFactory.getDataResource(processorResource));
+            resources.add(ResourceFactory.getPolicyResource(processorResource));
         }
 
         // add each label
         for (final Label label : root.findAllLabels()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.Label, label.getIdentifier(), label.getValue()));
+            final Resource labelResource = label.getResource();
+            resources.add(labelResource);
+            resources.add(ResourceFactory.getPolicyResource(labelResource));
         }
 
         // add each process group
         for (final ProcessGroup processGroup : root.findAllProcessGroups()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.ProcessGroup, processGroup.getIdentifier(), processGroup.getName()));
-            resources.add(ResourceFactory.getDataResource(processGroup.getResource()));
+            final Resource processGroupResource = processGroup.getResource();
+            resources.add(processGroupResource);
+            resources.add(ResourceFactory.getDataResource(processGroupResource));
+            resources.add(ResourceFactory.getPolicyResource(processGroupResource));
         }
 
         // add each remote process group
         for (final RemoteProcessGroup remoteProcessGroup : root.findAllRemoteProcessGroups()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.RemoteProcessGroup, remoteProcessGroup.getIdentifier(), remoteProcessGroup.getName()));
-            resources.add(ResourceFactory.getDataResource(remoteProcessGroup.getResource()));
+            final Resource remoteProcessGroupResource = remoteProcessGroup.getResource();
+            resources.add(remoteProcessGroupResource);
+            resources.add(ResourceFactory.getDataResource(remoteProcessGroupResource));
+            resources.add(ResourceFactory.getPolicyResource(remoteProcessGroupResource));
         }
 
         // add each input port
         for (final Port inputPort : root.findAllInputPorts()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.InputPort, inputPort.getIdentifier(), inputPort.getName()));
-            resources.add(ResourceFactory.getDataResource(inputPort.getResource()));
+            final Resource inputPortResource = inputPort.getResource();
+            resources.add(inputPortResource);
+            resources.add(ResourceFactory.getDataResource(inputPortResource));
+            resources.add(ResourceFactory.getPolicyResource(inputPortResource));
+            if (inputPort instanceof RootGroupPort) {
+                resources.add(ResourceFactory.getDataTransferResource(inputPortResource));
+            }
         }
 
         // add each output port
         for (final Port outputPort : root.findAllOutputPorts()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.OutputPort, outputPort.getIdentifier(), outputPort.getName()));
-            resources.add(ResourceFactory.getDataResource(outputPort.getResource()));
+            final Resource outputPortResource = outputPort.getResource();
+            resources.add(outputPortResource);
+            resources.add(ResourceFactory.getDataResource(outputPortResource));
+            resources.add(ResourceFactory.getPolicyResource(outputPortResource));
+            if (outputPort instanceof RootGroupPort) {
+                resources.add(ResourceFactory.getDataTransferResource(outputPortResource));
+            }
         }
 
         // add each controller service
-        for (final ControllerServiceNode controllerService : flowController.getAllControllerServices()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.ControllerService, controllerService.getIdentifier(), controllerService.getName()));
-        }
+        final Consumer<ControllerServiceNode> csConsumer = controllerService -> {
+            final Resource controllerServiceResource = controllerService.getResource();
+            resources.add(controllerServiceResource);
+            resources.add(ResourceFactory.getPolicyResource(controllerServiceResource));
+        };
+
+        flowController.getAllControllerServices().forEach(csConsumer);
+        root.findAllControllerServices().forEach(csConsumer);
+
 
         // add each reporting task
         for (final ReportingTaskNode reportingTask : flowController.getAllReportingTasks()) {
-            resources.add(ResourceFactory.getComponentResource(ResourceType.ReportingTask, reportingTask.getIdentifier(), reportingTask.getName()));
+            final Resource reportingTaskResource = reportingTask.getResource();
+            resources.add(reportingTaskResource);
+            resources.add(ResourceFactory.getPolicyResource(reportingTaskResource));
         }
 
         // add each template
         for (final Template template : root.findAllTemplates()) {
-            final TemplateDTO details = template.getDetails();
-            resources.add(ResourceFactory.getComponentResource(ResourceType.Template, details.getId(), details.getName()));
+            final Resource templateResource = template.getResource();
+            resources.add(templateResource);
+            resources.add(ResourceFactory.getPolicyResource(templateResource));
         }
 
-        // TODO - need token resource?
-        // resources.add(ResourceFactory.getTokenResource());
         return resources;
     }
 

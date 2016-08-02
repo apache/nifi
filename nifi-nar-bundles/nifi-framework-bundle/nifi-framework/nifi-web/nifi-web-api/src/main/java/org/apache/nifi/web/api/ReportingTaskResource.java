@@ -65,8 +65,8 @@ import java.util.Set;
  */
 @Path("/reporting-tasks")
 @Api(
-    value = "/reporting-tasks",
-    description = "Endpoint for managing a Reporting Task."
+        value = "/reporting-tasks",
+        description = "Endpoint for managing a Reporting Task."
 )
 public class ReportingTaskResource extends ApplicationResource {
 
@@ -135,23 +135,20 @@ public class ReportingTaskResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getReportingTask(
@@ -181,7 +178,7 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param id The id of the reporting task.
+     * @param id           The id of the reporting task.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
@@ -189,23 +186,20 @@ public class ReportingTaskResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/descriptors")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a reporting task property descriptor",
             response = PropertyDescriptorEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /reporting-tasks/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getPropertyDescriptor(
@@ -256,29 +250,28 @@ public class ReportingTaskResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Gets the state for a reporting task",
-        response = ComponentStateDTO.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Gets the state for a reporting task",
+            response = ComponentStateDTO.class,
+            authorizations = {
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getState(
-        @ApiParam(
-            value = "The reporting task id.",
-            required = true
-        )
-        @PathParam("id") final String id) {
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -305,37 +298,36 @@ public class ReportingTaskResource extends ApplicationResource {
      * Clears the state for a reporting task.
      *
      * @param httpServletRequest servlet request
-     * @param id The id of the reporting task
+     * @param id                 The id of the reporting task
      * @return a componentStateEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/state/clear-requests")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Clears the state for a reporting task",
-        response = ComponentStateDTO.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Clears the state for a reporting task",
+            response = ComponentStateDTO.class,
+            authorizations = {
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response clearState(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The reporting task id.",
-            required = true
-        )
-        @PathParam("id") final String id) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -367,8 +359,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Updates the specified a Reporting Task.
      *
-     * @param httpServletRequest request
-     * @param id The id of the reporting task to update.
+     * @param httpServletRequest  request
+     * @param id                  The id of the reporting task to update.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -376,21 +368,20 @@ public class ReportingTaskResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateReportingTask(
@@ -427,20 +418,20 @@ public class ReportingTaskResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(reportingTaskEntity, id);
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                Authorizable authorizable = lookup.getReportingTask(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
-            () -> {
-                // update the reporting task
-                final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
-                populateRemainingReportingTaskEntityContent(entity);
+                serviceFacade,
+                revision,
+                lookup -> {
+                    Authorizable authorizable = lookup.getReportingTask(id);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
+                () -> {
+                    // update the reporting task
+                    final ReportingTaskEntity entity = serviceFacade.updateReportingTask(revision, requestReportingTaskDTO);
+                    populateRemainingReportingTaskEntityContent(entity);
 
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
@@ -448,33 +439,32 @@ public class ReportingTaskResource extends ApplicationResource {
      * Removes the specified reporting task.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param id The id of the reporting task to remove.
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the reporting task to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /reporting-tasks/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeReportingTask(
@@ -502,22 +492,23 @@ public class ReportingTaskResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                final Authorizable reportingTask = lookup.getReportingTask(id);
-                reportingTask.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            () -> serviceFacade.verifyDeleteReportingTask(id),
-            () -> {
-                // delete the specified reporting task
-                final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                serviceFacade,
+                revision,
+                lookup -> {
+                    final Authorizable reportingTask = lookup.getReportingTask(id);
+                    reportingTask.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyDeleteReportingTask(id),
+                () -> {
+                    // delete the specified reporting task
+                    final ReportingTaskEntity entity = serviceFacade.deleteReportingTask(revision, id);
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

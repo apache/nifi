@@ -16,18 +16,11 @@
  */
 package org.apache.nifi.web.api;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -43,19 +36,24 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.entity.ResourcesEntity;
 
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * RESTful endpoint for retrieving system diagnostics.
  */
 @Path("/resources")
 @Api(
-    value = "/resources",
-    description = "Provides the resources in this NiFi that can have access/authorization policies."
+        value = "/resources",
+        description = "Provides the resources in this NiFi that can have access/authorization policies."
 )
 public class ResourceResource extends ApplicationResource {
 
@@ -65,7 +63,7 @@ public class ResourceResource extends ApplicationResource {
     private void authorizeResource() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -74,13 +72,13 @@ public class ResourceResource extends ApplicationResource {
         }
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
-            .resource(ResourceFactory.getResourceResource())
-            .identity(user.getIdentity())
-            .anonymous(user.isAnonymous())
-            .accessAttempt(true)
-            .action(RequestAction.READ)
-            .userContext(userContext)
-            .build();
+                .resource(ResourceFactory.getResourceResource())
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(true)
+                .action(RequestAction.READ)
+                .userContext(userContext)
+                .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
@@ -97,20 +95,17 @@ public class ResourceResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the available resources that support access/authorization policies",
             response = ResourcesEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /resources", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
     )
     public Response getResources() {
 
@@ -120,7 +115,6 @@ public class ResourceResource extends ApplicationResource {
             return replicate(HttpMethod.GET);
         }
 
-        // TODO - if unsecure, return no resources?
         final List<ResourceDTO> resources = serviceFacade.getResources();
 
         // create the response
@@ -132,6 +126,7 @@ public class ResourceResource extends ApplicationResource {
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

@@ -16,25 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-
+import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
@@ -60,21 +48,31 @@ import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 
-import com.sun.jersey.api.core.ResourceContext;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-import com.wordnik.swagger.annotations.Authorization;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
  */
 @Path("/controller")
 @Api(
-    value = "/controller",
-    description = "Provides realtime command and control of this NiFi instance"
+        value = "/controller",
+        description = "Provides realtime command and control of this NiFi instance"
 )
 public class ControllerResource extends ApplicationResource {
 
@@ -93,7 +91,7 @@ public class ControllerResource extends ApplicationResource {
     private void authorizeController(final RequestAction action) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -126,23 +124,19 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_NIFI')")
     @ApiOperation(
             value = "Retrieves the configuration for this NiFi Controller",
             response = ControllerConfigurationEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
-                @Authorization(value = "ROLE_NIFI", type = "ROLE_NIFI")
+                    @Authorization(value = "Read - /controller", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getControllerConfig() {
@@ -161,27 +155,26 @@ public class ControllerResource extends ApplicationResource {
      * Update the configuration for this NiFi.
      *
      * @param httpServletRequest request
-     * @param configEntity A controllerConfigurationEntity.
+     * @param configEntity       A controllerConfigurationEntity.
      * @return A controllerConfigurationEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("config")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Retrieves the configuration for this NiFi",
             response = ControllerConfigurationEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /controller", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateControllerConfig(
@@ -225,7 +218,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Reporting Task.
      *
-     * @param httpServletRequest request
+     * @param httpServletRequest  request
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -233,28 +226,27 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("reporting-tasks")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a new reporting task",
-        response = ReportingTaskEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a new reporting task",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createReportingTask(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The reporting task configuration details.",
-            required = true
-        ) final ReportingTaskEntity reportingTaskEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The reporting task configuration details.",
+                    required = true
+            ) final ReportingTaskEntity reportingTaskEntity) {
 
         if (reportingTaskEntity == null || reportingTaskEntity.getComponent() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
@@ -307,7 +299,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Creates a new Controller Service.
      *
-     * @param httpServletRequest request
+     * @param httpServletRequest      request
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -315,28 +307,27 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller-services")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a new controller service",
-        response = ControllerServiceEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a new controller service",
+            response = ControllerServiceEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createControllerService(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The controller service configuration details.",
-            required = true
-        ) final ControllerServiceEntity controllerServiceEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The controller service configuration details.",
+                    required = true
+            ) final ControllerServiceEntity controllerServiceEntity) {
 
         if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
@@ -395,15 +386,12 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the contents of the cluster",
             notes = "Returns the contents of the cluster including all nodes and their status.",
             response = ClusterEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "DFM", type = "ROLE_DFM"),
-                    @Authorization(value = "Admin", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /controller", type = "")
             }
     )
     @ApiResponses(
@@ -447,14 +435,11 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a node in the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /controller", type = "")
             }
     )
     @ApiResponses(
@@ -494,7 +479,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Updates the contents of the specified node in this NiFi cluster.
      *
-     * @param id The id of the node
+     * @param id         The id of the node
      * @param nodeEntity A nodeEntity
      * @return A nodeEntity
      */
@@ -507,7 +492,7 @@ public class ControllerResource extends ApplicationResource {
             value = "Updates a node in the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /controller", type = "")
             }
     )
     @ApiResponses(
@@ -573,12 +558,11 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
             value = "Removes a node from the cluster",
             response = NodeEntity.class,
             authorizations = {
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /controller", type = "")
             }
     )
     @ApiResponses(
@@ -631,12 +615,11 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history")
-    // TODO - @PreAuthorize("hasRole('ROLE_ADMIN')")
     @ApiOperation(
             value = "Purges history",
             response = HistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /controller", type = "")
             }
     )
     @ApiResponses(

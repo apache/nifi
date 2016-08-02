@@ -34,30 +34,6 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource CONTROLLER_SERVICE_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.ControllerService.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Controller Service";
-        }
-    };
-
-    private final static Resource FUNNEL_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Funnel.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Funnel";
-        }
-    };
-
     private final static Resource FLOW_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -70,42 +46,6 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource INPUT_PORT_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.InputPort.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Input Port";
-        }
-    };
-
-    private final static Resource LABEL_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Label.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Label";
-        }
-    };
-
-    private final static Resource OUTPUT_PORT_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.OutputPort.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Output Port";
-        }
-    };
-
     private final static Resource POLICY_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -115,30 +55,6 @@ public final class ResourceFactory {
         @Override
         public String getName() {
             return "Policy";
-        }
-    };
-
-    private final static Resource PROCESSOR_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Processor.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Processor";
-        }
-    };
-
-    private final static Resource PROCESS_GROUP_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.ProcessGroup.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Process Group";
         }
     };
 
@@ -190,30 +106,6 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource REMOTE_PROCESS_GROUP_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.RemoteProcessGroup.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Remote Process Group";
-        }
-    };
-
-    private final static Resource REPORTING_TASK_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.ReportingTask.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Reporting Task";
-        }
-    };
-
     private final static Resource RESOURCE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
@@ -247,18 +139,6 @@ public final class ResourceFactory {
         @Override
         public String getName() {
             return "System";
-        }
-    };
-
-    private final static Resource TEMPLATE_RESOURCE = new Resource() {
-        @Override
-        public String getIdentifier() {
-            return ResourceType.Template.getValue();
-        }
-
-        @Override
-        public String getName() {
-            return "Template";
         }
     };
 
@@ -297,75 +177,12 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for accessing Controller Services.
-     *
-     * @return The resource for accessing Controller Services
-     */
-    public static Resource getControllerServiceResource() {
-        return CONTROLLER_SERVICE_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Funnels.
-     *
-     * @return The resource for accessing Funnels.
-     */
-    public static Resource getFunnelResource() {
-        return FUNNEL_RESOURCE;
-    }
-
-    /**
      * Gets the Resource for accessing the NiFi flow. This includes the data flow structure, component status, search results, and banner/about text.
      *
      * @return  The NiFi resource
      */
     public static Resource getFlowResource() {
         return FLOW_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Input Ports.
-     *
-     * @return The resource for accessing Input Ports
-     */
-    public static Resource getInputPortResource() {
-        return INPUT_PORT_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Labels.
-     *
-     * @return The resource for accessing Labels
-     */
-    public static Resource getLabelResource() {
-        return LABEL_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Output Ports.
-     *
-     * @return The resource for accessing Output Ports
-     */
-    public static Resource getOutputPortResource() {
-        return OUTPUT_PORT_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Processors.
-     *
-     * @return The resource for accessing Processors
-     */
-    public static Resource getProcessorResource() {
-        return PROCESSOR_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Process Groups.
-     *
-     * @return The resource for accessing Process Groups
-     */
-    public static Resource getProcessGroupResource() {
-        return PROCESS_GROUP_RESOURCE;
     }
 
     /**
@@ -397,24 +214,6 @@ public final class ResourceFactory {
     }
 
     /**
-     * Gets the Resource for accessing Remote Process Groups.
-     *
-     * @return The resource accessing Remote Process Groups
-     */
-    public static Resource getRemoteProcessGroupResource() {
-        return REMOTE_PROCESS_GROUP_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Reporting Tasks.
-     *
-     * @return The resource for accessing Reporting Tasks
-     */
-    public static Resource getReportingTaskResource() {
-        return REPORTING_TASK_RESOURCE;
-    }
-
-    /**
      * Gets the Resource for detailing all available NiFi Resources.
      *
      * @return  The Resource resource
@@ -440,15 +239,6 @@ public final class ResourceFactory {
      */
     public static Resource getSystemResource() {
         return SYSTEM_RESOURCE;
-    }
-
-    /**
-     * Gets the Resource for accessing Templates.
-     *
-     * @return The Resource for accessing Tempaltes
-     */
-    public static Resource getTemplateResource() {
-        return TEMPLATE_RESOURCE;
     }
 
     /**
