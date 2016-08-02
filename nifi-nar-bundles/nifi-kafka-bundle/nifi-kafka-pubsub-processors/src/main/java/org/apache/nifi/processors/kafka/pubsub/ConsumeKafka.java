@@ -231,10 +231,18 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
                 : null;
         this.topic = context.getProperty(TOPIC).evaluateAttributeExpressions().getValue();
         this.brokers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
-
-        this.checkIfInitialConnectionPossible();
-
         Properties kafkaProperties = this.buildKafkaProperties(context);
+
+        /*
+         * Since we are using unconventional way to validate if connectivity to
+         * broker is possible we need a mechanism to be able to disable it.
+         * 'check.connection' property will serve as such mechanism
+         */
+        if (!kafkaProperties.getProperty("check.connection").equals("false")) {
+            this.checkIfInitialConnectionPossible();
+        }
+
+        System.out.println(kafkaProperties);
         if (!kafkaProperties.containsKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)) {
             kafkaProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         }
