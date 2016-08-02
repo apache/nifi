@@ -27,9 +27,7 @@ import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
-import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
 import org.apache.nifi.web.api.entity.SubmitReplayRequestEntity;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -59,54 +57,37 @@ import java.net.URI;
  */
 @Path("/provenance-events")
 @Api(
-    value = "/provenance-events",
-    description = "Endpoint for accessing data flow provenance."
+        value = "/provenance-events",
+        description = "Endpoint for accessing data flow provenance."
 )
 public class ProvenanceEventResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
 
     /**
-     * Populates the uri for the specified provenance.
-     */
-    private ProvenanceDTO populateRemainingProvenanceContent(ProvenanceDTO provenance) {
-        provenance.setUri(generateResourceUri("provenance", provenance.getId()));
-        return provenance;
-    }
-
-    /**
-     * Populates the uri for the specified lineage.
-     */
-    private LineageDTO populateRemainingLineageContent(LineageDTO lineage) {
-        lineage.setUri(generateResourceUri("provenance", "lineage", lineage.getId()));
-        return lineage;
-    }
-
-    /**
      * Gets the content for the input of the specified event.
      *
      * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
-     * @param id The id of the provenance event associated with this content.
+     * @param id            The id of the provenance event associated with this content.
      * @return The content stream
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("{id}/content/input")
-    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets the input content for a provenance event",
             authorizations = {
-                @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getInputContent(
@@ -169,27 +150,26 @@ public class ProvenanceEventResource extends ApplicationResource {
      * Gets the content for the output of the specified event.
      *
      * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
-     * @param id The id of the provenance event associated with this content.
+     * @param id            The id of the provenance event associated with this content.
      * @return The content stream
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("{id}/content/output")
-    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets the output content for a provenance event",
             authorizations = {
-                @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getOutputContent(
@@ -251,7 +231,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     /**
      * Gets the details for a provenance event.
      *
-     * @param id The id of the event
+     * @param id            The id of the event
      * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @return A provenanceEventEntity
      */
@@ -259,21 +239,20 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
             value = "Gets a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                @Authorization(value = "Provenance", type = "ROLE_PROVENANCE")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getProvenanceEvent(
@@ -283,7 +262,7 @@ public class ProvenanceEventResource extends ApplicationResource {
             )
             @QueryParam("clusterNodeId") final String clusterNodeId,
             @ApiParam(
-                    value = "The provenence event id.",
+                    value = "The provenance event id.",
                     required = true
             )
             @PathParam("id") final LongParameter id) {
@@ -318,7 +297,7 @@ public class ProvenanceEventResource extends ApplicationResource {
     /**
      * Creates a new replay request for the content associated with the specified provenance event id.
      *
-     * @param httpServletRequest request
+     * @param httpServletRequest  request
      * @param replayRequestEntity The replay request
      * @return A provenanceEventEntity
      */
@@ -326,12 +305,12 @@ public class ProvenanceEventResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("replays")
-    // TODO - @PreAuthorize("hasRole('ROLE_PROVENANCE') and hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Replays content from a provenance event",
             response = ProvenanceEventEntity.class,
             authorizations = {
-                    @Authorization(value = "Provenance and Data Flow Manager", type = "ROLE_PROVENANCE and ROLE_DFM")
+                    @Authorization(value = "Read Component Data - /data/{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write Component Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(

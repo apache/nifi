@@ -95,6 +95,8 @@ public abstract class ApplicationResource {
     public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
 
+    protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as the NiFi and it's REST API evolve.";
+
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
     public static final String NODEWISE = "false";
@@ -459,7 +461,7 @@ public abstract class ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-            () -> serviceFacade.verifyRevision(revision, user));
+                () -> serviceFacade.verifyRevision(revision, user));
     }
 
     /**
@@ -476,23 +478,23 @@ public abstract class ApplicationResource {
                                      final Runnable verifier, final Supplier<Response> action) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-            () -> serviceFacade.verifyRevisions(revisions, user));
+                () -> serviceFacade.verifyRevisions(revisions, user));
     }
 
 
     /**
      * Executes an action through the service facade using the specified revision.
      *
-     * @param serviceFacade service facade
-     * @param authorizer authorizer
-     * @param verifier verifier
-     * @param action the action to execute
+     * @param serviceFacade  service facade
+     * @param authorizer     authorizer
+     * @param verifier       verifier
+     * @param action         the action to execute
      * @param verifyRevision a callback that will claim the necessary revisions for the operation
      * @return the response
      */
     private Response withWriteLock(
             final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
-        final Runnable verifyRevision) {
+            final Runnable verifyRevision) {
 
         final boolean validationPhase = isValidationPhase(httpServletRequest);
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
@@ -570,7 +572,7 @@ public abstract class ApplicationResource {
             } else {
                 headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
                 return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method,
-                    path, entity, headers, false, true).awaitMergedResponse().getResponse();
+                        path, entity, headers, false, true).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
@@ -663,8 +665,8 @@ public abstract class ApplicationResource {
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
      * that provided by the {@link #getAbsolutePath()} method
      *
-     * @param method the HTTP method to use
-     * @param entity the entity to replicate
+     * @param method            the HTTP method to use
+     * @param entity            the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
      * @see #replicateNodeResponse(String, Object, Map)
@@ -683,12 +685,10 @@ public abstract class ApplicationResource {
      * that provided by the {@link #getAbsolutePath()} method. This method returns the NodeResponse,
      * rather than a Response object.
      *
-     * @param method the HTTP method to use
-     * @param entity the entity to replicate
+     * @param method            the HTTP method to use
+     * @param entity            the entity to replicate
      * @param headersToOverride the headers to override
-     *
      * @return the response from the request
-     *
      * @throws InterruptedException if interrupted while replicating the request
      * @see #replicate(String, Object, Map)
      */
@@ -851,7 +851,7 @@ public abstract class ApplicationResource {
         }
 
         public Response handshakeExceptionResponse(HandshakeException e) {
-            if(logger.isDebugEnabled()){
+            if (logger.isDebugEnabled()) {
                 logger.debug("Handshake failed, {}", e.getMessage());
             }
             ResponseCode handshakeRes = e.getResponseCode();

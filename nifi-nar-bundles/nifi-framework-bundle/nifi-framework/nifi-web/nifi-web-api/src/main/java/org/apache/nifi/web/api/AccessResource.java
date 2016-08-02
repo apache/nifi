@@ -29,13 +29,6 @@ import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.authorization.AuthorizationRequest;
-import org.apache.nifi.authorization.AuthorizationResult;
-import org.apache.nifi.authorization.AuthorizationResult.Result;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.RequestAction;
-import org.apache.nifi.authorization.UserContextKeys;
-import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -78,8 +71,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -87,8 +78,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Path("/access")
 @Api(
-    value = "/access",
-    description = "Endpoints for obtaining an access token or checking access status."
+        value = "/access",
+        description = "Endpoints for obtaining an access token or checking access status."
 )
 public class AccessResource extends ApplicationResource {
 
@@ -104,33 +95,6 @@ public class AccessResource extends ApplicationResource {
     private OtpService otpService;
 
     private KerberosService kerberosService;
-
-    private Authorizer authorizer;
-
-    /**
-     * Authorizes access to the flow.
-     */
-    private boolean hasFlowAccess(final NiFiUser user) {
-        final Map<String,String> userContext;
-        if (!StringUtils.isBlank(user.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
-        } else {
-            userContext = null;
-        }
-
-        final AuthorizationRequest request = new AuthorizationRequest.Builder()
-                .resource(ResourceFactory.getFlowResource())
-                .identity(user.getIdentity())
-                .anonymous(user.isAnonymous())
-                .accessAttempt(true)
-                .action(RequestAction.READ)
-                .userContext(userContext)
-                .build();
-
-        final AuthorizationResult result = authorizer.authorize(request);
-        return Result.Approved.equals(result.getResult());
-    }
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -173,6 +137,7 @@ public class AccessResource extends ApplicationResource {
     @Path("")
     @ApiOperation(
             value = "Gets the status the client's access",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = AccessStatusEntity.class
     )
     @ApiResponses(
@@ -507,9 +472,6 @@ public class AccessResource extends ApplicationResource {
     }
 
     // setters
-    public void setAuthorizer(Authorizer authorizer) {
-        this.authorizer = authorizer;
-    }
 
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
