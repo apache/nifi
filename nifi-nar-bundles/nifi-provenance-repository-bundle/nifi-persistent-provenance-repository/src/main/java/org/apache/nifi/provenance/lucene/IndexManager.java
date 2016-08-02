@@ -234,6 +234,9 @@ public class IndexManager implements Closeable {
                 }
             }
 
+            // We found no cached Index Readers. Create a new one. To do this, we need to check
+            // if we have an Index Writer, and if so create a Reader based on the Index Writer.
+            // This will provide us a 'near real time' index reader.
             final IndexWriterCount writerCount = writerCounts.remove(absoluteFile);
             if ( writerCount == null ) {
                 final Directory directory = FSDirectory.open(absoluteFile);

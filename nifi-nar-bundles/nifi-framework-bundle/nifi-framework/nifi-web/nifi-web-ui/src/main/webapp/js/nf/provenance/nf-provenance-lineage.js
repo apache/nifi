@@ -1293,7 +1293,8 @@ nf.ng.ProvenanceLineage = function () {
             var lineageRequest = {
                 lineageRequestType: 'FLOWFILE',
                 uuid: flowFileUuid,
-                clusterNodeId: clusterNodeId
+                clusterNodeId: clusterNodeId,
+                eventId: eventId
             };
 
             // update the progress bar value
