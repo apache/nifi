@@ -960,9 +960,6 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
             // update the oldest event available
             $('#oldest-event').html(nf.Common.formatValue(provenanceResults.oldestEvent));
 
-            // set the timezone for the start and end time
-            $('.timezone').text(nf.Common.substringAfterLast(provenanceResults.generated, ' '));
-
             // record the server offset
             provenanceTableCtrl.serverTimeOffset = provenanceResults.timeOffset;
 
