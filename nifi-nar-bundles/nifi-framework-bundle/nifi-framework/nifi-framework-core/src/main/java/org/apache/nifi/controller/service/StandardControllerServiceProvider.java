@@ -87,7 +87,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     public StandardControllerServiceProvider(final FlowController flowController, final ProcessScheduler scheduler, final BulletinRepository bulletinRepo,
-        final StateManagerProvider stateManagerProvider,final VariableRegistry variableRegistry) {
+            final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry) {
 
         this.flowController = flowController;
         this.processScheduler = scheduler;
@@ -95,7 +95,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         this.stateManagerProvider = stateManagerProvider;
         this.variableRegistry = variableRegistry;
     }
-
 
     private Class<?>[] getInterfaces(final Class<?> cls) {
         final List<Class<?>> allIfcs = new ArrayList<>();
@@ -164,7 +163,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                     if (disabled && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
                         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
-                            throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService + " because the Controller Service is disabled");
+                            throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService.getIdentifier()
+                                    + " because the Controller Service is disabled");
                         } catch (final Throwable e) {
                             throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service with identifier " + id + " because the Controller Service is disabled");
                         }
@@ -223,20 +223,20 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                 if ("validate".equals(methodName)) {
                     final ValidationResult result = new ValidationResult.Builder()
-                        .input("Any Property")
-                        .subject("Missing Controller Service")
-                        .valid(false)
-                        .explanation("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found")
-                        .build();
+                            .input("Any Property")
+                            .subject("Missing Controller Service")
+                            .valid(false)
+                            .explanation("Controller Service could not be created because the Controller Service Type (" + type + ") could not be found")
+                            .build();
                     return Collections.singleton(result);
                 } else if ("getPropertyDescriptor".equals(methodName)) {
                     final String propertyName = (String) args[0];
                     return new PropertyDescriptor.Builder()
-                        .name(propertyName)
-                        .description(propertyName)
-                        .sensitive(true)
-                        .required(true)
-                        .build();
+                            .name(propertyName)
+                            .description(propertyName)
+                            .sensitive(true)
+                            .required(true)
+                            .build();
                 } else if ("getPropertyDescriptors".equals(methodName)) {
                     return Collections.emptyList();
                 } else if ("onPropertyModified".equals(methodName)) {
@@ -256,13 +256,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         };
 
         final ControllerService proxiedService = (ControllerService) Proxy.newProxyInstance(getClass().getClassLoader(),
-            new Class[] {ControllerService.class}, invocationHandler);
+                new Class[]{ControllerService.class}, invocationHandler);
 
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
 
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, proxiedService, id,
-            new StandardValidationContextFactory(this,variableRegistry), this, componentType, type, variableRegistry);
+                new StandardValidationContextFactory(this, variableRegistry), this, componentType, type, variableRegistry);
         return serviceNode;
     }
 
@@ -428,10 +428,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private static void determineEnablingOrder(
-        final Map<String, ControllerServiceNode> serviceNodeMap,
-        final ControllerServiceNode contextNode,
-        final List<ControllerServiceNode> orderedNodes,
-        final Set<ControllerServiceNode> visited) {
+            final Map<String, ControllerServiceNode> serviceNodeMap,
+            final ControllerServiceNode contextNode,
+            final List<ControllerServiceNode> orderedNodes,
+            final Set<ControllerServiceNode> visited) {
         if (visited.contains(contextNode)) {
             return;
         }
@@ -539,7 +539,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return getRootGroup().findControllerService(serviceIdentifier);
     }
 
-
     @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType, final String groupId) {
         final Set<ControllerServiceNode> serviceNodes;
@@ -595,8 +594,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     /**
-     * Returns a List of all components that reference the given referencedNode (either directly or indirectly through another service) that are also of the given componentType. The list that is
-     * returned is in the order in which they will need to be 'activated' (enabled/started).
+     * Returns a List of all components that reference the given referencedNode
+     * (either directly or indirectly through another service) that are also of
+     * the given componentType. The list that is returned is in the order in
+     * which they will need to be 'activated' (enabled/started).
      *
      * @param referencedNode node
      * @param componentType type
@@ -708,7 +709,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public void verifyCanStopReferencingComponents(final ControllerServiceNode serviceNode) {
         // we can always stop referencing components
     }
-
 
     @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) throws IllegalArgumentException {

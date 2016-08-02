@@ -380,7 +380,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void startPort(final Port port) {
         if (!port.isValid()) {
-            throw new IllegalStateException("Port " + port.getName() + " is not in a valid state");
+            throw new IllegalStateException("Port " + port.getIdentifier() + " is not in a valid state");
         }
 
         port.onSchedulingStart();
@@ -407,7 +407,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     private synchronized void startConnectable(final Connectable connectable) {
         if (connectable.getScheduledState() == ScheduledState.DISABLED) {
-            throw new IllegalStateException(connectable + " is disabled, so it cannot be started");
+            throw new IllegalStateException(connectable.getIdentifier() + " is disabled, so it cannot be started");
         }
 
         final ScheduleState scheduleState = getScheduleState(requireNonNull(connectable));

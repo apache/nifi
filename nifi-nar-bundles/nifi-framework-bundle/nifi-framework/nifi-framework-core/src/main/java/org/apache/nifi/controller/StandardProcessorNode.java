@@ -1085,7 +1085,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanDelete(final boolean ignoreConnections) {
         if (isRunning()) {
-            throw new IllegalStateException(this + " is running");
+            throw new IllegalStateException(this.getIdentifier() + " is running");
         }
 
         if (!ignoreConnections) {
@@ -1099,7 +1099,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 if (connection.getSource().equals(this)) {
                     connection.verifyCanDelete();
                 } else {
-                    throw new IllegalStateException(this + " is the destination of another component");
+                    throw new IllegalStateException(this.getIdentifier() + " is the destination of another component");
                 }
             }
         }
@@ -1114,7 +1114,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         final ScheduledState currentState = getPhysicalScheduledState();
         if (currentState != ScheduledState.STOPPED && currentState != ScheduledState.DISABLED) {
-            throw new IllegalStateException(this + " cannot be started because it is not stopped. Current state is " + currentState.name());
+            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not stopped. Current state is " + currentState.name());
         }
 
         verifyNoActiveThreads();
@@ -1128,12 +1128,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             final Collection<ValidationResult> validationResults = getValidationErrors(ids);
             for (final ValidationResult result : validationResults) {
                 if (!result.isValid()) {
-                    throw new IllegalStateException(this + " cannot be started because it is not valid: " + result);
+                    throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not valid: " + result);
                 }
             }
         } else {
             if (!isValid()) {
-                throw new IllegalStateException(this + " is not in a valid state");
+                throw new IllegalStateException(this.getIdentifier() + " is not in a valid state");
             }
         }
     }
@@ -1141,21 +1141,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanStop() {
         if (getScheduledState() != ScheduledState.RUNNING) {
-            throw new IllegalStateException(this + " is not scheduled to run");
+            throw new IllegalStateException(this.getIdentifier() + " is not scheduled to run");
         }
     }
 
     @Override
     public void verifyCanUpdate() {
         if (isRunning()) {
-            throw new IllegalStateException(this + " is not stopped");
+            throw new IllegalStateException(this.getIdentifier() + " is not stopped");
         }
     }
 
     @Override
     public void verifyCanEnable() {
         if (getScheduledState() != ScheduledState.DISABLED) {
-            throw new IllegalStateException(this + " is not disabled");
+            throw new IllegalStateException(this.getIdentifier() + " is not disabled");
         }
 
         verifyNoActiveThreads();
@@ -1164,7 +1164,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public void verifyCanDisable() {
         if (getScheduledState() != ScheduledState.STOPPED) {
-            throw new IllegalStateException(this + " is not stopped");
+            throw new IllegalStateException(this.getIdentifier() + " is not stopped");
         }
         verifyNoActiveThreads();
     }
@@ -1177,7 +1177,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private void verifyNoActiveThreads() throws IllegalStateException {
         final int threadCount = processScheduler.getActiveThreadCount(this);
         if (threadCount > 0) {
-            throw new IllegalStateException(this + " has " + threadCount + " threads still active");
+            throw new IllegalStateException(this.getIdentifier() + " has " + threadCount + " threads still active");
         }
     }
 
