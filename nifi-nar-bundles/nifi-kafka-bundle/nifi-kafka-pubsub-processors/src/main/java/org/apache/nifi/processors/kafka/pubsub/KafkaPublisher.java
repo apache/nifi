@@ -43,12 +43,12 @@ class KafkaPublisher implements Closeable {
 
     private volatile long ackWaitTime = 30000;
 
-    private volatile ComponentLog processLog;
+    private final ComponentLog componentLog;
 
     private final int ackCheckSize;
 
-    KafkaPublisher(Properties kafkaProperties) {
-        this(kafkaProperties, 100);
+    KafkaPublisher(Properties kafkaProperties, ComponentLog componentLog) {
+        this(kafkaProperties, 100, componentLog);
     }
 
     /**
@@ -60,9 +60,10 @@ class KafkaPublisher implements Closeable {
      *            instance of {@link Properties} used to bootstrap
      *            {@link KafkaProducer}
      */
-    KafkaPublisher(Properties kafkaProperties, int ackCheckSize) {
+    KafkaPublisher(Properties kafkaProperties, int ackCheckSize, ComponentLog componentLog) {
         this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
         this.ackCheckSize = ackCheckSize;
+        this.componentLog = componentLog;
     }
 
     /**
@@ -195,25 +196,13 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will set {@link ComponentLog} as an additional logger to forward log
-     * messages to NiFi bulletin
-     */
-    void setProcessLog(ComponentLog processLog) {
-        this.processLog = processLog;
-    }
-
-    /**
      *
      */
     private void warnOrError(String message, Exception e) {
         if (e == null) {
-            if (this.processLog != null) {
-                this.processLog.warn(message);
-            }
+            this.componentLog.warn(message);
         } else {
-            if (this.processLog != null) {
-                this.processLog.error(message, e);
-            }
+            this.componentLog.error(message, e);
         }
     }
 
