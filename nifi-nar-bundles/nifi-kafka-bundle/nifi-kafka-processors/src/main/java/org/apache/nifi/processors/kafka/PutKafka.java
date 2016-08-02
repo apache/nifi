@@ -207,9 +207,7 @@ public class PutKafka extends AbstractKafkaProcessor<KafkaPublisher> {
             .description("Maximum time to buffer data before sending to Kafka. For example a setting of 100 ms"
                     + " will try to batch together 100 milliseconds' worth of messages to send at once. This will improve"
                     + " throughput but adds message delivery latency due to the buffering.")
-            .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("5 secs")
             .build();
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
             .name("Compression Codec")
