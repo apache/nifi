@@ -18,6 +18,8 @@ package org.apache.nifi.web.api.dto;
 
 import java.util.Comparator;
 import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -207,8 +209,33 @@ public class FlowSnippetDTO {
                 id = UUID.fromString(componentDto.getParentGroupId());
                 id = new UUID(id.getMostSignificantBits(), 0);
                 componentDto.setParentGroupId(id.toString());
-
-                if (componentDto instanceof ConnectionDTO) {
+                if (componentDto instanceof ControllerServiceDTO) {
+                    ControllerServiceDTO csDTO = (ControllerServiceDTO) componentDto;
+                    Map<String, PropertyDescriptorDTO> map = csDTO.getDescriptors();
+                    Map<String, String> props = csDTO.getProperties();
+                    for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
+                        if (entry.getValue().getIdentifiesControllerService() != null) {
+                            String key = entry.getKey();
+                            String value = props.get(key);
+                            id = UUID.fromString(value);
+                            id = new UUID(id.getMostSignificantBits(), 0);
+                            props.put(key, id.toString());
+                        }
+                    }
+                } else if (componentDto instanceof ProcessorDTO) {
+                    ProcessorDTO processorDTO = (ProcessorDTO) componentDto;
+                    Map<String, PropertyDescriptorDTO> map = processorDTO.getConfig().getDescriptors();
+                    Map<String, String> props = processorDTO.getConfig().getProperties();
+                    for (Entry<String, PropertyDescriptorDTO> entry : map.entrySet()) {
+                        if (entry.getValue().getIdentifiesControllerService() != null) {
+                            String key = entry.getKey();
+                            String value = props.get(key);
+                            id = UUID.fromString(value);
+                            id = new UUID(id.getMostSignificantBits(), 0);
+                            props.put(key, id.toString());
+                        }
+                    }
+                } else if (componentDto instanceof ConnectionDTO) {
                     ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
 
                     ConnectableDTO cdto = connectionDTO.getSource();
@@ -228,8 +255,7 @@ public class FlowSnippetDTO {
                     id = UUID.fromString(cdto.getGroupId());
                     id = new UUID(id.getMostSignificantBits(), 0);
                     cdto.setGroupId(id.toString());
-                }
-                if (componentDto instanceof ProcessGroupDTO) {
+                } else if (componentDto instanceof ProcessGroupDTO) {
                     FlowSnippetDTO fsDTO = ((ProcessGroupDTO) componentDto).getContents();
 
                     this.removeInstanceIdentifierIfNecessary(fsDTO.getConnections());
