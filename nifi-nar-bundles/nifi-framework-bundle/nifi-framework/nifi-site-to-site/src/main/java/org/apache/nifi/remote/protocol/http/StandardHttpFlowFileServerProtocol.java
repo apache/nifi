@@ -28,7 +28,7 @@ import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.AbstractFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
-import org.apache.nifi.remote.protocol.HandshakenProperties;
+import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
@@ -65,19 +65,19 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
+    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
 
         HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         final String transactionId = commsSession.getTransactionId();
 
-        HandshakenProperties confirmed = null;
+        HandshakeProperties confirmed = null;
         if (!StringUtils.isEmpty(transactionId)) {
             // If handshake is already done, use it.
             confirmed = transactionManager.getHandshakenProperties(transactionId);
         }
         if (confirmed == null) {
             // If it's not, then do handshake.
-            confirmed = new HandshakenProperties();
+            confirmed = new HandshakeProperties();
             confirmed.setCommsIdentifier(transactionId);
             validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
         }

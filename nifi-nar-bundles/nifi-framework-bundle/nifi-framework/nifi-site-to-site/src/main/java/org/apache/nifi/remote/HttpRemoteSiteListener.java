@@ -18,7 +18,7 @@ package org.apache.nifi.remote;
 
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
-import org.apache.nifi.remote.protocol.HandshakenProperties;
+import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.http.HttpFlowFileServerProtocol;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -91,10 +91,10 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     private class TransactionWrapper {
         private final FlowFileTransaction transaction;
-        private final HandshakenProperties handshakenProperties;
+        private final HandshakeProperties handshakenProperties;
         private long lastCommunicationAt;
 
-        private TransactionWrapper(final FlowFileTransaction transaction, final HandshakenProperties handshakenProperties) {
+        private TransactionWrapper(final FlowFileTransaction transaction, final HandshakeProperties handshakenProperties) {
             this.transaction = transaction;
             this.handshakenProperties = handshakenProperties;
             this.lastCommunicationAt = System.currentTimeMillis();
@@ -191,12 +191,12 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     /**
      * @param transactionId transactionId to check
-     * @return Returns a HandshakenProperties instance which is created when this transaction is started,
-     *          only if the transaction is active,
-     *          and it holds a HandshakenProperties,
-     *          otherwise return null
+     * @return Returns a HandshakeProperties instance which is created when this transaction is started,
+          only if the transaction is active,
+          and it holds a HandshakeProperties,
+          otherwise return null
      */
-    public HandshakenProperties getHandshakenProperties(final String transactionId) {
+    public HandshakeProperties getHandshakenProperties(final String transactionId) {
         TransactionWrapper transaction = transactions.get(transactionId);
         if (isTransactionActive(transaction)) {
             return transaction.handshakenProperties;
@@ -205,7 +205,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     public void holdTransaction(final String transactionId, final FlowFileTransaction transaction,
-                                final HandshakenProperties handshakenProperties) throws IllegalStateException {
+                                final HandshakeProperties handshakenProperties) throws IllegalStateException {
         // We don't check expiration of the transaction here, to support large file transport or slow network.
         // The availability of current transaction is already checked when the HTTP request was received at SiteToSiteResource.
         TransactionWrapper currentTransaction = transactions.remove(transactionId);

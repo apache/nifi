@@ -63,7 +63,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     protected boolean shutdown = false;
     protected FlowFileCodec negotiatedFlowFileCodec = null;
 
-    protected HandshakenProperties handshakenProperties;
+    protected HandshakeProperties handshakenProperties;
 
     protected static final long DEFAULT_BATCH_NANOS = TimeUnit.SECONDS.toNanos(5L);
 
@@ -82,7 +82,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         return handshakeCompleted;
     }
 
-    protected void validateHandshakeRequest(HandshakenProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
+    protected void validateHandshakeRequest(HandshakeProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
         Boolean useGzip = null;
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String propertyName = entry.getKey();
@@ -201,7 +201,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         handshakeCompleted = true;
     }
 
-    abstract protected HandshakenProperties doHandshake(final Peer peer) throws  IOException, HandshakeException;
+    abstract protected HandshakeProperties doHandshake(final Peer peer) throws  IOException, HandshakeException;
 
     @Override
     public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {

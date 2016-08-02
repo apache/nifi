@@ -18,7 +18,7 @@ package org.apache.nifi.remote;
 
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
-import org.apache.nifi.remote.protocol.HandshakenProperties;
+import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -46,7 +46,7 @@ public class TestHttpRemoteSiteListener {
 
         ProcessSession processSession = Mockito.mock(ProcessSession.class);
         FlowFileTransaction transaction = new FlowFileTransaction(processSession, null, null, 0, null, null);
-        transactionManager.holdTransaction(transactionId, transaction, new HandshakenProperties());
+        transactionManager.holdTransaction(transactionId, transaction, new HandshakeProperties());
 
         assertNotNull(transactionManager.getHandshakenProperties(transactionId));
 
