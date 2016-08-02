@@ -31,6 +31,7 @@ import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.junit.Test;
 
+
 public class TestStandardPropertyValue {
 
     private final ControllerServiceLookup lookup = new TestControllerServiceLookup();
@@ -121,19 +122,6 @@ public class TestStandardPropertyValue {
         assertEquals(year, val);
     }
 
-    @Test
-    public void testSystemProperty() {
-        System.setProperty("Prop1", "Foo");
-        System.setProperty("Prop2", "Bar");
-        final PropertyValue value = new StandardPropertyValue("${Prop1}${Prop2}${abc}", lookup);
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("abc", "Baz");
-        final FlowFile flowFile = createFlowFile(attributes);
-        final String val = value.evaluateAttributeExpressions(flowFile).getValue();
-        assertEquals("FooBarBaz", val);
-
-    }
-
     private FlowFile createFlowFile(final Map<String, String> attributes) {
         return new StandardFlowFileRecord.Builder().addAttributes(attributes).build();
     }
@@ -171,5 +159,6 @@ public class TestStandardPropertyValue {
         public boolean isControllerServiceEnabling(final String serviceIdentifier) {
             return false;
         }
+
     }
 }

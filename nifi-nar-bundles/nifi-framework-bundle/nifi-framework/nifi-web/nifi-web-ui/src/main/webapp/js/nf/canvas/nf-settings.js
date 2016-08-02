@@ -682,8 +682,10 @@ nf.Settings = (function () {
                 }
             }
 
-            // TODO - only if we can adminster policies
-            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            // allow policy configuration conditionally
+            if (nf.Canvas.isConfigurableAuthorizer() && nf.Common.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            }
 
             return markup;
         };
@@ -950,16 +952,13 @@ nf.Settings = (function () {
      * Shows the process group configuration.
      */
     var showSettings = function () {
-        if (nf.Common.canModifyController()) {
-            $('#new-service-or-task').show();
-        } else {
-            $('#new-service-or-task').hide();
-        }
-
         // show the settings dialog
         nf.Shell.showContent('#settings').done(function () {
             reset();
         });
+
+        //reset content to account for possible policy changes
+        $('#settings-tabs').find('.selected-tab').click();
 
         // adjust the table size
         nf.Settings.resetTableSize();
@@ -1012,6 +1011,8 @@ nf.Settings = (function () {
                                     return 'Create a new reporting task';
                                 }
                             });
+                        } else {
+                            $('#new-service-or-task').hide();
                         }
 
                         // resize the table

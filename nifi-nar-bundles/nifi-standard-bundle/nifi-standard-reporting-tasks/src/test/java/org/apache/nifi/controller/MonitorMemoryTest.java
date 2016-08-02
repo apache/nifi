@@ -66,8 +66,8 @@ public class MonitorMemoryTest {
 
     @Test
     @Ignore // temporarily ignoring it since it fails intermittently due to
-            // unpredictability during full build
-            // still keeping it for local testing
+    // unpredictability during full build
+    // still keeping it for local testing
     public void validateWarnWhenPercentThresholdReached() throws Exception {
         this.doValidate("10%");
     }
@@ -135,7 +135,13 @@ public class MonitorMemoryTest {
         properties.setProperty("nifi.remote.input.socket.port", "");
         properties.setProperty("nifi.remote.input.secure", "");
 
-        return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-                mock(Authorizer.class), mock(AuditService.class), null, null);
+        return FlowController.createStandaloneInstance(
+                mock(FlowFileEventRepository.class),
+                properties,
+                mock(Authorizer.class),
+                mock(AuditService.class),
+                null,
+                null,
+                null);
     }
 }

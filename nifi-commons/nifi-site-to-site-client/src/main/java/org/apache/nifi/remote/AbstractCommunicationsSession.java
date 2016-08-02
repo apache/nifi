@@ -22,27 +22,6 @@ public abstract class AbstractCommunicationsSession implements CommunicationsSes
 
     private String userDn;
 
-    private volatile String uri;
-
-    public AbstractCommunicationsSession(final String uri) {
-        this.uri = uri;
-    }
-
-    @Override
-    public String toString() {
-        return uri;
-    }
-
-    @Override
-    public void setUri(final String uri) {
-        this.uri = uri;
-    }
-
-    @Override
-    public String getUri() {
-        return uri;
-    }
-
     @Override
     public String getUserDn() {
         return userDn;
@@ -52,4 +31,10 @@ public abstract class AbstractCommunicationsSession implements CommunicationsSes
     public void setUserDn(final String dn) {
         this.userDn = dn;
     }
+
+    @Override
+    public String createTransitUri(String communicantUrl, String sourceFlowFileIdentifier) {
+        return communicantUrl + (communicantUrl.endsWith("/") ? "" : "/") + sourceFlowFileIdentifier;
+    }
+
 }

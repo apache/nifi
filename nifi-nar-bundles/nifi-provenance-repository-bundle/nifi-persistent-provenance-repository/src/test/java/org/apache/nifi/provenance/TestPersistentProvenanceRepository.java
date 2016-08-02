@@ -20,6 +20,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -35,6 +36,7 @@ import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.provenance.lineage.LineageNodeType;
+import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -1535,6 +1537,58 @@ public class TestPersistentProvenanceRepository {
         assertEquals("12345678901234567890123456789012345678901234567890", retrieved.getAttributes().get("75chars"));
     }
 
+
+    @Test(timeout=5000)
+    public void testExceptionOnIndex() throws IOException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxAttributeChars(50);
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        config.setIndexThreadPoolSize(1);
+
+        final int numEventsToIndex = 10;
+
+        final AtomicInteger indexedEventCount = new AtomicInteger(0);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected synchronized IndexingAction createIndexingAction() {
+                return new IndexingAction(repo) {
+                    @Override
+                    public void index(StandardProvenanceEventRecord record, IndexWriter indexWriter, Integer blockIndex) throws IOException {
+                        final int count = indexedEventCount.incrementAndGet();
+                        if (count <= numEventsToIndex) {
+                            return;
+                        }
+
+                        throw new IOException("Unit Test - Intentional Exception");
+                    }
+                };
+            }
+        };
+        repo.initialize(getEventReporter(), null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        for (int i=0; i < 1000; i++) {
+            final ProvenanceEventRecord record = builder.build();
+            repo.registerEvent(record);
+        }
+
+        repo.waitForRollover();
+
+        assertEquals(numEventsToIndex + PersistentProvenanceRepository.MAX_INDEXING_FAILURE_COUNT, indexedEventCount.get());
+        assertEquals(1, reportedEvents.size());
+        final ReportedEvent event = reportedEvents.get(0);
+        assertEquals(Severity.WARNING, event.getSeverity());
+    }
 
     @Test
     public void testFailureToCreateWriterDoesNotPreventSubsequentRollover() throws IOException, InterruptedException {

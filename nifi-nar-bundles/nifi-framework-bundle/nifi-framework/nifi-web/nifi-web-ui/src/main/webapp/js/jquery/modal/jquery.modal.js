@@ -520,10 +520,10 @@
                     handler.call(dialog);
                 }
 
-                if (dialog.is(':visible')) {
-                    // remove the modal glass pane overlay
-                    $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
+                // remove the modal glass pane overlay
+                $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
 
+                if (dialog.is(':visible')) {
                     // hide the dialog
                     dialog.hide();
                 }

@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,9 +42,7 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RelationshipDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.w3c.dom.Element;
 
@@ -282,45 +279,6 @@ public class TemplateUtils {
             remoteProcessGroupDTO.setName(null);
             remoteProcessGroupDTO.setTargetSecure(null);
             remoteProcessGroupDTO.setTransmitting(null);
-
-            // if this remote process group has contents
-            if (remoteProcessGroupDTO.getContents() != null) {
-                RemoteProcessGroupContentsDTO contents = remoteProcessGroupDTO.getContents();
-
-                // scrub any remote input ports
-                if (contents.getInputPorts() != null) {
-                    scrubRemotePorts(contents.getInputPorts());
-                }
-
-                // scrub and remote output ports
-                if (contents.getOutputPorts() != null) {
-                    scrubRemotePorts(contents.getOutputPorts());
-                }
-            }
-        }
-    }
-
-    /**
-     * Remove unnecessary fields in remote ports prior to saving.
-     *
-     * @param remotePorts ports
-     */
-    private static void scrubRemotePorts(final Set<RemoteProcessGroupPortDTO> remotePorts) {
-        for (final Iterator<RemoteProcessGroupPortDTO> remotePortIter = remotePorts.iterator(); remotePortIter.hasNext();) {
-            final RemoteProcessGroupPortDTO remotePortDTO = remotePortIter.next();
-
-            // if the flow is not connected to this remote port, remove it
-            if (remotePortDTO.isConnected() == null || !remotePortDTO.isConnected().booleanValue()) {
-                remotePortIter.remove();
-                continue;
-            }
-
-            remotePortDTO.setExists(null);
-            remotePortDTO.setTargetRunning(null);
-            remotePortDTO.setConnected(null);
-            remotePortDTO.setExists(null);
-            remotePortDTO.setTargetRunning(null);
-            remotePortDTO.setTransmitting(null);
         }
     }
 }

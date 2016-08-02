@@ -365,7 +365,7 @@ nf.UsersTable = (function () {
             contentType: 'application/json'
         }).done(function (groupEntity) {
             nf.UsersTable.loadUsersTable();
-        });
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**

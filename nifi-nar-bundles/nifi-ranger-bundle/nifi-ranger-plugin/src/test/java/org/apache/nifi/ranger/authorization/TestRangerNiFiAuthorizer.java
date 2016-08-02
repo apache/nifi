@@ -65,8 +65,8 @@ public class TestRangerNiFiAuthorizer {
     private AuthorizerConfigurationContext configurationContext;
     private NiFiProperties nifiProperties;
 
-    private String serviceType = "nifiService";
-    private String appId = "nifiAppId";
+    private final String serviceType = "nifiService";
+    private final String appId = "nifiAppId";
 
     private RangerAccessResult allowedResult;
     private RangerAccessResult notAllowedResult;
@@ -101,16 +101,16 @@ public class TestRangerNiFiAuthorizer {
         AuthorizerConfigurationContext configurationContext = Mockito.mock(AuthorizerConfigurationContext.class);
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_SECURITY_PATH_PROP)))
-                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-security.xml", null));
+                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-security.xml"));
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_AUDIT_PATH_PROP)))
-                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-audit.xml", null));
+                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-audit.xml"));
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_APP_ID_PROP)))
-                .thenReturn(new MockPropertyValue(appId, null));
+                .thenReturn(new MockPropertyValue(appId));
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_SERVICE_TYPE_PROP)))
-                .thenReturn(new MockPropertyValue(serviceType, null));
+                .thenReturn(new MockPropertyValue(serviceType));
 
         return configurationContext;
     }
@@ -126,7 +126,7 @@ public class TestRangerNiFiAuthorizer {
     @Test
     public void testKerberosEnabledWithoutKeytab() {
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
-                .thenReturn(new MockPropertyValue("true", null));
+                .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getKerberosServicePrincipal()).thenReturn("");
@@ -146,7 +146,7 @@ public class TestRangerNiFiAuthorizer {
     @Test
     public void testKerberosEnabledWithoutPrincipal() {
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
-                .thenReturn(new MockPropertyValue("true", null));
+                .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
@@ -166,7 +166,7 @@ public class TestRangerNiFiAuthorizer {
     @Test
     public void testKerberosEnabledWithoutKeytabOrPrincipal() {
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
-                .thenReturn(new MockPropertyValue("true", null));
+                .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getKerberosKeytabLocation()).thenReturn("");
@@ -200,7 +200,7 @@ public class TestRangerNiFiAuthorizer {
     @Test
     public void testKerberosEnabled() {
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_KERBEROS_ENABLED_PROP)))
-                .thenReturn(new MockPropertyValue("true", null));
+                .thenReturn(new MockPropertyValue("true"));
 
         nifiProperties = Mockito.mock(NiFiProperties.class);
         when(nifiProperties.getKerberosKeytabLocation()).thenReturn("test");
@@ -398,7 +398,7 @@ public class TestRangerNiFiAuthorizer {
 
         final String rangerAdminIdentity = "ranger-admin";
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_ADMIN_IDENTITY_PROP)))
-                .thenReturn(new MockPropertyValue(rangerAdminIdentity, null));
+                .thenReturn(new MockPropertyValue(rangerAdminIdentity));
 
         rangerBasePlugin = Mockito.mock(RangerBasePluginWithPolicies.class);
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
@@ -446,10 +446,10 @@ public class TestRangerNiFiAuthorizer {
         final AuthorizerConfigurationContext configurationContext = Mockito.mock(AuthorizerConfigurationContext.class);
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_SECURITY_PATH_PROP)))
-                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-security.xml", null));
+                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-security.xml"));
 
         when(configurationContext.getProperty(eq(RangerNiFiAuthorizer.RANGER_AUDIT_PATH_PROP)))
-                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-audit.xml", null));
+                .thenReturn(new MockPropertyValue("src/test/resources/ranger/ranger-nifi-audit.xml"));
 
         Authorizer authorizer = new RangerNiFiAuthorizer();
         try {
@@ -509,8 +509,8 @@ public class TestRangerNiFiAuthorizer {
      */
     private static class MockResource implements Resource {
 
-        private String identifier;
-        private String name;
+        private final String identifier;
+        private final String name;
 
         public MockResource(String identifier, String name) {
             this.identifier = identifier;

@@ -99,8 +99,8 @@
                                 ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canConfigureOrOpenDetails())">
                             <div class="graph-control-action-icon fa fa-gear"></div></button>
                     </div>
-                    <div class="button-spacer-small">&nbsp;</div>
-                    <div id="operate-policy" class="action-button" title="Access Policies">
+                    <div class="button-spacer-small" ng-if="appCtrl.nf.Canvas.isConfigurableAuthorizer()">&nbsp;</div>
+                    <div id="operate-policy" class="action-button" title="Access Policies" ng-if="appCtrl.nf.Canvas.isConfigurableAuthorizer()">
                         <button ng-click="appCtrl.nf.Actions['managePolicies'](appCtrl.nf.CanvasUtils.getSelection());"
                                 ng-disabled="!(appCtrl.serviceProvider.graphControlsCtrl.canManagePolicies())">
                             <div class="graph-control-action-icon fa fa-key"></div></button>
@@ -120,13 +120,13 @@
                     <div class="button-spacer-large">&nbsp;</div>
                     <div id="operate-start" class="action-button" title="Start">
                         <button ng-click="appCtrl.nf.Actions['start'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.CanvasUtils.areRunnable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <div class="graph-control-action-icon fa fa-play"></div></button>
                     </div>
                     <div class="button-spacer-small">&nbsp;</div>
                     <div id="operate-stop" class="action-button" title="Stop">
                         <button ng-click="appCtrl.nf.Actions['stop'](appCtrl.nf.CanvasUtils.getSelection());"
-                                ng-disabled="!appCtrl.nf.CanvasUtils.areStoppable(appCtrl.nf.CanvasUtils.getSelection());">
+                                ng-disabled="!appCtrl.nf.CanvasUtils.getSelection().empty() && !appCtrl.nf.CanvasUtils.canModify(appCtrl.nf.CanvasUtils.getSelection());">
                             <div class="graph-control-action-icon fa fa-stop"></div></button>
                     </div>
                     <div class="button-spacer-large">&nbsp;</div>

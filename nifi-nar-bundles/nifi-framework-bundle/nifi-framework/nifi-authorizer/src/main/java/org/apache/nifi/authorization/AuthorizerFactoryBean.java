@@ -74,6 +74,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     private NiFiProperties properties;
     private final Map<String, Authorizer> authorizers = new HashMap<>();
 
+
     @Override
     public Authorizer getAuthorizer(String identifier) {
         return authorizers.get(identifier);
@@ -189,7 +190,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         for (final Property property : authorizer.getProperty()) {
             authorizerProperties.put(property.getName(), property.getValue());
         }
-
         return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties);
     }
 
@@ -292,7 +292,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
             AbstractPolicyBasedAuthorizer policyBasedAuthorizer = (AbstractPolicyBasedAuthorizer) baseAuthorizer;
             return new AbstractPolicyBasedAuthorizer() {
                 @Override
-                public Group addGroup(Group group) throws AuthorizationAccessException {
+                public Group doAddGroup(Group group) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.addGroup(group);
                     }
@@ -306,7 +306,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public Group updateGroup(Group group) throws AuthorizationAccessException {
+                public Group doUpdateGroup(Group group) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.updateGroup(group);
                     }
@@ -327,7 +327,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public User addUser(User user) throws AuthorizationAccessException {
+                public User doAddUser(User user) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.addUser(user);
                     }
@@ -348,7 +348,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
                 }
 
                 @Override
-                public User updateUser(User user) throws AuthorizationAccessException {
+                public User doUpdateUser(User user) throws AuthorizationAccessException {
                     try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                         return policyBasedAuthorizer.updateUser(user);
                     }
@@ -484,4 +484,5 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
+
 }

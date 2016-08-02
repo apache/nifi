@@ -42,9 +42,9 @@
 
 #templates-refresh-container {
     position: absolute;
-    width: 100%;
     bottom: 0px;
     left: 20px;
+    right: 20px;
 }
 
 #templates-loading-container {

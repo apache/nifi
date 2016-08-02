@@ -18,7 +18,7 @@ package org.apache.nifi.remote.protocol;
 
 import org.apache.nifi.remote.exception.HandshakeException;
 
-public class HandshakenProperties {
+public class HandshakeProperties {
 
     private String commsIdentifier;
     private String transitUriPrefix = null;

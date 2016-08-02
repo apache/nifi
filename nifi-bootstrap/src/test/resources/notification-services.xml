@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one or more
   contributor license agreements.  See the NOTICE file distributed with
@@ -13,11 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<!--
-    This file should not be manually edited. Authorizations should only be created through the NiFi UI, and during
-    initial setup of a new instance. Refer to authorizers.xml for properties that allow seeding a new installation
-    with initial authorizations.
--->
-<authorizations>
-
-</authorizations>
+<services>
+         <service>
+            <id>custom-notification</id>
+            <class>org.apache.nifi.bootstrap.notification.TestCustomNotificationService</class>
+            <property name="Custom Hostname">${test.server}</property>
+            <property name="Custom Username">${test.username}</property>
+            <property name="Custom Password">${test.password}</property>
+         </service>
+</services>

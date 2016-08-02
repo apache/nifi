@@ -18,7 +18,7 @@
 <div id="provenance-search-dialog" class="hidden medium-dialog">
     <div class="dialog-content">
         <div class="setting">
-            <div class="setting-name" style="padding-top:10px;">Fields</div>
+            <div class="setting-name">Fields</div>
             <div class="setting-field">
                 <div id="searchable-fields-container">
                     <div id="no-searchable-fields" class="unset">No searchable fields have been configured.</div>

@@ -81,7 +81,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         context.setProperty(InvokeScriptedProcessor.MODULES, "target/test/resources/groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
         List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
@@ -114,7 +114,7 @@ public class TestInvokeGroovy extends BaseScriptTest {
         context.setProperty(InvokeScriptedProcessor.SCRIPT_ENGINE, "Groovy");
         context.setProperty(InvokeScriptedProcessor.SCRIPT_FILE, "target/test/resources/groovy/test_reader.groovy");
         // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context, null));
+        processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
 
         Set<Relationship> relationships = processor.getRelationships();

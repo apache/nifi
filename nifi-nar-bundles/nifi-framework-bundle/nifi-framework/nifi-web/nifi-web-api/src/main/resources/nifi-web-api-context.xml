@@ -58,6 +58,7 @@
     <bean id="snippetUtils" class="org.apache.nifi.web.util.SnippetUtils">
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="flowController" ref="flowController"/>
+        <property name="accessPolicyDAO" ref="policyBasedAuthorizerDAO"/>
     </bean>
 
     <!-- nifi component dao initialization -->
@@ -118,6 +119,7 @@
         <property name="authorizer" ref="authorizer"/>
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
         <property name="controllerFacade" ref="controllerFacade"/>
@@ -175,6 +177,7 @@
         <property name="controllerServiceProvider" ref="controllerServiceProvider"/>
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="authorizer" ref="authorizer"/>
+        <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
 
     <!-- rest endpoints -->

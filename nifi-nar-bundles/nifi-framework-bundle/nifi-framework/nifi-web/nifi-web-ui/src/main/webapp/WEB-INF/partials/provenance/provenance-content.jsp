@@ -57,9 +57,9 @@
         </div>
         <div id="provenance-lineage-close-container">
             <div id="provenance-lineage-downloader" class="hidden" title="Download"></div>
-            <div id="provenance-lineage-closer" title="Close"></div>
+            <div id="provenance-lineage-closer" class="fa fa-long-arrow-left" title="Go back to event list"></div>
         </div>
-        <div id="provenance-lineage-context-menu"></div>
+        <div id="provenance-lineage-context-menu" class="context-menu"></div>
         <div id="provenance-lineage-slider-container">
             <div id="provenance-lineage-slider"></div>
             <div id="event-timeline">

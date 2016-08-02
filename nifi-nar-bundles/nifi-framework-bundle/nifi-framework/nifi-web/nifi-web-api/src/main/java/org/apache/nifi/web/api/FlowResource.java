@@ -300,6 +300,10 @@ public class FlowResource extends ApplicationResource {
 
         authorizeFlow();
 
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
         final FlowConfigurationEntity entity = serviceFacade.getFlowConfiguration();
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -320,6 +324,10 @@ public class FlowResource extends ApplicationResource {
     public Response getCurrentUser() {
 
         authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
 
         // note that the cluster manager will handle this request directly
         final NiFiUser user = NiFiUserUtils.getNiFiUser();

@@ -118,6 +118,7 @@ nf.Canvas = (function () {
     var parentGroupId = null;
     var clustered = false;
     var connectedToCluster = false;
+    var configurableAuthorizer = false;
     var svg = null;
     var canvas = null;
 
@@ -552,9 +553,6 @@ nf.Canvas = (function () {
                     // ctrl-c
                     if (nf.Canvas.canWrite() && nf.CanvasUtils.isCopyable(selection)) {
                         nf.Actions.copy(selection);
-
-                        // only want to prevent default if the action was performed, otherwise default copy would be overridden
-                        evt.preventDefault();
                     }
                 } else if (evt.keyCode === 86) {
                     // ctrl-v
@@ -884,6 +882,9 @@ nf.Canvas = (function () {
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
+                    // record whether we can configure the authorizer
+                    configurableAuthorizer = configDetails.supportsConfigurableAuthorizer;
+
                     // init storage
                     nf.Storage.init();
 
@@ -1006,6 +1007,13 @@ nf.Canvas = (function () {
          */
         getParentGroupId: function () {
             return parentGroupId;
+        },
+
+        /**
+         * Returns whether the authorizer is configurable.
+         */
+        isConfigurableAuthorizer: function () {
+            return configurableAuthorizer;
         },
 
         /**

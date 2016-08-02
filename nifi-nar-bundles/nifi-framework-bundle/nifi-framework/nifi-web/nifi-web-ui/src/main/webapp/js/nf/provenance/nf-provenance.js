@@ -23,8 +23,10 @@ $(document).ready(function () {
 
     //Define Dependency Injection Annotations
     nf.ng.AppConfig.$inject = ['$mdThemingProvider', '$compileProvider'];
-    nf.ng.AppCtrl.$inject = ['$scope', 'serviceProvider'];
-    nf.ng.ServiceProvider.$inject = [];
+    nf.ng.AppCtrl.$inject = ['$scope'];
+    nf.ng.Provenance.$inject = ['provenanceTableCtrl'];
+    nf.ng.ProvenanceLineage.$inject = [];
+    nf.ng.ProvenanceTable.$inject = ['provenanceLineageCtrl'];
 
     //Configure Angular App
     app.config(nf.ng.AppConfig);
@@ -33,16 +35,19 @@ $(document).ready(function () {
     app.controller('ngProvenanceAppCtrl', nf.ng.AppCtrl);
 
     //Define Angular App Services
-    app.service('serviceProvider', nf.ng.ServiceProvider);
+    app.service('provenanceCtrl', nf.ng.Provenance);
+    app.service('provenanceLineageCtrl', nf.ng.ProvenanceLineage);
+    app.service('provenanceTableCtrl', nf.ng.ProvenanceTable);
 
     //Manually Boostrap Angular App
     nf.ng.Bridge.injector = angular.bootstrap($('body'), ['ngProvenanceApp'], { strictDi: true });
 
     // initialize the status page
-    nf.Provenance.init();
+    nf.ng.Bridge.injector.get('provenanceCtrl').init();
 });
 
-nf.Provenance = (function () {
+nf.ng.Provenance = function (provenanceTableCtrl) {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -66,11 +71,11 @@ nf.Provenance = (function () {
      */
     var detectedCluster = function () {
         return $.ajax({
-                type: 'GET',
-                url: config.urls.clusterSummary
-            }).done(function (response) {
-                isClustered = response.clusterSummary.connectedToCluster;
-            }).fail(nf.Common.handleAjaxError);
+            type: 'GET',
+            url: config.urls.clusterSummary
+        }).done(function (response) {
+            isClustered = response.clusterSummary.connectedToCluster;
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -119,7 +124,7 @@ nf.Provenance = (function () {
     var initializeProvenancePage = function () {
         // define mouse over event for the refresh button
         $('#refresh-button').click(function () {
-            nf.ProvenanceTable.loadProvenanceTable();
+            provenanceTableCtrl.loadProvenanceTable();
         });
 
         // return a deferred for page initialization
@@ -172,25 +177,30 @@ nf.Provenance = (function () {
         }).promise();
     };
 
-    return {
+    function ProvenanceCtrl() {
+    }
+
+    ProvenanceCtrl.prototype = {
+        constructor: ProvenanceCtrl,
+
         /**
          * Initializes the status page.
          */
         init: function () {
             nf.Storage.init();
-            
+
             // load the user and detect if the NiFi is clustered
             $.when(loadAbout(), loadCurrentUser(), detectedCluster()).done(function () {
                 // create the provenance table
-                nf.ProvenanceTable.init(isClustered).done(function () {
+                provenanceTableCtrl.init(isClustered).done(function () {
                     var searchTerms = {};
-                    
+
                     // look for a processor id in the query search
                     var initialComponentId = $('#intial-component-query').text();
                     if ($.trim(initialComponentId) !== '') {
                         // populate initial search component
                         $('input.searchable-component-id').val(initialComponentId);
-                        
+
                         // build the search criteria
                         searchTerms['ProcessorID'] = initialComponentId;
                     }
@@ -204,14 +214,14 @@ nf.Provenance = (function () {
                         // build the search criteria
                         searchTerms['FlowFileUUID'] = initialFlowFileUuid;
                     }
-                    
+
                     // load the provenance table
                     if ($.isEmptyObject(searchTerms)) {
                         // load the provenance table
-                        nf.ProvenanceTable.loadProvenanceTable();
+                        provenanceTableCtrl.loadProvenanceTable();
                     } else {
                         // load the provenance table
-                        nf.ProvenanceTable.loadProvenanceTable({
+                        provenanceTableCtrl.loadProvenanceTable({
                             'searchTerms': searchTerms
                         });
                     }
@@ -223,17 +233,17 @@ nf.Provenance = (function () {
                                 'height': $(window).height() + 'px',
                                 'width': $(window).width() + 'px'
                             });
-                            
+
                             $('#provenance').css('margin', 40);
-                            $('#provenance-table').css('bottom', 127);
                             $('#provenance-refresh-container').css({
-                                'margin': '0px 0px 40px 0px',
-                                'bottom': '40px'
+                                'bottom': '0px',
+                                'left': '0px',
+                                'right': '0px'
                             });
                         }
 
                         // configure the initial grid height
-                        nf.ProvenanceTable.resetTableSize();
+                        provenanceTableCtrl.resetTableSize();
                     };
 
                     // once the table is initialized, finish initializing the page
@@ -279,5 +289,8 @@ nf.Provenance = (function () {
                 });
             });
         }
-    };
-}());
+    }
+
+    var provenanceCtrl = new ProvenanceCtrl();
+    return provenanceCtrl;
+};

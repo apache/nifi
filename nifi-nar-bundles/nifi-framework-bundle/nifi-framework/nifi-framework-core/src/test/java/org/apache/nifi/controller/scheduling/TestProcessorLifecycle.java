@@ -65,6 +65,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -661,7 +662,8 @@ public class TestProcessorLifecycle {
         properties.setProperty("nifi.remote.input.secure", "");
 
         return FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), properties,
-            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository());
+            mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
+                new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths()));
     }
 
     /**

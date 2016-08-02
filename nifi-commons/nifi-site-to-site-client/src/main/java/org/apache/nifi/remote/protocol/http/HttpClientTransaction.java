@@ -48,9 +48,9 @@ public class HttpClientTransaction extends AbstractTransaction {
         this.transactionUrl = transactionUrl;
         this.apiClient = apiUtil;
         if(TransferDirection.RECEIVE.equals(direction)){
-            dataAvailable = apiUtil.openConnectionForReceive(transactionUrl, peer.getCommunicationsSession());
+            dataAvailable = apiUtil.openConnectionForReceive(transactionUrl, peer);
         } else {
-            apiUtil.openConnectionForSend(transactionUrl, peer.getCommunicationsSession());
+            apiUtil.openConnectionForSend(transactionUrl, peer);
         }
     }
 

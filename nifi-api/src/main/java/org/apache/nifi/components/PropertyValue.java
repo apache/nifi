@@ -24,6 +24,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.registry.VariableRegistry;
 
 /**
  * <p>
@@ -121,144 +122,183 @@ public interface PropertyValue {
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language; a PropertyValue with the new value is then returned, supporting
-     * call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language;
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions() throws ProcessException;
 
     /**
      * <p>
      * Replaces values in the Property Value using the NiFi Expression Language;
-     * a PropertyValue with the new value is then returned, supporting call chaining.
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param attributes a Map of attributes that the Expression can reference, in addition
-     * to JVM System Properties and Environmental Properties.
+     * @param attributes a Map of attributes that the Expression can reference.
+     * These will take precedence over any underlying variable registry values.
      *
      * @return a PropertyValue with the new value
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
-     * the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(Map<String, String> attributes) throws ProcessException;
 
     /**
      * <p>
      * Replaces values in the Property Value using the NiFi Expression Language.
-     * The supplied decorator is then given a chance to decorate the
-     * value, and a PropertyValue with the new value is then returned,
-     * supporting call chaining.
+     * The supplied decorator is then given a chance to decorate the value, and
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param attributes a Map of attributes that the Expression can reference, in addition
-     * to JVM System Properties and Environmental Properties.
-     * @param decorator the decorator to use in order to update the values returned by the Expression Language
+     * @param attributes a Map of attributes that the Expression can reference.
+     * These will take precedence over any variables in any underlying variable
+     * registry.
+     * @param decorator the decorator to use in order to update the values
+     * returned after variable substitution and expression language evaluation.
      *
      * @return a PropertyValue with the new value
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating the Expression against
-     * the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(Map<String, String> attributes, AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language; a PropertyValue with the new value is then returned, supporting
-     * call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language;
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param flowFile to evaluate attributes of
+     * @param flowFile to evaluate attributes of. It's flow file properties and
+     * then flow file attributes will take precedence over any underlying
+     * variable registry.
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language; a PropertyValue with the new value is then returned, supporting
-     * call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language;
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param flowFile to evaluate attributes of
-     * @param additionalAttributes a Map of additional attributes that the Expression can reference. If entries in
-     * this Map conflict with entries in the FlowFile's attributes, the entries in this Map are given a higher priority.
+     * @param flowFile to evaluate attributes of. It's flow file properties and
+     * then flow file attributes will take precedence over any underlying
+     * variable registry.
+     * @param additionalAttributes a Map of additional attributes that the
+     * Expression can reference. These attributes will take precedence over any
+     * conflicting attributes in the provided flowfile or any underlying
+     * variable registry.
      *
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language; a PropertyValue with the new value is then returned, supporting
-     * call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language;
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param flowFile to evaluate attributes of
-     * @param additionalAttributes a Map of additional attributes that the Expression can reference. If entries in
-     * this Map conflict with entries in the FlowFile's attributes, the entries in this Map are given a higher priority.
-     * @param decorator the decorator to use in order to update the values returned by the Expression Language
+     * @param flowFile to evaluate attributes of. It's flow file properties and
+     * then flow file attributes will take precedence over any underlying
+     * variable registry.
+     * @param additionalAttributes a Map of additional attributes that the
+     * Expression can reference. These attributes will take precedence over any
+     * conflicting attributes in the provided flowfile or any underlying
+     * variable registry.
+     * @param decorator the decorator to use in order to update the values
+     * returned after variable substitution and expression language evaluation.
      *
      * @return a PropertyValue with the new value is returned, supporting call
      * chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile, Map<String, String> additionalAttributes, AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language. The supplied decorator is then given a chance to decorate the
-     * value, and a PropertyValue with the new value is then returned,
-     * supporting call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language.
+     * The supplied decorator is then given a chance to decorate the value, and
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
-     * @param decorator The supplied decorator is then given a chance to
-     * decorate the value
+     * @param decorator the decorator to use in order to update the values
+     * returned after variable substitution and expression language evaluation.
      * @return a PropertyValue with the new value is then returned, supporting
      * call chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(AttributeValueDecorator decorator) throws ProcessException;
 
     /**
      * <p>
-     * Replaces values in the Property Value using the NiFi Expression
-     * Language. The supplied decorator is then given a chance to decorate the
-     * value, and a PropertyValue with the new value is then returned,
-     * supporting call chaining.
+     * Replaces values in the Property Value using the NiFi Expression Language.
+     * The supplied decorator is then given a chance to decorate the value, and
+     * a PropertyValue with the new value is then returned, supporting call
+     * chaining. Before executing the expression language statement any
+     * variables names found within any underlying {@link VariableRegistry} will
+     * be substituted with their values.
      * </p>
      *
      * @param flowFile to evaluate expressions against
-     * @param decorator The supplied decorator is then given a chance to
-     * decorate the value
+     * @param decorator the decorator to use in order to update the values
+     * returned after variable substitution and expression language evaluation.
+     *
      *
      * @return a PropertyValue with the new value is then returned, supporting
      * call chaining
      *
-     * @throws ProcessException if the Expression cannot be compiled or evaluating
-     * the Expression against the given attributes causes an Exception to be thrown
+     * @throws ProcessException if the Expression cannot be compiled or
+     * evaluating the Expression against the given attributes causes an
+     * Exception to be thrown
      */
     PropertyValue evaluateAttributeExpressions(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
 }

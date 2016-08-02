@@ -50,7 +50,7 @@ public interface ProcessGroup extends Authorizable, Positionable {
     /**
      * Predicate for filtering schedulable Processors.
      */
-    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && node.getScheduledState() != ScheduledState.DISABLED;
+    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
 
     /**
      * Predicate for filtering unschedulable Processors.
@@ -60,12 +60,12 @@ public interface ProcessGroup extends Authorizable, Positionable {
     /**
      * Predicate for filtering schedulable Ports
      */
-    Predicate<Port> SCHEDULABLE_PORTS = port -> port.getScheduledState() != ScheduledState.DISABLED;
+    Predicate<Port> SCHEDULABLE_PORTS = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
 
     /**
      * Predicate for filtering schedulable Ports
      */
-    Predicate<Port> UNSCHEDULABLE_PORTS = port -> port.getScheduledState() == ScheduledState.RUNNING;
+    Predicate<Port> UNSCHEDULABLE_PORTS = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be

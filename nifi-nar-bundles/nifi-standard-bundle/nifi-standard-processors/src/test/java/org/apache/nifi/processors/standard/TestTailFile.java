@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
@@ -36,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestTailFile {
+
     private File file;
     private TailFile processor;
     private RandomAccessFile raf;
@@ -61,14 +61,9 @@ public class TestTailFile {
         file.delete();
         assertTrue(file.createNewFile());
 
-        final File stateFile = new File("target/tail-file.state");
-        stateFile.delete();
-        Assert.assertFalse(stateFile.exists());
-
         processor = new TailFile();
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(TailFile.FILENAME, "target/log.txt");
-        runner.setProperty(TailFile.STATE_FILE, "target/tail-file.state");
         runner.assertValid();
 
         raf = new RandomAccessFile(file, "rw");
@@ -82,7 +77,6 @@ public class TestTailFile {
 
         processor.cleanup();
     }
-
 
     @Test
     public void testConsumeAfterTruncationStartAtBeginningOfFile() throws IOException, InterruptedException {
@@ -148,7 +142,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("HELLO\n");
     }
 
-
     @Test
     public void testStartAtBeginningOfFile() throws IOException, InterruptedException {
         runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
@@ -201,7 +194,6 @@ public class TestTailFile {
         assertTrue(world);
     }
 
-
     @Test
     public void testRemainderOfFileRecoveredAfterRestart() throws IOException {
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log*.txt");
@@ -226,7 +218,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("world");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("new file\n");
     }
-
 
     @Test
     public void testRemainderOfFileRecoveredIfRolledOverWhileRunning() throws IOException {
@@ -291,7 +282,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("1\n");
     }
 
-
     @Test
     public void testMultipleRolloversAfterHavingReadAllData() throws IOException, InterruptedException {
         // this mimics the case when we are reading a log file that rolls over while processor is running.
@@ -338,7 +328,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("abc\n");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("1\n");
     }
-
 
     @Test
     public void testMultipleRolloversAfterHavingReadAllDataWhileStillRunning() throws IOException, InterruptedException {
@@ -387,7 +376,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("1\n");
     }
 
-
     @Test
     public void testMultipleRolloversWithLongerFileLength() throws IOException, InterruptedException {
         // this mimics the case when we are reading a log file that rolls over while processor is running.
@@ -432,7 +420,6 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("abc\n");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(2).assertContentEquals("This is a longer line than the other files had.\n");
     }
-
 
     @Test
     public void testConsumeWhenNewLineFound() throws IOException, InterruptedException {

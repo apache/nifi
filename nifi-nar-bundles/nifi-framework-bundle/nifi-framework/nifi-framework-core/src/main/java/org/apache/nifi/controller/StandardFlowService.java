@@ -772,12 +772,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 try {
                     response = senderListener.requestConnection(requestMsg).getConnectionResponse();
                     if (response.getRejectionReason() != null) {
-                        logger.warn("Connection request was blocked by cluster manager with the explanation: " + response.getRejectionReason());
+                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
                         // set response to null and treat a firewall blockage the same as getting no response from manager
                         response = null;
                         break;
                     } else if (response.shouldTryLater()) {
-                        logger.info("Flow controller requested by cluster manager to retry connection in " + response.getTryLaterSeconds() + " seconds.");
+                        logger.info("Flow controller requested by cluster coordinator to retry connection in " + response.getTryLaterSeconds() + " seconds.");
                         try {
                             Thread.sleep(response.getTryLaterSeconds() * 1000);
                         } catch (final InterruptedException ie) {

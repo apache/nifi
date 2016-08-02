@@ -36,9 +36,9 @@
 
 #history-refresh-container {
     position: absolute;
-    width: 100%;
     bottom: 0px;
     left: 20px;
+    right: 20px;
 }
 
 #history-loading-container {
@@ -63,7 +63,16 @@
 #history-filter-container {
     position: absolute;
     right: 0px;
+    left: 0px;
     top: 15px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+#cluster-history-message {
+    float: left;
+    margin-top: 30px;
 }
 
 #history-filter-button {
@@ -73,10 +82,7 @@
 
 #history-filter-overview {
     visibility: hidden;
-    font-family: Roboto;
-    font-size: 13px;
     margin-bottom: 5px;
-    font-weight: normal;
 }
 
 #history-purge-button {
