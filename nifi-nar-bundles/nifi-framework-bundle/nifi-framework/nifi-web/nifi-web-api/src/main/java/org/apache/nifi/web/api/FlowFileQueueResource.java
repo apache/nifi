@@ -69,8 +69,8 @@ import java.net.URI;
  */
 @Path("/flowfile-queues")
 @Api(
-    value = "/flowfile-queues",
-    description = "Endpoint for managing a FlowFile Queue."
+        value = "/flowfile-queues",
+        description = "Endpoint for managing a FlowFile Queue."
 )
 public class FlowFileQueueResource extends ApplicationResource {
 
@@ -80,7 +80,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Populate the URIs for the specified flowfile listing.
      *
-     * @param connectionId connection
+     * @param connectionId    connection
      * @param flowFileListing flowfile listing
      * @return dto
      */
@@ -101,7 +101,7 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Populate the URIs for the specified flowfile.
      *
      * @param connectionId the connection id
-     * @param flowFile the flowfile
+     * @param flowFile     the flowfile
      * @return the dto
      */
     public FlowFileSummaryDTO populateRemainingFlowFileContent(final String connectionId, final FlowFileSummaryDTO flowFile) {
@@ -112,8 +112,8 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Gets the specified flowfile from the specified connection.
      *
-     * @param connectionId The connection id
-     * @param flowFileUuid The flowfile uuid
+     * @param connectionId  The connection id
+     * @param flowFileUuid  The flowfile uuid
      * @param clusterNodeId The cluster node id where the flowfile resides
      * @return a flowFileDTO
      * @throws InterruptedException if interrupted
@@ -122,38 +122,37 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/flowfiles/{flowfile-uuid}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Gets a FlowFile from a Connection.",
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Gets a FlowFile from a Connection.",
+            authorizations = {
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getFlowFile(
             @ApiParam(
-                value = "The connection id.",
-                required = true
+                    value = "The connection id.",
+                    required = true
             )
             @PathParam("id") final String connectionId,
             @ApiParam(
-                value = "The flowfile uuid.",
-                required = true
+                    value = "The flowfile uuid.",
+                    required = true
             )
             @PathParam("flowfile-uuid") final String flowFileUuid,
             @ApiParam(
-                value = "The id of the node where the content exists if clustered.",
-                required = false
+                    value = "The id of the node where the content exists if clustered.",
+                    required = false
             )
-        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
+            @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -187,9 +186,9 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Gets the content for the specified flowfile in the specified connection.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param connectionId The connection id
-     * @param flowFileUuid The flowfile uuid
+     * @param clientId      Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param connectionId  The connection id
+     * @param flowFileUuid  The flowfile uuid
      * @param clusterNodeId The cluster node id
      * @return The content stream
      * @throws InterruptedException if interrupted
@@ -198,43 +197,42 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
     @Path("{id}/flowfiles/{flowfile-uuid}/content")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Gets the content for a FlowFile in a Connection.",
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Gets the content for a FlowFile in a Connection.",
+            authorizations = {
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response downloadFlowFileContent(
             @ApiParam(
-                value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
-                required = false
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
             )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @ApiParam(
-                value = "The connection id.",
-                required = true
+                    value = "The connection id.",
+                    required = true
             )
             @PathParam("id") final String connectionId,
             @ApiParam(
-                value = "The flowfile uuid.",
-                required = true
+                    value = "The flowfile uuid.",
+                    required = true
             )
             @PathParam("flowfile-uuid") final String flowFileUuid,
             @ApiParam(
-                value = "The id of the node where the content exists if clustered.",
-                required = false
+                    value = "The id of the node where the content exists if clustered.",
+                    required = false
             )
-        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
+            @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         // replicate if cluster manager
         if (isReplicateRequest()) {
@@ -287,36 +285,35 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Creates a request to list the flowfiles in the queue of the specified connection.
      *
      * @param httpServletRequest request
-     * @param id The id of the connection
+     * @param id                 The id of the connection
      * @return A listRequestEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/listing-requests")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Lists the contents of the queue in this connection.",
-        response = ListingRequestEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Lists the contents of the queue in this connection.",
+            response = ListingRequestEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 202, message = "The request has been accepted. A HTTP response header will contain the URI where the response can be polled."),
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 202, message = "The request has been accepted. A HTTP response header will contain the URI where the response can be polled."),
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createFlowFileListing(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                value = "The connection id.",
-                required = true
+                    value = "The connection id.",
+                    required = true
             )
             @PathParam("id") final String id) {
 
@@ -358,7 +355,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding listing request.
      *
-     * @param connectionId The id of the connection
+     * @param connectionId     The id of the connection
      * @param listingRequestId The id of the drop request
      * @return A dropRequestEntity
      */
@@ -366,32 +363,31 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/listing-requests/{listing-request-id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Gets the current status of a listing request for the specified connection.",
-        response = ListingRequestEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Gets the current status of a listing request for the specified connection.",
+            response = ListingRequestEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getListingRequest(
             @ApiParam(
-                value = "The connection id.",
-                required = true
+                    value = "The connection id.",
+                    required = true
             )
             @PathParam("id") final String connectionId,
             @ApiParam(
-                value = "The listing request id.",
-                required = true
+                    value = "The listing request id.",
+                    required = true
             )
             @PathParam("listing-request-id") final String listingRequestId) {
 
@@ -421,41 +417,40 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified listing request.
      *
      * @param httpServletRequest request
-     * @param connectionId The connection id
-     * @param listingRequestId The drop request id
+     * @param connectionId       The connection id
+     * @param listingRequestId   The drop request id
      * @return A dropRequestEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/listing-requests/{listing-request-id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Cancels and/or removes a request to list the contents of this connection.",
-        response = DropRequestEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Cancels and/or removes a request to list the contents of this connection.",
+            response = DropRequestEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response deleteListingRequest(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                value = "The connection id.",
-                required = true
+                    value = "The connection id.",
+                    required = true
             )
             @PathParam("id") final String connectionId,
             @ApiParam(
-                value = "The listing request id.",
-                required = true
+                    value = "The listing request id.",
+                    required = true
             )
             @PathParam("listing-request-id") final String listingRequestId) {
 
@@ -497,38 +492,37 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Creates a request to delete the flowfiles in the queue of the specified connection.
      *
      * @param httpServletRequest request
-     * @param id The id of the connection
+     * @param id                 The id of the connection
      * @return A dropRequestEntity
      */
     @POST
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/drop-requests")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a request to drop the contents of the queue in this connection.",
-        response = DropRequestEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a request to drop the contents of the queue in this connection.",
+            response = DropRequestEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 202, message = "The request has been accepted. A HTTP response header will contain the URI where the response can be polled."),
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 202, message = "The request has been accepted. A HTTP response header will contain the URI where the response can be polled."),
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createDropRequest(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The connection id.",
-            required = true
-        )
-        @PathParam("id") final String id) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST);
@@ -567,7 +561,7 @@ public class FlowFileQueueResource extends ApplicationResource {
     /**
      * Checks the status of an outstanding drop request.
      *
-     * @param connectionId The id of the connection
+     * @param connectionId  The id of the connection
      * @param dropRequestId The id of the drop request
      * @return A dropRequestEntity
      */
@@ -575,21 +569,20 @@ public class FlowFileQueueResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/drop-requests/{drop-request-id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Gets the current status of a drop request for the specified connection.",
             response = DropRequestEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getDropRequest(
@@ -630,29 +623,28 @@ public class FlowFileQueueResource extends ApplicationResource {
      * Deletes the specified drop request.
      *
      * @param httpServletRequest request
-     * @param connectionId The connection id
-     * @param dropRequestId The drop request id
+     * @param connectionId       The connection id
+     * @param dropRequestId      The drop request id
      * @return A dropRequestEntity
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/drop-requests/{drop-request-id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Cancels and/or removes a request to drop the contents of this connection.",
             response = DropRequestEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write Source Data - /data/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeDropRequest(

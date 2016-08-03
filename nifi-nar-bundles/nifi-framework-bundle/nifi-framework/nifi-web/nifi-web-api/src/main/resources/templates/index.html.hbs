@@ -425,30 +425,34 @@
                         var endpoints = $(this);
                         var path = endpoints.find('div.path').text();
                         
-                        if (term === null || path.indexOf(term) > 0) {
+                        if (term === null || path.indexOf(term) === 0) {
                             endpoints.detach().appendTo(container);
                         }
                     });
                 };
                 
                 // organize the endpoints
-                organizeEndpoints('cluster', $('#cluster-endpoints'));
-                organizeEndpoints('provenance', $('#provenance-endpoints'));
-                organizeEndpoints('user', $('#user-endpoints'));
-                organizeEndpoints('controller-services', $('#controller-service-endpoints'));
-                organizeEndpoints('reporting-tasks', $('#reporting-task-endpoints'));
-                organizeEndpoints('connections', $('#connection-endpoints'));
-                organizeEndpoints('processors', $('#processor-endpoints'));
-                organizeEndpoints('funnels', $('#funnel-endpoints'));
-                organizeEndpoints('remote-process-groups', $('#remote-process-group-endpoints'));
-                organizeEndpoints('input-ports', $('#input-port-endpoints'));
-                organizeEndpoints('output-ports', $('#output-port-endpoints'));
-                organizeEndpoints('labels', $('#label-endpoints'));
-                organizeEndpoints('process-groups', $('#process-group-endpoints'));
-                organizeEndpoints('history', $('#history-endpoints'));
-                organizeEndpoints('access', $('#access-endpoints'));
+                organizeEndpoints('/process-groups', $('#process-group-endpoints'));
+                organizeEndpoints('/controller-services', $('#controller-service-endpoints'));
+                organizeEndpoints('/reporting-tasks', $('#reporting-task-endpoints'));
+                organizeEndpoints('/counters', $('#counter-endpoints'));
+                organizeEndpoints('/controller', $('#controller-endpoints'));
+                organizeEndpoints('/connections', $('#connection-endpoints'));
+                organizeEndpoints('/flowfile-queue', $('#flowfile-queue-endpoints'));
+                organizeEndpoints('/processors', $('#processor-endpoints'));
+                organizeEndpoints('/funnels', $('#funnel-endpoints'));
+                organizeEndpoints('/remote-process-groups', $('#remote-process-group-endpoints'));
+                organizeEndpoints('/input-ports', $('#input-port-endpoints'));
+                organizeEndpoints('/output-ports', $('#output-port-endpoints'));
+                organizeEndpoints('/labels', $('#label-endpoints'));
+                organizeEndpoints('/access', $('#access-endpoints'));
+                organizeEndpoints('/flow', $('#flow-endpoints'));
+                organizeEndpoints('/provenance', $('#provenance-endpoints'));
                 organizeEndpoints(null, $('#controller-endpoints'));
-                
+
+//
+//                organizeEndpoints('user', $('#user-endpoints'));
+
                 
                 // handle expanding/collapsing the sections
                 $('div.section-header > div.title').on('click', function() {
@@ -465,7 +469,7 @@
             <div class="clear"></div>
         </div>
         <div class="clear"></div>
-        <div class="overview">{{info.description}}</div>
+        <div class="overview">{{{info.description}}}</div>
         <div class="section">
             <div class="section-header">
                 <div class="title link">Access</div>
@@ -476,11 +480,27 @@
         </div>
         <div class="section">
             <div class="section-header">
+                <div class="title link">Flow</div>
+                <div class="sub-title section-description">Get the data flow, Obtain component status, Query history</div>
+                <div class="clear"></div>
+            </div>
+            <div id="flow-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
                 <div class="title link">Controller</div>
                 <div class="sub-title section-description">Get controller configuration, Search the flow, Manage templates, System diagnostics</div>
                 <div class="clear"></div>
             </div>
             <div id="controller-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Counters</div>
+                <div class="sub-title section-description">Get counters, Reset counters</div>
+                <div class="clear"></div>
+            </div>
+            <div id="counter-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
@@ -505,6 +525,14 @@
                 <div class="clear"></div>
             </div>
             <div id="connection-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">FlowFile Queues</div>
+                <div class="sub-title section-description">View queue contents, Download FlowFile content, Empty queue</div>
+                <div class="clear"></div>
+            </div>
+            <div id="flowfile-queue-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
@@ -564,27 +592,11 @@
         </div>
         <div class="section">
             <div class="section-header">
-                <div class="title link">Cluster</div>
-                <div class="sub-title section-description">View node status, Disconnect nodes, Aggregate component status</div>
-                <div class="clear"></div>
-            </div>
-            <div id="cluster-endpoints" class="section-endpoints hidden"></div>
-        </div>
-        <div class="section">
-            <div class="section-header">
                 <div class="title link">Provenance</div>
                 <div class="sub-title section-description">Query provenance, Search event lineage, Download content, Replay</div>
                 <div class="clear"></div>
             </div>
             <div id="provenance-endpoints" class="section-endpoints hidden"></div>
-        </div>
-        <div class="section">
-            <div class="section-header">
-                <div class="title link">History</div>
-                <div class="sub-title section-description">View flow history, Purge flow history</div>
-                <div class="clear"></div>
-            </div>
-            <div id="history-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">

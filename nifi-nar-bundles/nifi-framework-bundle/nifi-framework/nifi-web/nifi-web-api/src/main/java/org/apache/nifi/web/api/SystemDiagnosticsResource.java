@@ -58,8 +58,8 @@ import java.util.Set;
  */
 @Path("/system-diagnostics")
 @Api(
-    value = "/system-diagnostics",
-    description = "Endpoint for accessing system diagnostics."
+        value = "/system-diagnostics",
+        description = "Endpoint for accessing system diagnostics."
 )
 public class SystemDiagnosticsResource extends ApplicationResource {
 
@@ -69,7 +69,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     private void authorizeSystem() {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -78,13 +78,13 @@ public class SystemDiagnosticsResource extends ApplicationResource {
         }
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
-            .resource(ResourceFactory.getSystemResource())
-            .identity(user.getIdentity())
-            .anonymous(user.isAnonymous())
-            .accessAttempt(true)
-            .action(RequestAction.READ)
-            .userContext(userContext)
-            .build();
+                .resource(ResourceFactory.getSystemResource())
+                .identity(user.getIdentity())
+                .anonymous(user.isAnonymous())
+                .accessAttempt(true)
+                .action(RequestAction.READ)
+                .userContext(userContext)
+                .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
         if (!Result.Approved.equals(result.getResult())) {
@@ -102,32 +102,29 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the diagnostics for the system NiFi is running on",
             response = SystemDiagnosticsEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /system", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),}
     )
     public Response getSystemDiagnostics(
             @ApiParam(
-                value = "Whether or not to include the breakdown per node. Optional, defaults to false",
-                required = false
+                    value = "Whether or not to include the breakdown per node. Optional, defaults to false",
+                    required = false
             )
             @QueryParam("nodewise") @DefaultValue(NODEWISE) final Boolean nodewise,
             @ApiParam(
-                value = "The id of the node where to get the status.",
-                required = false
+                    value = "The id of the node where to get the status.",
+                    required = false
             )
-        @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
+            @QueryParam("clusterNodeId") final String clusterNodeId) throws InterruptedException {
 
         authorizeSystem();
 
@@ -174,6 +171,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

@@ -87,8 +87,8 @@ import java.util.concurrent.TimeUnit;
  */
 @Path("/access")
 @Api(
-    value = "/access",
-    description = "Endpoints for obtaining an access token or checking access status."
+        value = "/access",
+        description = "Endpoints for obtaining an access token or checking access status."
 )
 public class AccessResource extends ApplicationResource {
 
@@ -111,7 +111,7 @@ public class AccessResource extends ApplicationResource {
      * Authorizes access to the flow.
      */
     private boolean hasFlowAccess(final NiFiUser user) {
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -173,6 +173,7 @@ public class AccessResource extends ApplicationResource {
     @Path("")
     @ApiOperation(
             value = "Gets the status the client's access",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = AccessStatusEntity.class
     )
     @ApiResponses(

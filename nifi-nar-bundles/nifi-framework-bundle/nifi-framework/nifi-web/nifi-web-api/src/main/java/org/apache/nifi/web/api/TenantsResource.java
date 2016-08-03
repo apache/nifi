@@ -122,12 +122,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -205,14 +205,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -262,14 +260,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all users",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UsersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -322,12 +318,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -411,12 +407,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -462,7 +458,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
-                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -508,12 +504,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -591,14 +587,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -648,14 +642,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all user groups",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -707,12 +699,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -796,12 +788,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -847,7 +839,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
-                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -872,14 +864,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-results")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Searches the cluster for a node with the specified address",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = ClusterSearchResultsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "DFM", type = "ROLE_DFM"),
-                    @Authorization(value = "Admin", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
