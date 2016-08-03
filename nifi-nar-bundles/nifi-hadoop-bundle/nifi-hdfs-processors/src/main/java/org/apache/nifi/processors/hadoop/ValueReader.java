@@ -61,7 +61,7 @@ public class ValueReader implements SequenceFileReader<Set<FlowFile>> {
     public Set<FlowFile> readSequenceFile(final Path file, Configuration configuration, FileSystem fileSystem) throws IOException {
 
         Set<FlowFile> flowFiles = new HashSet<>();
-        final SequenceFile.Reader reader = new SequenceFile.Reader(fileSystem, file, configuration);
+        final SequenceFile.Reader reader = new SequenceFile.Reader(configuration, Reader.file(fileSystem.makeQualified(file)));
         final String inputfileName = file.getName() + "." + System.nanoTime() + ".";
         int counter = 0;
         LOG.debug("Reading from sequence file {}", new Object[]{file});
