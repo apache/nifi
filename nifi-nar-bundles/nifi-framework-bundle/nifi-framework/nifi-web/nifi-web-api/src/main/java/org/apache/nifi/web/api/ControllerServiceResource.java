@@ -96,9 +96,7 @@ public class ControllerServiceResource extends ApplicationResource {
      */
     public Set<ControllerServiceEntity> populateRemainingControllerServiceEntitiesContent(final Set<ControllerServiceEntity> controllerServiceEntities) {
         for (ControllerServiceEntity controllerServiceEntity : controllerServiceEntities) {
-            if (controllerServiceEntity.getComponent() != null) {
-                populateRemainingControllerServiceEntityContent(controllerServiceEntity);
-            }
+            populateRemainingControllerServiceEntityContent(controllerServiceEntity);
         }
         return controllerServiceEntities;
     }
