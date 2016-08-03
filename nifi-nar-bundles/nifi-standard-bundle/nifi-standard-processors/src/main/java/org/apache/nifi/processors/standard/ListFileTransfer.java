@@ -66,12 +66,6 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .defaultValue(".")
         .build();
 
-    public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
-    public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
-    public static final String FILE_GROUP_ATTRIBUTE = "file.group";
-    public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
-    public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
-
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
@@ -79,11 +73,11 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         attributes.put(getProtocolName() + ".remote.port", context.getProperty(UNDEFAULTED_PORT).evaluateAttributeExpressions().getValue());
         attributes.put(getProtocolName() + ".listing.user", context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
         if (fileInfo != null) {
-            final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
-            attributes.put(FILE_PERMISSIONS_ATTRIBUTE, fileInfo.getPermissions());
-            attributes.put(FILE_OWNER_ATTRIBUTE, fileInfo.getOwner());
-            attributes.put(FILE_GROUP_ATTRIBUTE, fileInfo.getGroup());
+            final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+            attributes.put(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
+            attributes.put(ListFile.FILE_PERMISSIONS_ATTRIBUTE, fileInfo.getPermissions());
+            attributes.put(ListFile.FILE_OWNER_ATTRIBUTE, fileInfo.getOwner());
+            attributes.put(ListFile.FILE_GROUP_ATTRIBUTE, fileInfo.getGroup());
             attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
             final String fullPath = fileInfo.getFullPathFileName();
             if (fullPath != null) {
