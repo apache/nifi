@@ -1082,8 +1082,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         snippet.getOutputPorts().keySet().forEach(id -> snippetResources.add(outputPortDAO.getPort(id).getResource()));
         snippet.getFunnels().keySet().forEach(id -> snippetResources.add(funnelDAO.getFunnel(id).getResource()));
         snippet.getLabels().keySet().forEach(id -> snippetResources.add(labelDAO.getLabel(id).getResource()));
-        snippet.getProcessGroups().keySet().forEach(id -> snippetResources.add(processGroupDAO.getProcessGroup(id).getResource()));
         snippet.getRemoteProcessGroups().keySet().forEach(id -> snippetResources.add(remoteProcessGroupDAO.getRemoteProcessGroup(id).getResource()));
+        snippet.getProcessGroups().keySet().forEach(id -> {
+            final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
+
+            // add the process group
+            snippetResources.add(processGroup.getResource());
+
+            // add each encapsulated component
+            processGroup.findAllProcessors().forEach(processor -> snippetResources.add(processor.getResource()));
+            processGroup.findAllInputPorts().forEach(inputPort -> snippetResources.add(inputPort.getResource()));
+            processGroup.findAllOutputPorts().forEach(outputPort -> snippetResources.add(outputPort.getResource()));
+            processGroup.findAllFunnels().forEach(funnel -> snippetResources.add(funnel.getResource()));
+            processGroup.findAllLabels().forEach(label -> snippetResources.add(label.getResource()));
+            processGroup.findAllProcessGroups().forEach(childGroup -> snippetResources.add(childGroup.getResource()));
+            processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> snippetResources.add(remoteProcessGroup.getResource()));
+            processGroup.findAllTemplates().forEach(template -> snippetResources.add(template.getResource()));
+            processGroup.findAllControllerServices().forEach(controllerService -> snippetResources.add(controllerService.getResource()));
+        });
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim claim = new StandardRevisionClaim(revisions);
@@ -1139,12 +1155,28 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ProcessGroupEntity deleteProcessGroup(final Revision revision, final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
+
+        // grab the resources in the snippet so we can delete the policies afterwards
+        final Set<Resource> groupResources = new HashSet<>();
+        processGroup.findAllProcessors().forEach(processor -> groupResources.add(processor.getResource()));
+        processGroup.findAllInputPorts().forEach(inputPort -> groupResources.add(inputPort.getResource()));
+        processGroup.findAllOutputPorts().forEach(outputPort -> groupResources.add(outputPort.getResource()));
+        processGroup.findAllFunnels().forEach(funnel -> groupResources.add(funnel.getResource()));
+        processGroup.findAllLabels().forEach(label -> groupResources.add(label.getResource()));
+        processGroup.findAllProcessGroups().forEach(childGroup -> groupResources.add(childGroup.getResource()));
+        processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> groupResources.add(remoteProcessGroup.getResource()));
+        processGroup.findAllTemplates().forEach(template -> groupResources.add(template.getResource()));
+        processGroup.findAllControllerServices().forEach(controllerService -> groupResources.add(controllerService.getResource()));
+
         final ProcessGroupDTO snapshot = deleteComponent(
                 revision,
                 processGroup.getResource(),
                 () -> processGroupDAO.deleteProcessGroup(groupId),
                 true,
                 dtoFactory.createProcessGroupDto(processGroup));
+
+        // delete all applicable component policies
+        groupResources.forEach(groupResource -> cleanUpPolicies(groupResource));
 
         return entityFactory.createProcessGroupEntity(snapshot, null, null, null, null);
     }
@@ -2746,7 +2778,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     authorizable = authorizableLookup.getOutputPort(sourceId);
                     break;
                 case ProcessGroup:
-                    authorizable = authorizableLookup.getProcessGroup(sourceId);
+                    authorizable = authorizableLookup.getProcessGroup(sourceId).getAuthorizable();
                     break;
                 case RemoteProcessGroup:
                     authorizable = authorizableLookup.getRemoteProcessGroup(sourceId);

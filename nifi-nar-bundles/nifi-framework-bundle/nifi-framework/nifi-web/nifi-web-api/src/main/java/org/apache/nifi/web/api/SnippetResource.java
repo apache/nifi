@@ -230,13 +230,13 @@ public class SnippetResource extends ApplicationResource {
         // get the revision from this snippet
         final Set<Revision> revisions = serviceFacade.getRevisionsFromSnippet(snippetId);
         return withWriteLock(
-                serviceFacade,
-                revisions,
-                lookup -> {
-                    // ensure write access to the target process group
-                    if (requestSnippetDTO.getParentGroupId() != null) {
-                        lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                    }
+            serviceFacade,
+            revisions,
+            lookup -> {
+                // ensure write access to the target process group
+                if (requestSnippetDTO.getParentGroupId() != null) {
+                    lookup.getProcessGroup(requestSnippetDTO.getParentGroupId()).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                }
 
                     // ensure write permission to every component in the snippet
                     final Snippet snippet = lookup.getSnippet(snippetId);
