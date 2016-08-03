@@ -70,8 +70,6 @@
 /* general */
 
 #general-process-group-configuration input, #general-process-group-configuration textarea {
-    font-size: 11px !important;
-    font-family: Verdana;
     width: 350px;
     vertical-align: middle;
 }

@@ -27,7 +27,6 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         maxResults: 1000,
         defaultStartTime: '00:00:00',
         defaultEndTime: '23:59:59',
-        filterText: 'Filter',
         styles: {
             filterList: 'provenance-filter-list',
             hidden: 'hidden'
@@ -521,13 +520,13 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
             applyFilter();
         }).focus(function () {
             if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
+                $(this).removeClass(config.styles.filterList);
             }
         }).blur(function () {
             if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
+                $(this).addClass(config.styles.filterList);
             }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        }).addClass(config.styles.filterList);
 
         // filter options
         var filterOptions = [{

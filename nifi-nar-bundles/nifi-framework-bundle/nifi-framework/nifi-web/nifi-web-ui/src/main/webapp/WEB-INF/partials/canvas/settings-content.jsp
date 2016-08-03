@@ -20,10 +20,10 @@
     <div class="settings-container">
         <div>
             <div id="settings-tabs" class="settings-tabs tab-container"></div>
-            <button id="new-service-or-task" class="add-button fa fa-plus"></button>
             <div class="clear"></div>
         </div>
         <div id="settings-tabs-content">
+            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a new controller service" style="display: block;"></button>
             <div id="general-settings-tab-content" class="configuration-tab">
                 <div id="general-settings">
                     <div class="setting">
