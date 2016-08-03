@@ -1027,32 +1027,43 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 controllerFacade.save();
                 logger.debug("Deletion of component {} was successful", resource.getIdentifier());
 
-                // clean up the policy if necessary and configured with a policy based authorizer
-                if (cleanUpPolicies && accessPolicyDAO.supportsConfigurableAuthorizer()) {
-                    final List<Resource> resources = new ArrayList<>();
-                    resources.add(resource);
-                    resources.add(ResourceFactory.getDataResource(resource));
-                    resources.add(ResourceFactory.getDataTransferResource(resource));
-                    resources.add(ResourceFactory.getPolicyResource(resource));
-
-                    for (final Resource resource : resources) {
-                        for (final RequestAction action : RequestAction.values()) {
-                            try {
-                                // since the component is being deleted, also delete any relevant access policies
-                                final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(action, resource.getIdentifier());
-                                if (readPolicy != null) {
-                                    accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
-                                }
-                            } catch (final Exception e) {
-                                logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", action, resource.getIdentifier()), e);
-                            }
-                        }
-                    }
+                if (cleanUpPolicies) {
+                    cleanUpPolicies(resource);
                 }
 
                 return dto;
             }
         });
+    }
+
+    /**
+     * Clean up the policies for the specified component resource.
+     *
+     * @param componentResource the resource for the component
+     */
+    private void cleanUpPolicies(final Resource componentResource) {
+        // ensure the authorizer supports configuration
+        if (accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            final List<Resource> resources = new ArrayList<>();
+            resources.add(componentResource);
+            resources.add(ResourceFactory.getDataResource(componentResource));
+            resources.add(ResourceFactory.getDataTransferResource(componentResource));
+            resources.add(ResourceFactory.getPolicyResource(componentResource));
+
+            for (final Resource resource : resources) {
+                for (final RequestAction action : RequestAction.values()) {
+                    try {
+                        // since the component is being deleted, also delete any relevant access policies
+                        final AccessPolicy readPolicy = accessPolicyDAO.getAccessPolicy(action, resource.getIdentifier());
+                        if (readPolicy != null) {
+                            accessPolicyDAO.deleteAccessPolicy(readPolicy.getIdentifier());
+                        }
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to remove access policy for %s %s after component removal.", action, resource.getIdentifier()), e);
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -1063,6 +1074,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public SnippetEntity deleteSnippet(final Set<Revision> revisions, final String snippetId) {
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
+
+        // grab the resources in the snippet so we can delete the policies afterwards
+        final Set<Resource> snippetResources = new HashSet<>();
+        snippet.getProcessors().keySet().forEach(id -> snippetResources.add(processorDAO.getProcessor(id).getResource()));
+        snippet.getInputPorts().keySet().forEach(id -> snippetResources.add(inputPortDAO.getPort(id).getResource()));
+        snippet.getOutputPorts().keySet().forEach(id -> snippetResources.add(outputPortDAO.getPort(id).getResource()));
+        snippet.getFunnels().keySet().forEach(id -> snippetResources.add(funnelDAO.getFunnel(id).getResource()));
+        snippet.getLabels().keySet().forEach(id -> snippetResources.add(labelDAO.getLabel(id).getResource()));
+        snippet.getProcessGroups().keySet().forEach(id -> snippetResources.add(processGroupDAO.getProcessGroup(id).getResource()));
+        snippet.getRemoteProcessGroups().keySet().forEach(id -> snippetResources.add(remoteProcessGroupDAO.getRemoteProcessGroup(id).getResource()));
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim claim = new StandardRevisionClaim(revisions);
@@ -1082,6 +1103,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 return dtoFactory.createSnippetDto(snippet);
             }
         });
+
+        // clean up component policies
+        snippetResources.forEach(resource -> cleanUpPolicies(resource));
 
         return entityFactory.createSnippetEntity(dto);
     }
