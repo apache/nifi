@@ -28,6 +28,10 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.attribute.DosFileAttributeView;
+import java.nio.file.attribute.FileOwnerAttributeView;
+import java.nio.file.attribute.PosixFileAttributeView;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -356,7 +360,7 @@ public class TestListFile {
         fos = new FileOutputStream(file2);
         fos.close();
         FileStore store = Files.getFileStore(file2.toPath());
-        if (store.supportsFileAttributeView("dos")) {
+        if (store.supportsFileAttributeView(DosFileAttributeView.class)) {
             Files.setAttribute(file2.toPath(), "dos:hidden", true);
         }
 
@@ -627,7 +631,6 @@ public class TestListFile {
         fos.close();
         assertTrue(file1.setLastModified(time3millis));
         Long time3rounded = time3millis - time3millis % 1000;
-        String userName = System.getProperty("user.name");
 
         // validate the file transferred
         runner.clearTransferState();
@@ -664,17 +667,29 @@ public class TestListFile {
         assertEquals("1234", mock1.getAttribute(ListFile.FILE_SIZE_ATTRIBUTE));
 
         // check attributes dependent on views supported
-        if (store.supportsFileAttributeView("basic")) {
+        if (store.supportsFileAttributeView(BasicFileAttributeView.class)) {
             assertEquals(time3Formatted, mock1.getAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE));
             assertNotNull(mock1.getAttribute(ListFile.FILE_CREATION_TIME_ATTRIBUTE));
             assertNotNull(mock1.getAttribute(ListFile.FILE_LAST_ACCESS_TIME_ATTRIBUTE));
         }
-        if (store.supportsFileAttributeView("owner")) {
+
+        if (store.supportsFileAttributeView(FileOwnerAttributeView.class)) {
+            String userName = System.getProperty("user.name");
             // look for username containment to handle Windows domains as well as Unix user names
-            // org.junit.ComparisonFailure: expected:<[]username> but was:<[DOMAIN\]username>
+            // org.junit.ComparisonFailure: /expected:<[]username> but was:<[DOMAIN\]username>
+            if (userName == null) {
+                FileOwnerAttributeView view = Files.getFileAttributeView(file1Path, FileOwnerAttributeView.class);
+                userName = view.getOwner().getName();
+                runner.getLogger().debug("user.name from file is " + userName);
+            }
+            else {
+                runner.getLogger().debug("user.name from system is " + userName);
+            }
+            assertNotNull(userName);
+            assertNotNull(mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE));
             assertTrue(mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE).contains(userName));
         }
-        if (store.supportsFileAttributeView("posix")) {
+        if (store.supportsFileAttributeView(PosixFileAttributeView.class)) {
             assertNotNull("Group name should be set", mock1.getAttribute(ListFile.FILE_GROUP_ATTRIBUTE));
             assertNotNull("File permissions should be set", mock1.getAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE));
         }
