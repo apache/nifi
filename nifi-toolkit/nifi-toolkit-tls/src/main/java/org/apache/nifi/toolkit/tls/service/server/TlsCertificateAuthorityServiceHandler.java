@@ -27,11 +27,14 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
@@ -43,6 +46,7 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
     public static final String CSR_FIELD_MUST_BE_SET = "csr field must be set";
     public static final String HMAC_FIELD_MUST_BE_SET = "hmac field must be set";
     public static final String FORBIDDEN = "forbidden";
+    private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityServiceHandler.class);
     private final String signingAlgorithm;
     private final int days;
     private final String token;
@@ -65,12 +69,12 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
             TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = objectMapper.readValue(new BoundedReader(request.getReader(), 1024 * 1024), TlsCertificateAuthorityRequest.class);
 
             if (!tlsCertificateAuthorityRequest.hasHmac()) {
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(HMAC_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
+                writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(HMAC_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
                 return;
             }
 
             if (!tlsCertificateAuthorityRequest.hasCsr()) {
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(CSR_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
+                writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(CSR_FIELD_MUST_BE_SET), Response.SC_BAD_REQUEST);
                 return;
             }
 
@@ -80,11 +84,11 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
             if (MessageDigest.isEqual(expectedHmac, tlsCertificateAuthorityRequest.getHmac())) {
                 X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(jcaPKCS10CertificationRequest.getSubject().toString(),
                         jcaPKCS10CertificationRequest.getPublicKey(), caCert, keyPair, signingAlgorithm, days);
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(TlsHelper.calculateHMac(token, caCert.getPublicKey()),
+                writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(TlsHelper.calculateHMac(token, caCert.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);
                 return;
             } else {
-                writeResponse(objectMapper, response, new TlsCertificateAuthorityResponse(FORBIDDEN), Response.SC_FORBIDDEN);
+                writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(FORBIDDEN), Response.SC_FORBIDDEN);
                 return;
             }
         } catch (Exception e) {
@@ -94,12 +98,20 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
         }
     }
 
-    private void writeResponse(ObjectMapper objectMapper, HttpServletResponse response, TlsCertificateAuthorityResponse tlsCertificateAuthorityResponse, int responseCode) throws IOException {
+    private void writeResponse(ObjectMapper objectMapper, HttpServletRequest request, HttpServletResponse response, TlsCertificateAuthorityResponse tlsCertificateAuthorityResponse,
+                               int responseCode) throws IOException {
+        if (logger.isInfoEnabled()) {
+            logger.info(new StringBuilder("Returning code:").append(responseCode).append(" payload ").append(objectMapper.writeValueAsString(tlsCertificateAuthorityResponse))
+                    .append(" to ").append(request.getRemoteHost()).toString());
+        }
         if (responseCode == Response.SC_OK) {
             objectMapper.writeValue(response.getWriter(), tlsCertificateAuthorityResponse);
             response.setStatus(responseCode);
         } else {
-            response.sendError(responseCode, objectMapper.writeValueAsString(tlsCertificateAuthorityResponse));
+            response.setStatus(responseCode);
+            response.setContentType("application/json");
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            objectMapper.writeValue(response.getWriter(), tlsCertificateAuthorityResponse);
         }
     }
 }

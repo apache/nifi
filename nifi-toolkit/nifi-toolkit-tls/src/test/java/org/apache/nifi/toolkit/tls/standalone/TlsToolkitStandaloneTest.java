@@ -177,12 +177,12 @@ public class TlsToolkitStandaloneTest {
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
-        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_PRIVATE_KEY));
+        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_PRIVATE_KEY + ".key"));
 
         assertEquals(algorithm, keyPair.getPrivate().getAlgorithm());
         assertEquals(algorithm, keyPair.getPublic().getAlgorithm());
 
-        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_CRT));
+        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_CRT + ".pem"));
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
         return x509Certificate;
     }

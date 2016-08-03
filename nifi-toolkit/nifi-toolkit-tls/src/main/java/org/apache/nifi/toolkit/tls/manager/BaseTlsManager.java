@@ -124,14 +124,10 @@ public class BaseTlsManager {
         KeyStore result = getInstance(keyStoreType);
         File file = new File(keyStore);
         if (file.exists()) {
-            try {
-                try (InputStream stream = inputStreamFactory.create(file)) {
-                    result.load(stream, keyStorePassword.toCharArray());
-                }
-                return result;
-            } catch (Exception e) {
-                result = getInstance(keyStoreType);
+            try (InputStream stream = inputStreamFactory.create(file)) {
+                result.load(stream, keyStorePassword.toCharArray());
             }
+            return result;
         }
         result.load(null, null);
         return result;

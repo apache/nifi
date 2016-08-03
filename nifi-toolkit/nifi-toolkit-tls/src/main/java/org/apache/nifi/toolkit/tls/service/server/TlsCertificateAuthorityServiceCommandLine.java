@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -79,5 +80,29 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
             tlsConfig.setDays(getDays());
             return tlsConfig;
         }
+    }
+
+    @Override
+    protected String getTokenDescription() {
+        return "The token to use to prevent MITM (required and must be same as one used by clients)";
+    }
+
+    @Override
+    protected String getDnDescription()  {
+        return "The dn to use for the CA certificate";
+    }
+
+    @Override
+    protected String getPortDescription() {
+        return "The port for the Certificate Authority to listen on";
+    }
+
+    @Override
+    protected String getDnHostname() {
+        String dnHostname = getCertificateAuthorityHostname();
+        if (StringUtils.isEmpty(dnHostname)) {
+            return "YOUR_CA_HOSTNAME";
+        }
+        return dnHostname;
     }
 }

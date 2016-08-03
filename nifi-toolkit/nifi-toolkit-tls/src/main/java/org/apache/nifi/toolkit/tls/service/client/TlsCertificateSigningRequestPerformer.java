@@ -34,6 +34,8 @@ import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.eclipse.jetty.server.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -51,6 +53,7 @@ public class TlsCertificateSigningRequestPerformer {
     public static final String EXPECTED_RESPONSE_TO_CONTAIN_HMAC = "Expected response to contain hmac";
     public static final String UNEXPECTED_HMAC_RECEIVED_POSSIBLE_MAN_IN_THE_MIDDLE = "Unexpected hmac received, possible man in the middle";
     public static final String EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE = "Expected response to contain certificate";
+    private final Logger logger = LoggerFactory.getLogger(TlsCertificateSigningRequestPerformer.class);
     private final Supplier<HttpClientBuilder> httpClientBuilderSupplier;
     private final String caHostname;
     private final String dn;
@@ -106,6 +109,9 @@ public class TlsCertificateSigningRequestPerformer {
                 HttpPost httpPost = new HttpPost();
                 httpPost.setEntity(new ByteArrayEntity(objectMapper.writeValueAsBytes(tlsCertificateAuthorityRequest)));
 
+                if (logger.isInfoEnabled()) {
+                    logger.info("Requesting certificate with dn " + dn + " from " + caHostname + ":" + port);
+                }
                 try (CloseableHttpResponse response = client.execute(new HttpHost(caHostname, port, "https"), httpPost)) {
                     jsonResponseString = IOUtils.toString(new BoundedInputStream(response.getEntity().getContent(), 1024 * 1024), StandardCharsets.UTF_8);
                     responseCode = response.getStatusLine().getStatusCode();
@@ -137,6 +143,9 @@ public class TlsCertificateSigningRequestPerformer {
             }
             X509Certificate x509Certificate = TlsHelper.parseCertificate(tlsCertificateAuthorityResponse.getPemEncodedCertificate());
             x509Certificate.verify(caCertificate.getPublicKey());
+            if (logger.isInfoEnabled()) {
+                logger.info("Got certificate with dn " + x509Certificate.getSubjectDN());
+            }
             return new X509Certificate[]{x509Certificate, caCertificate};
         } catch (IOException e) {
             throw e;

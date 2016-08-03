@@ -90,7 +90,6 @@ public class TlsToolkitMain {
         } catch (IllegalAccessException e) {
             printUsageAndExit("Service " + service + " has invalid main method.", ExitCode.SERVICE_ERROR);
         } catch (InvocationTargetException e) {
-            e.printStackTrace();
             printUsageAndExit("Service " + service + " error: " + e.getCause().getMessage(), ExitCode.SERVICE_ERROR);
         }
         return;

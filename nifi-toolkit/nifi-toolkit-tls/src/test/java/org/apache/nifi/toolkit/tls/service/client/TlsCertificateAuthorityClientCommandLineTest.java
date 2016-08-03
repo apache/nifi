@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.InetAddress;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -58,13 +59,13 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         TlsClientConfig clientConfig = tlsCertificateAuthorityClientCommandLine.createClientConfig();
 
         assertEquals(TlsConfig.DEFAULT_HOSTNAME, clientConfig.getCaHostname());
-        Assert.assertEquals(TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME), clientConfig.getDn());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsCertificateAuthorityClientCommandLine.PKCS_12.toLowerCase(), clientConfig.getKeyStore());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.PKCS_12, clientConfig.getKeyStoreType());
+        Assert.assertEquals(TlsConfig.calcDefaultDn(InetAddress.getLocalHost().getHostName()), clientConfig.getDn());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.KEYSTORE + TlsConfig.DEFAULT_KEY_STORE_TYPE.toLowerCase(), clientConfig.getKeyStore());
+        assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, clientConfig.getKeyStoreType());
         assertNull(clientConfig.getKeyStorePassword());
         assertNull(clientConfig.getKeyPassword());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + TlsCertificateAuthorityClientCommandLine.PKCS_12.toLowerCase(), clientConfig.getTrustStore());
-        assertEquals(TlsCertificateAuthorityClientCommandLine.PKCS_12, clientConfig.getTrustStoreType());
+        assertEquals(TlsCertificateAuthorityClientCommandLine.TRUSTSTORE + TlsConfig.DEFAULT_KEY_STORE_TYPE.toLowerCase(), clientConfig.getTrustStore());
+        assertEquals(TlsConfig.DEFAULT_KEY_STORE_TYPE, clientConfig.getTrustStoreType());
         assertNull(clientConfig.getTrustStorePassword());
         assertEquals(TlsConfig.DEFAULT_KEY_SIZE, clientConfig.getKeySize());
         assertEquals(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM, clientConfig.getKeyPairAlgorithm());

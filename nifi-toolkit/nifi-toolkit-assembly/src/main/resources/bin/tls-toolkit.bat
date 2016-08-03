@@ -31,7 +31,7 @@ set JAVA_EXE=java
 goto startConfig
 
 :startConfig
-set LIB_DIR=%~dp0..\lib
+set LIB_DIR=%~dp0..\classpath;%~dp0..\lib
 
 SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.toolkit.tls.service.server.TlsCertificateAuthorityService
 

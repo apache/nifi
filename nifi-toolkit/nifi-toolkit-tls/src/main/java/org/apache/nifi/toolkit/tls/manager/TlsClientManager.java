@@ -97,7 +97,7 @@ public class TlsClientManager extends BaseTlsManager {
                     KeyStore.Entry trustStoreEntry = trustStore.getEntry(alias, null);
                     if (trustStoreEntry instanceof KeyStore.TrustedCertificateEntry) {
                         Certificate trustedCertificate = ((KeyStore.TrustedCertificateEntry) trustStoreEntry).getTrustedCertificate();
-                        try (OutputStream outputStream = outputStreamFactory.create(new File(certificateAuthorityDirectory, alias));
+                        try (OutputStream outputStream = outputStreamFactory.create(new File(certificateAuthorityDirectory, alias + ".pem"));
                              OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
                              PemWriter pemWriter = new PemWriter(outputStreamWriter)) {
                             pemWriter.writeObject(new JcaMiscPEMGenerator(trustedCertificate));

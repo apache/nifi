@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.writer.JsonConfigurationWriter;
+import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.eclipse.jetty.http.HttpVersion;
 import org.eclipse.jetty.server.Handler;
@@ -31,6 +32,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,6 +47,7 @@ import java.security.cert.X509Certificate;
  * Starts a Jetty server that will either load an existing CA or create one and use it to sign CSRs
  */
 public class TlsCertificateAuthorityService {
+    private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityService.class);
     private final OutputStreamFactory outputStreamFactory;
     private Server server;
 
@@ -80,7 +84,14 @@ public class TlsCertificateAuthorityService {
             throw new IllegalStateException("Server already started");
         }
         ObjectMapper objectMapper = new ObjectMapper();
-        TlsCertificateAuthorityManager tlsManager = new TlsCertificateAuthorityManager(tlsConfig);
+        TlsCertificateAuthorityManager tlsManager;
+        try {
+            tlsManager = new TlsCertificateAuthorityManager(tlsConfig);
+        } catch (IOException e) {
+            logger.error("Unable to open existing keystore, it can be reused by specifiying both " + BaseCertificateAuthorityCommandLine.CONFIG_JSON_ARG + " and " +
+                    BaseCertificateAuthorityCommandLine.USE_CONFIG_JSON_ARG);
+            throw e;
+        }
         tlsManager.addConfigurationWriter(new JsonConfigurationWriter<>(objectMapper, outputStreamFactory, new File(configJson)));
 
         KeyStore.PrivateKeyEntry privateKeyEntry = tlsManager.getOrGenerateCertificateAuthority();

@@ -28,6 +28,8 @@ import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -46,6 +48,7 @@ public class TlsToolkitStandalone {
     public static final String ROOT_CERT_CRT = "rootCert.crt";
     public static final String NIFI_PROPERTIES = "nifi.properties";
 
+    private final Logger logger = LoggerFactory.getLogger(TlsToolkitStandalone.class);
     private final OutputStreamFactory outputStreamFactory;
 
     public TlsToolkitStandalone() {
@@ -67,11 +70,23 @@ public class TlsToolkitStandalone {
         X509Certificate certificate = (X509Certificate) privateKeyEntry.getCertificateChain()[0];
         KeyPair caKeyPair = new KeyPair(certificate.getPublicKey(), privateKeyEntry.getPrivateKey());
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_CRT))))) {
+        if (!baseDir.exists() && !baseDir.mkdirs()) {
+            throw new IOException(baseDir + " doesn't exist and unable to create it.");
+        }
+
+        if (!baseDir.isDirectory() || baseDir.listFiles().length != 0) {
+            throw new IOException("Expected empty directory to output to");
+        }
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Running standalone certificate generation with output directory " + baseDir + " and hostnames " + hostnames);
+        }
+
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_CRT + ".pem"))))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(certificate));
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_PRIVATE_KEY))))) {
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_PRIVATE_KEY + ".key"))))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(caKeyPair));
         }
 
@@ -94,8 +109,13 @@ public class TlsToolkitStandalone {
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(TlsConfig.calcDefaultDn(hostname),
                     keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
-            tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"), httpsPort));
+            tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"),
+                    hostname, httpsPort));
             tlsClientManager.write(outputStreamFactory);
+        }
+
+        if (logger.isInfoEnabled()) {
+            logger.info("Successfully generated TLS configuration");
         }
     }
 }

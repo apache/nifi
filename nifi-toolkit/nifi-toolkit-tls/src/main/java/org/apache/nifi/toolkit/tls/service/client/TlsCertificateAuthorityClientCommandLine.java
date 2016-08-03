@@ -25,19 +25,23 @@ import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAuthorityCommandLine {
     public static final String DESCRIPTION = "Generates a private key and gets it signed by the certificate authority.";
-    public static final String PKCS_12 = "PKCS12";
     public static final String CERTIFICATE_DIRECTORY = "certificateDirectory";
     public static final String DEFAULT_CERTIFICATE_DIRECTORY = ".";
     public static final String SAME_KEY_AND_KEY_STORE_PASSWORD_ARG = "sameKeyAndKeyStorePassword";
 
+    private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityClientCommandLine.class);
     private final InputStreamFactory inputStreamFactory;
 
     private String certificateDirectory;
@@ -79,8 +83,28 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     }
 
     @Override
-    protected String getKeyStoreTypeDefault() {
-        return PKCS_12;
+    protected String getTokenDescription() {
+        return "The token to use to prevent MITM (required and must be same as one used by CA)";
+    }
+
+    @Override
+    protected String getDnDescription() {
+        return "The dn to use for the client certificate";
+    }
+
+    @Override
+    protected String getPortDescription() {
+        return "The port to use to communicate with the Certificate Authority";
+    }
+
+    @Override
+    protected String getDnHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+            logger.warn("Unable to determine hostname", e);
+            return "localhost";
+        }
     }
 
     @Override

@@ -26,13 +26,13 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 
-public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
+public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
     public static final String TOKEN_ARG = "token";
     public static final String CONFIG_JSON_ARG = "configJson";
     public static final String USE_CONFIG_JSON_ARG = "useConfigJson";
     public static final String PORT_ARG = "PORT";
 
-    public static final String DEFAULT_CONFIG_JSON = new File("config.json").getAbsolutePath();
+    public static final String DEFAULT_CONFIG_JSON = new File("config.json").getPath();
 
     private String token;
     private String configJson;
@@ -42,13 +42,21 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
 
     public BaseCertificateAuthorityCommandLine(String header) {
         super(header);
-        addOptionWithArg("t", TOKEN_ARG, "The token to use to prevent MITM (required and must be same as one used by CA)");
+        addOptionWithArg("t", TOKEN_ARG, getTokenDescription());
         addOptionWithArg("f", CONFIG_JSON_ARG, "The place to write configuration info", DEFAULT_CONFIG_JSON);
         addOptionNoArg("F", USE_CONFIG_JSON_ARG, "Flag specifying that all configuration is read from " + CONFIG_JSON_ARG + " to facilitate automated use (otherwise "
                 + CONFIG_JSON_ARG + " will only be written to.");
-        addOptionWithArg("p", PORT_ARG, "The port to use to communicate with the Certificate Authority", TlsConfig.DEFAULT_PORT);
-        addOptionWithArg("D", DN_ARG, "The dn to use for the certificate", TlsConfig.calcDefaultDn(TlsConfig.DEFAULT_HOSTNAME));
+        addOptionWithArg("p", PORT_ARG, getPortDescription(), TlsConfig.DEFAULT_PORT);
+        addOptionWithArg("D", DN_ARG, getDnDescription(), TlsConfig.calcDefaultDn(getDnHostname()));
     }
+
+    protected abstract String getTokenDescription();
+
+    protected abstract String getDnDescription();
+
+    protected abstract String getPortDescription();
+
+    protected abstract String getDnHostname();
 
     @Override
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
@@ -61,7 +69,7 @@ public class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
         }
         configJson = commandLine.getOptionValue(CONFIG_JSON_ARG, DEFAULT_CONFIG_JSON);
         port = getIntValue(commandLine, PORT_ARG, TlsConfig.DEFAULT_PORT);
-        dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(getCertificateAuthorityHostname()));
+        dn = commandLine.getOptionValue(DN_ARG, TlsConfig.calcDefaultDn(getDnHostname()));
         return commandLine;
     }
 

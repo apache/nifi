@@ -4,7 +4,7 @@
   "token" : "myTestTokenUseSomethingStronger",
   "caHostname" : "localhost",
   "port" : 8443,
-  "days" : 365,
+  "days" : 1095,
   "keySize" : 2048,
   "keyPairAlgorithm" : "RSA",
   "signingAlgorithm" : "SHA256WITHRSA"
