@@ -78,8 +78,14 @@
                                         <description>
                                             The Rest Api provides programmatic access to command and control a NiFi instance in real time. Start and 
                                             stop processors, monitor queues, query provenance data, and more. Each endpoint below includes a description,
-                                            definitions of the expected input and output, potential response codes, and the authorities required
+                                            definitions of the expected input and output, potential response codes, and the authorizations required
                                             to invoke each service.
+                                            &lt;br&gt;&lt;br&gt;
+                                            &lt;ul&gt;
+                                                &lt;li&gt;
+                                                    /flow - allows users to load the UI and see the flow structure
+                                                &lt;/li&gt;
+                                            &lt;/ul&gt;
                                         </description>
                                         <contact>
                                             <email>dev@nifi.apache.org</email>
