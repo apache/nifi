@@ -98,7 +98,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(true)
             .build();
     static final PropertyDescriptor KEY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Key Password")
+            .name("key-password")
+            .displayName("Key Password")
             .description("The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, "
                 + "then the Keystore Password will be assumed to be the same as the Key Password.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -233,7 +234,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
         final String protocol = validationContext.getProperty(SSL_ALGORITHM).getValue();
         try {
-            final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
+            final PropertyValue keyPasswdProp = validationContext.getProperty(KEY_PASSWORD);
             final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
 
             final String keystoreFile = validationContext.getProperty(KEYSTORE).getValue();
