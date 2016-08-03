@@ -93,7 +93,7 @@ public class TlsToolkitStandalone {
         for (String hostname : hostnames) {
             File hostDirectory = new File(baseDir, hostname);
             if (hostDirectory.exists()) {
-                throw new IOException("Output destination for host " + hostname + " (" + hostDirectory.getAbsolutePath() + " exists already.");
+                throw new IOException("Output destination for host " + hostname + " (" + hostDirectory.getAbsolutePath() + ") exists already.");
             }
         }
 
