@@ -177,12 +177,12 @@ public class TlsToolkitStandaloneTest {
     }
 
     private X509Certificate checkLoadCertPrivateKey(String algorithm) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, CertificateException {
-        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_PRIVATE_KEY + ".key"));
+        KeyPair keyPair = TlsHelperTest.loadKeyPair(new File(tempDir, TlsToolkitStandalone.NIFI_KEY + ".key"));
 
         assertEquals(algorithm, keyPair.getPrivate().getAlgorithm());
         assertEquals(algorithm, keyPair.getPublic().getAlgorithm());
 
-        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitStandalone.ROOT_CERT_CRT + ".pem"));
+        X509Certificate x509Certificate = TlsHelperTest.loadCertificate(new File(tempDir, TlsToolkitStandalone.NIFI_CERT + ".pem"));
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
         return x509Certificate;
     }
@@ -206,7 +206,7 @@ public class TlsToolkitStandaloneTest {
         String keyStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
         String keyStoreFilename = BaseCommandLine.KEYSTORE + keyStoreType;
         File keyStoreFile = new File(hostDir, keyStoreFilename);
-        assertEquals(keyStoreFile.getAbsolutePath(), nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+        assertEquals(keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         try (InputStream inputStream = new FileInputStream(keyStoreFile)) {

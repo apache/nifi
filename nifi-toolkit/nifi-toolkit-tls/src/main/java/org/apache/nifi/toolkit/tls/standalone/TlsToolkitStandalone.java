@@ -44,8 +44,6 @@ import java.util.List;
 public class TlsToolkitStandalone {
     public static final String NIFI_KEY = "nifi-key";
     public static final String NIFI_CERT = "nifi-cert";
-    public static final String ROOT_CERT_PRIVATE_KEY = "rootCert.key";
-    public static final String ROOT_CERT_CRT = "rootCert.crt";
     public static final String NIFI_PROPERTIES = "nifi.properties";
 
     private final Logger logger = LoggerFactory.getLogger(TlsToolkitStandalone.class);
@@ -82,11 +80,11 @@ public class TlsToolkitStandalone {
             logger.info("Running standalone certificate generation with output directory " + baseDir + " and hostnames " + hostnames);
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_CRT + ".pem"))))) {
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, NIFI_CERT + ".pem"))))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(certificate));
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, ROOT_CERT_PRIVATE_KEY + ".key"))))) {
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, NIFI_KEY + ".key"))))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(caKeyPair));
         }
 

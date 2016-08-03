@@ -27,6 +27,8 @@ import org.apache.nifi.util.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<TlsClientConfig> {
     private final NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
@@ -53,11 +55,12 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
     }
 
     protected void updateProperties(NiFiPropertiesWriter niFiPropertiesWriter, TlsClientConfig tlsClientConfig) {
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE, tlsClientConfig.getKeyStore());
+        Path parentPath = Paths.get(file.getParentFile().getAbsolutePath());
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE, parentPath.relativize(Paths.get(tlsClientConfig.getKeyStore())).toString());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsClientConfig.getKeyStoreType());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsClientConfig.getKeyStorePassword());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_KEY_PASSWD, tlsClientConfig.getKeyPassword());
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE, tlsClientConfig.getTrustStore());
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE, parentPath.relativize(Paths.get(tlsClientConfig.getTrustStore())).toString());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsClientConfig.getTrustStoreType());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsClientConfig.getTrustStorePassword());
         if (!StringUtils.isEmpty(httpsPort)) {
