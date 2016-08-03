@@ -233,6 +233,9 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
         final String protocol = validationContext.getProperty(SSL_ALGORITHM).getValue();
         try {
+            final PropertyValue keyPasswdProp = configContext.getProperty(KEY_PASSWORD);
+            final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
+
             final String keystoreFile = validationContext.getProperty(KEYSTORE).getValue();
             if (keystoreFile == null) {
                 SslContextFactory.createTrustSslContext(
@@ -247,6 +250,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 SslContextFactory.createSslContext(
                         validationContext.getProperty(KEYSTORE).getValue(),
                         validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
+                    keyPassword,
                         validationContext.getProperty(KEYSTORE_TYPE).getValue(),
                         protocol);
                 return;
@@ -255,6 +259,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             SslContextFactory.createSslContext(
                     validationContext.getProperty(KEYSTORE).getValue(),
                     validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
+                keyPassword,
                     validationContext.getProperty(KEYSTORE_TYPE).getValue(),
                     validationContext.getProperty(TRUSTSTORE).getValue(),
                     validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
