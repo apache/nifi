@@ -33,6 +33,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -106,8 +107,6 @@ import java.util.Set;
 public class ProcessGroupResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
-
-    private static final String VERBOSE = "false";
 
     @Context
     private ResourceContext resourceContext;
@@ -1551,10 +1550,17 @@ public class ProcessGroupResource extends ApplicationResource {
 
                 // ensure write access to the source
                 final Authorizable source = lookup.getConnectable(connection.getSource().getId());
+                if (source == null) {
+                    throw new ResourceNotFoundException("Cannot find source component with ID [" + connection.getSource().getId() + "]");
+                }
                 source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // ensure write access to the destination
                 final Authorizable destination = lookup.getConnectable(connection.getDestination().getId());
+                if (destination == null) {
+                    throw new ResourceNotFoundException("Cannot find destination component with ID [" + connection.getDestination().getId() + "]");
+                }
+
                 destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
