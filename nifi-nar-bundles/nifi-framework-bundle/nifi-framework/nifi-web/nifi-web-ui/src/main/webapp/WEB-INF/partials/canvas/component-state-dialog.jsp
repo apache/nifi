@@ -38,7 +38,7 @@
                     Displaying&nbsp;<span id="displayed-component-state-entries"></span>&nbsp;of&nbsp;<span id="total-component-state-entries"></span>
                 </div>
                 <div id="component-state-filter-container">
-                    <input type="text" id="component-state-filter"/>
+                    <input type="text" id="component-state-filter" placeholder="Filter"/>
                 </div>
             </div>
             <div class="clear"></div>

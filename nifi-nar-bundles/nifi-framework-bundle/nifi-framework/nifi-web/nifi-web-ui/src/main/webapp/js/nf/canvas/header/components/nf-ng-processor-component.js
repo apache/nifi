@@ -160,12 +160,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#processor-type-filter');
-        if (!filterField.hasClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#processor-type-filter').val();
     };
 
     /**
@@ -176,7 +171,7 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
         $('#processor-tag-cloud').tagcloud('clearSelectedTags');
 
         // clear any filter strings
-        $('#processor-type-filter').addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
+        $('#processor-type-filter').val('');
 
         // reapply the filter
         applyFilter();
@@ -260,17 +255,6 @@ nf.ng.ProcessorComponent = function (serviceProvider) {
                  * Initialize the filter.
                  */
                 init: function () {
-                    // define the function for filtering the list
-                    $('#processor-type-filter').focus(function () {
-                        if ($(this).hasClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList)) {
-                            $(this).removeClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList).val('');
-                        }
-                    }).blur(function () {
-                        if ($(this).val() === '') {
-                            $(this).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
-                        }
-                    }).addClass(serviceProvider.headerCtrl.toolboxCtrl.config.styles.filterList);
-
                     // initialize the processor type table
                     var processorTypesColumns = [
                         {id: 'type', name: 'Type', field: 'label', sortable: true, resizable: true},

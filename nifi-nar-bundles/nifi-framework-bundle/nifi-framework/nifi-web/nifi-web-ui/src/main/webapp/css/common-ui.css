@@ -168,10 +168,6 @@ ul.links span.header-link-over {
     white-space: normal;
 }
 
-input.filter-list {
-    color: #888;
-}
-
 .table-cell {
     overflow: hidden;
     white-space: nowrap;
@@ -189,8 +185,22 @@ label {
     margin-bottom: 2px;
 }
 
-input::placeholder {
-    color: #728e9b; /*base-color*/
+/* placeholder styles */
+
+*::placeholder {
+    color: #728e9b;
+}
+*::-webkit-input-placeholder {
+    color: #728e9b;
+}
+*:-moz-placeholder {
+    color: #728e9b;
+}
+*::-moz-placeholder {
+    color: #728e9b;
+}
+*:-ms-input-placeholder {
+    color: #728e9b;
 }
 
 input[type=text], input[type=password], textarea {
@@ -369,6 +379,7 @@ button.fa {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
+    line-height: 23px;
 }
 
 button.icon {
@@ -530,6 +541,7 @@ md-progress-linear > div {
     font-size: 12px;
     font-weight: 500;
     font-family: Roboto Slab;
+    text-transform: capitalize;
     padding-bottom: 4px;
     color: #262626;
 }
@@ -549,6 +561,7 @@ md-progress-linear > div {
     width: 100%;
     color: #775351;
     font-size: 13px;
+    font-weight: 500;
 }
 
 .setting-header{

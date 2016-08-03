@@ -57,7 +57,7 @@
 }
 
 #templates-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 #templates-header {
@@ -75,10 +75,6 @@
     width: 173px;
     margin-right: 3px;
     float: left;
-}
-
-input.templates-filter-list {
-    color: #888;
 }
 
 #templates-filter-type {

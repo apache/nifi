@@ -58,9 +58,6 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             bulletinBoard: '../nifi-api/flow/bulletin-board'
-        },
-        styles: {
-            filterList: 'bulletin-board-filter-list'
         }
     };
 
@@ -76,17 +73,6 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
         $('#clear-bulletins-button').click(function () {
             $('#bulletin-board-container').empty();
         });
-
-        // define the function for filtering the list
-        $('#bulletin-board-filter').focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList);
-            }
-        }).addClass(config.styles.filterList);
 
         // filter type
         $('#bulletin-board-filter-type').combo({
@@ -314,26 +300,23 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
             var bulletinContainer = $('#bulletin-board-container');
 
             // get the filter text
-            var filterField = $('#bulletin-board-filter');
-            if (!filterField.hasClass(config.styles.filterList)) {
-                var filter = filterField.val();
-                if (filter !== '') {
-                    // determine which field to filter on
-                    var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
-                    data[filterOption.value] = filter;
+            var filter = $('#bulletin-board-filter').val();
+            if (filter !== '') {
+                // determine which field to filter on
+                var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
+                data[filterOption.value] = filter;
 
-                    // append filtering message if necessary
-                    if (filterText !== filter || filterType !== filterOption.text) {
-                        var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
-                        appendAndScroll(bulletinContainer, filterContent.get(0));
-                        filterText = filter;
-                        filterType = filterOption.text;
-                    }
-                } else if (filterText !== null) {
-                    appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
-                    filterText = null;
-                    filterType = null;
+                // append filtering message if necessary
+                if (filterText !== filter || filterType !== filterOption.text) {
+                    var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
+                    appendAndScroll(bulletinContainer, filterContent.get(0));
+                    filterText = filter;
+                    filterType = filterOption.text;
                 }
+            } else if (filterText !== null) {
+                appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
+                filterText = null;
+                filterType = null;
             }
 
             return $.ajax({

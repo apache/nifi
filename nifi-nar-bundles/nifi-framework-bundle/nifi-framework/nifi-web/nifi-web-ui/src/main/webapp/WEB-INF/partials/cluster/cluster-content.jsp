@@ -23,7 +23,7 @@
                 Displaying&nbsp;<span id="displayed-nodes"></span>&nbsp;of&nbsp;<span id="total-nodes"></span>
             </div>
             <div id="cluster-filter-container" class="filter-container">
-                <input type="text" id="cluster-filter" class="filter"/>
+                <input type="text" id="cluster-filter" class="filter" placeholder="Filter"/>
                 <div id="cluster-filter-type" class="filter-type"></div>
             </div>
         </div>

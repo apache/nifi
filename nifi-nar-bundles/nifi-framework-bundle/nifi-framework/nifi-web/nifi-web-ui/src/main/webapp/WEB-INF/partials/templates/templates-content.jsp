@@ -25,7 +25,7 @@
                 Displaying&nbsp;<span id="displayed-templates"></span>&nbsp;of&nbsp;<span id="total-templates"></span>
             </div>
             <div id="templates-filter-container" class="filter-container">
-                <input type="text" id="templates-filter" class="filter"/>
+                <input type="text" id="templates-filter" class="filter" placeholder="Filter"/>
                 <div id="templates-filter-type" class="filter-type"></div>
             </div>
         </div>

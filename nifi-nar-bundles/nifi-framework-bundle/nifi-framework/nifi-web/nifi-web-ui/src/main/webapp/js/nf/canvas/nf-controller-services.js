@@ -23,10 +23,6 @@ nf.ControllerServices = (function () {
     var initialized = false;
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api',
             controllerServiceTypes: '../nifi-api/flow/controller-service-types'
@@ -49,12 +45,7 @@ nf.ControllerServices = (function () {
      * accounts for that.
      */
     var getControllerServiceTypeFilterText = function () {
-        var filterText = '';
-        var filterField = $('#controller-service-type-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#controller-service-type-filter').val();
     };
 
     /**
@@ -261,17 +252,6 @@ nf.ControllerServices = (function () {
      * Initializes the new controller service dialog.
      */
     var initNewControllerServiceDialog = function () {
-        // define the function for filtering the list
-        $('#controller-service-type-filter').focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
-
         // initialize the processor type table
         var controllerServiceTypesColumns = [
             {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
@@ -387,7 +367,7 @@ nf.ControllerServices = (function () {
                     clearSelectedControllerService();
 
                     // clear any filter strings
-                    $('#controller-service-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    $('#controller-service-type-filter').val('');
 
                     // clear the tagcloud
                     $('#controller-service-tag-cloud').tagcloud('clearSelectedTags');
