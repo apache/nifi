@@ -72,19 +72,36 @@ public class TlsToolkitStandalone {
             throw new IOException(baseDir + " doesn't exist and unable to create it.");
         }
 
-        if (!baseDir.isDirectory() || baseDir.listFiles().length != 0) {
-            throw new IOException("Expected empty directory to output to");
+        if (!baseDir.isDirectory()) {
+            throw new IOException("Expected directory to output to");
         }
 
         if (logger.isInfoEnabled()) {
             logger.info("Running standalone certificate generation with output directory " + baseDir + " and hostnames " + hostnames);
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, NIFI_CERT + ".pem"))))) {
+        File nifiCert = new File(baseDir, NIFI_CERT + ".pem");
+        if (nifiCert.exists()) {
+            throw new IOException(nifiCert.getAbsolutePath() + " exists already.");
+        }
+
+        File nifiKey = new File(baseDir, NIFI_KEY + ".key");
+        if (nifiKey.exists()) {
+            throw new IOException(nifiKey.getAbsolutePath() + " exists already.");
+        }
+
+        for (String hostname : hostnames) {
+            File hostDirectory = new File(baseDir, hostname);
+            if (hostDirectory.exists()) {
+                throw new IOException("Output destination for host " + hostname + " (" + hostDirectory.getAbsolutePath() + " exists already.");
+            }
+        }
+
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiCert)))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(certificate));
         }
 
-        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(new File(baseDir, NIFI_KEY + ".key"))))) {
+        try (PemWriter pemWriter = new PemWriter(new OutputStreamWriter(outputStreamFactory.create(nifiKey)))) {
             pemWriter.writeObject(new JcaMiscPEMGenerator(caKeyPair));
         }
 

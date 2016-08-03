@@ -47,7 +47,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String HOSTNAMES_ARG = "hostnames";
     public static final String HTTPS_PORT_ARG = "httpsPort";
 
-    public static final String DEFAULT_OUTPUT_DIRECTORY = new File(".").getAbsolutePath();
+    public static final String DEFAULT_OUTPUT_DIRECTORY = new File(".").getPath();
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
 
