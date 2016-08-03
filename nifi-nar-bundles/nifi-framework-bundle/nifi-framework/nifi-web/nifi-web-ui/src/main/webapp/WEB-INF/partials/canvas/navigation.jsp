@@ -23,17 +23,15 @@
 </nf-breadcrumbs>
 <div id="graph-controls">
     <div id="navigation-control" class="graph-control">
-        <div class="graph-control-docked pointer" title="Navigate"
+        <div class="graph-control-docked pointer fa fa-compass" title="Navigate"
              ng-click="appCtrl.serviceProvider.graphControlsCtrl.undock($event)">
-            <div class="graph-control-icon fa fa-compass"></div>
         </div>
-        <div class="graph-control-header-container hidden">
-            <div class="graph-control-header-icon">
-                <div class="graph-control-icon fa fa-compass"></div>
+        <div class="graph-control-header-container hidden pointer"
+             ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
+            <div class="graph-control-header-icon fa fa-compass">
             </div>
             <div class="graph-control-header">Navigate</div>
-            <div class="graph-control-header-action"
-                 ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
+            <div class="graph-control-header-action">
                 <div class="graph-control-expansion fa fa-plus-square-o pointer"></div>
             </div>
             <div class="clear"></div>
@@ -65,17 +63,15 @@
         </div>
     </div>
     <div id="operation-control" class="graph-control">
-        <div class="graph-control-docked pointer" title="Operate"
+        <div class="graph-control-docked pointer fa fa-hand-o-up" title="Operate"
              ng-click="appCtrl.serviceProvider.graphControlsCtrl.undock($event)">
-            <div class="graph-control-icon fa fa-hand-o-up"></div>
         </div>
-        <div class="graph-control-header-container hidden">
-            <div class="graph-control-header-icon">
-                <div class="graph-control-icon fa fa-hand-o-up"></div>
+        <div class="graph-control-header-container hidden pointer"
+             ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
+            <div class="graph-control-header-icon fa fa-hand-o-up">
             </div>
             <div class="graph-control-header">Operate</div>
-            <div class="graph-control-header-action"
-                 ng-click="appCtrl.serviceProvider.graphControlsCtrl.expand($event)">
+            <div class="graph-control-header-action">
                 <div class="graph-control-expansion fa fa-plus-square-o pointer"></div>
             </div>
             <div class="clear"></div>
