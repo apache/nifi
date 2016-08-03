@@ -64,6 +64,7 @@
     white-space: nowrap;
     text-overflow: ellipsis;
     width: 80%;
+    font-weight: normal;
 }
 
 div.selected-disabled-option {

@@ -31,7 +31,7 @@
                 Oldest event available:&nbsp;<span id="oldest-event" class="value-color"></span>
             </div>
             <div id="provenance-filter-container" class="filter-container">
-                <input type="text" id="provenance-filter" class="filter"/>
+                <input type="text" placeholder="Filter" id="provenance-filter" class="filter"/>
                 <div id="provenance-filter-type" class="filter-type"></div>
             </div>
         </div>
