@@ -159,6 +159,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        super.onPropertyModified(descriptor, oldValue, newValue);
         if (isConfigurationRestored() && descriptor.equals(DIRECTORY)) {
             latestTimestampEmitted = -1L;
             latestTimestampListed = -1L;
