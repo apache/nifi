@@ -242,7 +242,6 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
             this.checkIfInitialConnectionPossible();
         }
 
-        System.out.println(kafkaProperties);
         if (!kafkaProperties.containsKey(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG)) {
             kafkaProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         }
