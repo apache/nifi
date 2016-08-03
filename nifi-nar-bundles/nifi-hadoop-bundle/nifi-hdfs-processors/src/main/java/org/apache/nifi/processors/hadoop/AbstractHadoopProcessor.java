@@ -413,11 +413,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected FileSystem getFileSystem() {
-        // if kerberos is enabled, check if the ticket should be renewed before returning the FS
-        if (hdfsResources.get().getUserGroupInformation() != null && isTicketOld()) {
-            tryKerberosRelogin(hdfsResources.get().getUserGroupInformation());
-        }
+        // trigger Relogin if necessary
+        getUserGroupInformation();
         return hdfsResources.get().getFileSystem();
+    }
+
+    protected UserGroupInformation getUserGroupInformation() {
+        // if kerberos is enabled, check if the ticket should be renewed before returning
+        UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
+        if (userGroupInformation != null && isTicketOld()) {
+            tryKerberosRelogin(userGroupInformation);
+        }
+        return userGroupInformation;
     }
 
     protected void tryKerberosRelogin(UserGroupInformation ugi) {
