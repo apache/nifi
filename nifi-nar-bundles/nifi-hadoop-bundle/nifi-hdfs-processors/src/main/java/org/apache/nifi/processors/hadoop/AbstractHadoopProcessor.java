@@ -45,6 +45,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -177,9 +178,17 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return results;
     }
 
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        // forget the contents of HdfsResources if this Property's value changes
+        if (isConfigurationRestored() && descriptor.equals(HADOOP_CONFIGURATION_RESOURCES)) {
+            hdfsResources.set(new HdfsResources(null, null, null));
+        }
+    }
+
     /*
-         * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
-         */
+     * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
+     */
     @OnScheduled
     public final void abstractOnScheduled(ProcessContext context) throws IOException {
         try {
@@ -255,6 +264,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // disable caching of Configuration and FileSystem objects, else we cannot reconfigure the processor without a complete
             // restart
             String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
+            config.set(disableCacheName, "true");
 
             // If kerberos is enabled, create the file system as the kerberos principal
             // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
@@ -274,7 +284,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     fs = getFileSystemAsUser(config, ugi);
                 }
             }
-            config.set(disableCacheName, "true");
+
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                     new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
             return new HdfsResources(config, fs, ugi);
