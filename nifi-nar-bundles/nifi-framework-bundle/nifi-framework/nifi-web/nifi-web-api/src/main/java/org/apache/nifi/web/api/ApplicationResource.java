@@ -95,7 +95,7 @@ public abstract class ApplicationResource {
     public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
 
-    protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as the NiFi and it's REST API evolve.";
+    protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 

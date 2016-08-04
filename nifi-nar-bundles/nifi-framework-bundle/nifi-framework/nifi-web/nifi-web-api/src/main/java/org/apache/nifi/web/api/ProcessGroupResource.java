@@ -320,7 +320,8 @@ public class ProcessGroupResource extends ApplicationResource {
             value = "Deletes a process group",
             response = ProcessGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components", type = "")
             }
     )
     @ApiResponses(
@@ -1638,7 +1639,7 @@ public class ProcessGroupResource extends ApplicationResource {
             response = FlowSnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet", type = "")
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = "")
             }
     )
     @ApiResponses(
@@ -1826,7 +1827,7 @@ public class ProcessGroupResource extends ApplicationResource {
             response = TemplateEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet", type = "")
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = "")
             }
     )
     @ApiResponses(
