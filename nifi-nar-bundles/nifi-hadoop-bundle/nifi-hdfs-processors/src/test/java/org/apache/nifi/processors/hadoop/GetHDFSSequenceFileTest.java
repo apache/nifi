@@ -26,6 +26,7 @@ import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
+import org.apache.nifi.util.MockProcessContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -63,10 +64,7 @@ public class GetHDFSSequenceFileTest {
     }
 
     private void init() throws IOException {
-        ProcessContext context = mock(ProcessContext.class);
-        when(context.getProperty(AbstractHadoopProcessor.KERBEROS_RELOGIN_PERIOD)).thenReturn(mock(PropertyValue.class));
-        when(context.getProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES)).thenReturn(mock(PropertyValue.class));
-        when(context.getProperty(AbstractHadoopProcessor.DIRECTORY_PROP_NAME)).thenReturn(mock(PropertyValue.class));
+        final MockProcessContext context = new MockProcessContext(getHDFSSequenceFile);
         getHDFSSequenceFile.init(mock(ProcessorInitializationContext.class));
         getHDFSSequenceFile.onScheduled(context);
     }
