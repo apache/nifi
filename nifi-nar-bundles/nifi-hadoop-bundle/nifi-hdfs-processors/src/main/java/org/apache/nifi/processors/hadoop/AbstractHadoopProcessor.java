@@ -178,14 +178,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return results;
     }
 
-    @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        // forget the contents of HdfsResources if this Property's value changes
-        if (isConfigurationRestored() && descriptor.equals(HADOOP_CONFIGURATION_RESOURCES)) {
-            hdfsResources.set(new HdfsResources(null, null, null));
-        }
-    }
-
     /*
      * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
      */
