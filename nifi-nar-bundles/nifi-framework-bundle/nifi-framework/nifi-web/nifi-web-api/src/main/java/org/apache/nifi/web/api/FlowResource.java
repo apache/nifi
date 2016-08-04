@@ -820,7 +820,10 @@ public class FlowResource extends ApplicationResource {
             value = "Retrieves Controller level bulletins",
             response = ControllerBulletinsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow", type = ""),
+                    @Authorization(value = "Read - /controller - For controller bulletins", type = ""),
+                    @Authorization(value = "Read - /controller-services/{uuid} - For controller service bulletins", type = ""),
+                    @Authorization(value = "Read - /reporting-tasks/{uuid} - For reporting task bulletins", type = "")
             }
     )
     @ApiResponses(
@@ -1113,7 +1116,8 @@ public class FlowResource extends ApplicationResource {
             value = "Gets current bulletins",
             response = BulletinBoardEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow", type = ""),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For component specific bulletins", type = "")
             }
     )
     @ApiResponses(
