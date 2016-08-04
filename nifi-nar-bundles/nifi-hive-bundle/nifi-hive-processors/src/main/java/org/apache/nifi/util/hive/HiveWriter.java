@@ -74,7 +74,7 @@ public class HiveWriter {
             this.txnBatch = nextTxnBatch(recordWriter);
             this.closed = false;
             this.lastUsed = System.currentTimeMillis();
-        } catch (InterruptedException | RuntimeException e) {
+        } catch (InterruptedException | RuntimeException | ConnectFailure e) {
             throw e;
         } catch (Exception e) {
             throw new ConnectFailure(endPoint, e);

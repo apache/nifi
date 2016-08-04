@@ -36,9 +36,6 @@ public class HiveUtils {
     private static final Logger LOG = LoggerFactory.getLogger(HiveUtils.class);
 
     public static HiveEndPoint makeEndPoint(List<String> partitionVals, HiveOptions options) throws ConnectionError {
-        if(partitionVals==null) {
-            return new HiveEndPoint(options.getMetaStoreURI(), options.getDatabaseName(), options.getTableName(), null);
-        }
         return new HiveEndPoint(options.getMetaStoreURI(), options.getDatabaseName(), options.getTableName(), partitionVals);
     }
 

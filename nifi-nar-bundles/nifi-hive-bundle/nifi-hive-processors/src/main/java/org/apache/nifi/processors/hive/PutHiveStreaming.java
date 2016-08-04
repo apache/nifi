@@ -18,8 +18,12 @@ package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.avro.Schema;
+import org.apache.avro.file.CodecFactory;
+import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -27,6 +31,7 @@ import org.apache.hive.hcatalog.streaming.ConnectionError;
 import org.apache.hive.hcatalog.streaming.HiveEndPoint;
 import org.apache.hive.hcatalog.streaming.SerializationError;
 import org.apache.hive.hcatalog.streaming.StreamingException;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -60,6 +65,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -73,17 +79,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
  * This processor utilizes the Hive Streaming capability to insert data from the flow into a Hive database table.
  */
+@TriggerSerially
 @Tags({"hive", "streaming", "put", "database", "store"})
 @CapabilityDescription("This processor uses Hive Streaming to send flow file data to an Apache Hive table. The incoming flow file is expected to be in "
         + "Avro format and the table must exist in Hive. Please see the Hive documentation for requirements on the Hive table (format, partitions, etc.). "
-        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor. ")
+        + "The partition values are extracted from the Avro record based on the names of the partition columns as specified in the processor.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "hivestreaming.record.count", description = "The number of records from this flow file written using Hive Streaming.")
+        @WritesAttribute(attribute = "hivestreaming.record.count", description = "This attribute is written on the flow files routed to the 'success' "
+                + "and 'failure' relationships, and contains the number of records from the incoming flow file written successfully and unsuccessfully, respectively.")
 })
 public class PutHiveStreaming extends AbstractProcessor {
 
@@ -109,6 +119,17 @@ public class PutHiveStreaming extends AbstractProcessor {
 
         return new ValidationResult.Builder().subject(subject).input(value).explanation(reason).valid(reason == null).build();
     };
+
+    // Metadata keys that are not transferred to split files when output strategy is datafile
+    // Avro will write this key/values pairs on its own
+    private static final Set<String> RESERVED_METADATA;
+
+    static {
+        Set<String> reservedMetadata = new HashSet<>();
+        reservedMetadata.add("avro.schema");
+        reservedMetadata.add("avro.codec");
+        RESERVED_METADATA = Collections.unmodifiableSet(reservedMetadata);
+    }
 
     // Properties
     public static final PropertyDescriptor METASTORE_URI = new PropertyDescriptor.Builder()
@@ -202,15 +223,20 @@ public class PutHiveStreaming extends AbstractProcessor {
     // Relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("A FlowFile is routed to this relationship after the database is successfully updated")
+            .description("A FlowFile containing the JSON contents of a record is routed to this relationship after the record has been successfully transmitted to Hive.")
             .build();
-    public static final Relationship REL_RETRY = new Relationship.Builder()
-            .name("retry")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated but attempting the operation again may succeed")
-            .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("A FlowFile is routed to this relationship if the database cannot be updated and retrying the operation will also fail.")
+            .description("A FlowFile containing the JSON contents of a record is routed to this relationship if the record could not be transmitted to Hive.")
+            .build();
+
+    public static final Relationship REL_RETRY = new Relationship.Builder()
+            .name("retry")
+            .description("The incoming FlowFile is routed to this relationship if its records cannot be transmitted to Hive. Note that "
+                    + "some records may have been processed successfully, they will be routed (as JSON flow files) to the success relationship. "
+                    + "The combination of the retry, success, and failure relationships indicate how many records succeeded and/or failed. This "
+                    + "can be used to provide a retry capability since full rollback is not possible.")
             .build();
 
     private final static List<PropertyDescriptor> propertyDescriptors;
@@ -333,103 +359,278 @@ public class PutHiveStreaming extends AbstractProcessor {
         }
 
         final ComponentLog log = getLogger();
-        try {
-            final List<String> partitionColumnList;
-            String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
-            if (StringUtils.isEmpty(partitionColumns)) {
-                partitionColumnList = Collections.emptyList();
-            } else {
-                String[] partitionCols = partitionColumns.split(",");
-                partitionColumnList = new ArrayList<>(partitionCols.length);
-                for (String col : partitionCols) {
-                    partitionColumnList.add(col.trim());
-                }
+        final Integer txnsPerBatch = context.getProperty(TXNS_PER_BATCH).asInteger();
+
+        // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
+        ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+
+        final List<String> partitionColumnList;
+        final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
+        if (StringUtils.isEmpty(partitionColumns)) {
+            partitionColumnList = Collections.emptyList();
+        } else {
+            String[] partitionCols = partitionColumns.split(",");
+            partitionColumnList = new ArrayList<>(partitionCols.length);
+            for (String col : partitionCols) {
+                partitionColumnList.add(col.trim());
             }
+        }
 
-            // Store the original class loader, then explicitly set it to this class's classloader (for use by the Hive Metastore)
-            ClassLoader originalClassloader = Thread.currentThread().getContextClassLoader();
-            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+        final AtomicInteger recordCount = new AtomicInteger(0);
+        final AtomicInteger successfulRecordCount = new AtomicInteger(0);
+        List<HiveStreamingRecord> successfulRecords = new LinkedList<>();
+        final FlowFile inputFlowFile = flowFile;
+        final AtomicBoolean incomingFlowFileTransferred = new AtomicBoolean(false);
 
-            int recordCount = 0;
-            final List<HiveStreamingRecord> records = new LinkedList<>();
+        // Create output flow files and their Avro writers
+        AtomicReference<FlowFile> successFlowFile = new AtomicReference<>(session.create(inputFlowFile));
+        final DataFileWriter<GenericRecord> successAvroWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
+        AtomicReference<FlowFile> failureFlowFile = new AtomicReference<>(session.create(inputFlowFile));
+        final DataFileWriter<GenericRecord> failureAvroWriter = new DataFileWriter<>(new GenericDatumWriter<GenericRecord>());
 
-            session.read(flowFile, in -> {
+        try {
+            session.read(inputFlowFile, in -> {
 
                 try (final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<GenericRecord>())) {
+                    GenericRecord currRecord = null;
 
-                    GenericRecord currRecord;
+                    // Copy codec and schema information to all writers
+                    final String codec = reader.getMetaString(DataFileConstants.CODEC) == null
+                            ? DataFileConstants.NULL_CODEC
+                            : reader.getMetaString(DataFileConstants.CODEC);
+
+                    Arrays.asList(successAvroWriter, failureAvroWriter)
+                            .forEach((writer) -> {
+                                writer.setCodec(CodecFactory.fromString(codec));
+                                // Transfer metadata (this is a subset of the incoming file)
+                                for (String metaKey : reader.getMetaKeys()) {
+                                    if (!RESERVED_METADATA.contains(metaKey)) {
+                                        writer.setMeta(metaKey, reader.getMeta(metaKey));
+                                    }
+                                }
+                            });
+
                     while (reader.hasNext()) {
-                        currRecord = reader.next();
+                        currRecord = reader.next(currRecord);
+                        recordCount.incrementAndGet();
+
+                        // Extract the partition values (they must be put separately into the Hive Streaming API)
                         List<String> partitionValues = new ArrayList<>();
 
-                        for (String partition : partitionColumnList) {
-                            Object partitionValue = currRecord.get(partition);
-                            if (partitionValue == null) {
-                                throw new IOException("Partition column '" + partition + "' not found in Avro record");
+                        try {
+                            for (String partition : partitionColumnList) {
+                                Object partitionValue = currRecord.get(partition);
+                                if (partitionValue == null) {
+                                    throw new IOException("Partition column '" + partition + "' not found in Avro record");
+                                }
+                                partitionValues.add(partitionValue.toString());
                             }
-                            partitionValues.add(partitionValue.toString());
+                        } catch (IOException ioe) {
+                            // Add the failed record to the failure flow file
+                            log.error("Error writing record to Hive Streaming transaction", ioe);
+                            appendRecordsToFlowFile(session, Collections.singletonList(new HiveStreamingRecord(null, currRecord)),
+                                    failureFlowFile, failureAvroWriter, reader);
+                            continue;
                         }
 
                         List<Schema.Field> fields = currRecord.getSchema().getFields();
                         if (fields != null) {
                             JSONObject obj = new JSONObject();
-                            for (Schema.Field field : fields) {
-                                String fieldName = field.name();
-                                // Skip fields that are partition columns, we extracted those values above to create an EndPoint
-                                if (!partitionColumnList.contains(fieldName)) {
-                                    Object value = currRecord.get(fieldName);
+                            try {
+                                for (Schema.Field field : fields) {
+                                    String fieldName = field.name();
+                                    // Skip fields that are partition columns, we extracted those values above to create an EndPoint
+                                    if (!partitionColumnList.contains(fieldName)) {
+                                        Object value = currRecord.get(fieldName);
+                                        try {
+                                            obj.put(fieldName, value);
+                                        } catch (JSONException je) {
+                                            throw new IOException(je);
+                                        }
+                                    }
+                                }
+                            } catch (IOException ioe) {
+                                // This really shouldn't happen since we are iterating over the schema fields, but just in case,
+                                // add the failed record to the failure flow file.
+                                log.error("Error writing record to Hive Streaming transaction", ioe);
+                                appendRecordsToFlowFile(session, Collections.singletonList(new HiveStreamingRecord(null, currRecord)),
+                                        failureFlowFile, failureAvroWriter, reader);
+                                continue;
+                            }
+                            final HiveStreamingRecord record = new HiveStreamingRecord(partitionValues, currRecord);
+                            HiveEndPoint endPoint = null;
+                            HiveWriter hiveWriter = null;
+                            try {
+                                endPoint = makeHiveEndPoint(record.getPartitionValues(), options);
+                                hiveWriter = getOrCreateWriter(endPoint);
+                            } catch (ConnectionError
+                                    | HiveWriter.ConnectFailure
+                                    | InterruptedException connectionError) {
+                                // Can't connect to Hive endpoint.
+                                log.error("Error connecting to Hive endpoint: table {} at {}",
+                                        new Object[]{options.getTableName(), options.getMetaStoreURI()});
+                                // If we can't connect to the endpoint, exit the loop and let the outer exception handler route the original flow file to retry
+                                abortAndCloseWriters();
+                                throw new ProcessException(connectionError);
+                            }
+                            try {
+                                try {
+                                    hiveWriter.write(record.getRecord().toString().getBytes(StandardCharsets.UTF_8));
+                                    successfulRecords.add(record);
+                                } catch (InterruptedException | HiveWriter.WriteFailure wf) {
+                                    // Add the failed record to the failure flow file
+                                    log.error("Error writing record to Hive Streaming transaction", wf);
+                                    appendRecordsToFlowFile(session, Collections.singletonList(record), failureFlowFile, failureAvroWriter, reader);
+                                }
+
+                                // If we've reached the transactions-per-batch limit, flush the Hive Writer and update the Avro Writer for successful records
+                                if (hiveWriter.getTotalRecords() >= txnsPerBatch) {
+                                    hiveWriter.flush(true);
+                                    // Now send the records to the success relationship and update the success count
                                     try {
-                                        obj.put(fieldName, value);
-                                    } catch (JSONException je) {
-                                        throw new IOException(je);
+                                        appendRecordsToFlowFile(session, successfulRecords, successFlowFile, successAvroWriter, reader);
+                                        successfulRecordCount.accumulateAndGet(successfulRecords.size(), (current, incr) -> current + incr);
+
+                                        // Clear the list of successful records, we'll use it at the end when we flush whatever records are left
+                                        successfulRecords.clear();
+
+                                    } catch (IOException ioe) {
+                                        // The records were put to Hive Streaming successfully, but there was an error while writing the
+                                        // Avro records to the flow file. Log as an error and move on.
+                                        getLogger().error("Error writing Avro records (which were sent successfully to Hive Streaming) to the flow file", ioe);
+                                    }
+                                }
+
+                            } catch (InterruptedException
+                                    | HiveWriter.CommitFailure
+                                    | HiveWriter.TxnBatchFailure
+                                    | HiveWriter.TxnFailure
+                                    | SerializationError writeException) {
+
+                                log.error("Error writing record to Hive Streaming transaction", writeException);
+                                // Add the failed record to the failure flow file
+                                appendRecordsToFlowFile(session, Collections.singletonList(record), failureFlowFile, failureAvroWriter, reader);
+
+                                if (!(writeException instanceof SerializationError)) {
+                                    try {
+                                        hiveWriter.abort();
+                                    } catch (Exception e) {
+                                        // Can't even abort properly, throw a process exception
+                                        throw new ProcessException(e);
                                     }
                                 }
                             }
-                            records.add(new HiveStreamingRecord(partitionValues, obj));
                         }
                     }
+                    try {
+                        // Finish any transactions
+                        flushAllWriters(true);
+                        closeAllWriters();
+
+                        // Now send any remaining records to the success relationship and update the count
+                        appendRecordsToFlowFile(session, successfulRecords, successFlowFile, successAvroWriter, reader);
+                        successfulRecordCount.accumulateAndGet(successfulRecords.size(), (current, incr) -> current + incr);
+                        successfulRecords.clear();
+
+                    } catch (HiveWriter.CommitFailure
+                            | HiveWriter.TxnBatchFailure
+                            | HiveWriter.TxnFailure
+                            | InterruptedException e) {
+
+                        // If any records are in the successfulRecords list but ended up here, then they actually weren't transferred successfully, so
+                        // route them to failure instead
+                        appendRecordsToFlowFile(session, successfulRecords, failureFlowFile, failureAvroWriter, reader);
+                    }
+                } catch (IOException ioe) {
+                    // The Avro file is invalid (or may not be an Avro file at all), send it to failure
+                    log.error("The incoming flow file can not be read as an Avro file, routing to failure", ioe);
+                    session.transfer(inputFlowFile, REL_FAILURE);
+                    incomingFlowFileTransferred.set(true);
                 }
             });
 
-            // Write all records to Hive Streaming
-            for (HiveStreamingRecord record : records) {
-                HiveEndPoint endPoint = makeHiveEndPoint(record.getPartitionValues(), options);
-                HiveWriter writer = getOrCreateWriter(endPoint);
-                writer.write(record.getRecord().toString().getBytes(StandardCharsets.UTF_8));
-                recordCount++;
+
+            if (recordCount.get() > 0) {
+                if (successfulRecordCount.get() > 0) {
+                    // Transfer the flow file with successful records
+                    successFlowFile.set(
+                            session.putAttribute(successFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(recordCount.get())));
+                    session.getProvenanceReporter().send(successFlowFile.get(), options.getMetaStoreURI());
+                    session.transfer(successFlowFile.get(), REL_SUCCESS);
+                } else {
+                    session.remove(successFlowFile.get());
+                }
+
+                if (recordCount.get() != successfulRecordCount.get()) {
+                    // There were some failed records, so transfer that flow file to failure
+                    failureFlowFile.set(
+                            session.putAttribute(failureFlowFile.get(), HIVE_STREAMING_RECORD_COUNT_ATTR,
+                                    Integer.toString(recordCount.get() - successfulRecordCount.get())));
+                    session.transfer(failureFlowFile.get(), REL_FAILURE);
+                } else {
+                    session.remove(failureFlowFile.get());
+                }
+            } else {
+                // No records were processed, so remove the output flow files
+                session.remove(successFlowFile.get());
+                session.remove(failureFlowFile.get());
+            }
+            successFlowFile.set(null);
+            failureFlowFile.set(null);
+
+            // If we got here, we've processed the outgoing flow files correctly, so remove the incoming one if necessary
+            if (!incomingFlowFileTransferred.get()) {
+                session.remove(flowFile);
             }
 
-            flowFile = session.putAttribute(flowFile, HIVE_STREAMING_RECORD_COUNT_ATTR, Integer.toString(recordCount));
-            flushAllWriters(true);
-
-            session.getProvenanceReporter().send(flowFile, options.getMetaStoreURI());
-            session.transfer(flowFile, REL_SUCCESS);
-
+        } catch (ProcessException pe) {
+            abortAndCloseWriters();
+            Throwable t = pe.getCause();
+            if (t != null) {
+                if (t instanceof ConnectionError
+                        || t instanceof HiveWriter.ConnectFailure
+                        || t instanceof HiveWriter.CommitFailure
+                        || t instanceof HiveWriter.TxnBatchFailure
+                        || t instanceof HiveWriter.TxnFailure
+                        || t instanceof InterruptedException) {
+                    log.error("Hive Streaming connect/write error, flow file will be penalized and routed to retry", t);
+                    flowFile = session.penalize(flowFile);
+                    session.transfer(flowFile, REL_RETRY);
+                    // Remove the ones we created
+                    if (successFlowFile.get() != null) {
+                        session.remove(successFlowFile.get());
+                    }
+                    if (failureFlowFile.get() != null) {
+                        session.remove(failureFlowFile.get());
+                    }
+                } else {
+                    throw pe;
+                }
+            } else {
+                throw pe;
+            }
+        } finally {
             // Restore original class loader, might not be necessary but is good practice since the processor task changed it
             Thread.currentThread().setContextClassLoader(originalClassloader);
-
-        } catch (HiveWriter.CommitFailure commitFailure) {
-            log.error("Error committing to Hive", commitFailure);
-            session.transfer(flowFile, REL_FAILURE);
-        } catch (HiveWriter.TxnBatchFailure | HiveWriter.TxnFailure txnFailure) {
-            log.error("Hive Streaming Transaction Failure", txnFailure);
-            session.transfer(flowFile, REL_FAILURE);
-        } catch (InterruptedException e) {
-            log.error("Hive Streaming Interrupted, flow file will be penalized and routed to retry", e);
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_RETRY);
-        } catch (ConnectionError | HiveWriter.ConnectFailure ce) {
-            log.error("Error while connecting via Hive Streaming, flow file will be penalized and routed to retry", ce);
-            flowFile = session.penalize(flowFile);
-            session.transfer(flowFile, REL_RETRY);
-        } catch (SerializationError se) {
-            log.error("Serialization exception occurred, record not written to Hive.", se);
-            session.transfer(flowFile, REL_FAILURE);
-        } catch (HiveWriter.WriteFailure wf) {
-            log.error("Error while writing record to Hive Streaming", wf);
-            abortAndCloseWriters();
-            session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    private void appendRecordsToFlowFile(ProcessSession session,
+                                         List<HiveStreamingRecord> records,
+                                         AtomicReference<FlowFile> appendFlowFile,
+                                         DataFileWriter<GenericRecord> avroWriter,
+                                         DataFileStream<GenericRecord> reader) throws IOException {
+
+        appendFlowFile.set(session.append(appendFlowFile.get(), (out) -> {
+
+            try (DataFileWriter<GenericRecord> writer = avroWriter.create(reader.getSchema(), out)) {
+                for (HiveStreamingRecord sRecord : records) {
+                    writer.append(sRecord.getRecord());
+                }
+                writer.flush();
+            }
+        }));
     }
 
     @OnStopped
@@ -637,9 +838,9 @@ public class PutHiveStreaming extends AbstractProcessor {
     protected class HiveStreamingRecord {
 
         private List<String> partitionValues;
-        private JSONObject record;
+        private GenericRecord record;
 
-        public HiveStreamingRecord(List<String> partitionValues, JSONObject record) {
+        public HiveStreamingRecord(List<String> partitionValues, GenericRecord record) {
             this.partitionValues = partitionValues;
             this.record = record;
         }
@@ -648,7 +849,7 @@ public class PutHiveStreaming extends AbstractProcessor {
             return partitionValues;
         }
 
-        public JSONObject getRecord() {
+        public GenericRecord getRecord() {
             return record;
         }
 
