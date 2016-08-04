@@ -1258,6 +1258,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
 
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
+
                         if (scheduledState.get() != ScheduledState.STOPPING) { // make sure we only continue retry loop if STOP action wasn't initiated
                             taskScheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         } else {

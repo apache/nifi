@@ -219,6 +219,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             + "ReportingTask and will attempt to schedule it again after {}",
                             new Object[] { reportingTask, e.toString(), administrativeYieldDuration }, e);
 
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
+
                         try {
                             Thread.sleep(administrativeYieldMillis);
                         } catch (final InterruptedException ie) {
