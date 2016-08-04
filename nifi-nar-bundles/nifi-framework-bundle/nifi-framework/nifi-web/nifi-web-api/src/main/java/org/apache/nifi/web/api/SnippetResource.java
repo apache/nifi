@@ -104,7 +104,7 @@ public class SnippetResource extends ApplicationResource {
             value = "Creates a snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the Snippet", type = "")
+                    @Authorization(value = "Read or Write - /{component-type}/{uuid} - For every component (all Read or all Write) in the Snippet and their descendant components", type = "")
             }
     )
     @ApiResponses(
@@ -188,7 +188,7 @@ public class SnippetResource extends ApplicationResource {
             response = SnippetEntity.class,
             authorizations = {
                     @Authorization(value = "Write Process Group - /process-groups/{uuid}", type = ""),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet", type = "")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = "")
             }
     )
     @ApiResponses(
@@ -267,7 +267,7 @@ public class SnippetResource extends ApplicationResource {
             value = "Deletes the components in a snippet and drops the snippet",
             response = SnippetEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet", type = "")
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For each component in the Snippet and their descendant components", type = "")
             }
     )
     @ApiResponses(
