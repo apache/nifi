@@ -681,8 +681,7 @@ public class TestListFile {
                 FileOwnerAttributeView view = Files.getFileAttributeView(file1Path, FileOwnerAttributeView.class);
                 userName = view.getOwner().getName();
                 runner.getLogger().debug("user.name from file is " + userName);
-            }
-            else {
+            } else {
                 runner.getLogger().debug("user.name from system is " + userName);
             }
             assertNotNull(userName);
