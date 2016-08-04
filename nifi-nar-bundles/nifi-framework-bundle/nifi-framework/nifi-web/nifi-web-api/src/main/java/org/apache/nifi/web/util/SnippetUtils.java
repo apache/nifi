@@ -54,6 +54,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -62,6 +63,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -96,6 +98,7 @@ public final class SnippetUtils {
      * @param includeControllerServices whether or not to include controller services in the flow snippet dto
      * @return snippet
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
@@ -109,8 +112,8 @@ public final class SnippetUtils {
         final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         // add any processors
+        final Set<ProcessorDTO> processors = new LinkedHashSet<>();
         if (!snippet.getProcessors().isEmpty()) {
-            final Set<ProcessorDTO> processors = new LinkedHashSet<>();
             for (final String processorId : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = processGroup.getProcessor(processorId);
                 if (processor == null) {
@@ -122,15 +125,11 @@ public final class SnippetUtils {
                     controllerServices.addAll(getControllerServices(processor.getProperties()));
                 }
             }
-            this.normalizeCoordinates(processors);
-            snippetDto.setProcessors(processors);
         }
 
-
-
         // add any connections
+        final Set<ConnectionDTO> connections = new LinkedHashSet<>();
         if (!snippet.getConnections().isEmpty()) {
-            final Set<ConnectionDTO> connections = new LinkedHashSet<>();
             for (final String connectionId : snippet.getConnections().keySet()) {
                 final Connection connection = processGroup.getConnection(connectionId);
                 if (connection == null) {
@@ -138,12 +137,11 @@ public final class SnippetUtils {
                 }
                 connections.add(dtoFactory.createConnectionDto(connection));
             }
-            snippetDto.setConnections(connections);
         }
 
         // add any funnels
+        final Set<FunnelDTO> funnels = new LinkedHashSet<>();
         if (!snippet.getFunnels().isEmpty()) {
-            final Set<FunnelDTO> funnels = new LinkedHashSet<>();
             for (final String funnelId : snippet.getFunnels().keySet()) {
                 final Funnel funnel = processGroup.getFunnel(funnelId);
                 if (funnel == null) {
@@ -151,12 +149,11 @@ public final class SnippetUtils {
                 }
                 funnels.add(dtoFactory.createFunnelDto(funnel));
             }
-            snippetDto.setFunnels(funnels);
         }
 
         // add any input ports
+        final Set<PortDTO> inputPorts = new LinkedHashSet<>();
         if (!snippet.getInputPorts().isEmpty()) {
-            final Set<PortDTO> inputPorts = new LinkedHashSet<>();
             for (final String inputPortId : snippet.getInputPorts().keySet()) {
                 final Port inputPort = processGroup.getInputPort(inputPortId);
                 if (inputPort == null) {
@@ -164,12 +161,11 @@ public final class SnippetUtils {
                 }
                 inputPorts.add(dtoFactory.createPortDto(inputPort));
             }
-            snippetDto.setInputPorts(inputPorts);
         }
 
         // add any labels
+        final Set<LabelDTO> labels = new LinkedHashSet<>();
         if (!snippet.getLabels().isEmpty()) {
-            final Set<LabelDTO> labels = new LinkedHashSet<>();
             for (final String labelId : snippet.getLabels().keySet()) {
                 final Label label = processGroup.getLabel(labelId);
                 if (label == null) {
@@ -177,12 +173,11 @@ public final class SnippetUtils {
                 }
                 labels.add(dtoFactory.createLabelDto(label));
             }
-            snippetDto.setLabels(labels);
         }
 
         // add any output ports
+        final Set<PortDTO> outputPorts = new LinkedHashSet<>();
         if (!snippet.getOutputPorts().isEmpty()) {
-            final Set<PortDTO> outputPorts = new LinkedHashSet<>();
             for (final String outputPortId : snippet.getOutputPorts().keySet()) {
                 final Port outputPort = processGroup.getOutputPort(outputPortId);
                 if (outputPort == null) {
@@ -190,12 +185,11 @@ public final class SnippetUtils {
                 }
                 outputPorts.add(dtoFactory.createPortDto(outputPort));
             }
-            snippetDto.setOutputPorts(outputPorts);
         }
 
         // add any process groups
+        final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
         if (!snippet.getProcessGroups().isEmpty()) {
-            final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
             for (final String childGroupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
@@ -207,12 +201,11 @@ public final class SnippetUtils {
 
                 addControllerServices(childGroup, childGroupDto);
             }
-            snippetDto.setProcessGroups(processGroups);
         }
 
         // add any remote process groups
+        final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
         if (!snippet.getRemoteProcessGroups().isEmpty()) {
-            final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
             for (final String remoteProcessGroupId : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup remoteProcessGroup = processGroup.getRemoteProcessGroup(remoteProcessGroupId);
                 if (remoteProcessGroup == null) {
@@ -220,8 +213,28 @@ public final class SnippetUtils {
                 }
                 remoteProcessGroups.add(dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
             }
-            snippetDto.setRemoteProcessGroups(remoteProcessGroups);
         }
+
+        // Normalize the coordinates based on the locations of the other components
+        final List<? extends ComponentDTO> components = new ArrayList<>();
+        components.addAll((Set) processors);
+        components.addAll((Set) connections);
+        components.addAll((Set) funnels);
+        components.addAll((Set) inputPorts);
+        components.addAll((Set) labels);
+        components.addAll((Set) outputPorts);
+        components.addAll((Set) processGroups);
+        components.addAll((Set) remoteProcessGroups);
+        normalizeCoordinates(components);
+
+        snippetDto.setProcessors(processors);
+        snippetDto.setConnections(connections);
+        snippetDto.setFunnels(funnels);
+        snippetDto.setInputPorts(inputPorts);
+        snippetDto.setLabels(labels);
+        snippetDto.setOutputPorts(outputPorts);
+        snippetDto.setProcessGroups(processGroups);
+        snippetDto.setRemoteProcessGroups(remoteProcessGroups);
 
         snippetDto.setControllerServices(controllerServices);
 
@@ -830,28 +843,43 @@ public final class SnippetUtils {
     }
 
     /**
-     * Will normalize the coordinates of the processors to ensure their
+     * Will normalize the coordinates of the components to ensure their
      * consistency across exports. It will do so by fist calculating the
      * smallest X and smallest Y and then subtracting it from all X's and Y's of
-     * each processor ensuring that coordinates are consistent across export
+     * each component ensuring that coordinates are consistent across export
      * while preserving relative locations set by the user.
      */
-    private void normalizeCoordinates(Collection<ProcessorDTO> processors) {
+    private void normalizeCoordinates(Collection<? extends ComponentDTO> components) {
+        // determine the smallest x,y coordinates in the collection of components
         double smallestX = Double.MAX_VALUE;
         double smallestY = Double.MAX_VALUE;
-        for (ProcessorDTO processor : processors) {
-            double d = processor.getPosition().getX();
-            if (d < smallestX) {
-                smallestX = d;
-            }
-            d = processor.getPosition().getY();
-            if (d < smallestY) {
-                smallestY = d;
+        for (ComponentDTO component : components) {
+            // Connections don't have positions themselves but their bendpoints do, so we need
+            // to check those bend points for the smallest x,y coordinates
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    smallestX = Math.min(smallestX, position.getX());
+                    smallestY = Math.min(smallestY, position.getY());
+                }
+            } else {
+                smallestX = Math.min(smallestX, component.getPosition().getX());
+                smallestY = Math.min(smallestY, component.getPosition().getY());
             }
         }
-        for (ProcessorDTO processor : processors) {
-            processor.getPosition().setX(processor.getPosition().getX() - smallestX);
-            processor.getPosition().setY(processor.getPosition().getY() - smallestY);
+
+        // position the components accordingly
+        for (ComponentDTO component : components) {
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    position.setX(position.getX() - smallestX);
+                    position.setY(position.getY() - smallestY);
+                }
+            } else {
+                component.getPosition().setX(component.getPosition().getX() - smallestX);
+                component.getPosition().setY(component.getPosition().getY() - smallestY);
+            }
         }
     }
 
