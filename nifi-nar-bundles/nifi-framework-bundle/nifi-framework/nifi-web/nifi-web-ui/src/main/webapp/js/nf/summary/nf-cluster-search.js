@@ -103,7 +103,7 @@ nf.ClusterSearch = (function () {
                 handler: {
                     close: function () {
                         // reset the search field
-                        $('#cluster-search-field').val(config.search).addClass('search-nodes');
+                        $('#cluster-search-field').val(config.search).addClass('search-nodes').clusterSearchAutocomplete('reset');
                     }
                 }
             });
@@ -162,10 +162,6 @@ nf.ClusterSearch = (function () {
                     }).done(function (searchResponse) {
                         response(searchResponse);
                     });
-                },
-                close: function (event, ui) {
-                    // set the input text to '' and reset the cached term
-                    $(this).clusterSearchAutocomplete('reset').val('');
                 }
             }).focus(function () {
                 // conditionally clear the text for the user to type

@@ -129,7 +129,7 @@ nf.PolicyManagement = (function () {
             handler: {
                 close: function () {
                     // reset the search fields
-                    $('#search-users-field').val('');
+                    $('#search-users-field').userSearchAutocomplete('reset').val('');
                     $('#selected-user-id').text('');
                 }
             }
@@ -204,10 +204,6 @@ nf.PolicyManagement = (function () {
                 }).done(function (searchResponse) {
                     response(searchResponse);
                 });
-            },
-            close: function (event, ui) {
-                // set the input text to '' and reset the cached term
-                $(this).userSearchAutocomplete('reset').val('');
             }
         });
     };
