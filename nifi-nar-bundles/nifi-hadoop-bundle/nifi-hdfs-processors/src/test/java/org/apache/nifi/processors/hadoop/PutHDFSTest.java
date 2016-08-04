@@ -26,7 +26,6 @@ import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -36,8 +35,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.BDDMockito;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -201,39 +198,6 @@ public class PutHDFSTest {
         PutHDFS proc = new TestablePutHDFS(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
-        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
-            Map<String, String> attributes = new HashMap<String, String>();
-            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
-            runner.enqueue(fis, attributes);
-            runner.run();
-        }
-
-        Configuration config = new Configuration();
-        FileSystem fs = FileSystem.get(config);
-
-        List<MockFlowFile> failedFlowFiles = runner
-                .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
-        assertTrue(failedFlowFiles.isEmpty());
-
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
-        assertEquals(1, flowFiles.size());
-        MockFlowFile flowFile = flowFiles.get(0);
-        assertTrue(fs.exists(new Path("target/test-classes/randombytes-1")));
-        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-        assertEquals("target/test-classes", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
-    }
-
-    @Test
-    public void testPutFileAndDirectoryPropertyRetrievedFromVariableRegistry() throws IOException {
-        // Refer to comment in the BeforeClass method for an explanation
-        assumeTrue(isNotWindows());
-
-        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
-        VariableRegistry variableRegistry = Mockito.mock(VariableRegistry.class);
-        BDDMockito.when(variableRegistry.getVariableValue("dirvar")).thenReturn("target/test-classes");
-        TestRunner runner = TestRunners.newTestRunner(proc, variableRegistry);
-        runner.setProperty(PutHDFS.DIRECTORY, "${dirvar}");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();

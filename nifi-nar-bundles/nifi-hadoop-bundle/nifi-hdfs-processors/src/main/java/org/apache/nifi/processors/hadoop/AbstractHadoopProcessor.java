@@ -192,8 +192,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             if (resources.getConfiguration() == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
                 final String dir;
-                final PropertyDescriptor directoryPropDescriptor = context.getProperties().keySet().stream()
-                        .filter(propertyDescriptor -> propertyDescriptor.getName().equals(DIRECTORY_PROP_NAME)).findFirst().orElse(null);
+                final PropertyDescriptor directoryPropDescriptor = getPropertyDescriptor(DIRECTORY_PROP_NAME);
                 if (directoryPropDescriptor != null) {
                     if (directoryPropDescriptor.isExpressionLanguageSupported()) {
                         dir = context.getProperty(DIRECTORY_PROP_NAME).evaluateAttributeExpressions().getValue();

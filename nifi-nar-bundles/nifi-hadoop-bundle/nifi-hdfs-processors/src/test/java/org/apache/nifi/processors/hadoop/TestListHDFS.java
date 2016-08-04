@@ -30,7 +30,6 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
@@ -39,8 +38,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.BDDMockito;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -74,16 +71,14 @@ public class TestListHDFS {
         kerberosProperties = KerberosProperties.create(mockNiFiProperties);
 
         proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
-        VariableRegistry variableRegistry = Mockito.mock(VariableRegistry.class);
-        BDDMockito.when(variableRegistry.getVariableValue("dirvar")).thenReturn("/test");
-        runner = TestRunners.newTestRunner(proc, variableRegistry);
+        runner = TestRunners.newTestRunner(proc);
 
         service = new MockCacheClient();
         runner.addControllerService("service", service);
         runner.enableControllerService(service);
 
         runner.setProperty(ListHDFS.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
-        runner.setProperty(ListHDFS.DIRECTORY, "${dirvar}");
+        runner.setProperty(ListHDFS.DIRECTORY, "/test");
         runner.setProperty(ListHDFS.DISTRIBUTED_CACHE_SERVICE, "service");
     }
 

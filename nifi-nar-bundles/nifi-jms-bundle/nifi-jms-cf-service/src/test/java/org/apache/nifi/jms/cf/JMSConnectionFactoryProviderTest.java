@@ -18,7 +18,6 @@ package org.apache.nifi.jms.cf;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -41,7 +40,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  *
@@ -85,23 +83,6 @@ public class JMSConnectionFactoryProviderTest {
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "test-lib");
         runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
                 "foo.bar.NonExistingConnectionFactory");
-        runner.enableControllerService(cfProvider);
-    }
-
-    @Test
-    public void validateOnConfigureVariableRegistryUsed() throws Exception {
-        final VariableRegistry variableRegistry = mock(VariableRegistry.class);
-        when(variableRegistry.getVariableValue("uri")).thenReturn("myhost:1234");
-        when(variableRegistry.getVariableValue("libpath")).thenReturn("test-lib");
-        when(variableRegistry.getVariableValue("impl")).thenReturn("org.apache.nifi.jms.testcflib.TestConnectionFactory");
-        TestRunner runner = TestRunners.newTestRunner(mock(Processor.class), variableRegistry);
-        JMSConnectionFactoryProvider cfProvider = new JMSConnectionFactoryProvider();
-        runner.addControllerService("cfProvider", cfProvider);
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.BROKER_URI, "${uri}");
-
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CLIENT_LIB_DIR_PATH, "${libpath}");
-        runner.setProperty(cfProvider, JMSConnectionFactoryProvider.CONNECTION_FACTORY_IMPL,
-                "${impl}");
         runner.enableControllerService(cfProvider);
     }
 

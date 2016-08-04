@@ -18,12 +18,10 @@ package org.apache.nifi.jms.processors;
 
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProviderDefinition;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
@@ -37,14 +35,10 @@ public class ConsumeJMSTest {
 
     @Test
     public void validateSuccessfulConsumeAndTransferToSuccess() throws Exception {
-        final String cooQueue = "cooQueue";
-        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination(cooQueue, false);
+        JmsTemplate jmsTemplate = CommonTest.buildJmsTemplateForDestination("cooQueue", false);
         JMSPublisher sender = new JMSPublisher(jmsTemplate, mock(ComponentLog.class));
         sender.publish("Hey dude!".getBytes());
-        VariableRegistry variableRegistry = Mockito.mock(VariableRegistry.class);
-        final String destinationVar = "dest";
-        when(variableRegistry.getVariableValue(destinationVar)).thenReturn(cooQueue);
-        TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS(), variableRegistry);
+        TestRunner runner = TestRunners.newTestRunner(new ConsumeJMS());
         JMSConnectionFactoryProviderDefinition cs = mock(JMSConnectionFactoryProviderDefinition.class);
         when(cs.getIdentifier()).thenReturn("cfProvider");
         when(cs.getConnectionFactory()).thenReturn(jmsTemplate.getConnectionFactory());
@@ -52,13 +46,13 @@ public class ConsumeJMSTest {
         runner.enableControllerService(cs);
 
         runner.setProperty(PublishJMS.CF_SERVICE, "cfProvider");
-        runner.setProperty(ConsumeJMS.DESTINATION, "${dest}");
+        runner.setProperty(ConsumeJMS.DESTINATION, "cooQueue");
         runner.setProperty(ConsumeJMS.DESTINATION_TYPE, ConsumeJMS.QUEUE);
         runner.run(1, false);
         //
         final MockFlowFile successFF = runner.getFlowFilesForRelationship(PublishJMS.REL_SUCCESS).get(0);
         assertNotNull(successFF);
-        assertEquals(cooQueue, successFF.getAttributes().get(JmsHeaders.DESTINATION));
+        assertEquals("cooQueue", successFF.getAttributes().get(JmsHeaders.DESTINATION));
         successFF.assertContentEquals("Hey dude!".getBytes());
 
         ((CachingConnectionFactory) jmsTemplate.getConnectionFactory()).destroy();
