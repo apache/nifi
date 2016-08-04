@@ -165,7 +165,8 @@ public class NiFiOrcUtils {
                 });
                 return mapWritable;
             }
-
+            // The object is not null but isn't of any recognized type either, so throw an exception
+            throw new IllegalArgumentException("Object of type " + o.getClass().getName() + " cannot be converted to an ORC object");
         }
         return null;
     }
@@ -179,12 +180,19 @@ public class NiFiOrcUtils {
      * @return an OrcStruct containing the specified objects for the specified schema
      */
     public static OrcStruct createOrcStruct(TypeInfo typeInfo, Object... objs) {
+        if (objs == null) {
+            throw new IllegalArgumentException("No objects provided to createOrcStruct");
+        }
         SettableStructObjectInspector oi = (SettableStructObjectInspector) OrcStruct
                 .createObjectInspector(typeInfo);
         List<StructField> fields = (List<StructField>) oi.getAllStructFieldRefs();
+        int numFields = fields.size();
+        if (numFields != objs.length) {
+            throw new IllegalArgumentException("Number of fields in ORC struct " + numFields + " does not match number of provided objects " + objs.length);
+        }
         OrcStruct result = (OrcStruct) oi.create();
-        result.setNumFields(fields.size());
-        for (int i = 0; i < fields.size(); i++) {
+        result.setNumFields(numFields);
+        for (int i = 0; i < numFields; i++) {
             oi.setStructFieldData(result, fields.get(i), objs[i]);
         }
         return result;

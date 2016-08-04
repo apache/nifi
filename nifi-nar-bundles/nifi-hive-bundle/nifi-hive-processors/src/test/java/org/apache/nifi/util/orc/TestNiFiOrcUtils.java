@@ -21,6 +21,9 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
+import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -269,6 +272,26 @@ public class TestNiFiOrcUtils {
                 + " STORED AS ORC", ddl);
     }
 
+    @Test
+    public void test_createOrcStruct_primitive() throws Exception {
+        TypeInfo primitiveOrcSchema = buildPrimitiveOrcSchema();
+        OrcStruct orcStruct = NiFiOrcUtils.createOrcStruct(primitiveOrcSchema, 4, 5L, Boolean.TRUE, 2.0f, 3.0, ByteBuffer.allocate(100), "a string");
+        ObjectInspector objectInspector = OrcStruct.createObjectInspector(primitiveOrcSchema);
+        assertTrue(objectInspector instanceof SettableStructObjectInspector);
+        SettableStructObjectInspector orcStructInspector = (SettableStructObjectInspector) objectInspector;
+        assertEquals(4, orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("int")));
+        assertEquals(5L, orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("long")));
+        assertTrue((boolean) orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("boolean")));
+        assertEquals(2.0f, orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("float")));
+        assertEquals(3.0, orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("double")));
+        assertEquals("a string", orcStructInspector.getStructFieldData(orcStruct, orcStructInspector.getStructFieldRef("string")));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_createOrcStruct_primitive_not_enough_objects() throws Exception {
+        TypeInfo primitiveOrcSchema = buildPrimitiveOrcSchema();
+        NiFiOrcUtils.createOrcStruct(primitiveOrcSchema, 1);
+    }
 
     //////////////////
     // Helper methods
