@@ -95,7 +95,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         final String rootPath = zkConfig.getRootPath();
-        final String leaderPath = (rootPath.endsWith("/") ? "" : "/") + "leaders/" + roleName;
+        final String leaderPath = rootPath + (rootPath.endsWith("/") ? "" : "/") + "leaders/" + roleName;
 
         try {
             PathUtils.validatePath(rootPath);
