@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -41,6 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -65,7 +67,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
@@ -81,7 +83,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final boolean triggerSerially;
     private final MockStateManager processorStateManager;
     private final Map<String, MockStateManager> controllerServiceStateManagers = new HashMap<>();
-    private final VariableRegistry variableRegistry;
+    private final MockVariableRegistry variableRegistry;
 
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
@@ -89,14 +91,14 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
     private final MockComponentLog logger;
 
-    StandardProcessorTestRunner(final Processor processor,final VariableRegistry variableRegistry) {
+    StandardProcessorTestRunner(final Processor processor) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.sessionFactory = new MockSessionFactory(sharedState, processor);
         this.processorStateManager = new MockStateManager(processor);
-        this.variableRegistry = variableRegistry;
+        this.variableRegistry = new MockVariableRegistry();
         this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
@@ -823,5 +825,28 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setPrimaryNode(boolean primaryNode) {
         context.setPrimaryNode(primaryNode);
+    }
+
+    @Override
+    public String getVariableValue(final String name) {
+        Objects.requireNonNull(name);
+
+        return variableRegistry.getVariableValue(name);
+    }
+
+    @Override
+    public void setVariable(final String name, final String value) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
+
+        final VariableDescriptor descriptor = new VariableDescriptor.Builder(name).build();
+        variableRegistry.setVariable(descriptor, value);
+    }
+
+    @Override
+    public String removeVariable(final String name) {
+        Objects.requireNonNull(name);
+
+        return variableRegistry.removeVariable(new VariableDescriptor.Builder(name).build());
     }
 }

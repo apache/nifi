@@ -32,7 +32,7 @@ public interface VariableRegistry {
      * Returns an empty registry which can be used as a more intentional null
      * value.
      */
-    public static final VariableRegistry EMPTY_REGISTRY = () -> Collections.EMPTY_MAP;
+    public static final VariableRegistry EMPTY_REGISTRY = () -> Collections.emptyMap();
 
     /**
      * Provides a registry containing all environment variables and system
