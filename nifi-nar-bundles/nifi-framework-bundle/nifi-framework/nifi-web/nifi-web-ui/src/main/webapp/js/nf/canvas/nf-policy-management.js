@@ -31,6 +31,7 @@ nf.PolicyManagement = (function () {
     var initAddTenantToPolicyDialog = function () {
         $('#new-policy-user-button').on('click', function () {
             $('#search-users-dialog').modal('show');
+            $('#search-users-field').focus();
         });
 
         $('#delete-policy-button').on('click', function () {
@@ -128,7 +129,7 @@ nf.PolicyManagement = (function () {
             handler: {
                 close: function () {
                     // reset the search fields
-                    $('#search-users-field').val('');
+                    $('#search-users-field').userSearchAutocomplete('reset').val('');
                     $('#selected-user-id').text('');
                 }
             }
@@ -136,6 +137,9 @@ nf.PolicyManagement = (function () {
 
         // configure the user auto complete
         $.widget('nf.userSearchAutocomplete', $.ui.autocomplete, {
+            reset: function () {
+                this.term = null;
+            },
             _normalize: function (searchResults) {
                 var items = [];
                 items.push(searchResults);

@@ -103,13 +103,16 @@ nf.ClusterSearch = (function () {
                 handler: {
                     close: function () {
                         // reset the search field
-                        $('#cluster-search-field').val(config.search).addClass('search-nodes');
+                        $('#cluster-search-field').val(config.search).addClass('search-nodes').clusterSearchAutocomplete('reset');
                     }
                 }
             });
 
             // configure the cluster auto complete
             $.widget('nf.clusterSearchAutocomplete', $.ui.autocomplete, {
+                reset: function () {
+                    this.term = null;
+                },
                 _normalize: function (searchResults) {
                     var items = [];
                     items.push(searchResults);
@@ -134,7 +137,7 @@ nf.ClusterSearch = (function () {
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
-                    ul.width(299);
+                    ul.width($('#cluster-search-field').width() + 6);
                 }
             });
 
@@ -171,6 +174,7 @@ nf.ClusterSearch = (function () {
             $('#view-single-node-link').click(function () {
                 // hold the search nodes dialog
                 $('#view-single-node-dialog').modal('show');
+                $('#cluster-search-field').focus();
             });
 
             // handle the view cluster click event
