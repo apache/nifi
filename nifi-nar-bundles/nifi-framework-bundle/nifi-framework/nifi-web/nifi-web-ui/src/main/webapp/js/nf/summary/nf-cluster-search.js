@@ -110,6 +110,9 @@ nf.ClusterSearch = (function () {
 
             // configure the cluster auto complete
             $.widget('nf.clusterSearchAutocomplete', $.ui.autocomplete, {
+                reset: function () {
+                    this.term = null;
+                },
                 _normalize: function (searchResults) {
                     var items = [];
                     items.push(searchResults);
@@ -134,7 +137,7 @@ nf.ClusterSearch = (function () {
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
-                    ul.width(299);
+                    ul.width($('#cluster-search-field').width() + 6);
                 }
             });
 
@@ -159,6 +162,10 @@ nf.ClusterSearch = (function () {
                     }).done(function (searchResponse) {
                         response(searchResponse);
                     });
+                },
+                close: function (event, ui) {
+                    // set the input text to '' and reset the cached term
+                    $(this).clusterSearchAutocomplete('reset').val('');
                 }
             }).focus(function () {
                 // conditionally clear the text for the user to type
@@ -171,6 +178,7 @@ nf.ClusterSearch = (function () {
             $('#view-single-node-link').click(function () {
                 // hold the search nodes dialog
                 $('#view-single-node-dialog').modal('show');
+                $('#cluster-search-field').focus();
             });
 
             // handle the view cluster click event
