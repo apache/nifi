@@ -127,6 +127,9 @@ public class TlsToolkitStandalone {
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"),
                     hostname, httpsPort));
             tlsClientManager.write(outputStreamFactory);
+            if (logger.isInfoEnabled()) {
+                logger.info("Successfully generated TLS configuration for " + hostname + ":" + httpsPort + " in " + hostDir);
+            }
         }
 
         if (logger.isInfoEnabled()) {
