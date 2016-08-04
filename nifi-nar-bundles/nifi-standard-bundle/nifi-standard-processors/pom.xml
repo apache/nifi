@@ -254,6 +254,17 @@ language governing permissions and limitations under the License. -->
             <artifactId>org.everit.json.schema</artifactId>
             <version>1.4.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.fluenda</groupId>
+            <artifactId>ParCEFone</artifactId>
+            <version>1.2.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
