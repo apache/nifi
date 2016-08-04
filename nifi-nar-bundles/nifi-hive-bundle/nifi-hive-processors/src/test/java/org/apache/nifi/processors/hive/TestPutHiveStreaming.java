@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.hive;
 
 import org.apache.avro.Schema;
+import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
@@ -31,17 +33,19 @@ import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.hive.hcatalog.streaming.TransactionBatch;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -49,6 +53,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import static org.apache.nifi.processors.hive.PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -57,8 +67,8 @@ import static org.mockito.Mockito.when;
  */
 public class TestPutHiveStreaming {
 
-    TestRunner runner;
-    MockPutHiveStreaming processor;
+    private TestRunner runner;
+    private MockPutHiveStreaming processor;
 
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
@@ -83,12 +93,6 @@ public class TestPutHiveStreaming {
         processor.setKerberosProperties(kerberosPropsWithFile);
         runner = TestRunners.newTestRunner(processor);
     }
-
-    @After
-    public void tearDown() throws Exception {
-
-    }
-
 
     @Test
     public void testSetup() throws Exception {
@@ -127,6 +131,17 @@ public class TestPutHiveStreaming {
     }
 
     @Test
+    public void testSingleBatchInvalid() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.assertValid();
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "1");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void onTrigger() throws Exception {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
@@ -142,7 +157,76 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_SUCCESS);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+    }
+
+    @Test
+    public void onTriggerBadInput() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setValidateExpressionUsage(false);
+        runner.enqueue("I am not an Avro record".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void onTriggerMultipleRecords() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "2");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+            }
+        };
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        Map<String, Object> user3 = new HashMap<String, Object>() {
+            {
+                put("name", "Matt");
+                put("favorite_number", 3);
+            }
+        };
+        runner.enqueue(createAvroRecord(Arrays.asList(user1, user2, user3)));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0);
+        assertNotNull(resultFlowFile);
+        assertEquals("3", resultFlowFile.getAttribute(PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR));
+        final DataFileStream<GenericRecord> reader = new DataFileStream<>(
+                new ByteArrayInputStream(resultFlowFile.toByteArray()),
+                new GenericDatumReader<GenericRecord>());
+
+        Schema schema = reader.getSchema();
+
+        // Verify that the schema is preserved
+        assertTrue(schema.equals(new Schema.Parser().parse(new File("src/test/resources/user.avsc"))));
+
+        // Verify the records are intact. We can't guarantee order so check the total number and non-null fields
+        assertTrue(reader.hasNext());
+        GenericRecord record = reader.next(null);
+        assertNotNull(record.get("name"));
+        assertNotNull(record.get("favorite_number"));
+        assertNull(record.get("favorite_color"));
+        assertNull(record.get("scale"));
+        assertTrue(reader.hasNext());
+        record = reader.next(record);
+        assertTrue(reader.hasNext());
+        reader.next(record);
+        assertFalse(reader.hasNext());
     }
 
     @Test
@@ -165,7 +249,35 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_SUCCESS);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 1);
+        assertEquals("1", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_SUCCESS).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
+    }
+
+    @Test
+    public void onTriggerWithPartitionColumnsNotInRecord() throws Exception {
+        runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
+        runner.setProperty(PutHiveStreaming.DB_NAME, "default");
+        runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
+        runner.setProperty(PutHiveStreaming.PARTITION_COLUMNS, "favorite_food");
+        runner.setProperty(PutHiveStreaming.AUTOCREATE_PARTITIONS, "false");
+        runner.setValidateExpressionUsage(false);
+        Map<String, Object> user1 = new HashMap<String, Object>() {
+            {
+                put("name", "Joe");
+                put("favorite_number", 146);
+                put("favorite_color", "blue");
+            }
+        };
+
+        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        runner.run();
+
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
 
     @Test
@@ -186,7 +298,9 @@ public class TestPutHiveStreaming {
         }
         runner.run(10);
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_SUCCESS);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 10);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
 
     @Test
@@ -210,7 +324,9 @@ public class TestPutHiveStreaming {
 
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run(1, true);
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_SUCCESS);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 2);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
 
     @Test
@@ -230,7 +346,9 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_RETRY);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
     }
 
     @Test
@@ -250,7 +368,7 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_RETRY);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 1);
     }
 
     @Test
@@ -267,10 +385,17 @@ public class TestPutHiveStreaming {
                 put("favorite_number", 146);
             }
         };
-        runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
+        Map<String, Object> user2 = new HashMap<String, Object>() {
+            {
+                put("name", "Mary");
+                put("favorite_number", 42);
+            }
+        };
+        runner.enqueue(createAvroRecord(Arrays.asList(user1, user2)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_FAILURE);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        assertEquals("2", runner.getFlowFilesForRelationship(PutHiveStreaming.REL_FAILURE).get(0).getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
     }
 
     @Test
@@ -290,7 +415,8 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_FAILURE);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
     }
 
     @Test
@@ -310,7 +436,9 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_FAILURE);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
 
     @Test
@@ -330,7 +458,9 @@ public class TestPutHiveStreaming {
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutHiveStreaming.REL_FAILURE);
+        runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 1);
+        runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
 
     @Test
@@ -377,7 +507,6 @@ public class TestPutHiveStreaming {
             user.put("favorite_color", record.get("favorite_color"));
             users.add(user);
         }
-
         final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try (DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
@@ -387,6 +516,7 @@ public class TestPutHiveStreaming {
             }
         }
         return out.toByteArray();
+
     }
 
     private class MockPutHiveStreaming extends PutHiveStreaming {
