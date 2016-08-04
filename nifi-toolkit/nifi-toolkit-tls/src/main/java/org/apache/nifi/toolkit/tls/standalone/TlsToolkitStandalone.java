@@ -133,7 +133,7 @@ public class TlsToolkitStandalone {
         }
 
         if (logger.isInfoEnabled()) {
-            logger.info("Successfully generated TLS configuration");
+            logger.info("Successfully generated TLS configuration for all hosts");
         }
     }
 }
