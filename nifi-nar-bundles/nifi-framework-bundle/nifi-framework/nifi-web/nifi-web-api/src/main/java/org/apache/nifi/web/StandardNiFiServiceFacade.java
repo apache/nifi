@@ -2184,6 +2184,47 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return controllerFacade.getProcessorStatusHistory(id);
     }
 
+    private boolean authorizeBulletin(final Bulletin bulletin) {
+        final String sourceId = bulletin.getSourceId();
+        final ComponentType type = bulletin.getSourceType();
+
+        final Authorizable authorizable;
+        try {
+            switch (type) {
+                case PROCESSOR:
+                    authorizable = authorizableLookup.getProcessor(sourceId);
+                    break;
+                case REPORTING_TASK:
+                    authorizable = authorizableLookup.getReportingTask(sourceId);
+                    break;
+                case CONTROLLER_SERVICE:
+                    authorizable = authorizableLookup.getControllerService(sourceId);
+                    break;
+                case FLOW_CONTROLLER:
+                    authorizable = controllerFacade;
+                    break;
+                case INPUT_PORT:
+                    authorizable = authorizableLookup.getInputPort(sourceId);
+                    break;
+                case OUTPUT_PORT:
+                    authorizable = authorizableLookup.getOutputPort(sourceId);
+                    break;
+                case REMOTE_PROCESS_GROUP:
+                    authorizable = authorizableLookup.getRemoteProcessGroup(sourceId);
+                    break;
+                default:
+                    throw new WebApplicationException(Response.serverError().entity("An unexpected type of component is the source of this bulletin.").build());
+            }
+        } catch (final ResourceNotFoundException e) {
+            // if the underlying component is gone, disallow
+            return false;
+        }
+
+        // perform the authorization
+        final AuthorizationResult result = authorizable.checkAuthorization(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        return Result.Approved.equals(result.getResult());
+    }
+
     @Override
     public BulletinBoardDTO getBulletinBoard(final BulletinQueryDTO query) {
         // build the query
@@ -2203,7 +2244,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // exact results we want but in reverse order
         final List<BulletinDTO> bulletins = new ArrayList<>();
         for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious(); ) {
-            bulletins.add(dtoFactory.createBulletinDto(bulletinIter.previous()));
+            final Bulletin bulletin = bulletinIter.previous();
+
+            if (authorizeBulletin(bulletin)) {
+                bulletins.add(dtoFactory.createBulletinDto(bulletin));
+            } else {
+                final BulletinDTO bulletinDTO = new BulletinDTO();
+                bulletinDTO.setTimestamp(bulletin.getTimestamp());
+                bulletinDTO.setId(bulletin.getId());
+                bulletinDTO.setSourceId(bulletin.getSourceId());
+                bulletinDTO.setGroupId(bulletin.getGroupId());
+                bulletins.add(bulletinDTO);
+            }
         }
 
         // create the bulletin board

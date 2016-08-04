@@ -355,49 +355,51 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
 
                     // append each bulletin
                     $.each(bulletins, function (i, bulletin) {
-                        // format the severity
-                        var severityStyle = 'bulletin-normal';
-                        if (bulletin.level === 'ERROR') {
-                            severityStyle = 'bulletin-error';
-                        } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
-                            severityStyle = 'bulletin-warn';
-                        }
-
-                        // format the source id
-                        var source;
-                        if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
-                            source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
-                                goToSource(bulletin.groupId, bulletin.sourceId);
-                            });
-                        } else {
-                            var sourceId = bulletin.sourceId;
-                            if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
-                                sourceId = '';
+                        if (!nf.Common.isBlank(bulletin.level)) {
+                            // format the severity
+                            var severityStyle = 'bulletin-normal';
+                            if (bulletin.level === 'ERROR') {
+                                severityStyle = 'bulletin-error';
+                            } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
+                                severityStyle = 'bulletin-warn';
                             }
-                            source = $('<div class="bulletin-source"></div>').text(sourceId);
+
+                            // format the source id
+                            var source;
+                            if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
+                                source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
+                                    goToSource(bulletin.groupId, bulletin.sourceId);
+                                });
+                            } else {
+                                var sourceId = bulletin.sourceId;
+                                if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
+                                    sourceId = '';
+                                }
+                                source = $('<div class="bulletin-source"></div>').text(sourceId);
+                            }
+
+                            // build the markup for this bulletin
+                            var bulletinMarkup = $('<div class="bulletin"></div>');
+
+                            // build the markup for this bulletins info
+                            var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
+                            $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
+                            $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
+                            source.appendTo(bulletinInfoMarkup);
+                            $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
+
+                            // format the node address if applicable
+                            if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
+                                $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
+                            }
+
+                            // add the bulletin message (treat as text)
+                            $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
+                            $('<div class="clear"></div>').appendTo(bulletinMarkup);
+
+                            // append the content
+                            content.push(bulletinMarkup.get(0));
                         }
-
-                        // build the markup for this bulletin
-                        var bulletinMarkup = $('<div class="bulletin"></div>');
-
-                        // build the markup for this bulletins info
-                        var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
-                        $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
-                        $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
-                        source.appendTo(bulletinInfoMarkup);
-                        $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
-
-                        // format the node address if applicable
-                        if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
-                            $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
-                        }
-
-                        // add the bulletin message (treat as text)
-                        $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
-                        $('<div class="clear"></div>').appendTo(bulletinMarkup);
-
-                        // append the content
-                        content.push(bulletinMarkup.get(0));
 
                         // record the id of the last bulletin in this request
                         if (i + 1 === bulletins.length) {
