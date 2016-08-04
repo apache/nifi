@@ -35,9 +35,9 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
     private final OutputStreamFactory outputStreamFactory;
     private final File file;
     private final String hostname;
-    private final String httpsPort;
+    private final int httpsPort;
 
-    public NifiPropertiesTlsClientConfigWriter(NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, OutputStreamFactory outputStreamFactory, File file, String hostname, String httpsPort) {
+    public NifiPropertiesTlsClientConfigWriter(NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, OutputStreamFactory outputStreamFactory, File file, String hostname, int httpsPort) {
         this.niFiPropertiesWriterFactory = niFiPropertiesWriterFactory;
         this.outputStreamFactory = outputStreamFactory;
         this.file = file;
@@ -63,14 +63,12 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE, parentPath.relativize(Paths.get(tlsClientConfig.getTrustStore())).toString());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsClientConfig.getTrustStoreType());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsClientConfig.getTrustStorePassword());
-        if (!StringUtils.isEmpty(httpsPort)) {
-            if (!StringUtils.isEmpty(hostname)) {
-                niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTPS_HOST, hostname);
-            }
-            niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTPS_PORT, httpsPort);
-            niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_HOST, "");
-            niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_PORT, "");
-            niFiPropertiesWriter.setPropertyValue(NiFiProperties.SITE_TO_SITE_SECURE, "true");
+        if (!StringUtils.isEmpty(hostname)) {
+            niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTPS_HOST, hostname);
         }
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTPS_PORT, Integer.toString(httpsPort));
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_HOST, "");
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_PORT, "");
+        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SITE_TO_SITE_SECURE, "true");
     }
 }

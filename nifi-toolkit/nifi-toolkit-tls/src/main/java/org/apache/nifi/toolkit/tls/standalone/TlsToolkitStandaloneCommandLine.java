@@ -26,10 +26,13 @@ import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,14 +49,17 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String HOSTNAMES_ARG = "hostnames";
     public static final String HTTPS_PORT_ARG = "httpsPort";
 
-    public static final String DEFAULT_OUTPUT_DIRECTORY = new File(".").getPath();
+    public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
+    public static final int DEFAULT_HTTPS_PORT = 10443;
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
+
+    private final Logger logger = LoggerFactory.getLogger(TlsToolkitStandaloneCommandLine.class);
 
     private final PasswordUtil passwordUtil;
     private File baseDir;
     private List<String> hostnames;
-    private String httpsPort;
+    private int httpsPort;
     private NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
     private List<String> keyStorePasswords;
     private List<String> keyPasswords;
@@ -68,8 +74,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         this.passwordUtil = passwordUtil;
         addOptionWithArg("o", OUTPUT_DIRECTORY_ARG, "The directory to output keystores, truststore, config files.", DEFAULT_OUTPUT_DIRECTORY);
         addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.", TlsConfig.DEFAULT_HOSTNAME);
-        addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", "");
-        addOptionWithArg("f", NIFI_PROPERTIES_FILE_ARG, "Base nifi.properties file to update.", "");
+        addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", DEFAULT_HTTPS_PORT);
+        addOptionWithArg("f", NIFI_PROPERTIES_FILE_ARG, "Base nifi.properties file to update. (Embedded file identical to the one in a default NiFi install will be used if not specified.)");
         addOptionWithArg("S", KEY_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
@@ -100,7 +106,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
         hostnames = Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG, TlsConfig.DEFAULT_HOSTNAME).split(",")).map(String::trim).collect(Collectors.toList());
-        httpsPort = commandLine.getOptionValue(HTTPS_PORT_ARG, "");
+        httpsPort = getIntValue(commandLine, HTTPS_PORT_ARG, DEFAULT_HTTPS_PORT);
 
         int numHosts = hostnames.size();
         keyStorePasswords = Collections.unmodifiableList(getPasswords(KEY_STORE_PASSWORD_ARG, commandLine, numHosts));
@@ -110,8 +116,10 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         String nifiPropertiesFile = commandLine.getOptionValue(NIFI_PROPERTIES_FILE_ARG, "");
         try {
             if (StringUtils.isEmpty(nifiPropertiesFile)) {
+                logger.info("No " + NIFI_PROPERTIES_FILE_ARG + " specified, using embedded one.");
                 niFiPropertiesWriterFactory = new NiFiPropertiesWriterFactory();
             } else {
+                logger.info("Using " + nifiPropertiesFile + " as template.");
                 niFiPropertiesWriterFactory = new NiFiPropertiesWriterFactory(new FileInputStream(nifiPropertiesFile));
             }
         } catch (IOException e) {
@@ -148,7 +156,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         return hostnames;
     }
 
-    public String getHttpsPort() {
+    public int getHttpsPort() {
         return httpsPort;
     }
 

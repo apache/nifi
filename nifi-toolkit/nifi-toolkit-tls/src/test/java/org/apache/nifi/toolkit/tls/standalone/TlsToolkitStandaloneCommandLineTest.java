@@ -149,8 +149,8 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testHttpsPort() throws CommandLineParseException {
-        String testPort = "8998";
-        tlsToolkitStandaloneCommandLine.parse("-p", testPort);
+        int testPort = 8998;
+        tlsToolkitStandaloneCommandLine.parse("-p", Integer.toString(testPort));
         assertEquals(testPort, tlsToolkitStandaloneCommandLine.getHttpsPort());
     }
 
