@@ -64,7 +64,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
-@InputRequirement(Requirement.INPUT_ALLOWED)
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
@@ -84,12 +84,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .name("success")
     .description("All files retrieved from HDFS are transferred to this relationship")
     .build();
-
-    public static final Relationship REL_PASSTHROUGH = new Relationship.Builder()
-    .name("passthrough")
-    .description(
-            "If this processor has an input queue for some reason, then FlowFiles arriving on that input are transferred to this relationship")
-            .build();
 
     // properties
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -181,10 +175,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     private static final Set<Relationship> relationships;
 
     static {
-        final Set<Relationship> rels = new HashSet<>();
-        rels.add(REL_SUCCESS);
-        rels.add(REL_PASSTHROUGH);
-        relationships = Collections.unmodifiableSet(rels);
+        relationships = Collections.singleton(REL_SUCCESS);
     }
 
     protected ProcessorConfiguration processorConfig;
@@ -259,13 +250,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
         int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final List<Path> files = new ArrayList<>(batchSize);
-        List<FlowFile> inputFlowFiles = session.get(10);
-        for (FlowFile ff : inputFlowFiles) {
-            session.transfer(ff, REL_PASSTHROUGH);
-        }
 
         // retrieve new file names from HDFS and place them into work queue
         if (filePathQueue.size() < MAX_WORKING_QUEUE_SIZE / 2) {
