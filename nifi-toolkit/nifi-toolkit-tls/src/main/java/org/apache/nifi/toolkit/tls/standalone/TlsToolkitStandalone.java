@@ -58,7 +58,7 @@ public class TlsToolkitStandalone {
     }
 
     public void createNifiKeystoresAndTrustStores(File baseDir, TlsConfig tlsConfig, NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, List<String> hostnames, List<String> keyStorePasswords,
-                                                  List<String> keyPasswords, List<String> trustStorePasswords, String httpsPort) throws GeneralSecurityException, IOException {
+                                                  List<String> keyPasswords, List<String> trustStorePasswords, int httpsPort) throws GeneralSecurityException, IOException {
         String signingAlgorithm = tlsConfig.getSigningAlgorithm();
         int days = tlsConfig.getDays();
         String keyPairAlgorithm = tlsConfig.getKeyPairAlgorithm();
@@ -127,10 +127,13 @@ public class TlsToolkitStandalone {
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"),
                     hostname, httpsPort));
             tlsClientManager.write(outputStreamFactory);
+            if (logger.isInfoEnabled()) {
+                logger.info("Successfully generated TLS configuration for " + hostname + ":" + httpsPort + " in " + hostDir);
+            }
         }
 
         if (logger.isInfoEnabled()) {
-            logger.info("Successfully generated TLS configuration");
+            logger.info("Successfully generated TLS configuration for all hosts");
         }
     }
 }
