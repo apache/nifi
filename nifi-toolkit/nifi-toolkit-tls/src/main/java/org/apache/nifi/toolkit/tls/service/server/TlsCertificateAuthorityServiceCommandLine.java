@@ -54,7 +54,8 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
             System.exit(e.getExitCode());
         }
         TlsCertificateAuthorityService tlsCertificateAuthorityService = new TlsCertificateAuthorityService();
-        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJson());
+        tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJson(),
+                tlsCertificateAuthorityServiceCommandLine.differentPasswordForKeyAndKeystore());
         System.out.println("Server Started");
         System.out.flush();
     }

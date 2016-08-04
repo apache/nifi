@@ -20,8 +20,6 @@ package org.apache.nifi.toolkit.tls.standalone;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
-import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
-import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneTest;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.junit.Assert;
 import org.junit.Before;
@@ -180,7 +178,7 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testNotSameKeyAndKeystorePassword() throws CommandLineParseException {
-        tlsToolkitStandaloneCommandLine.parse();
+        tlsToolkitStandaloneCommandLine.parse("-g");
         List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.getKeyStorePasswords();
         List<String> keyPasswords = tlsToolkitStandaloneCommandLine.getKeyPasswords();
         assertEquals(1, tlsToolkitStandaloneCommandLine.getHostnames().size());
@@ -191,7 +189,7 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testSameKeyAndKeystorePassword() throws CommandLineParseException {
-        tlsToolkitStandaloneCommandLine.parse("-R");
+        tlsToolkitStandaloneCommandLine.parse();
         List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.getKeyStorePasswords();
         List<String> keyPasswords = tlsToolkitStandaloneCommandLine.getKeyPasswords();
         assertEquals(1, tlsToolkitStandaloneCommandLine.getHostnames().size());
@@ -203,7 +201,7 @@ public class TlsToolkitStandaloneCommandLineTest {
     @Test
     public void testSameKeyAndKeystorePasswordWithKeystorePasswordSpecified() throws CommandLineParseException {
         String testPassword = "testPassword";
-        tlsToolkitStandaloneCommandLine.parse("-R", "-S", testPassword);
+        tlsToolkitStandaloneCommandLine.parse("-S", testPassword);
         List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.getKeyStorePasswords();
         assertEquals(1, keyStorePasswords.size());
         assertEquals(testPassword, keyStorePasswords.get(0));
@@ -211,13 +209,13 @@ public class TlsToolkitStandaloneCommandLineTest {
     }
 
     @Test
-    public void testSameKeyAndKeystorePasswordWithKeyPasswordSpecified() {
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-R", "-K", "testPassword");
-            fail("Expected error when specifying same key and password with a key password");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_SAME_KEY_AND_KEY_PASSWORD.ordinal(), e.getExitCode());
-        }
+    public void testSameKeyAndKeystorePasswordWithKeyPasswordSpecified() throws CommandLineParseException {
+        String testPassword = "testPassword";
+        tlsToolkitStandaloneCommandLine.parse("-K", testPassword);
+        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.getKeyPasswords();
+        assertNotEquals(tlsToolkitStandaloneCommandLine.getKeyStorePasswords(), keyPasswords);
+        assertEquals(1, keyPasswords.size());
+        assertEquals(testPassword, keyPasswords.get(0));
     }
 
     @Test

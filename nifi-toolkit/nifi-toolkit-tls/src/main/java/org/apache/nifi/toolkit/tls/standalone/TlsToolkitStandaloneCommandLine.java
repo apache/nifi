@@ -43,7 +43,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String KEY_STORE_PASSWORD_ARG = "keyStorePassword";
     public static final String TRUST_STORE_PASSWORD_ARG = "trustStorePassword";
     public static final String KEY_PASSWORD_ARG = "keyPassword";
-    public static final String SAME_KEY_AND_KEY_STORE_PASSWORD_ARG = "sameKeyAndKeyStorePassword";
     public static final String HOSTNAMES_ARG = "hostnames";
     public static final String HTTPS_PORT_ARG = "httpsPort";
 
@@ -71,7 +70,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.", TlsConfig.DEFAULT_HOSTNAME);
         addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", "");
         addOptionWithArg("f", NIFI_PROPERTIES_FILE_ARG, "Base nifi.properties file to update.", "");
-        addOptionNoArg("R", SAME_KEY_AND_KEY_STORE_PASSWORD_ARG, "Use the same password for KeyStore and Key, only KeyStore password should be specified if autogenerate not desired.");
         addOptionWithArg("S", KEY_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
@@ -136,13 +134,10 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     }
 
     private List<String> getKeyPasswords(CommandLine commandLine, List<String> keyStorePasswords) throws CommandLineParseException {
-        if (commandLine.hasOption(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG)) {
-            if (commandLine.hasOption(KEY_PASSWORD_ARG)) {
-                return printUsageAndThrow(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG + " and " + KEY_PASSWORD_ARG + " arguments are mutually exclusive.", ExitCode.ERROR_SAME_KEY_AND_KEY_PASSWORD);
-            }
-            return new ArrayList<>(keyStorePasswords);
+        if (differentPasswordForKeyAndKeystore() || commandLine.hasOption(KEY_PASSWORD_ARG)) {
+            return getPasswords(KEY_PASSWORD_ARG, commandLine, keyStorePasswords.size());
         }
-        return getPasswords(KEY_PASSWORD_ARG, commandLine, keyStorePasswords.size());
+        return new ArrayList<>(keyStorePasswords);
     }
 
     public File getBaseDir() {

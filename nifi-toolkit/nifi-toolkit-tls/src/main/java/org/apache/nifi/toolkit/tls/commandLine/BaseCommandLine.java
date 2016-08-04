@@ -40,6 +40,7 @@ public abstract class BaseCommandLine {
     public static final String KEY_STORE_TYPE_ARG = "keyStoreType";
     public static final String SIGNING_ALGORITHM_ARG = "signingAlgorithm";
     public static final String DN_ARG = "dn";
+    public static final String DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG = "differentKeyAndKeystorePasswords";
 
     public static final String KEYSTORE = "keystore.";
     public static final String TRUSTSTORE = "truststore.";
@@ -52,6 +53,7 @@ public abstract class BaseCommandLine {
     private String keyStoreType;
     private int days;
     private String signingAlgorithm;
+    private boolean differentPasswordForKeyAndKeystore;
 
     public BaseCommandLine(String header) {
         this.header = System.lineSeparator() + header + System.lineSeparator() + System.lineSeparator();
@@ -67,6 +69,7 @@ public abstract class BaseCommandLine {
         if (shouldAddSigningAlgorithmArg()) {
             addOptionWithArg("s", SIGNING_ALGORITHM_ARG, "Algorithm to use for signing certificates.", TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         }
+        addOptionNoArg("g", DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG, "Use different generated password for the key and the keyStore.");
     }
 
     protected String getKeyStoreTypeDefault() {
@@ -144,6 +147,10 @@ public abstract class BaseCommandLine {
         return signingAlgorithm;
     }
 
+    public boolean differentPasswordForKeyAndKeystore() {
+        return differentPasswordForKeyAndKeystore;
+    }
+
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine;
@@ -158,6 +165,7 @@ public abstract class BaseCommandLine {
             keyAlgorithm = commandLine.getOptionValue(KEY_ALGORITHM_ARG, TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
             keyStoreType = commandLine.getOptionValue(KEY_STORE_TYPE_ARG, getKeyStoreTypeDefault());
             signingAlgorithm = commandLine.getOptionValue(SIGNING_ALGORITHM_ARG, TlsConfig.DEFAULT_SIGNING_ALGORITHM);
+            differentPasswordForKeyAndKeystore = commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG);
         } catch (ParseException e) {
             return printUsageAndThrow("Error parsing command line. (" + e.getMessage() + ")", ExitCode.ERROR_PARSING_COMMAND_LINE);
         }

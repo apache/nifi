@@ -79,7 +79,7 @@ public class TlsCertificateAuthorityService {
         return server;
     }
 
-    public synchronized void start(TlsConfig tlsConfig, String configJson) throws Exception {
+    public synchronized void start(TlsConfig tlsConfig, String configJson, boolean differentPasswordsForKeyAndKeystore) throws Exception {
         if (server != null) {
             throw new IllegalStateException("Server already started");
         }
@@ -87,6 +87,7 @@ public class TlsCertificateAuthorityService {
         TlsCertificateAuthorityManager tlsManager;
         try {
             tlsManager = new TlsCertificateAuthorityManager(tlsConfig);
+            tlsManager.setDifferentKeyAndKeyStorePassword(differentPasswordsForKeyAndKeystore);
         } catch (IOException e) {
             logger.error("Unable to open existing keystore, it can be reused by specifiying both " + BaseCertificateAuthorityCommandLine.CONFIG_JSON_ARG + " and " +
                     BaseCertificateAuthorityCommandLine.USE_CONFIG_JSON_ARG);

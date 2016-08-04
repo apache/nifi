@@ -50,7 +50,7 @@ public class TlsCertificateAuthorityClient {
         this.outputStreamFactory = outputStreamFactory;
     }
 
-    public void generateCertificateAndGetItSigned(TlsClientConfig tlsClientConfig, String certificateDirectory, String configJson, boolean sameKeyAndKeyStorePassword) throws Exception {
+    public void generateCertificateAndGetItSigned(TlsClientConfig tlsClientConfig, String certificateDirectory, String configJson, boolean differentKeyAndKeyStorePassword) throws Exception {
         TlsClientManager tlsClientManager;
         try {
             tlsClientManager = new TlsClientManager(tlsClientConfig);
@@ -59,7 +59,7 @@ public class TlsCertificateAuthorityClient {
                     BaseCertificateAuthorityCommandLine.USE_CONFIG_JSON_ARG);
             throw e;
         }
-        tlsClientManager.setSameKeyAndKeyStorePassword(sameKeyAndKeyStorePassword);
+        tlsClientManager.setDifferentKeyAndKeyStorePassword(differentKeyAndKeyStorePassword);
 
         if (!StringUtils.isEmpty(certificateDirectory)) {
             tlsClientManager.setCertificateAuthorityDirectory(new File(certificateDirectory));

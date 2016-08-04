@@ -49,7 +49,7 @@ public class BaseTlsManager {
     private final InputStreamFactory inputStreamFactory;
     private final KeyStore keyStore;
     private final List<ConfigurationWriter<TlsConfig>> configurationWriters;
-    private boolean sameKeyAndKeyStorePassword = false;
+    private boolean differentKeyAndKeyStorePassword = false;
 
     public BaseTlsManager(TlsConfig tlsConfig) throws GeneralSecurityException, IOException {
         this(tlsConfig, new PasswordUtil(), FileInputStream::new);
@@ -81,8 +81,8 @@ public class BaseTlsManager {
         return getEntry(alias);
     }
 
-    public void setSameKeyAndKeyStorePassword(boolean sameKeyAndKeyStorePassword) {
-        this.sameKeyAndKeyStorePassword = sameKeyAndKeyStorePassword;
+    public void setDifferentKeyAndKeyStorePassword(boolean differentKeyAndKeyStorePassword) {
+        this.differentKeyAndKeyStorePassword = differentKeyAndKeyStorePassword;
     }
 
     private String getKeyPassword() {
@@ -92,10 +92,10 @@ public class BaseTlsManager {
         } else {
             String result = tlsConfig.getKeyPassword();
             if (StringUtils.isEmpty(result)) {
-                if (sameKeyAndKeyStorePassword) {
-                    result = getKeyStorePassword();
-                } else {
+                if (differentKeyAndKeyStorePassword) {
                     result = passwordUtil.generatePassword();
+                } else {
+                    result = getKeyStorePassword();
                 }
                 tlsConfig.setKeyPassword(result);
             }

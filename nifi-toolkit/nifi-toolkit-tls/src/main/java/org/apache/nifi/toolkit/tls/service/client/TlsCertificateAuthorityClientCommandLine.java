@@ -39,13 +39,11 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     public static final String DESCRIPTION = "Generates a private key and gets it signed by the certificate authority.";
     public static final String CERTIFICATE_DIRECTORY = "certificateDirectory";
     public static final String DEFAULT_CERTIFICATE_DIRECTORY = ".";
-    public static final String SAME_KEY_AND_KEY_STORE_PASSWORD_ARG = "sameKeyAndKeyStorePassword";
 
     private final Logger logger = LoggerFactory.getLogger(TlsCertificateAuthorityClientCommandLine.class);
     private final InputStreamFactory inputStreamFactory;
 
     private String certificateDirectory;
-    private boolean sameKeyAndKeyStorePassword;
 
     public TlsCertificateAuthorityClientCommandLine() {
         this(FileInputStream::new);
@@ -55,7 +53,6 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         super(DESCRIPTION);
         this.inputStreamFactory = inputStreamFactory;
         addOptionWithArg("C", CERTIFICATE_DIRECTORY, "The file to write the CA certificate to", DEFAULT_CERTIFICATE_DIRECTORY);
-        addOptionNoArg("S", SAME_KEY_AND_KEY_STORE_PASSWORD_ARG, "When generating passwords, use the same one for KeyStore and Key");
     }
 
     public static void main(String[] args) throws Exception {
@@ -68,7 +65,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         }
         new TlsCertificateAuthorityClient().generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.createClientConfig(),
                 tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJson(),
-                tlsCertificateAuthorityClientCommandLine.sameKeyAndKeyStorePassword());
+                tlsCertificateAuthorityClientCommandLine.differentPasswordForKeyAndKeystore());
         System.exit(ExitCode.SUCCESS.ordinal());
     }
 
@@ -111,12 +108,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
         certificateDirectory = commandLine.getOptionValue(CERTIFICATE_DIRECTORY, DEFAULT_CERTIFICATE_DIRECTORY);
-        sameKeyAndKeyStorePassword = commandLine.hasOption(SAME_KEY_AND_KEY_STORE_PASSWORD_ARG);
         return commandLine;
-    }
-
-    public boolean sameKeyAndKeyStorePassword() {
-        return sameKeyAndKeyStorePassword;
     }
 
     public String getCertificateDirectory() {

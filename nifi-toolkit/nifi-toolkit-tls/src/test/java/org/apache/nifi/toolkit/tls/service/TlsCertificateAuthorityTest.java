@@ -140,11 +140,27 @@ public class TlsCertificateAuthorityTest {
     }
 
     @Test
-    public void testClientGetCert() throws Exception {
+    public void testClientGetCertDifferentPasswordsForKeyAndKeyStore() throws Exception {
         TlsCertificateAuthorityService tlsCertificateAuthorityService = null;
         try {
             tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
-            tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath());
+            tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath(), true);
+            TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
+            tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), true);
+            validate();
+        } finally {
+            if (tlsCertificateAuthorityService != null) {
+                tlsCertificateAuthorityService.shutdown();
+            }
+        }
+    }
+
+    @Test
+    public void testClientGetCertSamePasswordsForKeyAndKeyStore() throws Exception {
+        TlsCertificateAuthorityService tlsCertificateAuthorityService = null;
+        try {
+            tlsCertificateAuthorityService = new TlsCertificateAuthorityService(outputStreamFactory);
+            tlsCertificateAuthorityService.start(serverConfig, serverConfigFile.getAbsolutePath(), false);
             TlsCertificateAuthorityClient tlsCertificateAuthorityClient = new TlsCertificateAuthorityClient(outputStreamFactory);
             tlsCertificateAuthorityClient.generateCertificateAndGetItSigned(clientConfig, null, clientConfigFile.getAbsolutePath(), false);
             validate();
@@ -159,7 +175,7 @@ public class TlsCertificateAuthorityTest {
     public void testTokenMismatch() throws Exception {
         serverConfig.setToken("a different token...");
         try {
-            testClientGetCert();
+            testClientGetCertSamePasswordsForKeyAndKeyStore();
             fail("Expected error with mismatching token");
         } catch (IOException e) {
             assertTrue(e.getMessage().contains("forbidden"));
