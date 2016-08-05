@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="settings">
+<div id="settings" class="hidden">
     <div id="settings-header-text" class="settings-header-text">NiFi Settings</div>
     <div class="settings-container">
         <div>
