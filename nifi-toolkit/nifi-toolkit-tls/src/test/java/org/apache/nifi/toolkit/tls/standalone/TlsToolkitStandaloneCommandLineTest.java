@@ -28,6 +28,7 @@ import org.mockito.internal.stubbing.defaultanswers.ForwardsInvocations;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.List;
@@ -129,9 +130,9 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Test
     public void testOutputDirectory() throws CommandLineParseException {
-        String testPath = "/fake/path/doesnt/exist";
+        String testPath = File.separator + "fake" + File.separator + "path" + File.separator + "doesnt" + File.separator + "exist";
         tlsToolkitStandaloneCommandLine.parse("-o", testPath);
-        assertEquals(testPath, tlsToolkitStandaloneCommandLine.getBaseDir().getAbsolutePath());
+        assertEquals(testPath, tlsToolkitStandaloneCommandLine.getBaseDir().getPath());
     }
 
     @Test
