@@ -22,9 +22,6 @@ nf.SummaryTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        styles: {
-            filterList: 'summary-filter-list'
-        },
         urls: {
             api: '../nifi-api',
             status: '../nifi-api/flow/process-groups/root/status',
@@ -59,15 +56,7 @@ nf.SummaryTable = (function () {
         // define the function for filtering the list
         $('#summary-filter').keyup(function () {
             applyFilter();
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList);
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList);
-            }
-        }).addClass(config.styles.filterList);
+        });
 
         // initialize the summary tabs
         $('#summary-tabs').tabbs({
@@ -236,7 +225,7 @@ nf.SummaryTable = (function () {
                 }
 
                 // reset the filter
-                $('#summary-filter').addClass(config.styles.filterList);
+                $('#summary-filter').val('');
                 applyFilter();
             }
         });
@@ -2299,12 +2288,7 @@ nf.SummaryTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#summary-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#summary-filter').val();
     };
 
     /**

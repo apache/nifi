@@ -51,7 +51,7 @@
 }
 
 #history-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 #history-header {
@@ -87,6 +87,7 @@
 
 #history-purge-button {
     float: right;
+    padding-left: 4px;
 }
 
 
@@ -145,7 +146,7 @@ div.history-details-name {
 
 #history-table {
     position: absolute;
-    top: 62px;
+    top: 66px;
     left: 0px;
     bottom: 47px;
     right: 0px;

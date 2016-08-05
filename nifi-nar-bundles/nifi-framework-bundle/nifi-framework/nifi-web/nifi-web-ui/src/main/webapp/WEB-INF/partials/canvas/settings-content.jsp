@@ -56,10 +56,10 @@
                     </div>
                 </div>
             </div>
-            <div id="controller-services-tab-content" class="configuration-tab">
+            <div id="controller-services-tab-content" class="configuration-tab controller-settings-table">
                 <div id="controller-services-table" class="settings-table"></div>
             </div>
-            <div id="reporting-tasks-tab-content" class="configuration-tab">
+            <div id="reporting-tasks-tab-content" class="configuration-tab controller-settings-table">
                 <div id="reporting-tasks-table" class="settings-table"></div>
             </div>
         </div>

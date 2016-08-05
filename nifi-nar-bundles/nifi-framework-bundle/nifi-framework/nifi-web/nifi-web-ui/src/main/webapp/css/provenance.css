@@ -57,7 +57,7 @@
 }
 
 #provenance-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 #provenance-header {
@@ -75,10 +75,6 @@ div.provenance-panel {
 
 /* filter controls */
 
-#provenance-filter-controls {
-    float: right;
-}
-
 #provenance-filter-container {
     height: 24px;
     width: 100%;
@@ -88,10 +84,6 @@ div.provenance-panel {
     width: 173px;
     margin-right: 3px;
     float: left;
-}
-
-input.provenance-filter-list {
-    color: #888;
 }
 
 #provenance-filter-type {
@@ -108,10 +100,9 @@ input.provenance-filter-list {
 /* provenance search controls */
 
 #provenance-search-container {
-    float: right;
-    position: relative;
+    position: absolute;
+    right: 0;
     top: 38px;
-    height: 0px;
 }
 
 #provenance-search-button {

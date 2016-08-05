@@ -33,8 +33,14 @@
     margin-bottom: 24px;
 }
 
+#delete-policy-button {
+    margin-top: -4px;
+}
+
 #new-policy-user-button {
+    margin-top: -4px;
     margin-right: 5px;
+    padding-left: 5px;
 }
 
 button.policy-button {
@@ -178,7 +184,8 @@ div.policy-selected-component-type {
 }
 
 #policy-last-refreshed {
-    font-weight: bold;
+    color: #775351;
+    font-weight: 500;
 }
 
 /*

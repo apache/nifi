@@ -20,10 +20,6 @@
 nf.ProcessGroupConfiguration = (function () {
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api'
         }
@@ -123,6 +119,9 @@ nf.ProcessGroupConfiguration = (function () {
                 url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
                 dataType: 'json'
             }).done(function (response) {
+                // update the current time
+                $('#process-group-configuration-last-refreshed').text(response.currentTime);
+
                 if (response.permissions.canWrite) {
                     var processGroup = response.component;
 

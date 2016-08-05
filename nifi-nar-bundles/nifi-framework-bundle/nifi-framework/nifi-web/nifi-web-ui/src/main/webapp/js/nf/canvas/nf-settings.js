@@ -20,10 +20,6 @@
 nf.Settings = (function () {
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
@@ -256,12 +252,7 @@ nf.Settings = (function () {
      * accounts for that.
      */
     var getReportingTaskTypeFilterText = function () {
-        var filterText = '';
-        var filterField = $('#reporting-task-type-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#reporting-task-type-filter').val();
     };
 
     /**
@@ -419,15 +410,7 @@ nf.Settings = (function () {
             } else {
                 applyReportingTaskTypeFilter();
             }
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        });
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
@@ -574,7 +557,7 @@ nf.Settings = (function () {
                     clearSelectedReportingTask();
 
                     // clear any filter strings
-                    $('#reporting-task-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    $('#reporting-task-type-filter').val('');
 
                     // clear the tagcloud
                     $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
@@ -1002,6 +985,7 @@ nf.Settings = (function () {
                     } else {
                         if (nf.Common.canModifyController()) {
                             $('#new-service-or-task').show();
+                            $('div.controller-settings-table').css('top', '32px');
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
@@ -1015,6 +999,7 @@ nf.Settings = (function () {
                             });
                         } else {
                             $('#new-service-or-task').hide();
+                            $('div.controller-settings-table').css('top', '0');
                         }
 
                         // resize the table

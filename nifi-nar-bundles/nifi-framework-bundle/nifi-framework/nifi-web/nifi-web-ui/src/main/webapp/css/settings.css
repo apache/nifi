@@ -113,10 +113,6 @@ div.settings-buttons div.button {
     float: left;
 }
 
-#reporting-tasks-tab-content {
-    top: 32px;
-}
-
-#controller-services-tab-content {
+div.controller-settings-table {
     top: 32px;
 }

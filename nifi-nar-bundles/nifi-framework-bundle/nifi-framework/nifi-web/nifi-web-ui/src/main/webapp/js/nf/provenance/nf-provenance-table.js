@@ -28,7 +28,6 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         defaultStartTime: '00:00:00',
         defaultEndTime: '23:59:59',
         styles: {
-            filterList: 'provenance-filter-list',
             hidden: 'hidden'
         },
         urls: {
@@ -518,15 +517,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
         // define the function for filtering the list
         $('#provenance-filter').keyup(function () {
             applyFilter();
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList);
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList);
-            }
-        }).addClass(config.styles.filterList);
+        });
 
         // filter options
         var filterOptions = [{
@@ -796,12 +787,7 @@ nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#provenance-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#provenance-filter').val();
     };
 
     /**

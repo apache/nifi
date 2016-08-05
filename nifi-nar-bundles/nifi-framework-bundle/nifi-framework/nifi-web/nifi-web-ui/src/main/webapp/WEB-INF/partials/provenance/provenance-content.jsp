@@ -37,7 +37,7 @@
         </div>
         <div id="provenance-search-container">
             <div id="provenance-search-overview">
-                <span id="provenance-query-message"></span>
+                <span id="provenance-query-message">&nbsp;</span>
                 <span id="clear-provenance-search" class="link">Clear search</span>
             </div>
             <button id="provenance-search-button" class="fa fa-search"></button>

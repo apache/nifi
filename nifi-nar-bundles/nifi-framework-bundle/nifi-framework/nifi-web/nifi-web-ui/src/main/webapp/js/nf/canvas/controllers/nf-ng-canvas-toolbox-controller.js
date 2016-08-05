@@ -59,9 +59,6 @@ nf.ng.Canvas.ToolboxCtrl = function (processorComponent,
                 template: 'Template',
                 label: 'Label'
             },
-            styles: {
-                filterList: 'filter-list'
-            },
             urls: {
                 api: '../nifi-api',
                 controller: '../nifi-api/controller',

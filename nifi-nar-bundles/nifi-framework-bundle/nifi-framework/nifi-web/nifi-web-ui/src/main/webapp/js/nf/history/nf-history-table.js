@@ -25,9 +25,7 @@ nf.HistoryTable = (function () {
     var config = {
         defaultStartTime: '00:00:00',
         defaultEndTime: '23:59:59',
-        filterText: 'Filter',
         styles: {
-            filterList: 'filter-list',
             hidden: 'hidden'
         },
         urls: {

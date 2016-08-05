@@ -64,7 +64,8 @@
 }
 
 #process-group-configuration-last-refreshed {
-    font-weight: bold;
+    color: #775351;
+    font-weight: 500;
 }
 
 /* general */

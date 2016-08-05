@@ -57,12 +57,10 @@ nf.Actions = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).fail(function (xhr, status, error) {
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                nf.Dialog.showOkDialog({
-                    headerText: 'Update Resource',
-                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                });
-            }
+            nf.Dialog.showOkDialog({
+                headerText: 'Update Resource',
+                dialogContent: nf.Common.escapeHtml(xhr.responseText)
+            });
         });
     };
 

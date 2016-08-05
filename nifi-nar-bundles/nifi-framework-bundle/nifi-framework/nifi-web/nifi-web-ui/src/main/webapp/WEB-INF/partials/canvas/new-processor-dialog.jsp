@@ -27,7 +27,7 @@
                         id="total-processor-types"></span>
                 </div>
                 <div id="processor-type-filter-container">
-                    <input type="text" placeholder="Filter processor list" id="processor-type-filter"/>
+                    <input type="text" placeholder="Filter" id="processor-type-filter"/>
                 </div>
             </div>
         </div>

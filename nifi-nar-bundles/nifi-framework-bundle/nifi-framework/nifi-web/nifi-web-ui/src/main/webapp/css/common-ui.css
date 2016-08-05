@@ -168,10 +168,6 @@ ul.links span.header-link-over {
     white-space: normal;
 }
 
-input.filter-list {
-    color: #888;
-}
-
 .table-cell {
     overflow: hidden;
     white-space: nowrap;
@@ -189,8 +185,22 @@ label {
     margin-bottom: 2px;
 }
 
-input::placeholder {
-    color: #728e9b; /*base-color*/
+/* placeholder styles */
+
+*::placeholder {
+    color: #728e9b;
+}
+*::-webkit-input-placeholder {
+    color: #728e9b;
+}
+*:-moz-placeholder {
+    color: #728e9b;
+}
+*::-moz-placeholder {
+    color: #728e9b;
+}
+*:-ms-input-placeholder {
+    color: #728e9b;
 }
 
 input[type=text], input[type=password], textarea {

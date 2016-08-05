@@ -110,6 +110,7 @@ public final class EntityFactory {
 
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
+        entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setStatus(status);
