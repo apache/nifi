@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-ldap-iaa-providers-bundle</artifactId>
-        <version>1.0.0-BETA</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-ldap-iaa-providers</artifactId>
     <packaging>jar</packaging>

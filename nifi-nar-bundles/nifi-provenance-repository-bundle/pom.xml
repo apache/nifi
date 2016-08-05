@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.0.0-BETA</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-provenance-repository-bundle</artifactId>
     <packaging>pom</packaging>
@@ -31,12 +31,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-persistent-provenance-repository</artifactId>
-                <version>1.0.0-BETA</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-volatile-provenance-repository</artifactId>
-                <version>1.0.0-BETA</version>
+                <version>1.0.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.0.0-BETA</version>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-documentation</artifactId>
     <dependencies>
