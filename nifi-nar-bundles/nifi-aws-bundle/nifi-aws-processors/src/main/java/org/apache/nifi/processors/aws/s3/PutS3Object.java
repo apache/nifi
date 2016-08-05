@@ -64,6 +64,7 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadResult;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
@@ -190,7 +191,7 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
         Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
-            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, SSL_CONTEXT_SERVICE,
+            FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION,
             PROXY_HOST, PROXY_HOST_PORT));
 
@@ -441,6 +442,10 @@ public class PutS3Object extends AbstractS3Processor {
                             if (acl != null) {
                                 request.setAccessControlList(acl);
                             }
+                            final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
+                            if (cannedAcl != null) {
+                                request.withCannedAcl(cannedAcl);
+                            }
 
                             try {
                                 final PutObjectResult result = s3.putObject(request);
@@ -528,6 +533,10 @@ public class PutS3Object extends AbstractS3Processor {
                                 final AccessControlList acl = createACL(context, ff);
                                 if (acl != null) {
                                     initiateRequest.setAccessControlList(acl);
+                                }
+                                final CannedAccessControlList cannedAcl = createCannedACL(context, ff);
+                                if (cannedAcl != null) {
+                                    initiateRequest.withCannedACL(cannedAcl);
                                 }
                                 try {
                                     final InitiateMultipartUploadResult initiateResult =
