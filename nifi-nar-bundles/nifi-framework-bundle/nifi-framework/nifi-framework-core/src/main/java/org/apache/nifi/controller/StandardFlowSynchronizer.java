@@ -772,6 +772,56 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        // Update scheduled state of Remote Group Ports
+        final List<Element> remoteProcessGroupList = getChildrenByTagName(processGroupElement, "remoteProcessGroup");
+        for (final Element remoteGroupElement : remoteProcessGroupList) {
+            final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteGroupElement, encryptor);
+            final RemoteProcessGroup rpg = processGroup.getRemoteProcessGroup(remoteGroupDto.getId());
+
+            // input ports
+            final List<Element> inputPortElements = getChildrenByTagName(remoteGroupElement, "inputPort");
+            for (final Element inputPortElement : inputPortElements) {
+                final RemoteProcessGroupPortDescriptor portDescriptor = FlowFromDOMFactory.getRemoteProcessGroupPort(inputPortElement);
+                final String inputPortId = portDescriptor.getId();
+                final RemoteGroupPort inputPort = rpg.getInputPort(inputPortId);
+                if (inputPort == null) {
+                    continue;
+                }
+
+                if (portDescriptor.isTransmitting()) {
+                    if (inputPort.getScheduledState() != ScheduledState.RUNNING && inputPort.getScheduledState() != ScheduledState.STARTING) {
+                        rpg.startTransmitting(inputPort);
+                    }
+                } else {
+                    if (inputPort.getScheduledState() != ScheduledState.STOPPED && inputPort.getScheduledState() != ScheduledState.STOPPING) {
+                        rpg.stopTransmitting(inputPort);
+                    }
+                }
+            }
+
+            // output ports
+            final List<Element> outputPortElements = getChildrenByTagName(remoteGroupElement, "outputPort");
+            for (final Element outputPortElement : outputPortElements) {
+                final RemoteProcessGroupPortDescriptor portDescriptor = FlowFromDOMFactory.getRemoteProcessGroupPort(outputPortElement);
+                final String outputPortId = portDescriptor.getId();
+                final RemoteGroupPort outputPort = rpg.getOutputPort(outputPortId);
+                if (outputPort == null) {
+                    continue;
+                }
+
+                if (portDescriptor.isTransmitting()) {
+                    if (outputPort.getScheduledState() != ScheduledState.RUNNING && outputPort.getScheduledState() != ScheduledState.STARTING) {
+                        rpg.startTransmitting(outputPort);
+                    }
+                } else {
+                    if (outputPort.getScheduledState() != ScheduledState.STOPPED && outputPort.getScheduledState() != ScheduledState.STOPPING) {
+                        rpg.stopTransmitting(outputPort);
+                    }
+                }
+            }
+        }
+
+
         // add labels
         final List<Element> labelNodeList = getChildrenByTagName(processGroupElement, "label");
         for (final Element labelElement : labelNodeList) {

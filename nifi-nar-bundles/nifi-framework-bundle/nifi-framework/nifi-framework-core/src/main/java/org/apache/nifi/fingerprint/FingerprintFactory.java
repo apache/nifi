@@ -778,7 +778,7 @@ public final class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[]{"id", "scheduledState", "maxConcurrentTasks", "useCompression"}) {
+        for (final String childName : new String[] {"id", "maxConcurrentTasks", "useCompression"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 
@@ -787,7 +787,6 @@ public final class FingerprintFactory {
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final RemoteProcessGroupPortDTO port) {
         builder.append(port.getId());
-        builder.append(Boolean.TRUE.equals(port.isTransmitting()) ? "RUNNING" : "STOPPED");
         builder.append(port.getConcurrentlySchedulableTaskCount());
         builder.append(port.getUseCompression());
         return builder;
