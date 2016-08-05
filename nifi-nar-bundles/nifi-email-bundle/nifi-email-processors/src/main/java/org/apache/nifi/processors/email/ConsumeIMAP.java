@@ -45,7 +45,7 @@ public class ConsumeIMAP extends AbstractEmailProcessor<ImapMailReceiver> {
             .build();
     public static final PropertyDescriptor USE_SSL = new PropertyDescriptor.Builder()
             .name("Use SSL")
-            .description("Specifies if IMAP connection must be obtained via SSL encypted connection (i.e., IMAPS)")
+            .description("Specifies if IMAP connection must be obtained via SSL encrypted connection (i.e., IMAPS)")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
