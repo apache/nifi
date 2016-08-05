@@ -61,15 +61,7 @@ import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
-import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
-import org.apache.nifi.web.api.dto.status.NodeProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.PortStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
-import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
@@ -464,6 +456,10 @@ public class FlowResource extends ApplicationResource {
             @PathParam("id") String groupId) throws InterruptedException {
 
         authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
 
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId);
@@ -1273,13 +1269,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status
-        final ProcessorStatusDTO processorStatus = serviceFacade.getProcessorStatus(id);
-
-        // generate the response entity
-        final ProcessorStatusEntity entity = new ProcessorStatusEntity();
-        entity.setProcessorStatus(processorStatus);
-
-        // generate the response
+        final ProcessorStatusEntity entity = serviceFacade.getProcessorStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1352,13 +1342,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified input port status
-        final PortStatusDTO portStatus = serviceFacade.getInputPortStatus(id);
-
-        // generate the response entity
-        final PortStatusEntity entity = new PortStatusEntity();
-        entity.setPortStatus(portStatus);
-
-        // generate the response
+        final PortStatusEntity entity = serviceFacade.getInputPortStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1431,13 +1415,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified output port status
-        final PortStatusDTO portStatus = serviceFacade.getOutputPortStatus(id);
-
-        // generate the response entity
-        final PortStatusEntity entity = new PortStatusEntity();
-        entity.setPortStatus(portStatus);
-
-        // generate the response
+        final PortStatusEntity entity = serviceFacade.getOutputPortStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1510,13 +1488,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified remote process group status
-        final RemoteProcessGroupStatusDTO remoteProcessGroupStatus = serviceFacade.getRemoteProcessGroupStatus(id);
-
-        // generate the response entity
-        final RemoteProcessGroupStatusEntity entity = new RemoteProcessGroupStatusEntity();
-        entity.setRemoteProcessGroupStatus(remoteProcessGroupStatus);
-
-        // generate the response
+        final RemoteProcessGroupStatusEntity entity = serviceFacade.getRemoteProcessGroupStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1597,35 +1569,8 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the status
-        final ProcessGroupStatusDTO statusReport = serviceFacade.getProcessGroupStatus(groupId);
-
-        // prune the response as necessary
-        if (!recursive) {
-            pruneChildGroups(statusReport.getAggregateSnapshot());
-            if (statusReport.getNodeSnapshots() != null) {
-                for (final NodeProcessGroupStatusSnapshotDTO nodeSnapshot : statusReport.getNodeSnapshots()) {
-                    pruneChildGroups(nodeSnapshot.getStatusSnapshot());
-                }
-            }
-        }
-
-        // create the response entity
-        final ProcessGroupStatusEntity entity = new ProcessGroupStatusEntity();
-        entity.setProcessGroupStatus(statusReport);
-
-        // generate the response
+        final ProcessGroupStatusEntity entity = serviceFacade.getProcessGroupStatus(groupId, recursive);
         return clusterContext(generateOkResponse(entity)).build();
-    }
-
-    private void pruneChildGroups(final ProcessGroupStatusSnapshotDTO snapshot) {
-        for (final ProcessGroupStatusSnapshotDTO childProcessGroupStatus : snapshot.getProcessGroupStatusSnapshots()) {
-            childProcessGroupStatus.setConnectionStatusSnapshots(null);
-            childProcessGroupStatus.setProcessGroupStatusSnapshots(null);
-            childProcessGroupStatus.setInputPortStatusSnapshots(null);
-            childProcessGroupStatus.setOutputPortStatusSnapshots(null);
-            childProcessGroupStatus.setProcessorStatusSnapshots(null);
-            childProcessGroupStatus.setRemoteProcessGroupStatusSnapshots(null);
-        }
     }
 
     /**
@@ -1697,13 +1642,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified connection status
-        final ConnectionStatusDTO connectionStatus = serviceFacade.getConnectionStatus(id);
-
-        // generate the response entity
-        final ConnectionStatusEntity entity = new ConnectionStatusEntity();
-        entity.setConnectionStatus(connectionStatus);
-
-        // generate the response
+        final ConnectionStatusEntity entity = serviceFacade.getConnectionStatus(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1753,13 +1692,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO processorStatusHistory = serviceFacade.getProcessorStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(processorStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getProcessorStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1805,13 +1738,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO processGroupStatusHistory = serviceFacade.getProcessGroupStatusHistory(groupId);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(processGroupStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getProcessGroupStatusHistory(groupId);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1857,13 +1784,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO remoteProcessGroupStatusHistory = serviceFacade.getRemoteProcessGroupStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(remoteProcessGroupStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getRemoteProcessGroupStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 
@@ -1909,13 +1830,7 @@ public class FlowResource extends ApplicationResource {
         }
 
         // get the specified processor status history
-        final StatusHistoryDTO connectionStatusHistory = serviceFacade.getConnectionStatusHistory(id);
-
-        // generate the response entity
-        final StatusHistoryEntity entity = new StatusHistoryEntity();
-        entity.setStatusHistory(connectionStatusHistory);
-
-        // generate the response
+        final StatusHistoryEntity entity = serviceFacade.getConnectionStatusHistory(id);
         return clusterContext(generateOkResponse(entity)).build();
     }
 

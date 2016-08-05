@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.cluster.manager
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO
@@ -34,8 +35,8 @@ import org.codehaus.jackson.xc.JaxbAnnotationIntrospector
 import spock.lang.Specification
 import spock.lang.Unroll
 
+@Unroll
 class PermissionBasedStatusMergerSpec extends Specification {
-    @Unroll
     def "Merge ConnectionStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -45,7 +46,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge, 'nodeid', 'nodeaddress', 1234)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead, 'nodeid', 'nodeaddress', 1234)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -53,20 +54,19 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                                                                                                 |
-                toMerge                                                                                                                                                                 ||
+        target                                                                                                                                                                 | targetCanRead |
+                toMerge                                                                                                                                                  | toMergeCanRead ||
                 expectedDto
-        new ConnectionStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real')                |
-                new ConnectionStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
-                        destinationName: 'hidden')                                                                                                                                      ||
-                new ConnectionStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+        new ConnectionStatusDTO(groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real')               | true          |
+                new ConnectionStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+                        destinationName: 'hidden')                                                                                                                       | false          ||
+                new ConnectionStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
                         destinationName: 'hidden')
-        new ConnectionStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden', destinationName: 'hidden') |
-                new ConnectionStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') ||
-                new ConnectionStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden', destinationName: 'hidden')
+        new ConnectionStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden', destinationName: 'hidden') | false         |
+                new ConnectionStatusDTO(groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') | true           ||
+                new ConnectionStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden', destinationName: 'hidden')
     }
 
-    @Unroll
     def "Merge ConnectionStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -76,7 +76,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -84,22 +84,21 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                                                                                          |
-                toMerge                                                                                                                                                                         ||
+        target                                                                                                                                                           | targetCanRead |
+                toMerge                                                                                                                                                          | toMergeCanRead ||
                 expectedDto
-        new ConnectionStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') |
-                new ConnectionStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
-                        destinationName: 'hidden')                                                                                                                                              ||
-                new ConnectionStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+        new ConnectionStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') | true          |
+                new ConnectionStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+                        destinationName: 'hidden')                                                                                                                               | false          ||
+                new ConnectionStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
                         destinationName: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: '0')
-        new ConnectionStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
-                destinationName: 'hidden')                                                                                                                                              |
-                new ConnectionStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') ||
-                new ConnectionStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+        new ConnectionStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
+                destinationName: 'hidden')                                                                                                                               | false         |
+                new ConnectionStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', sourceId: 'real', sourceName: 'real', destinationId: 'real', destinationName: 'real') | true           ||
+                new ConnectionStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', sourceId: 'hidden', sourceName: 'hidden', destinationId: 'hidden',
                         destinationName: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: '0')
     }
 
-    @Unroll
     def "Merge PortStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -109,7 +108,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge, 'nodeid', 'nodeaddress', 1234)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead, 'nodeid', 'nodeaddress', 1234)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -117,18 +116,17 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                             |
-                toMerge                                                                            ||
+        target                                                             | targetCanRead |
+                toMerge                                                            | toMergeCanRead ||
                 expectedDto
-        new PortStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real')        |
-                new PortStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden') ||
-                new PortStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden')
-        new PortStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden') |
-                new PortStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real')        ||
-                new PortStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden')
+        new PortStatusDTO(groupId: 'real', id: 'real', name: 'real')       | true          |
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false          ||
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden')
+        new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false         |
+                new PortStatusDTO(groupId: 'real', id: 'real', name: 'real')       | true           ||
+                new PortStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden')
     }
 
-    @Unroll
     def "Merge PortStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -138,7 +136,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -146,18 +144,17 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                     |
-                toMerge                                                                                    ||
+        target                                                                     | targetCanRead |
+                toMerge                                                                    | toMergeCanRead ||
                 expectedDto
-        new PortStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real')        |
-                new PortStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden') ||
-                new PortStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transmitting: false)
-        new PortStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden') |
-                new PortStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real')        ||
-                new PortStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transmitting: false)
+        new PortStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real')       | true          |
+                new PortStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false          ||
+                new PortStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transmitting: false)
+        new PortStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden') | false         |
+                new PortStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real')       | true           ||
+                new PortStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transmitting: false)
     }
 
-    @Unroll
     def "Merge ProcessGroupStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -167,7 +164,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge, 'nodeid', 'nodeaddress', 1234)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead, 'nodeid', 'nodeaddress', 1234)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -175,15 +172,15 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                  | toMerge                                                                 ||
+        target                                                  | targetCanRead |
+                toMerge                                                                                                                   | toMergeCanRead ||
                 expectedDto
-        new ProcessGroupStatusDTO(canRead: true, id: 'real', name: 'real')      | new ProcessGroupStatusDTO(canRead: false, id: 'hidden', name: 'hidden') ||
-                new ProcessGroupStatusDTO(canRead: false, id: 'hidden', name: 'hidden')
-        new ProcessGroupStatusDTO(canRead: false, id: 'hidden', name: 'hidden') | new ProcessGroupStatusDTO(canRead: true, id: 'real', name: 'real')      ||
-                new ProcessGroupStatusDTO(canRead: false, id: 'hidden', name: 'hidden')
+        new ProcessGroupStatusDTO(id: 'real', name: 'real')     | true          | new ProcessGroupStatusDTO(id: 'hidden', name: 'hidden') | false          ||
+                new ProcessGroupStatusDTO(id: 'hidden', name: 'hidden')
+        new ProcessGroupStatusDTO(id: 'hidden', name: 'hidden') | false         | new ProcessGroupStatusDTO(id: 'real', name: 'real')     | true           ||
+                new ProcessGroupStatusDTO(id: 'hidden', name: 'hidden')
     }
 
-    @Unroll
     def "Merge ProcessGroupStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -193,7 +190,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -201,20 +198,20 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                          | toMerge                                                                         ||
+        target                                                          | targetCanRead |
+                toMerge                                                                                                                                   | toMergeCanRead ||
                 expectedDto
-        new ProcessGroupStatusSnapshotDTO(canRead: true, id: 'real', name: 'real')      | new ProcessGroupStatusSnapshotDTO(canRead: false, id: 'hidden', name: 'hidden') ||
-                new ProcessGroupStatusSnapshotDTO(canRead: false, id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transferred: '0 (0 bytes)', read: '0 bytes', written: '0' +
+        new ProcessGroupStatusSnapshotDTO(id: 'real', name: 'real')     | true          | new ProcessGroupStatusSnapshotDTO(id: 'hidden', name: 'hidden') | false          ||
+                new ProcessGroupStatusSnapshotDTO(id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transferred: '0 (0 bytes)', read: '0 bytes', written: '0' +
                         ' bytes',
                         queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: '0', received: '0 (0 bytes)', sent: '0 (0 bytes)', connectionStatusSnapshots: [], inputPortStatusSnapshots: [],
                         outputPortStatusSnapshots: [], processorStatusSnapshots: [], remoteProcessGroupStatusSnapshots: [])
-        new ProcessGroupStatusSnapshotDTO(canRead: false, id: 'hidden', name: 'hidden') | new ProcessGroupStatusSnapshotDTO(canRead: true, id: 'real', name: 'real')      ||
-                new ProcessGroupStatusSnapshotDTO(canRead: false, id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transferred: '0 (0 bytes)', read: '0 bytes', written: '0 bytes',
+        new ProcessGroupStatusSnapshotDTO(id: 'hidden', name: 'hidden') | false         | new ProcessGroupStatusSnapshotDTO(id: 'real', name: 'real')     | true           ||
+                new ProcessGroupStatusSnapshotDTO(id: 'hidden', name: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', transferred: '0 (0 bytes)', read: '0 bytes', written: '0 bytes',
                         queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: '0', received: '0 (0 bytes)', sent: '0 (0 bytes)', connectionStatusSnapshots: [], inputPortStatusSnapshots: [],
                         outputPortStatusSnapshots: [], processorStatusSnapshots: [], remoteProcessGroupStatusSnapshots: [])
     }
 
-    @Unroll
     def "Merge ProcessorStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -224,7 +221,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge, 'nodeid', 'nodeaddress', 1234)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead, 'nodeid', 'nodeaddress', 1234)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -232,18 +229,17 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                  |
-                toMerge                                                                                                 ||
+        target                                                                                  | targetCanRead |
+                toMerge                                                                                 | toMergeCanRead ||
                 expectedDto
-        new ProcessorStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', type: 'real')          |
-                new ProcessorStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') ||
-                new ProcessorStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden')
-        new ProcessorStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') |
-                new ProcessorStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', type: 'real')          ||
-                new ProcessorStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden')
+        new ProcessorStatusDTO(groupId: 'real', id: 'real', name: 'real', type: 'real')         | true          |
+                new ProcessorStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') | false          ||
+                new ProcessorStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden')
+        new ProcessorStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') | false         |
+                new ProcessorStatusDTO(groupId: 'real', id: 'real', name: 'real', type: 'real')         | true           ||
+                new ProcessorStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden')
     }
 
-    @Unroll
     def "Merge ProcessorStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -253,7 +249,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -261,20 +257,19 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                          |
-                toMerge                                                                                                         ||
+        target                                                                                          | targetCanRead |
+                toMerge                                                                                         | toMergeCanRead ||
                 expectedDto
-        new ProcessorStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') |
-                new ProcessorStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', type: 'real')          ||
-                new ProcessorStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', read: '0 bytes',
+        new ProcessorStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') | false         |
+                new ProcessorStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', type: 'real')         | true           ||
+                new ProcessorStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', read: '0 bytes',
                         written: '0 bytes', tasks: '0', tasksDuration: '00:00:00.000')
-        new ProcessorStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', type: 'real')          |
-                new ProcessorStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') ||
-                new ProcessorStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', read: '0 bytes',
+        new ProcessorStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', type: 'real')         | true          |
+                new ProcessorStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden') | false          ||
+                new ProcessorStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', type: 'hidden', input: '0 (0 bytes)', output: '0 (0 bytes)', read: '0 bytes',
                         written: '0 bytes', tasks: '0', tasksDuration: '00:00:00.000')
     }
 
-    @Unroll
     def "Merge RemoteProcessGroupStatusDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -284,7 +279,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge, 'nodeid', 'nodeaddress', 1234)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead, 'nodeid', 'nodeaddress', 1234)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -292,18 +287,17 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                                |
-                toMerge                                                                                                               ||
+        target                                                                                                | targetCanRead |
+                toMerge                                                                                               | toMergeCanRead ||
                 expectedDto
-        new RemoteProcessGroupStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', targetUri: 'real')          |
-                new RemoteProcessGroupStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') ||
-                new RemoteProcessGroupStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden')
-        new RemoteProcessGroupStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') |
-                new RemoteProcessGroupStatusDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', targetUri: 'real')          ||
-                new RemoteProcessGroupStatusDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden')
+        new RemoteProcessGroupStatusDTO(groupId: 'real', id: 'real', name: 'real', targetUri: 'real')         | true          |
+                new RemoteProcessGroupStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') | false          ||
+                new RemoteProcessGroupStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden')
+        new RemoteProcessGroupStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') | false         |
+                new RemoteProcessGroupStatusDTO(groupId: 'real', id: 'real', name: 'real', targetUri: 'real')         | true           ||
+                new RemoteProcessGroupStatusDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden')
     }
 
-    @Unroll
     def "Merge RemoteProcessGroupStatusSnapshotDTO"() {
         given:
         def mapper = new ObjectMapper();
@@ -313,7 +307,7 @@ class PermissionBasedStatusMergerSpec extends Specification {
         def merger = new StatusMerger()
 
         when:
-        merger.merge(target, toMerge)
+        merger.merge(target, targetCanRead, toMerge, toMergeCanRead)
 
         then:
         def returnedJson = mapper.writeValueAsString(target)
@@ -321,14 +315,14 @@ class PermissionBasedStatusMergerSpec extends Specification {
         returnedJson == expectedJson
 
         where:
-        target                                                                                                                                              |
-                toMerge                                                                                                                       ||
+        target                                                                                                        | targetCanRead |
+                toMerge                                                                                                       | toMergeCanRead ||
                 expectedDto
-        new RemoteProcessGroupStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', targetUri: 'real') |
-                new RemoteProcessGroupStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') ||
-                new RemoteProcessGroupStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden', received: '0 (0 bytes)', sent: '0 (0 bytes)')
-        new RemoteProcessGroupStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden')                       |
-                new RemoteProcessGroupStatusSnapshotDTO(canRead: true, groupId: 'real', id: 'real', name: 'real', targetUri: 'real')          ||
-                new RemoteProcessGroupStatusSnapshotDTO(canRead: false, groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden', received: '0 (0 bytes)', sent: '0 (0 bytes)')
+        new RemoteProcessGroupStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', targetUri: 'real')         | true          |
+                new RemoteProcessGroupStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') | false          ||
+                new RemoteProcessGroupStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden', received: '0 (0 bytes)', sent: '0 (0 bytes)')
+        new RemoteProcessGroupStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden') | false         |
+                new RemoteProcessGroupStatusSnapshotDTO(groupId: 'real', id: 'real', name: 'real', targetUri: 'real')         | true           ||
+                new RemoteProcessGroupStatusSnapshotDTO(groupId: 'hidden', id: 'hidden', name: 'hidden', targetUri: 'hidden', received: '0 (0 bytes)', sent: '0 (0 bytes)')
     }
 }

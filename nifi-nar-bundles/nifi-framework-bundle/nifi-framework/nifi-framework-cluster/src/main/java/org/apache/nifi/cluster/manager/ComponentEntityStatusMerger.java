@@ -18,10 +18,18 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
-import java.util.Map;
-
 public interface ComponentEntityStatusMerger<StatusDtoType> {
 
-    void merge(final StatusDtoType clientEntityStatus, final Map<NodeIdentifier, StatusDtoType> entityStatusMap);
+    /**
+     * Merges status into clientStatus based on the given permissions.
+     *
+     * @param clientStatus                   The status that will be returned to the client after merging
+     * @param clientStatusReadablePermission The read permission of the status that will be returned to the client after merging
+     * @param status                         The status to be merged into the client status
+     * @param statusReadablePermission       The read permission of the status to be merged into the client status
+     * @param statusNodeIdentifier           The {@link NodeIdentifier} of the node from which status was received
+     */
+    void mergeStatus(final StatusDtoType clientStatus, final boolean clientStatusReadablePermission, final StatusDtoType status,
+                     final boolean statusReadablePermission, final NodeIdentifier statusNodeIdentifier);
 
 }

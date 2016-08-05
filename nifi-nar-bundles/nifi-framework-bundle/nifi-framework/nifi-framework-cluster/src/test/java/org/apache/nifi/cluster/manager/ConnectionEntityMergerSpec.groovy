@@ -55,13 +55,13 @@ class ConnectionEntityMergerSpec extends Specification {
         nodeEntityMap                                                                                                                    ||
                 expectedMergedEntity
         [(createNodeIdentifier(1)): new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
-                ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO()),
+                ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO()),
          (createNodeIdentifier(2)): new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false), status: new
-                 ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 100))),
+                 ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 100))),
          (createNodeIdentifier(3)): new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
-                 ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 500)), component: new ConnectionDTO())] ||
+                 ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 500)), component: new ConnectionDTO())] ||
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
-                        status: new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 900, input: '0 (900 bytes)',
+                        status: new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 900, input: '0 (900 bytes)',
                                 output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
 
     }

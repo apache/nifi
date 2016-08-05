@@ -146,36 +146,36 @@ class StandardHttpResponseMergerSpec extends Specification {
                         component: new ControllerConfigurationDTO(maxEventDrivenThreadCount: 10, maxTimerDrivenThreadCount: 10))
         "nifi-api/process-groups/${UUID.randomUUID()}/connections" | 'get'      | [
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
-                        ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO())] as Set),
+                        ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO())] as Set),
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false), status: new
-                        ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 100)))] as Set),
+                        ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 100)))] as Set),
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status: new
-                        ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 500)), component: new ConnectionDTO())] as Set)] ||
+                        ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 500)), component: new ConnectionDTO())] as Set)] ||
                 // expectedEntity
                 new ConnectionsEntity(connections: [new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
-                        status: new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 900,
+                        status: new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 900,
                                 input: '0 (900 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))] as Set)
         "nifi-api/process-groups/${UUID.randomUUID()}/connections" | 'post'     | [
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO()),
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO()),
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300))),
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300))),
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO())]      ||
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO())]      ||
                 // expectedEntity
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
-                        status: new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 900, input: '0 (900 bytes)',
+                        status: new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 900, input: '0 (900 bytes)',
                                 output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
         "nifi-api/connections/${UUID.randomUUID()}"                | 'get'      | [
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 400)), component: new ConnectionDTO()),
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 400)), component: new ConnectionDTO()),
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300))),
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300))),
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), status:
-                        new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 300)), component: new ConnectionDTO())]      ||
+                        new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 300)), component: new ConnectionDTO())]      ||
                 // expectedEntity
                 new ConnectionEntity(id: '1', permissions: new PermissionsDTO(canRead: false, canWrite: false),
-                        status: new ConnectionStatusDTO(canRead: true, aggregateSnapshot: new ConnectionStatusSnapshotDTO(canRead: true, bytesIn: 1000,
+                        status: new ConnectionStatusDTO(aggregateSnapshot: new ConnectionStatusSnapshotDTO(bytesIn: 1000,
                                 input: '0 (1,000 bytes)', output: '0 (0 bytes)', queued: '0 (0 bytes)', queuedSize: '0 bytes', queuedCount: 0)))
         "nifi-api/process-groups/${UUID.randomUUID()}/labels" | 'get'      | [
                 new LabelsEntity(labels: [new LabelEntity(id: '1', permissions: new PermissionsDTO(canRead: true, canWrite: true), component: new LabelDTO())] as Set),

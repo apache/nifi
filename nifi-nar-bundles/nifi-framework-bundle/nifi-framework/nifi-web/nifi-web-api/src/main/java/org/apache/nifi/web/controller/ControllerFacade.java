@@ -269,9 +269,6 @@ public class ControllerFacade implements Authorizable {
         if (!processor.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, processorId);
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Processor");
-            statusHistory.setCanRead(false);
-        } else {
-            statusHistory.setCanRead(true);
         }
 
         return statusHistory;
@@ -299,9 +296,6 @@ public class ControllerFacade implements Authorizable {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, connectionId);
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, connection.getSource().getIdentifier());
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, connection.getDestination().getIdentifier());
-            statusHistory.setCanRead(false);
-        } else {
-            statusHistory.setCanRead(true);
         }
 
         return statusHistory;
@@ -328,9 +322,6 @@ public class ControllerFacade implements Authorizable {
         // if not authorized
         if (!group.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, groupId);
-            statusHistory.setCanRead(false);
-        } else {
-            statusHistory.setCanRead(true);
         }
 
         return statusHistory;
@@ -357,9 +348,6 @@ public class ControllerFacade implements Authorizable {
         if (!remoteProcessGroup.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
             statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, remoteProcessGroupId);
             statusHistory.getComponentDetails().remove(ComponentStatusRepository.COMPONENT_DETAIL_URI);
-            statusHistory.setCanRead(false);
-        } else {
-            statusHistory.setCanRead(true);
         }
 
         return statusHistory;

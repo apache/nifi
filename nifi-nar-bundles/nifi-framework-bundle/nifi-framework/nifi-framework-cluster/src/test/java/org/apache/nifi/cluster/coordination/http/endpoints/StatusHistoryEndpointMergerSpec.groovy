@@ -72,17 +72,17 @@ class StatusHistoryEndpointMergerSpec extends Specification {
         }
         responseEntities.size() == mockToRequestEntity.size()
         0 * _
-        (returnedResponse.getUpdatedEntity() as StatusHistoryEntity).statusHistory.canRead == expectedEntity.statusHistory.canRead
+        (returnedResponse.getUpdatedEntity() as StatusHistoryEntity).canRead == expectedEntity.canRead
         (returnedResponse.getUpdatedEntity() as StatusHistoryEntity).statusHistory.componentDetails == expectedEntity.statusHistory.componentDetails
 
         where:
         requestUriPart                                                   | httpMethod | responseEntities ||
                 expectedEntity
         "/nifi-api/flow/connections/${UUID.randomUUID()}/status/history" | 'get'      | [
-                new StatusHistoryEntity(statusHistory: new StatusHistoryDTO(canRead: true, componentDetails: [key1: 'real', key2: 'real'], nodeSnapshots: [], aggregateSnapshots: [])),
-                new StatusHistoryEntity(statusHistory: new StatusHistoryDTO(canRead: false, componentDetails: [key1: 'hidden', key2: 'hidden'], nodeSnapshots: [], aggregateSnapshots: [])),
-                new StatusHistoryEntity(statusHistory: new StatusHistoryDTO(canRead: true, componentDetails: [key1: 'real', key2: 'real'], nodeSnapshots: [], aggregateSnapshots: []))
+                new StatusHistoryEntity(canRead: true, statusHistory: new StatusHistoryDTO(componentDetails: [key1: 'real', key2: 'real'], nodeSnapshots: [], aggregateSnapshots: [])),
+                new StatusHistoryEntity(canRead: false, statusHistory: new StatusHistoryDTO(componentDetails: [key1: 'hidden', key2: 'hidden'], nodeSnapshots: [], aggregateSnapshots: [])),
+                new StatusHistoryEntity(canRead: true, statusHistory: new StatusHistoryDTO(componentDetails: [key1: 'real', key2: 'real'], nodeSnapshots: [], aggregateSnapshots: []))
         ]                                                                                                ||
-                new StatusHistoryEntity(statusHistory: new StatusHistoryDTO(canRead: false, componentDetails: [key1: 'hidden', key2: 'hidden'], nodeSnapshots: [], aggregateSnapshots: []))
+                new StatusHistoryEntity(canRead: false, statusHistory: new StatusHistoryDTO(componentDetails: [key1: 'hidden', key2: 'hidden'], nodeSnapshots: [], aggregateSnapshots: []))
     }
 }

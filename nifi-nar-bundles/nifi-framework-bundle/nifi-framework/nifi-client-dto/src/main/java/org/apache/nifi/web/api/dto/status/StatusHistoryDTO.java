@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
@@ -30,11 +29,9 @@ import java.util.List;
  * DTO for serializing the status history of a single component across the cluster.
  */
 @XmlType(name = "statusHistory")
-public class StatusHistoryDTO implements ReadablePermission{
+public class StatusHistoryDTO {
 
     private Date generated;
-
-    private Boolean canRead;
 
     private LinkedHashMap<String, String> componentDetails;
     private List<StatusDescriptorDTO> fieldDescriptors;
@@ -94,15 +91,5 @@ public class StatusHistoryDTO implements ReadablePermission{
 
     public void setNodeSnapshots(List<NodeStatusSnapshotsDTO> nodeSnapshots) {
         this.nodeSnapshots = nodeSnapshots;
-    }
-
-    @Override
-    public Boolean getCanRead() {
-        return canRead;
-    }
-
-    @Override
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
     }
 }

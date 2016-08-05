@@ -27,13 +27,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<RemoteProcessGroupEntity>, ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
     @Override
     public void merge(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+        for (Map.Entry<NodeIdentifier, RemoteProcessGroupEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final RemoteProcessGroupEntity entityStatus = entry.getValue();
+            if (entityStatus != clientEntity) {
+                mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
+            }
+        }
     }
 
     /**
@@ -55,14 +60,10 @@ public class RemoteProcessGroupEntityMerger implements ComponentEntityMerger<Rem
     }
 
     @Override
-    public void merge(RemoteProcessGroupStatusDTO clientEntityStatus, Map<NodeIdentifier, RemoteProcessGroupStatusDTO> entityStatusMap) {
-        for (final Map.Entry<NodeIdentifier, RemoteProcessGroupStatusDTO> entry : entityStatusMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final RemoteProcessGroupStatusDTO entityStatus = entry.getValue();
-            if (entityStatus != clientEntityStatus) {
-                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
-            }
-        }
+    public void mergeStatus(RemoteProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, RemoteProcessGroupStatusDTO status,
+                            boolean statusReadablePermission, NodeIdentifier statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 
     private static void mergeDtos(final RemoteProcessGroupDTO clientDto, final Map<NodeIdentifier, RemoteProcessGroupDTO> dtoMap) {

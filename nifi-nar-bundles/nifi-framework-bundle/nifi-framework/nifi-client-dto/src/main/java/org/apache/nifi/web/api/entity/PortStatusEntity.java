@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
@@ -24,9 +25,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a PortStatusDTO.
  */
 @XmlRootElement(name = "portStatusEntity")
-public class PortStatusEntity extends Entity {
+public class PortStatusEntity extends Entity implements ReadablePermission {
 
     private PortStatusDTO portStatus;
+    private Boolean canRead;
 
     /**
      * The PortStatusDTO that is being serialized.
@@ -41,4 +43,13 @@ public class PortStatusEntity extends Entity {
         this.portStatus = portStatus;
     }
 
+    @Override
+    public Boolean getCanRead() {
+        return canRead;
+    }
+
+    @Override
+    public void setCanRead(Boolean canRead) {
+        this.canRead = canRead;
+    }
 }

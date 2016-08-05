@@ -21,29 +21,24 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGroupEntity>, ComponentEntityStatusMerger<ProcessGroupStatusDTO> {
 
     @Override
     public void merge(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
-    }
-
-    /**
-     * Merges the ProcessorGroupEntity responses.
-     *
-     * @param clientEntityStatus the entity being returned to the client
-     * @param entityMap all node responses
-     */
-    public void merge(final ProcessGroupStatusDTO clientEntityStatus, final Map<NodeIdentifier, ProcessGroupStatusDTO> entityMap) {
-        for (final Map.Entry<NodeIdentifier, ProcessGroupStatusDTO> entry : entityMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final ProcessGroupStatusDTO entityStatus = entry.getValue();
-            if (entityStatus != clientEntityStatus) {
-                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+        for (Map.Entry<NodeIdentifier, ProcessGroupEntity> entry : entityMap.entrySet()) {
+            final ProcessGroupEntity entityStatus = entry.getValue();
+            if (entityStatus != clientEntity) {
+                mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
             }
         }
+    }
+
+    @Override
+    public void mergeStatus(ProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessGroupStatusDTO status, boolean statusReadablePermission,
+                            NodeIdentifier statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 }

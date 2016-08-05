@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.ReadablePermission;
 
 import javax.xml.bind.annotation.XmlType;
 
@@ -25,12 +24,11 @@ import javax.xml.bind.annotation.XmlType;
  * DTO for serializing the status of a connection.
  */
 @XmlType(name = "connectionStatusSnapshot")
-public class ConnectionStatusSnapshotDTO implements Cloneable, ReadablePermission {
+public class ConnectionStatusSnapshotDTO implements Cloneable {
 
     private String id;
     private String groupId;
     private String name;
-    private Boolean canRead;
 
     private String sourceId;
     private String sourceName;
@@ -254,16 +252,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable, ReadablePermissio
     }
 
     @Override
-    public Boolean getCanRead() {
-        return canRead;
-    }
-
-    @Override
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
-    }
-
-    @Override
     public ConnectionStatusSnapshotDTO clone() {
         final ConnectionStatusSnapshotDTO other = new ConnectionStatusSnapshotDTO();
         other.setDestinationId(getDestinationId());
@@ -273,7 +261,6 @@ public class ConnectionStatusSnapshotDTO implements Cloneable, ReadablePermissio
         other.setName(getName());
         other.setSourceId(getSourceId());
         other.setSourceName(getSourceName());
-        other.setCanRead(getCanRead());
 
         other.setFlowFilesIn(getFlowFilesIn());
         other.setBytesIn(getBytesIn());

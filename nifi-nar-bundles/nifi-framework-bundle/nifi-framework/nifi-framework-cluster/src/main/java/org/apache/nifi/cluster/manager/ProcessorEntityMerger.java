@@ -24,13 +24,18 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEntity>, ComponentEntityStatusMerger<ProcessorStatusDTO> {
     @Override
     public void merge(ProcessorEntity clientEntity, Map<NodeIdentifier, ProcessorEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+        for (Map.Entry<NodeIdentifier, ProcessorEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final ProcessorEntity entityStatus = entry.getValue();
+            if (entityStatus != clientEntity) {
+                mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
+            }
+        }
     }
 
     /**
@@ -52,14 +57,10 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
     }
 
     @Override
-    public void merge(ProcessorStatusDTO clientEntityStatus, Map<NodeIdentifier, ProcessorStatusDTO> entityStatusMap) {
-        for (final Map.Entry<NodeIdentifier, ProcessorStatusDTO> entry : entityStatusMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final ProcessorStatusDTO entityStatus = entry.getValue();
-            if (entityStatus != clientEntityStatus) {
-                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
-            }
-        }
+    public void mergeStatus(ProcessorStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessorStatusDTO status, boolean statusReadablePermission, NodeIdentifier
+            statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 
     private static void mergeDtos(final ProcessorDTO clientDto, final Map<NodeIdentifier, ProcessorDTO> dtoMap) {

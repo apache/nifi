@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto.status;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.ReadablePermission;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
@@ -28,11 +27,10 @@ import java.util.List;
  * The status for a process group in this NiFi.
  */
 @XmlType(name = "processGroupStatusSnapshot")
-public class ProcessGroupStatusSnapshotDTO implements Cloneable, ReadablePermission {
+public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
     private String id;
     private String name;
-    private Boolean canRead;
     private Collection<ConnectionStatusSnapshotDTO> connectionStatus;
     private Collection<ProcessorStatusSnapshotDTO> processorStatus;
     private Collection<ProcessGroupStatusSnapshotDTO> processGroupStatus;
@@ -470,22 +468,10 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable, ReadablePermiss
     }
 
     @Override
-    public Boolean getCanRead() {
-        return canRead;
-    }
-
-    @Override
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
-    }
-
-    @Override
     public ProcessGroupStatusSnapshotDTO clone() {
         final ProcessGroupStatusSnapshotDTO other = new ProcessGroupStatusSnapshotDTO();
         other.setId(getId());
         other.setName(getName());
-
-        other.setCanRead(getCanRead());
 
         other.setBytesIn(getBytesIn());
         other.setFlowFilesIn(getFlowFilesIn());

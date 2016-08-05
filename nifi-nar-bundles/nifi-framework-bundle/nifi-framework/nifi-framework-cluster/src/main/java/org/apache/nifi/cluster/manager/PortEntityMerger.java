@@ -24,14 +24,19 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, ComponentEntityStatusMerger<PortStatusDTO> {
 
     @Override
     public void merge(PortEntity clientEntity, Map<NodeIdentifier, PortEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
-        merge(clientEntity.getStatus(), entityMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getStatus())));
+        for (Map.Entry<NodeIdentifier, PortEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final PortEntity entityStatus = entry.getValue();
+            if (entityStatus != clientEntity) {
+                mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
+            }
+        }
     }
 
     /**
@@ -54,14 +59,10 @@ public class PortEntityMerger implements ComponentEntityMerger<PortEntity>, Comp
     }
 
     @Override
-    public void merge(PortStatusDTO clientEntityStatus, Map<NodeIdentifier, PortStatusDTO> entityStatusMap) {
-        for (final Map.Entry<NodeIdentifier, PortStatusDTO> entry : entityStatusMap.entrySet()) {
-            final NodeIdentifier nodeId = entry.getKey();
-            final PortStatusDTO entityStatus = entry.getValue();
-            if (entityStatus != clientEntityStatus) {
-                StatusMerger.merge(clientEntityStatus, entityStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
-            }
-        }
+    public void mergeStatus(PortStatusDTO clientStatus, boolean clientStatusReadablePermission, PortStatusDTO status, boolean statusReadablePermission, NodeIdentifier
+            statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 
     private static void mergeDtos(final PortDTO clientDto, final Map<NodeIdentifier, PortDTO> dtoMap) {

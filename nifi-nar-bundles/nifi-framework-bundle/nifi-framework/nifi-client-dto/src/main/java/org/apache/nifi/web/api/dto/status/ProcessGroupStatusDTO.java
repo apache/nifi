@@ -17,22 +17,19 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import java.util.Date;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.ReadablePermission;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Date;
+import java.util.List;
 
 @XmlType(name = "processGroupStatus")
-public class ProcessGroupStatusDTO implements Cloneable, ReadablePermission {
+public class ProcessGroupStatusDTO implements Cloneable {
     private String id;
     private String name;
     private Date statsLastRefreshed;
-    private Boolean canRead;
 
     private ProcessGroupStatusSnapshotDTO aggregateSnapshot;
     private List<NodeProcessGroupStatusSnapshotDTO> nodeSnapshots;
@@ -89,15 +86,5 @@ public class ProcessGroupStatusDTO implements Cloneable, ReadablePermission {
 
     public void setStatsLastRefreshed(Date statsLastRefreshed) {
         this.statsLastRefreshed = statsLastRefreshed;
-    }
-
-    @Override
-    public Boolean getCanRead() {
-        return canRead;
-    }
-
-    @Override
-    public void setCanRead(Boolean canRead) {
-        this.canRead = canRead;
     }
 }

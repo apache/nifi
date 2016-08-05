@@ -117,7 +117,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
             final StatusHistoryEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(StatusHistoryEntity.class);
             final StatusHistoryDTO nodeStatus = nodeResponseEntity.getStatusHistory();
             lastStatusHistory = nodeStatus;
-            if (noReadPermissionsComponentDetails == null && !nodeStatus.getCanRead()) {
+            if (noReadPermissionsComponentDetails == null && !nodeResponseEntity.getCanRead()) {
                 // If component details from a history with no read permissions is encountered for the first time, hold on to them to be used in the merged response
                 noReadPermissionsComponentDetails = nodeStatus.getComponentDetails();
             }
@@ -135,7 +135,6 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
         clusterStatusHistory.setAggregateSnapshots(mergeStatusHistories(nodeStatusSnapshots, metricDescriptors));
         clusterStatusHistory.setGenerated(new Date());
         clusterStatusHistory.setNodeSnapshots(nodeStatusSnapshots);
-        clusterStatusHistory.setCanRead(noReadPermissionsComponentDetails == null);
         if (lastStatusHistory != null) {
             clusterStatusHistory.setComponentDetails(noReadPermissionsComponentDetails == null ? lastStatusHistory.getComponentDetails() : noReadPermissionsComponentDetails);
             clusterStatusHistory.setFieldDescriptors(lastStatusHistory.getFieldDescriptors());
@@ -143,6 +142,7 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
         final StatusHistoryEntity clusterEntity = new StatusHistoryEntity();
         clusterEntity.setStatusHistory(clusterStatusHistory);
+        clusterEntity.setCanRead(noReadPermissionsComponentDetails == null);
 
         return new NodeResponse(clientResponse, clusterEntity);
     }
