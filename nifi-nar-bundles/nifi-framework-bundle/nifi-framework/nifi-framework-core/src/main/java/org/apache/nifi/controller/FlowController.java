@@ -3315,6 +3315,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
             public synchronized void onLeaderRelinquish() {
+                LOG.info("This node is no longer the elected Active Cluster Coordinator");
+                heartbeatMonitor.stop();
+
                 if (clusterCoordinator != null) {
                     clusterCoordinator.removeRole(ClusterRoles.CLUSTER_COORDINATOR);
                 }
@@ -3322,6 +3325,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             @Override
             public synchronized void onLeaderElection() {
+                LOG.info("This node elected Active Cluster Coordinator");
+                heartbeatMonitor.start();
+
                 if (clusterCoordinator != null) {
                     clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
                 }
