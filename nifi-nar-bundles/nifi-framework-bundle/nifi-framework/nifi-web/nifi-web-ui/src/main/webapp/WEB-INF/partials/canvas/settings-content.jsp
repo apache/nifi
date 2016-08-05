@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="settings">
-    <div id="settings-header-text" class="settings-header-text">NiFi Settings</div>
+    <div id="settings-header-text" class="settings-header-text"></div>
     <div class="settings-container">
         <div>
             <div id="settings-tabs" class="settings-tabs tab-container"></div>
