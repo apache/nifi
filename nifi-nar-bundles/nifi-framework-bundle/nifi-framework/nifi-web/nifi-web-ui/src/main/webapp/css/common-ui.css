@@ -369,6 +369,7 @@ button.fa {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
+    line-height: 23px;
 }
 
 button.icon {
@@ -530,6 +531,7 @@ md-progress-linear > div {
     font-size: 12px;
     font-weight: 500;
     font-family: Roboto Slab;
+    text-transform: capitalize;
     padding-bottom: 4px;
     color: #262626;
 }
@@ -549,6 +551,7 @@ md-progress-linear > div {
     width: 100%;
     color: #775351;
     font-size: 13px;
+    font-weight: 500;
 }
 
 .setting-header{
