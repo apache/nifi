@@ -5,7 +5,7 @@
   The ASF licenses this file to You under the Apache License, Version 2.0
   (the "License"); you may not use this file except in compliance with
   the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
+      https://www.apache.org/licenses/LICENSE-2.0
   Unless required by applicable law or agreed to in writing, software
   distributed under the License is distributed on an "AS IS" BASIS,
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@ MiNiFi is a child project effort of Apache NiFi
 
 ## Features
 
-Apache NiFi - MiNiFi is a complementary data collection approach that supplements the core tenets of [NiFi](http://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
+Apache NiFi - MiNiFi is a complementary data collection approach that supplements the core tenets of [NiFi](https://nifi.apache.org/) in dataflow management, focusing on the collection of data at the source of its creation.
 
 Specific goals for MiNiFi are comprised of:
 - small and lightweight footprint
@@ -46,7 +46,7 @@ Perspectives of the role of MiNiFi should be from the perspective of the agent a
 
 To build:
 - Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
-  modest development laptop that is a couple of years old, the latter build takes a bit under ten
+  modest development laptop that is a couple of years old, the latter build takes a bit under two
   minutes. After a large amount of output you should eventually see a success message.
 
         $ mvn -T 2.0C clean install
@@ -75,7 +75,7 @@ To run:
   location make use of either the tarball or zipfile and unpack them wherever you like. The
   distribution will be within a common parent directory named for the version.
 
-        $ mkdir ~/example-nifi-deploy
+        $ mkdir ~/example-minifi-deploy
         $ tar xzf target/minifi-*-bin.tar.gz -C ~/example-minifi-deploy
         $ ls -lh ~/example-minifi-deploy/
         total 0
@@ -99,24 +99,24 @@ To run MiNiFi:
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
+([archive](https://mail-archives.apache.org/mod_mbox/nifi-dev)).
 We're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
+[irc.freenode.net](https://webchat.freenode.net/?channels=#nifi).
 
 ## Documentation
 
-See http://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/NIFI/MiNiFi for the latest documentation.
+See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest documentation.
 
 ## License
 
 Except as otherwise noted this software is licensed under the
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+  https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,

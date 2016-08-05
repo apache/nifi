@@ -162,6 +162,10 @@ bulletinList=null}], connectionStatusList=null, remoteProcessingGroupStatusList=
 The config.yml in the _conf_ directory is the main configuration file for controlling how MiNiFi runs. This section provides an overview of the properties in this file. The file is a YAML
 and follows the YAML format laid out [here](http://www.yaml.org/).
 
+Alternatively, the MiNiFi Toolkit Converter can aid in creating a config.yml from a generated template exported from a NiFi instance.  This
+tool can be downloaded from http://nifi.apache.org/minifi/download.html under the `MiNiFi Toolkit Binaries` section.  Information on the toolkit's usage is
+available at https://nifi.apache.org/minifi/minifi-toolkit.html.
+
 NOTE: Note that values for periods of time and data sizes must include the unit of measure,
 for example "10 sec" or "10 MB", not simply "10".
 
