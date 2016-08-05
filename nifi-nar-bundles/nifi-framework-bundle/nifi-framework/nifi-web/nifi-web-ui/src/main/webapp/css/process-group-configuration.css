@@ -26,10 +26,7 @@
 }
 
 #add-process-group-configuration-controller-service {
-    margin-top: 4px;
-    position: absolute;
-    top: 0px;
-    right: 0px;
+    float: right;
 }
 
 /* settings tabs */
@@ -77,4 +74,8 @@
 
 #process-group-comments {
     height: 100px;
+}
+
+#process-group-controller-services-tab-content {
+    top: 32px;
 }
