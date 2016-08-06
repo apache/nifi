@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -932,4 +933,20 @@ public interface TestRunner {
      * @throws NullPointerException if the name is null
      */
     String removeVariable(String name);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationshipName relationship name
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final String relationshipName, Predicate<MockFlowFile> predicate);
+
+    /**
+     * Asserts that all FlowFiles meet all conditions.
+     *
+     * @param relationship relationship
+     * @param predicate conditions
+     */
+    void assertAllConditionsMet(final Relationship relationship, Predicate<MockFlowFile> predicate);
 }
