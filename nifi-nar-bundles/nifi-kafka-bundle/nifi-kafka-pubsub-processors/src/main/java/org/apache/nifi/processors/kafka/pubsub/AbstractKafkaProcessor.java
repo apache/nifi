@@ -358,7 +358,7 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
         if (sslContextService.isKeyStoreConfigured()) {
             properties.setProperty("ssl.keystore.location", sslContextService.getKeyStoreFile());
             properties.setProperty("ssl.keystore.password", sslContextService.getKeyStorePassword());
-            final String keyPass = sslContextService.getKeyPassword() == null ? sslContextService.getKeyStorePassword() : sslContextService.getKeyPassword();
+            final String keyPass = sslContextService.getKeyStorePassword() == null ? sslContextService.getKeyStorePassword() : sslContextService.getKeyStorePassword();
             properties.setProperty("ssl.key.password", keyPass);
             properties.setProperty("ssl.keystore.type", sslContextService.getKeyStoreType());
         }
