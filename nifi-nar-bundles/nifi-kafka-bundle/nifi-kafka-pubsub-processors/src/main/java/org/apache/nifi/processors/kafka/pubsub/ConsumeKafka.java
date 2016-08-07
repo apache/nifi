@@ -238,7 +238,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
          * broker is possible we need a mechanism to be able to disable it.
          * 'check.connection' property will serve as such mechanism
          */
-        if (!kafkaProperties.getProperty("check.connection").equals("false")) {
+        if (!"false".equals(kafkaProperties.get("check.connection"))) {
             this.checkIfInitialConnectionPossible();
         }
 
