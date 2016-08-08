@@ -68,7 +68,6 @@ language governing permissions and limitations under the License. -->
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <scope>compile</scope>
-            <version>1.7.12</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
@@ -79,11 +78,6 @@ language governing permissions and limitations under the License. -->
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.5</version>
         </dependency>
     </dependencies>
 </project>
