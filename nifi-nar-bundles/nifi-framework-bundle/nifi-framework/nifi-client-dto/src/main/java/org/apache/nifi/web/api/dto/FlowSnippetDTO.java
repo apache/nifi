@@ -239,18 +239,22 @@ public class FlowSnippetDTO {
                     ConnectionDTO connectionDTO = (ConnectionDTO) componentDto;
 
                     ConnectableDTO cdto = connectionDTO.getSource();
-                    id = UUID.fromString(cdto.getId());
-                    id = new UUID(id.getMostSignificantBits(), 0);
-                    cdto.setId(id.toString());
+                    if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
+                        id = UUID.fromString(cdto.getId());
+                        id = new UUID(id.getMostSignificantBits(), 0);
+                        cdto.setId(id.toString());
+                    }
 
                     id = UUID.fromString(cdto.getGroupId());
                     id = new UUID(id.getMostSignificantBits(), 0);
                     cdto.setGroupId(id.toString());
 
                     cdto = connectionDTO.getDestination();
-                    id = UUID.fromString(cdto.getId());
-                    id = new UUID(id.getMostSignificantBits(), 0);
-                    cdto.setId(id.toString());
+                    if (!cdto.getType().equals("REMOTE_INPUT_PORT") && !cdto.getType().equals("REMOTE_OUTPUT_PORT")) {
+                        id = UUID.fromString(cdto.getId());
+                        id = new UUID(id.getMostSignificantBits(), 0);
+                        cdto.setId(id.toString());
+                    }
 
                     id = UUID.fromString(cdto.getGroupId());
                     id = new UUID(id.getMostSignificantBits(), 0);
@@ -286,15 +290,6 @@ public class FlowSnippetDTO {
                     fsDTO.remoteProcessGroups = this.orderedById(fsDTO.getRemoteProcessGroups());
                 } else if (componentDto instanceof RemoteProcessGroupDTO) {
                     RemoteProcessGroupContentsDTO contentsDTO = ((RemoteProcessGroupDTO) componentDto).getContents();
-                    for (RemoteProcessGroupPortDTO portDTO : contentsDTO.getInputPorts()) {
-                        id = UUID.fromString(portDTO.getId());
-                        id = new UUID(id.getMostSignificantBits(), 0);
-                        portDTO.setId(new UUID(id.getMostSignificantBits(), 0).toString());
-                    }
-                    for (RemoteProcessGroupPortDTO portDTO : contentsDTO.getOutputPorts()) {
-                        id = UUID.fromString(portDTO.getId());
-                        portDTO.setId(new UUID(id.getMostSignificantBits(), 0).toString());
-                    }
                     contentsDTO.setInputPorts(this.orderedRemotePortsById(contentsDTO.getInputPorts()));
                     contentsDTO.setOutputPorts(this.orderedRemotePortsById(contentsDTO.getOutputPorts()));
                 }
