@@ -597,10 +597,8 @@ To allow User2 to move the GenerateFlowFile processor in the dataflow and only t
 1. Select the GenerateFlowFile processor so that it is highlighted.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select “modify the component” from the policy drop-down.
-
-image:processor-modify-policy.png["Processor Modify Policy"]
-
-The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
+  image:processor-modify-policy.png["Processor Modify Policy"]
+  The “modify the component” policy that currently exists on the processor (child) is the “modify the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
 4. Select the Override link in the policy inheritance message to create a replacement policy.
 5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
@@ -619,10 +617,8 @@ In the “Moving a Processor” example above, User2 was added to the “modify 
 1. Select the GenerateFlowFile processor.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "view the component” from the policy drop-down.
-
-image:processor-view-policy.png["Processor View Policy"]
-
-The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
+  image:processor-view-policy.png["Processor View Policy"]
+  The view the component” policy that currently exists on the processor (child) is the "view the component” policy inherited from the root process group (parent) on which User1 has privileges.
 [start=4]
 4. Select the Override link in the policy inheritance message to create a replacement policy.
 5. On the replacement policy that is created, select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User1 in the User Identity field and select OK.  Select the Add User icon again, find or enter User2 and select OK.
@@ -654,10 +650,8 @@ To allow User2 to connect GenerateFlowFile to LogAttribute, as User1:
 1. Select the root process group. The Operate palette is updated with details for the root process group.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]) from the Operate palette and the Access Policies dialog opens.
 3. Select "modify the component” from the policy drop-down.
-
-image:process-group-modify-policy.png["Process Group Modify Policy"]
-
-[start=4]
+  image:process-group-modify-policy.png["Process Group Modify Policy"]
+  [start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-modify-policy-add-user2.png["Process Group Modify Policy Add User2"]
@@ -692,10 +686,8 @@ To allow User2 to connect GenerateFlowFile to ReplaceText, as User1:
 1. Select the root process group. The Operate palette is updated with details for the root process group.
 2. Select the Access Policies icon (image:iconAccessPolicies.png["Access Policies Icon"]).
 3. Select "view the component” from the policy drop-down.
-
-image:process-group-view-policy.png["Process Group View Policy"]
-
-[start=4]
+  image:process-group-view-policy.png["Process Group View Policy"]
+  [start=4]
 4. Select the Add User icon (image:iconAddUser.png["Add User Icon"]). Find or enter User2 and select OK.
 
 image:process-group-view-policy-add-user2.png["Process Group View Policy Add User2"]
