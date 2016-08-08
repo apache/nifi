@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -36,6 +37,20 @@ import org.mockito.Mockito;
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
 public class PublishKafkaTest {
+
+    @Test
+    public void validateCustomSerilaizerDeserializerSettings() throws Exception {
+        PublishKafka publishKafka = new PublishKafka();
+        TestRunner runner = TestRunners.newTestRunner(publishKafka);
+        runner.setProperty(PublishKafka.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(PublishKafka.TOPIC, "foo");
+        runner.setProperty(PublishKafka.CLIENT_ID, "foo");
+        runner.setProperty(PublishKafka.META_WAIT_TIME, "3 sec");
+        runner.setProperty("key.serializer", ByteArraySerializer.class.getName());
+        runner.assertValid();
+        runner.setProperty("key.serializer", "Foo");
+        runner.assertNotValid();
+    }
 
     @Test
     public void validatePropertiesValidation() throws Exception {
