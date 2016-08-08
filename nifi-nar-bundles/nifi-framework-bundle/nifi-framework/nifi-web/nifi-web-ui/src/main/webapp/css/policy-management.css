@@ -210,3 +210,15 @@ div.policy-selected-component-type {
     border: 1px solid #999999;
     border-radius: 0;
 }
+
+/*
+    admin policy message
+*/
+
+#admin-policy-message {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+}
