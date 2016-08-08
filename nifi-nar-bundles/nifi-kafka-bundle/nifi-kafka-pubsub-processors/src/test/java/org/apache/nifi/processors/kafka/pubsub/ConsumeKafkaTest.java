@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,6 +32,21 @@ import org.junit.Test;
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
 public class ConsumeKafkaTest {
+
+    @Test
+    public void validateCustomSerilaizerDeserializerSettings() throws Exception {
+        ConsumeKafka consumeKafka = new ConsumeKafka();
+        TestRunner runner = TestRunners.newTestRunner(consumeKafka);
+        runner.setProperty(ConsumeKafka.BOOTSTRAP_SERVERS, "okeydokey:1234");
+        runner.setProperty(ConsumeKafka.TOPIC, "foo");
+        runner.setProperty(ConsumeKafka.CLIENT_ID, "foo");
+        runner.setProperty(ConsumeKafka.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
+        runner.setProperty("key.deserializer", ByteArrayDeserializer.class.getName());
+        runner.assertValid();
+        runner.setProperty("key.deserializer", "Foo");
+        runner.assertNotValid();
+    }
 
     @Test
     public void validatePropertiesValidation() throws Exception {
