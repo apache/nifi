@@ -35,6 +35,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -134,6 +135,8 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
 
     protected final static Map<String, DatabaseAdapter> dbAdapters = new HashMap<>();
     protected final Map<String, Integer> columnTypeMap = new HashMap<>();
+
+    private static SimpleDateFormat TIME_TYPE_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS");
 
     static {
         // Load the DatabaseAdapters
@@ -275,14 +278,19 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                 break;
 
             case TIME:
-                Date rawColTimeValue = resultSet.getDate(columnIndex);
-                java.sql.Time colTimeValue = new java.sql.Time(rawColTimeValue.getTime());
-                java.sql.Time maxTimeValue = null;
+                // Compare milliseconds-since-epoch. Need getTimestamp() instead of getTime() since some databases
+                // don't return milliseconds in the Time returned by getTime().
+                Date colTimeValue = new Date(resultSet.getTimestamp(columnIndex).getTime());
+                Date maxTimeValue = null;
                 if (maxValueString != null) {
-                    maxTimeValue = java.sql.Time.valueOf(maxValueString);
+                    try {
+                        maxTimeValue = TIME_TYPE_FORMAT.parse(maxValueString);
+                    } catch (ParseException pe) {
+                        // Shouldn't happen, but just in case, leave the value as null so the new value will be stored
+                    }
                 }
                 if (maxTimeValue == null || colTimeValue.after(maxTimeValue)) {
-                    return colTimeValue.toString();
+                    return TIME_TYPE_FORMAT.format(colTimeValue);
                 }
                 break;
 
@@ -299,8 +307,7 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
                         return oracleTimestampValue.toString();
                     }
                 } else {
-                    Timestamp rawColTimestampValue = resultSet.getTimestamp(columnIndex);
-                    java.sql.Timestamp colTimestampValue = new java.sql.Timestamp(rawColTimestampValue.getTime());
+                    Timestamp colTimestampValue = resultSet.getTimestamp(columnIndex);
                     java.sql.Timestamp maxTimestampValue = null;
                     if (maxValueString != null) {
                         maxTimestampValue = java.sql.Timestamp.valueOf(maxValueString);
