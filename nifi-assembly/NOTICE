@@ -63,6 +63,30 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
 	Copyright (c) 2010-2013 Coda Hale, Yammer.com
 
+  (ASLv2) Apache POI
+    The following NOTICE information applies:
+
+    This product contains parts that were originally based on software from BEA.
+    Copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+    This product contains W3C XML Schema documents. Copyright 2001-2003 (c)
+    World Wide Web Consortium (Massachusetts Institute of Technology, European
+    Research Consortium for Informatics and Mathematics, Keio University)
+
+    This product contains the Piccolo XML Parser for Java
+    (http://piccolo.sourceforge.net/). Copyright 2002 Yuval Oren.
+
+    This product contains the chunks_parse_cmds.tbl file from the vsdump program.
+    Copyright (C) 2006-2007 Valek Filippov (frob@df.ru)
+
+    This product contains parts of the eID Applet project
+    (http://eid-applet.googlecode.com). Copyright (c) 2009-2014
+    FedICT (federal ICT department of Belgium), e-Contract.be BVBA (https://www.e-contract.be),
+    Bart Hanssens from FedICT
+
+    CurvesAIP is BSD-licensed software (https://github.com/virtuald/curvesapi/)
+    Copyright (c) 2005, Graph Builder
+
   (ASLv2) Jasypt
     The following NOTICE information applies:    
 	  Copyright (c) 2007-2010, The JASYPT team (http://www.jasypt.org)
@@ -1117,6 +1141,7 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Common Service Data Objects (org.eclipse.persistence:commonj.sdo:2.1.1 - http://www.eclipse.org/eclipselink/)
     (EPL 1.0) Java Persistence API (org.eclipse.persistence:javax.persistence:2.1.0 - http://www.eclipse.org/eclipselink/)
+    (EPL 1.0) JaCoCo Java Code Coverage Library ( org.jacoco ) http://www.eclemma.org/jacoco
 
 *****************
 Mozilla Public License v2.0
