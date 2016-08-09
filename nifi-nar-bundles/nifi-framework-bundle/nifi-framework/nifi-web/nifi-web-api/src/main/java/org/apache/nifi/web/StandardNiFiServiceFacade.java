@@ -203,6 +203,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1606,7 +1608,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
-        return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager);
+        return dtoFactory.createFlowDto(group, groupStatus, snippet, revisionManager, this::getProcessGroupBulletins);
     }
 
     @Override
@@ -2591,8 +2593,55 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(group.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(group);
         final ProcessGroupStatusDTO status = dtoFactory.createConciseProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(group.getIdentifier()));
-        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(group.getIdentifier()));
+        final List<BulletinDTO> bulletins = getProcessGroupBulletins(group);
         return entityFactory.createProcessGroupEntity(dtoFactory.createProcessGroupDto(group), revision, permissions, status, bulletins);
+    }
+
+    private List<BulletinDTO> getProcessGroupBulletins(final ProcessGroup group) {
+        final List<Bulletin> bulletins = new ArrayList<>(bulletinRepository.findBulletinsForGroupBySource(group.getIdentifier()));
+
+        for (final ProcessGroup descendantGroup : group.findAllProcessGroups()) {
+            bulletins.addAll(bulletinRepository.findBulletinsForGroupBySource(descendantGroup.getIdentifier()));
+        }
+
+        List<BulletinDTO> dtos = new ArrayList<>();
+        for (final Bulletin bulletin : bulletins) {
+            if (authorizeBulletin(bulletin)) {
+                dtos.add(dtoFactory.createBulletinDto(bulletin));
+            } else {
+                final BulletinDTO bulletinDTO = new BulletinDTO();
+                bulletinDTO.setTimestamp(bulletin.getTimestamp());
+                bulletinDTO.setId(bulletin.getId());
+                bulletinDTO.setSourceId(bulletin.getSourceId());
+                bulletinDTO.setGroupId(bulletin.getGroupId());
+                dtos.add(bulletinDTO);
+            }
+        }
+
+        // sort the bulletins
+        Collections.sort(dtos, new Comparator<BulletinDTO>() {
+            @Override
+            public int compare(BulletinDTO o1, BulletinDTO o2) {
+                if (o1 == null && o2 == null) {
+                    return 0;
+                }
+                if (o1 == null) {
+                    return 1;
+                }
+                if (o2 == null) {
+                    return -1;
+                }
+
+                return -Long.compare(o1.getId(), o2.getId());
+            }
+        });
+
+        // prune the response to only include the max number of bulletins
+        if (dtos.size() > BulletinRepository.MAX_BULLETINS_PER_COMPONENT) {
+            dtos = dtos.subList(0, BulletinRepository.MAX_BULLETINS_PER_COMPONENT);
+        }
+
+        return dtos;
     }
 
     @Override
@@ -2706,7 +2755,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // read lock on every component being accessed in the dto conversion
         final ProcessGroupStatus groupStatus = controllerFacade.getProcessGroupStatus(groupId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager), permissions);
+        return entityFactory.createProcessGroupFlowEntity(dtoFactory.createProcessGroupFlowDto(processGroup, groupStatus, revisionManager, this::getProcessGroupBulletins), permissions);
     }
 
     @Override

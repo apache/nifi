@@ -29,7 +29,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
@@ -79,7 +78,6 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.remote.RootGroupPort;
-import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
@@ -140,8 +138,6 @@ public class ControllerFacade implements Authorizable {
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
-    private ClusterCoordinator clusterCoordinator;
-    private BulletinRepository bulletinRepository;
     private Authorizer authorizer;
 
     // properties
@@ -1806,14 +1802,6 @@ public class ControllerFacade implements Authorizable {
 
     public void setDtoFactory(DtoFactory dtoFactory) {
         this.dtoFactory = dtoFactory;
-    }
-
-    public void setClusterCoordinator(ClusterCoordinator clusterCoordinator) {
-        this.clusterCoordinator = clusterCoordinator;
-    }
-
-    public void setBulletinRepository(BulletinRepository bulletinRepository) {
-        this.bulletinRepository = bulletinRepository;
     }
 
     public void setVariableRegistry(VariableRegistry variableRegistry) {

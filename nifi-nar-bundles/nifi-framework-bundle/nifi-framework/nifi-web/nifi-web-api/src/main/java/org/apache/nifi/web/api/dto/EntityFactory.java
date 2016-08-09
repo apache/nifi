@@ -124,9 +124,9 @@ public final class EntityFactory {
             entity.setDisabledCount(dto.getDisabledCount());
             entity.setActiveRemotePortCount(dto.getActiveRemotePortCount());
             entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
+            entity.setBulletins(bulletins); // include bulletins as authorized descendant component bulletins should be available
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
-                entity.setBulletins(bulletins);
             }
         }
         return entity;

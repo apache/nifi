@@ -115,10 +115,8 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
-        <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="authorizer" ref="authorizer"/>
         <property name="dtoFactory" ref="dtoFactory"/>
-        <property name="bulletinRepository" ref="bulletinRepository"/>
         <property name="variableRegistry" ref="variableRegistry"/>
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
