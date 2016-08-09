@@ -84,7 +84,8 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .defaultValue("${s3.permissions.writeacl.users}")
             .build();
     public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
-            .name("Canned ACL")
+            .name("canned-acl")
+            .displayName("Canned ACL")
             .required(false)
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -193,6 +194,13 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
     }
 
+    /**
+     * Create AccessControlList if appropriate properties are configured.
+     *
+     * @param context ProcessContext
+     * @param flowFile FlowFile
+     * @return AccessControlList or null if no ACL properties were specified
+     */
     protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {
         // lazy-initialize ACL, as it should not be used if no properties were specified
         AccessControlList acl = null;
@@ -245,8 +253,21 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         return acl;
     }
 
+    /**
+     * Create CannedAccessControlList if {@link #CANNED_ACL} property specified.
+     *
+     * @param context ProcessContext
+     * @param flowFile FlowFile
+     * @return CannedAccessControlList or null if not specified
+     */
     protected final CannedAccessControlList createCannedACL(final ProcessContext context, final FlowFile flowFile) {
-        final String cannedAcl = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
-        return (!StringUtils.isEmpty(cannedAcl)) ? CannedAccessControlList.valueOf(cannedAcl) : null;
+        CannedAccessControlList cannedAcl = null;
+
+        final String cannedAclString = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
+        if (!StringUtils.isEmpty(cannedAclString)) {
+            cannedAcl = CannedAccessControlList.valueOf(cannedAclString);
+        }
+
+        return cannedAcl;
     }
 }
