@@ -18,6 +18,10 @@
 package org.apache.nifi.processors.enrich;
 
 
+
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -30,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +70,16 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
             .description("Choice between a splitter and regex matcher used to parse the results of the query into attribute groups")
             .expressionLanguageSupported(false)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor KEY_GROUP = new PropertyDescriptor.Builder()
+            .name("KEY_GROUP")
+            .displayName("Key lookup group (multiline / batch)")
+            .description("When performing a batched lookup, the following RegEx capture group or Column number will be used to match" +
+                    "the whois server response with the lookup field")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
 
@@ -85,18 +99,18 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
 
         final String chosenQUERY_PARSER = validationContext.getProperty(QUERY_PARSER).getValue();
-        final boolean QUERY_PARSER_INPUT_isSet = validationContext.getProperty(QUERY_PARSER_INPUT).isSet();
 
-        if ((!chosenQUERY_PARSER.equals(NONE.getValue()) ) && ( !QUERY_PARSER_INPUT_isSet )) {
+        if (!chosenQUERY_PARSER.equals(NONE.getValue())  &&  !validationContext.getProperty(QUERY_PARSER_INPUT).isSet() ) {
             results.add(new ValidationResult.Builder().input("QUERY_PARSER_INPUT")
                     .explanation("Split and Regex parsers require a valid Regular Expression")
                     .valid(false)
                     .build());
         }
 
-        if ((chosenQUERY_PARSER.equals(NONE.getValue()) ) && ( QUERY_PARSER_INPUT_isSet )) {
-            results.add(new ValidationResult.Builder().input("QUERY_PARSER_INPUT")
-                    .explanation("NONE parser does not support the use of Regular Expressions")
+        if (chosenQUERY_PARSER.equals(NONE.getValue()) && validationContext.getProperty(QUERY_PARSER_INPUT).isSet()) {
+            results.add(new ValidationResult.Builder().input("QUERY_PARSER")
+                    .explanation("Regular expressions cannot be used with NONE parser. " +
+                            "Please select another parser or delete the regular expression entered in this field.")
                     .valid(false)
                     .build());
         }
@@ -117,11 +131,11 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
      * @param queryRegex The regex to be used to split the query results into groups
      * @return  Map with attribute names and values
      */
-    protected Map<String, String> parseResponse(int recordPosition, String rawResult, String queryParser, String queryRegex, String schema) {
+    protected Map<String, String> parseResponse(String recordPosition, String rawResult, String queryParser, String queryRegex, String schema) {
 
         Map<String, String> results = new HashMap<>();
         Pattern p;
-
+        recordPosition = StringUtils.isEmpty(recordPosition) ? "0" : recordPosition;
 
         // Iterates  over the results using the QUERY_REGEX adding the captured groups
         // as it progresses
@@ -131,7 +145,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                 // Time to Split the results...
                 String[] splitResult = rawResult.split(queryRegex);
                 for (int r = 0; r < splitResult.length; r++) {
-                    results.put("enrich." + schema + ".record" + String.valueOf(recordPosition) + ".group" + String.valueOf(r), splitResult[r]);
+                    results.put("enrich." + schema + ".record" + recordPosition + ".group" + String.valueOf(r), splitResult[r]);
                 }
                 break;
 
@@ -143,7 +157,7 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                     // Note that RegEx matches capture group 0 is usually broad but starting with it anyway
                     // for the sake of purity
                     for (int r = 0; r < finalResult.groupCount(); r++) {
-                        results.put("enrich." + schema + ".record" + String.valueOf(recordPosition) + ".group" + String.valueOf(r), finalResult.group(r));
+                        results.put("enrich." + schema + ".record" + recordPosition + ".group" + String.valueOf(r), finalResult.group(r));
                     }
                 }
                 break;
@@ -152,10 +166,69 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                 // Fails to NONE
             default:
                 // NONE was chosen, just appending the record result as group0 without further splitting
-                results.put("enrich." + schema + ".record" + String.valueOf(recordPosition) + ".group0", rawResult);
+                results.put("enrich." + schema + ".record" + recordPosition + ".group0", rawResult);
                 break;
         }
         return results;
     }
 
+    /**
+     * This method returns the parsed record string in the form of
+     * a map of two strings, consisting of a iteration aware attribute
+     * names and its values
+     *
+
+     * @param  rawResult the raw query results to be parsed
+     * @param queryParser The parsing mechanism being used to parse the data into groups
+     * @param queryRegex The regex to be used to split the query results into groups. The regex MUST implement at least on named capture group "KEY" to be used to populate the table rows
+     * @param lookupKey The number of the column/capture group of a split to be used for matching
+     * @return  Table with attribute names and values where each Table row uses the value of the KEY named capture group specified in @param queryRegex
+     */
+    protected Table<String, String, String> parseBatchResponse(String rawResult, String queryParser, String queryRegex, String lookupKey, String schema) {
+        // Note the hardcoded record0.
+        //  Since iteration is done within the parser and Multimap is used, the record number here will always be 0.
+        // Consequentially, 0 is hardcoded so that batched and non batched attributes follow the same naming
+        // conventions
+        final String recordPosition = ".record0";
+
+        final Table<String, String, String> results = HashBasedTable.create();
+
+        switch (queryParser) {
+            case "Split":
+                Scanner scanner = new Scanner(rawResult);
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    // Time to Split the results...
+                    String[] splitResult = line.split(queryRegex);
+
+                    for (int r = 0; r < splitResult.length; r++) {
+                        results.put(splitResult[ Integer.valueOf(lookupKey) - 1 ], "enrich." + schema + recordPosition + ".group" + String.valueOf(r), splitResult[r]);
+
+                    }
+                }
+                break;
+            case "RegEx":
+            // prepare the regex
+            Pattern p;
+            // Regex is multiline. Each line should include a KEY for lookup
+            p = Pattern.compile(queryRegex, Pattern.MULTILINE);
+
+            Matcher matcher = p.matcher(rawResult);
+            while (matcher.find()) {
+                // Note that RegEx matches capture group 0 is usually broad but starting with it anyway
+                // for the sake of purity
+                for (int r = 0; r <= matcher.groupCount(); r++) {
+                    String match = matcher.group(Integer.valueOf(lookupKey));
+                    if (!StringUtils.isBlank(match) ) {
+                        results.put(matcher.group(Integer.valueOf(lookupKey)), "enrich." + schema + recordPosition + ".group" + String.valueOf(r), matcher.group(r));
+                    } else {
+                        getLogger().warn("Could not find group {} while processing result. Ignoring row", new Object[] {lookupKey});
+                    }
+                }
+            }
+            break;
+        }
+
+        return results;
+    }
 }

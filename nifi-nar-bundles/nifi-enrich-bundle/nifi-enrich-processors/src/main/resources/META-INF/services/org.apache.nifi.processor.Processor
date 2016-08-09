@@ -15,3 +15,4 @@
 
 org.apache.nifi.processors.GeoEnrichIP
 org.apache.nifi.processors.enrich.QueryDNS
+org.apache.nifi.processors.enrich.QueryWhois
