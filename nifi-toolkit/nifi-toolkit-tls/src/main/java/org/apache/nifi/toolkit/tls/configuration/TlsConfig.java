@@ -17,6 +17,7 @@
 
 package org.apache.nifi.toolkit.tls.configuration;
 
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.util.StringUtils;
 
 public class TlsConfig {
@@ -43,7 +44,7 @@ public class TlsConfig {
     private int port = DEFAULT_PORT;
 
     public static String calcDefaultDn(String hostname) {
-        return "CN=" + hostname + ",OU=NIFI";
+        return CertificateUtils.reorderDn("CN=" + hostname + ",OU=NIFI");
     }
 
     public int getPort() {

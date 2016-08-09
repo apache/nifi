@@ -38,7 +38,7 @@ public class TlsCertificateAuthorityManager extends BaseTlsManager {
         if (entry == null) {
             TlsConfig tlsConfig = getTlsConfig();
             KeyPair keyPair = TlsHelper.generateKeyPair(tlsConfig.getKeyPairAlgorithm(), tlsConfig.getKeySize());
-            X509Certificate caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, tlsConfig.getDn(), tlsConfig.getSigningAlgorithm(), tlsConfig.getDays());
+            X509Certificate caCert = CertificateUtils.generateSelfSignedX509Certificate(keyPair, CertificateUtils.reorderDn(tlsConfig.getDn()), tlsConfig.getSigningAlgorithm(), tlsConfig.getDays());
             entry = addPrivateKeyToKeyStore(keyPair, TlsToolkitStandalone.NIFI_KEY, caCert);
         } else if (!KeyStore.PrivateKeyEntry.class.isInstance(entry)) {
             throw new IOException("Expected " + TlsToolkitStandalone.NIFI_KEY + " alias to contain a private key entry");
