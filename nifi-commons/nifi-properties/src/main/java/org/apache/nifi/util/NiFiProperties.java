@@ -247,6 +247,12 @@ public class NiFiProperties extends Properties {
         super();
     }
 
+    public NiFiProperties copy() {
+        final NiFiProperties copy = new NiFiProperties();
+        copy.putAll(this);
+        return copy;
+    }
+
     /**
      * Factory method to create an instance of the {@link NiFiProperties}. This
      * method employs a standard singleton pattern by caching the instance if it

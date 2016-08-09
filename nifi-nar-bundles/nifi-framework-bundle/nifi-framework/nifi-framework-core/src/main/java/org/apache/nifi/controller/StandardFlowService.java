@@ -788,7 +788,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     }
                 } catch (final Exception pe) {
                     // could not create a socket and communicate with manager
-                    logger.warn("Failed to connect to cluster due to: " + pe, pe);
+                    logger.warn("Failed to connect to cluster due to: " + pe);
+                    if (logger.isDebugEnabled()) {
+                        logger.warn("", pe);
+                    }
+
                     if (retryOnCommsFailure) {
                         try {
                             Thread.sleep(response == null ? 5000 : response.getTryLaterSeconds());

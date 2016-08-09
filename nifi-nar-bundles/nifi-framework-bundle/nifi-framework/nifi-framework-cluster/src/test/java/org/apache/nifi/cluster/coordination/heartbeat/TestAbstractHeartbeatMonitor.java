@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.nifi.cluster.ReportedEvent;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -319,30 +320,6 @@ public class TestAbstractHeartbeatMonitor {
         @Override
         public NodeIdentifier getLocalNodeIdentifier() {
             return null;
-        }
-    }
-
-    public static class ReportedEvent {
-        private final NodeIdentifier nodeId;
-        private final Severity severity;
-        private final String event;
-
-        public ReportedEvent(NodeIdentifier nodeId, Severity severity, String event) {
-            this.nodeId = nodeId;
-            this.severity = severity;
-            this.event = event;
-        }
-
-        public NodeIdentifier getNodeId() {
-            return nodeId;
-        }
-
-        public Severity getSeverity() {
-            return severity;
-        }
-
-        public String getEvent() {
-            return event;
         }
     }
 
