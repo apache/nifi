@@ -67,9 +67,14 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
 
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final SocketConfiguration socketConfiguration;
+    private final int maxThreadsPerRequest;
     private int handshakeTimeoutSeconds;
 
     public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
+        this(socketConfiguration, protocolContext, NiFiProperties.getInstance().getClusterNodeProtocolThreads());
+    }
+
+    public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext, final int maxThreadsPerRequest) {
         if (socketConfiguration == null) {
             throw new IllegalArgumentException("Socket configuration may not be null.");
         } else if (protocolContext == null) {
@@ -78,6 +83,7 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
         this.socketConfiguration = socketConfiguration;
         this.protocolContext = protocolContext;
         this.handshakeTimeoutSeconds = -1;  // less than zero denotes variable not configured
+        this.maxThreadsPerRequest = maxThreadsPerRequest;
     }
 
     @Override
@@ -233,8 +239,7 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
             return;
         }
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final int numThreads = Math.min(nodesToNotify.size(), properties.getClusterNodeProtocolThreads());
+        final int numThreads = Math.min(nodesToNotify.size(), maxThreadsPerRequest);
 
         final byte[] msgBytes;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {

@@ -20,18 +20,19 @@ package org.apache.nifi.cluster.coordination.node;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
+import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.AbstractNodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.io.socket.SocketConfiguration;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -49,7 +50,7 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
     private InetSocketAddress coordinatorAddress;
 
 
-    public CuratorNodeProtocolSender(final SocketConfiguration socketConfig, final ProtocolContext<ProtocolMessage> protocolContext, final NiFiProperties properties) {
+    public CuratorNodeProtocolSender(final SocketConfiguration socketConfig, final ProtocolContext<ProtocolMessage> protocolContext, final Properties properties) {
         super(socketConfig, protocolContext);
         zkConfig = ZooKeeperClientConfig.createConfig(properties);
         coordinatorPath = zkConfig.resolvePath("cluster/nodes/coordinator");
@@ -75,9 +76,12 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
                 }
             }).forPath(coordinatorPath);
 
+            if (coordinatorAddressBytes == null || coordinatorAddressBytes.length == 0) {
+                throw new NoClusterCoordinatorException("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster yet.");
+            }
+
             final String address = new String(coordinatorAddressBytes, StandardCharsets.UTF_8);
 
-            logger.info("Determined that Cluster Coordinator is located at {}; will use this address for sending heartbeat messages", address);
             final String[] splits = address.split(":");
             if (splits.length != 2) {
                 final String message = String.format("Attempted to determine Cluster Coordinator address. Zookeeper indicates "
@@ -85,6 +89,8 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
                 logger.error(message);
                 throw new ProtocolException(message);
             }
+
+            logger.info("Determined that Cluster Coordinator is located at {}; will use this address for sending heartbeat messages", address);
 
             final String hostname = splits[0];
             final int port;
@@ -105,7 +111,9 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
             return socketAddress;
         } catch (final NoNodeException nne) {
             logger.info("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster yet.");
-            throw new ProtocolException("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster yet.");
+            throw new NoClusterCoordinatorException("No node has yet been elected Cluster Coordinator. Cannot establish connection to cluster yet.");
+        } catch (final NoClusterCoordinatorException ncce) {
+            throw ncce;
         } catch (Exception e) {
             throw new IOException("Unable to determine Cluster Coordinator from ZooKeeper", e);
         } finally {

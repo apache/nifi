@@ -19,6 +19,7 @@ package org.apache.nifi.controller.leader.election;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -48,10 +49,13 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     private final Map<String, LeaderRole> leaderRoles = new HashMap<>();
     private final Map<String, LeaderElectionStateChangeListener> registeredRoles = new HashMap<>();
 
-    public CuratorLeaderElectionManager(final int threadPoolSize) {
-        leaderElectionMonitorEngine = new FlowEngine(threadPoolSize, "Leader Election Notification", true);
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
+    public CuratorLeaderElectionManager(final int threadPoolSize) {
+        this(threadPoolSize, NiFiProperties.getInstance());
+    }
+
+    public CuratorLeaderElectionManager(final int threadPoolSize, final Properties properties) {
+        leaderElectionMonitorEngine = new FlowEngine(threadPoolSize, "Leader Election Notification", true);
         zkConfig = ZooKeeperClientConfig.createConfig(properties);
     }
 
@@ -65,7 +69,14 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         stopped = false;
 
         final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(), zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
+        curatorClient = CuratorFrameworkFactory.builder()
+            .connectString(zkConfig.getConnectString())
+            .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
+            .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
+            .retryPolicy(retryPolicy)
+            .defaultData(new byte[0])
+            .build();
+
         curatorClient.start();
 
         // Call #register for each already-registered role. This will
@@ -227,6 +238,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     logger.error("This node was elected Leader for Role '{}' but failed to take leadership. Will relinquish leadership role. Failure was due to: {}", roleName, e);
                     logger.error("", e);
                     leader = false;
+                    Thread.sleep(1000L);
                     return;
                 }
             }
@@ -251,8 +263,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
                     try {
                         listener.onLeaderRelinquish();
                     } catch (final Exception e) {
-                        logger.error("This node is no longer leader for role '{}' but failed to shutdown leadership responsibilities properly due to: {}", roleName, e);
-                        logger.error("", e);
+                        logger.error("This node is no longer leader for role '{}' but failed to shutdown leadership responsibilities properly due to: {}", roleName, e.toString());
+                        if (logger.isDebugEnabled()) {
+                            logger.error("", e);
+                        }
                     }
                 }
             }

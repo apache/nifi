@@ -113,8 +113,13 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     @Override
     public void onStart() {
         final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.newClient(zkClientConfig.getConnectString(),
-            zkClientConfig.getSessionTimeoutMillis(), zkClientConfig.getConnectionTimeoutMillis(), retryPolicy);
+        curatorClient = CuratorFrameworkFactory.builder()
+            .connectString(zkClientConfig.getConnectString())
+            .sessionTimeoutMs(zkClientConfig.getSessionTimeoutMillis())
+            .connectionTimeoutMs(zkClientConfig.getConnectionTimeoutMillis())
+            .retryPolicy(retryPolicy)
+            .defaultData(new byte[0])
+            .build();
         curatorClient.start();
 
         // We don't know what the heartbeats look like for the nodes, since we were just elected to monitoring
@@ -149,7 +154,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
                             }
 
                             curatorClient.create().withMode(CreateMode.EPHEMERAL).forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
-                            logger.info("Successfully created node in ZooKeeper with path {}", path);
+                            logger.info("Successfully published address as heartbeat monitor address at path {} with value {}", path, heartbeatAddress);
 
                             return;
                         }

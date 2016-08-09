@@ -581,7 +581,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
 
         if (configuredForClustering) {
-            leaderElectionManager = new CuratorLeaderElectionManager(4);
+            leaderElectionManager = new CuratorLeaderElectionManager(4, properties);
             heartbeater = new ClusterProtocolHeartbeater(protocolSender, properties);
 
             // Check if there is already a cluster coordinator elected. If not, go ahead
