@@ -75,6 +75,11 @@ public class TestAbstractHeartbeatMonitor {
             public synchronized void requestNodeConnect(final NodeIdentifier nodeId, String userDn) {
                 requestedToConnect.add(nodeId);
             }
+
+            @Override
+            public boolean isActiveClusterCoordinator() {
+                return true;
+            }
         };
 
         final TestFriendlyHeartbeatMonitor monitor = createMonitor(coordinator);
@@ -140,6 +145,11 @@ public class TestAbstractHeartbeatMonitor {
             public synchronized void finishNodeConnection(final NodeIdentifier nodeId) {
                 super.finishNodeConnection(nodeId);
                 connected.add(nodeId);
+            }
+
+            @Override
+            public boolean isActiveClusterCoordinator() {
+                return true;
             }
         };
 

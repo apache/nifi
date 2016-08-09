@@ -605,10 +605,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             leaderElectionManager = null;
             heartbeater = null;
         }
-
-        if (heartbeatMonitor != null) {
-            heartbeatMonitor.start();
-        }
     }
 
     @Override
@@ -3316,7 +3312,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderRelinquish() {
                 LOG.info("This node is no longer the elected Active Cluster Coordinator");
-                heartbeatMonitor.stop();
+
+                // We do not want to stop the heartbeat monitor. This is because even though ZooKeeper offers guarantees
+                // that watchers will see changes on a ZNode in the order they happened, there does not seem to be any
+                // guarantee that Curator will notify us that our leadership was gained or loss in the order that it happened.
+                // As a result, if nodes connect/disconnect from cluster quickly, we could invoke stop() then start() or
+                // start() then stop() in the wrong order, which can cause the cluster to behavior improperly. As a result, we simply
+                // call start() when we become the leader, and this will ensure that initialization is handled. The heartbeat monitor
+                // then will check the zookeeper znode to check if it is the cluster coordinator before kicking any nodes out of the
+                // cluster.
 
                 if (clusterCoordinator != null) {
                     clusterCoordinator.removeRole(ClusterRoles.CLUSTER_COORDINATOR);
@@ -3326,7 +3330,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
-                heartbeatMonitor.start();
+                heartbeatMonitor.start();   // ensure heartbeat monitor is started
 
                 if (clusterCoordinator != null) {
                     clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
@@ -3885,7 +3889,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     heartbeatLogger.debug(usae.getMessage());
                 }
             } catch (final Throwable ex) {
-                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex, ex);
+                heartbeatLogger.warn("Failed to send heartbeat due to: " + ex);
+                if (heartbeatLogger.isDebugEnabled()) {
+                    heartbeatLogger.warn("", ex);
+                }
             }
         }
     }
