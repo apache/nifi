@@ -18,7 +18,32 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) SubEthaSMTP - A SMTP mail server
     The following NOTICE information applies:
       Spring Framework
-      Copyright 2006-2007 
+      Copyright 2006-2007
+
+      (ASLv2) Apache POI
+        The following NOTICE information applies:
+
+          This product contains parts that were originally based on software from BEA.
+          Copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+
+          This product contains W3C XML Schema documents. Copyright 2001-2003 (c)
+          World Wide Web Consortium (Massachusetts Institute of Technology, European
+          Research Consortium for Informatics and Mathematics, Keio University)
+
+          This product contains the Piccolo XML Parser for Java
+          (http://piccolo.sourceforge.net/). Copyright 2002 Yuval Oren.
+
+          This product contains the chunks_parse_cmds.tbl file from the vsdump program.
+          Copyright (C) 2006-2007 Valek Filippov (frob@df.ru)
+
+          This product contains parts of the eID Applet project
+          (http://eid-applet.googlecode.com). Copyright (c) 2009-2014
+          FedICT (federal ICT department of Belgium), e-Contract.be BVBA (https://www.e-contract.be),
+          Bart Hanssens from FedICT
+
+         CurvesAIP is BSD-licensed software ( https://github.com/virtuald/curvesapi/)
+         Copyright (c) 2005, Graph Builder
+
 
 ************************
 Common Development and Distribution License 1.1
