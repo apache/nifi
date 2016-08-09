@@ -44,8 +44,8 @@ import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
-import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -54,6 +54,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
@@ -477,12 +478,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             for(String key : processorConfig.getDescriptors().keySet()){
 
                 PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
-                List<AllowableValueDTO> allowableValuesDTO = descriptor.getAllowableValues();
+                List<AllowableValueEntity> allowableValuesEntity = descriptor.getAllowableValues();
                 Map<String,String> allowableValues = new HashMap<>();
 
-                if(allowableValuesDTO != null) {
-                    for (AllowableValueDTO value : allowableValuesDTO) {
-                        allowableValues.put(value.getValue(), value.getDisplayName());
+                if(allowableValuesEntity != null) {
+                    for (AllowableValueEntity allowableValueEntity : allowableValuesEntity) {
+                        final AllowableValueDTO allowableValueDTO = allowableValueEntity.getAllowableValue();
+                        allowableValues.put(allowableValueDTO.getValue(), allowableValueDTO.getDisplayName());
                     }
                 }
 

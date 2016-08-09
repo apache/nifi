@@ -36,12 +36,12 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
 
     private String id;
     private String name;
-    private Collection<ConnectionStatusSnapshotEntity> connectionStatus;
-    private Collection<ProcessorStatusSnapshotEntity> processorStatus;
-    private Collection<ProcessGroupStatusSnapshotEntity> processGroupStatus;
-    private Collection<RemoteProcessGroupStatusSnapshotEntity> remoteProcessGroupStatus;
-    private Collection<PortStatusSnapshotEntity> inputPortStatus;
-    private Collection<PortStatusSnapshotEntity> outputPortStatus;
+    private Collection<ConnectionStatusSnapshotEntity> connectionStatusSnapshots;
+    private Collection<ProcessorStatusSnapshotEntity> processorStatusSnapshots;
+    private Collection<ProcessGroupStatusSnapshotEntity> processGroupStatusSnapshots;
+    private Collection<RemoteProcessGroupStatusSnapshotEntity> remoteProcessGroupStatusSnapshots;
+    private Collection<PortStatusSnapshotEntity> inputPortStatusSnapshots;
+    private Collection<PortStatusSnapshotEntity> outputPortStatusSnapshots;
 
     private Integer flowFilesIn = 0;
     private Long bytesIn = 0L;
@@ -121,11 +121,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all conenctions in the process group.")
     public Collection<ConnectionStatusSnapshotEntity> getConnectionStatusSnapshots() {
-        return connectionStatus;
+        return connectionStatusSnapshots;
     }
 
     public void setConnectionStatusSnapshots(Collection<ConnectionStatusSnapshotEntity> connectionStatus) {
-        this.connectionStatus = connectionStatus;
+        this.connectionStatusSnapshots = connectionStatus;
     }
 
     /**
@@ -135,11 +135,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all process groups in the process group.")
     public Collection<ProcessGroupStatusSnapshotEntity> getProcessGroupStatusSnapshots() {
-        return processGroupStatus;
+        return processGroupStatusSnapshots;
     }
 
     public void setProcessGroupStatusSnapshots(Collection<ProcessGroupStatusSnapshotEntity> processGroupStatus) {
-        this.processGroupStatus = processGroupStatus;
+        this.processGroupStatusSnapshots = processGroupStatus;
     }
 
     /**
@@ -149,11 +149,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all remote process groups in the process group.")
     public Collection<RemoteProcessGroupStatusSnapshotEntity> getRemoteProcessGroupStatusSnapshots() {
-        return remoteProcessGroupStatus;
+        return remoteProcessGroupStatusSnapshots;
     }
 
     public void setRemoteProcessGroupStatusSnapshots(final Collection<RemoteProcessGroupStatusSnapshotEntity> remoteProcessGroupStatus) {
-        this.remoteProcessGroupStatus = remoteProcessGroupStatus;
+        this.remoteProcessGroupStatusSnapshots = remoteProcessGroupStatus;
     }
 
     /**
@@ -163,11 +163,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all processors in the process group.")
     public Collection<ProcessorStatusSnapshotEntity> getProcessorStatusSnapshots() {
-        return processorStatus;
+        return processorStatusSnapshots;
     }
 
     public void setProcessorStatusSnapshots(Collection<ProcessorStatusSnapshotEntity> processorStatus) {
-        this.processorStatus = processorStatus;
+        this.processorStatusSnapshots = processorStatus;
     }
 
     /**
@@ -177,11 +177,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all input ports in the process group.")
     public Collection<PortStatusSnapshotEntity> getInputPortStatusSnapshots() {
-        return inputPortStatus;
+        return inputPortStatusSnapshots;
     }
 
     public void setInputPortStatusSnapshots(Collection<PortStatusSnapshotEntity> inputPortStatus) {
-        this.inputPortStatus = inputPortStatus;
+        this.inputPortStatusSnapshots = inputPortStatus;
     }
 
     /**
@@ -191,11 +191,11 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
      */
     @ApiModelProperty("The status of all output ports in the process group.")
     public Collection<PortStatusSnapshotEntity> getOutputPortStatusSnapshots() {
-        return outputPortStatus;
+        return outputPortStatusSnapshots;
     }
 
     public void setOutputPortStatusSnapshots(Collection<PortStatusSnapshotEntity> outputPortStatus) {
-        this.outputPortStatus = outputPortStatus;
+        this.outputPortStatusSnapshots = outputPortStatus;
     }
 
     /**
@@ -516,9 +516,9 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         other.setInputPortStatusSnapshots(copy(getInputPortStatusSnapshots()));
         other.setOutputPortStatusSnapshots(copy(getOutputPortStatusSnapshots()));
 
-        if (processGroupStatus != null) {
+        if (processGroupStatusSnapshots != null) {
             final List<ProcessGroupStatusSnapshotEntity> childGroups = new ArrayList<>();
-            for (final ProcessGroupStatusSnapshotEntity procGroupStatus : processGroupStatus) {
+            for (final ProcessGroupStatusSnapshotEntity procGroupStatus : processGroupStatusSnapshots) {
                 childGroups.add(procGroupStatus.clone());
             }
             other.setProcessGroupStatusSnapshots(childGroups);

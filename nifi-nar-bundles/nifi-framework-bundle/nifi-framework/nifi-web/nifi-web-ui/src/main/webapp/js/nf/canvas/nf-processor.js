@@ -900,28 +900,6 @@ nf.Processor = (function () {
         },
 
         /**
-         * Sets the processor status using the specified status.
-         *
-         * @param {array} processorStatus       Processor status
-         */
-        setStatus: function (processorStatus) {
-            if (nf.Common.isEmpty(processorStatus)) {
-                return;
-            }
-
-            // update the specified processor status
-            $.each(processorStatus, function (_, status) {
-                if (processorMap.has(status.id)) {
-                    var processor = processorMap.get(status.id);
-                    processor.status = status;
-                }
-            });
-
-            // update the visible processor status
-            d3.selectAll('g.processor.visible').call(updateProcessorStatus);
-        },
-
-        /**
          * Returns the default color that should be used when drawing a processor.
          */
         defaultColor: function () {

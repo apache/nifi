@@ -166,6 +166,7 @@ import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -2026,7 +2027,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ProcessGroupStatusEntity getProcessGroupStatus(final String groupId, final boolean recursive) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
-        final ProcessGroupStatusDTO dto = dtoFactory.createProcessGroupStatusDto(controllerFacade.getProcessGroupStatus(groupId));
+        final ProcessGroupStatusDTO dto = dtoFactory.createProcessGroupStatusDto(processGroup, controllerFacade.getProcessGroupStatus(groupId));
 
         // prune the response as necessary
         if (!recursive) {
@@ -2042,7 +2043,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     private void pruneChildGroups(final ProcessGroupStatusSnapshotDTO snapshot) {
-        for (final ProcessGroupStatusSnapshotDTO childProcessGroupStatus : snapshot.getProcessGroupStatusSnapshots()) {
+        for (final ProcessGroupStatusSnapshotEntity childProcessGroupStatusEntity : snapshot.getProcessGroupStatusSnapshots()) {
+            final ProcessGroupStatusSnapshotDTO childProcessGroupStatus = childProcessGroupStatusEntity.getProcessGroupStatusSnapshot();
             childProcessGroupStatus.setConnectionStatusSnapshots(null);
             childProcessGroupStatus.setProcessGroupStatusSnapshots(null);
             childProcessGroupStatus.setInputPortStatusSnapshots(null);

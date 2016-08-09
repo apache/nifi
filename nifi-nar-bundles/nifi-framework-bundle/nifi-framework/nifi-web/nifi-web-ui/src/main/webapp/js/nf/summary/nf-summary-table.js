@@ -2304,36 +2304,36 @@ nf.SummaryTable = (function () {
      */
     var populateProcessGroupStatus = function (processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, aggregateSnapshot) {
         // add the processors to the summary grid
-        $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatus) {
-            processorItems.push(procStatus);
+        $.each(aggregateSnapshot.processorStatusSnapshots, function (i, procStatusEntity) {
+            processorItems.push(procStatusEntity.processorStatusSnapshot);
         });
 
         // add the processors to the summary grid
-        $.each(aggregateSnapshot.connectionStatusSnapshots, function (i, connStatus) {
-            connectionItems.push(connStatus);
+        $.each(aggregateSnapshot.connectionStatusSnapshots, function (i, connStatusEntity) {
+            connectionItems.push(connStatusEntity.connectionStatusSnapshot);
         });
 
         // add the input ports to the summary grid
-        $.each(aggregateSnapshot.inputPortStatusSnapshots, function (i, portStatus) {
-            inputPortItems.push(portStatus);
+        $.each(aggregateSnapshot.inputPortStatusSnapshots, function (i, portStatusEntity) {
+            inputPortItems.push(portStatusEntity.portStatusSnapshot);
         });
 
         // add the input ports to the summary grid
-        $.each(aggregateSnapshot.outputPortStatusSnapshots, function (i, portStatus) {
-            outputPortItems.push(portStatus);
+        $.each(aggregateSnapshot.outputPortStatusSnapshots, function (i, portStatusEntity) {
+            outputPortItems.push(portStatusEntity.portStatusSnapshot);
         });
 
         // add the input ports to the summary grid
-        $.each(aggregateSnapshot.remoteProcessGroupStatusSnapshots, function (i, rpgStatus) {
-            remoteProcessGroupItems.push(rpgStatus);
+        $.each(aggregateSnapshot.remoteProcessGroupStatusSnapshots, function (i, rpgStatusEntity) {
+            remoteProcessGroupItems.push(rpgStatusEntity.remoteProcessGroupStatusSnapshot);
         });
 
         // add the process group status as well
         processGroupItems.push(aggregateSnapshot);
 
         // add any child group's status
-        $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroup) {
-            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroup);
+        $.each(aggregateSnapshot.processGroupStatusSnapshots, function (i, childProcessGroupEntity) {
+            populateProcessGroupStatus(processorItems, connectionItems, processGroupItems, inputPortItems, outputPortItems, remoteProcessGroupItems, childProcessGroupEntity.processGroupStatusSnapshot);
         });
     };
 
