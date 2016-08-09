@@ -42,7 +42,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     protected final ClusterCoordinator clusterCoordinator;
     protected final FlowEngine flowEngine = new FlowEngine(1, "Heartbeat Monitor", true);
 
-    protected volatile long latestHeartbeatTime;
     private volatile ScheduledFuture<?> future;
     private volatile boolean stopped = true;
 
@@ -57,8 +56,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     @Override
     public synchronized final void start() {
         if (!stopped) {
-            logger.debug("Attempted to start Heartbeat Monitor but it is already started");
-            return;
+            logger.info("Attempted to start Heartbeat Monitor but it is already started. Stopping heartbeat monitor and re-starting it.");
+            stop();
         }
 
         stopped = false;
@@ -125,6 +124,15 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
      * Visible for testing.
      */
     protected synchronized void monitorHeartbeats() {
+        if (!clusterCoordinator.isActiveClusterCoordinator()) {
+            // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
+            // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
+            // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate
+            // destination for heartbeats.
+            logger.debug("It appears that this node is no longer the actively elected cluster coordinator. Will not request that node disconnect.");
+            return;
+        }
+
         final Map<NodeIdentifier, NodeHeartbeat> latestHeartbeats = getLatestHeartbeats();
         if (latestHeartbeats == null || latestHeartbeats.isEmpty()) {
             logger.debug("Received no new heartbeats. Will not disconnect any nodes due to lack of heartbeat");
@@ -152,16 +160,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         for (final NodeHeartbeat heartbeat : latestHeartbeats.values()) {
             if (heartbeat.getTimestamp() < threshold) {
                 final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - heartbeat.getTimestamp());
-
-                if (!clusterCoordinator.isActiveClusterCoordinator()) {
-                    // Occasionally Curator appears to not notify us that we have lost the elected leader role, or does so
-                    // on a very large delay. So before we kick the node out of the cluster, we want to first check what the
-                    // ZNode in ZooKeeper says, and ensure that this is the node that is being advertised as the appropriate
-                    // destination for heartbeats.
-                    logger.debug("Have not received a heartbeat from node in " + secondsSinceLastHeartbeat +
-                        " seconds but it appears that this node is no longer the actively elected cluster coordinator. Will not request that node disconnect.");
-                    return;
-                }
 
                 clusterCoordinator.disconnectionRequestedByNode(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
                     "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
