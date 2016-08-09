@@ -482,8 +482,20 @@ nf.CanvasUtils = (function () {
                 tip.remove();
             }
 
-            // if there are bulletins show them, otherwise hide
+            var hasBulletins = false;
             if (!nf.Common.isEmpty(d.bulletins)) {
+                // format the bulletins
+                var bulletins = nf.Common.getFormattedBulletins(d.bulletins);
+                hasBulletins = bulletins.length > 0;
+
+                if (hasBulletins) {
+                    // create the unordered list based off the formatted bulletins
+                    var list = nf.Common.formatUnorderedList(bulletins);
+                }
+            }
+
+            // if there are bulletins show them, otherwise hide
+            if (hasBulletins) {
                 // update the tooltip
                 selection.select('text.bulletin-icon')
                         .each(function () {
@@ -494,16 +506,7 @@ nf.CanvasUtils = (function () {
                                     })
                                     .attr('class', 'tooltip nifi-tooltip')
                                     .html(function () {
-                                        // format the bulletins
-                                        var bulletins = nf.Common.getFormattedBulletins(d.bulletins);
-
-                                        // create the unordered list based off the formatted bulletins
-                                        var list = nf.Common.formatUnorderedList(bulletins);
-                                        if (list === null || list.length === 0) {
-                                            return '';
-                                        } else {
-                                            return $('<div></div>').append(list).html();
-                                        }
+                                        return $('<div></div>').append(list).html();
                                     });
 
                             // add the tooltip
