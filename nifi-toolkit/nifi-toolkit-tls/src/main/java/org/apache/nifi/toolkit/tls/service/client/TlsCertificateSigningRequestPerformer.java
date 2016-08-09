@@ -75,7 +75,7 @@ public class TlsCertificateSigningRequestPerformer {
     private TlsCertificateSigningRequestPerformer(Supplier<HttpClientBuilder> httpClientBuilderSupplier, String caHostname, String dn, String token, int port, String signingAlgorithm) {
         this.httpClientBuilderSupplier = httpClientBuilderSupplier;
         this.caHostname = caHostname;
-        this.dn = dn;
+        this.dn = CertificateUtils.reorderDn(dn);
         this.token = token;
         this.port = port;
         this.objectMapper = new ObjectMapper();
@@ -104,7 +104,7 @@ public class TlsCertificateSigningRequestPerformer {
             String jsonResponseString;
             int responseCode;
             try (CloseableHttpClient client = httpClientBuilder.build()) {
-                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(CertificateUtils.reorderDn(dn), keyPair, signingAlgorithm);
+                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, keyPair, signingAlgorithm);
                 TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(TlsHelper.calculateHMac(token, request.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(request));
 
@@ -146,7 +146,7 @@ public class TlsCertificateSigningRequestPerformer {
             X509Certificate x509Certificate = TlsHelper.parseCertificate(new StringReader(tlsCertificateAuthorityResponse.getPemEncodedCertificate()));
             x509Certificate.verify(caCertificate.getPublicKey());
             if (logger.isInfoEnabled()) {
-                logger.info("Got certificate with dn " + x509Certificate.getSubjectDN());
+                logger.info("Got certificate with dn " + x509Certificate.getSubjectX500Principal());
             }
             return new X509Certificate[]{x509Certificate, caCertificate};
         } catch (IOException e) {
