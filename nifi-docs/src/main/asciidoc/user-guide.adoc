@@ -149,7 +149,7 @@ able to view and modify the dataflow. For information on securing the system, se
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
-image::images/nifi-toolbar-components.png["NiFi Components Toolbar"]
+image::nifi-toolbar-components.png["NiFi Components Toolbar"]
 
 The Components Toolbar runs across the top left portion of your screen. It consists of the components you can drag onto the
 canvas to build your dataflow. Each component is described in more detail in link:building-dataflow.html[Building a Dataflow].
@@ -168,7 +168,7 @@ On the right side of the canvas is Search, and the Global Menu. You can use Sear
 canvas and can to search by component name, type, identifier, configuration properties, and their values. The Global Menu
 contain options that allow you to manipulate existing components on the canvas:
 
-image::images/global-menu.png[NiFi Global Menu]
+image::global-menu.png[NiFi Global Menu]
 
 Additionally, the UI has allows has some features that allow you to easily navigate around the canvas. You can use the
 Navigate Palette to pan around the canvas, and to zoom in and out. The “Birds Eye View” of the dataflow provides a high-level
@@ -177,7 +177,7 @@ bottom of the screen. As you navigate into and out of Process Groups, the breadc
 the depth in the flow, and each Process Group that you entered to reach this depth. Each of the Process Groups listed in the
 breadcrumbs is a link that will take you back up to that level in the flow.
 
-image::images/nifi-navigation.png["NiFi Navigation"]
+image::nifi-navigation.png["NiFi Navigation"]
 
 [[UI-with-multi-tenant-authorization]]
 Accessing the UI with Multi-Tenant Authorization
@@ -233,7 +233,7 @@ Clicking the 'login' link will open the log in page. If the user is logging in w
 a form to do so. If NiFi is not configured to support anonymous access and the user is logging in with their username/password, they will
 be immediately sent to the login form bypassing the canvas.
 
-image::images/login.png["Log In"]
+image::login.png["Log In"]
 
 
 [[building-dataflow]]
@@ -250,16 +250,16 @@ the components together.
 The User Interface section above outlined the different segments of the UI and pointed out a Components Toolbar.
 This section looks at each of the Components in that toolbar:
 
-image::images/components.png["Components"]
+image::components.png["Components"]
 
 [[processor]]
-image:images/iconProcessor.png["Processor", width=32]
+image:iconProcessor.png["Processor", width=32]
 *Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and
 	manipulating. There are many different types of Processors. In fact, this is a very common Extension Point in NiFi,
 	meaning that many vendors may implement their own Processors to perform whatever functions are necessary for their use case.
 	When a Processor is dragged onto the canvas, the user is presented with a dialog to choose which type of Processor to use:
 
-image::images/add-processor.png["Add Processor Dialog"]
+image::add-processor.png["Add Processor Dialog"]
 
 In the top-right corner, the user is able to filter the list based on the Processor Type or the Tags associated with a Processor.
 Processor developers have the ability to add Tags to their Processors. These tags are used in this dialog for filtering and are
@@ -268,7 +268,7 @@ in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processo
 Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those
 Processors that allow us to ingest data via HTTP, we can select both the `http` Tag and the `ingest` Tag:
 
-image::images/add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
+image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
@@ -280,7 +280,7 @@ down the Shift key and dragging a selection box around the desired components.
 Once you have dragged a Processor onto the canvas, you can interact with it by right-clicking on the Processor and
 selecting an option from the context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::images/nifi-processor-menu.png["Processor Menu"]
+image::nifi-processor-menu.png["Processor Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with a Processor:
 
@@ -297,7 +297,7 @@ While the options available from the context menu vary, the following options ar
 
 
 [[input_port]]
-image:images/iconInputPort.png["Input Port", width=32]
+image:iconInputPort.png["Input Port", width=32]
 *Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
@@ -311,7 +311,7 @@ link:administration-guide.html[System Administrator’s Guide].
 
 
 [[output_port]]
-image:images/iconOutputPort.png["Output Port", width=32]
+image:iconOutputPort.png["Output Port", width=32]
 *Output Port*: Output Ports provide a mechanism for transferring data from a Process Group to destinations outside
 of the Process Group. When an Output Port is dragged onto the canvas, the DFM is prompted to name the Port. All Ports
 within a Process Group must have unique names.
@@ -325,7 +325,7 @@ link:administration-guide.html[System Administrator’s Guide].
 
 
 [[process_group]]
-image:images/iconProcessGroup.png["Process Group", width=32]
+image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
 Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
@@ -333,7 +333,7 @@ Groups within the same parent group must have unique names. The Process Group wi
 Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from
 context menu.The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::images/nifi-process-group-menu.png["Process Group Menu"]
+image::nifi-process-group-menu.png["Process Group Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Process Group:
 
@@ -349,7 +349,7 @@ While the options available from the context menu vary, the following options ar
 
 
 [[remote_process_group]]
-image:images/iconRemoteProcessGroup.png["Remote Process Group", width=32]
+image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
 *Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG)
 references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
 is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
@@ -362,7 +362,7 @@ recalculate the load balancing based on each node's load. For more information, 
 Once a Remote Process Group has been dragged onto the canvas, the user may interact with it by right-clicking on the Remote Process Group and selecting an option from
 context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::images/nifi-rpg-menu.png["Remote Process Group Menu"]
+image::nifi-rpg-menu.png["Remote Process Group Menu"]
 
 While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Remote Process Group:
 
@@ -382,7 +382,7 @@ While the options available from the context menu vary, the following options ar
 
 
 [[funnel]]
-image:images/iconFunnel.png["Funnel"]
+image:iconFunnel.png["Funnel"]
 *Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages.
 First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections
 have to span a large space. By funneling these Connections into a single Connection, that single Connection can then be
@@ -392,22 +392,22 @@ one Connection, rather than prioritizing the data on each Connection independent
 
 
 [[template]]
-image:images/iconTemplate.png["Template"]
+image:iconTemplate.png["Template"]
 *Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
 dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
 dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
 
-image::images/instantiate-template.png["Instantiate Template Dialog"]
+image::instantiate-template.png["Instantiate Template Dialog"]
 
 Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show a question mark
 icon, indicating that there is more information. Hovering over the icon with the mouse will show this description:
 
-image::images/instantiate-template-description.png["Instantiate Template Dialog"]
+image::instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 
 [[label]]
-images/iconLabel.png["Label"]
+iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
@@ -432,7 +432,7 @@ the Processor again.
 
 The first tab in the Processor Configuration dialog is the Settings tab:
 
-image::images/settings-tab.png["Settings Tab"]
+image::settings-tab.png["Settings Tab"]
 
 This tab contains several different configuration items. First, it allows the DFM to change the name of the Processor.
 The name of a Processor by default is the same as the Processor type. Next to the Processor Name is a checkbox, indicating
@@ -477,7 +477,7 @@ auto-terminated, the auto-termination status will be cleared (turned off) if the
 
 The second tab in the Processor Configuration dialog is the Scheduling Tab:
 
-image::images/scheduling-tab.png["Scheduling Tab"]
+image::scheduling-tab.png["Scheduling Tab"]
 
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
@@ -544,11 +544,11 @@ Lower Latency or Higher Throughput.
 The Properties Tab provides a mechanism to configure Processor-specific behavior. There are no default properties. Each type of Processor
 must define which Properties make sense for its use case. Below, we see the Properties Tab for a RouteOnAttribute Processor:
 
-image::images/properties-tab.png["Properties Tab"]
+image::properties-tab.png["Properties Tab"]
 
 This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route to Property name.' Next to
 the name of this property is a small question-mark symbol (
-image:images/iconInfo.png["Question Mark"]
+image:iconInfo.png["Question Mark"]
 ). This help symbol is seen in other places throughout the User Interface, and it indicates that more information is available.
 Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as
 historical values that have been set for the Property.
@@ -556,31 +556,31 @@ historical values that have been set for the Property.
 Clicking on the value for the property will allow a DFM to change the value. Depending on the values that are allowed for the property,
 the user is either provided a drop-down from which to choose a value or is given a text area to type a value:
 
-image::images/edit-property-dropdown.png["Edit Property with Dropdown"]
+image::edit-property-dropdown.png["Edit Property with Dropdown"]
 
 In the top-right corner of the tab is a button for adding a New Property. Clicking this button will provide the DFM with a dialog to
 enter the name and value of a new property. Not all Processors allow User-Defined properties. In processors that do not allow them,
 the Processor becomes invalid when User-Defined properties are applied. RouteOnAttribute, however, does allow User-Defined properties.
 In fact, this Processor will not be valid until the user has added a property.
 
-image:images/edit-property-textarea.png["Edit Property with Text Area"]
+image:edit-property-textarea.png["Edit Property with Text Area"]
 
 Note that after a User-Defined property has been added, an icon will appear on the right-hand side of that row (
-image:images/iconDelete.png["Delete Icon"]
+image:iconDelete.png["Delete Icon"]
 ). Clicking it will remove the User-Defined property from the Processor.
 
 Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services_and_Reporting_Tasks>> section.
 
-image:images/create-service-ssl-context.png["Create Service", width=700]
+image:create-service-ssl-context.png["Create Service", width=700]
 
 ==== Comments Tab
 
 The last tab in the Processor configuration dialog is the Comments tab. This tab simply provides an area for users to include
 whatever comments are appropriate for this component. Use of the Comments tab is optional:
 
-image::images/comments-tab.png["Comments Tab"]
+image::comments-tab.png["Comments Tab"]
 
 
 === Additional Help
@@ -601,7 +601,7 @@ UI for adding and configuring both Controller Services and Reporting Tasks. To g
 [[Controller_Settings]]
 ==== Controller Settings
 
-image:images/controller-settings-button.png["Controller Settings Button"]
+image:controller-settings-button.png["Controller Settings Button"]
 
 
 The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is
@@ -611,12 +611,12 @@ that connects remotely to this instance (using Remote Process Groups, a.k.a., Si
 
 The General tab also provides settings for the overall maximum thread counts of the instance.
 
-image:images/settings-general-tab.png["Controller Settings General Tab"]
+image:settings-general-tab.png["Controller Settings General Tab"]
 
 To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right
 corner to create a new Controller Service.
 
-image:images/controller-services-tab.png["Controller Services Tab"]
+image:controller-services-tab.png["Controller Services Tab"]
 
 The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the
 available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller
@@ -626,29 +626,29 @@ for the desired Controller Service. Upon selecting a Controller Service from the
 the the service below. Select the desired controller service and click Add, or simply double-click the name of the service
 to add it.
 
-image:images/add-controller-service-window.png["Add Controller Service Window"]
+image:add-controller-service-window.png["Add Controller Service Window"]
 
 
 Once you have added a Controller Service, you can configure it by clicking the Edit button in the
 far-right column. Other buttons in this column include Remove and Access Policies.
 
-image:images/controller-services-edit-buttons.png["Controller Services Buttons"]
+image:controller-services-edit-buttons.png["Controller Services Buttons"]
 
 You can obtain information about Controller Services by clicking the Details, Usage, and Alerts buttons in the left-hand column.
 
-image:images/controller-services-information-buttons.png["Controller Services Information Buttons"]
+image:controller-services-information-buttons.png["Controller Services Information Buttons"]
 
 When the DFM clicks the Edit button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,
 and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM
 to give the Controller Service a unique name (if desired). It also lists the UUID for the service and provides a list
 of other components (processors or other controller services) that reference the service.
 
-image:images/configure-controller-service-settings.png["Configure Controller Service Settings"]
+image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
 The Properties tab lists the various properties that apply to the particular controller service. As with configuring
 processors, the DFM may hover the over the question mark icons to see more information about each property.
 
-image:images/configure-controller-service-properties.png["Configure Controller Service Properties"]
+image:configure-controller-service-properties.png["Configure Controller Service Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring
 a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel
@@ -660,19 +660,19 @@ in order to modify an existing/running controller service, the DFM needs to stop
 
 The Reporting Tasks tab behaves similarly to the Controller Services tab. The DFM has the option to add Reporting Tasks and configure them in the same way as Controller Services.
 
-image:images/reporting-tasks-tab.png["Reporting Tasks Tab"]
+image:reporting-tasks-tab.png["Reporting Tasks Tab"]
 
 Once a Reporting Task has been added, the DFM may configure it by clicking the Edit (pencil icon) in the far-right column. Other buttons in this column include the Start button, Remove button, and Usage button, which links to the documentation for the particular Reporting Task.
 
-image:images/reporting-tasks-edit-buttons2.png["Reporting Tasks Buttons"]
+image:reporting-tasks-edit-buttons2.png["Reporting Tasks Buttons"]
 
 When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is also similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists a UUID for the Reporting Task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
-image:images/configure-reporting-task-settings.png["Configure Reporting Task Settings"]
+image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
 The Properties tab for a Reporting Task lists the properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
 
-image:images/configure-reporting-task-properties.png["Configure Reporting Task Properties"]
+image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click Cancel to cancel the changes and close the window.
 
@@ -685,10 +685,10 @@ When you want to run the Reporting Task, click the Start button in the far-right
 Once processors and other components have been added to the canvas and configured, the next step is to connect them
 to one another so that NiFi knows what to do with each FlowFile after it has been processed. This is accomplished by creating a
 Connection between each component. When the user hovers the mouse over the center of a component, a new Connection icon (
-image:images/addConnect.png["Connection Bubble"]
+image:addConnect.png["Connection Bubble"]
 ) appears:
 
-image:images/processor-connection-bubble.png["Processor with Connection Bubble"]
+image:processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
 releases the mouse, a `Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
@@ -702,7 +702,7 @@ and the same 'Create Connection' dialog appears.
 The Details Tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
-image::images/create-connection.png["Create Connection"]
+image::create-connection.png["Create Connection"]
 
 Additionally, this tab provides the ability to choose which Relationships should be included in this Connection. At least one
 Relationship must be selected. If only one Relationship is available, it is automatically selected.
@@ -715,7 +715,7 @@ automatically be `cloned', and a copy will be sent to each of those Connections.
 The Settings Tab provides the ability to configure the Connection's name, FlowFile expiration, Back Pressure thresholds, and
 Prioritization:
 
-image:images/connection-settings.png["Connection Settings"]
+image:connection-settings.png["Connection Settings"]
 
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships
 that are active for the Connection.
@@ -752,12 +752,12 @@ The following prioritizers are available:
 
 *Note*: After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
-image:images/nifi-connection.png["Connection"]
+image:nifi-connection.png["Connection"]
 
 
 To change a connection's configuration or interact with the connection in other ways, right-click on the connection to open the connection context menu.
 
-image:images/nifi-connection-menu.png["Connection Menu"]
+image:nifi-connection-menu.png["Connection Menu"]
 
 The following options are available:
 
@@ -775,7 +775,7 @@ To add a bend point (or elbow) to an existing connection, simply double-click on
 the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing
 bend point. To remove a bend point, simply double-click it again.
 
-image:images/nifi-connection-bend-points.png["Connection Bend Points"]
+image:nifi-connection-bend-points.png["Connection Bend Points"]
 
 
 === Processor Validation
@@ -784,13 +784,13 @@ Before trying to start a Processor, it's important to make sure that the Process
 A status indicator is shown in the top-left of the Processor. If the Processor is invalid, the indicator
 will show a red Warning indicator with an exclamation mark indicating that there is a problem:
 
-image::images/invalid-processor.png["Invalid Processor"]
+image::invalid-processor.png["Invalid Processor"]
 
 In this case, hovering over the indicator icon with the mouse will provide a tooltip showing all of the validation
 errors for the Processor. Once all of the validation errors have been addressed, the status indicator will change
 to a Stop icon, indicating that the Processor is valid and ready to be started but currently is not running:
 
-image::images/valid-processor.png["Valid Processor"]
+image::valid-processor.png["Valid Processor"]
 
 
 
@@ -872,7 +872,7 @@ link:administration-guide.html[System Administrator’s Guide].
 [[Site-to-Site_Transport_Protocol]]
 *Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
 
-image:images/configure-remote-process-group.png["Configure Remote Process Group"]
+image:configure-remote-process-group.png["Configure Remote Process Group"]
 
 By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server. For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are supported.
 
@@ -926,7 +926,7 @@ After you drag the GenerateFlowFile and LogAttribute processors to the canvas an
 
 The dataflow should look like the following:
 
-image::images/simple-flow.png["Simple Flow"]
+image::simple-flow.png["Simple Flow"]
 
 
 Now see the following section on how to start and stop the dataflow. When the dataflow is running, be sure to note the statistical information that is displayed on the face of each processor (see <<processor_anatomy>>).
@@ -955,7 +955,7 @@ In order to start a component, the following conditions must be met:
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
 Components can be started by selecting all of the components to start and then clicking the Start icon (
-image:images/iconRun.png["Start"]
+image:iconRun.png["Start"]
 ) in the
 Actions Toolbar or by right-clicking a single component and choosing Start from the context menu.
 
@@ -963,7 +963,7 @@ If starting a Process Group, all components within that Process Group (including
 be started, with the exception of those components that are invalid or disabled.
 
 Once started, the status indicator of a Processor will change to a Play symbol (
-image:images/iconRun.png["Run"]
+image:iconRun.png["Run"]
 ).
 
 
@@ -971,14 +971,14 @@ image:images/iconRun.png["Run"]
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
 and clicking Stop from the context menu, or by selecting the component and clicking the Stop icon (
-image:images/iconStop.png["Stop"]
+image:iconStop.png["Stop"]
 ) in the Actions Toolbar.
 
 If a Process Group is stopped, all of the components within the Process Group (including child Process Groups)
 will be stopped.
 
 Once stopped, the status indicator of a component will change to the Stop symbol (
-image:images/iconStop.png["Stop"]
+image:iconStop.png["Stop"]
 ).
 
 Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
@@ -995,19 +995,19 @@ configuration) and inadvertently were never restarted.
 
 When it is desirable to re-enable a component, it can be enabled by selecting the component and
 clicking the Enable icon (
-image:images/iconEnable.png["Enable"]
+image:iconEnable.png["Enable"]
 ) in the Actions Toolbar. This is available only when the selected component or components are disabled.
 Alternatively, a component can be enabled by checking the checkbox next  to the ``Enabled'' option in
 the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
 
 Once enabled, the component's status indicator will change to either Invalid (
-image:images/iconAlert.png["Invalid"]
+image:iconAlert.png["Invalid"]
 ) or Stopped (
-image:images/iconStop.png["Stopped"]
+image:iconStop.png["Stopped"]
 ), depending on whether or not the component is valid.
 
 A component is then disabled by selecting the component and clicking the Disable icon (
-image:images/iconDisable.png["Disable"]
+image:iconDisable.png["Disable"]
 ) in the Actions Toolbar, or by clearing the checkbox next to the ``Enabled'' option in the Settings tab
 of the Processor configuration dialog or the configuration dialog for a Port.
 
@@ -1020,15 +1020,15 @@ Only Ports and Processors can be enabled and disabled.
 Remote Process Groups provide a mechanism for sending data to or retrieving data from a remote instance
 of NiFi. When a Remote Process Group (RPG) is added to the canvas, it is added with the Transmission Disabled,
 as indicated by the icon (
-image:images/iconTransmissionInactive.png["Transmission Disabled"]
+image:iconTransmissionInactive.png["Transmission Disabled"]
 ) in the top-left corner. When Transmission is Disabled, it can be enabled by right-clicking on the
 RPG and clicking the ``Enable Transmission'' menu item. This will cause all ports for which there is a Connection
 to begin transmitting data. This will cause the status indicator to then change to the Transmission Enabled icon (
-image:images/iconTransmissionActive.png["Transmission Enabled"]
+image:iconTransmissionActive.png["Transmission Enabled"]
 ).
 
 If there are problems communicating with the Remote Process Group, a Warning indicator (
-image:images/iconAlert.png["Warning"]
+image:iconAlert.png["Warning"]
 ) may instead be present in the top-left corner. Hovering over this Warning indicator with the mouse will provide
 more information about the problem.
 
@@ -1040,7 +1040,7 @@ Port within the Remote Process Group. This can be accomplished by right-clicking
 and choosing the ``Remote ports'' menu item. This provides a configuration dialog from which each Port can be
 configured:
 
-image::images/remote-group-ports-dialog.png["Remote Process Groups"]
+image::remote-group-ports-dialog.png["Remote Process Groups"]
 
 The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to.
 The right-hand side lists all of the Output Ports from which this instance is able to pull data.
@@ -1058,12 +1058,12 @@ Each Port is shown with the Port name, followed by its description, currently co
 tasks, and whether or not data sent to this port will be compressed. To the left of this information is a switch
 to turn the Port on or off. Those Ports that have no Connections attached to them are grayed out:
 
-image::images/remote-port-connection-status.png["Remote Port Statuses"]
+image::remote-port-connection-status.png["Remote Port Statuses"]
 
 The on/off switch provides a mechanism to enable and disable transmission for each Port in the Remote
 Process Group independently. Those Ports that are connected but are not currently transmitting can be
 configured by clicking the pencil icon (
-image:images/iconEdit.png["Edit"]
+image:iconEdit.png["Edit"]
 ) below the on/off switch. Clicking this icon will allow the DFM to change the number of Concurrent tasks and whether
 or not compression should be used when transmitting data to or from this Port.
 
@@ -1097,7 +1097,7 @@ monitoring artifacts below.
 NiFi provides a significant amount of information about each Processor on the canvas. The following diagram
 shows the anatomy of a Processor:
 
-image:images/processor-anatomy.png["Anatomy of a Processor"]
+image:processor-anatomy.png["Anatomy of a Processor"]
 
 The image outlines the following elements:
 
@@ -1116,14 +1116,14 @@ The image outlines the following elements:
 	it will also show the Node that emitted the Bulletin. Bulletins automatically expire after five minutes.
 
 - *Status Indicator*: Shows the current Status of the Processor. The following indicators are possible:
-	** image:images/iconRun.png["Running"]
+	** image:iconRun.png["Running"]
 		*Running*: The Processor is currently running.
-	** image:images/iconStop.png["Stopped"]
+	** image:iconStop.png["Stopped"]
 		*Stopped*: The Processor is valid and enabled but is not running.
-	** image:images/iconAlert.png["Invalid"]
+	** image:iconAlert.png["Invalid"]
 		*Invalid*: The Processor is enabled but is not currently valid and cannot be started.
 		Hovering over this icon will provide a tooltip indicating why the Processor is not valid.
-	** image:images/iconDisable.png["Disabled"]
+	** image:iconDisable.png["Disabled"]
 		*Disabled*: The Processor is not running and cannot be started until it has been enabled.
 		This status does not indicate whether or not the Processor is valid.
 
@@ -1181,7 +1181,7 @@ The Process Group provides a mechanism for grouping components together into a l
 to organize the DataFlow in a way that makes it more understandable from a higher level.
 The following image highlights the different elements that make up the anatomy of a Process Group:
 
-image::images/process-group-anatomy.png["Anatomy of a Process Group"]
+image::process-group-anatomy.png["Anatomy of a Process Group"]
 
 The Process Group consists of the following elements:
 
@@ -1228,27 +1228,27 @@ The Process Group consists of the following elements:
 - *Component Counts*: The Component Counts element provides information about how many components of each type exist
 	within the Process Group. The following provides information about each of these icons and their meanings:
 
-	** image:images/iconTransmissionActive.png["Transmission Active"]
+	** image:iconTransmissionActive.png["Transmission Active"]
 		*Transmitting Ports*: The number of Remote Process Group Ports that currently are configured to transmit data to remote
 			instances of NiFi or pull data from remote instances of NiFi.
 
-	** image:images/iconTransmissionInactive.png["Transmission Inactive"]
+	** image:iconTransmissionInactive.png["Transmission Inactive"]
 		*Non-Transmitting Ports*: The number of Remote Process Group Ports that are currently connected to components within this
 			Process Group but currently have their transmission disabled.
 
-	** image:images/iconRun.png["Running"]
+	** image:iconRun.png["Running"]
 		*Running Components*: The number of Processors, Input Ports, and Output Ports that are currently running within this
 			Process Group.
 
-	** image:images/iconStop.png["Stopped Components"]
+	** image:iconStop.png["Stopped Components"]
 		*Stopped Components*: The number of Processors, Input Ports, and Output Ports that are currently not running but are
 			valid and enabled. These components are ready to be started.
 
-	** image:images/iconAlert.png["Invalid Components"]
+	** image:iconAlert.png["Invalid Components"]
 		*Invalid Components*: The number of Processors, Input Ports, and Output Ports that are enabled but are currently
 			not in a valid state. This may be due to misconfigured properties or missing Relationships.
 
-	** image:images/iconDisable.png["Disabled Components"]
+	** image:iconDisable.png["Disabled Components"]
 		*Disabled Components*: The number of Processors, Input Ports, and Output Ports that are currently disabled. These
 			components may or may not be valid. If the Process Group is started, these components will not cause any errors
 			but will not be started.
@@ -1268,7 +1268,7 @@ and state of a Remote Process Group, such as queue sizes, the information render
 Process Group is related to the interaction that occurs between this instance of NiFi and the remote
 instance.
 
-image::images/remote-group-anatomy.png["Anatomy of a Remote Process Group"]
+image::remote-group-anatomy.png["Anatomy of a Remote Process Group"]
 
 The image above shows the different elements that make up a Remote Process Group. Here, we provide an
 explanation of the icons and details about the information provided.
@@ -1276,10 +1276,10 @@ explanation of the icons and details about the information provided.
 - *Transmission Status*: The Transmission Status indicates whether or not data Transmission between this
 	instance of NiFi and the remote instance is currently enabled. The icon shown will be the
 	Transmission Enabled icon (
-image:images/iconTransmissionActive.png["Transmission Active"]
+image:iconTransmissionActive.png["Transmission Active"]
 	) if any of the Input Ports or Output Ports is currently configured to transmit or the Transmission
 	Disabled icon (
-image:images/iconTransmissionInactive.png["Transmission Inactive"]
+image:iconTransmissionInactive.png["Transmission Inactive"]
 	) if all of the Input Ports and Output Ports that are currently connected are stopped.
 
 - *Remote Instance Name*: This is the name of the NiFi instance that was reported by the remote instance.
@@ -1292,9 +1292,9 @@ image:images/iconTransmissionInactive.png["Transmission Inactive"]
 - *Secure Indicator*: This icon indicates whether or not communications with the remote NiFi instance are
 	secure. If communications with the remote instance are secure, this will be indicated by the ``locked''
 	icon (
-image:images/iconSecure.png["Secure"]
+image:iconSecure.png["Secure"]
 	). If the communications are not secure, this will be indicated by the ``unlocked'' icon (
-image:images/iconNotSecure.png["Not Secure"]
+image:iconNotSecure.png["Not Secure"]
 	). If the communications are secure, this instance of NiFi will not be able to communicate with the
 	remote instance until an administrator for the remote instance grants access. Whenever the Remote Process
 	Group is added to the canvas, this will automatically initiate a request to have a user for this instance of NiFi created on the
@@ -1327,7 +1327,7 @@ a Connection's context menu. The listing will return the top 100 FlowFiles in th
 configured priority. The listing can be performed even if the source and destination are actively running.
 
 Additionally, details for a Flowfile in the listing can be viewed by clicking on the Details icon (
-image:images/iconDetails.png["Details"]
+image:iconDetails.png["Details"]
 ) in the left most column. From here, the FlowFile details and attributes are available as well buttons for
 downloading or viewing the content. Viewing the content is only available if the nifi.content.viewer.url has been configured.
 If the source or destination of the Connection are actively running, there is a chance that the desired FlowFile will
@@ -1348,12 +1348,12 @@ of the User Interface. See the <<User_Interface>> section for more information a
 
 The Summary Page is opened by selecting Summary from the Global Menu. This opens the Summary table dialog:
 
-image::images/summary-table.png["Summary Table"]
+image::summary-table.png["Summary Table"]
 
 This dialog provides a great deal of information about each of the components on the canvas. Below, we have annotated
 the different elements within the dialog in order to make the discussion of the dialog easier.
 
-image::images/summary-annotated.png["Summary Table Annotated"]
+image::summary-annotated.png["Summary Table Annotated"]
 
 The Summary page is primarily comprised of a table that provides information about each of the components on the canvas. Above this
 table is a set of five tabs that can be used to view the different types of components. The information provided in the table
@@ -1415,7 +1415,7 @@ The amount of historical information that is stored is configurable in the NiFi 
 configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
 When the Stats dialog is opened, it provides a graph of historical statistics:
 
-image::images/stats-history.png["Stats History"]
+image::stats-history.png["Stats History"]
 
 The left-hand side of the dialog provides information about the component that the stats are for, as well as a textual
 representation of the statistics being graphed. The following information is provided on the left-hand side:
@@ -1443,7 +1443,7 @@ representation of the statistics being graphed. The following information is pro
 The right-hand side of the dialog provides a drop-down list of the different types of metrics to render in the graphs below.
 The top graph is larger so as to provide an easier-to-read rendering of the information. In the bottom-right corner of
 this graph is a small handle (
-image:images/iconResize.png["Resize"]
+image:iconResize.png["Resize"]
 ) that can be dragged to resize the graph. The blank areas of the dialog can also be dragged around
 to move the entire dialog.
 
@@ -1472,7 +1472,7 @@ received from others can then be imported into an instance of NiFi and dragged o
 === Creating a Template
 To create a Template, select the components that are to be a part of the template, and then click the
 ``Create Template'' (
-image:images/iconNewTemplate.png["Create Template"]
+image:iconNewTemplate.png["Create Template"]
 ) button in the Actions Toolbar (See <<User_Interface>> for more information on the Actions Toolbar).
 
 Clicking this button without selecting anything will create a Template that contains all of the contents of the
@@ -1497,7 +1497,7 @@ destination of the Connection is not also included in the Template.
 
 Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
 instantiated, or added to the canvas. This is accomplished by dragging the Template icon (
-image:images/iconTemplate.png["Template"]
+image:iconTemplate.png["Template"]
 ) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
 
 This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
@@ -1534,7 +1534,7 @@ added to the table and the ``Browse'' button will reappear.
 Once a Template has been created, it can be shared with others in the Template Management page (see <<Manage_Templates>>).
 To export a Template, locate the Template in the table. The Filter in the top-right corner
 can be used to help find the appropriate Template if several are available. Then click the Export or Download button (
-image:images/iconExport.png["Export"]
+image:iconExport.png["Export"]
 ). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported
 into other instances of NiFi (see <<Import_Template>>).
 
@@ -1544,7 +1544,7 @@ into other instances of NiFi (see <<Import_Template>>).
 Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page
 (see <<Manage_Templates>>). To delete a Template, locate it in the table (the Filter in the top-right corner
 may be used to find the appropriate Template if several are available) and click the Delete button (
-image:images/iconDelete.png["Delete"]
+image:iconDelete.png["Delete"]
 ). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
 and will no longer be available to add to the canvas.
 
@@ -1566,7 +1566,7 @@ search the information for specific items, and filter the search results. It is 
 replay data at any point within the dataflow, and see a graphical representation of the data's lineage, or path through the flow.
 (These features are described in depth below.)
 
-image:images/provenance-annotated.png["Provenance Table"]
+image:provenance-annotated.png["Provenance Table"]
 
 Each point in a dataflow where a FlowFile is processed in some way is considered a "processing event". Various types of processing
 events occur, depending on the dataflow design. For example, when data is brought into the flow, a RECEIVE event occurs, and when
@@ -1579,21 +1579,21 @@ One of the most common tasks performed in the Data Provenance page is a search f
 click the `Search` button in the upper-right corner of the Data Provenance page. This opens a dialog window with parameters that the user can
 define for the search. The parameters include the processing event of interest, distinguishing characteristics about the FlowFile or the component that produced the event, the timeframe within which to search, and the size of the FlowFile.
 
-image:images/search-events.png["Search Events"]
+image:search-events.png["Search Events"]
 
 For example, to determine if a particular FlowFile was received, search for an Event Type of "RECEIVE" and include an
 identifier for the FlowFile, such as its uuid or filename. The asterisk (*) may be used as a wildcard for any number of characters.
 So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on Jan. 6, 2015, the search shown in the following
 image could be performed:
 
-image:images/search-receive-event-abc.png["Search for RECEIVE Event"]
+image:search-receive-event-abc.png["Search for RECEIVE Event"]
 
 [[event_details]]
 === Details of an Event
-In the far-left column of the Data Provenance page, there is a View Details icon for each event (image:images/iconDetails.png["Details"]).
+In the far-left column of the Data Provenance page, there is a View Details icon for each event (image:iconDetails.png["Details"]).
 Clicking this button opens a dialog window with three tabs: Details, Attributes, and Content.
 
-image:images/event-details.png["Event Details", width=700]
+image:event-details.png["Event Details", width=700]
 
 The Details tab shows various details about the event, such as when it occurred, what type of event it was, and the component that produced the event.
 The information that is displayed will vary according to the event type. This tab also shows information about the FlowFile that was processed. In
@@ -1603,7 +1603,7 @@ to that FlowFile are displayed on the right side of the Details tab.
 The Attributes tab shows the attributes that exist on the FlowFile as of that point in the flow. In order to see only the attributes that were modified as
 a result of the processing event, the user may select the checkbox next to "Only show modified" in the upper-right corner of the Attributes tab.
 
-image:images/event-attributes.png["Event Attributes", width=700]
+image:event-attributes.png["Event Attributes", width=700]
 
 === Replaying a FlowFile
 
@@ -1613,39 +1613,39 @@ and its size. In addition, it is here that the user may click the `Download` but
 at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`,
 the FlowFile is sent to the connection feeding the component that produced this processing event.
 
-image:images/event-content.png["Event Content", width=700]
+image:event-content.png["Event Content", width=700]
 
 === Viewing FlowFile Lineage
 
 It is often useful to see a graphical representation of the lineage or path a FlowFile took within the dataflow. To see a FlowFile's lineage,
-click on the "Show Lineage" icon ( image:images/iconLineage.png["Show Lineage", width=28] ) in the far-right column
-of the Data Provenance table. This opens a graph displaying the FlowFile ( image:images/lineage-flowfile.png["FlowFile", width=32] ) and the
+click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
+of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the
 various processing events that have occurred. The selected event will be highlighted in red. It is possible to right-click on any
 event to see that event's details (See <<event_details>>).
 To see how the lineage evolved over time, click the slider at the bottom-left of the window and move it to the left to see the state of the lineage at earlier stages in the dataflow.
 
-image:images/lineage-graph-annotated.png["Lineage Graph", width=900]
+image:lineage-graph-annotated.png["Lineage Graph", width=900]
 
 ==== Find Parents
 Sometimes, a user may need to track down the original FlowFile that another FlowFile was spawned from. For example, when a FORK or CLONE event occurs, NiFi keeps
 track of the parent FlowFile that produced other FlowFiles, and it is possible to find that parent FlowFile in the Lineage. Right-click on the event in the
 lineage graph and select "Find parents" from the context menu.
 
-image:images/find-parents.png["Find Parents"]
+image:find-parents.png["Find Parents"]
 
 Once "Find parents" is selected, the graph is re-drawn to show the parent FlowFile and its lineage as well as the child and its lineage.
 
-image:images/parent-found.png["Parent Found"]
+image:parent-found.png["Parent Found"]
 
 
 ==== Expanding an Event
 In the same way that it is useful to find a parent FlowFile, the user may also want to determine what children were spawned from a given FlowFile. To do this, right-click on the event in the lineage graph and select "Expand" from the context menu.
 
-image:images/expand-event.png["Expand Event"]
+image:expand-event.png["Expand Event"]
 
 Once "Expand" is selected, the graph is re-drawn to show the children and their lineage.
 
-image:images/expanded-events.png["Expanded Events"]
+image:expanded-events.png["Expanded Events"]
 
 
 [[other_management_features]]
