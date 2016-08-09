@@ -82,7 +82,11 @@ public class TlsCertificateAuthorityServiceHandler extends AbstractHandler {
             byte[] expectedHmac = TlsHelper.calculateHMac(token, jcaPKCS10CertificationRequest.getPublicKey());
 
             if (MessageDigest.isEqual(expectedHmac, tlsCertificateAuthorityRequest.getHmac())) {
-                X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(jcaPKCS10CertificationRequest.getSubject().toString(),
+                String dn = jcaPKCS10CertificationRequest.getSubject().toString();
+                if (logger.isInfoEnabled()) {
+                    logger.info("Received CSR with DN " + dn);
+                }
+                X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn,
                         jcaPKCS10CertificationRequest.getPublicKey(), caCert, keyPair, signingAlgorithm, days);
                 writeResponse(objectMapper, request, response, new TlsCertificateAuthorityResponse(TlsHelper.calculateHMac(token, caCert.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(x509Certificate)), Response.SC_OK);

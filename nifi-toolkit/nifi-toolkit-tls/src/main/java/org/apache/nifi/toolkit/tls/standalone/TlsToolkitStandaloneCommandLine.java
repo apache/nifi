@@ -51,7 +51,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String OVERWRITE_ARG = "isOverwrite";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
-    public static final int DEFAULT_HTTPS_PORT = 10443;
+    public static final int DEFAULT_HTTPS_PORT = 9091;
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
     public static final String CLIENT_CERT_DN_ARG = "clientCertDn";

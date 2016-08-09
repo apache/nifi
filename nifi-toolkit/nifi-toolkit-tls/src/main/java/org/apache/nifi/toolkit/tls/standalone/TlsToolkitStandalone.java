@@ -194,7 +194,8 @@ public class TlsToolkitStandalone {
             logger.info("No " + TlsToolkitStandaloneCommandLine.CLIENT_CERT_DN_ARG + " specified, not generating any client certificates.");
         }
         for (String clientDn : clientDns) {
-            String clientDnFile = getClientDnFile(clientDn);
+            String reorderedDn = CertificateUtils.reorderDn(clientDn);
+            String clientDnFile = getClientDnFile(reorderedDn);
             File clientCertFile = new File(baseDir, clientDnFile + ".p12");
 
             if (clientCertFile.exists()) {
@@ -209,7 +210,7 @@ public class TlsToolkitStandalone {
                 logger.info("Generating new client certificate " + clientCertFile);
             }
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
-            X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(clientDn, keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days);
+            X509Certificate clientCert = CertificateUtils.generateIssuedCertificate(reorderedDn, keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days);
             KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
             keyStore.load(null, null);
             keyStore.setKeyEntry(NIFI_KEY, keyPair.getPrivate(), null, new Certificate[]{clientCert, certificate});

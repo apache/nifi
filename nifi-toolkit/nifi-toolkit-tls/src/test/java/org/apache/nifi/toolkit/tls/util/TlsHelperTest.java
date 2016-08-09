@@ -127,7 +127,7 @@ public class TlsHelperTest {
         assertTrue(notBefore.after(inFuture(-1)));
         assertTrue(notBefore.before(inFuture(1)));
 
-        assertEquals(dn, x509Certificate.getIssuerDN().getName());
+        assertEquals(dn, x509Certificate.getIssuerX500Principal().getName());
         assertEquals(signingAlgorithm, x509Certificate.getSigAlgName());
         assertEquals(keyPairAlgorithm, x509Certificate.getPublicKey().getAlgorithm());
 
@@ -139,12 +139,12 @@ public class TlsHelperTest {
         X509Certificate issuer = loadCertificate(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.crt")));
         KeyPair issuerKeyPair = loadKeyPair(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.key")));
 
-        String dn = "CN=testIssued,O=testOrg";
+        String dn = "CN=testIssued, O=testOrg";
 
         KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
         X509Certificate x509Certificate = CertificateUtils.generateIssuedCertificate(dn, keyPair.getPublic(), issuer, issuerKeyPair, signingAlgorithm, days);
-        assertEquals(dn, x509Certificate.getSubjectDN().toString());
-        assertEquals(issuer.getSubjectDN().toString(), x509Certificate.getIssuerDN().toString());
+        assertEquals(dn, x509Certificate.getSubjectX500Principal().toString());
+        assertEquals(issuer.getSubjectX500Principal().toString(), x509Certificate.getIssuerX500Principal().toString());
         assertEquals(keyPair.getPublic(), x509Certificate.getPublicKey());
 
         Date notAfter = x509Certificate.getNotAfter();

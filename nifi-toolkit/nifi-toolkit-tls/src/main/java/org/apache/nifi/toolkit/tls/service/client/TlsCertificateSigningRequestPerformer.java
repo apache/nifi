@@ -28,6 +28,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
 import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
@@ -103,7 +104,7 @@ public class TlsCertificateSigningRequestPerformer {
             String jsonResponseString;
             int responseCode;
             try (CloseableHttpClient client = httpClientBuilder.build()) {
-                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(dn, keyPair, signingAlgorithm);
+                JcaPKCS10CertificationRequest request = TlsHelper.generateCertificationRequest(CertificateUtils.reorderDn(dn), keyPair, signingAlgorithm);
                 TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(TlsHelper.calculateHMac(token, request.getPublicKey()),
                         TlsHelper.pemEncodeJcaObject(request));
 

@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -278,7 +279,7 @@ public class TlsToolkitStandaloneTest {
     }
 
     private void checkClientCert(String clientDn, X509Certificate rootCert) throws Exception {
-        String clientDnFile = TlsToolkitStandalone.getClientDnFile(clientDn);
+        String clientDnFile = TlsToolkitStandalone.getClientDnFile(CertificateUtils.reorderDn(clientDn));
         String password;
         try (FileReader fileReader = new FileReader(new File(tempDir, clientDnFile + ".password"))) {
             List<String> lines = IOUtils.readLines(fileReader);
