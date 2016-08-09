@@ -47,6 +47,7 @@ import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -476,11 +477,11 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             for(String key : processorConfig.getDescriptors().keySet()){
 
                 PropertyDescriptorDTO descriptor = processorConfig.getDescriptors().get(key);
-                List<PropertyDescriptorDTO.AllowableValueDTO> allowableValuesDTO = descriptor.getAllowableValues();
+                List<AllowableValueDTO> allowableValuesDTO = descriptor.getAllowableValues();
                 Map<String,String> allowableValues = new HashMap<>();
 
                 if(allowableValuesDTO != null) {
-                    for (PropertyDescriptorDTO.AllowableValueDTO value : allowableValuesDTO) {
+                    for (AllowableValueDTO value : allowableValuesDTO) {
                         allowableValues.put(value.getValue(), value.getDisplayName());
                     }
                 }

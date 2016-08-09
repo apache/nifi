@@ -69,13 +69,14 @@ public class PortStatusEndpointMerger extends AbstractSingleEntityEndpoint<PortS
 
         // merge the other nodes
         for (final Map.Entry<NodeIdentifier, PortStatusEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
             final PortStatusEntity nodePortStatusEntity = entry.getValue();
             final PortStatusDTO nodePortStatus = nodePortStatusEntity.getPortStatus();
             if (nodePortStatus == mergedPortStatus) {
                 continue;
             }
 
-            mergeStatus(mergedPortStatus, clientEntity.getCanRead(), nodePortStatus, nodePortStatusEntity.getCanRead(), selectedNodeId);
+            mergeStatus(mergedPortStatus, clientEntity.getCanRead(), nodePortStatus, nodePortStatusEntity.getCanRead(), nodeId);
         }
     }
 

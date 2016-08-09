@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.manager.ComponentEntityStatusMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.NodeRemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
@@ -72,13 +73,14 @@ public class RemoteProcessGroupStatusEndpointMerger extends AbstractSingleEntity
                 continue;
             }
 
-            mergeStatus(mergedRemoteProcessGroupStatus, clientEntity.getCanRead(), nodeRemoteProcessGroupStatus, nodeRemoteProcessGroupStatusEntity.getCanRead(), selectedNodeId);
+            mergeStatus(mergedRemoteProcessGroupStatus, clientEntity.getCanRead(), nodeRemoteProcessGroupStatus, nodeRemoteProcessGroupStatusEntity.getCanRead(), nodeId);
         }
     }
 
     @Override
     public void mergeStatus(RemoteProcessGroupStatusDTO clientStatus, boolean clientStatusReadablePermission, RemoteProcessGroupStatusDTO status, boolean statusReadablePermission,
                             NodeIdentifier statusNodeIdentifier) {
-
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
     }
 }

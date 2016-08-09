@@ -72,7 +72,7 @@ public class GroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<Proc
                 continue;
             }
 
-            mergeStatus(mergedProcessGroupStatus, clientEntity.getCanRead(), nodeProcessGroupStatus, nodeProcessGroupStatusEntity.getCanRead(), selectedNodeId);
+            mergeStatus(mergedProcessGroupStatus, clientEntity.getCanRead(), nodeProcessGroupStatus, nodeProcessGroupStatusEntity.getCanRead(), nodeId);
         }
     }
 

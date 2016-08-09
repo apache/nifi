@@ -73,7 +73,7 @@ public class ProcessorStatusEndpointMerger extends AbstractSingleEntityEndpoint<
                 continue;
             }
 
-            mergeStatus(mergedProcessorStatus, clientEntity.getCanRead(), nodeProcessorStatus, nodeProcessorStatusEntity.getCanRead(), selectedNodeId);
+            mergeStatus(mergedProcessorStatus, clientEntity.getCanRead(), nodeProcessorStatus, nodeProcessorStatusEntity.getCanRead(), nodeId);
         }
     }
 

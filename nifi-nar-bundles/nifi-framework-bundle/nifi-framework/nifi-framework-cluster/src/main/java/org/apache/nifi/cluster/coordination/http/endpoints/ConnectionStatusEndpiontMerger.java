@@ -73,8 +73,7 @@ public class ConnectionStatusEndpiontMerger extends AbstractSingleEntityEndpoint
                 continue;
             }
 
-            StatusMerger.merge(mergedConnectionStatus, clientEntity.getCanRead(), nodeConnectionStatus, nodeConnectionStatusEntity.getCanRead(), nodeId.getId(), nodeId.getApiAddress(),
-                    nodeId.getApiPort());
+            mergeStatus(mergedConnectionStatus, clientEntity.getCanRead(), nodeConnectionStatus, nodeConnectionStatusEntity.getCanRead(), nodeId);
         }
     }
 
