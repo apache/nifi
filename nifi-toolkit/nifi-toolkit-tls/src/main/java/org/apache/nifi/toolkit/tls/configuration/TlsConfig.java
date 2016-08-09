@@ -43,7 +43,7 @@ public class TlsConfig {
     private int port = DEFAULT_PORT;
 
     public static String calcDefaultDn(String hostname) {
-        return "CN=" + hostname + ",OU=NIFI";
+        return "OU=NIFI,CN=" + hostname;
     }
 
     public int getPort() {

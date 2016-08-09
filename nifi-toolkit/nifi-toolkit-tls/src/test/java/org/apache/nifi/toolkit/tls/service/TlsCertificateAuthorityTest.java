@@ -107,7 +107,7 @@ public class TlsCertificateAuthorityTest {
 
         clientConfig = new TlsClientConfig();
         clientConfig.setCaHostname("localhost");
-        clientConfig.setDn("CN=otherHostname,OU=NIFI");
+        clientConfig.setDn("OU=NIFI,CN=otherHostname");
         clientConfig.setKeyStore(clientKeyStore);
         clientConfig.setTrustStore(clientTrustStore);
         clientConfig.setToken(myTestTokenUseSomethingStronger);
@@ -227,7 +227,7 @@ public class TlsCertificateAuthorityTest {
         assertEquals(caCertificate, clientTrustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT));
     }
 
-    private void assertPrivateAndPublicKeyMatch(PrivateKey privateKey, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    public static void assertPrivateAndPublicKeyMatch(PrivateKey privateKey, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         Signature signature = Signature.getInstance(TlsConfig.DEFAULT_SIGNING_ALGORITHM);
         signature.initSign(privateKey);
         byte[] bytes = "test string".getBytes(StandardCharsets.UTF_8);

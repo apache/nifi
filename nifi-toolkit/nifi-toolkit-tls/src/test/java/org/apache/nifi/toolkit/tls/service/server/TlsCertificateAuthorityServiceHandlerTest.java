@@ -145,7 +145,7 @@ public class TlsCertificateAuthorityServiceHandlerTest {
         tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
         assertEquals(Response.SC_OK, statusCode);
         assertArrayEquals(testCaHmac, getResponse().getHmac());
-        X509Certificate certificate = TlsHelper.parseCertificate(getResponse().getPemEncodedCertificate());
+        X509Certificate certificate = TlsHelper.parseCertificate(new StringReader(getResponse().getPemEncodedCertificate()));
         assertEquals(certificateKeyPair.getPublic(), certificate.getPublicKey());
         assertEquals(new X500Name(requestedDn), new X500Name(certificate.getSubjectDN().toString()));
         certificate.verify(caCert.getPublicKey());

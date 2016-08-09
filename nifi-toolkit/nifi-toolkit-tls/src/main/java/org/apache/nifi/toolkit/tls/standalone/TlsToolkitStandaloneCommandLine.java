@@ -21,7 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
-import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
@@ -48,11 +48,13 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String KEY_PASSWORD_ARG = "keyPassword";
     public static final String HOSTNAMES_ARG = "hostnames";
     public static final String HTTPS_PORT_ARG = "httpsPort";
+    public static final String OVERWRITE_ARG = "isOverwrite";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
     public static final int DEFAULT_HTTPS_PORT = 10443;
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
+    public static final String CLIENT_CERT_DN_ARG = "clientCertDn";
 
     private final Logger logger = LoggerFactory.getLogger(TlsToolkitStandaloneCommandLine.class);
 
@@ -64,6 +66,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     private List<String> keyStorePasswords;
     private List<String> keyPasswords;
     private List<String> trustStorePasswords;
+    private List<String> clientDns;
+    private boolean overwrite;
 
     public TlsToolkitStandaloneCommandLine() {
         this(new PasswordUtil());
@@ -73,12 +77,14 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         super(DESCRIPTION);
         this.passwordUtil = passwordUtil;
         addOptionWithArg("o", OUTPUT_DIRECTORY_ARG, "The directory to output keystores, truststore, config files.", DEFAULT_OUTPUT_DIRECTORY);
-        addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.", TlsConfig.DEFAULT_HOSTNAME);
+        addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.");
         addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", DEFAULT_HTTPS_PORT);
         addOptionWithArg("f", NIFI_PROPERTIES_FILE_ARG, "Base nifi.properties file to update. (Embedded file identical to the one in a default NiFi install will be used if not specified.)");
         addOptionWithArg("S", KEY_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
+        addOptionWithArg("C", CLIENT_CERT_DN_ARG, "Generate client certificate suitable for use in browser with specified DN. (Can be specified multiple times.)");
+        addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
     }
 
     public static void main(String[] args) {
@@ -90,9 +96,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
             System.exit(e.getExitCode());
         }
         try {
-            new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.getBaseDir(), tlsToolkitStandaloneCommandLine.createConfig(),
-                    tlsToolkitStandaloneCommandLine.getNiFiPropertiesWriterFactory(), tlsToolkitStandaloneCommandLine.getHostnames(), tlsToolkitStandaloneCommandLine.getKeyStorePasswords(),
-                    tlsToolkitStandaloneCommandLine.getKeyPasswords(), tlsToolkitStandaloneCommandLine.getTrustStorePasswords(), tlsToolkitStandaloneCommandLine.getHttpsPort());
+            new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
         } catch (Exception e) {
             tlsToolkitStandaloneCommandLine.printUsage("Error creating generating tls configuration. (" + e.getMessage() + ")");
             System.exit(ExitCode.ERROR_GENERATING_CONFIG.ordinal());
@@ -105,13 +109,27 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         CommandLine commandLine = super.doParse(args);
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
-        hostnames = Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG, TlsConfig.DEFAULT_HOSTNAME).split(",")).map(String::trim).collect(Collectors.toList());
+
+        if (commandLine.hasOption(HOSTNAMES_ARG)) {
+            hostnames = Collections.unmodifiableList(Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG).split(",")).map(String::trim).collect(Collectors.toList()));
+        } else {
+            hostnames = Collections.emptyList();
+        }
+
+        String[] clientDnValues = commandLine.getOptionValues(CLIENT_CERT_DN_ARG);
+        if (clientDnValues != null) {
+            clientDns = Collections.unmodifiableList(Arrays.stream(clientDnValues).collect(Collectors.toList()));
+        } else {
+            clientDns = Collections.emptyList();
+        }
+
         httpsPort = getIntValue(commandLine, HTTPS_PORT_ARG, DEFAULT_HTTPS_PORT);
 
         int numHosts = hostnames.size();
         keyStorePasswords = Collections.unmodifiableList(getPasswords(KEY_STORE_PASSWORD_ARG, commandLine, numHosts));
         keyPasswords = Collections.unmodifiableList(getKeyPasswords(commandLine, keyStorePasswords));
         trustStorePasswords = Collections.unmodifiableList(getPasswords(TRUST_STORE_PASSWORD_ARG, commandLine, numHosts));
+        overwrite = commandLine.hasOption(OVERWRITE_ARG);
 
         String nifiPropertiesFile = commandLine.getOptionValue(NIFI_PROPERTIES_FILE_ARG, "");
         try {
@@ -148,44 +166,28 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         return new ArrayList<>(keyStorePasswords);
     }
 
-    public File getBaseDir() {
-        return baseDir;
-    }
+    public StandaloneConfig createConfig() {
+        StandaloneConfig standaloneConfig = new StandaloneConfig();
 
-    public List<String> getHostnames() {
-        return hostnames;
-    }
+        standaloneConfig.setBaseDir(baseDir);
+        standaloneConfig.setNiFiPropertiesWriterFactory(niFiPropertiesWriterFactory);
+        standaloneConfig.setHostnames(hostnames);
+        standaloneConfig.setKeyStorePasswords(keyStorePasswords);
+        standaloneConfig.setKeyPasswords(keyPasswords);
+        standaloneConfig.setTrustStorePasswords(trustStorePasswords);
+        standaloneConfig.setHttpsPort(httpsPort);
+        standaloneConfig.setOverwrite(overwrite);
+        standaloneConfig.setClientDns(clientDns);
 
-    public int getHttpsPort() {
-        return httpsPort;
-    }
+        standaloneConfig.setCaHostname(getCertificateAuthorityHostname());
+        standaloneConfig.setKeyStore("nifi-ca-" + KEYSTORE + getKeyStoreType().toLowerCase());
+        standaloneConfig.setKeyStoreType(getKeyStoreType());
+        standaloneConfig.setKeySize(getKeySize());
+        standaloneConfig.setKeyPairAlgorithm(getKeyAlgorithm());
+        standaloneConfig.setSigningAlgorithm(getSigningAlgorithm());
+        standaloneConfig.setDays(getDays());
+        standaloneConfig.initDefaults();
 
-    public NiFiPropertiesWriterFactory getNiFiPropertiesWriterFactory() {
-        return niFiPropertiesWriterFactory;
-    }
-
-    public List<String> getKeyStorePasswords() {
-        return keyStorePasswords;
-    }
-
-    public List<String> getKeyPasswords() {
-        return keyPasswords;
-    }
-
-    public List<String> getTrustStorePasswords() {
-        return trustStorePasswords;
-    }
-
-    public TlsConfig createConfig() throws IOException {
-        TlsConfig tlsConfig = new TlsConfig();
-        tlsConfig.setCaHostname(getCertificateAuthorityHostname());
-        tlsConfig.setKeyStore("nifi-ca-" + KEYSTORE + getKeyStoreType().toLowerCase());
-        tlsConfig.setKeyStoreType(getKeyStoreType());
-        tlsConfig.setKeySize(getKeySize());
-        tlsConfig.setKeyPairAlgorithm(getKeyAlgorithm());
-        tlsConfig.setSigningAlgorithm(getSigningAlgorithm());
-        tlsConfig.setDays(getDays());
-        tlsConfig.initDefaults();
-        return tlsConfig;
+        return standaloneConfig;
     }
 }

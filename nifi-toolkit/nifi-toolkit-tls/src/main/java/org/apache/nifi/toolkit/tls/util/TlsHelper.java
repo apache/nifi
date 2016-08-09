@@ -21,8 +21,10 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
@@ -34,6 +36,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -90,13 +93,21 @@ public class TlsHelper {
         }
     }
 
-    public static X509Certificate parseCertificate(String pemEncodedCertificate) throws IOException, CertificateException {
-        try (PEMParser pemParser = new PEMParser(new StringReader(pemEncodedCertificate))) {
+    public static X509Certificate parseCertificate(Reader pemEncodedCertificate) throws IOException, CertificateException {
+        return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(parsePem(X509CertificateHolder.class, pemEncodedCertificate));
+    }
+
+    public static KeyPair parseKeyPair(Reader pemEncodedKeyPair) throws IOException {
+        return new JcaPEMKeyConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getKeyPair(parsePem(PEMKeyPair.class, pemEncodedKeyPair));
+    }
+
+    public static <T> T parsePem(Class<T> clazz, Reader pemReader) throws IOException {
+        try (PEMParser pemParser = new PEMParser(pemReader)) {
             Object object = pemParser.readObject();
-            if (!X509CertificateHolder.class.isInstance(object)) {
-                throw new IOException("Expected " + X509CertificateHolder.class);
+            if (!clazz.isInstance(object)) {
+                throw new IOException("Expected " + clazz);
             }
-            return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate((X509CertificateHolder) object);
+            return (T) object;
         }
     }
 

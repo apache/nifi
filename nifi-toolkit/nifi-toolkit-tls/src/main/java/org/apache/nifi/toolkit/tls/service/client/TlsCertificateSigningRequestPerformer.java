@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.MessageDigest;
@@ -141,7 +142,7 @@ public class TlsCertificateSigningRequestPerformer {
             if (!tlsCertificateAuthorityResponse.hasCertificate()) {
                 throw new IOException(EXPECTED_RESPONSE_TO_CONTAIN_CERTIFICATE);
             }
-            X509Certificate x509Certificate = TlsHelper.parseCertificate(tlsCertificateAuthorityResponse.getPemEncodedCertificate());
+            X509Certificate x509Certificate = TlsHelper.parseCertificate(new StringReader(tlsCertificateAuthorityResponse.getPemEncodedCertificate()));
             x509Certificate.verify(caCertificate.getPublicKey());
             if (logger.isInfoEnabled()) {
                 logger.info("Got certificate with dn " + x509Certificate.getSubjectDN());
