@@ -31,6 +31,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
@@ -509,6 +510,13 @@ public final class EntityFactory {
                 entity.setBreadcrumb(dto);
             }
         }
+        return entity;
+    }
+
+    public AllowableValueEntity createAllowableValueEntity(final AllowableValueDTO dto, final boolean canRead) {
+        final AllowableValueEntity entity = new AllowableValueEntity();
+        entity.setCanRead(canRead);
+        entity.setAllowableValue(dto);
         return entity;
     }
 }

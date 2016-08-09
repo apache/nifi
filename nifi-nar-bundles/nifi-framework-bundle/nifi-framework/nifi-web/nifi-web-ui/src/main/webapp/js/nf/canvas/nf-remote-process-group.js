@@ -963,28 +963,6 @@ nf.RemoteProcessGroup = (function () {
         },
 
         /**
-         * Sets the remote process group status using the specified status.
-         *
-         * @param {array | object} remoteProcessGroupStatus       Remote process group status
-         */
-        setStatus: function (remoteProcessGroupStatus) {
-            if (nf.Common.isEmpty(remoteProcessGroupStatus)) {
-                return;
-            }
-
-            // update the specified process group status
-            $.each(remoteProcessGroupStatus, function (_, status) {
-                if (remoteProcessGroupMap.has(status.id)) {
-                    var entry = remoteProcessGroupMap.get(status.id);
-                    entry.status = status;
-                }
-            });
-
-            // only update the visible components
-            d3.selectAll('g.remote-process-group.visible').call(updateProcessGroupStatus);
-        },
-
-        /**
          * Removes the specified process group.
          *
          * @param {array|string} remoteProcessGroups      The remote process group id(s)

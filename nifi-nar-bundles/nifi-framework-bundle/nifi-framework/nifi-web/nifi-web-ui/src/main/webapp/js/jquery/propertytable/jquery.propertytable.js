@@ -525,7 +525,8 @@
                 });
             }
             if ($.isArray(allowableValues)) {
-                $.each(allowableValues, function (i, allowableValue) {
+                $.each(allowableValues, function (i, allowableValueEntity) {
+                    var allowableValue = allowableValueEntity.allowableValue;
                     options.push({
                         text: allowableValue.displayName,
                         value: allowableValue.value,
@@ -735,7 +736,8 @@
 
                     // create the read only options
                     var options = [];
-                    $.each(allowableValues, function (i, allowableValue) {
+                    $.each(allowableValues, function (i, allowableValueEntity) {
+                        var allowableValue = allowableValueEntity.allowableValue;
                         options.push({
                             text: allowableValue.displayName,
                             value: allowableValue.value,
@@ -1081,7 +1083,8 @@
                     // if there are allowable values, attempt to swap out for the display name
                     var allowableValues = nf.Common.getAllowableValues(propertyDescriptor);
                     if ($.isArray(allowableValues)) {
-                        $.each(allowableValues, function (_, allowableValue) {
+                        $.each(allowableValues, function (_, allowableValueEntity) {
+                            var allowableValue = allowableValueEntity.allowableValue;
                             if (value === allowableValue.value) {
                                 value = allowableValue.displayName;
                                 return false;
@@ -1147,7 +1150,8 @@
             // check to see if we should provide a button for going to a controller service
             if (identifiesControllerService && isConfigured && isOnCanvas) {
                 // ensure the configured value is referencing a valid service
-                $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
+                $.each(propertyDescriptor.allowableValues, function (_, allowableValueEntity) {
+                    var allowableValue = allowableValueEntity.allowableValue;
                     if (allowableValue.value === dataContext.value) {
                         markup += '<div class="pointer go-to-service fa fa-long-arrow-right" title="Go To" style="margin-top: 2px" ></div>';
                         return false;

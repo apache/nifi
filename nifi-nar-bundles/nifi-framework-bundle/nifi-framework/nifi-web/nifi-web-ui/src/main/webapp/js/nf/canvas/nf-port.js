@@ -631,28 +631,6 @@ nf.Port = (function () {
         },
 
         /**
-         * Sets the port status using the specified status.
-         *
-         * @param {array} portStatus       Port status
-         */
-        setStatus: function (portStatus) {
-            if (nf.Common.isEmpty(portStatus)) {
-                return;
-            }
-
-            // update the specified port status
-            $.each(portStatus, function (_, status) {
-                if (portMap.has(status.id)) {
-                    var port = portMap.get(status.id);
-                    port.status = status;
-                }
-            });
-
-            // update the visible ports
-            d3.selectAll('g.input-port.visible, g.output-port.visible').call(updatePortStatus);
-        },
-
-        /**
          * Removes the specified port.
          *
          * @param {string} ports      The port id(s)

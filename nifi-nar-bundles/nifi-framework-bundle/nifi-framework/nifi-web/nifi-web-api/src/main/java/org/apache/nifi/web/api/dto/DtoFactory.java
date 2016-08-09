@@ -140,6 +140,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -2500,27 +2501,29 @@ public final class DtoFactory {
             if (serviceDefinition == null) {
                 dto.setAllowableValues(null);
             } else {
-                final List<AllowableValueDTO> allowableValues = new ArrayList<>();
+                final List<AllowableValueEntity> allowableValues = new ArrayList<>();
                 for (final String serviceIdentifier : controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId)) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
-                    final String displayName = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser()) ? service.getName() : serviceIdentifier;
+                    final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final String displayName = isServiceAuthorized ? service.getName() : serviceIdentifier;
 
                     final AllowableValueDTO allowableValue = new AllowableValueDTO();
                     allowableValue.setDisplayName(displayName);
                     allowableValue.setValue(serviceIdentifier);
-                    allowableValues.add(allowableValue);
+                    allowableValues.add(entityFactory.createAllowableValueEntity(allowableValue, isServiceAuthorized));
                 }
                 dto.setAllowableValues(allowableValues);
             }
         } else {
-            final List<AllowableValueDTO> allowableValues = new ArrayList<>();
+            final List<AllowableValueEntity> allowableValues = new ArrayList<>();
             for (final AllowableValue allowableValue : propertyDescriptor.getAllowableValues()) {
                 final AllowableValueDTO allowableValueDto = new AllowableValueDTO();
                 allowableValueDto.setDisplayName(allowableValue.getDisplayName());
                 allowableValueDto.setValue(allowableValue.getValue());
                 allowableValueDto.setDescription(allowableValue.getDescription());
-                allowableValues.add(allowableValueDto);
+                allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
+
             dto.setAllowableValues(allowableValues);
         }
 
