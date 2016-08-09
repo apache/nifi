@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.util.orc;
+package org.apache.hadoop.hive.ql.io.orc;
 
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
-import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
+import org.apache.avro.util.Utf8;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -116,6 +116,39 @@ public class TestNiFiOrcUtils {
                 TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(),
                         TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(), TypeInfoCreator.createDouble())),
                 orcType);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_convertToORCObject_map_of_unions() throws Exception {
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
+        builder.name("map").type().map().values().unionOf().stringType().and().intType().endUnion().noDefault();
+        Schema testSchema = builder.endRecord();
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("map").schema());
+        assertEquals(
+                TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(),
+                        TypeInfoFactory.getUnionTypeInfo(Arrays.asList(TypeInfoCreator.createString(), TypeInfoCreator.createInt()))),
+                orcType);
+
+        Map<String, Utf8> record1 = new HashMap<>();
+        record1.put("record1", new Utf8("Hello"));
+        NiFiOrcUtils.convertToORCObject(orcType, record1);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_convertToORCObject_union_of_complex_types() throws Exception {
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
+        builder.name("union").type().unionOf().map().values().intType().and().floatType().endUnion().noDefault();
+        Schema testSchema = builder.endRecord();
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("union").schema());
+        assertEquals(
+                TypeInfoFactory.getUnionTypeInfo(Arrays.asList(
+                        TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(), TypeInfoCreator.createInt()),
+                        TypeInfoCreator.createFloat())),
+                orcType);
+
+        Map<String, Utf8> record1 = new HashMap<>();
+        record1.put("record1", new Utf8("Hello"));
+         NiFiOrcUtils.convertToORCObject(orcType, record1);
     }
 
     @Test
@@ -293,6 +326,28 @@ public class TestNiFiOrcUtils {
         NiFiOrcUtils.createOrcStruct(primitiveOrcSchema, 1);
     }
 
+    @Test
+    public void test_createOrcStruct_map_with_union() {
+
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("complex.record").namespace("any.data").fields();
+        builder.name("myMap").type().map().values().unionOf().floatType().and().stringType().endUnion().noDefault();
+        final Schema schema = builder.endRecord();
+
+        TypeInfo orcSchema = TypeInfoUtils.getTypeInfoFromTypeString("struct<myMap:map<string,uniontype<float,string>>>");
+
+        Map<String, Object> myMap = new HashMap<>();
+        myMap.put("x", "hello");
+        myMap.put("y", 1.0f);
+
+        GenericData.Record record = new GenericData.Record(schema);
+        record.put("myMap", myMap);
+        OrcStruct orcStruct = NiFiOrcUtils.createOrcStruct(orcSchema, myMap);
+        StructObjectInspector inspector = (StructObjectInspector) OrcStruct.createObjectInspector(NiFiOrcUtils.getOrcField(schema));
+        Map resultMap = (Map) inspector.getStructFieldData(orcStruct, inspector.getStructFieldRef("myMap"));
+        assertEquals("hello", resultMap.get("x"));
+        assertEquals(1.0f, (float) resultMap.get("y"), Float.MIN_VALUE);
+    }
+
     //////////////////
     // Helper methods
     //////////////////
@@ -362,32 +417,32 @@ public class TestNiFiOrcUtils {
     }
 
 
-    private static class TypeInfoCreator {
-        static TypeInfo createInt() {
+    public static class TypeInfoCreator {
+        public static TypeInfo createInt() {
             return TypeInfoFactory.getPrimitiveTypeInfo("int");
         }
 
-        static TypeInfo createLong() {
+        public static TypeInfo createLong() {
             return TypeInfoFactory.getPrimitiveTypeInfo("bigint");
         }
 
-        static TypeInfo createBoolean() {
+        public static TypeInfo createBoolean() {
             return TypeInfoFactory.getPrimitiveTypeInfo("boolean");
         }
 
-        static TypeInfo createFloat() {
+        public static TypeInfo createFloat() {
             return TypeInfoFactory.getPrimitiveTypeInfo("float");
         }
 
-        static TypeInfo createDouble() {
+        public static TypeInfo createDouble() {
             return TypeInfoFactory.getPrimitiveTypeInfo("double");
         }
 
-        static TypeInfo createBinary() {
+        public static TypeInfo createBinary() {
             return TypeInfoFactory.getPrimitiveTypeInfo("binary");
         }
 
-        static TypeInfo createString() {
+        public static TypeInfo createString() {
             return TypeInfoFactory.getPrimitiveTypeInfo("string");
         }
     }

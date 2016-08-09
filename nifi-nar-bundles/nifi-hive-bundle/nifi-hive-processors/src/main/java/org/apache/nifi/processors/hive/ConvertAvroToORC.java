@@ -70,7 +70,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Converts an Avro record into ORC file format. This processor provides a direct mapping of an Avro record to an ORC record, such "
         + "that the resulting ORC file will have the same hierarchical structure as the Avro document. If an incoming FlowFile contains a stream of "
         + "multiple Avro records, the resultant FlowFile will contain a ORC file containing all of the Avro records.  If an incoming FlowFile does "
-        + "not contain any records, an empty ORC file is the output.")
+        + "not contain any records, an empty ORC file is the output. Please note that not all complex/nested structures are supported (such as maps of "
+        + "unions, unions of lists, etc.)")
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime type to application/octet-stream"),
         @WritesAttribute(attribute = "filename", description = "Sets the filename to the existing filename with the extension replaced by / added to by .orc"),
@@ -119,6 +120,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name("orc-compression-type")
             .displayName("Compression Type")
+            .description("The type of compression used to reduce the size of the outgoing ORC file. Note that some types (LZO, e.g.) may not be available "
+                    + "on the system, in which case an error will occur if such a type is selected.")
             .required(true)
             .allowableValues("NONE", "ZLIB", "SNAPPY", "LZO")
             .defaultValue("NONE")
@@ -279,7 +282,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), ORC_MIME_TYPE);
             flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename.toString());
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
+            session.getProvenanceReporter().modifyContent(flowFile, "Converted " + totalRecordCount.get() + " records", System.currentTimeMillis() - startTime);
 
         } catch (final ProcessException pe) {
             getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, pe});

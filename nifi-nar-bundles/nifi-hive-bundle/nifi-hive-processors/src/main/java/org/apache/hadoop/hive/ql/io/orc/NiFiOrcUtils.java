@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspect
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.typeinfo.ListTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.MapTypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -67,12 +68,23 @@ public class NiFiOrcUtils {
     public static Object convertToORCObject(TypeInfo typeInfo, Object o) {
         if (o != null) {
             if (typeInfo instanceof UnionTypeInfo) {
-                OrcUnion union = new OrcUnion();
-                // Need to find which of the union types correspond to the primitive object
-                TypeInfo objectTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(
-                        ObjectInspectorFactory.getReflectionObjectInspector(o.getClass(), ObjectInspectorFactory.ObjectInspectorOptions.JAVA));
-                List<TypeInfo> unionTypeInfos = ((UnionTypeInfo) typeInfo).getAllUnionObjectTypeInfos();
 
+                // Check the union types, if its not a primitive type then we can't (yet) support unions containing them.
+                List<TypeInfo> unionTypeInfos = ((UnionTypeInfo) typeInfo).getAllUnionObjectTypeInfos();
+                for (TypeInfo info : unionTypeInfos) {
+                    if (!(info instanceof PrimitiveTypeInfo)) {
+                        throw new IllegalArgumentException("Elements in unions must be primitive types, instead found " + info.getTypeName());
+                    }
+                }
+                OrcUnion union = new OrcUnion();
+
+                // If this is an Avro Utf8 object, use its String representation so we get a good type to match against the union type
+                Class objClass = (o instanceof Utf8) ? String.class : o.getClass();
+
+                ObjectInspector objectInspector = ObjectInspectorFactory.getReflectionObjectInspector(objClass, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
+                TypeInfo objectTypeInfo = TypeInfoUtils.getTypeInfoFromObjectInspector(objectInspector);
+
+                // Need to find which of the union types correspond to the primitive object
                 int index = 0;
                 while (index < unionTypeInfos.size() && !unionTypeInfos.get(index).equals(objectTypeInfo)) {
                     index++;
@@ -146,10 +158,22 @@ public class NiFiOrcUtils {
             if (o instanceof List) {
                 return o;
             }
+            if (o instanceof GenericData.Record) {
+                // For records we need to recursively convert the fields to ORC/Writable fields and create an OrcStruct from them
+                GenericData.Record record = (GenericData.Record) o;
+                int numFields = record.getSchema().getFields().size();
+                Object[] fieldObjects = new Object[numFields];
+                for (int i = 0; i < numFields; i++) {
+                    Schema objSchema = record.getSchema().getFields().get(i).schema();
+                    fieldObjects[i] = convertToORCObject(getOrcField(objSchema), record.get(i));
+                }
+
+                return createOrcStruct(typeInfo, fieldObjects);
+            }
             if (o instanceof Map) {
                 MapWritable mapWritable = new MapWritable();
                 TypeInfo keyInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
-                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapKeyTypeInfo();
+                TypeInfo valueInfo = ((MapTypeInfo) typeInfo).getMapValueTypeInfo();
                 // Unions are not allowed as key/value types, so if we convert the key and value objects,
                 // they should return Writable objects
                 ((Map) o).forEach((key, value) -> {
@@ -224,7 +248,13 @@ public class NiFiOrcUtils {
 
 
     public static TypeInfo getOrcField(Schema fieldSchema) throws IllegalArgumentException {
+        if (fieldSchema == null) {
+            throw new IllegalArgumentException("Field schema cannot be null");
+        }
         Schema.Type fieldType = fieldSchema.getType();
+        if (fieldType == null) {
+            throw new IllegalArgumentException("Field schema has no type");
+        }
 
         switch (fieldType) {
             case INT:
@@ -285,34 +315,6 @@ public class NiFiOrcUtils {
                 throw new IllegalArgumentException("Did not recognize Avro type " + fieldType.getName());
         }
 
-    }
-
-    public static Schema.Type getAvroSchemaTypeOfObject(Object o) {
-        if (o == null) {
-            return Schema.Type.NULL;
-        } else if (o instanceof Integer) {
-            return Schema.Type.INT;
-        } else if (o instanceof Long) {
-            return Schema.Type.LONG;
-        } else if (o instanceof Boolean) {
-            return Schema.Type.BOOLEAN;
-        } else if (o instanceof byte[]) {
-            return Schema.Type.BYTES;
-        } else if (o instanceof Float) {
-            return Schema.Type.FLOAT;
-        } else if (o instanceof Double) {
-            return Schema.Type.DOUBLE;
-        } else if (o instanceof Enum) {
-            return Schema.Type.ENUM;
-        } else if (o instanceof Object[]) {
-            return Schema.Type.ARRAY;
-        } else if (o instanceof List) {
-            return Schema.Type.ARRAY;
-        } else if (o instanceof Map) {
-            return Schema.Type.MAP;
-        } else {
-            throw new IllegalArgumentException("Object of class " + o.getClass() + " is not a supported Avro Type");
-        }
     }
 
     public static TypeInfo getPrimitiveOrcTypeFromPrimitiveAvroType(Schema.Type avroType) throws IllegalArgumentException {
