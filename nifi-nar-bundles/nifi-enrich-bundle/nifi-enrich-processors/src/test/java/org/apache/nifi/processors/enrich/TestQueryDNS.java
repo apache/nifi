@@ -155,6 +155,7 @@ public class TestQueryDNS  {
 
     @Test
     public void testInvalidData()  {
+        queryDNSTestRunner.removeProperty(QueryDNS.QUERY_PARSER_INPUT);
         queryDNSTestRunner.setProperty(QueryDNS.DNS_QUERY_TYPE, "AAAA");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_RETRIES, "1");
         queryDNSTestRunner.setProperty(QueryDNS.DNS_TIMEOUT, "1000 ms");
