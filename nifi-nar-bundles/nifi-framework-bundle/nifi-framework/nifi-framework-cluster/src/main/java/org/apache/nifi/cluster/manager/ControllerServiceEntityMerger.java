@@ -21,9 +21,11 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +60,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
         final Set<ControllerServiceReferencingComponentEntity> referencingComponents = clientDto.getReferencingComponents();
         final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeReferencingComponentsMap = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
 
         String state = null;
         for (final Map.Entry<NodeIdentifier, ControllerServiceDTO> nodeEntry : dtoMap.entrySet()) {
@@ -79,6 +82,25 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
 
                 // merge the validation errors
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeControllerService.getValidationErrors());
+
+                // aggregate the property descriptors
+                final Map<String, PropertyDescriptorDTO> descriptors = nodeControllerService.getDescriptors();
+                if (descriptors != null) {
+                    descriptors.values().stream().forEach(propertyDescriptor -> {
+                        propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
+                    });
+                }
+            }
+        }
+
+        // merge property descriptors
+        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+            final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
+            if (!nodePropertyDescriptors.isEmpty()) {
+                // get the name of the property descriptor and find that descriptor being returned to the client
+                final PropertyDescriptorDTO propertyDescriptor = nodePropertyDescriptors.iterator().next();
+                final PropertyDescriptorDTO clientPropertyDescriptor = clientDto.getDescriptors().get(propertyDescriptor.getName());
+                PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
             }
         }
 
@@ -108,32 +130,34 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                 for (final ControllerServiceReferencingComponentEntity nodeReferencingComponentEntity : nodeReferencingComponents) {
                     final ControllerServiceReferencingComponentDTO nodeReferencingComponent = nodeReferencingComponentEntity.getComponent();
 
-                    // handle active thread counts
-                    if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
-                        final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
-                        if (current == null) {
-                            activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount());
-                        } else {
-                            activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount() + current);
+                    if (nodeReferencingComponentEntity.getPermissions().getCanRead()) {
+                        // handle active thread counts
+                        if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
+                            final Integer current = activeThreadCounts.get(nodeReferencingComponent.getId());
+                            if (current == null) {
+                                activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount());
+                            } else {
+                                activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount() + current);
+                            }
                         }
-                    }
 
-                    // handle controller service state
-                    final String state = states.get(nodeReferencingComponent.getId());
-                    if (state == null) {
-                        if (ControllerServiceState.DISABLING.name().equals(nodeReferencingComponent.getState())) {
-                            states.put(nodeReferencingComponent.getId(), ControllerServiceState.DISABLING.name());
-                        } else if (ControllerServiceState.ENABLING.name().equals(nodeReferencingComponent.getState())) {
-                            states.put(nodeReferencingComponent.getId(), ControllerServiceState.ENABLING.name());
+                        // handle controller service state
+                        final String state = states.get(nodeReferencingComponent.getId());
+                        if (state == null) {
+                            if (ControllerServiceState.DISABLING.name().equals(nodeReferencingComponent.getState())) {
+                                states.put(nodeReferencingComponent.getId(), ControllerServiceState.DISABLING.name());
+                            } else if (ControllerServiceState.ENABLING.name().equals(nodeReferencingComponent.getState())) {
+                                states.put(nodeReferencingComponent.getId(), ControllerServiceState.ENABLING.name());
+                            }
                         }
                     }
 
                     // handle read permissions
-                    final PermissionsDTO mergedPermissions = canReads.get(nodeReferencingComponent.getId());
+                    final PermissionsDTO mergedPermissions = canReads.get(nodeReferencingComponentEntity.getId());
                     final PermissionsDTO permissions = nodeReferencingComponentEntity.getPermissions();
                     if (permissions != null) {
                         if (mergedPermissions == null) {
-                            canReads.put(nodeReferencingComponent.getId(), permissions);
+                            canReads.put(nodeReferencingComponentEntity.getId(), permissions);
                         } else {
                             PermissionsDtoMerger.mergePermissions(mergedPermissions, permissions);
                         }
@@ -156,11 +180,56 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     if (state != null) {
                         referencingComponent.getComponent().setState(state);
                     }
+
+                    final Map<NodeIdentifier, ControllerServiceReferencingComponentEntity> nodeEntities = new HashMap<>();
+                    referencingComponentMap.entrySet().forEach(entry -> {
+                        final NodeIdentifier nodeIdentifier = entry.getKey();
+                        final Set<ControllerServiceReferencingComponentEntity> nodeControllerServiceReferencingComponents = entry.getValue();
+
+                        nodeControllerServiceReferencingComponents.forEach(nodeControllerServiceReferencingComponent -> {
+                            if (referencingComponent.getId() != null && referencingComponent.getId().equals(nodeControllerServiceReferencingComponent.getId())) {
+                                nodeEntities.put(nodeIdentifier, nodeControllerServiceReferencingComponent);
+                            }
+                        });
+                    });
+
+                    mergeControllerServiceReferencingComponent(referencingComponent, nodeEntities);
                 } else {
                     referencingComponent.setPermissions(permissions);
                     referencingComponent.setComponent(null);
                 }
             }
         }
+    }
+
+    private static void mergeControllerServiceReferencingComponent(ControllerServiceReferencingComponentEntity clientEntity, Map<NodeIdentifier,
+            ControllerServiceReferencingComponentEntity> nodeEntities) {
+        final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
+
+        final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentEntity>> nodeReferencingComponentsMap = new HashMap<>();
+
+        // aggregate the property descriptors
+        for (Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
+            final NodeIdentifier nodeIdentifier = entry.getKey();
+            final ControllerServiceReferencingComponentEntity nodeEntity = entry.getValue();
+            nodeEntity.getComponent().getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
+            });
+            nodeReferencingComponentsMap.put(nodeIdentifier, nodeEntity.getComponent().getReferencingComponents());
+        }
+
+        // merge property descriptors
+        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+            final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
+            if (!nodePropertyDescriptors.isEmpty()) {
+                // get the name of the property descriptor and find that descriptor being returned to the client
+                final PropertyDescriptorDTO propertyDescriptor = nodePropertyDescriptors.iterator().next();
+                final PropertyDescriptorDTO clientPropertyDescriptor = clientEntity.getComponent().getDescriptors().get(propertyDescriptor.getName());
+                PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
+            }
+        }
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingComponents = clientEntity.getComponent().getReferencingComponents();
+        mergeControllerServiceReferences(referencingComponents, nodeReferencingComponentsMap);
     }
 }

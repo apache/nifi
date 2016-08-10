@@ -85,6 +85,7 @@ public final class EntityFactory {
 
     public ProcessorStatusSnapshotEntity createProcessorStatusSnapshotEntity(final ProcessorStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ProcessorStatusSnapshotEntity entity = new ProcessorStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setProcessorStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -99,6 +100,7 @@ public final class EntityFactory {
 
     public ConnectionStatusSnapshotEntity createConnectionStatusSnapshotEntity(final ConnectionStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ConnectionStatusSnapshotEntity entity = new ConnectionStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setConnectionStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -113,6 +115,7 @@ public final class EntityFactory {
 
     public ProcessGroupStatusSnapshotEntity createProcessGroupStatusSnapshotEntity(final ProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ProcessGroupStatusSnapshotEntity entity = new ProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -127,6 +130,7 @@ public final class EntityFactory {
 
     public RemoteProcessGroupStatusSnapshotEntity createRemoteProcessGroupStatusSnapshotEntity(final RemoteProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final RemoteProcessGroupStatusSnapshotEntity entity = new RemoteProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setRemoteProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -141,6 +145,7 @@ public final class EntityFactory {
 
     public PortStatusSnapshotEntity createPortStatusSnapshotEntity(final PortStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final PortStatusSnapshotEntity entity = new PortStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setPortStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
