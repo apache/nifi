@@ -122,9 +122,6 @@ nf.ProcessGroupConfiguration = (function () {
                 // store the process group
                 $('#process-group-configuration').data('process-group', response);
 
-                // update the current time
-                $('#process-group-configuration-last-refreshed').text(response.currentTime);
-
                 if (response.permissions.canWrite) {
                     var processGroup = response.component;
 
@@ -167,7 +164,12 @@ nf.ProcessGroupConfiguration = (function () {
         var controllerServices = nf.ControllerServices.loadControllerServices(controllerServicesUri, getControllerServicesTable());
         
         // wait for everything to complete
-        return $.when(processGroup, controllerServices).fail(nf.Common.handleAjaxError);
+        return $.when(processGroup, controllerServices).done(function (processGroupResult, controllerServicesResult) {
+            var controllerServicesResponse = controllerServicesResult[0];
+
+            // update the current time
+            $('#process-group-configuration-last-refreshed').text(controllerServicesResponse.currentTime);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**

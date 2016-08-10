@@ -19,11 +19,8 @@ package org.apache.nifi.web.api.entity;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import java.util.Date;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupDTO.
@@ -34,7 +31,6 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
     private ProcessGroupDTO component;
     private ProcessGroupStatusDTO status;
 
-    private Date currentTime;
     private Integer runningCount;
     private Integer stoppedCount;
     private Integer invalidCount;
@@ -184,18 +180,4 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    /**
-     * @return current time on the server
-     */
-    @XmlJavaTypeAdapter(TimeAdapter.class)
-    @ApiModelProperty(
-            value = "The current time on the system."
-    )
-    public Date getCurrentTime() {
-        return currentTime;
-    }
-
-    public void setCurrentTime(Date currentTime) {
-        this.currentTime = currentTime;
-    }
 }

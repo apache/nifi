@@ -855,9 +855,6 @@ nf.Settings = (function () {
                 url: config.urls.controllerConfig,
                 dataType: 'json'
             }).done(function (response) {
-                // update the current time
-                $('#settings-last-refreshed').text(response.currentTime);
-
                 if (response.permissions.canWrite) {
                     // populate the settings
                     $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.component.maxTimerDrivenThreadCount);
@@ -900,7 +897,12 @@ nf.Settings = (function () {
         var reportingTasks = loadReportingTasks();
 
         // return a deferred for all parts of the settings
-        return $.when(settings, controllerServices, reportingTasks).fail(nf.Common.handleAjaxError);
+        return $.when(settings, controllerServices, reportingTasks).done(function (settingsResult, controllerServicesResult) {
+            var controllerServicesResponse = controllerServicesResult[0];
+
+            // update the current time
+            $('#settings-last-refreshed').text(controllerServicesResponse.currentTime);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
