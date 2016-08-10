@@ -127,7 +127,6 @@
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/policy-management.jsp"/>
-        <jsp:include page="/WEB-INF/partials/canvas/process-group-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/remote-process-group-ports.jsp"/>

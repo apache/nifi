@@ -152,7 +152,6 @@ public final class EntityFactory {
     public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
         entity.setRevision(revision);
-        entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setPermissions(permissions);
             if (permissions != null && permissions.getCanRead()) {
@@ -209,7 +208,6 @@ public final class EntityFactory {
                                                        final ProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
-        entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setStatus(status);
