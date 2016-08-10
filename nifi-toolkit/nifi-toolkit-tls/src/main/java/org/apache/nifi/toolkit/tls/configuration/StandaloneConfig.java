@@ -26,10 +26,12 @@ public class StandaloneConfig extends TlsConfig {
     private File baseDir;
     private NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
     private List<String> hostnames;
-    private List<String> clientDns;
     private List<String> keyStorePasswords;
     private List<String> keyPasswords;
     private List<String> trustStorePasswords;
+    private List<String> clientDns;
+    private List<String> clientPasswords;
+    private boolean clientPasswordsGenerated;
     private int httpsPort;
     private boolean overwrite;
 
@@ -97,11 +99,27 @@ public class StandaloneConfig extends TlsConfig {
         this.trustStorePasswords = trustStorePasswords;
     }
 
+    public List<String> getClientPasswords() {
+        return clientPasswords;
+    }
+
+    public void setClientPasswords(List<String> clientPasswords) {
+        this.clientPasswords = clientPasswords;
+    }
+
     public int getHttpsPort() {
         return httpsPort;
     }
 
     public void setHttpsPort(int httpsPort) {
         this.httpsPort = httpsPort;
+    }
+
+    public boolean isClientPasswordsGenerated() {
+        return clientPasswordsGenerated;
+    }
+
+    public void setClientPasswordsGenerated(boolean clientPasswordsGenerated) {
+        this.clientPasswordsGenerated = clientPasswordsGenerated;
     }
 }

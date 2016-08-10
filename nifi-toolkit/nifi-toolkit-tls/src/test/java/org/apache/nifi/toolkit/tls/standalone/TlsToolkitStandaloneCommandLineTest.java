@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
+import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
@@ -337,11 +338,30 @@ public class TlsToolkitStandaloneCommandLineTest {
         String testCn = "OU=NIFI,CN=testuser";
         String testCn2 = "OU=NIFI,CN=testuser2";
         tlsToolkitStandaloneCommandLine.parse("-C", testCn, "-C", testCn2);
-        tlsToolkitStandaloneCommandLine.parse("-C", testCn, "-C", testCn2);
-        List<String> clientDns = tlsToolkitStandaloneCommandLine.createConfig().getClientDns();
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createConfig();
+        List<String> clientDns = standaloneConfig.getClientDns();
         assertEquals(2, clientDns.size());
         assertEquals(testCn, clientDns.get(0));
         assertEquals(testCn2, clientDns.get(1));
+        assertEquals(2, standaloneConfig.getClientPasswords().size());
+    }
+
+    @Test
+    public void testClientPasswordMulti() throws CommandLineParseException {
+        String testCn = "OU=NIFI,CN=testuser";
+        String testCn2 = "OU=NIFI,CN=testuser2";
+        String testPass1 = "testPass1";
+        String testPass2 = "testPass2";
+        tlsToolkitStandaloneCommandLine.parse("-C", testCn, "-C", testCn2, "-B", testPass1, "-B", testPass2);
+        StandaloneConfig standaloneConfig = tlsToolkitStandaloneCommandLine.createConfig();
+        List<String> clientDns = standaloneConfig.getClientDns();
+        assertEquals(2, clientDns.size());
+        assertEquals(testCn, clientDns.get(0));
+        assertEquals(testCn2, clientDns.get(1));
+        List<String> clientPasswords = standaloneConfig.getClientPasswords();
+        assertEquals(2, clientPasswords.size());
+        assertEquals(testPass1, clientPasswords.get(0));
+        assertEquals(testPass2, clientPasswords.get(1));
     }
 
     private Properties getProperties() throws IOException {

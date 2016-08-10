@@ -22,6 +22,7 @@ import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -29,7 +30,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
@@ -38,7 +38,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,6 +49,7 @@ public class BaseTlsManager {
     private final KeyStore keyStore;
     private final List<ConfigurationWriter<TlsConfig>> configurationWriters;
     private boolean differentKeyAndKeyStorePassword = false;
+    private boolean keyStorePasswordGenerated = false;
 
     public BaseTlsManager(TlsConfig tlsConfig) throws GeneralSecurityException, IOException {
         this(tlsConfig, new PasswordUtil(), FileInputStream::new);
@@ -107,13 +107,14 @@ public class BaseTlsManager {
         String result = tlsConfig.getKeyStorePassword();
         if (StringUtils.isEmpty(result)) {
             result = passwordUtil.generatePassword();
+            keyStorePasswordGenerated = true;
             tlsConfig.setKeyStorePassword(result);
         }
         return result;
     }
 
     private KeyStore getInstance(String keyStoreType) throws KeyStoreException, NoSuchProviderException {
-        if (PKCS_12.equals(keyStoreType)) {
+        if (PKCS_12.equalsIgnoreCase(keyStoreType)) {
             return KeyStore.getInstance(keyStoreType, BouncyCastleProvider.PROVIDER_NAME);
         } else {
             return KeyStore.getInstance(keyStoreType);
@@ -133,12 +134,9 @@ public class BaseTlsManager {
         return result;
     }
 
-    public void write(OutputStreamFactory outputStreamFactory) throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+    public void write(OutputStreamFactory outputStreamFactory) throws IOException, GeneralSecurityException {
         String keyStorePassword = getKeyStorePassword();
-
-        try (OutputStream outputStream = outputStreamFactory.create(new File(tlsConfig.getKeyStore()))) {
-            keyStore.store(outputStream, keyStorePassword.toCharArray());
-        }
+        tlsConfig.setKeyStorePassword(TlsHelper.writeKeyStore(keyStore, outputStreamFactory, new File(tlsConfig.getKeyStore()), keyStorePassword, keyStorePasswordGenerated));
 
         for (ConfigurationWriter<TlsConfig> configurationWriter : configurationWriters) {
             configurationWriter.write(tlsConfig);

@@ -22,6 +22,7 @@ import org.apache.nifi.toolkit.tls.manager.writer.ConfigurationWriter;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -34,10 +35,8 @@ import java.io.OutputStreamWriter;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -73,18 +72,18 @@ public class TlsClientManager extends BaseTlsManager {
     }
 
     @Override
-    public void write(OutputStreamFactory outputStreamFactory) throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+    public void write(OutputStreamFactory outputStreamFactory) throws IOException, GeneralSecurityException {
         super.write(outputStreamFactory);
 
         String trustStorePassword = tlsClientConfig.getTrustStorePassword();
+        boolean trustStorePasswordGenerated = false;
         if (StringUtils.isEmpty(trustStorePassword)) {
             trustStorePassword = getPasswordUtil().generatePassword();
-            tlsClientConfig.setTrustStorePassword(trustStorePassword);
+            trustStorePasswordGenerated = true;
         }
 
-        try (OutputStream outputStream = outputStreamFactory.create(new File(tlsClientConfig.getTrustStore()))) {
-            trustStore.store(outputStream, trustStorePassword.toCharArray());
-        }
+        trustStorePassword = TlsHelper.writeKeyStore(trustStore, outputStreamFactory, new File(tlsClientConfig.getTrustStore()), trustStorePassword, trustStorePasswordGenerated);
+        tlsClientConfig.setTrustStorePassword(trustStorePassword);
 
         for (ConfigurationWriter<TlsClientConfig> configurationWriter : configurationWriters) {
             configurationWriter.write(tlsClientConfig);

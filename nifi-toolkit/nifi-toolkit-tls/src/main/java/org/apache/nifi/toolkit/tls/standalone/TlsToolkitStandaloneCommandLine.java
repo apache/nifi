@@ -49,12 +49,13 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String HOSTNAMES_ARG = "hostnames";
     public static final String HTTPS_PORT_ARG = "httpsPort";
     public static final String OVERWRITE_ARG = "isOverwrite";
+    public static final String CLIENT_CERT_DN_ARG = "clientCertDn";
+    public static final String CLIENT_CERT_PASSWORD_ARG = "clientCertPassword";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
     public static final int DEFAULT_HTTPS_PORT = 9091;
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
-    public static final String CLIENT_CERT_DN_ARG = "clientCertDn";
 
     private final Logger logger = LoggerFactory.getLogger(TlsToolkitStandaloneCommandLine.class);
 
@@ -67,6 +68,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     private List<String> keyPasswords;
     private List<String> trustStorePasswords;
     private List<String> clientDns;
+    private List<String> clientPasswords;
+    private boolean clientPasswordsGenerated;
     private boolean overwrite;
 
     public TlsToolkitStandaloneCommandLine() {
@@ -84,6 +87,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("C", CLIENT_CERT_DN_ARG, "Generate client certificate suitable for use in browser with specified DN. (Can be specified multiple times.)");
+        addOptionWithArg("B", CLIENT_CERT_PASSWORD_ARG, "Password for client certificate.  Must either be one value or one for each client DN. (autogenerate if not specified)");
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
     }
 
@@ -126,9 +130,11 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         httpsPort = getIntValue(commandLine, HTTPS_PORT_ARG, DEFAULT_HTTPS_PORT);
 
         int numHosts = hostnames.size();
-        keyStorePasswords = Collections.unmodifiableList(getPasswords(KEY_STORE_PASSWORD_ARG, commandLine, numHosts));
+        keyStorePasswords = Collections.unmodifiableList(getPasswords(KEY_STORE_PASSWORD_ARG, commandLine, numHosts, HOSTNAMES_ARG));
         keyPasswords = Collections.unmodifiableList(getKeyPasswords(commandLine, keyStorePasswords));
-        trustStorePasswords = Collections.unmodifiableList(getPasswords(TRUST_STORE_PASSWORD_ARG, commandLine, numHosts));
+        trustStorePasswords = Collections.unmodifiableList(getPasswords(TRUST_STORE_PASSWORD_ARG, commandLine, numHosts, HOSTNAMES_ARG));
+        clientPasswords = Collections.unmodifiableList(getPasswords(CLIENT_CERT_PASSWORD_ARG, commandLine, clientDns.size(), CLIENT_CERT_DN_ARG));
+        clientPasswordsGenerated = commandLine.getOptionValues(CLIENT_CERT_PASSWORD_ARG) == null;
         overwrite = commandLine.hasOption(OVERWRITE_ARG);
 
         String nifiPropertiesFile = commandLine.getOptionValue(NIFI_PROPERTIES_FILE_ARG, "");
@@ -146,22 +152,22 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         return commandLine;
     }
 
-    private List<String> getPasswords(String arg, CommandLine commandLine, int numHosts) throws CommandLineParseException {
+    private List<String> getPasswords(String arg, CommandLine commandLine, int num, String numArg) throws CommandLineParseException {
         String[] optionValues = commandLine.getOptionValues(arg);
         if (optionValues == null) {
-            return IntStream.range(0, numHosts).mapToObj(operand -> passwordUtil.generatePassword()).collect(Collectors.toList());
+            return IntStream.range(0, num).mapToObj(operand -> passwordUtil.generatePassword()).collect(Collectors.toList());
         }
         if (optionValues.length == 1) {
-            return IntStream.range(0, numHosts).mapToObj(value -> optionValues[0]).collect(Collectors.toList());
-        } else if (optionValues.length == numHosts) {
+            return IntStream.range(0, num).mapToObj(value -> optionValues[0]).collect(Collectors.toList());
+        } else if (optionValues.length == num) {
             return Arrays.stream(optionValues).collect(Collectors.toList());
         }
-        return printUsageAndThrow("Expected either 1 value or " + numHosts + " (the number of hostnames) values for " + arg, ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
+        return printUsageAndThrow("Expected either 1 value or " + num + " (the number of " + numArg + ") values for " + arg, ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
     }
 
     private List<String> getKeyPasswords(CommandLine commandLine, List<String> keyStorePasswords) throws CommandLineParseException {
         if (differentPasswordForKeyAndKeystore() || commandLine.hasOption(KEY_PASSWORD_ARG)) {
-            return getPasswords(KEY_PASSWORD_ARG, commandLine, keyStorePasswords.size());
+            return getPasswords(KEY_PASSWORD_ARG, commandLine, keyStorePasswords.size(), HOSTNAMES_ARG);
         }
         return new ArrayList<>(keyStorePasswords);
     }
@@ -178,6 +184,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         standaloneConfig.setHttpsPort(httpsPort);
         standaloneConfig.setOverwrite(overwrite);
         standaloneConfig.setClientDns(clientDns);
+        standaloneConfig.setClientPasswords(clientPasswords);
+        standaloneConfig.setClientPasswordsGenerated(clientPasswordsGenerated);
 
         standaloneConfig.setCaHostname(getCertificateAuthorityHostname());
         standaloneConfig.setKeyStore("nifi-ca-" + KEYSTORE + getKeyStoreType().toLowerCase());

@@ -203,20 +203,20 @@ public class TlsToolkitStandaloneTest {
     public void testClientDnsArg() throws Exception {
         String clientDn = "OU=NIFI,CN=testuser";
         String clientDn2 = "OU=NIFI,CN=testuser2";
-        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn, "-C", clientDn2);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn, "-C", clientDn2, "-B", "pass1", "-P", "pass2");
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         checkClientCert(clientDn, x509Certificate);
         checkClientCert(clientDn2, x509Certificate);
 
-        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-O", "-C", clientDn2);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-O", "-C", clientDn2, "-B", "pass3");
         checkClientCert(clientDn2, x509Certificate);
     }
 
     @Test
     public void testClientDnsArgNoOverwrite() throws Exception {
         String clientDn = "OU=NIFI,CN=testuser";
-        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn);
+        runAndAssertExitCode(ExitCode.SUCCESS, "-o", tempDir.getAbsolutePath(), "-C", clientDn, "-B", "passwor");
         X509Certificate x509Certificate = checkLoadCertPrivateKey(TlsConfig.DEFAULT_KEY_PAIR_ALGORITHM);
 
         checkClientCert(clientDn, x509Certificate);

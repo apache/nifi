@@ -27,7 +27,6 @@ import org.apache.nifi.toolkit.tls.manager.TlsClientManager;
 import org.apache.nifi.toolkit.tls.manager.writer.NifiPropertiesTlsClientConfigWriter;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
-import org.apache.nifi.toolkit.tls.util.PasswordUtil;
 import org.apache.nifi.toolkit.tls.util.TlsHelper;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
@@ -193,8 +192,10 @@ public class TlsToolkitStandalone {
         if (standaloneConfig.getClientDns().isEmpty() && logger.isInfoEnabled()) {
             logger.info("No " + TlsToolkitStandaloneCommandLine.CLIENT_CERT_DN_ARG + " specified, not generating any client certificates.");
         }
-        for (String clientDn : clientDns) {
-            String reorderedDn = CertificateUtils.reorderDn(clientDn);
+
+        List<String> clientPasswords = standaloneConfig.getClientPasswords();
+        for (int i = 0; i < clientDns.size(); i++) {
+            String reorderedDn = CertificateUtils.reorderDn(clientDns.get(i));
             String clientDnFile = getClientDnFile(reorderedDn);
             File clientCertFile = new File(baseDir, clientDnFile + ".p12");
 
@@ -214,15 +215,12 @@ public class TlsToolkitStandalone {
             KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
             keyStore.load(null, null);
             keyStore.setKeyEntry(NIFI_KEY, keyPair.getPrivate(), null, new Certificate[]{clientCert, certificate});
-            String password = new PasswordUtil().generatePassword();
+            String password = TlsHelper.writeKeyStore(keyStore, outputStreamFactory, clientCertFile, clientPasswords.get(i), standaloneConfig.isClientPasswordsGenerated());
 
             try (FileWriter fileWriter = new FileWriter(new File(baseDir, clientDnFile + ".password"))) {
                 fileWriter.write(password);
             }
 
-            try (FileOutputStream fileOutputStream = new FileOutputStream(clientCertFile)) {
-                keyStore.store(fileOutputStream, password.toCharArray());
-            }
             if (logger.isInfoEnabled()) {
                 logger.info("Successfully generated client certificate " + clientCertFile);
             }
