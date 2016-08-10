@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.stream.io;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -24,16 +25,50 @@ public class LimitingInputStream extends InputStream {
     private final InputStream in;
     private final long limit;
     private long bytesRead = 0;
+    private final boolean exceptionOnLimit;
 
+    /**
+     * Constructs a limited input stream whereby if the limit is reached all
+     * subsequent calls to read will return a -1.
+     *
+     * @param in
+     *            the underlying input stream
+     * @param limit
+     *            maximum length of bytes to read from underlying input stream
+     */
     public LimitingInputStream(final InputStream in, final long limit) {
+        this(in, limit, false);
+    }
+
+    /**
+     * Constructs a limited input stream whereby if the limit is reached all
+     * subsequent calls to read will return a -1 or EOFexception as configured
+     *
+     * @param in
+     *            the underlying input stream
+     * @param limit
+     *            maximum length of bytes to read from underlying input stream
+     * @param eofOnLimit
+     *            true if EOF should occur on all read calls once limit reached;
+     *            false if -1 should be returned instead
+     */
+    public LimitingInputStream(final InputStream in, final long limit, final boolean eofOnLimit) {
         this.in = in;
         this.limit = limit;
+        exceptionOnLimit = eofOnLimit;
+    }
+
+    private int limitReached() throws IOException {
+        if (exceptionOnLimit) {
+            throw new EOFException("Limit of allowed bytes read from input stream reached");
+        }
+        return -1;
     }
 
     @Override
     public int read() throws IOException {
         if (bytesRead >= limit) {
-            return -1;
+            return limitReached();
         }
 
         final int val = in.read();
@@ -46,7 +81,7 @@ public class LimitingInputStream extends InputStream {
     @Override
     public int read(final byte[] b) throws IOException {
         if (bytesRead >= limit) {
-            return -1;
+            return limitReached();
         }
 
         final int maxToRead = (int) Math.min(b.length, limit - bytesRead);
@@ -61,7 +96,7 @@ public class LimitingInputStream extends InputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (bytesRead >= limit) {
-            return -1;
+            return limitReached();
         }
 
         final int maxToRead = (int) Math.min(len, limit - bytesRead);
