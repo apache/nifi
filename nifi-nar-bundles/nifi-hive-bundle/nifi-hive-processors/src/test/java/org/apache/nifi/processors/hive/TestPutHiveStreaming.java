@@ -684,12 +684,12 @@ public class TestPutHiveStreaming {
 
         @Override
         protected void closeConnection() throws InterruptedException {
-            // TODO
+            // Empty
         }
 
         @Override
         protected void commitTxn() throws CommitFailure, InterruptedException {
-            // TODO
+            // Empty
         }
 
         @Override
@@ -700,17 +700,17 @@ public class TestPutHiveStreaming {
 
         @Override
         protected void closeTxnBatch() throws InterruptedException {
-            // TODO
+            // Empty
         }
 
         @Override
         protected void abortTxn() throws InterruptedException {
-            // TODO
+            // Empty
         }
 
         @Override
         protected void nextTxn(boolean rollToNext) throws StreamingException, InterruptedException, TxnBatchFailure {
-            // TODO
+            // Empty
         }
     }
 
