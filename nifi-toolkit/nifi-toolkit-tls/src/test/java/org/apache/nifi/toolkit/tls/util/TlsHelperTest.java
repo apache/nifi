@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -68,6 +69,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsHelperTest {
+    private static final boolean originalUnlimitedCrypto = TlsHelper.isUnlimitedStrengthCryptographyEnabled();
+
     private int days;
 
     private int keySize;
@@ -92,6 +95,16 @@ public class TlsHelperTest {
     private ByteArrayOutputStream tmpFileOutputStream;
 
     private File file;
+
+    private static void setUnlimitedCrypto(boolean value) {
+        try {
+            Field isUnlimitedStrengthCryptographyEnabled = TlsHelper.class.getDeclaredField("isUnlimitedStrengthCryptographyEnabled");
+            isUnlimitedStrengthCryptographyEnabled.setAccessible(true);
+            isUnlimitedStrengthCryptographyEnabled.set(null, value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static KeyPair loadKeyPair(Reader reader) throws IOException {
         try (PEMParser pemParser = new PEMParser(reader)) {
@@ -140,6 +153,7 @@ public class TlsHelperTest {
 
     @After
     public void tearDown() {
+        setUnlimitedCrypto(originalUnlimitedCrypto);
         file.delete();
     }
 
@@ -197,6 +211,7 @@ public class TlsHelperTest {
 
     @Test
     public void testWriteKeyStoreSuccess() throws IOException, GeneralSecurityException {
+        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
         assertEquals(testPassword, TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, false));
         verify(keyStoreSpi, times(1)).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
@@ -204,6 +219,7 @@ public class TlsHelperTest {
 
     @Test
     public void testWriteKeyStoreFailure() throws IOException, GeneralSecurityException {
+        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
         IOException ioException = new IOException("Fail");
         doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
@@ -217,6 +233,7 @@ public class TlsHelperTest {
 
     @Test
     public void testWriteKeyStoreTruncate() throws IOException, GeneralSecurityException {
+        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
         String truncatedPassword = testPassword.substring(0, 7);
         IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
@@ -227,7 +244,22 @@ public class TlsHelperTest {
     }
 
     @Test
+    public void testWriteKeyStoreUnlimitedWontTruncate() throws GeneralSecurityException, IOException {
+        setUnlimitedCrypto(true);
+        String testPassword = "testPassword";
+        IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
+        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
+        try {
+            TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, true);
+            fail("Expected " + ioException);
+        } catch (IOException e) {
+            assertEquals(ioException, e);
+        }
+    }
+
+    @Test
     public void testWriteKeyStoreNoTruncate() throws IOException, GeneralSecurityException {
+        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
         IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
         doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
@@ -241,6 +273,7 @@ public class TlsHelperTest {
 
     @Test
     public void testWriteKeyStoreTruncateFailure() throws IOException, GeneralSecurityException {
+        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
         String truncatedPassword = testPassword.substring(0, 7);
         IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
