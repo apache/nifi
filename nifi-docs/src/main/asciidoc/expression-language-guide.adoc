@@ -954,10 +954,10 @@ Expressions will provide the following results:
 
 
 
-[[escape]]
-== Escape Functions
+[[encode]]
+== Encode/Decode Functions
 
-Each of the following functions will escape a string according the rules of the given data format.
+Each of the following functions will encode a string according the rules of the given data format.
 
 
 
