@@ -31,10 +31,10 @@ public class PropertyDescriptorDTO {
     private String description;
     private String defaultValue;
     private List<AllowableValueDTO> allowableValues;
-    private boolean required;
-    private boolean sensitive;
-    private boolean dynamic;
-    private boolean supportsEl;
+    private Boolean required;
+    private Boolean sensitive;
+    private Boolean dynamic;
+    private Boolean supportsEl;
     private String identifiesControllerService;
 
     /**
@@ -113,11 +113,11 @@ public class PropertyDescriptorDTO {
     @ApiModelProperty(
             value = "Whether the property is required."
     )
-    public boolean isRequired() {
+    public Boolean isRequired() {
         return required;
     }
 
-    public void setRequired(boolean required) {
+    public void setRequired(Boolean required) {
         this.required = required;
     }
 
@@ -127,11 +127,11 @@ public class PropertyDescriptorDTO {
     @ApiModelProperty(
             value = "Whether the property is sensitive and protected whenever stored or represented."
     )
-    public boolean isSensitive() {
+    public Boolean isSensitive() {
         return sensitive;
     }
 
-    public void setSensitive(boolean sensitive) {
+    public void setSensitive(Boolean sensitive) {
         this.sensitive = sensitive;
     }
 
@@ -141,11 +141,11 @@ public class PropertyDescriptorDTO {
     @ApiModelProperty(
             value = "Whether the property is dynamic (user-defined)."
     )
-    public boolean isDynamic() {
+    public Boolean isDynamic() {
         return dynamic;
     }
 
-    public void setDynamic(boolean dynamic) {
+    public void setDynamic(Boolean dynamic) {
         this.dynamic = dynamic;
     }
 
@@ -155,11 +155,11 @@ public class PropertyDescriptorDTO {
     @ApiModelProperty(
             value = "Whether the property supports expression language."
     )
-    public boolean getSupportsEl() {
+    public Boolean getSupportsEl() {
         return supportsEl;
     }
 
-    public void setSupportsEl(boolean supportsEl) {
+    public void setSupportsEl(Boolean supportsEl) {
         this.supportsEl = supportsEl;
     }
 

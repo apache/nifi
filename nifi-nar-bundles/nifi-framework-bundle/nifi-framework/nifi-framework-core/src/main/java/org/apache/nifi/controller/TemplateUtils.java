@@ -178,9 +178,11 @@ public class TemplateUtils {
                     if (processorConfig.getDescriptors() != null) {
                         final Collection<PropertyDescriptorDTO> descriptors = processorConfig.getDescriptors().values();
                         for (PropertyDescriptorDTO descriptor : descriptors) {
-                            if (descriptor.isSensitive()) {
+                            if (Boolean.TRUE.equals(descriptor.isSensitive())) {
                                 processorProperties.put(descriptor.getName(), null);
                             }
+
+                            scrubPropertyDescriptor(descriptor);
                         }
                     }
                 }
@@ -207,6 +209,26 @@ public class TemplateUtils {
         }
     }
 
+    /**
+     * The only thing that we really need from the Property Descriptors in the templates is the
+     * flag that indicates whether or not the property identifies a controller service.
+     * Everything else is unneeded and makes templates very verbose and more importantly makes it
+     * so that if one of these things changes, the template itself changes, which makes it hard to
+     * use a CM tool for versioning. So we remove all that we don't need.
+     *
+     * @param descriptor the ProeprtyDescriptor to scrub
+     */
+    private static void scrubPropertyDescriptor(final PropertyDescriptorDTO descriptor) {
+        descriptor.setAllowableValues(null);
+        descriptor.setDefaultValue(null);
+        descriptor.setDescription(null);
+        descriptor.setDisplayName(null);
+        descriptor.setDynamic(null);
+        descriptor.setRequired(null);
+        descriptor.setSensitive(null);
+        descriptor.setSupportsEl(null);
+    }
+
     private static void scrubControllerServices(final Set<ControllerServiceDTO> controllerServices) {
         for (final ControllerServiceDTO serviceDTO : controllerServices) {
             final Map<String, String> properties = serviceDTO.getProperties();
@@ -214,13 +236,14 @@ public class TemplateUtils {
 
             if (properties != null && descriptors != null) {
                 for (final PropertyDescriptorDTO descriptor : descriptors.values()) {
-                    if (descriptor.isSensitive()) {
+                    if (Boolean.TRUE.equals(descriptor.isSensitive())) {
                         properties.put(descriptor.getName(), null);
                     }
+
+                    scrubPropertyDescriptor(descriptor);
                 }
             }
 
-            serviceDTO.setDescriptors(null);
             serviceDTO.setCustomUiUrl(null);
             serviceDTO.setValidationErrors(null);
         }
