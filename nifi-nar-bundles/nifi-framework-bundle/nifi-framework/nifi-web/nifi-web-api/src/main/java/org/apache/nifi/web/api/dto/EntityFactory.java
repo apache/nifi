@@ -67,8 +67,6 @@ import java.util.List;
 
 public final class EntityFactory {
 
-    private static final String NO_PERMISSIONS_MESSAGE = "No permissions were associated with this request";
-
     public StatusHistoryEntity createStatusHistoryEntity(final StatusHistoryDTO statusHistory, final PermissionsDTO permissions) {
         final StatusHistoryEntity entity = new StatusHistoryEntity();
         entity.setCanRead(permissions.getCanRead());
@@ -85,6 +83,7 @@ public final class EntityFactory {
 
     public ProcessorStatusSnapshotEntity createProcessorStatusSnapshotEntity(final ProcessorStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ProcessorStatusSnapshotEntity entity = new ProcessorStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setProcessorStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -99,6 +98,7 @@ public final class EntityFactory {
 
     public ConnectionStatusSnapshotEntity createConnectionStatusSnapshotEntity(final ConnectionStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ConnectionStatusSnapshotEntity entity = new ConnectionStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setConnectionStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -113,6 +113,7 @@ public final class EntityFactory {
 
     public ProcessGroupStatusSnapshotEntity createProcessGroupStatusSnapshotEntity(final ProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final ProcessGroupStatusSnapshotEntity entity = new ProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -127,6 +128,7 @@ public final class EntityFactory {
 
     public RemoteProcessGroupStatusSnapshotEntity createRemoteProcessGroupStatusSnapshotEntity(final RemoteProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final RemoteProcessGroupStatusSnapshotEntity entity = new RemoteProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setRemoteProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
@@ -141,21 +143,19 @@ public final class EntityFactory {
 
     public PortStatusSnapshotEntity createPortStatusSnapshotEntity(final PortStatusSnapshotDTO status, final PermissionsDTO permissions) {
         final PortStatusSnapshotEntity entity = new PortStatusSnapshotEntity();
+        entity.setId(status.getId());
         entity.setCanRead(permissions.getCanRead());
         entity.setPortStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
         return entity;
     }
 
     public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
         entity.setRevision(revision);
         entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setPermissions(permissions);
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -163,9 +163,6 @@ public final class EntityFactory {
     }
 
     public ProcessGroupFlowEntity createProcessGroupFlowEntity(final ProcessGroupFlowDTO dto, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ProcessGroupFlowEntity entity = new ProcessGroupFlowEntity();
         entity.setProcessGroupFlow(dto);
         entity.setPermissions(permissions);
@@ -175,9 +172,6 @@ public final class EntityFactory {
     public ProcessorEntity createProcessorEntity(final ProcessorDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
         final ProcessorStatusDTO status, final List<BulletinDTO> bulletins) {
 
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -186,7 +180,7 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             entity.setInputRequirement(dto.getInputRequirement());
             entity.setPosition(dto.getPosition());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
             }
@@ -195,9 +189,6 @@ public final class EntityFactory {
     }
 
     public PortEntity createPortEntity(final PortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PortStatusDTO status, final List<BulletinDTO> bulletins) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final PortEntity entity = new PortEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -206,7 +197,7 @@ public final class EntityFactory {
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
             entity.setPortType(dto.getType());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
             }
@@ -216,10 +207,6 @@ public final class EntityFactory {
 
     public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                        final ProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
-
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
         entity.setCurrentTime(new Date());
@@ -245,9 +232,6 @@ public final class EntityFactory {
     }
 
     public LabelEntity createLabelEntity(final LabelDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final LabelEntity entity = new LabelEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -260,7 +244,7 @@ public final class EntityFactory {
             dimensions.setWidth(dto.getWidth());
             entity.setDimensions(dimensions);
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -268,16 +252,13 @@ public final class EntityFactory {
     }
 
     public UserEntity createUserEntity(final UserDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final UserEntity entity = new UserEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -285,16 +266,13 @@ public final class EntityFactory {
     }
 
     public TenantEntity createTenantEntity(final TenantDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final TenantEntity entity = new TenantEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -302,16 +280,13 @@ public final class EntityFactory {
     }
 
     public AccessPolicySummaryEntity createAccessPolicySummaryEntity(final AccessPolicySummaryDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final AccessPolicySummaryEntity entity = new AccessPolicySummaryEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -319,16 +294,13 @@ public final class EntityFactory {
     }
 
     public UserGroupEntity createUserGroupEntity(final UserGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final UserGroupEntity entity = new UserGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -336,9 +308,6 @@ public final class EntityFactory {
     }
 
     public AccessPolicyEntity createAccessPolicyEntity(final AccessPolicyDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final AccessPolicyEntity entity = new AccessPolicyEntity();
         entity.setRevision(revision);
         entity.setGenerated(new Date());
@@ -346,7 +315,7 @@ public final class EntityFactory {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
 
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -354,16 +323,13 @@ public final class EntityFactory {
     }
 
     public FunnelEntity createFunnelEntity(final FunnelDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final FunnelEntity entity = new FunnelEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -371,9 +337,6 @@ public final class EntityFactory {
     }
 
     public ConnectionEntity createConnectionEntity(final ConnectionDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final ConnectionStatusDTO status) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -390,7 +353,7 @@ public final class EntityFactory {
             entity.setDestinationId(dto.getDestination().getId());
             entity.setDestinationGroupId(dto.getDestination().getGroupId());
             entity.setDestinationType(dto.getDestination().getType());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -399,10 +362,6 @@ public final class EntityFactory {
 
     public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                                    final RemoteProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
-
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -412,7 +371,7 @@ public final class EntityFactory {
             entity.setPosition(dto.getPosition());
             entity.setInputPortCount(dto.getInputPortCount());
             entity.setOutputPortCount(dto.getOutputPortCount());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
             }
@@ -421,15 +380,12 @@ public final class EntityFactory {
     }
 
     public RemoteProcessGroupPortEntity createRemoteProcessGroupPortEntity(final RemoteProcessGroupPortDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setRemoteProcessGroupPort(dto);
             }
         }
@@ -444,15 +400,12 @@ public final class EntityFactory {
     }
 
     public ReportingTaskEntity createReportingTaskEntity(final ReportingTaskDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinDTO> bulletins) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ReportingTaskEntity entity = new ReportingTaskEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
             }
@@ -462,16 +415,13 @@ public final class EntityFactory {
     }
 
     public ControllerServiceEntity createControllerServiceEntity(final ControllerServiceDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final List<BulletinDTO> bulletins) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
             entity.setPosition(dto.getPosition());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
             }
@@ -481,16 +431,12 @@ public final class EntityFactory {
 
     public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
         final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
             }
         }
@@ -499,14 +445,11 @@ public final class EntityFactory {
     }
 
     public FlowBreadcrumbEntity createFlowBreadcrumbEntity(final FlowBreadcrumbDTO dto, final PermissionsDTO permissions) {
-        if (permissions == null || permissions.getCanRead() == null) {
-            throw new IllegalStateException(NO_PERMISSIONS_MESSAGE);
-        }
         final FlowBreadcrumbEntity entity = new FlowBreadcrumbEntity();
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setId(dto.getId());
-            if (permissions.getCanRead()) {
+            if (permissions != null && permissions.getCanRead()) {
                 entity.setBreadcrumb(dto);
             }
         }

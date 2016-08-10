@@ -18,9 +18,11 @@ package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -70,14 +72,29 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
         }
 
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, PropertyDescriptorDTO>> propertyDescriptorMap = new HashMap<>();
 
         for (final Map.Entry<NodeIdentifier, ProcessorDTO> nodeEntry : dtoMap.entrySet()) {
             final ProcessorDTO nodeProcessor = nodeEntry.getValue();
 
-            // merge the validation errors, if authorized
+            // merge the validation errors and aggregate the property descriptors, if authorized
             if (nodeProcessor != null) {
                 final NodeIdentifier nodeId = nodeEntry.getKey();
                 ErrorMerger.mergeErrors(validationErrorMap, nodeId, nodeProcessor.getValidationErrors());
+                nodeProcessor.getConfig().getDescriptors().values().stream().forEach(propertyDescriptor -> {
+                    propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeId, propertyDescriptor);
+                });
+            }
+        }
+
+        // merge property descriptors
+        for (Map<NodeIdentifier, PropertyDescriptorDTO> propertyDescriptorByNodeId : propertyDescriptorMap.values()) {
+            final Collection<PropertyDescriptorDTO> nodePropertyDescriptors = propertyDescriptorByNodeId.values();
+            if (!nodePropertyDescriptors.isEmpty()) {
+                // get the name of the property descriptor and find that descriptor being returned to the client
+                final PropertyDescriptorDTO propertyDescriptor = nodePropertyDescriptors.iterator().next();
+                final PropertyDescriptorDTO clientPropertyDescriptor = clientDto.getConfig().getDescriptors().get(propertyDescriptor.getName());
+                PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
             }
         }
 

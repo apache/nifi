@@ -26,8 +26,8 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "permission")
 public class PermissionsDTO implements ReadablePermission, WritablePermission {
 
-    private Boolean canRead;
-    private Boolean canWrite;
+    private boolean canRead = false;
+    private boolean canWrite = false;
 
     /**
      * @return Indicates whether the user can read a given resource.

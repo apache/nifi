@@ -2502,7 +2502,9 @@ public final class DtoFactory {
                 dto.setAllowableValues(null);
             } else {
                 final List<AllowableValueEntity> allowableValues = new ArrayList<>();
-                for (final String serviceIdentifier : controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId)) {
+                final List<String> controllerServiceIdentifiers = new ArrayList<>(controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId));
+                Collections.sort(controllerServiceIdentifiers, Collator.getInstance(Locale.US));
+                for (final String serviceIdentifier : controllerServiceIdentifiers) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
                     final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
                     final String displayName = isServiceAuthorized ? service.getName() : serviceIdentifier;
