@@ -288,7 +288,9 @@ public class TlsToolkitStandaloneTest {
         }
 
         KeyStore keyStore = KeyStore.getInstance(BaseTlsManager.PKCS_12, BouncyCastleProvider.PROVIDER_NAME);
-        keyStore.load(new FileInputStream(new File(tempDir, clientDnFile + ".p12")), password.toCharArray());
+        try (FileInputStream fileInputStream = new FileInputStream(new File(tempDir, clientDnFile + ".p12"))) {
+            keyStore.load(fileInputStream, password.toCharArray());
+        }
         PrivateKey privateKey = (PrivateKey) keyStore.getKey(TlsToolkitStandalone.NIFI_KEY, new char[0]);
         Certificate[] certificateChain = keyStore.getCertificateChain(TlsToolkitStandalone.NIFI_KEY);
         assertEquals(2, certificateChain.length);
