@@ -569,6 +569,8 @@ An administrator does not need to manually create policies for every component i
 
 You can override an inherited policy (as described in the <<moving-a-processor>> example below).  Overriding a policy removes the inherited policy, breaking the chain of inheritance from parent to child, and creates a replacement policy to add users as desired.  Inherited policies and their users can be restored by deleting the replacement policy.
 
+NOTE: “View the policies” and “modify the policies” component-level access policies are an exception to this inherited behavior. When a user is added to either policy, they are added to the current list of administrators. They do not override higher level administrators. For this reason, only component specific administrators are displayed for the “view the policies” and “modify the policies" access policies.
+
 [[access-policy-config-examples]]
 Access Policy Configuration Examples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
