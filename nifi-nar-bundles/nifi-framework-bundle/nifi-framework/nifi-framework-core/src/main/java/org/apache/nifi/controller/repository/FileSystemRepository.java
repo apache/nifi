@@ -567,7 +567,11 @@ public class FileSystemRepository implements ContentRepository {
             return 0;
         }
 
-        return resourceClaimManager.incrementClaimantCount(claim.getResourceClaim());
+        final int claimantCount;
+        synchronized (writableClaimQueue) {
+           claimantCount = resourceClaimManager.incrementClaimantCount(claim.getResourceClaim());
+        }
+        return claimantCount;
     }
 
     @Override
@@ -575,7 +579,12 @@ public class FileSystemRepository implements ContentRepository {
         if (claim == null) {
             return 0;
         }
-        return resourceClaimManager.getClaimantCount(claim.getResourceClaim());
+
+        final int claimantCount;
+        synchronized (writableClaimQueue) {
+            claimantCount = resourceClaimManager.getClaimantCount(claim.getResourceClaim());
+        }
+        return claimantCount;
     }
 
     @Override
@@ -584,7 +593,10 @@ public class FileSystemRepository implements ContentRepository {
             return 0;
         }
 
-        final int claimantCount = resourceClaimManager.decrementClaimantCount(claim.getResourceClaim());
+        final int claimantCount;
+        synchronized (writableClaimQueue) {
+            claimantCount = resourceClaimManager.decrementClaimantCount(claim.getResourceClaim());
+        }
         return claimantCount;
     }
 
