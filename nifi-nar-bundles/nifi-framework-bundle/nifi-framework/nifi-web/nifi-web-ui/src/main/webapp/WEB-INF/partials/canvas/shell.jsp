@@ -15,7 +15,7 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="shell-dialog" class="hidden cancellable" data-nf-dialog='{"responsive": {"x": "false", "y": "false"}}'>
+<div id="shell-dialog" class="hidden cancellable">
     <div id="shell-container" class="dialog-content">
         <div id="shell-close-container">
             <button id="shell-undock-button" class="undock-normal pointer " title="Open in New Window">
