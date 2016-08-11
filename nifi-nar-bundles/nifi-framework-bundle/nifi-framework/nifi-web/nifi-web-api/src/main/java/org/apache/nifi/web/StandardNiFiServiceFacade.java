@@ -1806,7 +1806,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                 // if we haven't encountered this service before include it's referencing components
                 if (!dto.getReferenceCycle()) {
-                    final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(node.getReferences(), revisions, visited);
+                    final ControllerServiceReference refReferences = node.getReferences();
+                    final Map<String, Revision> referencingRevisions = new HashMap<>(revisions);
+                    for (final ConfiguredComponent component : refReferences.getReferencingComponents()) {
+                        referencingRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
+                    }
+                    final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(refReferences, referencingRevisions, visited);
                     dto.setReferencingComponents(references.getControllerServiceReferencingComponents());
                 }
 

@@ -109,7 +109,7 @@ nf.ControllerService = (function () {
     };
 
     /**
-     * Reloads the specified controller service. It's referencing and referenced
+     * Reloads the specified controller service if we have read permissions. It's referencing and referenced
      * components are NOT reloaded.
      *
      * @param {jQuery} serviceTable
@@ -123,8 +123,9 @@ nf.ControllerService = (function () {
 
         // this may happen if controller service A references another controller
         // service B that has been removed. attempting to enable/disable/remove A
-        // will attempt to reload B which is no longer a known service
-        if (nf.Common.isUndefined(controllerServiceEntity)) {
+        // will attempt to reload B which is no longer a known service. also ensure
+        // we have permissions to reload the service
+        if (nf.Common.isUndefined(controllerServiceEntity) || controllerServiceEntity.permissions.canRead === false) {
             return $.Deferred(function (deferred) {
                 deferred.reject();
             }).promise();
@@ -457,7 +458,8 @@ nf.ControllerService = (function () {
                         if (serviceTwist.hasClass('collapsed')) {
                             var controllerServiceGrid = serviceTable.data('gridInstance');
                             var controllerServiceData = controllerServiceGrid.getData();
-                            var referencingService = controllerServiceData.getItemById(referencingComponent.id);
+                            var referencingServiceEntity = controllerServiceData.getItemById(referencingComponent.id);
+                            var referencingService = referencingServiceEntity.component;
 
                             // create the markup for the references
                             createReferencingComponents(serviceTable, referencingServiceReferencesContainer, referencingService.referencingComponents);
@@ -1504,7 +1506,7 @@ nf.ControllerService = (function () {
     };
 
     /**
-     * Identifies descritpors that reference controller services.
+     * Identifies descriptors that reference controller services.
      *
      * @param {object} component
      */
