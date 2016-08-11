@@ -216,12 +216,20 @@ public class TestStandardProcessSession {
         assertNotNull(original);
 
         FlowFile child = session.create(original);
-        child = session.append(child, out -> out.write("hello".getBytes()));
+        child = session.append(child, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("hello".getBytes());
+            }
+        });
 
         // Force an IOException. This will decrement out claim count for the resource claim.
         try {
-            child = session.append(child, out -> {
-                throw new IOException();
+            child = session.append(child, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    throw new IOException();
+                }
             });
             Assert.fail("append() callback threw IOException but it was not wrapped in ProcessException");
         } catch (final ProcessException pe) {
@@ -250,10 +258,18 @@ public class TestStandardProcessSession {
         FlowFile child = session.create(original);
         // Force an IOException. This will decrement out claim count for the resource claim.
         try {
-            child = session.write(child, out -> out.write("hello".getBytes()));
+            child = session.write(child, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    out.write("hello".getBytes());
+                }
+            });
 
-            child = session.write(child, out -> {
-                throw new IOException();
+            child = session.write(child, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    throw new IOException();
+                }
             });
             Assert.fail("write() callback threw IOException but it was not wrapped in ProcessException");
         } catch (final ProcessException pe) {
