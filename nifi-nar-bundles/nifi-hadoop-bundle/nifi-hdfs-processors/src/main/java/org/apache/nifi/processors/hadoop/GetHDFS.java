@@ -86,14 +86,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .build();
 
     // properties
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-    .name(DIRECTORY_PROP_NAME)
-    .description("The HDFS directory from which files should be read")
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .expressionLanguageSupported(true)
-    .build();
-
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
     .name("Recurse Subdirectories")
     .description("Indicates whether to pull files from subdirectories of the HDFS directory")
@@ -222,6 +214,16 @@ public class GetHDFS extends AbstractHadoopProcessor {
         if (minimumAge > maximumAge) {
             problems.add(new ValidationResult.Builder().valid(false).subject("GetHDFS Configuration")
                     .explanation(MIN_AGE.getName() + " cannot be greater than " + MAX_AGE.getName()).build());
+        }
+
+        try {
+            new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+        } catch (Exception e) {
+            problems.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject("Directory")
+                    .explanation(e.getMessage())
+                    .build());
         }
 
         return problems;
