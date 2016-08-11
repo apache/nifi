@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.http.annotation.ThreadSafe;
@@ -39,6 +40,8 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -117,19 +120,7 @@ public class DebugFlow extends AbstractProcessor {
             .description("Exception class to be thrown (must extend java.lang.RuntimeException).")
             .required(true)
             .defaultValue("java.lang.RuntimeException")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(new Validator() {
-                @Override
-                public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    Class<? extends RuntimeException> klass = classNameToRuntimeExceptionClass(input);
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
-                            .explanation(subject + " class must exist and extend java.lang.RuntimeException")
-                            .build();
-                }
-            })
+        .addValidator(new RuntimeExceptionValidator())
             .build();
 
     static final PropertyDescriptor NO_FF_SKIP_ITERATIONS = new PropertyDescriptor.Builder()
@@ -158,19 +149,7 @@ public class DebugFlow extends AbstractProcessor {
             .description("Exception class to be thrown if no FlowFile (must extend java.lang.RuntimeException).")
             .required(true)
             .defaultValue("java.lang.RuntimeException")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(new Validator() {
-                @Override
-                public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    Class<? extends RuntimeException> klass = classNameToRuntimeExceptionClass(input);
-                    return new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(klass != null && (RuntimeException.class.isAssignableFrom(klass)))
-                            .explanation(subject + " class must exist and extend java.lang.RuntimeException")
-                            .build();
-                }
-            })
+            .addValidator(new RuntimeExceptionValidator())
             .build();
     static final PropertyDescriptor WRITE_ITERATIONS = new PropertyDescriptor.Builder()
         .name("Write Iterations")
@@ -186,6 +165,50 @@ public class DebugFlow extends AbstractProcessor {
         .required(true)
         .defaultValue("1 KB")
         .build();
+
+    static final PropertyDescriptor ON_SCHEDULED_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("@OnScheduled Pause Time")
+        .description("Specifies how long the processor should sleep in the @OnScheduled method, so that the processor can be forced to take a long time to start up")
+        .required(true)
+        .defaultValue("0 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+    static final PropertyDescriptor ON_SCHEDULED_FAIL = new PropertyDescriptor.Builder()
+        .name("Fail When @OnScheduled called")
+        .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnScheduled are called")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+    static final PropertyDescriptor ON_UNSCHEDULED_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("@OnUnscheduled Pause Time")
+        .description("Specifies how long the processor should sleep in the @OnUnscheduled method, so that the processor can be forced to take a long time to respond when user clicks stop")
+        .required(true)
+        .defaultValue("0 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+    static final PropertyDescriptor ON_UNSCHEDULED_FAIL = new PropertyDescriptor.Builder()
+        .name("Fail When @OnUnscheduled called")
+        .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnUnscheduled are called")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+    static final PropertyDescriptor ON_STOPPED_SLEEP_TIME = new PropertyDescriptor.Builder()
+        .name("@OnStopped Pause Time")
+        .description("Specifies how long the processor should sleep in the @OnStopped method, so that the processor can be forced to take a long time to shutdown")
+        .required(true)
+        .defaultValue("0 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+    static final PropertyDescriptor ON_STOPPED_FAIL = new PropertyDescriptor.Builder()
+        .name("Fail When @OnStopped called")
+        .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnStopped are called")
+        .required(true)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+
 
     private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
@@ -246,6 +269,13 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(NO_FF_EXCEPTION_CLASS);
                 propList.add(WRITE_ITERATIONS);
                 propList.add(CONTENT_SIZE);
+                propList.add(ON_SCHEDULED_SLEEP_TIME);
+                propList.add(ON_SCHEDULED_FAIL);
+                propList.add(ON_UNSCHEDULED_SLEEP_TIME);
+                propList.add(ON_UNSCHEDULED_FAIL);
+                propList.add(ON_STOPPED_SLEEP_TIME);
+                propList.add(ON_STOPPED_FAIL);
+
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
             return propertyDescriptors.get();
@@ -253,7 +283,8 @@ public class DebugFlow extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(ProcessContext context) {
+    @SuppressWarnings("unchecked")
+    public void onScheduled(ProcessContext context) throws ClassNotFoundException, InterruptedException {
         flowFileMaxSuccess = context.getProperty(FF_SUCCESS_ITERATIONS).asInteger();
         flowFileMaxFailure = context.getProperty(FF_FAILURE_ITERATIONS).asInteger();
         flowFileMaxYield = context.getProperty(FF_ROLLBACK_YIELD_ITERATIONS).asInteger();
@@ -265,9 +296,37 @@ public class DebugFlow extends AbstractProcessor {
         noFlowFileMaxSkip = context.getProperty(NO_FF_SKIP_ITERATIONS).asInteger();
         curr_ff_resp.reset();
         curr_noff_resp.reset();
-        flowFileExceptionClass = classNameToRuntimeExceptionClass(context.getProperty(FF_EXCEPTION_CLASS).toString());
-        noFlowFileExceptionClass = classNameToRuntimeExceptionClass(context.getProperty(NO_FF_EXCEPTION_CLASS).toString());
+        flowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(FF_EXCEPTION_CLASS).toString());
+        noFlowFileExceptionClass = (Class<? extends RuntimeException>) Class.forName(context.getProperty(NO_FF_EXCEPTION_CLASS).toString());
+
+        sleep(context.getProperty(ON_SCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        fail(context.getProperty(ON_SCHEDULED_FAIL).asBoolean(), OnScheduled.class);
     }
+
+    @OnUnscheduled
+    public void onUnscheduled(final ProcessContext context) throws InterruptedException {
+        sleep(context.getProperty(ON_UNSCHEDULED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        fail(context.getProperty(ON_UNSCHEDULED_FAIL).asBoolean(), OnUnscheduled.class);
+    }
+
+    @OnStopped
+    public void onStopped(final ProcessContext context) throws InterruptedException {
+        sleep(context.getProperty(ON_STOPPED_SLEEP_TIME).asTimePeriod(TimeUnit.MILLISECONDS));
+        fail(context.getProperty(ON_STOPPED_FAIL).asBoolean(), OnStopped.class);
+    }
+
+    private void sleep(final long millis) throws InterruptedException {
+        if (millis > 0L) {
+            Thread.sleep(millis);
+        }
+    }
+
+    private void fail(final boolean isAppropriate, final Class<?> annotationClass) {
+        if (isAppropriate) {
+            throw new RuntimeException("Failure configured for " + annotationClass.getSimpleName() + " methods");
+        }
+    }
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -278,9 +337,7 @@ public class DebugFlow extends AbstractProcessor {
         // Make up to 2 passes to allow rollover from last cycle to first.
         // (This could be "while(true)" since responses should break out  if selected, but this
         //  prevents endless loops in the event of unexpected errors or future changes.)
-        int pass = 2;
-        while (pass > 0) {
-            pass -= 1;
+        for (int pass = 2; pass > 0; pass--) {
             if (ff == null) {
                 if (curr_noff_resp.state() == NoFlowFileResponseState.NO_FF_SKIP_RESPONSE) {
                     if (noFlowFileCurrSkip < noFlowFileMaxSkip) {
@@ -438,18 +495,26 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
-    private static Class<? extends RuntimeException> classNameToRuntimeExceptionClass(String name) {
-        Class<? extends RuntimeException> klass = null;
-        try {
-            Class<?> klass2 = Class.forName(name);
-            if (klass2 == RuntimeException.class || RuntimeException.class.isAssignableFrom(klass2)) {
-                //noinspection unchecked
-                klass = (Class<? extends RuntimeException>)klass2;
+    private static class RuntimeExceptionValidator implements Validator {
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            final ValidationResult.Builder resultBuilder = new ValidationResult.Builder()
+                .subject(subject)
+                .input(input);
+
+            try {
+                final Class<?> exceptionClass = Class.forName(input);
+                if (RuntimeException.class.isAssignableFrom(exceptionClass)) {
+                    resultBuilder.valid(true);
+                } else {
+                    resultBuilder.valid(false).explanation("Class " + input + " is a Checked Exception, not a RuntimeException");
+                }
+            } catch (ClassNotFoundException e) {
+                resultBuilder.valid(false).explanation("Class " + input + " cannot be found");
             }
-        } catch (ClassNotFoundException e) {
-            klass = null;
+
+            return resultBuilder.build();
         }
-        return klass;
     }
 
     private enum FlowFileResponseState {

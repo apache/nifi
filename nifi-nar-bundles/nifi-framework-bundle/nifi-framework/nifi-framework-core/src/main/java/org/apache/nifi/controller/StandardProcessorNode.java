@@ -40,6 +40,8 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.scheduling.ScheduleState;
+import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
@@ -1255,8 +1257,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         }
                     } catch (final Exception e) {
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        procLog.error( "{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {}",
-                                new Object[] { StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis + " milliseconds" }, cause);
+                        procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {} seconds",
+                            new Object[] {StandardProcessorNode.this.getProcessor(), cause, administrativeYieldMillis / 1000L}, cause);
                         LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
 
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
@@ -1285,7 +1287,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     /**
      * Will idempotently stop the processor using the following sequence: <i>
      * <ul>
-     * <li>Transition (atomically) Processor's scheduled state form RUNNING to
+     * <li>Transition (atomically) Processor's scheduled state from RUNNING to
      * STOPPING. If the above state transition succeeds, then execute the stop
      * task (asynchronously) where 'activeThreadMonitorCallback' provided by the
      * {@link ProcessScheduler} will be called to check if this processor still
@@ -1309,9 +1311,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      */
     @Override
     public <T extends ProcessContext & ControllerServiceLookup> void stop(final ScheduledExecutorService scheduler,
-            final T processContext, final Callable<Boolean> activeThreadMonitorCallback) {
+        final T processContext, final SchedulingAgent schedulingAgent, final ScheduleState scheduleState) {
         LOG.info("Stopping processor: " + this.processor.getClass());
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
+            scheduleState.incrementActiveThreadCount();
+
             // will continue to monitor active threads, invoking OnStopped once
             // there are none
             scheduler.execute(new Runnable() {
@@ -1323,12 +1327,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         this.unscheduled = true;
                     }
                     try {
-                        if (activeThreadMonitorCallback.call()) {
+                        if (scheduleState.isScheduled()) {
+                            schedulingAgent.unschedule(StandardProcessorNode.this, scheduleState);
+                        }
+
+                        // all threads are complete if the active thread count is 1. This is because this thread that is
+                        // performing the lifecycle actions counts as 1 thread.
+                        final boolean allThreadsComplete = scheduleState.getActiveThreadCount() == 1;
+                        if (allThreadsComplete) {
                             try (final NarCloseable nc = NarCloseable.withNarLoader()) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
                             }
+                            scheduleState.decrementActiveThreadCount();
                             scheduledState.set(ScheduledState.STOPPED);
                         } else {
+                            // Not all of the active threads have finished. Try again in 100 milliseconds.
                             scheduler.schedule(this, 100, TimeUnit.MILLISECONDS);
                         }
                     } catch (final Exception e) {
@@ -1393,7 +1406,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     + this.processor.getClass().getSimpleName()
                     + "' processor to finish. An attempt is made to cancel the task via Thread.interrupt(). However it does not "
                     + "guarantee that the task will be canceled since the code inside current OnScheduled operation may "
-                    + "have been written to ignore interrupts which may result in runaway thread which could lead to more issues "
+                + "have been written to ignore interrupts which may result in a runaway thread. This could lead to more issues, "
                     + "eventually requiring NiFi to be restarted. This is usually a bug in the target Processor '"
                     + this.processor + "' that needs to be documented, reported and eventually fixed.");
             throw new RuntimeException("Timed out while executing one of processor's OnScheduled task.", e);

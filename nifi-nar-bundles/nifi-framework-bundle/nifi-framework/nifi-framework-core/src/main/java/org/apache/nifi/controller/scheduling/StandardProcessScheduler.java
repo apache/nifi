@@ -341,15 +341,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState state = getScheduleState(procNode);
 
-        procNode.stop(this.componentLifeCycleThreadPool, processContext, new Callable<Boolean>() {
-            @Override
-            public Boolean call() {
-                if (state.isScheduled()) {
-                    getSchedulingAgent(procNode).unschedule(procNode, state);
-                }
-                return state.getActiveThreadCount() == 0;
-            }
-        });
+        procNode.stop(this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), state);
     }
 
     @Override
