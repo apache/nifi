@@ -57,6 +57,15 @@ import org.apache.nifi.processor.ProcessContext;
  * component is a Processor.
  * </p>
  *
+ * <p><b>Implementation Guidelines:</b>
+ * <ul>
+ *   <li>Methods with this annotation are expected to perform very quick, short-lived tasks. If the function is
+ *       expensive or long-lived, the logic should be performed in the {@code onTrigger} method instead.</li>
+ *   <li>If a method with this annotation does not return (exceptionally or otherwise) within a short period
+ *       of time (the duration is configurable in the properties file), the Thread may be interrupted.</li>
+ *   <li>Methods that make use of this interface should honor Java's Thread interruption mechanisms and not swallow
+ *       {@link InterruptedException}.</li>
+ * </ul>
  */
 @Documented
 @Target({ElementType.METHOD})

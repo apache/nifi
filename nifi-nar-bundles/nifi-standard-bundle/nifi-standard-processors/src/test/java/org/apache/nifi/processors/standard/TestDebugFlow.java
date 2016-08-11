@@ -77,12 +77,7 @@ public class TestDebugFlow {
     }
 
     private boolean isInContents(byte[] content) {
-        for (Map.Entry entry : contents.entrySet()) {
-            if (((String)entry.getValue()).compareTo(new String(content)) == 0) {
-                return true;
-            }
-        }
-        return false;
+        return contents.containsValue(new String(content));
     }
 
     @Test
