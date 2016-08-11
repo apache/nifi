@@ -22,7 +22,11 @@ $(document).ready(function () {
     $('#shell-dialog').modal({
         scrollableContentStyle: 'scrollable',
         header: false,
-        footer: false
+        footer: false,
+        responsive: {
+            x: false,
+            y: false
+        }
     });
 
     // register a listener when the frame is closed
