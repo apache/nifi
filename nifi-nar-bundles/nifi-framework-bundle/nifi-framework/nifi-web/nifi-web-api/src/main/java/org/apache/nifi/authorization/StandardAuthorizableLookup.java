@@ -226,18 +226,31 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return COUNTERS_AUTHORIZABLE;
     }
 
-    @Override
-    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
-        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
-        final ControllerServiceReference referencingComponents = controllerService.getReferences();
-
+    private ConfiguredComponent findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
         ConfiguredComponent reference = null;
         for (final ConfiguredComponent component : referencingComponents.getReferencingComponents()) {
             if (component.getIdentifier().equals(id)) {
                 reference = component;
                 break;
             }
+
+            if (component instanceof ControllerServiceNode) {
+                final ControllerServiceNode refControllerService = (ControllerServiceNode) component;
+                reference = findControllerServiceReferencingComponent(refControllerService.getReferences(), id);
+                if (reference != null) {
+                    break;
+                }
+            }
         }
+
+        return reference;
+    }
+
+    @Override
+    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
+        final ControllerServiceReference referencingComponents = controllerService.getReferences();
+        final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
 
         if (reference == null) {
             throw new ResourceNotFoundException("Unable to find referencing component with id " + id);
