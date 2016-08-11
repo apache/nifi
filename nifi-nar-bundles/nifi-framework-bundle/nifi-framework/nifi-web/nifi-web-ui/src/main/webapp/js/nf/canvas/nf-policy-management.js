@@ -75,20 +75,8 @@ nf.PolicyManagement = (function () {
                             var selectedUser = [];
                             selectedUser = selectedUser.concat(selectedUsers, selectedGroups);
 
-                            // ensure the search found some results
-                            if (!$.isArray(selectedUser) || selectedUser.length === 0) {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'User Search',
-                                    dialogContent: 'No users match \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                });
-                            } else if (selectedUser.length > 1) {
-                                nf.Dialog.showOkDialog({
-                                    headerText: 'User Search',
-                                    dialogContent: 'More than one user matches \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
-                                });
-                            } else if (selectedUser.length === 1) {
-                                var user = selectedUser[0];
-
+                            // add the user to the policy table
+                            var addUser = function (user) {
                                 // add to table and update policy
                                 var policyGrid = $('#policy-table').data('gridInstance');
                                 var policyData = policyGrid.getData();
@@ -104,6 +92,38 @@ nf.PolicyManagement = (function () {
 
                                 // update the policy
                                 updatePolicy();
+                            };
+
+                            // ensure the search found some results
+                            if (!$.isArray(selectedUser) || selectedUser.length === 0) {
+                                nf.Dialog.showOkDialog({
+                                    headerText: 'User Search',
+                                    dialogContent: 'No users match \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
+                                });
+                            } else if (selectedUser.length > 1) {
+                                var exactMatch = false;
+
+                                // look for an exact match
+                                $.each(selectedUser, function (_, userEntity) {
+                                    if (userEntity.component.identity === tenantSearchTerm) {
+                                        addUser(userEntity);
+                                        exactMatch = true;
+                                        return false;
+                                    }
+                                });
+
+                                // if there is an exact match, use it
+                                if (exactMatch) {
+                                    // close the dialog
+                                    $('#search-users-dialog').modal('hide');
+                                } else {
+                                    nf.Dialog.showOkDialog({
+                                        headerText: 'User Search',
+                                        dialogContent: 'More than one user matches \'' + nf.Common.escapeHtml(tenantSearchTerm) + '\'.'
+                                    });
+                                }
+                            } else if (selectedUser.length === 1) {
+                                addUser(selectedUser[0]);
 
                                 // close the dialog
                                 $('#search-users-dialog').modal('hide');
