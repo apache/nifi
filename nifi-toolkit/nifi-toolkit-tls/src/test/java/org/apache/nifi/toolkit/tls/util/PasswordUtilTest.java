@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -47,5 +48,13 @@ public class PasswordUtilTest {
         String expected = Base64.getEncoder().encodeToString(BigInteger.valueOf(Integer.valueOf(value).longValue()).toByteArray()).split("=")[0];
         String actual = passwordUtil.generatePassword();
         assertEquals(expected, actual);
+    }
+
+    @Test(expected = PasswordsExhaustedException.class)
+    public void testPasswordExhausted() {
+        Supplier<String> supplier = PasswordUtil.passwordSupplier("exhausted", new String[]{"a", "b"});
+        supplier.get();
+        supplier.get();
+        supplier.get();
     }
 }

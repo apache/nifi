@@ -18,6 +18,7 @@
 package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -84,7 +85,6 @@ public class TlsToolkitStandalone {
         X509Certificate certificate;
         KeyPair caKeyPair;
 
-        List<String> hostnames = standaloneConfig.getHostnames();
         if (logger.isInfoEnabled()) {
             logger.info("Running standalone certificate generation with output directory " + baseDir);
         }
@@ -128,19 +128,22 @@ public class TlsToolkitStandalone {
             }
         }
 
-        List<String> keyStorePasswords = standaloneConfig.getKeyStorePasswords();
-        List<String> keyPasswords = standaloneConfig.getKeyPasswords();
-        List<String> trustStorePasswords = standaloneConfig.getTrustStorePasswords();
         NiFiPropertiesWriterFactory niFiPropertiesWriterFactory = standaloneConfig.getNiFiPropertiesWriterFactory();
-        int httpsPort = standaloneConfig.getHttpsPort();
         boolean overwrite = standaloneConfig.isOverwrite();
 
-        if (hostnames.isEmpty() && logger.isInfoEnabled()) {
+        List<InstanceDefinition> instanceDefinitions = standaloneConfig.getInstanceDefinitions();
+        if (!instanceDefinitions.isEmpty() && logger.isInfoEnabled()) {
             logger.info("No " + TlsToolkitStandaloneCommandLine.HOSTNAMES_ARG + " specified, not generating any host certificates or configuration.");
         }
-        for (int i = 0; i < hostnames.size(); i++) {
-            String hostname = hostnames.get(i);
-            File hostDir = new File(baseDir, hostname);
+        for (InstanceDefinition instanceDefinition : instanceDefinitions) {
+            String hostname = instanceDefinition.getHostname();
+            File hostDir;
+            int hostIdentifierNumber = instanceDefinition.getInstanceIdentifier().getNumber();
+            if (hostIdentifierNumber == 1) {
+                hostDir = new File(baseDir, hostname);
+            } else {
+                hostDir = new File(baseDir, hostname + "_" + hostIdentifierNumber);
+            }
 
             TlsClientConfig tlsClientConfig = new TlsClientConfig(standaloneConfig);
             File keystore = new File(hostDir, "keystore." + tlsClientConfig.getKeyStoreType().toLowerCase());
@@ -171,20 +174,20 @@ public class TlsToolkitStandalone {
             }
 
             tlsClientConfig.setKeyStore(keystore.getAbsolutePath());
-            tlsClientConfig.setKeyStorePassword(keyStorePasswords.get(i));
-            tlsClientConfig.setKeyPassword(keyPasswords.get(i));
+            tlsClientConfig.setKeyStorePassword(instanceDefinition.getKeyStorePassword());
+            tlsClientConfig.setKeyPassword(instanceDefinition.getKeyPassword());
             tlsClientConfig.setTrustStore(truststore.getAbsolutePath());
-            tlsClientConfig.setTrustStorePassword(trustStorePasswords.get(i));
+            tlsClientConfig.setTrustStorePassword(instanceDefinition.getTrustStorePassword());
             TlsClientManager tlsClientManager = new TlsClientManager(tlsClientConfig);
             KeyPair keyPair = TlsHelper.generateKeyPair(keyPairAlgorithm, keySize);
             tlsClientManager.addPrivateKeyToKeyStore(keyPair, NIFI_KEY, CertificateUtils.generateIssuedCertificate(TlsConfig.calcDefaultDn(hostname),
                     keyPair.getPublic(), certificate, caKeyPair, signingAlgorithm, days), certificate);
             tlsClientManager.setCertificateEntry(NIFI_CERT, certificate);
             tlsClientManager.addClientConfigurationWriter(new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, new File(hostDir, "nifi.properties"),
-                    hostname, httpsPort));
+                    hostname, instanceDefinition.getNumber()));
             tlsClientManager.write(outputStreamFactory);
             if (logger.isInfoEnabled()) {
-                logger.info("Successfully generated TLS configuration for " + hostname + ":" + httpsPort + " in " + hostDir);
+                logger.info("Successfully generated TLS configuration for " + hostname + " " + hostIdentifierNumber + " in " + hostDir);
             }
         }
 

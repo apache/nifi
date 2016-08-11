@@ -33,6 +33,7 @@ import java.util.Map;
  */
 public class TlsToolkitMain {
     public static final String DESCRIPTION = "DESCRIPTION";
+    public static final String UNABLE_TO_GET_DESCRIPTION = "Unable to get description. (";
     private final Map<String, Class<?>> mainMap;
 
     public TlsToolkitMain() {
@@ -46,7 +47,7 @@ public class TlsToolkitMain {
         new TlsToolkitMain().doMain(args);
     }
 
-    private void printUsageAndExit(String message, ExitCode exitCode) {
+    private <T> T printUsageAndExit(String message, ExitCode exitCode) {
         System.out.println(message);
         System.out.println();
         System.out.println("Usage: tls-toolkit service [-h] [args]");
@@ -55,14 +56,32 @@ public class TlsToolkitMain {
         mainMap.forEach((s, aClass) -> System.out.println("   " + s + ": " + getDescription(aClass)));
         System.out.println();
         System.exit(exitCode.ordinal());
+        return null;
     }
 
-    private String getDescription(Class<?> clazz) {
+    protected String getDescription(Class<?> clazz) {
         try {
             Field declaredField = clazz.getDeclaredField(DESCRIPTION);
             return String.valueOf(declaredField.get(null));
         } catch (Exception e) {
-            return "Unable to get description. (" + e.getMessage() + ")";
+            return UNABLE_TO_GET_DESCRIPTION + e.getMessage() + ")";
+        }
+    }
+
+    protected Map<String, Class<?>> getMainMap() {
+        return mainMap;
+    }
+
+    protected Method getMain(String service) {
+        Class<?> mainClass = mainMap.get(service);
+        if (mainClass == null) {
+            printUsageAndExit("Unknown service: " + service, ExitCode.INVALID_ARGS);
+        }
+
+        try {
+            return mainClass.getDeclaredMethod("main", String[].class);
+        } catch (NoSuchMethodException e) {
+            return printUsageAndExit("Service " + service + " is missing main method.", ExitCode.SERVICE_ERROR);
         }
     }
 
@@ -72,21 +91,9 @@ public class TlsToolkitMain {
         }
 
         String service = args[0].toLowerCase();
-        Class<?> mainClass = mainMap.get(service);
-        if (mainClass == null) {
-            printUsageAndExit("Unknown service: " + service, ExitCode.INVALID_ARGS);
-        }
-
-        Method main;
-        try {
-            main = mainClass.getDeclaredMethod("main", String[].class);
-        } catch (NoSuchMethodException e) {
-            printUsageAndExit("Service " + service + " is missing main method.", ExitCode.SERVICE_ERROR);
-            return;
-        }
 
         try {
-            main.invoke(null, (Object) args);
+            getMain(service).invoke(null, (Object) args);
         } catch (IllegalAccessException e) {
             printUsageAndExit("Service " + service + " has invalid main method.", ExitCode.SERVICE_ERROR);
         } catch (InvocationTargetException e) {
