@@ -20,6 +20,7 @@ package org.apache.nifi.toolkit.tls.standalone;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.SystemExitCapturer;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
@@ -40,7 +41,6 @@ import java.io.InputStream;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
-import java.security.Permission;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
@@ -54,13 +54,12 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 public class TlsToolkitStandaloneTest {
     public static final String NIFI_FAKE_PROPERTY = "nifi.fake.property";
     public static final String FAKE_VALUE = "fake value";
     public static final String TEST_NIFI_PROPERTIES = "src/test/resources/localhost/nifi.properties";
-    private SecurityManager originalSecurityManager;
+    private SystemExitCapturer systemExitCapturer;
 
     private File tempDir;
 
@@ -74,31 +73,12 @@ public class TlsToolkitStandaloneTest {
         if (!tempDir.mkdirs()) {
             throw new IOException("Couldn't make directory " + tempDir);
         }
-
-        originalSecurityManager = System.getSecurityManager();
-        // [see http://stackoverflow.com/questions/309396/java-how-to-test-methods-that-call-system-exit#answer-309427]
-        System.setSecurityManager(new SecurityManager() {
-            @Override
-            public void checkPermission(Permission perm) {
-                // Noop
-            }
-
-            @Override
-            public void checkPermission(Permission perm, Object context) {
-                // Noop
-            }
-
-            @Override
-            public void checkExit(int status) {
-                super.checkExit(status);
-                throw new ExitException(status);
-            }
-        });
+        systemExitCapturer = new SystemExitCapturer();
     }
 
     @After
     public void teardown() throws IOException {
-        System.setSecurityManager(originalSecurityManager);
+        systemExitCapturer.close();
         FileUtils.deleteDirectory(tempDir);
     }
 
@@ -248,13 +228,16 @@ public class TlsToolkitStandaloneTest {
             trustStore.load(inputStream, nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
         }
 
+        String trustStoreFilename = BaseCommandLine.KEYSTORE + trustStoreType;
+        assertEquals("./conf/" + trustStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+
         Certificate certificate = trustStore.getCertificate(TlsToolkitStandalone.NIFI_CERT);
         assertEquals(rootCert, certificate);
 
         String keyStoreType = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
         String keyStoreFilename = BaseCommandLine.KEYSTORE + keyStoreType;
         File keyStoreFile = new File(hostDir, keyStoreFilename);
-        assertEquals(keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
+        assertEquals("./conf/" + keyStoreFilename, nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
 
         KeyStore keyStore = KeyStore.getInstance(keyStoreType);
         try (InputStream inputStream = new FileInputStream(keyStoreFile)) {
@@ -303,23 +286,6 @@ public class TlsToolkitStandaloneTest {
     }
 
     private void runAndAssertExitCode(ExitCode exitCode, String... args) {
-        try {
-            TlsToolkitStandaloneCommandLine.main(args);
-            fail("Expecting exit code: " + exitCode);
-        } catch (ExitException e) {
-            assertEquals(exitCode, ExitCode.values()[e.getExitCode()]);
-        }
-    }
-
-    private static class ExitException extends SecurityException {
-        private final int exitCode;
-
-        public ExitException(int exitCode) {
-            this.exitCode = exitCode;
-        }
-
-        public int getExitCode() {
-            return exitCode;
-        }
+        systemExitCapturer.runAndAssertExitCode(() -> TlsToolkitStandaloneCommandLine.main(args), exitCode);
     }
 }

@@ -19,6 +19,8 @@ package org.apache.nifi.toolkit.tls.standalone;
 
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
+import org.apache.nifi.toolkit.tls.configuration.InstanceIdentifier;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriter;
@@ -35,11 +37,15 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -145,17 +151,10 @@ public class TlsToolkitStandaloneCommandLineTest {
 
         tlsToolkitStandaloneCommandLine.parse("-n", nifi1 + " , " + nifi2);
 
-        List<String> hostnames = tlsToolkitStandaloneCommandLine.createConfig().getHostnames();
-        assertEquals(2, hostnames.size());
-        assertEquals(nifi1, hostnames.get(0));
-        assertEquals(nifi2, hostnames.get(1));
-    }
-
-    @Test
-    public void testHttpsPort() throws CommandLineParseException {
-        int testPort = 8998;
-        tlsToolkitStandaloneCommandLine.parse("-p", Integer.toString(testPort));
-        assertEquals(testPort, tlsToolkitStandaloneCommandLine.createConfig().getHttpsPort());
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(2, instanceDefinitions.size());
+        assertEquals(nifi1, instanceDefinitions.get(0).getHostname());
+        assertEquals(nifi2, instanceDefinitions.get(1).getHostname());
     }
 
     @Test
@@ -183,52 +182,46 @@ public class TlsToolkitStandaloneCommandLineTest {
     @Test
     public void testNotSameKeyAndKeystorePassword() throws CommandLineParseException {
         tlsToolkitStandaloneCommandLine.parse("-g", "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords();
-        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords();
-        assertEquals(1, tlsToolkitStandaloneCommandLine.createConfig().getHostnames().size());
-        assertEquals(1, keyStorePasswords.size());
-        assertEquals(1, keyPasswords.size());
-        assertNotEquals(keyStorePasswords.get(0), keyPasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertNotEquals(instanceDefinitions.get(0).getKeyStorePassword(), instanceDefinitions.get(0).getKeyPassword());
     }
 
     @Test
     public void testSameKeyAndKeystorePassword() throws CommandLineParseException {
         tlsToolkitStandaloneCommandLine.parse("-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords();
-        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords();
-        assertEquals(1, tlsToolkitStandaloneCommandLine.createConfig().getHostnames().size());
-        assertEquals(1, keyStorePasswords.size());
-        assertEquals(1, keyPasswords.size());
-        assertEquals(keyStorePasswords.get(0), keyPasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(instanceDefinitions.get(0).getKeyStorePassword(), instanceDefinitions.get(0).getKeyPassword());
     }
 
     @Test
     public void testSameKeyAndKeystorePasswordWithKeystorePasswordSpecified() throws CommandLineParseException {
         String testPassword = "testPassword";
         tlsToolkitStandaloneCommandLine.parse("-S", testPassword, "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords();
-        assertEquals(1, keyStorePasswords.size());
-        assertEquals(testPassword, keyStorePasswords.get(0));
-        assertEquals(keyStorePasswords, tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords());
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(testPassword, instanceDefinitions.get(0).getKeyStorePassword());
+        assertEquals(testPassword, instanceDefinitions.get(0).getKeyPassword());
     }
 
     @Test
     public void testSameKeyAndKeystorePasswordWithKeyPasswordSpecified() throws CommandLineParseException {
         String testPassword = "testPassword";
         tlsToolkitStandaloneCommandLine.parse("-K", testPassword, "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords();
-        assertNotEquals(tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords(), keyPasswords);
-        assertEquals(1, keyPasswords.size());
-        assertEquals(testPassword, keyPasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertNotEquals(instanceDefinitions.get(0).getKeyStorePassword(), instanceDefinitions.get(0).getKeyPassword());
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(testPassword, instanceDefinitions.get(0).getKeyPassword());
     }
 
     @Test
     public void testKeyStorePasswordArg() throws CommandLineParseException {
         String testPassword = "testPassword";
         tlsToolkitStandaloneCommandLine.parse("-S", testPassword, "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords();
-        assertEquals(1, keyStorePasswords.size());
-        assertEquals(testPassword, keyStorePasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(testPassword, instanceDefinitions.get(0).getKeyStorePassword());
     }
 
     @Test
@@ -236,31 +229,19 @@ public class TlsToolkitStandaloneCommandLineTest {
         String testPassword1 = "testPassword1";
         String testPassword2 = "testPassword2";
         tlsToolkitStandaloneCommandLine.parse("-n", "nifi1,nifi2", "-S", testPassword1, "-S", testPassword2);
-        List<String> keyStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyStorePasswords();
-        assertEquals(2, keyStorePasswords.size());
-        assertEquals(testPassword1, keyStorePasswords.get(0));
-        assertEquals(testPassword2, keyStorePasswords.get(1));
-    }
-
-    @Test
-    public void testMultipleKeystorePasswordArgSingleHost() {
-        String testPassword1 = "testPassword1";
-        String testPassword2 = "testPassword2";
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-S", testPassword1, "-S", testPassword2);
-            fail("Expected error with mismatch keystore password number");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS.ordinal(), e.getExitCode());
-        }
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(2, instanceDefinitions.size());
+        assertEquals(testPassword1, instanceDefinitions.get(0).getKeyStorePassword());
+        assertEquals(testPassword2, instanceDefinitions.get(1).getKeyStorePassword());
     }
 
     @Test
     public void testKeyPasswordArg() throws CommandLineParseException {
         String testPassword = "testPassword";
         tlsToolkitStandaloneCommandLine.parse("-K", testPassword, "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords();
-        assertEquals(1, keyPasswords.size());
-        assertEquals(testPassword, keyPasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(testPassword, instanceDefinitions.get(0).getKeyPassword());
     }
 
     @Test
@@ -268,31 +249,19 @@ public class TlsToolkitStandaloneCommandLineTest {
         String testPassword1 = "testPassword1";
         String testPassword2 = "testPassword2";
         tlsToolkitStandaloneCommandLine.parse("-n", "nifi1,nifi2", "-K", testPassword1, "-K", testPassword2);
-        List<String> keyPasswords = tlsToolkitStandaloneCommandLine.createConfig().getKeyPasswords();
-        assertEquals(2, keyPasswords.size());
-        assertEquals(testPassword1, keyPasswords.get(0));
-        assertEquals(testPassword2, keyPasswords.get(1));
-    }
-
-    @Test
-    public void testMultipleKeyPasswordArgSingleHost() {
-        String testPassword1 = "testPassword1";
-        String testPassword2 = "testPassword2";
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-K", testPassword1, "-K", testPassword2);
-            fail("Expected error with mismatch keystore password number");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS.ordinal(), e.getExitCode());
-        }
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(2, instanceDefinitions.size());
+        assertEquals(testPassword1, instanceDefinitions.get(0).getKeyPassword());
+        assertEquals(testPassword2, instanceDefinitions.get(1).getKeyPassword());
     }
 
     @Test
     public void testTruststorePasswordArg() throws CommandLineParseException {
         String testPassword = "testPassword";
         tlsToolkitStandaloneCommandLine.parse("-P", testPassword, "-n", TlsConfig.DEFAULT_HOSTNAME);
-        List<String> trustStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getTrustStorePasswords();
-        assertEquals(1, trustStorePasswords.size());
-        assertEquals(testPassword, trustStorePasswords.get(0));
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(1, instanceDefinitions.size());
+        assertEquals(testPassword, instanceDefinitions.get(0).getTrustStorePassword());
     }
 
     @Test
@@ -300,22 +269,10 @@ public class TlsToolkitStandaloneCommandLineTest {
         String testPassword1 = "testPassword1";
         String testPassword2 = "testPassword2";
         tlsToolkitStandaloneCommandLine.parse("-n", "nifi1,nifi2", "-P", testPassword1, "-P", testPassword2);
-        List<String> trustStorePasswords = tlsToolkitStandaloneCommandLine.createConfig().getTrustStorePasswords();
-        assertEquals(2, trustStorePasswords.size());
-        assertEquals(testPassword1, trustStorePasswords.get(0));
-        assertEquals(testPassword2, trustStorePasswords.get(1));
-    }
-
-    @Test
-    public void testMultipleTruststorePasswordArgSingleHost() {
-        String testPassword1 = "testPassword1";
-        String testPassword2 = "testPassword2";
-        try {
-            tlsToolkitStandaloneCommandLine.parse("-P", testPassword1, "-P", testPassword2);
-            fail("Expected error with mismatch keystore password number");
-        } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS.ordinal(), e.getExitCode());
-        }
+        List<InstanceDefinition> instanceDefinitions = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions();
+        assertEquals(2, instanceDefinitions.size());
+        assertEquals(testPassword1, instanceDefinitions.get(0).getTrustStorePassword());
+        assertEquals(testPassword2, instanceDefinitions.get(1).getTrustStorePassword());
     }
 
     @Test
@@ -362,6 +319,83 @@ public class TlsToolkitStandaloneCommandLineTest {
         assertEquals(2, clientPasswords.size());
         assertEquals(testPass1, clientPasswords.get(0));
         assertEquals(testPass2, clientPasswords.get(1));
+    }
+
+    @Test
+    public void testNoGlobalOrder() throws CommandLineParseException {
+        String hostname1 = "other0[4-6]";
+        String hostname2 = "nifi3(2)";
+        tlsToolkitStandaloneCommandLine.parse("-n", hostname1, "-n", hostname2);
+        Map<InstanceIdentifier, InstanceDefinition> definitionMap = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions().stream()
+                .collect(Collectors.toMap(InstanceDefinition::getInstanceIdentifier, Function.identity()));
+        assertEquals(5, definitionMap.size());
+
+        InstanceDefinition nifi3_1 = definitionMap.get(new InstanceIdentifier("nifi3", 1));
+        assertNotNull(nifi3_1);
+        assertEquals(1, nifi3_1.getInstanceIdentifier().getNumber());
+        assertEquals(1, nifi3_1.getNumber());
+
+        InstanceDefinition nifi3_2 = definitionMap.get(new InstanceIdentifier("nifi3", 2));
+        assertNotNull(nifi3_2);
+        assertEquals(2, nifi3_2.getInstanceIdentifier().getNumber());
+        assertEquals(2, nifi3_2.getNumber());
+
+        InstanceDefinition other04 = definitionMap.get(new InstanceIdentifier("other04", 1));
+        assertNotNull(other04);
+        assertEquals(1, other04.getInstanceIdentifier().getNumber());
+        assertEquals(1, other04.getNumber());
+
+        InstanceDefinition other05 = definitionMap.get(new InstanceIdentifier("other05", 1));
+        assertNotNull(other05);
+        assertEquals(1, other05.getInstanceIdentifier().getNumber());
+        assertEquals(1, other05.getNumber());
+
+        InstanceDefinition other06 = definitionMap.get(new InstanceIdentifier("other06", 1));
+        assertNotNull(other06);
+        assertEquals(1, other06.getInstanceIdentifier().getNumber());
+        assertEquals(1, other06.getNumber());
+    }
+
+    @Test
+    public void testGlobalOrder() throws CommandLineParseException {
+        String hostname1 = "other0[4-6]";
+        String hostname2 = "nifi3(2)";
+        String globalOrder1 = "nifi[1-5](2),other[01-4]";
+        String globalOrder2 = "other[05-10]";
+        tlsToolkitStandaloneCommandLine.parse("-n", hostname1, "-n", hostname2, "-G", globalOrder1, "-G", globalOrder2);
+        Map<InstanceIdentifier, InstanceDefinition> definitionMap = tlsToolkitStandaloneCommandLine.createConfig().getInstanceDefinitions().stream()
+                .collect(Collectors.toMap(InstanceDefinition::getInstanceIdentifier, Function.identity()));
+        assertEquals(5, definitionMap.size());
+
+        InstanceDefinition nifi3_1 = definitionMap.get(new InstanceIdentifier("nifi3", 1));
+        assertNotNull(nifi3_1);
+        assertEquals(1, nifi3_1.getInstanceIdentifier().getNumber());
+        assertEquals(5, nifi3_1.getNumber());
+
+        InstanceDefinition nifi3_2 = definitionMap.get(new InstanceIdentifier("nifi3", 2));
+        assertNotNull(nifi3_2);
+        assertEquals(2, nifi3_2.getInstanceIdentifier().getNumber());
+        assertEquals(6, nifi3_2.getNumber());
+
+        InstanceDefinition other04 = definitionMap.get(new InstanceIdentifier("other04", 1));
+        assertNotNull(other04);
+        assertEquals(1, other04.getInstanceIdentifier().getNumber());
+        assertEquals(14, other04.getNumber());
+
+        InstanceDefinition other05 = definitionMap.get(new InstanceIdentifier("other05", 1));
+        assertNotNull(other05);
+        assertEquals(1, other05.getInstanceIdentifier().getNumber());
+        assertEquals(15, other05.getNumber());
+
+        InstanceDefinition other06 = definitionMap.get(new InstanceIdentifier("other06", 1));
+        assertNotNull(other06);
+        assertEquals(1, other06.getInstanceIdentifier().getNumber());
+        assertEquals(16, other06.getNumber());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBadGlobalOrder() throws CommandLineParseException {
+        tlsToolkitStandaloneCommandLine.parse("-n", "notInGlobalOrder", "-G", "nifi[1-3]");
     }
 
     private Properties getProperties() throws IOException {
