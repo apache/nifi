@@ -24,6 +24,7 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -279,15 +280,17 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                try {
+                    final String result = context.newExpressionLanguageCompiler().validateExpression(input, true);
+                    if (!StringUtils.isEmpty(result)) {
+                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(result).build();
+                    }
+                } catch (final Exception e) {
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(e.getMessage()).build();
+                }
             }
 
-            try {
-                context.newExpressionLanguageCompiler().compile(input);
-                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-            } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(e.getMessage()).build();
-            }
+            return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
         }
 
     };

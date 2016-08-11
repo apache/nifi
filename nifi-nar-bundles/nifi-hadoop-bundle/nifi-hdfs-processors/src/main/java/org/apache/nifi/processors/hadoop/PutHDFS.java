@@ -96,13 +96,6 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .build();
 
     // properties
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name(DIRECTORY_PROP_NAME)
-            .description("The parent HDFS directory to which files should be written")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("Conflict Resolution Strategy")
@@ -168,7 +161,10 @@ public class PutHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> props = new ArrayList<>(properties);
-        props.add(DIRECTORY);
+        props.add(new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(DIRECTORY)
+                .description("The parent HDFS directory to which files should be written")
+                .build());
         props.add(CONFLICT_RESOLUTION);
         props.add(BLOCK_SIZE);
         props.add(BUFFER_SIZE);
@@ -212,27 +208,29 @@ public class PutHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final Path configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
-        final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
-
-        final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
-        final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
-
-        final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-        final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
-
-        final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
-        final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
-                .getDefaultReplication(configuredRootDirPath);
-
-        final CompressionCodec codec = getCompressionCodec(context, configuration);
-
-        final String filename = codec != null
-                ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
-                : flowFile.getAttribute(CoreAttributes.FILENAME.key());
-
         Path tempDotCopyFile = null;
         try {
+            final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+            final Path configuredRootDirPath = new Path(dirValue);
+
+            final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
+
+            final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
+            final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
+
+            final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
+            final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
+
+            final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
+            final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
+                    .getDefaultReplication(configuredRootDirPath);
+
+            final CompressionCodec codec = getCompressionCodec(context, configuration);
+
+            final String filename = codec != null
+                    ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                    : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
             final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
             final Path copyFile = new Path(configuredRootDirPath, filename);
 

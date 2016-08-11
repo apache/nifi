@@ -103,7 +103,7 @@ public class GetHDFSSequenceFileTest {
 
     public class TestableGetHDFSSequenceFile extends GetHDFSSequenceFile {
         @Override
-        HdfsResources resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
+        HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
             return hdfsResources;
         }
 

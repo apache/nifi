@@ -83,6 +83,47 @@ public class TestListHDFS {
     }
 
     @Test
+    public void testListingWithValidELFunction() throws InterruptedException {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):substring(0,5)}");
+
+        // first iteration will not pick up files because it has to instead check timestamps.
+        // We must then wait long enough to ensure that the listing can be performed safely and
+        // run the Processor again.
+        runner.run();
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
+        mff.assertAttributeEquals("path", "/test");
+        mff.assertAttributeEquals("filename", "testFile.txt");
+    }
+
+    @Test
+    public void testListingWithInalidELFunction() throws InterruptedException {
+        runner.setProperty(ListHDFS.DIRECTORY, "${literal('/test'):foo()}");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testListingWithUnrecognizedELFunction() throws InterruptedException {
+        proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
+
+        runner.setProperty(ListHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
+
+        // first iteration will not pick up files because it has to instead check timestamps.
+        // We must then wait long enough to ensure that the listing can be performed safely and
+        // run the Processor again.
+        runner.run();
+        Thread.sleep(TimeUnit.NANOSECONDS.toMillis(2 * ListHDFS.LISTING_LAG_NANOS));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 0);
+    }
+
+    @Test
     public void testListingHasCorrectAttributes() throws InterruptedException {
         proc.fileSystem.addFileStatus(new Path("/test"), new FileStatus(1L, false, 1, 1L, 0L, 0L, create777(), "owner", "group", new Path("/test/testFile.txt")));
 
@@ -287,20 +328,18 @@ public class TestListHDFS {
         }
     }
 
-
     private class MockFileSystem extends FileSystem {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
 
         public void addFileStatus(final Path parent, final FileStatus child) {
             Set<FileStatus> children = fileStatuses.get(parent);
-            if ( children == null ) {
+            if (children == null) {
                 children = new HashSet<>();
                 fileStatuses.put(parent, children);
             }
 
             children.add(child);
         }
-
 
         @Override
         public long getDefaultBlockSize() {
@@ -324,7 +363,7 @@ public class TestListHDFS {
 
         @Override
         public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
-                final long blockSize, final Progressable progress) throws IOException {
+                                         final long blockSize, final Progressable progress) throws IOException {
             return null;
         }
 
@@ -346,7 +385,7 @@ public class TestListHDFS {
         @Override
         public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
             final Set<FileStatus> statuses = fileStatuses.get(f);
-            if ( statuses == null ) {
+            if (statuses == null) {
                 return new FileStatus[0];
             }
 
@@ -374,7 +413,6 @@ public class TestListHDFS {
         }
 
     }
-
 
     private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();

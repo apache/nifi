@@ -196,6 +196,47 @@ public class GetHDFSTest {
         flowFile.assertContentEquals(expected);
     }
 
+    @Test
+    public void testDirectoryUsesValidEL() throws IOException {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/${literal('testdata'):substring(0,8)}");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
+        runner.run();
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).equals("13545423550275052.zip"));
+        InputStream expected = getClass().getResourceAsStream("/testdata/13545423550275052.zip");
+        flowFile.assertContentEquals(expected);
+    }
+
+    @Test
+    public void testDirectoryUsesUnrecognizedEL() throws IOException {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testDirectoryUsesInvalidEL() throws IOException {
+        GetHDFS proc = new TestableGetHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):foo()}");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, ".*.zip");
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, "AUTOMATIC");
+        runner.assertNotValid();
+    }
+
     private static class TestableGetHDFS extends GetHDFS {
 
         private final KerberosProperties testKerberosProperties;

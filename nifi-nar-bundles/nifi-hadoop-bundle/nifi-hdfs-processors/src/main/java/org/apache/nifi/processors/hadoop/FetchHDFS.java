@@ -54,13 +54,14 @@ import java.util.concurrent.TimeUnit;
         + "not be fetched from HDFS")
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
 public class FetchHDFS extends AbstractHadoopProcessor {
+
     static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
         .name("HDFS Filename")
         .description("The name of the HDFS file to retrieve")
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue("${path}/${filename}")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -102,9 +103,20 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         }
 
         final FileSystem hdfs = getFileSystem();
-        final Path path = new Path(context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue());
-        final URI uri = path.toUri();
+        final String filenameValue = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
 
+        Path path = null;
+        try {
+            path = new Path(filenameValue);
+        } catch (IllegalArgumentException e) {
+            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, flowFile, e});
+            flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
+        final URI uri = path.toUri();
         final StopWatch stopWatch = new StopWatch(true);
         try (final FSDataInputStream inStream = hdfs.open(path, 16384)) {
             flowFile = session.importFrom(inStream, flowFile);

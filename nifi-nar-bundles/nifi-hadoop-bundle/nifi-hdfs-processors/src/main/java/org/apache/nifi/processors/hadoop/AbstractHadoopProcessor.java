@@ -91,19 +91,35 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     // properties
-    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder().name("Hadoop Configuration Resources")
+    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
+            .name("Hadoop Configuration Resources")
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
-            .required(false).addValidator(createMultipleFilesExistValidator()).build();
+            .required(false)
+            .addValidator(createMultipleFilesExistValidator())
+            .build();
 
-    public static final String DIRECTORY_PROP_NAME = "Directory";
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Directory")
+            .description("The HDFS directory from which files should be read")
+            .required(true)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
 
-    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder().name("Compression codec").required(true)
-            .allowableValues(CompressionType.values()).defaultValue(CompressionType.NONE.toString()).build();
+    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+            .name("Compression codec")
+            .required(true)
+            .allowableValues(CompressionType.values())
+            .defaultValue(CompressionType.NONE.toString())
+            .build();
 
-    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder().name("Kerberos Relogin Period").required(false)
-            .description("Period of time which should pass before attempting a kerberos relogin").defaultValue("4 hours")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
+            .name("Kerberos Relogin Period").required(false)
+            .description("Period of time which should pass before attempting a kerberos relogin")
+            .defaultValue("4 hours")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     private static final Object RESOURCES_LOCK = new Object();
@@ -191,19 +207,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-                final String dir;
-                final PropertyDescriptor directoryPropDescriptor = getPropertyDescriptor(DIRECTORY_PROP_NAME);
-                if (directoryPropDescriptor != null) {
-                    if (directoryPropDescriptor.isExpressionLanguageSupported()) {
-                        dir = context.getProperty(DIRECTORY_PROP_NAME).evaluateAttributeExpressions().getValue();
-                    } else {
-                        dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
-                    }
-                } else {
-                    dir = null;
-                }
-                resources = resetHDFSResources(configResources, dir == null ? "/" : dir, context);
+                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+                resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
         } catch (IOException ex) {
@@ -249,7 +254,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
         // org.apache.hadoop.conf.Configuration saves its current thread context class loader to use for threads that it creates
         // later to do I/O. We need this class loader to be the NarClassLoader instead of the magical
         // NarThreadContextClassLoader.
@@ -286,8 +291,10 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                 }
             }
 
+            final Path workingDir = fs.getWorkingDirectory();
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                    new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
+                    new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
+
             return new HdfsResources(config, fs, ugi);
 
         } finally {

@@ -112,7 +112,7 @@ public class AbstractHadoopTest {
         SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(processor);
         try {
-            processor.resetHDFSResources("src/test/resources/core-site-broken.xml", "/target", runner.getProcessContext());
+            processor.resetHDFSResources("src/test/resources/core-site-broken.xml", runner.getProcessContext());
             Assert.fail("Should have thrown SocketTimeoutException");
         } catch (IOException e) {
         }
