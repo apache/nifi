@@ -1676,11 +1676,30 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<ControllerServiceDTO> snapshot = updateComponent(revision,
                 controllerService,
                 () -> controllerServiceDAO.updateControllerService(controllerServiceDTO),
-                cs -> dtoFactory.createControllerServiceDto(cs));
+                cs -> {
+                    final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
+                    final ControllerServiceReference ref = controllerService.getReferences();
+                    final ControllerServiceReferencingComponentsEntity referencingComponentsEntity =
+                            createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerService.getIdentifier()));
+                    dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
+                    return dto;
+                });
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(controllerService);
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(controllerServiceDTO.getId()));
         return entityFactory.createControllerServiceEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, bulletins);
+    }
+
+    private Set<ConfiguredComponent> findAllReferencingComponents(final ControllerServiceReference reference) {
+        final Set<ConfiguredComponent> referencingComponents = new HashSet<>(reference.getReferencingComponents());
+
+        for (final ConfiguredComponent referencingComponent : reference.getReferencingComponents()) {
+            if (referencingComponent instanceof ControllerServiceNode) {
+                referencingComponents.addAll(findAllReferencingComponents(((ControllerServiceNode) referencingComponent).getReferences()));
+            }
+        }
+
+        return referencingComponents;
     }
 
     @Override
@@ -1705,13 +1724,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                             updatedRevisions.put(component.getIdentifier(), currentRevision.incrementRevision(requestRevision.getClientId()));
                         }
 
-                        // return the current revision if the component wasn't updated
-                        for (final Map.Entry<String, Revision> entry : referenceRevisions.entrySet()) {
-                            final String componentId = entry.getKey();
-                            if (!updatedRevisions.containsKey(componentId)) {
-                                final Revision currentRevision = revisionManager.getRevision(componentId);
-                                updatedRevisions.put(componentId, currentRevision);
-                            }
+                        // ensure the revision for all referencing components is included regardless of whether they were updated in this request
+                        for (final ConfiguredComponent component : findAllReferencingComponents(updatedReference)) {
+                            updatedRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
                         }
 
                         final ControllerServiceReferencingComponentsEntity entity = createControllerServiceReferencingComponentsEntity(updatedReference, updatedRevisions);
@@ -1757,6 +1772,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final ConfiguredComponent component : reference.getReferencingComponents()) {
             referencingRevisions.put(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
         }
+
         return createControllerServiceReferencingComponentsEntity(reference, referencingRevisions);
     }
 
@@ -1806,7 +1822,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                 // if we haven't encountered this service before include it's referencing components
                 if (!dto.getReferenceCycle()) {
-                    final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(node.getReferences(), revisions, visited);
+                    final ControllerServiceReference refReferences = node.getReferences();
+                    final Map<String, Revision> referencingRevisions = new HashMap<>(revisions);
+                    for (final ConfiguredComponent component : refReferences.getReferencingComponents()) {
+                        referencingRevisions.putIfAbsent(component.getIdentifier(), revisionManager.getRevision(component.getIdentifier()));
+                    }
+                    final ControllerServiceReferencingComponentsEntity references = createControllerServiceReferencingComponentsEntity(refReferences, referencingRevisions, visited);
                     dto.setReferencingComponents(references.getControllerServiceReferencingComponents());
                 }
 

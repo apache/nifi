@@ -109,7 +109,7 @@ nf.ControllerService = (function () {
     };
 
     /**
-     * Reloads the specified controller service. It's referencing and referenced
+     * Reloads the specified controller service if we have read permissions. It's referencing and referenced
      * components are NOT reloaded.
      *
      * @param {jQuery} serviceTable
@@ -123,8 +123,9 @@ nf.ControllerService = (function () {
 
         // this may happen if controller service A references another controller
         // service B that has been removed. attempting to enable/disable/remove A
-        // will attempt to reload B which is no longer a known service
-        if (nf.Common.isUndefined(controllerServiceEntity)) {
+        // will attempt to reload B which is no longer a known service. also ensure
+        // we have permissions to reload the service
+        if (nf.Common.isUndefined(controllerServiceEntity) || controllerServiceEntity.permissions.canRead === false) {
             return $.Deferred(function (deferred) {
                 deferred.reject();
             }).promise();
@@ -457,7 +458,8 @@ nf.ControllerService = (function () {
                         if (serviceTwist.hasClass('collapsed')) {
                             var controllerServiceGrid = serviceTable.data('gridInstance');
                             var controllerServiceData = controllerServiceGrid.getData();
-                            var referencingService = controllerServiceData.getItemById(referencingComponent.id);
+                            var referencingServiceEntity = controllerServiceData.getItemById(referencingComponent.id);
+                            var referencingService = referencingServiceEntity.component;
 
                             // create the markup for the references
                             createReferencingComponents(serviceTable, referencingServiceReferencesContainer, referencingService.referencingComponents);
@@ -674,6 +676,33 @@ nf.ControllerService = (function () {
     };
 
     /**
+     * Gathers all referencing component revisions.
+     *
+     * @param referencingComponents
+     * @param referencingComponentRevisions
+     * @param serviceOnly - true includes only services, false includes only schedulable components
+     */
+    var getReferencingComponentRevisions = function (referencingComponents, referencingComponentRevisions, serviceOnly) {
+        // include the revision of each referencing component
+        $.each(referencingComponents, function (_, referencingComponentEntity) {
+            var referencingComponent = referencingComponentEntity.component;
+
+            if (serviceOnly) {
+                if (referencingComponent.referenceType === 'ControllerService') {
+                    referencingComponentRevisions[referencingComponentEntity.id] = nf.Client.getRevision(referencingComponentEntity);
+                }
+            } else {
+                if (referencingComponent.referenceType !== 'ControllerService') {
+                    referencingComponentRevisions[referencingComponentEntity.id] = nf.Client.getRevision(referencingComponentEntity);
+                }
+            }
+
+            // recurse
+            getReferencingComponentRevisions(referencingComponent.referencingComponents, referencingComponentRevisions, serviceOnly);
+        });
+    };
+
+    /**
      * Updates the scheduled state of the processors/reporting tasks referencing
      * the specified controller service.
      *
@@ -683,16 +712,14 @@ nf.ControllerService = (function () {
      * @param {function} pollCondition
      */
     var updateReferencingSchedulableComponents = function (serviceTable, controllerServiceEntity, running, pollCondition) {
+        var referencingRevisions = {};
+        getReferencingComponentRevisions(controllerServiceEntity.component.referencingComponents, referencingRevisions, false);
+
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
-            'referencingComponentRevisions': {}
+            'referencingComponentRevisions': referencingRevisions
         };
-
-        // include the revision of each referencing component
-        $.each(controllerServiceEntity.component.referencingComponents, function (_, referencingComponent) {
-            referenceEntity.referencingComponentRevisions[referencingComponent.id] = nf.Client.getRevision(referencingComponent);
-        });
 
         // issue the request to update the referencing components
         var updated = $.ajax({
@@ -956,17 +983,15 @@ nf.ControllerService = (function () {
      * @param {function} pollCondition
      */
     var updateReferencingServices = function (serviceTable, controllerServiceEntity, enabled, pollCondition) {
+        var referencingRevisions = {};
+        getReferencingComponentRevisions(controllerServiceEntity.component.referencingComponents, referencingRevisions, true);
+
         // build the reference entity
         var referenceEntity = {
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
-            'referencingComponentRevisions': {}
+            'referencingComponentRevisions': referencingRevisions
         };
-
-        // include the revision of each referencing component
-        $.each(controllerServiceEntity.component.referencingComponents, function (_, referencingComponent) {
-            referenceEntity.referencingComponentRevisions[referencingComponent.id] = nf.Client.getRevision(referencingComponent);
-        });
 
         // issue the request to update the referencing components
         var updated = $.ajax({
@@ -1029,34 +1054,20 @@ nf.ControllerService = (function () {
         var referencingComponentsContainer = $('#disable-controller-service-referencing-components');
         createReferencingComponents(serviceTable, referencingComponentsContainer, controllerService.referencingComponents);
 
-        var hasUnauthorized = false;
-        $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
-                hasUnauthorized = true;
-                return false;
-            }
-        });
-
         // build the button model
-        var buttons = [];
-
-        if (hasUnauthorized === false) {
-            buttons.push({
-                buttonText: 'Disable',
-                color: {
-                    base: '#728E9B',
-                    hover: '#004849',
-                    text: '#ffffff'
-                },
-                handler: {
-                    click: function () {
-                        disableHandler(serviceTable);
-                    }
+        var buttons = [{
+            buttonText: 'Disable',
+            color: {
+                base: '#728E9B',
+                hover: '#004849',
+                text: '#ffffff'
+            },
+            handler: {
+                click: function () {
+                    disableHandler(serviceTable);
                 }
-            });
-        }
-
-        buttons.push({
+            }
+        }, {
             buttonText: 'Cancel',
             color: {
                 base: '#E3E8EB',
@@ -1066,7 +1077,7 @@ nf.ControllerService = (function () {
             handler: {
                 click: closeModal
             }
-        });
+        }];
 
         // show the dialog
         $('#disable-controller-service-dialog').modal('setButtonModel', buttons).modal('show');
@@ -1197,6 +1208,17 @@ nf.ControllerService = (function () {
             }]);
         };
 
+        // ensure we have access to all referencing components before attempting the sequence
+        if (hasUnauthorizedReferencingComponent(controllerService.referencingComponents)) {
+            setCloseButton();
+
+            nf.Dialog.showOkDialog({
+                headerText: 'Controller Service',
+                dialogContent: 'Unable to disable due to unauthorized referencing components.'
+            });
+            return;
+        }
+
         $('#disable-progress-label').text('Steps to disable ' + controllerService.name);
         var disableReferencingSchedulable = $('#disable-referencing-schedulable').addClass('ajax-loading');
 
@@ -1248,6 +1270,31 @@ nf.ControllerService = (function () {
     };
 
     /**
+     * Determines if any of the specified referencing components are not authorized.
+     *
+     * @param referencingComponents referencing components
+     * @returns {boolean}
+     */
+    var hasUnauthorizedReferencingComponent = function (referencingComponents) {
+        var hasUnauthorized = false;
+
+        $.each(referencingComponents, function (_, referencingComponentEntity) {
+            if (referencingComponentEntity.permissions.canRead === false || referencingComponentEntity.permissions.canWrite === false) {
+                hasUnauthorized = true;
+                return false;
+            }
+
+            var referencingComponent = referencingComponentEntity.component;
+            if (hasUnauthorizedReferencingComponent(referencingComponent.referencingComponents)) {
+                hasUnauthorized = true;
+                return false;
+            }
+        });
+
+        return hasUnauthorized;
+    };
+
+    /**
      * Handles the enable action of the enable controller service dialog.
      *
      * @param {jQuery} serviceTable
@@ -1263,25 +1310,8 @@ nf.ControllerService = (function () {
         var controllerServiceEntity = controllerServiceData.getItemById(controllerServiceId);
         var controllerService = controllerServiceEntity.component;
 
-        var hasUnauthorized = false;
-        $.each(controllerService.referencingComponents, function (_, referencingComponent) {
-            if (referencingComponent.permissions.canRead === false || referencingComponent.permissions.canWrite === false) {
-                hasUnauthorized = true;
-                return false;
-            }
-        });
-
         // determine if we want to also activate referencing components
         var scope = $('#enable-controller-service-scope').combo('getSelectedOption').value;
-
-        // ensure appropriate access
-        if (scope === config.serviceAndReferencingComponents && hasUnauthorized) {
-            nf.Dialog.showOkDialog({
-                headerText: 'Controller Service',
-                dialogContent: 'Unable to enable due to unauthorized referencing components.'
-            });
-            return;
-        }
 
         // update visibility
         if (scope === config.serviceOnly) {
@@ -1330,6 +1360,17 @@ nf.ControllerService = (function () {
                 }
             }]);
         };
+
+        // ensure appropriate access
+        if (scope === config.serviceAndReferencingComponents && hasUnauthorizedReferencingComponent(controllerService.referencingComponents)) {
+            setCloseButton();
+
+            nf.Dialog.showOkDialog({
+                headerText: 'Controller Service',
+                dialogContent: 'Unable to enable due to unauthorized referencing components.'
+            });
+            return;
+        }
 
         $('#enable-progress-label').text('Steps to enable ' + controllerService.name);
         var enableControllerService = $('#enable-controller-service').addClass('ajax-loading');
@@ -1504,7 +1545,7 @@ nf.ControllerService = (function () {
     };
 
     /**
-     * Identifies descritpors that reference controller services.
+     * Identifies descriptors that reference controller services.
      *
      * @param {object} component
      */
