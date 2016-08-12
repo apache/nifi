@@ -407,7 +407,7 @@ image::instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 [[label]]
-iconLabel.png["Label"]
+image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
 The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
