@@ -177,17 +177,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         claimManager.markDestructable(resourceClaim);
     }
 
-    private int getClaimantCount(final ContentClaim claim) {
+    private boolean isDestructable(final ContentClaim claim) {
         if (claim == null) {
-            return 0;
+            return false;
         }
 
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         if (resourceClaim == null) {
-            return 0;
+            return false;
         }
 
-        return claimManager.getClaimantCount(resourceClaim);
+        return !resourceClaim.isInUse();
     }
 
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
@@ -211,19 +211,28 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final Set<ResourceClaim> claimsToAdd = new HashSet<>();
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
-                // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
-                if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
+                // For any DELETE record that we have, if claim is destructible, mark it so
+                if (record.getCurrentClaim() != null && isDestructable(record.getCurrentClaim())) {
                     claimsToAdd.add(record.getCurrentClaim().getResourceClaim());
                 }
 
-                // If the original claim is different than the current claim and the original claim has a claimant count <= 0, mark it as destructable.
-                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                // If the original claim is different than the current claim and the original claim is destructible, mark it so
+                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && isDestructable(record.getOriginalClaim())) {
                     claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
-                // if we have an update, and the original is no longer needed, mark original as destructable
-                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                // if we have an update, and the original is no longer needed, mark original as destructible
+                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && isDestructable(record.getOriginalClaim())) {
                     claimsToAdd.add(record.getOriginalClaim().getResourceClaim());
+                }
+            }
+
+            final List<ContentClaim> transientClaims = record.getTransientClaims();
+            if (transientClaims != null) {
+                for (final ContentClaim transientClaim : transientClaims) {
+                    if (isDestructable(transientClaim)) {
+                        claimsToAdd.add(transientClaim.getResourceClaim());
+                    }
                 }
             }
         }

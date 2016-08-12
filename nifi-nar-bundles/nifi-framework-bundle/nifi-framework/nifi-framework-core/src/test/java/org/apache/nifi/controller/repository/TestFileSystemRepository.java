@@ -257,8 +257,8 @@ public class TestFileSystemRepository {
         final Path claimPath = getPath(claim);
 
         // Create the file.
-        try (final OutputStream out = Files.newOutputStream(claimPath, StandardOpenOption.CREATE)) {
-            out.write("Hello".getBytes());
+        try (final OutputStream out = repository.write(claim)) {
+            out.write(new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH]);
         }
 
         int count = repository.decrementClaimantCount(claim);
@@ -379,13 +379,13 @@ public class TestFileSystemRepository {
 
     @Test(expected = ContentNotFoundException.class)
     public void testSizeWithNoContent() throws IOException {
-        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim("container1", "section 1", "1", false), 0L);
+        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
         assertEquals(0L, repository.size(claim));
     }
 
     @Test(expected = ContentNotFoundException.class)
     public void testReadWithNoContent() throws IOException {
-        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim("container1", "section 1", "1", false), 0L);
+        final ContentClaim claim = new StandardContentClaim(new StandardResourceClaim(claimManager, "container1", "section 1", "1", false), 0L);
         final InputStream in = repository.read(claim);
         in.close();
     }
@@ -427,12 +427,12 @@ public class TestFileSystemRepository {
 
         // write at least 1 MB to the output stream so that when we close the output stream
         // the repo won't keep the stream open.
-        final byte[] buff = new byte[1024 * 1024];
+        final byte[] buff = new byte[FileSystemRepository.MAX_APPENDABLE_CLAIM_LENGTH];
         out.write(buff);
         out.write(buff);
 
-        // true because claimant count is still 1.
-        assertTrue(repository.remove(claim));
+        // false because claimant count is still 1, so the resource claim was not removed
+        assertFalse(repository.remove(claim));
 
         assertEquals(0, repository.decrementClaimantCount(claim));
 

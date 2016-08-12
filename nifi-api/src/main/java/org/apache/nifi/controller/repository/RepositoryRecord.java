@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
+import java.util.List;
+
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 
@@ -79,4 +81,10 @@ public interface RepositoryRecord {
      * swapped out
      */
     String getSwapLocation();
+
+    /**
+     * @return a List of Content Claims that are "transient," meaning that they existed only for the
+     *         life of the Process Session in which they were created and should not be persisted.
+     */
+    List<ContentClaim> getTransientClaims();
 }
