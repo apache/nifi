@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.controller.repository;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -35,6 +37,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private String swapLocation;
     private final Map<String, String> updatedAttributes = new HashMap<>();
     private final Map<String, String> originalAttributes;
+    private List<ContentClaim> transientClaims;
 
     /**
      * Creates a new record which has no original claim or flow file - it is entirely new
@@ -198,5 +201,21 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     @Override
     public String toString() {
         return "StandardRepositoryRecord[UpdateType=" + getType() + ",Record=" + getCurrent() + "]";
+    }
+
+    @Override
+    public List<ContentClaim> getTransientClaims() {
+        return transientClaims == null ? Collections.<ContentClaim> emptyList() : Collections.unmodifiableList(transientClaims);
+    }
+
+    void addTransientClaim(final ContentClaim claim) {
+        if (claim == null) {
+            return;
+        }
+
+        if (transientClaims == null) {
+            transientClaims = new ArrayList<>();
+        }
+        transientClaims.add(claim);
     }
 }

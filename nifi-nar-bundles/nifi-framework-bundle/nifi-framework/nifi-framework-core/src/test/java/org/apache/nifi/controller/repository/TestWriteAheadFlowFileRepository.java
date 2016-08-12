@@ -44,7 +44,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.swap.StandardSwapContents;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
@@ -87,10 +86,10 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);
 
-        final ResourceClaim resourceClaim1 = new StandardResourceClaim("container", "section", "1", false);
+        final ResourceClaim resourceClaim1 = claimManager.newResourceClaim("container", "section", "1", false);
         final ContentClaim claim1 = new StandardContentClaim(resourceClaim1, 0L);
 
-        final ResourceClaim resourceClaim2 = new StandardResourceClaim("container", "section", "2", false);
+        final ResourceClaim resourceClaim2 = claimManager.newResourceClaim("container", "section", "2", false);
         final ContentClaim claim2 = new StandardContentClaim(resourceClaim2, 0L);
 
         // Create a flowfile repo, update it once with a FlowFile that points to one resource claim. Then,

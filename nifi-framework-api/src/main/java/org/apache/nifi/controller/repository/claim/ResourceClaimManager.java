@@ -132,4 +132,11 @@ public interface ResourceClaimManager {
      * about
      */
     void purge();
+
+    /**
+     * Freezes the Resource Claim so that it can no longer be written to
+     *
+     * @param claim the resource claim to freeze
+     */
+    void freeze(ResourceClaim claim);
 }
