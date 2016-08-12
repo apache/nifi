@@ -50,7 +50,7 @@ tokens {
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
   }
 
@@ -67,13 +67,13 @@ tokens {
     }
     sb.append(", column ").append(e.charPositionInLine);
     sb.append(". Query: ").append(e.input.toString());
-    
+
     throw new AttributeExpressionLanguageParsingException(sb.toString());
-  } 
+  }
 }
 
 // functions that return Strings
-zeroArgString : (TO_UPPER | TO_LOWER | TRIM | TO_STRING | URL_ENCODE | URL_DECODE) LPAREN! RPAREN!;
+zeroArgString : (TO_UPPER | TO_LOWER | TRIM | TO_STRING | URL_ENCODE | URL_DECODE | ESCAPE_JSON | ESCAPE_XML | ESCAPE_CSV | ESCAPE_HTML3 | ESCAPE_HTML4 | UNESCAPE_JSON | UNESCAPE_XML | UNESCAPE_CSV | UNESCAPE_HTML3 | UNESCAPE_HTML4 ) LPAREN! RPAREN!;
 oneArgString : ((SUBSTRING_BEFORE | SUBSTRING_BEFORE_LAST | SUBSTRING_AFTER | SUBSTRING_AFTER_LAST | REPLACE_NULL | REPLACE_EMPTY |
 				PREPEND | APPEND | FORMAT | STARTS_WITH | ENDS_WITH | CONTAINS | JOIN | JSON_PATH) LPAREN! anyArg RPAREN!) |
 			   (TO_RADIX LPAREN! anyArg (COMMA! anyArg)? RPAREN!);
@@ -113,7 +113,7 @@ attrName : singleAttrName | multiAttrName;
 singleAttrRef : ATTRIBUTE_NAME | STRING_LITERAL;
 singleAttrName : singleAttrRef ->
 	^(ATTR_NAME singleAttrRef);
-	
+
 
 multiAttrFunction : ANY_ATTRIBUTE | ANY_MATCHING_ATTRIBUTE | ALL_ATTRIBUTES | ALL_MATCHING_ATTRIBUTES | ANY_DELINEATED_VALUE | ALL_DELINEATED_VALUES;
 multiAttrName : multiAttrFunction LPAREN stringArg (COMMA stringArg)* RPAREN ->
@@ -121,14 +121,14 @@ multiAttrName : multiAttrFunction LPAREN stringArg (COMMA stringArg)* RPAREN ->
 
 attributeRef : subject ->
 	^(ATTRIBUTE_REFERENCE subject);
-	
+
 
 functionCall : functionRef ->
 	^(FUNCTION_CALL functionRef);
 
 booleanLiteral : TRUE | FALSE;
 zeroArgStandaloneFunction : (IP | UUID | NOW | NEXT_INT | HOSTNAME | RANDOM) LPAREN! RPAREN!;
-oneArgStandaloneFunction : (TO_LITERAL^ LPAREN! anyArg RPAREN!) | 
+oneArgStandaloneFunction : (TO_LITERAL^ LPAREN! anyArg RPAREN!) |
                            (HOSTNAME^ LPAREN! booleanLiteral RPAREN!);
 standaloneFunction : zeroArgStandaloneFunction | oneArgStandaloneFunction;
 
