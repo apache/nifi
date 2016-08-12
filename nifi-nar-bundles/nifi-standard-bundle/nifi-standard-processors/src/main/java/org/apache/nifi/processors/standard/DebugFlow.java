@@ -16,8 +16,22 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.http.annotation.ThreadSafe;
 import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -25,23 +39,14 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 @ThreadSafe()
 @EventDriven()
@@ -167,6 +172,20 @@ public class DebugFlow extends AbstractProcessor {
                 }
             })
             .build();
+    static final PropertyDescriptor WRITE_ITERATIONS = new PropertyDescriptor.Builder()
+        .name("Write Iterations")
+        .description("Number of times to write to the FlowFile")
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .required(true)
+        .defaultValue("0")
+        .build();
+    static final PropertyDescriptor CONTENT_SIZE = new PropertyDescriptor.Builder()
+        .name("Content Size")
+        .description("The number of bytes to write each time that the FlowFile is written to")
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .required(true)
+        .defaultValue("1 KB")
+        .build();
 
     private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
@@ -225,6 +244,8 @@ public class DebugFlow extends AbstractProcessor {
                 propList.add(NO_FF_EXCEPTION_ITERATIONS);
                 propList.add(NO_FF_YIELD_ITERATIONS);
                 propList.add(NO_FF_EXCEPTION_CLASS);
+                propList.add(WRITE_ITERATIONS);
+                propList.add(CONTENT_SIZE);
                 propertyDescriptors.compareAndSet(null, Collections.unmodifiableList(propList));
             }
             return propertyDescriptors.get();
@@ -304,6 +325,23 @@ public class DebugFlow extends AbstractProcessor {
                 }
                 return;
             } else {
+                final int writeIterations = context.getProperty(WRITE_ITERATIONS).asInteger();
+                if (writeIterations > 0 && pass == 1) {
+                    final Random random = new Random();
+
+                    for (int i = 0; i < writeIterations; i++) {
+                        final byte[] data = new byte[context.getProperty(CONTENT_SIZE).asDataSize(DataUnit.B).intValue()];
+                        random.nextBytes(data);
+
+                        ff = session.write(ff, new OutputStreamCallback() {
+                            @Override
+                            public void process(final OutputStream out) throws IOException {
+                                out.write(data);
+                            }
+                        });
+                    }
+                }
+
                 if (curr_ff_resp.state() == FlowFileResponseState.FF_SUCCESS_RESPONSE) {
                     if (flowFileCurrSuccess < flowFileMaxSuccess) {
                         flowFileCurrSuccess += 1;

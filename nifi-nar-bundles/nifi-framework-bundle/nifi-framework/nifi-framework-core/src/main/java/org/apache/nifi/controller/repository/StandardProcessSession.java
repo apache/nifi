@@ -2278,24 +2278,26 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final boolean contentModified = record.getWorkingClaim() != null && record.getWorkingClaim() != record.getOriginalClaim();
 
         // If the working claim is not the same as the original claim, we have modified the content of
-        // the FlowFile, and we need to remove the newly created file (the working claim). However, if
+        // the FlowFile, and we need to remove the newly created content (the working claim). However, if
         // they are the same, we cannot just remove the claim because record.getWorkingClaim() will return
         // the original claim if the record is "working" but the content has not been modified
         // (e.g., in the case of attributes only were updated)
+        //
         // In other words:
         // If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
         // return the same claim as record.getOriginalClaim(). So we cannot just remove the working claim because
         // that may decrement the original claim (because the 2 claims are the same), and that's NOT what we want to do
-        // because we will do that later, in the session.commit() and that would result in removing the original claim twice.
+        // because we will do that later, in the session.commit() and that would result in decrementing the count for
+        // the original claim twice.
         if (contentModified) {
-            // In this case, it's ok to go ahead and destroy the content because we know that the working claim is going to be
+            // In this case, it's ok to decrement the claimant count for the content because we know that the working claim is going to be
             // updated and the given working claim is referenced only by FlowFiles in this session (because it's the Working Claim).
-            // Therefore, if this is the only record that refers to that Content Claim, we can destroy the claim. This happens,
-            // for instance, if a Processor modifies the content of a FlowFile more than once before committing the session.
-            final int claimantCount = context.getContentRepository().decrementClaimantCount(record.getWorkingClaim());
-            if (claimantCount == 0) {
-                context.getContentRepository().remove(record.getWorkingClaim());
-            }
+            // Therefore, we need to decrement the claimant count, and since the Working Claim is being changed, that means that
+            // the Working Claim is a transient claim (the content need not be persisted because no FlowFile refers to it). We cannot simply
+            // remove the content because there may be other FlowFiles that reference the same Resource Claim. Marking the Content Claim as
+            // transient, though, will result in the FlowFile Repository cleaning up as appropriate.
+            context.getContentRepository().decrementClaimantCount(record.getWorkingClaim());
+            record.addTransientClaim(record.getWorkingClaim());
         }
     }
 

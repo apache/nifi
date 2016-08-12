@@ -63,7 +63,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -99,6 +98,7 @@ public class TestStandardProcessSession {
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
     private final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
+    private static StandardResourceClaimManager resourceClaimManager;
 
     @After
     public void cleanup() {
@@ -136,6 +136,8 @@ public class TestStandardProcessSession {
     @Before
     @SuppressWarnings("unchecked")
     public void setup() throws IOException {
+        resourceClaimManager = new StandardResourceClaimManager();
+
         System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
@@ -815,7 +817,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
             .size(1L)
             .build();
         flowFileQueue.put(flowFileRecord);
@@ -963,7 +965,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
             .size(1L)
             .build();
         flowFileQueue.put(flowFileRecord);
@@ -987,7 +989,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
             .build();
         flowFileQueue.put(flowFileRecord);
 
@@ -1003,7 +1005,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
             .contentClaimOffset(1000L)
             .size(1000L)
             .build();
@@ -1028,7 +1030,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
             .build();
 
         flowFileQueue.put(flowFileRecord);
@@ -1045,7 +1047,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
 
         .contentClaimOffset(1000L).size(1L).build();
         flowFileQueue.put(flowFileRecord2);
@@ -1114,7 +1116,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
 
         .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
@@ -1152,7 +1154,7 @@ public class TestStandardProcessSession {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
             .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
             .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(new StandardResourceClaim("x", "x", "0", true), 0L))
+            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
 
         .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
@@ -1479,7 +1481,7 @@ public class TestStandardProcessSession {
             final Set<ContentClaim> claims = new HashSet<>();
 
             for (long i = 0; i < idGenerator.get(); i++) {
-                final ResourceClaim resourceClaim = new StandardResourceClaim("container", "section", String.valueOf(i), false);
+                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim("container", "section", String.valueOf(i), false);
                 final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
                 if (getClaimantCount(contentClaim) > 0) {
                     claims.add(contentClaim);
