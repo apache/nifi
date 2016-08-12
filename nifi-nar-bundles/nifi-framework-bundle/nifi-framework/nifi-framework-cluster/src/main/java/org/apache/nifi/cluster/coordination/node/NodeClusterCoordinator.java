@@ -83,7 +83,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private static final Logger logger = LoggerFactory.getLogger(NodeClusterCoordinator.class);
     private static final String EVENT_CATEGORY = "Clustering";
 
-    private static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/controller/counters/[a-f0-9\\-]{36}");
+    private static final Pattern COUNTER_URI_PATTERN = Pattern.compile("/nifi-api/counters/[a-f0-9\\-]{36}");
 
     private final String instanceId = UUID.randomUUID().toString();
     private volatile NodeIdentifier nodeId;
