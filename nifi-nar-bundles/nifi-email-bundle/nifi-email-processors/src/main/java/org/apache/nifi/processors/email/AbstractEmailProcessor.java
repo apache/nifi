@@ -46,6 +46,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
@@ -122,6 +123,16 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             .defaultValue("false")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
+    static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("connection.timeout")
+            .displayName("Connection timeout")
+            .description("The amount of time to wait to connect to Email server")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .defaultValue("30 sec")
+            .build();
+
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -144,6 +155,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         SHARED_DESCRIPTORS.add(FOLDER);
         SHARED_DESCRIPTORS.add(FETCH_SIZE);
         SHARED_DESCRIPTORS.add(SHOULD_DELETE_MESSAGES);
+        SHARED_DESCRIPTORS.add(CONNECTION_TIMEOUT);
 
         SHARED_RELATIONSHIPS.add(REL_SUCCESS);
     }
@@ -287,17 +299,23 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
     /**
      * Extracts dynamic properties which typically represent the Java Mail
-     * properties from the {@link ProcessContext} returnining them as instance
+     * properties from the {@link ProcessContext} returning them as instance
      * of {@link Properties}
      */
     private Properties buildJavaMailProperties(ProcessContext context) {
         Properties javaMailProperties = new Properties();
         for (Entry<PropertyDescriptor, String> propertyDescriptorEntry : context.getProperties().entrySet()) {
-            if (propertyDescriptorEntry.getKey().isDynamic()) {
+            if (propertyDescriptorEntry.getKey().isDynamic()
+                    && !propertyDescriptorEntry.getKey().getName().equals("mail.imap.timeout")
+                    && !propertyDescriptorEntry.getKey().getName().equals("mail.pop3.timeout")) {
                 javaMailProperties.setProperty(propertyDescriptorEntry.getKey().getName(),
                         propertyDescriptorEntry.getValue());
             }
         }
+        String propertyName = this.getProtocol(context).equals("pop3") ? "mail.pop3.timeout" : "mail.imap.timeout";
+
+        javaMailProperties.setProperty(propertyName, String.valueOf(FormatUtils
+                .getTimeDuration(context.getProperty(CONNECTION_TIMEOUT).getValue().trim(), TimeUnit.MILLISECONDS)));
         return javaMailProperties;
     }
 
