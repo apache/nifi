@@ -27,7 +27,6 @@ public class TestRunners {
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass) {
         try {
             return newTestRunner(processorClass.newInstance());
-
         } catch (final Exception e) {
             System.err.println("Could not instantiate instance of class " + processorClass.getName() + " due to: " + e);
             throw new RuntimeException(e);

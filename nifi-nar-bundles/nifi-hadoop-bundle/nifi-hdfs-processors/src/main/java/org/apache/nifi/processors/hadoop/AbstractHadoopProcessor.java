@@ -45,6 +45,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -178,8 +179,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     /*
-         * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
-         */
+     * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
+     */
     @OnScheduled
     public final void abstractOnScheduled(ProcessContext context) throws IOException {
         try {
@@ -191,9 +192,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
                 String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-                String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
-                dir = dir == null ? "/" : dir;
-                resources = resetHDFSResources(configResources, dir, context);
+                final String dir;
+                final PropertyDescriptor directoryPropDescriptor = getPropertyDescriptor(DIRECTORY_PROP_NAME);
+                if (directoryPropDescriptor != null) {
+                    if (directoryPropDescriptor.isExpressionLanguageSupported()) {
+                        dir = context.getProperty(DIRECTORY_PROP_NAME).evaluateAttributeExpressions().getValue();
+                    } else {
+                        dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
+                    }
+                } else {
+                    dir = null;
+                }
+                resources = resetHDFSResources(configResources, dir == null ? "/" : dir, context);
                 hdfsResources.set(resources);
             }
         } catch (IOException ex) {
@@ -255,6 +265,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // disable caching of Configuration and FileSystem objects, else we cannot reconfigure the processor without a complete
             // restart
             String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
+            config.set(disableCacheName, "true");
 
             // If kerberos is enabled, create the file system as the kerberos principal
             // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
@@ -274,7 +285,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     fs = getFileSystemAsUser(config, ugi);
                 }
             }
-            config.set(disableCacheName, "true");
+
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                     new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
             return new HdfsResources(config, fs, ugi);
@@ -413,11 +424,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected FileSystem getFileSystem() {
-        // if kerberos is enabled, check if the ticket should be renewed before returning the FS
-        if (hdfsResources.get().getUserGroupInformation() != null && isTicketOld()) {
-            tryKerberosRelogin(hdfsResources.get().getUserGroupInformation());
-        }
+        // trigger Relogin if necessary
+        getUserGroupInformation();
         return hdfsResources.get().getFileSystem();
+    }
+
+    protected UserGroupInformation getUserGroupInformation() {
+        // if kerberos is enabled, check if the ticket should be renewed before returning
+        UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
+        if (userGroupInformation != null && isTicketOld()) {
+            tryKerberosRelogin(userGroupInformation);
+        }
+        return userGroupInformation;
     }
 
     protected void tryKerberosRelogin(UserGroupInformation ugi) {

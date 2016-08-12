@@ -34,6 +34,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
@@ -199,6 +200,7 @@ public final class DtoFactory {
         // get the refresh interval
         final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
         dto.setAutoRefreshIntervalSeconds(refreshInterval);
+        dto.setSupportsConfigurableAuthorizer(authorizer instanceof AbstractPolicyBasedAuthorizer);
 
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
@@ -220,7 +222,7 @@ public final class DtoFactory {
         actionDto.setSourceName(action.getSourceName());
         actionDto.setSourceType(action.getSourceType().name());
         actionDto.setTimestamp(action.getTimestamp());
-        actionDto.setUserDn(action.getUserIdentity());
+        actionDto.setUserIdentity(action.getUserIdentity());
         actionDto.setOperation(action.getOperation().name());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
         actionDto.setComponentDetails(createComponentDetailsDto(action.getComponentDetails()));
@@ -1601,12 +1603,14 @@ public final class DtoFactory {
         return createProcessGroupDto(group, false);
     }
 
-    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
+    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
+                                                         final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
+
         final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
         dto.setId(group.getIdentifier());
         dto.setLastRefreshed(new Date());
         dto.setBreadcrumb(createBreadcrumbEntity(group));
-        dto.setFlow(createFlowDto(group, groupStatus, revisionManager));
+        dto.setFlow(createFlowDto(group, groupStatus, revisionManager, getProcessGroupBulletins));
 
         final ProcessGroup parent = group.getParent();
         if (parent != null) {
@@ -1616,7 +1620,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager) {
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager,
+                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
         if (snippet == null) {
             return null;
         }
@@ -1698,7 +1703,7 @@ public final class DtoFactory {
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> processGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
+            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(processGroup);
             flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, accessPolicy, status, bulletins));
         }
 
@@ -1746,7 +1751,8 @@ public final class DtoFactory {
         return statusDTO;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
+                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
         final FlowDTO dto = new FlowDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
@@ -1789,7 +1795,7 @@ public final class DtoFactory {
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> childGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(childGroup.getIdentifier()));
+            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(childGroup);
             dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, status, bulletins));
         }
 

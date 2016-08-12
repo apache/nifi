@@ -100,6 +100,11 @@ public class MockProvenanceRepository implements ProvenanceRepository {
     }
 
     @Override
+    public ComputeLineageSubmission submitLineageComputation(long eventId, NiFiUser user) {
+        throw new UnsupportedOperationException("MockProvenanceRepository does not support Lineage Computation");
+    }
+
+    @Override
     public ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier, NiFiUser user) {
         throw new UnsupportedOperationException("MockProvenanceRepository does not support Lineage Computation");
     }

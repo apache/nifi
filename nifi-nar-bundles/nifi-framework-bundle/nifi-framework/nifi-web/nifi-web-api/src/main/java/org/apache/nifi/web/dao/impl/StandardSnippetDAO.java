@@ -92,10 +92,19 @@ public class StandardSnippetDAO implements SnippetDAO {
                 org.apache.nifi.util.SnippetUtils.moveSnippet(snippetContents, originX, originY);
             }
 
-            // instantiate the snippet
-            flowController.instantiateSnippet(processGroup, snippetContents);
+            try {
+                // instantiate the snippet and return the contents
+                flowController.instantiateSnippet(processGroup, snippetContents);
+                return snippetContents;
+            } catch (IllegalStateException ise) {
+                // illegal state will be thrown from instantiateSnippet when there is an issue with the snippet _before_ any of the
+                // components are actually created. if we've received this exception we want to attempt to roll back any of the
+                // policies that we've already cloned for this request
+                snippetUtils.rollbackClonedPolicies(snippetContents);
 
-            return snippetContents;
+                // rethrow the same exception
+                throw ise;
+            }
         } catch (ProcessorInstantiationException pie) {
             throw new NiFiCoreException(String.format("Unable to copy snippet because processor type '%s' is unknown to this NiFi.",
                     StringUtils.substringAfterLast(pie.getMessage(), ".")));
@@ -160,6 +169,10 @@ public class StandardSnippetDAO implements SnippetDAO {
 
     @Override
     public void deleteSnippetComponents(String snippetId) {
+        // verify the action
+        verifyDeleteSnippetComponents(snippetId);
+
+        // locate the snippet in question
         final Snippet snippet = locateSnippet(snippetId);
 
         // remove the contents
@@ -194,7 +207,7 @@ public class StandardSnippetDAO implements SnippetDAO {
         final Snippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
-        if (snippetDTO.getParentGroupId() != null && snippet.getParentGroupId() != snippetDTO.getParentGroupId()) {
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             // get the current process group
             final ProcessGroup processGroup = flowController.getGroup(snippet.getParentGroupId());
             if (processGroup == null) {
@@ -214,10 +227,14 @@ public class StandardSnippetDAO implements SnippetDAO {
 
     @Override
     public Snippet updateSnippetComponents(final SnippetDTO snippetDTO) {
+        // verify the action
+        verifyUpdateSnippetComponent(snippetDTO);
+
+        // find the snippet in question
         final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
 
         // if the group is changing move it
-        if (snippetDTO.getParentGroupId() != null && snippet.getParentGroupId() != snippetDTO.getParentGroupId()) {
+        if (snippetDTO.getParentGroupId() != null && !snippet.getParentGroupId().equals(snippetDTO.getParentGroupId())) {
             final ProcessGroup currentProcessGroup = flowController.getGroup(snippet.getParentGroupId());
             if (currentProcessGroup == null) {
                 throw new IllegalArgumentException("The current process group could not be found.");

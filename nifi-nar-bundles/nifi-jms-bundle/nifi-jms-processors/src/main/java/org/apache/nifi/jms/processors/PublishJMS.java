@@ -101,7 +101,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
                 this.targetResource.publish(this.extractMessageBody(flowFile, processSession),
                         flowFile.getAttributes());
                 processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).getValue());
+                processSession.getProvenanceReporter().send(flowFile, context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             } catch (Exception e) {
                 processSession.transfer(flowFile, REL_FAILURE);
                 this.getLogger().error("Failed while sending message to JMS via " + this.targetResource, e);

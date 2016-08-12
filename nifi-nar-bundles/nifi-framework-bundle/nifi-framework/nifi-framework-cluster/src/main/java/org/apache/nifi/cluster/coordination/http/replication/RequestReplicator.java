@@ -98,10 +98,13 @@ public interface RequestReplicator {
      * @param headers any HTTP headers
      * @param indicateReplicated if <code>true</code>, will add a header indicating to the receiving nodes that the request
      *            has already been replicated, so the receiving node will not replicate the request itself.
+     * @param performVerification if <code>true</code>, and the request is mutable, will verify that all nodes are connected before
+     *            making the request and that all nodes are able to perform the request before acutally attempting to perform the task.
+     *            If false, will perform no such verification
      *
      * @return an AsyncClusterResponse that indicates the current status of the request and provides an identifier for obtaining an updated response later
      */
-    AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated);
+    AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean indicateReplicated, boolean performVerification);
 
     /**
      * <p>

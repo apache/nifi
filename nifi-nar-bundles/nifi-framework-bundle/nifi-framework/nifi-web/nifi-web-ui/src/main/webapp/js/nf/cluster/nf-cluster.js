@@ -116,6 +116,26 @@ nf.Cluster = (function () {
             
             // load the current user
             loadCurrentUser().done(function () {
+                var setBodySize = function () {
+                    //alter styles if we're not in the shell
+                    if (top === window) {
+                        $('body').css({
+                            'height': $(window).height() + 'px',
+                            'width': $(window).width() + 'px'
+                        });
+
+                        $('#cluster').css('margin', 40);
+                        $('#cluster-table').css('bottom', 127);
+                        $('#cluster-refresh-container').css('margin', 40);
+                    }
+
+                    // configure the initial grid height
+                    nf.ClusterTable.resetTableSize();
+                };
+
+                // set the initial size
+                setBodySize();
+
                 // create the counters table
                 nf.ClusterTable.init();
 
@@ -123,22 +143,6 @@ nf.Cluster = (function () {
                 nf.ClusterTable.loadClusterTable().done(function () {
                     // once the table is initialized, finish initializing the page
                     initializeClusterPage().done(function () {
-                        var setBodySize = function () {
-                            //alter styles if we're not in the shell
-                            if (top === window) {
-                                $('body').css({
-                                    'height': $(window).height() + 'px',
-                                    'width': $(window).width() + 'px'
-                                });
-
-                                $('#cluster').css('margin', 40);
-                                $('#cluster-table').css('bottom', 127);
-                                $('#cluster-refresh-container').css('margin', 40);
-                            }
-
-                            // configure the initial grid height
-                            nf.ClusterTable.resetTableSize();
-                        };
 
                         // get the about details
                         $.ajax({

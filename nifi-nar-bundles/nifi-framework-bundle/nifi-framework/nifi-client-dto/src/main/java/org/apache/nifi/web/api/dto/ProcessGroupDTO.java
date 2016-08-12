@@ -75,10 +75,10 @@ public class ProcessGroupDTO extends ComponentDTO {
     }
 
     /**
-     * @return contents of this process group. This field will be populated if the request is marked verbose
+     * @return contents of this process group.
      */
     @ApiModelProperty(
-            value = "The contents of this process group. This field will be populated if the request is marked verbose."
+            value = "The contents of this process group."
     )
     public FlowSnippetDTO getContents() {
         return contents;

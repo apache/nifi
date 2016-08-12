@@ -33,6 +33,7 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -49,24 +50,27 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private volatile String comment;
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
 
+    protected final VariableRegistry variableRegistry;
+
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
         final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
-        final ValidationContextFactory validationContextFactory) {
+        final ValidationContextFactory validationContextFactory, final VariableRegistry variableRegistry) {
 
         this(reportingTask, id, controllerServiceProvider, processScheduler, validationContextFactory,
-            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName());
+            reportingTask.getClass().getSimpleName(), reportingTask.getClass().getCanonicalName(),variableRegistry);
     }
 
 
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
             final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
         final ValidationContextFactory validationContextFactory,
-        final String componentType, final String componentCanonicalClass) {
+        final String componentType, final String componentCanonicalClass, VariableRegistry variableRegistry) {
 
         super(reportingTask, id, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
         this.reportingTask = reportingTask;
         this.processScheduler = processScheduler;
         this.serviceLookup = controllerServiceProvider;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
@@ -111,7 +115,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod(), variableRegistry);
     }
 
     @Override
@@ -141,6 +145,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         return super.removeProperty(name);
     }
 
+
     public boolean isDisabled() {
         return scheduledState == ScheduledState.DISABLED;
     }
@@ -158,50 +163,50 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     @Override
     public void verifyCanDelete() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot delete " + reportingTask + " because it is currently running");
+            throw new IllegalStateException("Cannot delete " + reportingTask.getIdentifier() + " because it is currently running");
         }
     }
 
     @Override
     public void verifyCanDisable() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot disable " + reportingTask + " because it is currently running");
+            throw new IllegalStateException("Cannot disable " + reportingTask.getIdentifier() + " because it is currently running");
         }
 
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot disable " + reportingTask + " because it is already disabled");
+            throw new IllegalStateException("Cannot disable " + reportingTask.getIdentifier() + " because it is already disabled");
         }
     }
 
     @Override
     public void verifyCanEnable() {
         if (!isDisabled()) {
-            throw new IllegalStateException("Cannot enable " + reportingTask + " because it is not disabled");
+            throw new IllegalStateException("Cannot enable " + reportingTask.getIdentifier() + " because it is not disabled");
         }
     }
 
     @Override
     public void verifyCanStart() {
         if (isDisabled()) {
-            throw new IllegalStateException("Cannot start " + reportingTask + " because it is currently disabled");
+            throw new IllegalStateException("Cannot start " + reportingTask.getIdentifier() + " because it is currently disabled");
         }
 
         if (isRunning()) {
-            throw new IllegalStateException("Cannot start " + reportingTask + " because it is already running");
+            throw new IllegalStateException("Cannot start " + reportingTask.getIdentifier() + " because it is already running");
         }
     }
 
     @Override
     public void verifyCanStop() {
         if (!isRunning()) {
-            throw new IllegalStateException("Cannot stop " + reportingTask + " because it is not running");
+            throw new IllegalStateException("Cannot stop " + reportingTask.getIdentifier() + " because it is not running");
         }
     }
 
     @Override
     public void verifyCanUpdate() {
         if (isRunning()) {
-            throw new IllegalStateException("Cannot update " + reportingTask + " because it is currently running");
+            throw new IllegalStateException("Cannot update " + reportingTask.getIdentifier() + " because it is currently running");
         }
     }
 
@@ -214,15 +219,15 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         switch (getScheduledState()) {
             case DISABLED:
-                throw new IllegalStateException(this + " cannot be started because it is disabled");
+                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is disabled");
             case RUNNING:
-                throw new IllegalStateException(this + " cannot be started because it is already running");
+                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is already running");
             case STOPPED:
                 break;
         }
         final int activeThreadCount = getActiveThreadCount();
         if (activeThreadCount > 0) {
-            throw new IllegalStateException(this + " cannot be started because it has " + activeThreadCount + " active threads already");
+            throw new IllegalStateException(this.getIdentifier() + " cannot be started because it has " + activeThreadCount + " active threads already");
         }
 
         final Set<String> ids = new HashSet<>();
@@ -233,14 +238,14 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         final Collection<ValidationResult> validationResults = getValidationErrors(ids);
         for (final ValidationResult result : validationResults) {
             if (!result.isValid()) {
-                throw new IllegalStateException(this + " cannot be started because it is not valid: " + result);
+                throw new IllegalStateException(this.getIdentifier() + " cannot be started because it is not valid: " + result);
             }
         }
     }
 
     @Override
     public String toString() {
-        return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";
+        return "ReportingTask[id=" + getIdentifier() + "]";
     }
 
     @Override

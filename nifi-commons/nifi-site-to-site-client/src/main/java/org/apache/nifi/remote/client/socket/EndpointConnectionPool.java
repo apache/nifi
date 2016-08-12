@@ -465,7 +465,6 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
     private CommunicationsSession establishSiteToSiteConnection(final String hostname, final int port) throws IOException {
         final boolean siteToSiteSecure = siteInfoProvider.isSecure();
-        final String destinationUri = "nifi://" + hostname + ":" + port;
 
         CommunicationsSession commsSession = null;
         try {
@@ -478,7 +477,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
                 socketChannel.connect();
 
-                commsSession = new SSLSocketChannelCommunicationsSession(socketChannel, destinationUri);
+                commsSession = new SSLSocketChannelCommunicationsSession(socketChannel);
 
                 try {
                     commsSession.setUserDn(socketChannel.getDn());
@@ -490,11 +489,10 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                 socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
                 socketChannel.socket().setSoTimeout(commsTimeout);
 
-                commsSession = new SocketChannelCommunicationsSession(socketChannel, destinationUri);
+                commsSession = new SocketChannelCommunicationsSession(socketChannel);
             }
 
             commsSession.getOutput().getOutputStream().write(CommunicationsSession.MAGIC_BYTES);
-            commsSession.setUri(destinationUri);
         } catch (final IOException ioe) {
             if (commsSession != null) {
                 commsSession.close();

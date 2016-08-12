@@ -110,10 +110,6 @@ text.bulletin-icon {
 }
 
 rect.bulletin-background {
-    fill: #728e9b;
-}
-
-rect.bulletin-background.has-bulletins {
     fill: #ba554a;
 }
 

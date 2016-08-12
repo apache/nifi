@@ -80,8 +80,16 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor);
         controller.synchronize(flowSynchronizer, dataFlow);
 
-        // save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
-        save(controller);
+        if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
+            // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
+            // dataflow, we need to ensure that the flow is consistent across all nodes in the cluster and that upon restart
+            // of NiFi, the root group ID does not change. However, we don't always want to save it, because if the flow is
+            // not empty, then we can get into a bad situation, since the Processors, etc. don't have the appropriate "Scheduled
+            // State" yet (since they haven't yet been scheduled). So if there are components in the flow and we save it, we
+            // may end up saving the flow in such a way that all components are stopped.
+            // We save based on the controller, not the provided data flow because Process Groups may contain 'local' templates.
+            save(controller);
+        }
     }
 
     @Override

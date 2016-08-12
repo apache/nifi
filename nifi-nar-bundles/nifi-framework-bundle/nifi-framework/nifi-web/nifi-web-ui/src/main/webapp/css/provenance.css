@@ -25,7 +25,6 @@
     left: 20px;
     right: 20px;
     overflow: auto;
-    height: 100%;
 }
 
 #provenance-header-and-filter{
@@ -44,6 +43,8 @@
 #provenance-refresh-container {
     position: absolute;
     bottom: 0px;
+    right: 0px;
+    left: 0px;
 }
 
 #provenance-loading-container {
@@ -56,7 +57,7 @@
 }
 
 #provenance-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 #provenance-header {
@@ -74,10 +75,6 @@ div.provenance-panel {
 
 /* filter controls */
 
-#provenance-filter-controls {
-    float: right;
-}
-
 #provenance-filter-container {
     height: 24px;
     width: 100%;
@@ -87,10 +84,6 @@ div.provenance-panel {
     width: 173px;
     margin-right: 3px;
     float: left;
-}
-
-input.provenance-filter-list {
-    color: #888;
 }
 
 #provenance-filter-type {
@@ -107,9 +100,9 @@ input.provenance-filter-list {
 /* provenance search controls */
 
 #provenance-search-container {
-    float: right;
-    position: relative;
-    top: 42px;
+    position: absolute;
+    right: 0;
+    top: 38px;
 }
 
 #provenance-search-button {
@@ -176,31 +169,25 @@ div.searchable-field-value {
 
 div.flowfile-container {
     width: 282px;
-    height: 120px;
     overflow: auto;
-    padding: 5px;
-    font-family: monospace;
-    font-size: 12px;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    line-height:1.4
 }
 
 #child-flowfiles {
-    margin-top: 10px;
+    margin-top: 20px;
 }
 
 div.event-header {
     color: #728e9b;
-    font-size: 12pt;
+    font-size: 15px;
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    line-height: 56px;
+    padding-bottom: 10px;
     text-overflow: ellipsis;
-}
-
-#attributes-container {
-    height: 290px;
-    overflow: auto;
-    padding: 5px;
 }
 
 div.detail-name {
@@ -217,7 +204,9 @@ div.detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 div.attribute-detail {
@@ -238,7 +227,9 @@ div.attribute-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #attributes-header {
@@ -251,12 +242,15 @@ div.attribute-value {
 
 #modified-attribute-toggle-label {
     float: left;
+    font-size:13px;
+    line-height: 20px;
 }
 
 #modified-attribute-toggle {
     float: left;
-    margin-left: 5px;
-    margin-right: 0;
+    margin-right: 5px;
+    margin-left: 0;
+    margin-top: 3px;
 }
 
 div.modified-attribute-label {
@@ -270,11 +264,14 @@ div.modified-attribute-label {
 
 div.modified-attribute-value {
     float: left;
-    width: 490px;
-    margin-left: 175px;
+    width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;
+    color: #ad9897;
+    padding-top: 2px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 div.event-detail {
@@ -286,9 +283,13 @@ div.event-detail {
     margin: 0;
 }
 
+#replay-content-message {
+    font-size: 13px;
+}
+
 #input-content-view, #output-content-view {
     float: left;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 div.content-detail-name {
@@ -305,7 +306,9 @@ div.content-detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #replay-details {
@@ -328,7 +331,7 @@ div.content-detail-value {
     position: absolute;
     top: 88px;
     left: 0px;
-    bottom: 48px;
+    bottom: 47px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
@@ -338,7 +341,8 @@ div.content-detail-value {
 /* provenance lineage */
 
 #provenance-lineage {
-    border: 1px solid #aaa;
+    border: 1px solid #e5ebed;
+    background-color: #f9fafb;
 }
 
 #provenance-lineage-loading-container {
@@ -351,6 +355,11 @@ div.content-detail-value {
     background-color: transparent;
     height: 16px;
     width: 16px;
+}
+
+#provenance-lineage-container {
+    height: 100%;
+    width: 100%;
 }
 
 #provenance-lineage-close-container {
@@ -372,8 +381,10 @@ div.content-detail-value {
     float: left;
     height: 16px;
     width: 16px;
-    background: url("../images/iconClose.png") no-repeat scroll left center transparent;
+    font-size: 16px;
+    color: #004849;
     cursor: pointer;
+    margin-right: 5px;
 }
 
 #provenance-lineage-slider-container {
@@ -399,10 +410,13 @@ div.content-detail-value {
 }
 
 #event-timeline {
-    margin-top: 8px;
-    color: #9F6000;
-    font-weight: bold;
+    margin-top: 4px;
+    color: #775351;
     line-height: normal;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-weight: 500;
+    font-size: 13px;
 }
 
 #event-time {
@@ -413,101 +427,80 @@ div.content-detail-value {
     float: left;
 }
 
-#provenance-lineage-context-menu {
-    display: none;
-    border: 1px solid #000;
-    width: 140px;
-    position: absolute;
-    background-color: #fff;
-    padding: 3px 0;
+div.lineage-view-event:before {
+    font-family: FontAwesome;
+    content: "\f05a";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-event {
-    background: url("../images/iconDetails.png") no-repeat scroll center center transparent;
+div.lineage-view-parents:before {
+    font-family: FontAwesome;
+    content: "\f1e5";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-parents {
-    background: url("../images/iconExpandParents.png") no-repeat scroll center center transparent;
+div.lineage-collapse-parents:before {
+    font-family: FontAwesome;
+    content: "\f147";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-collapse-parents {
-    background: url("../images/iconCollapseParents.png") no-repeat scroll center center transparent;
+div.lineage-view-children:before {
+    font-family: FontAwesome;
+    content: "\f0fe";
+    font-size: 16px;
+    color: #004849;
 }
 
-div.lineage-view-children {
-    background: url("../images/iconExpandChildren.png") no-repeat scroll center center transparent;
-}
-
-div.lineage-collapse-children {
-    background: url("../images/iconCollapseChildren.png") no-repeat scroll center center transparent;
-}
-
-div.provenance-lineage-menu-item {
-    padding: 3px 6px;
-    cursor: pointer;
-}
-
-div.provenance-lineage-menu-item.hover {
-    color: #027fd2;
-}
-
-div.provenance-lineage-menu-item-img {
-    float: left;
-    width: 16px;
-    height: 16px;
-}
-
-div.provenance-lineage-menu-item-text {
-    width: 106px;
-    margin-left: 6px;
-    line-height: 16px;
-    float: left;
-    font-family: Verdana;
-    font-size: 8pt;
+div.lineage-collapse-children:before {
+    font-family: FontAwesome;
+    content: "\f146";
+    font-size: 16px;
+    color: #004849;
 }
 
 path.link.selected {
-    stroke: #FFCC00;
+    stroke: #ba554a;
 }
 
 g.event circle.selected {
-    fill: #FFCC00;
+    fill: #ba554a;
 }
 
 text.event-type {
     cursor: pointer;
+    font-family: Roboto;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: normal;
 }
 
 text.event-type.expand-parents, text.event-type.expand-children {
-    font-weight: bold;
-    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+    font-size: 13px;
 }
 
 g.flowfile circle.context, g.event circle.context {
-    stroke: #b70303;
+    stroke: #004849;
     stroke-width: 1.5px;
 }
 
-path.flowfile-icon-base {
-    pointer-events: none;
+.flowfile-icon {
+    font-family: flowfont;
+    content: "\e808";
+    font-size: 16px;
+    color: #ad9897;
 }
 
-path.flowfile-icon-base-outline {
-    pointer-events: none;
+#child-flowfile-count {
+    font-weight: normal;
 }
 
-path.flowfile-icon-mid {
-    pointer-events: none;
-}
-
-path.flowfile-icon-mid-outline {
-    pointer-events: none;
-}
-
-path.flowfile-icon-arc {
-    pointer-events: none;
-}
-
-path.flowfile-icon-top {
-    pointer-events: none;
+#parent-flowfile-count {
+    font-weight: normal;
 }

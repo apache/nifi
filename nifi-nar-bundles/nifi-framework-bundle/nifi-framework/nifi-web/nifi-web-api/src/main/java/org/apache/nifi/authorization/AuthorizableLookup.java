@@ -80,7 +80,7 @@ public interface AuthorizableLookup {
      * @param id process group id
      * @return authorizable
      */
-    Authorizable getProcessGroup(String id);
+    ProcessGroupAuthorizable getProcessGroup(String id);
 
     /**
      * Get the authorizable RemoteProcessGroup.
@@ -178,6 +178,13 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     Authorizable getTenant();
+
+    /**
+     * Get the authorizable for data of a specified component.
+     *
+     * @return authorizable
+     */
+    Authorizable getData(String id);
 
     /**
      * Get the authorizable for access all policies.

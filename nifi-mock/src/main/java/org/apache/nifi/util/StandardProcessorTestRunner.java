@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -41,6 +42,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -65,6 +67,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
@@ -80,6 +83,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final boolean triggerSerially;
     private final MockStateManager processorStateManager;
     private final Map<String, MockStateManager> controllerServiceStateManagers = new HashMap<>();
+    private final MockVariableRegistry variableRegistry;
 
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
@@ -94,7 +98,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.sessionFactory = new MockSessionFactory(sharedState, processor);
         this.processorStateManager = new MockStateManager(processor);
-        this.context = new MockProcessContext(processor, processorStateManager);
+        this.variableRegistry = new MockVariableRegistry();
+        this.context = new MockProcessContext(processor, processorStateManager, variableRegistry);
 
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);
@@ -603,7 +608,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -622,7 +627,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             throw new IllegalStateException("Controller Service has not been added to this TestRunner via the #addControllerService method");
         }
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -665,7 +670,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context);
+            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();
@@ -737,7 +742,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
         final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
 
-        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, serviceStateManager, variableRegistry).getControllerServiceValidationContext(service);
         final ValidationResult validationResult = property.validate(value, validationContext);
 
         updatedProps.put(property, value);
@@ -820,5 +825,28 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setPrimaryNode(boolean primaryNode) {
         context.setPrimaryNode(primaryNode);
+    }
+
+    @Override
+    public String getVariableValue(final String name) {
+        Objects.requireNonNull(name);
+
+        return variableRegistry.getVariableValue(name);
+    }
+
+    @Override
+    public void setVariable(final String name, final String value) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
+
+        final VariableDescriptor descriptor = new VariableDescriptor.Builder(name).build();
+        variableRegistry.setVariable(descriptor, value);
+    }
+
+    @Override
+    public String removeVariable(final String name) {
+        Objects.requireNonNull(name);
+
+        return variableRegistry.removeVariable(new VariableDescriptor.Builder(name).build());
     }
 }

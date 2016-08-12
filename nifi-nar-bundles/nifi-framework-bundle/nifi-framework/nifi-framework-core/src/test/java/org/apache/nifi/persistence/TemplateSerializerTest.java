@@ -33,7 +33,7 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
@@ -55,7 +55,7 @@ public class TemplateSerializerTest {
         for (int i = 4; i > 0; i--) {
             ProcessorDTO procDTO = new ProcessorDTO();
             procDTO.setType("Processor" + i + ".class");
-            procDTO.setId(TypeOneUUIDGenerator.generateId().toString());
+            procDTO.setId(ComponentIdGenerator.generateId().toString());
             procs.add(procDTO);
         }
         snippet.setProcessors(procs);
@@ -86,7 +86,7 @@ public class TemplateSerializerTest {
         // add new Processor
         ProcessorDTO procDTO = new ProcessorDTO();
         procDTO.setType("ProcessorNew" + ".class");
-        procDTO.setId(TypeOneUUIDGenerator.generateId().toString());
+        procDTO.setId(ComponentIdGenerator.generateId().toString());
         deserProcs.add(procDTO);
 
         // Serialize modified template

@@ -90,11 +90,11 @@
 
 div.flowfile-header {
     color: #728e9b;
-    font-size: 12pt;
+    font-size: 15px;
     font-family: 'Roboto Slab';
     font-style: normal;
     font-weight: bold;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
     text-overflow: ellipsis;
 }
 
@@ -118,7 +118,9 @@ div.detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 div.attribute-detail {
@@ -139,7 +141,9 @@ div.attribute-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
 }
 
 #flowfile-attributes-header {
@@ -174,5 +178,5 @@ div.content-detail-value {
     width: 100%;
     color: #775351;
     font-size: 13px;
-    font-weight: bold;
+    font-weight: 500;
 }

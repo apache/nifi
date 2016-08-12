@@ -69,6 +69,10 @@ public interface Authorizable {
      * @return is authorized
      */
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        if (user == null) {
+            return AuthorizationResult.denied("Unknown user");
+        }
+
         final Map<String,String> userContext;
         if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
             userContext = new HashMap<>();
@@ -128,6 +132,10 @@ public interface Authorizable {
      * @param resourceContext resource context
      */
     default void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        if (user == null) {
+            throw new AccessDeniedException("Unknown user");
+        }
+
         final Map<String,String> userContext;
         if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
             userContext = new HashMap<>();

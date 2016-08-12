@@ -20,10 +20,11 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
+import org.apache.hadoop.hive.ql.io.orc.CompressionKind;
+import org.apache.hadoop.hive.ql.io.orc.OrcFlowFileWriter;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -41,14 +42,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
-import org.apache.nifi.util.orc.OrcFlowFileWriter;
-import org.apache.nifi.util.orc.OrcUtils;
-import org.apache.orc.CompressionKind;
-import org.apache.orc.OrcFile;
-import org.apache.orc.TypeDescription;
+import org.apache.nifi.util.hive.HiveUtils;
+import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -98,7 +95,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             .displayName("ORC Configuration Resources")
             .description("A file or comma separated list of files which contains the ORC configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Please see the ORC documentation for more details.")
-            .required(false).addValidator(HiveJdbcCommon.createMultipleFilesExistValidator()).build();
+            .required(false).addValidator(HiveUtils.createMultipleFilesExistValidator()).build();
 
     public static final PropertyDescriptor STRIPE_SIZE = new PropertyDescriptor.Builder()
             .name("orc-stripe-size")
@@ -207,85 +204,67 @@ public class ConvertAvroToORC extends AbstractProcessor {
             final AtomicReference<Schema> hiveAvroSchema = new AtomicReference<>(null);
             final AtomicInteger totalRecordCount = new AtomicInteger(0);
             final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            flowFile = session.write(flowFile, new StreamCallback() {
-                @Override
-                public void process(final InputStream rawIn, final OutputStream rawOut) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn);
-                         final OutputStream out = new BufferedOutputStream(rawOut);
-                         final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
+            flowFile = session.write(flowFile, (rawIn, rawOut) -> {
+                try (final InputStream in = new BufferedInputStream(rawIn);
+                     final OutputStream out = new BufferedOutputStream(rawOut);
+                     final DataFileStream<GenericRecord> reader = new DataFileStream<>(in, new GenericDatumReader<>())) {
 
-                        // Create ORC schema from Avro schema
-                        Schema avroSchema = reader.getSchema();
-                        TypeDescription orcSchema = OrcUtils.getOrcField(avroSchema);
+                    // Create ORC schema from Avro schema
+                    Schema avroSchema = reader.getSchema();
 
-                        if (orcConfig == null) {
-                            orcConfig = new Configuration();
-                        }
-                        OrcFile.WriterOptions options = OrcFile.writerOptions(orcConfig)
-                                .setSchema(orcSchema)
-                                .stripeSize(stripeSize)
-                                .bufferSize(bufferSize)
-                                .compress(compressionType)
-                                .version(OrcFile.Version.CURRENT);
+                    TypeInfo orcSchema = NiFiOrcUtils.getOrcField(avroSchema);
 
-                        OrcFlowFileWriter orcWriter = new OrcFlowFileWriter(out, new Path(fileName), options);
-                        try {
-                            VectorizedRowBatch batch = orcSchema.createRowBatch();
-                            int recordCount = 0;
-                            int recordsInBatch = 0;
-                            GenericRecord currRecord = null;
-                            while (reader.hasNext()) {
-                                currRecord = reader.next(currRecord);
-                                List<Schema.Field> fields = currRecord.getSchema().getFields();
-                                if (fields != null) {
-                                    MutableInt[] vectorOffsets = new MutableInt[fields.size()];
-                                    for (int i = 0; i < fields.size(); i++) {
-                                        vectorOffsets[i] = new MutableInt(0);
-                                        Schema.Field field = fields.get(i);
-                                        Schema fieldSchema = field.schema();
-                                        Object o = currRecord.get(field.name());
-                                        try {
-                                            OrcUtils.putToRowBatch(batch.cols[i], vectorOffsets[i], recordsInBatch, fieldSchema, o);
-                                        } catch (ArrayIndexOutOfBoundsException aioobe) {
-                                            getLogger().error("Index out of bounds at record {} for column {}, type {}, and object {}",
-                                                    new Object[]{recordsInBatch, i, fieldSchema.getType().getName(), o.toString()},
-                                                    aioobe);
-                                            throw new IOException(aioobe);
-                                        }
+                    if (orcConfig == null) {
+                        orcConfig = new Configuration();
+                    }
+
+                    OrcFlowFileWriter orcWriter = NiFiOrcUtils.createWriter(
+                            out,
+                            new Path(fileName),
+                            orcConfig,
+                            orcSchema,
+                            stripeSize,
+                            compressionType,
+                            bufferSize);
+                    try {
+
+                        int recordCount = 0;
+                        GenericRecord currRecord = null;
+                        while (reader.hasNext()) {
+                            currRecord = reader.next(currRecord);
+                            List<Schema.Field> fields = currRecord.getSchema().getFields();
+                            if (fields != null) {
+                                Object[] row = new Object[fields.size()];
+                                for (int i = 0; i < fields.size(); i++) {
+                                    Schema.Field field = fields.get(i);
+                                    Schema fieldSchema = field.schema();
+                                    Object o = currRecord.get(field.name());
+                                    try {
+                                        row[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema), o);
+                                    } catch (ArrayIndexOutOfBoundsException aioobe) {
+                                        getLogger().error("Index out of bounds at record {} for column {}, type {}, and object {}",
+                                                new Object[]{recordCount, i, fieldSchema.getType().getName(), o.toString()},
+                                                aioobe);
+                                        throw new IOException(aioobe);
                                     }
                                 }
+                                orcWriter.addRow(NiFiOrcUtils.createOrcStruct(orcSchema, row));
                                 recordCount++;
-                                recordsInBatch++;
-
-                                if (recordsInBatch == batch.getMaxSize()) {
-                                    // add batch and start a new one
-                                    batch.size = recordsInBatch;
-                                    orcWriter.addRowBatch(batch);
-                                    batch = orcSchema.createRowBatch();
-                                    recordsInBatch = 0;
-                                }
                             }
-
-                            // If there are records in the batch, add the batch
-                            if (recordsInBatch > 0) {
-                                batch.size = recordsInBatch;
-                                orcWriter.addRowBatch(batch);
-                            }
-
-                            hiveAvroSchema.set(avroSchema);
-                            totalRecordCount.set(recordCount);
-                        } finally {
-                            // finished writing this record, close the writer (which will flush to the flow file)
-                            orcWriter.close();
                         }
+                        hiveAvroSchema.set(avroSchema);
+                        totalRecordCount.set(recordCount);
+                    } finally {
+                        // finished writing this record, close the writer (which will flush to the flow file)
+                        orcWriter.close();
                     }
                 }
             });
 
             final String hiveTableName = context.getProperty(HIVE_TABLE_NAME).isSet()
                     ? context.getProperty(HIVE_TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue()
-                    : OrcUtils.normalizeHiveTableName(hiveAvroSchema.get().getFullName());
-            String hiveDDL = OrcUtils.generateHiveDDL(hiveAvroSchema.get(), hiveTableName);
+                    : NiFiOrcUtils.normalizeHiveTableName(hiveAvroSchema.get().getFullName());
+            String hiveDDL = NiFiOrcUtils.generateHiveDDL(hiveAvroSchema.get(), hiveTableName);
             // Add attributes and transfer to success
             flowFile = session.putAttribute(flowFile, RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()));
             flowFile = session.putAttribute(flowFile, HIVE_DDL_ATTRIBUTE, hiveDDL);
@@ -301,6 +280,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename.toString());
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
+
         } catch (final ProcessException pe) {
             getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, pe});
             session.transfer(flowFile, REL_FAILURE);

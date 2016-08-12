@@ -228,7 +228,8 @@ public class PublishKafka extends AbstractKafkaProcessor<KafkaPublisher> {
         kafkaProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         kafkaProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
         this.brokers = context.getProperty(BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
-        return new KafkaPublisher(kafkaProperties);
+        KafkaPublisher publisher = new KafkaPublisher(kafkaProperties, this.getLogger());
+        return publisher;
     }
 
     /**

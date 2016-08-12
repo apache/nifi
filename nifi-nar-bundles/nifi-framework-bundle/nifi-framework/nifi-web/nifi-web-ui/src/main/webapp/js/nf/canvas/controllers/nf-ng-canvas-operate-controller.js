@@ -141,7 +141,7 @@ nf.ng.Canvas.OperateCtrl = function () {
                             }
                         },
                         error: function (xhr, statusText, error) {
-                            $('#upload-template-status').text(error);
+                            $('#upload-template-status').text(xhr.responseText);
                         }
                     });
                     
@@ -157,8 +157,14 @@ nf.ng.Canvas.OperateCtrl = function () {
                             },
                             handler: {
                                 click: function () {
-                                    // submit the template
-                                    templateForm.submit();
+                                    var selectedTemplate = $('#selected-template-name').text();
+
+                                    // submit the template if necessary
+                                    if (nf.Common.isBlank(selectedTemplate)) {
+                                        $('#upload-template-status').text('No template selected. Please browse to select a template.');
+                                    } else {
+                                        templateForm.submit();
+                                    }
                                 }
                             }
                         }, {
@@ -172,9 +178,6 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 click: function () {
                                     // hide the dialog
                                     $('#upload-template-dialog').modal('hide');
-
-                                    // reset the form to ensure that the change fire will fire
-                                    templateForm.resetForm();
                                 }
                             }
                         }],
@@ -183,6 +186,9 @@ nf.ng.Canvas.OperateCtrl = function () {
                                 // set the filename
                                 $('#selected-template-name').text('');
                                 $('#upload-template-status').text('');
+
+                                // reset the form to ensure that the change fire will fire
+                                templateForm.resetForm();
                             }
                         }
                     });
@@ -302,6 +308,8 @@ nf.ng.Canvas.OperateCtrl = function () {
                                                         dialogContent: nf.Common.escapeHtml(xhr.responseText)
                                                     });
                                                 }
+                                            }).always(function(){
+                                                nf.Birdseye.refresh();
                                             });
                                         }
                                     });

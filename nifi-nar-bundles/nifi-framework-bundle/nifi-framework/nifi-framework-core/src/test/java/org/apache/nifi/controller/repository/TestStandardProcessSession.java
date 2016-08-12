@@ -68,6 +68,7 @@ import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
@@ -144,7 +145,8 @@ public class TestStandardProcessSession {
         final ProcessScheduler processScheduler = Mockito.mock(ProcessScheduler.class);
 
         final FlowFileSwapManager swapManager = Mockito.mock(FlowFileSwapManager.class);
-        flowFileQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
+        final StandardFlowFileQueue actualQueue = new StandardFlowFileQueue("1", connection, flowFileRepo, provenanceRepo, null, processScheduler, swapManager, null, 10000);
+        flowFileQueue = Mockito.spy(actualQueue);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
 
         Mockito.doAnswer(new Answer<Object>() {
@@ -205,6 +207,71 @@ public class TestStandardProcessSession {
         context = new ProcessContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo);
         session = new StandardProcessSession(context);
     }
+
+    @Test
+    public void testAppendToChildThrowsIOExceptionThenRemove() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile original = session.get();
+        assertNotNull(original);
+
+        FlowFile child = session.create(original);
+        child = session.append(child, out -> out.write("hello".getBytes()));
+
+        // Force an IOException. This will decrement out claim count for the resource claim.
+        try {
+            child = session.append(child, out -> {
+                throw new IOException();
+            });
+            Assert.fail("append() callback threw IOException but it was not wrapped in ProcessException");
+        } catch (final ProcessException pe) {
+            // expected
+        }
+
+        session.remove(child);
+        session.transfer(original);
+        session.commit();
+
+        final int numClaims = contentRepo.getExistingClaims().size();
+        assertEquals(0, numClaims);
+    }
+
+    @Test
+    public void testWriteForChildThrowsIOExceptionThenRemove() throws IOException {
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile original = session.get();
+        assertNotNull(original);
+
+        FlowFile child = session.create(original);
+        // Force an IOException. This will decrement out claim count for the resource claim.
+        try {
+            child = session.write(child, out -> out.write("hello".getBytes()));
+
+            child = session.write(child, out -> {
+                throw new IOException();
+            });
+            Assert.fail("write() callback threw IOException but it was not wrapped in ProcessException");
+        } catch (final ProcessException pe) {
+            // expected
+        }
+
+        session.remove(child);
+        session.transfer(original);
+        session.commit();
+
+        final int numClaims = contentRepo.getExistingClaims().size();
+        assertEquals(0, numClaims);
+    }
+
 
     @Test
     public void testModifyContentThenRollback() throws IOException {
@@ -804,6 +871,57 @@ public class TestStandardProcessSession {
         });
 
         assertEquals("Hello, World", new String(buff));
+    }
+
+    @Test
+    public void testAppendDoesNotDecrementContentClaimIfNotNeeded() {
+        FlowFile flowFile = session.create();
+
+        session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("hello".getBytes());
+            }
+        });
+
+        final Set<ContentClaim> existingClaims = contentRepo.getExistingClaims();
+        assertEquals(1, existingClaims.size());
+        final ContentClaim claim = existingClaims.iterator().next();
+
+        final int countAfterAppend = contentRepo.getClaimantCount(claim);
+        assertEquals(1, countAfterAppend);
+    }
+
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testExpireDecrementsClaimsOnce() throws IOException {
+        final ContentClaim contentClaim = contentRepo.create(false);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .contentClaim(contentClaim)
+            .build();
+
+        Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
+            int iterations = 0;
+
+            @Override
+            public List<FlowFileRecord> answer(InvocationOnMock invocation) throws Throwable {
+                if (iterations++ == 0) {
+                    final Set<FlowFileRecord> expired = invocation.getArgumentAt(1, Set.class);
+                    expired.add(flowFileRecord);
+                }
+
+                return null;
+            }
+        }).when(flowFileQueue).poll(Mockito.any(FlowFileFilter.class), Mockito.any(Set.class));
+
+        session.expireFlowFiles();
+        session.commit(); // if the content claim count is decremented to less than 0, an exception will be thrown.
+
+        assertEquals(1L, contentRepo.getClaimsRemoved());
     }
 
     @Test

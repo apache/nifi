@@ -139,6 +139,10 @@ public final class StandardConnection implements Connection {
 
     @Override
     public AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
+        if (user == null) {
+            return AuthorizationResult.denied("Unknown user");
+        }
+
         // check the source
         final AuthorizationResult sourceResult = getSource().checkAuthorization(authorizer, action, user, resourceContext);
         if (Result.Denied.equals(sourceResult.getResult())) {
@@ -151,6 +155,10 @@ public final class StandardConnection implements Connection {
 
     @Override
     public void authorize(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) throws AccessDeniedException {
+        if (user == null) {
+            throw new AccessDeniedException("Unknown user");
+        }
+
         getSource().authorize(authorizer, action, user, resourceContext);
         getDestination().authorize(authorizer, action, user, resourceContext);
     }
@@ -295,7 +303,7 @@ public final class StandardConnection implements Connection {
 
     @Override
     public String toString() {
-        return "Connection[ID=" + id + ",Name=" + name.get() + ",Source=" + getSource() + ",Destination=" + getDestination() + ",Relationships=" + getRelationships();
+        return "Connection[Source ID=" + id + ",Dest ID=" + getDestination().getIdentifier() + "]";
     }
 
     /**
@@ -445,19 +453,19 @@ public final class StandardConnection implements Connection {
     @Override
     public void verifyCanDelete() {
         if (!flowFileQueue.isEmpty()) {
-            throw new IllegalStateException("Queue not empty for " + this);
+            throw new IllegalStateException("Queue not empty for " + this.getIdentifier());
         }
 
         if (source.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(source.getConnectableType())) {
-                throw new IllegalStateException("Source of Connection (" + source + ") is running");
+                throw new IllegalStateException("Source of Connection (" + source.getIdentifier() + ") is running");
             }
         }
 
         final Connectable dest = destination.get();
         if (dest.isRunning()) {
             if (!ConnectableType.FUNNEL.equals(dest.getConnectableType())) {
-                throw new IllegalStateException("Destination of Connection (" + dest + ") is running");
+                throw new IllegalStateException("Destination of Connection (" + dest.getIdentifier() + ") is running");
             }
         }
     }

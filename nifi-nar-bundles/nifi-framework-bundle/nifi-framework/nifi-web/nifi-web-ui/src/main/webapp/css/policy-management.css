@@ -33,8 +33,14 @@
     margin-bottom: 24px;
 }
 
+#delete-policy-button {
+    margin-top: -4px;
+}
+
 #new-policy-user-button {
+    margin-top: -4px;
     margin-right: 5px;
+    padding-left: 5px;
 }
 
 button.policy-button {
@@ -123,16 +129,17 @@ div.policy-selected-component-type-icon i.icon {
     font-size: 28px;
     font-family: flowfont;
     color: #ad9897;
+    margin-left: 2px;
 }
 
 div.policy-selected-component-name {
-    height: 14px;
+    height: 16px;
     font-size: 15px;
     font-family: Roboto;
     color: #262626;
     width: 300px;
     text-overflow: ellipsis;
-    overflow-x: hidden;
+    overflow: hidden;
     white-space: nowrap;
 }
 
@@ -140,7 +147,6 @@ div.policy-selected-component-type {
     font-size: 12px;
     font-family: Roboto;
     color: #728e9b;
-    margin-top: 3px;
 }
 
 /*
@@ -151,7 +157,7 @@ div.policy-selected-component-type {
     position: absolute;
     top: 92px;
     left: 0px;
-    bottom: 0px;
+    bottom: 67px;
     right: 0px;
     overflow: hidden;
     background-color: #fff;
@@ -161,7 +167,7 @@ div.policy-selected-component-type {
     position: absolute;
     bottom: 20px;
     left: 0px;
-    height: 32px;
+    right: 20px;
 }
 
 #policy-refresh-button {
@@ -178,7 +184,8 @@ div.policy-selected-component-type {
 }
 
 #policy-last-refreshed {
-    font-weight: bold;
+    color: #775351;
+    font-weight: 500;
 }
 
 /*
@@ -202,4 +209,16 @@ div.policy-selected-component-type {
     background: #D4E0E5 !important;
     border: 1px solid #999999;
     border-radius: 0;
+}
+
+/*
+    admin policy message
+*/
+
+#admin-policy-message {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
 }

@@ -109,7 +109,7 @@ public class SSLContextServiceTest {
         runner.assertValid(service);
         service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
         Assert.assertNotNull(service);
-        SSLContextService sslService = (SSLContextService) service;
+        SSLContextService sslService = service;
         sslService.createSSLContext(ClientAuth.REQUIRED);
         sslService.createSSLContext(ClientAuth.WANT);
         sslService.createSSLContext(ClientAuth.NONE);
@@ -160,4 +160,46 @@ public class SSLContextServiceTest {
         }
     }
 
+    @Test
+    public void testDifferentKeyPassword() {
+        try {
+            final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+            final SSLContextService service = new StandardSSLContextService();
+            final Map<String, String> properties = new HashMap<String, String>();
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
+            properties.put(StandardSSLContextService.KEY_PASSWORD.getName(), "keypassword");
+            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+            runner.addControllerService("test-diff-keys", service, properties);
+            runner.enableControllerService(service);
+
+            runner.setProperty("SSL Context Svc ID", "test-diff-keys");
+            runner.assertValid();
+            Assert.assertNotNull(service);
+            Assert.assertTrue(service instanceof StandardSSLContextService);
+            SSLContextService sslService = service;
+            sslService.createSSLContext(ClientAuth.NONE);
+        } catch (Exception e) {
+            System.out.println(e);
+            Assert.fail("Should not have thrown a exception " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDifferentKeyPasswordWithoutSpecifyingPassword() {
+        try {
+            final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+            final SSLContextService service = new StandardSSLContextService();
+            final Map<String, String> properties = new HashMap<String, String>();
+            properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/diffpass-ks.jks");
+            properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "storepassword");
+            properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
+            runner.addControllerService("test-diff-keys", service, properties);
+
+            runner.assertNotValid(service);
+        } catch (Exception e) {
+            System.out.println(e);
+            Assert.fail("Should not have thrown a exception " + e.getMessage());
+        }
+    }
 }

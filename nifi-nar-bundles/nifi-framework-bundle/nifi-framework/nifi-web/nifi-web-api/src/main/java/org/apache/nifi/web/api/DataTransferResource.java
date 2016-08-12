@@ -30,6 +30,7 @@ import org.apache.nifi.authorization.AuthorizationResult.Result;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -44,6 +45,7 @@ import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.exception.RequestExpiredException;
+import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
 import org.apache.nifi.remote.io.http.HttpOutput;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
@@ -77,6 +79,8 @@ import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.HandshakeProperty.BATCH_COUNT;
@@ -115,7 +119,7 @@ public class DataTransferResource extends ApplicationResource {
 
     /**
      * Authorizes access to data transfers.
-     *
+     * <p>
      * Note: Protected for testing purposes
      */
     protected void authorizeDataTransfer(final ResourceType resourceType, final String identifier) {
@@ -125,7 +129,14 @@ public class DataTransferResource extends ApplicationResource {
             throw new IllegalArgumentException("The resource must be an Input or Output Port.");
         }
 
-        // TODO - use DataTransferAuthorizable after looking up underlying component for consistentency
+        final Map<String, String> userContext;
+        if (user.getClientAddress() != null && !user.getClientAddress().trim().isEmpty()) {
+            userContext = new HashMap<>();
+            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
+        } else {
+            userContext = null;
+        }
+
         final Resource resource = ResourceFactory.getComponentResource(resourceType, identifier, identifier);
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getDataTransferResource(resource))
@@ -133,6 +144,7 @@ public class DataTransferResource extends ApplicationResource {
                 .anonymous(user.isAnonymous())
                 .accessAttempt(true)
                 .action(RequestAction.WRITE)
+                .userContext(userContext)
                 .build();
 
         final AuthorizationResult result = authorizer.authorize(request);
@@ -145,14 +157,11 @@ public class DataTransferResource extends ApplicationResource {
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{portType}/{portId}/transactions")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Create a transaction to the specified output port or input port",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -179,7 +188,7 @@ public class DataTransferResource extends ApplicationResource {
             InputStream inputStream) {
 
 
-        if(!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)){
+        if (!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)) {
             return responseCreator.wrongPortTypeResponse(portType, portId);
         }
 
@@ -200,7 +209,7 @@ public class DataTransferResource extends ApplicationResource {
 
         try {
             // Execute handshake.
-            initiateServerProtocol(peer, transportProtocolVersion);
+            initiateServerProtocol(req, peer, transportProtocolVersion);
 
             TransactionResultEntity entity = new TransactionResultEntity();
             entity.setResponseCode(ResponseCode.PROPERTIES_OK.getCode());
@@ -222,14 +231,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("input-ports/{portId}/transactions/{transactionId}/flow-files")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Transfer flow files to the input port",
             response = String.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -268,7 +274,7 @@ public class DataTransferResource extends ApplicationResource {
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
 
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
             int numOfFlowFiles = serverProtocol.getPort().receiveFlowFiles(peer, serverProtocol);
             logger.debug("finished receiving flow files, numOfFlowFiles={}", numOfFlowFiles);
             if (numOfFlowFiles < 1) {
@@ -288,27 +294,31 @@ public class DataTransferResource extends ApplicationResource {
             return responseCreator.unexpectedErrorResponse(portId, e);
         }
 
-        String serverChecksum = ((HttpServerCommunicationsSession)peer.getCommunicationsSession()).getChecksum();
+        String serverChecksum = ((HttpServerCommunicationsSession) peer.getCommunicationsSession()).getChecksum();
         return responseCreator.acceptedResponse(transactionManager, serverChecksum, transportProtocolVersion);
     }
 
-    private HttpFlowFileServerProtocol initiateServerProtocol(Peer peer, Integer transportProtocolVersion) throws IOException {
+    private HttpFlowFileServerProtocol initiateServerProtocol(final HttpServletRequest req, final Peer peer,
+                                                              final Integer transportProtocolVersion) throws IOException {
         // Switch transaction protocol version based on transport protocol version.
         TransportProtocolVersionNegotiator negotiatedTransportProtocolVersion = new TransportProtocolVersionNegotiator(transportProtocolVersion);
         VersionNegotiator versionNegotiator = new StandardVersionNegotiator(negotiatedTransportProtocolVersion.getTransactionProtocolVersion());
+
+        final String dataTransferUrl = req.getRequestURL().toString();
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
+
         HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
         HttpRemoteSiteListener.getInstance().setupServerProtocol(serverProtocol);
-        // TODO: How should I pass cluster information?
-        // serverProtocol.setNodeInformant(clusterManager);
         serverProtocol.handshake(peer);
         return serverProtocol;
     }
 
-    HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+    HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
         return new StandardHttpFlowFileServerProtocol(versionNegotiator);
     }
 
-    private Peer constructPeer(HttpServletRequest req, InputStream inputStream, OutputStream outputStream, String portId, String transactionId) {
+    private Peer constructPeer(final HttpServletRequest req, final InputStream inputStream,
+                               final OutputStream outputStream, final String portId, final String transactionId) {
         final String clientHostName = req.getRemoteHost();
         final int clientPort = req.getRemotePort();
 
@@ -345,7 +355,7 @@ public class DataTransferResource extends ApplicationResource {
             commSession.putHandshakeParam(BATCH_DURATION, batchDuration);
         }
 
-        if(peerDescription.isSecure()){
+        if (peerDescription.isSecure()) {
             final NiFiUser nifiUser = NiFiUserUtils.getNiFiUser();
             logger.debug("initiating peer, nifiUser={}", nifiUser);
             commSession.setUserDn(nifiUser.getIdentity());
@@ -354,6 +364,7 @@ public class DataTransferResource extends ApplicationResource {
         // TODO: Followed how SocketRemoteSiteListener define peerUrl and clusterUrl, but it can be more meaningful values, especially for clusterUrl.
         final String peerUrl = "nifi://" + clientHostName + ":" + clientPort;
         final String clusterUrl = "nifi://localhost:" + req.getLocalPort();
+
         return new Peer(peerDescription, commSession, peerUrl, clusterUrl);
     }
 
@@ -361,14 +372,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("output-ports/{portId}/transactions/{transactionId}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -422,17 +430,17 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
             String inputErrMessage = null;
             if (responseCode == null) {
                 inputErrMessage = "responseCode is required.";
-            } else if(ResponseCode.CONFIRM_TRANSACTION.getCode() != responseCode
+            } else if (ResponseCode.CONFIRM_TRANSACTION.getCode() != responseCode
                     && ResponseCode.CANCEL_TRANSACTION.getCode() != responseCode) {
                 inputErrMessage = "responseCode " + responseCode + " is invalid. ";
             }
 
-            if (inputErrMessage != null){
+            if (inputErrMessage != null) {
                 entity.setMessage(inputErrMessage);
                 entity.setResponseCode(ResponseCode.ABORT.getCode());
                 return Response.status(Response.Status.BAD_REQUEST).entity(entity).build();
@@ -452,7 +460,7 @@ public class DataTransferResource extends ApplicationResource {
         } catch (Exception e) {
             HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             logger.error("Failed to process the request", e);
-            if(ResponseCode.BAD_CHECKSUM.equals(commsSession.getResponseCode())){
+            if (ResponseCode.BAD_CHECKSUM.equals(commsSession.getResponseCode())) {
                 entity.setResponseCode(commsSession.getResponseCode().getCode());
                 entity.setMessage(e.getMessage());
 
@@ -471,14 +479,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_OCTET_STREAM)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("input-ports/{portId}/transactions/{transactionId}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Commit or cancel the specified transaction",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -528,19 +533,19 @@ public class DataTransferResource extends ApplicationResource {
 
         final TransactionResultEntity entity = new TransactionResultEntity();
         try {
-            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
             HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
             // Pass the response code sent from the client.
             String inputErrMessage = null;
             if (responseCode == null) {
                 inputErrMessage = "responseCode is required.";
-            } else if(ResponseCode.BAD_CHECKSUM.getCode() != responseCode
+            } else if (ResponseCode.BAD_CHECKSUM.getCode() != responseCode
                     && ResponseCode.CONFIRM_TRANSACTION.getCode() != responseCode
                     && ResponseCode.CANCEL_TRANSACTION.getCode() != responseCode) {
                 inputErrMessage = "responseCode " + responseCode + " is invalid. ";
             }
 
-            if (inputErrMessage != null){
+            if (inputErrMessage != null) {
                 entity.setMessage(inputErrMessage);
                 entity.setResponseCode(ResponseCode.ABORT.getCode());
                 return Response.status(Response.Status.BAD_REQUEST).entity(entity).build();
@@ -557,8 +562,8 @@ public class DataTransferResource extends ApplicationResource {
                 entity.setResponseCode(commsSession.getResponseCode().getCode());
                 entity.setFlowFileSent(flowFileSent);
 
-            } catch (IOException e){
-                if (ResponseCode.BAD_CHECKSUM.getCode() == responseCode && e.getMessage().contains("Received a BadChecksum response")){
+            } catch (IOException e) {
+                if (ResponseCode.BAD_CHECKSUM.getCode() == responseCode && e.getMessage().contains("Received a BadChecksum response")) {
                     // AbstractFlowFileServerProtocol throws IOException after it canceled transaction.
                     // This is a known behavior and if we return 500 with this exception,
                     // it's not clear if there is an issue at server side, or cancel operation has been accomplished.
@@ -592,14 +597,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_OCTET_STREAM)
     @Path("output-ports/{portId}/transactions/{transactionId}/flow-files")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Transfer flow files from the output port",
             response = StreamingOutput.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -641,19 +643,19 @@ public class DataTransferResource extends ApplicationResource {
         final Peer peer = constructPeer(req, inputStream, tempBos, portId, transactionId);
         final int transportProtocolVersion = validationResult.transportProtocolVersion;
         try {
-            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(peer, transportProtocolVersion);
+            final HttpFlowFileServerProtocol serverProtocol = initiateServerProtocol(req, peer, transportProtocolVersion);
 
             StreamingOutput flowFileContent = new StreamingOutput() {
                 @Override
                 public void write(OutputStream outputStream) throws IOException, WebApplicationException {
 
-                    HttpOutput output = (HttpOutput)peer.getCommunicationsSession().getOutput();
+                    HttpOutput output = (HttpOutput) peer.getCommunicationsSession().getOutput();
                     output.setOutputStream(outputStream);
 
                     try {
                         int numOfFlowFiles = serverProtocol.getPort().transferFlowFiles(peer, serverProtocol);
                         logger.debug("finished transferring flow files, numOfFlowFiles={}", numOfFlowFiles);
-                        if(numOfFlowFiles < 1){
+                        if (numOfFlowFiles < 1) {
                             // There was no flow file to transfer. Throw this exception to stop responding with SEE OTHER.
                             throw new WebApplicationException(Response.Status.OK);
                         }
@@ -679,14 +681,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("input-ports/{portId}/transactions/{transactionId}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Extend transaction TTL",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/input-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -717,14 +716,11 @@ public class DataTransferResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("output-ports/{portId}/transactions/{transactionId}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Extend transaction TTL",
             response = TransactionResultEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Write - /data-transfer/output-ports/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -767,7 +763,7 @@ public class DataTransferResource extends ApplicationResource {
             return validationResult.errResponse;
         }
 
-        if(!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)){
+        if (!PORT_TYPE_INPUT.equals(portType) && !PORT_TYPE_OUTPUT.equals(portType)) {
             return responseCreator.wrongPortTypeResponse(portType, portId);
         }
 
@@ -780,7 +776,7 @@ public class DataTransferResource extends ApplicationResource {
 
         try {
             // Do handshake
-            initiateServerProtocol(peer, transportProtocolVersion);
+            initiateServerProtocol(req, peer, transportProtocolVersion);
             transactionManager.extendTransaction(transactionId);
 
             final TransactionResultEntity entity = new TransactionResultEntity();
@@ -808,19 +804,10 @@ public class DataTransferResource extends ApplicationResource {
 
     private ValidateRequestResult validateResult(HttpServletRequest req, String portId, String transactionId) {
         ValidateRequestResult result = new ValidateRequestResult();
-        if(!properties.isSiteToSiteHttpEnabled()) {
+        if (!properties.isSiteToSiteHttpEnabled()) {
             result.errResponse = responseCreator.httpSiteToSiteIsNotEnabledResponse();
             return result;
         }
-
-        // TODO: NCM no longer exists.
-        /*
-        if (properties.isClusterManager()) {
-            result.errResponse = responseCreator.nodeTypeErrorResponse(req.getPathInfo() + " is not available on a NiFi Cluster Manager.");
-            return result;
-        }
-        */
-
 
         try {
             result.transportProtocolVersion = negotiateTransportProtocolVersion(req, transportProtocolVersionNegotiator);
@@ -829,9 +816,9 @@ public class DataTransferResource extends ApplicationResource {
             return result;
         }
 
-        if(!isEmpty(transactionId) && !transactionManager.isTransactionActive(transactionId)) {
+        if (!isEmpty(transactionId) && !transactionManager.isTransactionActive(transactionId)) {
             result.errResponse = responseCreator.transactionNotFoundResponse(portId, transactionId);
-            return  result;
+            return result;
         }
 
         return result;

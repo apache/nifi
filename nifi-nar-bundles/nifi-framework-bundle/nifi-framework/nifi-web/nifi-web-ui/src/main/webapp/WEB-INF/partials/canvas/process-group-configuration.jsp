@@ -20,10 +20,10 @@
     <div class="settings-container">
         <div>
             <div id="process-group-configuration-tabs" class="settings-tabs tab-container"></div>
-            <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus"></button>
             <div class="clear"></div>
         </div>
         <div id="process-group-configuration-tabs-content">
+            <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus" title="Create a new controller service"></button>
             <div id="general-process-group-configuration-tab-content" class="configuration-tab">
                 <div id="general-process-group-configuration">
                     <div class="setting">

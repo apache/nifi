@@ -425,31 +425,40 @@
                         var endpoints = $(this);
                         var path = endpoints.find('div.path').text();
                         
-                        if (term === null || path.indexOf(term) > 0) {
+                        if (term === null || path.indexOf(term) === 0) {
                             endpoints.detach().appendTo(container);
                         }
                     });
                 };
                 
                 // organize the endpoints
-                organizeEndpoints('cluster', $('#cluster-endpoints'));
-                organizeEndpoints('provenance', $('#provenance-endpoints'));
-                organizeEndpoints('user', $('#user-endpoints'));
-                organizeEndpoints('controller-services', $('#controller-service-endpoints'));
-                organizeEndpoints('reporting-tasks', $('#reporting-task-endpoints'));
-                organizeEndpoints('connections', $('#connection-endpoints'));
-                organizeEndpoints('processors', $('#processor-endpoints'));
-                organizeEndpoints('funnels', $('#funnel-endpoints'));
-                organizeEndpoints('remote-process-groups', $('#remote-process-group-endpoints'));
-                organizeEndpoints('input-ports', $('#input-port-endpoints'));
-                organizeEndpoints('output-ports', $('#output-port-endpoints'));
-                organizeEndpoints('labels', $('#label-endpoints'));
-                organizeEndpoints('process-groups', $('#process-group-endpoints'));
-                organizeEndpoints('history', $('#history-endpoints'));
-                organizeEndpoints('access', $('#access-endpoints'));
+                organizeEndpoints('/process-groups', $('#process-group-endpoints'));
+                organizeEndpoints('/controller-services', $('#controller-service-endpoints'));
+                organizeEndpoints('/reporting-tasks', $('#reporting-task-endpoints'));
+                organizeEndpoints('/counters', $('#counter-endpoints'));
+                organizeEndpoints('/controller', $('#controller-endpoints'));
+                organizeEndpoints('/connections', $('#connection-endpoints'));
+                organizeEndpoints('/flowfile-queue', $('#flowfile-queue-endpoints'));
+                organizeEndpoints('/processors', $('#processor-endpoints'));
+                organizeEndpoints('/funnels', $('#funnel-endpoints'));
+                organizeEndpoints('/remote-process-groups', $('#remote-process-group-endpoints'));
+                organizeEndpoints('/input-ports', $('#input-port-endpoints'));
+                organizeEndpoints('/output-ports', $('#output-port-endpoints'));
+                organizeEndpoints('/labels', $('#label-endpoints'));
+                organizeEndpoints('/access', $('#access-endpoints'));
+                organizeEndpoints('/flow', $('#flow-endpoints'));
+                organizeEndpoints('/provenance-events', $('#provenance-event-endpoints'));
+                organizeEndpoints('/provenance', $('#provenance-endpoints'));
+                organizeEndpoints('/tenants', $('#tenant-endpoints'));
+                organizeEndpoints('/data-transfer', $('#data-transfer-endpoints'));
+                organizeEndpoints('/policies', $('#policy-endpoints'));
+                organizeEndpoints('/resources', $('#resource-endpoints'));
+                organizeEndpoints('/site-to-site', $('#site-to-site-endpoints'));
+                organizeEndpoints('/snippets', $('#snippet-endpoints'));
+                organizeEndpoints('/system', $('#system-diagnostic-endpoints'));
+                organizeEndpoints('/templates', $('#template-endpoints'));
                 organizeEndpoints(null, $('#controller-endpoints'));
-                
-                
+
                 // handle expanding/collapsing the sections
                 $('div.section-header > div.title').on('click', function() {
                     $(this).parent('div.section-header').next('div.section-endpoints').slideToggle();
@@ -477,15 +486,47 @@
         <div class="section">
             <div class="section-header">
                 <div class="title link">Controller</div>
-                <div class="sub-title section-description">Get controller configuration, Search the flow, Manage templates, System diagnostics</div>
+                <div class="sub-title section-description">Get controller configuration, Manage the cluster, Create reporting tasks</div>
                 <div class="clear"></div>
             </div>
             <div id="controller-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
+                <div class="title link">Controller Services</div>
+                <div class="sub-title section-description">Manage controller services, Update controller service references</div>
+                <div class="clear"></div>
+            </div>
+            <div id="controller-service-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Reporting Tasks</div>
+                <div class="sub-title section-description">Manage reporting tasks</div>
+                <div class="clear"></div>
+            </div>
+            <div id="reporting-task-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Counters</div>
+                <div class="sub-title section-description">Get counters, Reset counters</div>
+                <div class="clear"></div>
+            </div>
+            <div id="counter-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Flow</div>
+                <div class="sub-title section-description">Get the data flow, Obtain component status, Query history</div>
+                <div class="clear"></div>
+            </div>
+            <div id="flow-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
                 <div class="title link">Process Groups</div>
-                <div class="sub-title section-description">Get the flow, Instantiate a template, Manage sub groups, Monitor component status</div>
+                <div class="sub-title section-description">Create components, Instantiate a template, Upload a template</div>
                 <div class="clear"></div>
             </div>
             <div id="process-group-endpoints" class="section-endpoints hidden"></div>
@@ -505,6 +546,14 @@
                 <div class="clear"></div>
             </div>
             <div id="connection-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">FlowFile Queues</div>
+                <div class="sub-title section-description">View queue contents, Download flowfile content, Empty queue</div>
+                <div class="clear"></div>
+            </div>
+            <div id="flowfile-queue-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
@@ -548,51 +597,83 @@
         </div>
         <div class="section">
             <div class="section-header">
-                <div class="title link">Controller Services</div>
-                <div class="sub-title section-description">Manage controller services, Update controller service references</div>
-                <div class="clear"></div>
-            </div>
-            <div id="controller-service-endpoints" class="section-endpoints hidden"></div>
-        </div>
-        <div class="section">
-            <div class="section-header">
-                <div class="title link">Reporting Tasks</div>
-                <div class="sub-title section-description">Manage reporting tasks</div>
-                <div class="clear"></div>
-            </div>
-            <div id="reporting-task-endpoints" class="section-endpoints hidden"></div>
-        </div>
-        <div class="section">
-            <div class="section-header">
-                <div class="title link">Cluster</div>
-                <div class="sub-title section-description">View node status, Disconnect nodes, Aggregate component status</div>
-                <div class="clear"></div>
-            </div>
-            <div id="cluster-endpoints" class="section-endpoints hidden"></div>
-        </div>
-        <div class="section">
-            <div class="section-header">
                 <div class="title link">Provenance</div>
-                <div class="sub-title section-description">Query provenance, Search event lineage, Download content, Replay</div>
+                <div class="sub-title section-description">Query provenance, Search event lineage</div>
                 <div class="clear"></div>
             </div>
             <div id="provenance-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
-                <div class="title link">History</div>
-                <div class="sub-title section-description">View flow history, Purge flow history</div>
+                <div class="title link">Provenance Events</div>
+                <div class="sub-title section-description">Download content, Replay</div>
                 <div class="clear"></div>
             </div>
-            <div id="history-endpoints" class="section-endpoints hidden"></div>
+            <div id="provenance-event-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="section">
             <div class="section-header">
-                <div class="title link">Users</div>
-                <div class="sub-title section-description">Update user access, revoke accounts, get account details, Group users</div>
+                <div class="title link">Tenants</div>
+                <div class="sub-title section-description">Add users and group, Group users</div>
                 <div class="clear"></div>
             </div>
-            <div id="user-endpoints" class="section-endpoints hidden"></div>
+            <div id="tenant-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Policies</div>
+                <div class="sub-title section-description">Get policies, Create policies</div>
+                <div class="clear"></div>
+            </div>
+            <div id="policy-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Resources</div>
+                <div class="sub-title section-description">Get resources</div>
+                <div class="clear"></div>
+            </div>
+            <div id="resource-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Site to Site</div>
+                <div class="sub-title section-description">Get available ports, Get peers</div>
+                <div class="clear"></div>
+            </div>
+            <div id="site-to-site-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Data Transfer</div>
+                <div class="sub-title section-description">Send data, Receive data</div>
+                <div class="clear"></div>
+            </div>
+            <div id="data-transfer-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Snippets</div>
+                <div class="sub-title section-description">Create a snippet, Move a snippet, Delete a snippet</div>
+                <div class="clear"></div>
+            </div>
+            <div id="snippet-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Templates</div>
+                <div class="sub-title section-description">Download a template, Delete a template</div>
+                <div class="clear"></div>
+            </div>
+            <div id="template-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">System Diagnostics</div>
+                <div class="sub-title section-description">Get system diagnostics</div>
+                <div class="clear"></div>
+            </div>
+            <div id="system-diagnostic-endpoints" class="section-endpoints hidden"></div>
         </div>
         <div class="unorganized hidden">
             {{#each paths}}

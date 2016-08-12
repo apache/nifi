@@ -23,6 +23,10 @@
     <includeBaseDirectory>true</includeBaseDirectory>
     <baseDirectory>nifi-${project.version}</baseDirectory>
 
+    <componentDescriptors>
+        <componentDescriptor>src/main/assembly/common.xml</componentDescriptor>
+    </componentDescriptors>
+
     <dependencySets>
         <!-- Write out all dependency artifacts to lib directory -->
         <dependencySet>
@@ -33,109 +37,11 @@
             <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
-            	<exclude>nifi-bootstrap</exclude>
+                <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
             </excludes>
         </dependencySet>
-        
-        <!-- Write out the bootstrap lib component to its own dir -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>lib/bootstrap</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0660</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-            	<include>nifi-bootstrap</include>
-            	<include>slf4j-api</include>
-            	<include>logback-classic</include>
-            	<include>nifi-api</include>
-            </includes>
-        </dependencySet>
-        
-        <!-- Write out the conf directory contents -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>./</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0664</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-            	<include>nifi-resources</include>
-            </includes>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <filtered>true</filtered>
-                <includes>
-                    <include>conf/*</include>
-                </includes>
-            </unpackOptions>
-        </dependencySet>
-
-        <!-- Write out the bin directory contents -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>./</outputDirectory>
-            <directoryMode>0770</directoryMode>
-            <fileMode>0770</fileMode>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-            	<include>nifi-resources</include>
-            </includes>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <filtered>true</filtered>
-                <includes>
-                    <include>bin/*</include>
-                </includes>
-            </unpackOptions>
-        </dependencySet>
-        
-        <!-- Writes out the docs directory contents -->
-        <dependencySet>
-            <scope>runtime</scope>
-            <useProjectArtifact>false</useProjectArtifact>
-            <outputDirectory>docs/</outputDirectory>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-            	<include>nifi-docs</include>
-            </includes>
-            <unpack>true</unpack>
-            <unpackOptions>
-                <filtered>false</filtered>
-                <excludes>
-                  <!-- LICENSE and NOTICE both covered by top-level -->
-                  <exclude>LICENSE</exclude>
-                  <exclude>NOTICE</exclude>
-                </excludes>
-            </unpackOptions>
-        </dependencySet>                
     </dependencySets>
-    <files>
-        <file>
-            <source>./README.md</source>
-            <outputDirectory>./</outputDirectory>
-            <destName>README</destName>
-            <fileMode>0644</fileMode>
-            <filtered>true</filtered>
-        </file>
-        <file>
-            <source>./LICENSE</source>
-            <outputDirectory>./</outputDirectory>
-            <destName>LICENSE</destName>
-            <fileMode>0644</fileMode>
-            <filtered>true</filtered>
-        </file>       
-        <file>
-            <source>./NOTICE</source>
-            <outputDirectory>./</outputDirectory>
-            <destName>NOTICE</destName>
-            <fileMode>0644</fileMode>
-            <filtered>true</filtered>
-        </file>
-    </files>
+
 </assembly>

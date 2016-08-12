@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,6 +29,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ClusterCoordinationProtocolSender;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
@@ -35,6 +37,8 @@ import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
@@ -45,6 +49,8 @@ import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A protocol sender for sending protocol messages from the cluster manager to
@@ -57,12 +63,18 @@ import org.apache.nifi.util.NiFiProperties;
  *
  */
 public class StandardClusterCoordinationProtocolSender implements ClusterCoordinationProtocolSender {
+    private static final Logger logger = LoggerFactory.getLogger(StandardClusterCoordinationProtocolSender.class);
 
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final SocketConfiguration socketConfiguration;
+    private final int maxThreadsPerRequest;
     private int handshakeTimeoutSeconds;
 
     public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
+        this(socketConfiguration, protocolContext, NiFiProperties.getInstance().getClusterNodeProtocolThreads());
+    }
+
+    public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext, final int maxThreadsPerRequest) {
         if (socketConfiguration == null) {
             throw new IllegalArgumentException("Socket configuration may not be null.");
         } else if (protocolContext == null) {
@@ -71,6 +83,7 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
         this.socketConfiguration = socketConfiguration;
         this.protocolContext = protocolContext;
         this.handshakeTimeoutSeconds = -1;  // less than zero denotes variable not configured
+        this.maxThreadsPerRequest = maxThreadsPerRequest;
     }
 
     @Override
@@ -183,13 +196,50 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
     }
 
     @Override
+    public NodeConnectionStatus requestNodeConnectionStatus(final String hostname, final int port) {
+        Objects.requireNonNull(hostname);
+
+        final NodeConnectionStatusRequestMessage msg = new NodeConnectionStatusRequestMessage();
+
+        final byte[] msgBytes;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
+            marshaller.marshal(msg, baos);
+            msgBytes = baos.toByteArray();
+        } catch (final IOException e) {
+            throw new ProtocolException("Failed to marshal NodeIdentifierRequestMessage", e);
+        }
+
+        try (final Socket socket = createSocket(hostname, port, true)) {
+            // marshal message to output stream
+            socket.getOutputStream().write(msgBytes);
+
+            final ProtocolMessage response;
+            try {
+                // unmarshall response and return
+                final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
+                response = unmarshaller.unmarshal(socket.getInputStream());
+            } catch (final IOException ioe) {
+                throw new ProtocolException("Failed unmarshalling '" + MessageType.RECONNECTION_RESPONSE + "' protocol message due to: " + ioe, ioe);
+            }
+
+            if (MessageType.NODE_CONNECTION_STATUS_RESPONSE == response.getType()) {
+                return ((NodeConnectionStatusResponseMessage) response).getNodeConnectionStatus();
+            } else {
+                throw new ProtocolException("Expected message type '" + MessageType.NODE_CONNECTION_STATUS_RESPONSE + "' but found '" + response.getType() + "'");
+            }
+        } catch (final IOException ioe) {
+            throw new ProtocolException("Failed to request Node Identifer from " + hostname + ":" + port, ioe);
+        }
+    }
+
+    @Override
     public void notifyNodeStatusChange(final Set<NodeIdentifier> nodesToNotify, final NodeStatusChangeMessage msg) {
         if (nodesToNotify.isEmpty()) {
             return;
         }
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final int numThreads = Math.min(nodesToNotify.size(), properties.getClusterNodeProtocolThreads());
+        final int numThreads = Math.min(nodesToNotify.size(), maxThreadsPerRequest);
 
         final byte[] msgBytes;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
@@ -222,6 +272,8 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                     } catch (final IOException ioe) {
                         throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, ioe);
                     }
+
+                    logger.debug("Notified {} of status change {}", nodeId, msg);
                 }
             });
         }

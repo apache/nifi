@@ -17,7 +17,8 @@
 
 /* global nf, top, Slick */
 
-nf.ProvenanceTable = (function () {
+nf.ng.ProvenanceTable = function (provenanceLineageCtrl) {
+    'use strict';
 
     /**
      * Configuration object used to hold a number of configuration items.
@@ -26,9 +27,7 @@ nf.ProvenanceTable = (function () {
         maxResults: 1000,
         defaultStartTime: '00:00:00',
         defaultEndTime: '23:59:59',
-        filterText: 'Filter',
         styles: {
-            filterList: 'provenance-filter-list',
             hidden: 'hidden'
         },
         urls: {
@@ -300,7 +299,7 @@ nf.ProvenanceTable = (function () {
      *
      * @param {boolean} isClustered     Whether or not this NiFi clustered
      */
-    var initSearchDialog = function (isClustered) {
+    var initSearchDialog = function (isClustered, provenanceTableCtrl) {
         // configure the start and end date picker
         $('#provenance-search-start-date, #provenance-search-end-date').datepicker({
             showAnim: '',
@@ -424,7 +423,7 @@ nf.ProvenanceTable = (function () {
                         search['searchTerms'] = getSearchCriteria();
 
                         // reload the table
-                        nf.ProvenanceTable.loadProvenanceTable(search);
+                        provenanceTableCtrl.loadProvenanceTable(search);
                     }
                 }
             },
@@ -514,19 +513,11 @@ nf.ProvenanceTable = (function () {
      *
      * @param {boolean} isClustered     Whether or not this instance is clustered
      */
-    var initProvenanceTable = function (isClustered) {
+    var initProvenanceTable = function (isClustered, provenanceTableCtrl) {
         // define the function for filtering the list
         $('#provenance-filter').keyup(function () {
             applyFilter();
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        });
 
         // filter options
         var filterOptions = [{
@@ -584,7 +575,7 @@ nf.ProvenanceTable = (function () {
             cachedQuery = {};
 
             // reload the table
-            nf.ProvenanceTable.loadProvenanceTable();
+            provenanceTableCtrl.loadProvenanceTable();
         });
 
         // add hover effect and click handler for opening the dialog
@@ -738,13 +729,13 @@ nf.ProvenanceTable = (function () {
             // determine the desired action
             if (provenanceGrid.getColumns()[args.cell].id === 'actions') {
                 if (target.hasClass('show-lineage')) {
-                    nf.ProvenanceLineage.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId);
+                    provenanceLineageCtrl.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId, provenanceTableCtrl);
                 } else if (target.hasClass('go-to')) {
                     goTo(item);
                 }
             } else if (provenanceGrid.getColumns()[args.cell].id === 'moreDetails') {
                 if (target.hasClass('show-event-details')) {
-                    nf.ProvenanceTable.showEventDetails(item);
+                    provenanceTableCtrl.showEventDetails(item);
                 }
             }
         });
@@ -796,12 +787,7 @@ nf.ProvenanceTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#provenance-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#provenance-filter').val();
     };
 
     /**
@@ -939,7 +925,7 @@ nf.ProvenanceTable = (function () {
      *
      * @param {object} provenance
      */
-    var loadProvenanceResults = function (provenance) {
+    var loadProvenanceResults = function (provenance, provenanceTableCtrl) {
         var provenanceRequest = provenance.request;
         var provenanceResults = provenance.results;
 
@@ -959,11 +945,8 @@ nf.ProvenanceTable = (function () {
             // update the oldest event available
             $('#oldest-event').html(nf.Common.formatValue(provenanceResults.oldestEvent));
 
-            // set the timezone for the start and end time
-            $('.timezone').text(nf.Common.substringAfterLast(provenanceResults.generated, ' '));
-
             // record the server offset
-            nf.ProvenanceTable.serverTimeOffset = provenanceResults.timeOffset;
+            provenanceTableCtrl.serverTimeOffset = provenanceResults.timeOffset;
 
             // determines if the specified query is blank (no search terms, start or end date)
             var isBlankQuery = function (query) {
@@ -1017,16 +1000,21 @@ nf.ProvenanceTable = (function () {
         }
     };
 
-    return {
+    function ProvenanceTableCtrl() {
+
         /**
          * The max delay between requests.
          */
-        MAX_DELAY: 4,
+        this.MAX_DELAY = 4;
 
         /**
          * The server time offset
          */
-        serverTimeOffset: null,
+        this.serverTimeOffset = null;
+    }
+
+    ProvenanceTableCtrl.prototype = {
+        constructor: ProvenanceTableCtrl,
 
         /**
          * Initializes the provenance table. Returns a deferred that will indicate when/if the table has initialized successfully.
@@ -1034,6 +1022,7 @@ nf.ProvenanceTable = (function () {
          * @param {boolean} isClustered     Whether or not this instance is clustered
          */
         init: function (isClustered) {
+            var self = this;
             return $.Deferred(function (deferred) {
                 // handles init failure
                 var failure = function (xhr, status, error) {
@@ -1042,13 +1031,13 @@ nf.ProvenanceTable = (function () {
                 };
 
                 // initialize the lineage view
-                nf.ProvenanceLineage.init();
+                provenanceLineageCtrl.init();
 
                 // initialize the table view
                 initDetailsDialog();
                 initProvenanceQueryDialog();
-                initProvenanceTable(isClustered);
-                initSearchDialog(isClustered).done(function () {
+                initProvenanceTable(isClustered, self);
+                initSearchDialog(isClustered, self).done(function () {
                     deferred.resolve();
                 }).fail(failure);
             }).promise();
@@ -1090,11 +1079,12 @@ nf.ProvenanceTable = (function () {
          * @param {object} query
          */
         loadProvenanceTable: function (query) {
+            var self = this;
             var provenanceProgress = $('#provenance-percent-complete');
 
-            // add support to cancel outstanding requests - when the button is pressed we 
+            // add support to cancel outstanding requests - when the button is pressed we
             // could be in one of two stages, 1) waiting to GET the status or 2)
-            // in the process of GETting the status. Handle both cases by cancelling 
+            // in the process of GETting the status. Handle both cases by cancelling
             // the setTimeout (1) and by setting a flag to indicate that a request has
             // been request so we can ignore the results (2).
 
@@ -1103,7 +1093,7 @@ nf.ProvenanceTable = (function () {
             var provenanceTimer = null;
 
             // update the progress bar value
-            nf.ProvenanceTable.updateProgress(provenanceProgress, 0);
+            self.updateProgress(provenanceProgress, 0);
 
             // show the 'searching...' dialog
             $('#provenance-query-dialog').modal('setButtonModel', [{
@@ -1168,7 +1158,7 @@ nf.ProvenanceTable = (function () {
                 }).fail(closeDialog);
             };
 
-            // processes the provenance, if the provenance is not done wait delay 
+            // processes the provenance, if the provenance is not done wait delay
             // before polling again
             var processProvenanceResponse = function (delay) {
                 // if the request was cancelled just ignore the current response
@@ -1178,7 +1168,7 @@ nf.ProvenanceTable = (function () {
                 }
 
                 // update the percent complete
-                nf.ProvenanceTable.updateProgress(provenanceProgress, provenance.percentCompleted);
+                self.updateProgress(provenanceProgress, provenance.percentCompleted);
 
                 // process the results if they are finished
                 if (provenance.finished === true) {
@@ -1192,7 +1182,7 @@ nf.ProvenanceTable = (function () {
                     }
 
                     // process the results
-                    loadProvenanceResults(provenance);
+                    loadProvenanceResults(provenance, self);
 
                     // hide the dialog
                     closeDialog();
@@ -1204,7 +1194,7 @@ nf.ProvenanceTable = (function () {
 
                         // calculate the next delay (back off)
                         var backoff = delay * 2;
-                        var nextDelay = backoff > nf.ProvenanceTable.MAX_DELAY ? nf.ProvenanceTable.MAX_DELAY : backoff;
+                        var nextDelay = backoff > self.MAX_DELAY ? self.MAX_DELAY : backoff;
 
                         // poll provenance
                         pollProvenance(nextDelay);
@@ -1345,10 +1335,15 @@ nf.ProvenanceTable = (function () {
 
                 // show the previous value if the property has changed
                 if (attribute.value !== attribute.previousValue) {
-                    attributeRecord
-                        .append('<div class="modified-attribute-label">previous</div>')
-                        .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
-                        .append('<div class="clear"></div>');
+                    if (nf.Common.isDefinedAndNotNull(attribute.previousValue)) {
+                        attributeRecord
+                            .append($('<div class="modified-attribute-value">' + nf.Common.formatValue(attribute.previousValue) + '<span class="unset"> (previous)</span></div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    } else {
+                        attributeRecord
+                            .append($('<div class="unset" style="font-size: 13px; padding-top: 2px;">' + nf.Common.formatValue(attribute.previousValue) + '</div>').ellipsis())
+                            .append('<div class="clear"></div>');
+                    }
                 } else {
                     // mark this attribute as not modified
                     attributeRecord.addClass('attribute-unmodified');
@@ -1359,7 +1354,7 @@ nf.ProvenanceTable = (function () {
                 if (nf.Common.isDefinedAndNotNull(value)) {
                     element.removeClass('unset').text(value);
                 } else {
-                    element.addClass('unset').text('No value set');
+                    element.addClass('unset').text('No value previously set');
                 }
             };
 
@@ -1431,5 +1426,8 @@ nf.ProvenanceTable = (function () {
             // show the dialog
             $('#event-details-dialog').modal('show');
         }
-    };
-}());
+    }
+
+    var provenanceTableCtrl = new ProvenanceTableCtrl();
+    return provenanceTableCtrl;
+};

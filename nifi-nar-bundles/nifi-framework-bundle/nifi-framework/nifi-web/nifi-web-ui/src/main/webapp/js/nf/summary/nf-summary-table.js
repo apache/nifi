@@ -22,9 +22,6 @@ nf.SummaryTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        styles: {
-            filterList: 'summary-filter-list'
-        },
         urls: {
             api: '../nifi-api',
             status: '../nifi-api/flow/process-groups/root/status',
@@ -59,15 +56,7 @@ nf.SummaryTable = (function () {
         // define the function for filtering the list
         $('#summary-filter').keyup(function () {
             applyFilter();
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList);
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList);
-            }
-        }).addClass(config.styles.filterList);
+        });
 
         // initialize the summary tabs
         $('#summary-tabs').tabbs({
@@ -236,14 +225,14 @@ nf.SummaryTable = (function () {
                 }
 
                 // reset the filter
-                $('#summary-filter').addClass(config.styles.filterList);
+                $('#summary-filter').val('');
                 applyFilter();
             }
         });
 
         // define a custom formatter for showing more processor details
         var moreProcessorDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<div title="View Details" class="pointer show-processor-details fa fa-info-circle" style="margin-right: 3px;"></div>';
+            var markup = '<div title="View Processor Details" class="pointer show-processor-details fa fa-info-circle" style="margin-right: 3px;"></div>';
 
             // if there are bulletins, render them on the graph
             if (!nf.Common.isEmpty(dataContext.bulletins)) {
@@ -382,15 +371,15 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Processor" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (nf.Common.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="Show History" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer show-processor-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-processor-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-processor-summary fa fa-cubes" title="View Processor Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -622,7 +611,7 @@ nf.SummaryTable = (function () {
 
         // define a custom formatter for showing more processor details
         var moreConnectionDetails = function (row, cell, value, columnDef, dataContext) {
-            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Details" style="margin-top: 5px;"></div>';
+            return '<div class="pointer show-connection-details fa fa-info-circle" title="View Connection Details" style="margin-top: 5px;"></div>';
         };
 
         // define the input, read, written, and output columns (reused between both tables)
@@ -667,15 +656,15 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Connection" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (nf.Common.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="Show History" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer show-connection-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-connection-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-connection-summary fa fa-cubes" title="View Connection Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -945,15 +934,15 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell && dataContext.groupId !== null) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (nf.Common.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="Show History" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer show-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-process-group-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-process-group-summary fa fa-cubes" title="View Process Group Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -1198,11 +1187,11 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Input Port" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-input-port-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-input-port-summary fa fa-cubes" title="View Input Port Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -1438,11 +1427,11 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Output Port" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-output-port-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-output-port-summary fa fa-cubes" title="View Output Port Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -1729,15 +1718,15 @@ nf.SummaryTable = (function () {
                 var markup = '';
 
                 if (isInShell) {
-                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer go-to fa fa-long-arrow-right" title="Go To Process Group" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (nf.Common.SUPPORTS_SVG) {
-                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="Show History" style="margin-right: 3px;"></div>&nbsp;';
+                    markup += '<div class="pointer show-remote-process-group-status-history fa fa-area-chart" title="View Status History" style="margin-right: 3px;"></div>&nbsp;';
                 }
 
                 if (isClustered) {
-                    markup += '<div class="pointer show-cluster-remote-process-group-summary fa fa-cubes" title="Show Details"></div>&nbsp;';
+                    markup += '<div class="pointer show-cluster-remote-process-group-summary fa fa-cubes" title="View Remote Process Group Details"></div>&nbsp;';
                 }
 
                 return markup;
@@ -2299,12 +2288,7 @@ nf.SummaryTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#summary-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#summary-filter').val();
     };
 
     /**

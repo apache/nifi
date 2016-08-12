@@ -32,7 +32,7 @@ import java.util.Date;
 public class ActionDTO {
 
     private Integer id;
-    private String userDn;
+    private String userIdentity;
     private Date timestamp;
 
     private String sourceId;
@@ -58,17 +58,17 @@ public class ActionDTO {
     }
 
     /**
-     * @return user dn who perform this action
+     * @return user identity who perform this action
      */
     @ApiModelProperty(
-            value = "The dn of the user that performed the action."
+            value = "The identity of the user that performed the action."
     )
-    public String getUserDn() {
-        return userDn;
+    public String getUserIdentity() {
+        return userIdentity;
     }
 
-    public void setUserDn(String userDn) {
-        this.userDn = userDn;
+    public void setUserIdentity(String userIdentity) {
+        this.userIdentity = userIdentity;
     }
 
     /**

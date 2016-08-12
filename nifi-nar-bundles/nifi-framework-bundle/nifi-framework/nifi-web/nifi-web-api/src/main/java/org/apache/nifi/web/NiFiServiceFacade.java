@@ -354,6 +354,15 @@ public interface NiFiServiceFacade {
     // ----------------------------------------
     // Template methods
     // ----------------------------------------
+
+    /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param groupId the id of the group for the template
+     * @param name name of purposed template
+     */
+    void verifyCanAddTemplate(String groupId, String name);
+
     /**
      * Creates a new Template based off the specified snippet.
      *
@@ -816,10 +825,9 @@ public interface NiFiServiceFacade {
      * Returns the flow.
      *
      * @param groupId group
-     * @param recurse recurse
      * @return the flow
      */
-    ProcessGroupFlowEntity getProcessGroupFlow(String groupId, boolean recurse);
+    ProcessGroupFlowEntity getProcessGroupFlow(String groupId);
 
     // ----------------------------------------
     // ProcessGroup methods

@@ -68,6 +68,11 @@ public enum DisconnectionCode {
     FAILED_TO_SERVICE_REQUEST("Failed to Service Request"),
 
     /**
+     * Coordinator received a heartbeat from node, but the node is disconnected from the cluster
+     */
+    HEARTBEAT_RECEIVED_FROM_DISCONNECTED_NODE("Heartbeat Received from Disconnected Node"),
+
+    /**
      * Node is being shut down
      */
     NODE_SHUTDOWN("Node was Shutdown");

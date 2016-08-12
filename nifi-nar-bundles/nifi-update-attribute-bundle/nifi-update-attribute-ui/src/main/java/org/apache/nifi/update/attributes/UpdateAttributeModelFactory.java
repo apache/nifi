@@ -32,6 +32,9 @@ import org.apache.nifi.update.attributes.dto.RuleDTO;
  */
 public class UpdateAttributeModelFactory {
 
+    public UpdateAttributeModelFactory() {
+    }
+
     public Rule createRule(final RuleDTO dto) {
         if (dto == null) {
             throw new IllegalArgumentException("Rule must be specified.");

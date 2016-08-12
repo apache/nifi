@@ -23,6 +23,7 @@ import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.filter.GZIPContentEncodingFilter;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
+import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -40,8 +41,8 @@ import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collections;
@@ -211,14 +213,15 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         final Set<NodeIdentifier> nodeIdSet = new HashSet<>(nodeIds);
 
-        return replicate(nodeIdSet, method, uri, entity, headers, true);
+        return replicate(nodeIdSet, method, uri, entity, headers, true, true);
     }
 
     @Override
-    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, final boolean indicateReplicated) {
+    public AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers,
+            final boolean indicateReplicated, final boolean performVerification) {
         final Map<String, String> updatedHeaders = new HashMap<>(headers);
 
-        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, TypeOneUUIDGenerator.generateId().toString());
+        updatedHeaders.put(RequestReplicator.CLUSTER_ID_GENERATION_SEED_HEADER, ComponentIdGenerator.generateId().toString());
         if (indicateReplicated) {
             updatedHeaders.put(RequestReplicator.REPLICATION_INDICATOR_HEADER, "true");
         }
@@ -242,12 +245,12 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             lock.lock();
             try {
                 logger.debug("Lock {} obtained in order to replicate request {} {}", method, uri);
-                return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+                return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
             } finally {
                 lock.unlock();
             }
         } else {
-            return replicate(nodeIds, method, uri, entity, updatedHeaders, true, null);
+            return replicate(nodeIds, method, uri, entity, updatedHeaders, performVerification, null);
         }
     }
 
@@ -259,13 +262,13 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param uri the URI to send the request to
      * @param entity the entity to use
      * @param headers the HTTP Headers
-     * @param performVerification whether or not to use 2-phase commit to verify that all nodes can handle the request. Ignored if request is not mutable.
+     * @param performVerification whether or not to verify that all nodes in the cluster are connected and that all nodes can perform request. Ignored if request is not mutable.
      * @param response the response to update with the results
      *
      * @return an AsyncClusterResponse that can be used to obtain the result
      */
     private AsyncClusterResponse replicate(Set<NodeIdentifier> nodeIds, String method, URI uri, Object entity, Map<String, String> headers, boolean performVerification,
-        StandardAsyncClusterResponse response) {
+            StandardAsyncClusterResponse response) {
 
         // state validation
         Objects.requireNonNull(nodeIds);
@@ -298,7 +301,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         final String requestId = updatedHeaders.computeIfAbsent(REQUEST_TRANSACTION_ID_HEADER, key -> UUID.randomUUID().toString());
 
         if (performVerification) {
-            verifyState(method, uri.getPath());
+            verifyClusterState(method, uri.getPath());
         }
 
         int numRequests = responseMap.size();
@@ -423,22 +426,34 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
                             if (response.getStatus() != NODE_CONTINUE_STATUS_CODE) {
                                 final ClientResponse clientResponse = response.getClientResponse();
 
-                                final RuntimeException failure;
+                                final String message;
                                 if (clientResponse == null) {
-                                    failure = new IllegalClusterStateException("Node " + response.getNodeId()
-                                        + " is unable to fulfill this request due to: Unexpected Response Code " + response.getStatus());
+                                    message = "Node " + response.getNodeId() + " is unable to fulfill this request due to: Unexpected Response Code " + response.getStatus();
 
-                                    logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. "
-                                        + "Will respond with CONFLICT response and action will not occur",
+                                    logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. The action will not occur",
                                         response.getStatus(), response.getNodeId(), method, uri.getPath());
                                 } else {
                                     final String nodeExplanation = clientResponse.getEntity(String.class);
-                                    failure = new IllegalClusterStateException("Node " + response.getNodeId() + " is unable to fulfill this request due to: "
-                                        + nodeExplanation, response.getThrowable());
+                                    message = "Node " + response.getNodeId() + " is unable to fulfill this request due to: " + nodeExplanation;
 
-                                    logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. "
-                                        + "Will respond with CONFLICT response and action will not occur. Node explanation: {}",
+                                    logger.info("Received a status of {} from {} for request {} {} when performing first stage of two-stage commit. The action will not occur. Node explanation: {}",
                                         response.getStatus(), response.getNodeId(), method, uri.getPath(), nodeExplanation);
+                                }
+
+                                // if a node reports forbidden, use that as the response failure
+                                final RuntimeException failure;
+                                if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
+                                    if (response.hasThrowable()) {
+                                        failure = new AccessDeniedException(message, response.getThrowable());
+                                    } else {
+                                        failure = new AccessDeniedException(message);
+                                    }
+                                } else {
+                                    if (response.hasThrowable()) {
+                                        failure = new IllegalClusterStateException(message, response.getThrowable());
+                                    } else {
+                                        failure = new IllegalClusterStateException(message);
+                                    }
                                 }
 
                                 clusterResponse.setFailure(failure);
@@ -530,7 +545,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      *
      * @throw IllegalClusterStateException if the cluster is not in a state that allows a request to made to the given URI Path using the given HTTP Method
      */
-    private void verifyState(final String httpMethod, final String uriPath) {
+    private void verifyClusterState(final String httpMethod, final String uriPath) {
         final boolean mutableRequest = HttpMethod.DELETE.equals(httpMethod) || HttpMethod.POST.equals(httpMethod) || HttpMethod.PUT.equals(httpMethod);
 
         // check that the request can be applied

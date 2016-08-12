@@ -20,10 +20,6 @@
 nf.Settings = (function () {
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
@@ -204,34 +200,45 @@ nf.Settings = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'moreDetails') {
-                var aBulletins = 0;
-                if (!nf.Common.isEmpty(a.bulletins)) {
-                    aBulletins = a.bulletins.length;
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'moreDetails') {
+                    var aBulletins = 0;
+                    if (!nf.Common.isEmpty(a.bulletins)) {
+                        aBulletins = a.bulletins.length;
+                    }
+                    var bBulletins = 0;
+                    if (!nf.Common.isEmpty(b.bulletins)) {
+                        bBulletins = b.bulletins.length;
+                    }
+                    return aBulletins - bBulletins;
+                } else if (sortDetails.columnId === 'type') {
+                    var aType = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    return aType === bType ? 0 : aType > bType ? 1 : -1;
+                } else if (sortDetails.columnId === 'state') {
+                    var aState = 'Invalid';
+                    if (nf.Common.isEmpty(a.component.validationErrors)) {
+                        aState = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    }
+                    var bState = 'Invalid';
+                    if (nf.Common.isEmpty(b.component.validationErrors)) {
+                        bState = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    }
+                    return aState === bState ? 0 : aState > bState ? 1 : -1;
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
-                var bBulletins = 0;
-                if (!nf.Common.isEmpty(b.bulletins)) {
-                    bBulletins = b.bulletins.length;
-                }
-                return aBulletins - bBulletins;
-            } else if (sortDetails.columnId === 'type') {
-                var aType = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? nf.Common.substringAfterLast(a[sortDetails.columnId], '.') : '';
-                var bType = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? nf.Common.substringAfterLast(b[sortDetails.columnId], '.') : '';
-                return aType === bType ? 0 : aType > bType ? 1 : -1;
-            } else if (sortDetails.columnId === 'state') {
-                var aState = 'Invalid';
-                if (nf.Common.isEmpty(a.validationErrors)) {
-                    aState = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                }
-                var bState = 'Invalid';
-                if (nf.Common.isEmpty(b.validationErrors)) {
-                    bState = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                }
-                return aState === bState ? 0 : aState > bState ? 1 : -1;
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -245,12 +252,7 @@ nf.Settings = (function () {
      * accounts for that.
      */
     var getReportingTaskTypeFilterText = function () {
-        var filterText = '';
-        var filterField = $('#reporting-task-type-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#reporting-task-type-filter').val();
     };
 
     /**
@@ -408,15 +410,7 @@ nf.Settings = (function () {
             } else {
                 applyReportingTaskTypeFilter();
             }
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        });
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
@@ -563,7 +557,7 @@ nf.Settings = (function () {
                     clearSelectedReportingTask();
 
                     // clear any filter strings
-                    $('#reporting-task-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    $('#reporting-task-type-filter').val('');
 
                     // clear the tagcloud
                     $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
@@ -662,8 +656,6 @@ nf.Settings = (function () {
                     if (dataContext.component.state === 'STOPPED' && nf.Common.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
-
-                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
@@ -671,8 +663,14 @@ nf.Settings = (function () {
                 }
             }
 
-            // TODO - only if we can adminster policies
-            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            if (dataContext.permissions.canWrite) {
+                markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
+            }
+
+            // allow policy configuration conditionally
+            if (nf.Canvas.isConfigurableAuthorizer() && nf.Common.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            }
 
             return markup;
         };
@@ -707,7 +705,7 @@ nf.Settings = (function () {
         reportingTasksGrid.setSortColumn('name', true);
         reportingTasksGrid.onSort.subscribe(function (e, args) {
             sort({
-                columnId: args.sortCol.field,
+                columnId: args.sortCol.id,
                 sortAsc: args.sortAsc
             }, reportingTasksData);
         });
@@ -939,16 +937,13 @@ nf.Settings = (function () {
      * Shows the process group configuration.
      */
     var showSettings = function () {
-        if (nf.Common.canModifyController()) {
-            $('#new-service-or-task').show();
-        } else {
-            $('#new-service-or-task').hide();
-        }
-
         // show the settings dialog
         nf.Shell.showContent('#settings').done(function () {
             reset();
         });
+
+        //reset content to account for possible policy changes
+        $('#settings-tabs').find('.selected-tab').click();
 
         // adjust the table size
         nf.Settings.resetTableSize();
@@ -990,6 +985,7 @@ nf.Settings = (function () {
                     } else {
                         if (nf.Common.canModifyController()) {
                             $('#new-service-or-task').show();
+                            $('div.controller-settings-table').css('top', '32px');
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
@@ -1001,6 +997,9 @@ nf.Settings = (function () {
                                     return 'Create a new reporting task';
                                 }
                             });
+                        } else {
+                            $('#new-service-or-task').hide();
+                            $('div.controller-settings-table').css('top', '0');
                         }
 
                         // resize the table

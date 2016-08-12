@@ -12,3 +12,16 @@ This includes derived works from the Apache Software License V2 library python-e
 Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
 while at Mandiant http://www.mandiant.com
 The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
+
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+Copyright 2015 The Apache Software Foundation
+The derived work is adapted from
+  org/apache/storm/hive/common/HiveWriter.java
+  org/apache/storm/hive/common/HiveOptions.java
+and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+Copyright 2008-2016 The Apache Software Foundation
+The derived work is adapted from
+  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+and can be found in the org.apache.hadoop.hive.ql.io.orc package

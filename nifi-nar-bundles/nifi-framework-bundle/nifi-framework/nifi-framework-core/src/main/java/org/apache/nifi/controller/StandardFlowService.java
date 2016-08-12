@@ -16,6 +16,37 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
@@ -63,37 +94,6 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private static final String EVENT_CATEGORY = "Controller";
@@ -107,7 +107,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private final FlowConfigurationDAO dao;
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
-    private final StringEncryptor encryptor;
     private final Authorizer authorizer;
 
     // Lock is used to protect the flow.xml file.
@@ -175,7 +174,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final Authorizer authorizer) throws IOException {
 
         this.controller = controller;
-        this.encryptor = encryptor;
         flowXml = Paths.get(properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
 
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
@@ -444,7 +442,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
              * the response will be null and we should load the local dataflow
              * and heartbeat until a manager is located.
              */
-            final boolean localFlowEmpty = StandardFlowSynchronizer.isEmpty(proposedFlow, encryptor);
+            final boolean localFlowEmpty = StandardFlowSynchronizer.isEmpty(proposedFlow);
             final ConnectionResponse response = connect(localFlowEmpty, localFlowEmpty);
 
             // obtain write lock while we are updating the controller. We need to ensure that we don't
@@ -520,6 +518,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             disconnectionCode = DisconnectionCode.STARTUP_FAILURE;
         }
         clusterCoordinator.disconnectionRequestedByNode(getNodeId(), disconnectionCode, ex.toString());
+        controller.setClustered(false, null);
     }
 
     private FlowResponseMessage handleFlowRequest(final FlowRequestMessage request) throws ProtocolException {
@@ -587,7 +586,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
                 request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
 
-            connectionResponse.setCoordinatorDN(request.getRequestorDN());
             loadFromConnectionResponse(connectionResponse);
 
             clusterCoordinator.resetNodeStatuses(connectionResponse.getNodeConnectionStatuses().stream()
@@ -772,12 +770,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 try {
                     response = senderListener.requestConnection(requestMsg).getConnectionResponse();
                     if (response.getRejectionReason() != null) {
-                        logger.warn("Connection request was blocked by cluster manager with the explanation: " + response.getRejectionReason());
+                        logger.warn("Connection request was blocked by cluster coordinator with the explanation: " + response.getRejectionReason());
                         // set response to null and treat a firewall blockage the same as getting no response from manager
                         response = null;
                         break;
                     } else if (response.shouldTryLater()) {
-                        logger.info("Flow controller requested by cluster manager to retry connection in " + response.getTryLaterSeconds() + " seconds.");
+                        logger.info("Flow controller requested by cluster coordinator to retry connection in " + response.getTryLaterSeconds() + " seconds.");
                         try {
                             Thread.sleep(response.getTryLaterSeconds() * 1000);
                         } catch (final InterruptedException ie) {
@@ -790,7 +788,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     }
                 } catch (final Exception pe) {
                     // could not create a socket and communicate with manager
-                    logger.warn("Failed to connect to cluster due to: " + pe, pe);
+                    logger.warn("Failed to connect to cluster due to: " + pe);
+                    if (logger.isDebugEnabled()) {
+                        logger.warn("", pe);
+                    }
+
                     if (retryOnCommsFailure) {
                         try {
                             Thread.sleep(response == null ? 5000 : response.getTryLaterSeconds());
@@ -849,7 +851,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             revisionManager.reset(response.getComponentRevisions().stream().map(rev -> rev.toRevision()).collect(Collectors.toList()));
 
             // mark the node as clustered
-            controller.setClustered(true, response.getInstanceId(), response.getCoordinatorDN());
+            controller.setClustered(true, response.getInstanceId());
 
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeId);
             final Set<String> roles = status == null ? Collections.emptySet() : status.getRoles();

@@ -50,7 +50,7 @@ public interface ProcessGroup extends Authorizable, Positionable {
     /**
      * Predicate for filtering schedulable Processors.
      */
-    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && node.getScheduledState() != ScheduledState.DISABLED;
+    Predicate<ProcessorNode> SCHEDULABLE_PROCESSORS = node -> !node.isRunning() && !ScheduledState.DISABLED.equals(node.getScheduledState()) && node.isValid();
 
     /**
      * Predicate for filtering unschedulable Processors.
@@ -60,12 +60,12 @@ public interface ProcessGroup extends Authorizable, Positionable {
     /**
      * Predicate for filtering schedulable Ports
      */
-    Predicate<Port> SCHEDULABLE_PORTS = port -> port.getScheduledState() != ScheduledState.DISABLED;
+    Predicate<Port> SCHEDULABLE_PORTS = port -> !port.isRunning() && !ScheduledState.DISABLED.equals(port.getScheduledState()) && port.isValid();
 
     /**
      * Predicate for filtering schedulable Ports
      */
-    Predicate<Port> UNSCHEDULABLE_PORTS = port -> port.getScheduledState() == ScheduledState.RUNNING;
+    Predicate<Port> UNSCHEDULABLE_PORTS = port -> ScheduledState.RUNNING.equals(port.getScheduledState());
 
     /**
      * @return a reference to this ProcessGroup's parent. This will be
@@ -672,6 +672,13 @@ public interface ProcessGroup extends Authorizable, Positionable {
     void removeFunnel(Funnel funnel);
 
     /**
+     * @return a List of all Funnel that are children or descendants of this
+     * ProcessGroup. This performs a recursive search of all descendant
+     * ProcessGroups
+     */
+    List<Funnel> findAllFunnels();
+
+    /**
      * Adds the given Controller Service to this group
      *
      * @param service the service to add
@@ -746,6 +753,13 @@ public interface ProcessGroup extends Authorizable, Positionable {
      * component that is not within this ProcessGroup
      */
     void move(final Snippet snippet, final ProcessGroup destination);
+
+    /**
+     * Verifies a template with the specified name can be created.
+     *
+     * @param name name of the template
+     */
+    void verifyCanAddTemplate(String name);
 
     void verifyCanDelete();
 

@@ -19,12 +19,13 @@ package org.apache.nifi.authorization.resource;
 import org.apache.nifi.authorization.Resource;
 
 /**
- * Authorizable for policies of an Authorizable.
+ * Authorizable for authorizing data transfers.
  */
-public class DataTransferAuthorizable implements Authorizable {
+public class DataTransferAuthorizable extends DataAuthorizable implements EnforcePolicyPermissionsThroughBaseResource {
     final Authorizable authorizable;
 
     public DataTransferAuthorizable(Authorizable authorizable) {
+        super(authorizable);
         this.authorizable = authorizable;
     }
 

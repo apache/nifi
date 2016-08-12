@@ -1111,7 +1111,7 @@ nf.StatusHistory = (function () {
                 handler: {
                     close: function () {
                         // remove the current status history
-                        $('#status-history-dialog').removeData('status-history').hide();
+                        $('#status-history-dialog').removeData('status-history');
 
                         // reset the dom
                         $('#status-history-chart-container').empty();

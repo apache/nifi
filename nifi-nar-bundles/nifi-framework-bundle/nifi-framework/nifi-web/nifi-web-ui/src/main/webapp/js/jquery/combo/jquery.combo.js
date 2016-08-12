@@ -368,7 +368,7 @@
         },
 
         /**
-         * Destroy's the combo.
+         * Destroys the combo.
          */
         destroy: function () {
             return this.each(function () {
@@ -377,6 +377,13 @@
                 // remove the options if open
                 $('div.combo-glass-pane').click();
             });
+        },
+
+        /**
+         * Closes the combo.
+         */
+        close: function () {
+            $('div.combo-glass-pane').click();
         }
     };
 

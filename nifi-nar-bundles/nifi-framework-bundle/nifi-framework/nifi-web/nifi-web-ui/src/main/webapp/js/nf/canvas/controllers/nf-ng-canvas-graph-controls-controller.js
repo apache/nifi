@@ -134,7 +134,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
          * @param {jQuery} $event
          */
         undock: function ($event) {
-            openGraphControl($($event.target).parent().parent());
+            openGraphControl($($event.target).parent());
         },
 
         /**
@@ -143,7 +143,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
          */
         expand: function ($event) {
             var icon = $($event.target);
-            if (icon.hasClass('fa-plus-square-o')) {
+            if (icon.find('.fa-plus-square-o').length > 0 || icon.hasClass('fa-plus-square-o') || icon.parent().children().find('.fa-plus-square-o').length > 0) {
                 openGraphControl(icon.closest('div.graph-control'));
             } else {
                 hideGraphControl(icon.closest('div.graph-control'));

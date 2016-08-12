@@ -79,7 +79,7 @@
  *          "fullscreen-height": "420px", //optional, default is original dialog height (accepts 'px' values)
  *          "fullscreen-width": "470px", //optional, default is original dialog width (accepts 'px' values)
  *      },
- *      "glasspane": "false" //optional, displays a modal glasspane behind the dialog...default true
+ *      "glasspane": "#728E9B" //optional, set the color of modal glasspane...default if unset is the dialog header color
  *  }
  *
  * @argument {jQuery} $
@@ -108,15 +108,16 @@
             var buttonWrapper = $('<div class="dialog-buttons"></div>');
             var button;
             $.each(buttonModel, function (i, buttonConfig) {
+                var clazz = isDefinedAndNotNull(buttonConfig.clazz) ? buttonConfig.clazz : '';
                 if (buttonConfig.color) {
-                    button = $('<div class="button" style="color:' + buttonConfig.color.text + '; background:' + buttonConfig.color.base + ';"></div>').text(buttonConfig.buttonText);
+                    button = $('<div class="button ' + clazz + '" style="color:' + buttonConfig.color.text + '; background:' + buttonConfig.color.base + ';"><span>' + buttonConfig.buttonText + '</span></div>');
                     button.hover(function () {
                         $(this).css("background-color", buttonConfig.color.hover);
                     }, function () {
                         $(this).css("background-color", buttonConfig.color.base);
                     });
                 } else {
-                    button = $('<div class="button"></div>').text(buttonConfig.buttonText)
+                    button = $('<div class="button ' + clazz + '"><span>' + buttonConfig.buttonText + '</span></div>');
                 }
                 button.click(function () {
                     var handler = $(this).data('handler');
@@ -469,23 +470,23 @@
                 nfDialog = dialog.data('nf-dialog');
             }
 
-            // determine if dialog needs a glass pane overlay
-            var hasGlasspane;
+            var glasspane;
             if (isDefinedAndNotNull(nfDialog.glasspane)) {
-                hasGlasspane = nfDialog.glasspane;
+                glasspane = nfDialog.glasspane;
             } else {
-                nfDialog.glasspane = hasGlasspane = true;
+                nfDialog.glasspane = glasspane = dialog.find('.dialog-header').css('background-color'); //default to header color
+                if(top !== window || !isDefinedAndNotNull(nfDialog.glasspane)) {
+                    nfDialog.glasspane = glasspane = 'transparent';
+                }
             }
 
             //create glass pane overlay
-            if(hasGlasspane && (top === window)) {
-                // build the dialog modal
-                var modalGlassMarkup = '<div data-nf-dialog-parent="' + dialog.attr('id') + '" class="modal-glass"></div>';
+            var modalGlassMarkup = '<div data-nf-dialog-parent="' +
+                dialog.attr('id') + '" class="modal-glass" style="background-color: ' + glasspane + ';"></div>';
 
-                var modalGlass = $(modalGlassMarkup);
+            var modalGlass = $(modalGlassMarkup);
 
-                modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
-            }
+            modalGlass.css('z-index', zIndex - 1).appendTo($('body'));
 
             //persist data attribute
             dialog.data('nfDialog', nfDialog);
@@ -512,18 +513,19 @@
         hide: function () {
             return this.each(function () {
                 var dialog = $(this);
-                if (dialog.is(':visible')) {
-                    // remove the modal glass pane overlay
-                    $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
 
+                // invoke the handler
+                var handler = dialog.data('nf-dialog').close;
+                if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
+                    handler.call(dialog);
+                }
+
+                // remove the modal glass pane overlay
+                $('body').find("[data-nf-dialog-parent='" + dialog.attr('id') + "']").remove();
+
+                if (dialog.is(':visible')) {
                     // hide the dialog
                     dialog.hide();
-
-                    // invoke the handler
-                    var handler = dialog.data('nf-dialog').close;
-                    if (isDefinedAndNotNull(handler) && typeof handler === 'function') {
-                        handler.call(dialog);
-                    }
                 }
             });
         }

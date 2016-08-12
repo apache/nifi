@@ -964,7 +964,7 @@ public class FileSystemRepository implements ContentRepository {
                     final boolean enqueued = writableClaimQueue.offer(pair);
 
                     if (enqueued) {
-                        LOG.debug("Claim length less than max; Adding {} back to writableClaimStreams", this);
+                        LOG.debug("Claim length less than max; Leaving {} in writableClaimStreams map", this);
                     } else {
                         writableClaimStreams.remove(scc.getResourceClaim());
                         bcos.close();
@@ -1103,7 +1103,8 @@ public class FileSystemRepository implements ContentRepository {
         return Files.exists(getArchivePath(contentClaim.getResourceClaim()));
     }
 
-    private boolean archive(final ResourceClaim claim) throws IOException {
+    // visible for testing
+    boolean archive(final ResourceClaim claim) throws IOException {
         if (!archiveData) {
             return false;
         }

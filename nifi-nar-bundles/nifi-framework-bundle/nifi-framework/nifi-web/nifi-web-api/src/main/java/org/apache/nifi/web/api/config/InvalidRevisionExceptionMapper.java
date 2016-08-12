@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.web.api.config;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.InvalidRevisionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Maps invalid revision exceptions into client responses.
@@ -35,13 +37,13 @@ public class InvalidRevisionExceptionMapper implements ExceptionMapper<InvalidRe
     @Override
     public Response toResponse(InvalidRevisionException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.CONFLICT));
+        logger.info(String.format("%s. Returning %s response.", exception, Status.BAD_REQUEST));
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
         }
 
-        return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();
+        return Response.status(Status.BAD_REQUEST).entity(exception.getMessage()).type("text/plain").build();
     }
 
 }

@@ -43,7 +43,10 @@ import org.apache.nifi.attribute.expression.language.exception.AttributeExpressi
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.antlr.runtime.tree.Tree;
+
+import org.apache.nifi.registry.VariableRegistry;
 import org.junit.Assert;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -99,9 +102,9 @@ public class TestQuery {
         Query.validateExpression("$${attr}", true);
 
         Query.validateExpression("${filename:startsWith('T8MTXBC')\n"
-            + ":or( ${filename:startsWith('C4QXABC')} )\n"
-            + ":or( ${filename:startsWith('U6CXEBC')} )"
-            + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
+                + ":or( ${filename:startsWith('C4QXABC')} )\n"
+                + ":or( ${filename:startsWith('U6CXEBC')} )"
+                + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
     }
 
     @Test
@@ -174,7 +177,6 @@ public class TestQuery {
     public void testWithTicksOutside() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
-
         assertEquals(1, Query.extractExpressionRanges("\"${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}").size());
         assertEquals(1, Query.extractExpressionRanges("'${attr}'").size());
@@ -269,6 +271,21 @@ public class TestQuery {
     }
 
     @Test
+    public void testEmbeddedExpressionsAndQuotesWithProperties() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("x", "abc");
+        attributes.put("a", "abc");
+
+        verifyEquals("${x:equals(${a})}", attributes, true);
+
+        Query.validateExpression("${x:equals('${a}')}", false);
+        assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", attributes, null));
+
+        Query.validateExpression("${x:equals(\"${a}\")}", false);
+        assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
+    }
+
+    @Test
     public void testJoin() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a.a", "a");
@@ -342,7 +359,9 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
         Mockito.when(mockFlowFile.getSize()).thenReturn(1L);
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
-        return Query.evaluateExpressions(queryString, mockFlowFile);
+
+        final ValueLookup lookup = new ValueLookup(VariableRegistry.EMPTY_REGISTRY, mockFlowFile);
+        return Query.evaluateExpressions(queryString, lookup);
     }
 
     @Test
@@ -615,7 +634,7 @@ public class TestQuery {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         Query.validateExpression(query, false);
-        assertEquals("true", Query.evaluateExpressions(query));
+        assertEquals("true", Query.evaluateExpressions(query, Collections.EMPTY_MAP));
     }
 
     @Test
@@ -631,15 +650,14 @@ public class TestQuery {
     public void testComments() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
-
         final String expression
-        = "# hello, world\n"
-            + "${# ref attr\n"
-            + "\t"
-            + "abc"
-            + "\t"
-            + "#end ref attr\n"
-            + "}";
+                = "# hello, world\n"
+                + "${# ref attr\n"
+                + "\t"
+                + "abc"
+                + "\t"
+                + "#end ref attr\n"
+                + "}";
 
         Query query = Query.compile(expression);
         QueryResult<?> result = query.evaluate(attributes);
@@ -786,13 +804,6 @@ public class TestQuery {
         assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
-    }
-
-    @Test
-    public void testSystemProperty() {
-        System.setProperty("hello", "good-bye");
-        assertEquals("good-bye", Query.evaluateExpressions("${hello}"));
-        assertEquals("good-bye", Query.compile("${hello}").evaluate().getValue());
     }
 
     @Test
@@ -949,6 +960,7 @@ public class TestQuery {
         assertEquals("true", evaluated);
 
         attributes.put("end", "888");
+
         final String secondEvaluation = Query.evaluateExpressions("${abc:find('${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
 
@@ -1071,16 +1083,22 @@ public class TestQuery {
         attributes.put("filename 3", "abcxy");
 
         final String query
-        = "${"
-            + "     'non-existing':notNull():not():and(" + // true AND (
-            "     ${filename1:startsWith('y')" + // false
-            "     :or(" + // or
-            "       ${ filename1:startsWith('x'):and(false) }" + // false
-            "     ):or(" + // or
-            "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
-            "     )}"
-            + "     )"
-            + "}";
+                = "${"
+                + "     'non-existing':notNull():not():and("
+                + // true AND (
+                "     ${filename1:startsWith('y')"
+                + // false
+                "     :or("
+                + // or
+                "       ${ filename1:startsWith('x'):and(false) }"
+                + // false
+                "     ):or("
+                + // or
+                "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }"
+                + // true )
+                "     )}"
+                + "     )"
+                + "}";
 
         System.out.println(query);
         verifyEquals(query, attributes, true);
@@ -1169,16 +1187,16 @@ public class TestQuery {
 
     @Test
     public void testLiteralFunction() {
-        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
         verifyEquals("${literal(2):gt(1)}", attrs, true);
         verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
     }
 
     @Test
     public void testRandomFunction() {
-        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        final Map<String, String> attrs = Collections.<String, String>emptyMap();
         final Long negOne = Long.valueOf(-1L);
-        final HashSet<Long> results = new HashSet<Long>(100);
+        final HashSet<Long> results = new HashSet<>(100);
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));

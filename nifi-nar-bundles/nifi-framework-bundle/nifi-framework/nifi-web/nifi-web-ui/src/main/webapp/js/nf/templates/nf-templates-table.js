@@ -23,10 +23,6 @@ nf.TemplatesTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'templates-filter-list'
-        },
         urls: {
             templates: '../nifi-api/flow/templates',
             downloadToken: '../nifi-api/access/download-token'
@@ -42,14 +38,25 @@ nf.TemplatesTable = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'timestamp') {
-                var aDate = nf.Common.parseDateTime(a[sortDetails.columnId]);
-                var bDate = nf.Common.parseDateTime(b[sortDetails.columnId]);
-                return aDate.getTime() - bDate.getTime();
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'timestamp') {
+                    var aDate = nf.Common.parseDateTime(a.template[sortDetails.columnId]);
+                    var bDate = nf.Common.parseDateTime(b.template[sortDetails.columnId]);
+                    return aDate.getTime() - bDate.getTime();
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
+                }
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a.template[sortDetails.columnId]) ? a.template[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b.template[sortDetails.columnId]) ? b.template[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -115,12 +122,7 @@ nf.TemplatesTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#templates-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#templates-filter').val();
     };
 
     /**
@@ -203,15 +205,7 @@ nf.TemplatesTable = (function () {
             // define the function for filtering the list
             $('#templates-filter').keyup(function () {
                 applyFilter();
-            }).focus(function () {
-                if ($(this).hasClass(config.styles.filterList)) {
-                    $(this).removeClass(config.styles.filterList).val('');
-                }
-            }).blur(function () {
-                if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList).val(config.filterText);
-                }
-            }).addClass(config.styles.filterList).val(config.filterText);
+            });
 
             // filter type
             $('#templates-filter-type').combo({
@@ -272,10 +266,11 @@ nf.TemplatesTable = (function () {
                     markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
-                // if we in the shell
-                // TODO - only if we can adminster policies
-                if (top !== window) {
-                    markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                // allow policy configuration conditionally
+                if (top !== window && nf.Common.canAccessTenants()) {
+                    if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.Canvas) && parent.nf.Canvas.isConfigurableAuthorizer()) {
+                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                    }
                 }
 
                 return markup;
@@ -383,9 +378,6 @@ nf.TemplatesTable = (function () {
             return $.ajax({
                 type: 'GET',
                 url: config.urls.templates,
-                data: {
-                    verbose: false
-                },
                 dataType: 'json'
             }).done(function (response) {
                 // ensure there are groups specified

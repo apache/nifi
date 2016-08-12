@@ -173,6 +173,11 @@ public interface ClusterCoordinator {
     NodeIdentifier getElectedActiveCoordinatorNode();
 
     /**
+     * @return the identifier of this node, if it is known, <code>null</code> if the Node Identifier has not yet been established.
+     */
+    NodeIdentifier getLocalNodeIdentifier();
+
+    /**
      * @return <code>true</code> if this node has been elected the active cluster coordinator, <code>false</code> otherwise.
      */
     boolean isActiveClusterCoordinator();

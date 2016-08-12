@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.MockPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -251,7 +250,7 @@ public class TestAbstractPolicyBasedAuthorizer {
 
         assertEquals(authorizer1.getFingerprint(), authorizer2.getFingerprint());
 
-        System.out.println(authorizer1.getFingerprint());
+        //System.out.println(authorizer1.getFingerprint());
     }
 
     @Test
@@ -304,7 +303,7 @@ public class TestAbstractPolicyBasedAuthorizer {
 
         // make a second authorizer using the memory-backed implementation so we can inherit the fingerprint
         // and then compute a new fingerprint to compare them
-        AbstractPolicyBasedAuthorizer authorizer2 = new MemoryPolicyBasedAuthorizer();
+        AbstractPolicyBasedAuthorizer authorizer2 = new MockPolicyBasedAuthorizer();
         authorizer2.inheritFingerprint(fingerprint1);
 
         // computer the fingerprint of the second authorizer and it should be the same as the first
@@ -329,117 +328,209 @@ public class TestAbstractPolicyBasedAuthorizer {
         Assert.assertTrue(fingerprint.length() > 0);
     }
 
-    /**
-     * An AbstractPolicyBasedAuthorizer that stores everything in memory.
-     */
-    private static final class MemoryPolicyBasedAuthorizer extends AbstractPolicyBasedAuthorizer {
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenPoliciesWithSameResourceAndAction() {
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
 
-        private Set<Group> groups = new HashSet<>();
-        private Set<User> users = new HashSet<>();
-        private Set<AccessPolicy> policies = new HashSet<>();
+        AccessPolicy policy1 = new AccessPolicy.Builder()
+                .identifier("policy-id-1")
+                .resource("resource1")
+                .action(RequestAction.READ)
+                .addUser(user1.getIdentifier())
+                .build();
 
-        @Override
-        public Group addGroup(Group group) throws AuthorizationAccessException {
-            groups.add(group);
-            return group;
-        }
+        AccessPolicy policy2 = new AccessPolicy.Builder()
+                .identifier("policy-id-2")
+                .resource("resource1")
+                .action(RequestAction.READ)
+                .addUser(user1.getIdentifier())
+                .build();
 
-        @Override
-        public Group getGroup(String identifier) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        Set<AccessPolicy> policies = new LinkedHashSet<>();
+        policies.add(policy1);
+        policies.add(policy2);
 
-        @Override
-        public Group updateGroup(Group group) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        Set<User> users = new LinkedHashSet<>();
+        users.add(user1);
 
-        @Override
-        public Group deleteGroup(Group group) throws AuthorizationAccessException {
-            groups.remove(group);
-            return group;
-        }
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer(new HashSet<>(), users, policies);
+        authorizer.onConfigured(context);
+    }
 
-        @Override
-        public Set<Group> getGroups() throws AuthorizationAccessException {
-            return groups;
-        }
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenUsersWithSameIdentity() {
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        User user2 = new User.Builder().identifier("user-id-2").identity("user-1").build();
 
-        @Override
-        public User addUser(User user) throws AuthorizationAccessException {
-            users.add(user);
-            return user;
-        }
+        Set<User> users = new LinkedHashSet<>();
+        users.add(user1);
+        users.add(user2);
 
-        @Override
-        public User getUser(String identifier) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer(new HashSet<>(), users, new HashSet<>());
+        authorizer.onConfigured(context);
+    }
 
-        @Override
-        public User getUserByIdentity(String identity) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWhenGroupsWithSameName() {
+        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
+        Group group2 = new Group.Builder().identifier("group-id-2").name("group-1").build();
 
-        @Override
-        public User updateUser(User user) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        Set<Group> groups = new LinkedHashSet<>();
+        groups.add(group1);
+        groups.add(group2);
 
-        @Override
-        public User deleteUser(User user) throws AuthorizationAccessException {
-            users.remove(user);
-            return user;
-        }
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer(groups, new HashSet<>(), new HashSet<>());
+        authorizer.onConfigured(context);
+    }
 
-        @Override
-        public Set<User> getUsers() throws AuthorizationAccessException {
-            return users;
-        }
+    @Test
+    public void testAddPoliciesWithSameResourceAndAction() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
 
-        @Override
-        protected AccessPolicy doAddAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-            policies.add(accessPolicy);
-            return accessPolicy;
-        }
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        authorizer.addUser(user1);
 
-        @Override
-        public AccessPolicy getAccessPolicy(String identifier) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        AccessPolicy policy1 = new AccessPolicy.Builder()
+                .identifier("policy-id-1")
+                .resource("resource1")
+                .action(RequestAction.READ)
+                .addUser(user1.getIdentifier())
+                .build();
+        authorizer.addAccessPolicy(policy1);
 
-        @Override
-        public AccessPolicy updateAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
+        AccessPolicy policy2 = new AccessPolicy.Builder()
+                .identifier("policy-id-2")
+                .resource("resource1")
+                .action(RequestAction.READ)
+                .addUser(user1.getIdentifier())
+                .build();
 
-        @Override
-        public AccessPolicy deleteAccessPolicy(AccessPolicy policy) throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<AccessPolicy> getAccessPolicies() throws AuthorizationAccessException {
-            return policies;
-        }
-
-        @Override
-        public UsersAndAccessPolicies getUsersAndAccessPolicies() throws AuthorizationAccessException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
+        try {
+            authorizer.addAccessPolicy(policy2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
 
         }
+    }
 
-        @Override
-        public void doOnConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+    @Test
+    public void testAddUsersWithSameIdentity() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
+        authorizer.addUser(user1);
+
+        User user2 = new User.Builder().identifier("user-id-2").identity("user-1").build();
+
+        try {
+            authorizer.addUser(user2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
 
         }
+    }
 
-        @Override
-        public void preDestruction() throws AuthorizerDestructionException {
+    @Test
+    public void testAddGroupsWithSameName() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("group-1").build();
+        authorizer.addGroup(group1);
+
+        Group group2 = new Group.Builder().identifier("group-id-2").name("group-1").build();
+
+        try {
+            authorizer.addGroup(group2);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
+    }
+
+    @Test
+    public void testAddUsersWithSameIdentityAsGroupName() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("abc").build();
+        authorizer.addGroup(group1);
+
+        User user = new User.Builder().identifier("user-id-2").identity("abc").build();
+
+        try {
+            authorizer.addUser(user);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
+    }
+
+    @Test
+    public void testAddGroupWithSameNameAsUserIdentity() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        User user = new User.Builder().identifier("user-id-2").identity("abc").build();
+        authorizer.addUser(user);
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("abc").build();
+        try {
+            authorizer.addGroup(group1);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
+    }
+
+    @Test
+    public void testUpdateUserWithSameIdentity() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        User user1 = new User.Builder().identifier("user-id-1").identity("abc").build();
+        authorizer.addUser(user1);
+
+        User user2 = new User.Builder().identifier("user-id-2").identity("xyz").build();
+        authorizer.addUser(user2);
+
+        try {
+            User user1Updated = new User.Builder().identifier("user-id-1").identity("xyz").build();
+            authorizer.updateUser(user1Updated);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
+
+        }
+    }
+
+    @Test
+    public void testUpdateGroupWithSameName() {
+        AuthorizerConfigurationContext context = Mockito.mock(AuthorizerConfigurationContext.class);
+        AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
+        authorizer.onConfigured(context);
+
+        Group group1 = new Group.Builder().identifier("group-id-1").name("abc").build();
+        authorizer.addGroup(group1);
+
+        Group group2 = new Group.Builder().identifier("group-id-2").name("xyz").build();
+        authorizer.addGroup(group2);
+
+        try {
+            Group group1Updated = new Group.Builder().identifier("group-id-1").name("xyz").build();
+            authorizer.updateGroup(group1Updated);
+            Assert.fail("Should have thrown exception");
+        } catch (IllegalStateException e) {
 
         }
     }

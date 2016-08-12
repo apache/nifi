@@ -41,9 +41,9 @@
 
 #cluster-refresh-container {
     position: absolute;
-    width: 100%;
     bottom: 0px;
     left: 20px;
+    right: 20px;
 }
 
 #cluster-loading-container {
@@ -82,5 +82,4 @@ span.sorted {
 
 #node-events {
     max-height: 200px;
-    overflow-y: auto;
 }

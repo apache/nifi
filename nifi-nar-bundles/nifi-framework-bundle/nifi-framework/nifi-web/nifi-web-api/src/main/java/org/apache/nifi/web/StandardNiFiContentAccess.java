@@ -98,7 +98,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
                     throw new NoClusterCoordinatorException();
                 }
                 final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
-                nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false).awaitMergedResponse();
+                nodeResponse = requestReplicator.replicate(coordinatorNodes, HttpMethod.GET, dataUri, parameters, headers, false, true).awaitMergedResponse();
             } catch (InterruptedException e) {
                 throw new IllegalClusterStateException("Interrupted while waiting for a response from node");
             }
@@ -164,20 +164,12 @@ public class StandardNiFiContentAccess implements ContentAccess {
     }
 
     private DownloadableContent getFlowFileContent(final String connectionId, final String flowfileId, final String dataUri) {
-        // TODO - ensure the user is authorized - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
-//        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_DFM.toString())) {
-//            throw new AccessDeniedException("Access is denied.");
-//        }
-
+        // user authorization is handled once we have the actual content so we can utilize the flow file attributes in the resource context
         return serviceFacade.getContent(connectionId, flowfileId, dataUri);
     }
 
     private DownloadableContent getProvenanceEventContent(final Long eventId, final String dataUri, final ContentDirection direction) {
-        // TODO - ensure the user is authorized - not checking with @PreAuthorized annotation as aspect not trigger on call within a class
-//        if (!NiFiUserUtils.getAuthorities().contains(Authority.ROLE_PROVENANCE.toString())) {
-//            throw new AccessDeniedException("Access is denied.");
-//        }
-
+        // user authorization is handled once we have the actual prov event so we can utilize the event attributes in the resource context
         return serviceFacade.getContent(eventId, dataUri, direction);
     }
 

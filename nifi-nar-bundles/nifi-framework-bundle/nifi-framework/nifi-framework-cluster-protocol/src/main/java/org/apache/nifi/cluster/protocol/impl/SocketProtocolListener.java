@@ -26,13 +26,19 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
+import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
+import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
+import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
+import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketListener;
@@ -173,8 +179,10 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             }
 
             stopWatch.stop();
+            final NodeIdentifier nodeId = getNodeIdentifier(request);
+            final String from = nodeId == null ? hostname : nodeId.toString();
             logger.info("Finished processing request {} (type={}, length={} bytes) from {} in {} millis",
-                requestId, request.getType(), receivedMessage.length, hostname, stopWatch.getDuration(TimeUnit.MILLISECONDS));
+                requestId, request.getType(), receivedMessage.length, from, stopWatch.getDuration(TimeUnit.MILLISECONDS));
         } catch (final IOException | ProtocolException e) {
             logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
 
@@ -182,6 +190,27 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                 final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
                 bulletinRepository.addBulletin(bulletin);
             }
+        }
+    }
+
+    private NodeIdentifier getNodeIdentifier(final ProtocolMessage message) {
+        if (message == null) {
+            return null;
+        }
+
+        switch (message.getType()) {
+            case CONNECTION_REQUEST:
+                return ((ConnectionRequestMessage) message).getConnectionRequest().getProposedNodeIdentifier();
+            case HEARTBEAT:
+                return ((HeartbeatMessage) message).getHeartbeat().getNodeIdentifier();
+            case DISCONNECTION_REQUEST:
+                return ((DisconnectMessage) message).getNodeId();
+            case FLOW_REQUEST:
+                return ((FlowRequestMessage) message).getNodeId();
+            case RECONNECTION_REQUEST:
+                return ((ReconnectionRequestMessage) message).getNodeId();
+            default:
+                return null;
         }
     }
 

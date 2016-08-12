@@ -43,7 +43,6 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
     @Before
     public void setup() throws IOException {
         provider = new WriteAheadLocalStateProvider();
-
         final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
         properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue("target/local-state-provider/" + UUID.randomUUID().toString(), null));
 

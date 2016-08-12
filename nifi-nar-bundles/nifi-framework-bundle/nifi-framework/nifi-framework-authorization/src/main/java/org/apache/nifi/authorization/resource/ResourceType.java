@@ -29,7 +29,7 @@ public enum ResourceType {
     Processor("/processors"),
     ProcessGroup("/process-groups"),
     Provenance("/provenance"),
-    ProvenanceEvent("/provenance-events"),
+    Data("/data"),
     Proxy("/proxy"),
     RemoteProcessGroup("/remote-process-groups"),
     ReportingTask("/reporting-tasks"),

@@ -112,10 +112,6 @@ div.relationship-description {
     outline: none;
 }
 
-#run-duration-labels {
-    font-family: sans-serif;
-}
-
 #run-duration-zero {
     float: left;
 }
@@ -156,7 +152,6 @@ div.relationship-description {
 
 #run-duration-explanation {
     margin-top: 5px;
-    color: #9F6000;
     font-size: 9px;
     font-weight: bold;
     line-height: normal;

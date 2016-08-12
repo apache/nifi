@@ -316,10 +316,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection
      */
     var canEmptyQueue = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return isConnection(selection);
     };
 
@@ -329,10 +325,6 @@ nf.ContextMenu = (function () {
      * @param {selection} selection
      */
     var canListQueue = function (selection) {
-        if (nf.CanvasUtils.canModify(selection) === false) {
-            return false;
-        }
-        
         return isConnection(selection);
     };
     
@@ -429,7 +421,7 @@ nf.ContextMenu = (function () {
         {condition: isRemoteProcessGroup, menuItem: {clazz: 'fa fa-cloud', text: 'Remote ports', action: 'remotePorts'}},
         {condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
         {condition: canStopTransmission, menuItem: {clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
-        {condition: supportsStats, menuItem: {clazz: 'fa fa-bar-chart', text: 'Stats', action: 'showStats'}},
+        {condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'Status History', action: 'showStats'}},
         {condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'Data provenance', action: 'openProvenance'}},
         {condition: isStatefulProcessor, menuItem: {clazz: 'fa fa-tasks', text: 'View state', action: 'viewState'}},
         {condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},

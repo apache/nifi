@@ -21,6 +21,8 @@ import com.sun.jersey.api.representation.Form;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import com.sun.jersey.server.impl.model.method.dispatch.FormDispatchProvider;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -40,10 +42,8 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.NotAuthorizedException;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
-import org.apache.nifi.authorization.AuthorizableLookup;
-import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -94,6 +94,8 @@ public abstract class ApplicationResource {
     public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost";
     public static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort";
     public static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
+
+    protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationResource.class);
 
@@ -205,14 +207,15 @@ public abstract class ApplicationResource {
         if (seed.isPresent()) {
             try {
                 UUID seedId = UUID.fromString(seed.get());
-                uuid = new UUID(seedId.getMostSignificantBits(), Math.abs(seed.get().hashCode()));
+                uuid = new UUID(seedId.getMostSignificantBits(), seed.get().hashCode());
             } catch (Exception e) {
                 logger.warn("Provided 'seed' does not represent UUID. Will not be able to extract most significant bits for ID generation.");
                 uuid = UUID.nameUUIDFromBytes(seed.get().getBytes(StandardCharsets.UTF_8));
             }
         } else {
-            uuid = TypeOneUUIDGenerator.generateId();
+            uuid = ComponentIdGenerator.generateId();
         }
+
         return uuid.toString();
     }
 
@@ -415,7 +418,13 @@ public abstract class ApplicationResource {
     protected void authorizeSnippet(final Snippet snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+            // authorize the process group
+            authorize.accept(processGroupAuthorizable.getAuthorizable());
+
+            // authorize the contents of the group
+            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
@@ -434,7 +443,13 @@ public abstract class ApplicationResource {
     protected void authorizeSnippet(final SnippetDTO snippet, final Authorizer authorizer, final AuthorizableLookup lookup, final RequestAction action) {
         final Consumer<Authorizable> authorize = authorizable -> authorizable.authorize(authorizer, action, NiFiUserUtils.getNiFiUser());
 
-        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(authorize);
+        snippet.getProcessGroups().keySet().stream().map(id -> lookup.getProcessGroup(id)).forEach(processGroupAuthorizable -> {
+            // authorize the process group
+            authorize.accept(processGroupAuthorizable.getAuthorizable());
+
+            // authorize the contents of the group
+            processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
+        });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
         snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
@@ -458,7 +473,7 @@ public abstract class ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-            () -> serviceFacade.verifyRevision(revision, user));
+                () -> serviceFacade.verifyRevision(revision, user));
     }
 
     /**
@@ -475,23 +490,23 @@ public abstract class ApplicationResource {
                                      final Runnable verifier, final Supplier<Response> action) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         return withWriteLock(serviceFacade, authorizer, verifier, action,
-            () -> serviceFacade.verifyRevisions(revisions, user));
+                () -> serviceFacade.verifyRevisions(revisions, user));
     }
 
 
     /**
      * Executes an action through the service facade using the specified revision.
      *
-     * @param serviceFacade service facade
-     * @param authorizer authorizer
-     * @param verifier verifier
-     * @param action the action to execute
+     * @param serviceFacade  service facade
+     * @param authorizer     authorizer
+     * @param verifier       verifier
+     * @param action         the action to execute
      * @param verifyRevision a callback that will claim the necessary revisions for the operation
      * @return the response
      */
     private Response withWriteLock(
             final NiFiServiceFacade serviceFacade, final AuthorizeAccess authorizer, final Runnable verifier, final Supplier<Response> action,
-        final Runnable verifyRevision) {
+            final Runnable verifyRevision) {
 
         final boolean validationPhase = isValidationPhase(httpServletRequest);
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
@@ -565,11 +580,11 @@ public abstract class ApplicationResource {
                 // If we are to replicate directly to the nodes, we need to indicate that the replication source is
                 // the cluster coordinator so that the node knows to service the request.
                 final Set<NodeIdentifier> targetNodes = Collections.singleton(nodeId);
-                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true).awaitMergedResponse().getResponse();
+                return requestReplicator.replicate(targetNodes, method, path, entity, headers, true, true).awaitMergedResponse().getResponse();
             } else {
                 headers.put(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, nodeId.getId());
                 return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method,
-                    path, entity, headers, false).awaitMergedResponse().getResponse();
+                        path, entity, headers, false, true).awaitMergedResponse().getResponse();
             }
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + path + " was interrupted").type("text/plain").build();
@@ -589,18 +604,33 @@ public abstract class ApplicationResource {
         return clusterCoordinator.isActiveClusterCoordinator() ? ReplicationTarget.CLUSTER_NODES : ReplicationTarget.CLUSTER_COORDINATOR;
     }
 
+
     protected Response replicate(final String method, final NodeIdentifier targetNode) {
+        return replicate(method, targetNode, getRequestParameters());
+    }
+
+    protected Response replicate(final String method, final NodeIdentifier targetNode, final Object entity) {
         try {
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
             // to the cluster nodes themselves.
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
                 final Set<NodeIdentifier> nodeIds = Collections.singleton(targetNode);
-                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), getRequestParameters(), getHeaders(), true).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(nodeIds, method, getAbsolutePath(), entity, getHeaders(), true, true).awaitMergedResponse().getResponse();
             } else {
                 final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
                 final Map<String, String> headers = getHeaders(Collections.singletonMap(RequestReplicator.REPLICATION_TARGET_NODE_UUID_HEADER, targetNode.getId()));
-                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), getRequestParameters(), headers, false).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(coordinatorNode, method, getAbsolutePath(), entity, headers, false, true).awaitMergedResponse().getResponse();
             }
+        } catch (final InterruptedException ie) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
+        }
+    }
+
+    protected Response replicateToCoordinator(final String method, final Object entity) {
+        try {
+            final NodeIdentifier coordinatorNode = getClusterCoordinatorNode();
+            final Set<NodeIdentifier> coordinatorNodes = Collections.singleton(coordinatorNode);
+            return getRequestReplicator().replicate(coordinatorNodes, method, getAbsolutePath(), entity, getHeaders(), true, false).awaitMergedResponse().getResponse();
         } catch (final InterruptedException ie) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Request to " + method + " " + getAbsolutePath() + " was interrupted").type("text/plain").build();
         }
@@ -647,8 +677,8 @@ public abstract class ApplicationResource {
      * used will be those provided by the {@link #getHeaders()} method. The URI that will be used will be
      * that provided by the {@link #getAbsolutePath()} method
      *
-     * @param method the HTTP method to use
-     * @param entity the entity to replicate
+     * @param method            the HTTP method to use
+     * @param entity            the entity to replicate
      * @param headersToOverride the headers to override
      * @return the response from the request
      * @see #replicateNodeResponse(String, Object, Map)
@@ -667,12 +697,10 @@ public abstract class ApplicationResource {
      * that provided by the {@link #getAbsolutePath()} method. This method returns the NodeResponse,
      * rather than a Response object.
      *
-     * @param method the HTTP method to use
-     * @param entity the entity to replicate
+     * @param method            the HTTP method to use
+     * @param entity            the entity to replicate
      * @param headersToOverride the headers to override
-     *
      * @return the response from the request
-     *
      * @throws InterruptedException if interrupted while replicating the request
      * @see #replicate(String, Object, Map)
      */
@@ -685,7 +713,7 @@ public abstract class ApplicationResource {
         if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
             return requestReplicator.replicate(method, path, entity, headers).awaitMergedResponse();
         } else {
-            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false).awaitMergedResponse();
+            return requestReplicator.replicate(Collections.singleton(getClusterCoordinatorNode()), method, path, entity, headers, false, true).awaitMergedResponse();
         }
     }
 
@@ -835,7 +863,7 @@ public abstract class ApplicationResource {
         }
 
         public Response handshakeExceptionResponse(HandshakeException e) {
-            if(logger.isDebugEnabled()){
+            if (logger.isDebugEnabled()) {
                 logger.debug("Handshake failed, {}", e.getMessage());
             }
             ResponseCode handshakeRes = e.getResponseCode();

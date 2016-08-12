@@ -25,14 +25,17 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -100,14 +103,12 @@ import java.util.Set;
  */
 @Path("/process-groups")
 @Api(
-    value = "/process-groups",
-    description = "Endpoint for managing a Process Group."
+        value = "/process-groups",
+        description = "Endpoint for managing a Process Group."
 )
 public class ProcessGroupResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessGroupResource.class);
-
-    private static final String VERBOSE = "false";
 
     @Context
     private ResourceContext resourceContext;
@@ -145,7 +146,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * @return group dto
      */
     public ProcessGroupEntity populateRemainingProcessGroupEntityContent(ProcessGroupEntity processGroupEntity) {
-        processGroupEntity.setUri(generateResourceUri("process-groups",  processGroupEntity.getId()));
+        processGroupEntity.setUri(generateResourceUri("process-groups", processGroupEntity.getId()));
         return processGroupEntity;
     }
 
@@ -179,23 +180,20 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a process group",
             response = ProcessGroupEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getProcessGroup(
@@ -211,7 +209,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -230,7 +228,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * Updates the specified process group.
      *
      * @param httpServletRequest request
-     * @param id The id of the process group.
+     * @param id                 The id of the process group.
      * @param processGroupEntity A processGroupEntity.
      * @return A processGroupEntity.
      */
@@ -238,21 +236,20 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a process group",
             response = ProcessGroupEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateProcessGroup(
@@ -292,7 +289,7 @@ public class ProcessGroupResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                Authorizable authorizable = lookup.getProcessGroup(id);
+                Authorizable authorizable = lookup.getProcessGroup(id).getAuthorizable();
                 authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             },
             null,
@@ -301,8 +298,8 @@ public class ProcessGroupResource extends ApplicationResource {
                 final ProcessGroupEntity entity = serviceFacade.updateProcessGroup(revision, requestProcessGroupDTO);
                 populateRemainingProcessGroupEntityContent(entity);
 
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
@@ -310,30 +307,30 @@ public class ProcessGroupResource extends ApplicationResource {
      * Removes the specified process group reference.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the process group to be removed.
+     * @param version            The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id                 The id of the process group to be removed.
      * @return A processGroupEntity.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a process group",
             response = ProcessGroupEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write - /{component-type}/{uuid} - For all encapsulated components", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeProcessGroup(
@@ -365,17 +362,26 @@ public class ProcessGroupResource extends ApplicationResource {
             serviceFacade,
             revision,
             lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(id);
-                processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                final ProcessGroupAuthorizable processGroupAuthorizable = lookup.getProcessGroup(id);
+
+                // ensure write to the process group
+                final Authorizable processGroup = processGroupAuthorizable.getAuthorizable();
+                processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+                // ensure write to all encapsulated components
+                processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(encaupsulatedAuthorizable -> {
+                    encaupsulatedAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                });
             },
             () -> serviceFacade.verifyDeleteProcessGroup(id),
             () -> {
                 // delete the process group
                 final ProcessGroupEntity entity = serviceFacade.deleteProcessGroup(revision, id);
 
-                // create the response
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                    // create the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
@@ -383,7 +389,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * Adds the specified process group.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
+     * @param groupId            The group id
      * @param processGroupEntity A processGroupEntity
      * @return A processGroupEntity
      */
@@ -391,34 +397,33 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/process-groups")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a process group",
-        response = ProcessGroupEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createProcessGroup(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The process group configuration details.",
-            required = true
-        ) final ProcessGroupEntity processGroupEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The process group configuration details.",
+                    required = true
+            ) final ProcessGroupEntity processGroupEntity) {
 
         if (processGroupEntity == null || processGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Process group details must be specified.");
@@ -434,7 +439,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (processGroupEntity.getComponent().getParentGroupId() != null && !groupId.equals(processGroupEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                processGroupEntity.getComponent().getParentGroupId(), groupId));
+                    processGroupEntity.getComponent().getParentGroupId(), groupId));
         }
         processGroupEntity.getComponent().setParentGroupId(groupId);
 
@@ -447,7 +452,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -477,31 +482,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/process-groups")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all process groups",
-        response = ProcessorsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all process groups",
+            response = ProcessorsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getProcessGroups(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -509,7 +511,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -539,41 +541,40 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new processor.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param processorEntity A processorEntity.
+     * @param groupId            The group id
+     * @param processorEntity    A processorEntity.
      * @return A processorEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/processors")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a new processor",
-        response = ProcessorEntity.class,
-        authorizations = {
-            @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
-        }
+            value = "Creates a new processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createProcessor(
             @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
-                value = "The process group id.",
-                required = true
+                    value = "The process group id.",
+                    required = true
             )
             @PathParam("id") final String groupId,
             @ApiParam(
-                value = "The processor configuration details.",
-                required = true
+                    value = "The processor configuration details.",
+                    required = true
             ) final ProcessorEntity processorEntity) {
 
         if (processorEntity == null || processorEntity.getComponent() == null) {
@@ -594,7 +595,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (processorEntity.getComponent().getParentGroupId() != null && !groupId.equals(processorEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                processorEntity.getComponent().getParentGroupId(), groupId));
+                    processorEntity.getComponent().getParentGroupId(), groupId));
         }
         processorEntity.getComponent().setParentGroupId(groupId);
 
@@ -607,7 +608,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -638,31 +639,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/processors")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all processors",
-        response = ProcessorsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all processors",
+            response = ProcessorsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getProcessors(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -670,7 +668,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -693,42 +691,41 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new input port.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param portEntity A inputPortEntity.
+     * @param groupId            The group id
+     * @param portEntity         A inputPortEntity.
      * @return A inputPortEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/input-ports")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates an input port",
-        response = PortEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates an input port",
+            response = PortEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createInputPort(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The input port configuration details.",
-            required = true
-        ) final PortEntity portEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The input port configuration details.",
+                    required = true
+            ) final PortEntity portEntity) {
 
         if (portEntity == null || portEntity.getComponent() == null) {
             throw new IllegalArgumentException("Port details must be specified.");
@@ -744,7 +741,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (portEntity.getComponent().getParentGroupId() != null && !groupId.equals(portEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                portEntity.getComponent().getParentGroupId(), groupId));
+                    portEntity.getComponent().getParentGroupId(), groupId));
         }
         portEntity.getComponent().setParentGroupId(groupId);
 
@@ -757,7 +754,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -786,31 +783,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/input-ports")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all input ports",
-        response = InputPortsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all input ports",
+            response = InputPortsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getInputPorts(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -818,7 +812,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -840,42 +834,41 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new output port.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param portEntity A outputPortEntity.
+     * @param groupId            The group id
+     * @param portEntity         A outputPortEntity.
      * @return A outputPortEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/output-ports")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates an output port",
-        response = PortEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates an output port",
+            response = PortEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createOutputPort(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The output port configuration.",
-            required = true
-        ) final PortEntity portEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The output port configuration.",
+                    required = true
+            ) final PortEntity portEntity) {
 
         if (portEntity == null || portEntity.getComponent() == null) {
             throw new IllegalArgumentException("Port details must be specified.");
@@ -891,7 +884,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (portEntity.getComponent().getParentGroupId() != null && !groupId.equals(portEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                portEntity.getComponent().getParentGroupId(), groupId));
+                    portEntity.getComponent().getParentGroupId(), groupId));
         }
         portEntity.getComponent().setParentGroupId(groupId);
 
@@ -904,7 +897,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -933,31 +926,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/output-ports")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all output ports",
-        response = OutputPortsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all output ports",
+            response = OutputPortsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getOutputPorts(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -965,7 +955,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -988,42 +978,41 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new Funnel.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param funnelEntity A funnelEntity.
+     * @param groupId            The group id
+     * @param funnelEntity       A funnelEntity.
      * @return A funnelEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/funnels")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a funnel",
-        response = FunnelEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a funnel",
+            response = FunnelEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createFunnel(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The funnel configuration details.",
-            required = true
-        ) final FunnelEntity funnelEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The funnel configuration details.",
+                    required = true
+            ) final FunnelEntity funnelEntity) {
 
         if (funnelEntity == null || funnelEntity.getComponent() == null) {
             throw new IllegalArgumentException("Funnel details must be specified.");
@@ -1039,7 +1028,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (funnelEntity.getComponent().getParentGroupId() != null && !groupId.equals(funnelEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                funnelEntity.getComponent().getParentGroupId(), groupId));
+                    funnelEntity.getComponent().getParentGroupId(), groupId));
         }
         funnelEntity.getComponent().setParentGroupId(groupId);
 
@@ -1052,7 +1041,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -1081,31 +1070,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/funnels")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all funnels",
-        response = FunnelsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all funnels",
+            response = FunnelsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getFunnels(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1113,7 +1099,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -1136,42 +1122,41 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new Label.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param labelEntity A labelEntity.
+     * @param groupId            The group id
+     * @param labelEntity        A labelEntity.
      * @return A labelEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/labels")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a label",
-        response = LabelEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a label",
+            response = LabelEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createLabel(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The label configuration details.",
-            required = true
-        ) final LabelEntity labelEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The label configuration details.",
+                    required = true
+            ) final LabelEntity labelEntity) {
 
         if (labelEntity == null || labelEntity.getComponent() == null) {
             throw new IllegalArgumentException("Label details must be specified.");
@@ -1187,7 +1172,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (labelEntity.getComponent().getParentGroupId() != null && !groupId.equals(labelEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                labelEntity.getComponent().getParentGroupId(), groupId));
+                    labelEntity.getComponent().getParentGroupId(), groupId));
         }
         labelEntity.getComponent().setParentGroupId(groupId);
 
@@ -1200,7 +1185,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -1229,31 +1214,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/labels")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all labels",
-        response = LabelsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all labels",
+            response = LabelsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getLabels(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1261,7 +1243,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -1283,8 +1265,8 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Creates a new remote process group.
      *
-     * @param httpServletRequest request
-     * @param groupId The group id
+     * @param httpServletRequest       request
+     * @param groupId                  The group id
      * @param remoteProcessGroupEntity A remoteProcessGroupEntity.
      * @return A remoteProcessGroupEntity.
      */
@@ -1292,34 +1274,33 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/remote-process-groups")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a new process group",
-        response = RemoteProcessGroupEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-        }
+            value = "Creates a new process group",
+            response = RemoteProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createRemoteProcessGroup(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The remote process group configuration details.",
-            required = true
-        ) final RemoteProcessGroupEntity remoteProcessGroupEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The remote process group configuration details.",
+                    required = true
+            ) final RemoteProcessGroupEntity remoteProcessGroupEntity) {
 
         if (remoteProcessGroupEntity == null || remoteProcessGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("Remote process group details must be specified.");
@@ -1341,7 +1322,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (requestProcessGroupDTO.getParentGroupId() != null && !groupId.equals(requestProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                requestProcessGroupDTO.getParentGroupId(), groupId));
+                    requestProcessGroupDTO.getParentGroupId(), groupId));
         }
         requestProcessGroupDTO.setParentGroupId(groupId);
 
@@ -1354,7 +1335,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -1402,43 +1383,34 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves all the of remote process groups in this NiFi.
      *
-     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @return A remoteProcessGroupEntity.
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/remote-process-groups")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all remote process groups",
-        response = RemoteProcessGroupsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all remote process groups",
+            response = RemoteProcessGroupsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getRemoteProcessGroups(
-        @ApiParam(
-            value = "Whether to include any encapulated ports or just details about the remote process group.",
-            required = false
-        )
-        @QueryParam("verbose") @DefaultValue(VERBOSE) final Boolean verbose,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1446,7 +1418,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -1454,11 +1426,9 @@ public class ProcessGroupResource extends ApplicationResource {
         final Set<RemoteProcessGroupEntity> remoteProcessGroups = serviceFacade.getRemoteProcessGroups(groupId);
 
         // prune response as necessary
-        if (!verbose) {
-            for (RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
-                if (remoteProcessGroupEntity.getComponent() != null) {
-                    remoteProcessGroupEntity.getComponent().setContents(null);
-                }
+        for (RemoteProcessGroupEntity remoteProcessGroupEntity : remoteProcessGroups) {
+            if (remoteProcessGroupEntity.getComponent() != null) {
+                remoteProcessGroupEntity.getComponent().setContents(null);
             }
         }
 
@@ -1478,42 +1448,43 @@ public class ProcessGroupResource extends ApplicationResource {
      * Creates a new connection.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param connectionEntity A connectionEntity.
+     * @param groupId            The group id
+     * @param connectionEntity   A connectionEntity.
      * @return A connectionEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/connections")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a connection",
-        response = ConnectionEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a connection",
+            response = ConnectionEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createConnection(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The connection configuration details.",
-            required = true
-        ) final ConnectionEntity connectionEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The connection configuration details.",
+                    required = true
+            ) final ConnectionEntity connectionEntity) {
 
         if (connectionEntity == null || connectionEntity.getComponent() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
@@ -1529,7 +1500,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (connectionEntity.getComponent().getParentGroupId() != null && !groupId.equals(connectionEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                connectionEntity.getComponent().getParentGroupId(), groupId));
+                    connectionEntity.getComponent().getParentGroupId(), groupId));
         }
         connectionEntity.getComponent().setParentGroupId(groupId);
 
@@ -1554,15 +1525,22 @@ public class ProcessGroupResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 // ensure write access to the group
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // ensure write access to the source
                 final Authorizable source = lookup.getConnectable(connection.getSource().getId());
+                if (source == null) {
+                    throw new ResourceNotFoundException("Cannot find source component with ID [" + connection.getSource().getId() + "]");
+                }
                 source.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 // ensure write access to the destination
                 final Authorizable destination = lookup.getConnectable(connection.getDestination().getId());
+                if (destination == null) {
+                    throw new ResourceNotFoundException("Cannot find destination component with ID [" + connection.getDestination().getId() + "]");
+                }
+
                 destination.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -1593,31 +1571,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/connections")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
-        value = "Gets all connections",
-        response = ConnectionsEntity.class,
-        authorizations = {
-            @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-            @Authorization(value = "Administrator", type = "ROLE_ADMIN")
-        }
+            value = "Gets all connections",
+            response = ConnectionsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response getConnections(
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId) {
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") String groupId) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -1625,7 +1600,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processGroup = lookup.getProcessGroup(groupId);
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
             processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -1647,46 +1622,46 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Copies the specified snippet within this ProcessGroup. The snippet instance that is instantiated cannot be referenced at a later time, therefore there is no
      * corresponding URI. Instead the request URI is returned.
-     *
+     * <p>
      * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
      * @param httpServletRequest request
-     * @param groupId The group id
-     * @param copySnippetEntity The copy snippet request
+     * @param groupId            The group id
+     * @param copySnippetEntity  The copy snippet request
      * @return A flowSnippetEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/snippet-instance")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Copies a snippet",
-        response = FlowSnippetEntity.class,
-        authorizations = {
-            @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
-        }
+            value = "Copies a snippet",
+            response = FlowSnippetEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response copySnippet(
-        @Context HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId,
-        @ApiParam(
-            value = "The copy snippet request.",
-            required = true
-        ) CopySnippetRequestEntity copySnippetEntity) {
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") String groupId,
+            @ApiParam(
+                    value = "The copy snippet request.",
+                    required = true
+            ) CopySnippetRequestEntity copySnippetEntity) {
 
         // ensure the position has been specified
         if (copySnippetEntity == null || copySnippetEntity.getOriginX() == null || copySnippetEntity.getOriginY() == null) {
@@ -1715,7 +1690,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // copy the specified snippet
         final FlowEntity flowEntity = serviceFacade.copySnippet(
-            groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY(), getIdGenerationSeed().orElse(null));
+                groupId, copySnippetEntity.getSnippetId(), copySnippetEntity.getOriginX(), copySnippetEntity.getOriginY(), getIdGenerationSeed().orElse(null));
 
         // get the snippet
         final FlowDTO flow = flowEntity.getFlow();
@@ -1739,11 +1714,11 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
      * corresponding URI. Instead the request URI is returned.
-     *
+     * <p>
      * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
-     * @param httpServletRequest request
-     * @param groupId The group id
+     * @param httpServletRequest               request
+     * @param groupId                          The group id
      * @param instantiateTemplateRequestEntity The instantiate template request
      * @return A flowEntity.
      */
@@ -1751,34 +1726,34 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/template-instance")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Instantiates a template",
-        response = FlowEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Instantiates a template",
+            response = FlowEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - /templates/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response instantiateTemplate(
-        @Context HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") String groupId,
-        @ApiParam(
-            value = "The instantiate template request.",
-            required = true
-        ) InstantiateTemplateRequestEntity instantiateTemplateRequestEntity) {
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") String groupId,
+            @ApiParam(
+                    value = "The instantiate template request.",
+                    required = true
+            ) InstantiateTemplateRequestEntity instantiateTemplateRequestEntity) {
 
         // ensure the position has been specified
         if (instantiateTemplateRequestEntity == null || instantiateTemplateRequestEntity.getOriginX() == null || instantiateTemplateRequestEntity.getOriginY() == null) {
@@ -1794,7 +1769,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
                 final Authorizable template = lookup.getTemplate(instantiateTemplateRequestEntity.getTemplateId());
@@ -1807,7 +1782,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         // create the template and generate the json
         final FlowEntity entity = serviceFacade.createTemplateInstance(groupId, instantiateTemplateRequestEntity.getOriginX(),
-            instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId(), getIdGenerationSeed().orElse(null));
+                instantiateTemplateRequestEntity.getOriginY(), instantiateTemplateRequestEntity.getTemplateId(), getIdGenerationSeed().orElse(null));
 
         final FlowDTO flowSnippet = entity.getFlow();
 
@@ -1829,7 +1804,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
     private void authorizeSnippetUsage(final AuthorizableLookup lookup, final String groupId, final String snippetId) {
         // ensure write access to the target process group
-        lookup.getProcessGroup(groupId).authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        lookup.getProcessGroup(groupId).getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
         // ensure read permission to every component in the snippet
         final Snippet snippet = lookup.getSnippet(snippetId);
@@ -1839,7 +1814,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Creates a new template based off of the specified template.
      *
-     * @param httpServletRequest request
+     * @param httpServletRequest          request
      * @param createTemplateRequestEntity request to create the template
      * @return A templateEntity
      */
@@ -1847,34 +1822,34 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/templates")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a template",
-        response = TemplateEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a template",
+            response = TemplateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = ""),
+                    @Authorization(value = "Read - /{component-type}/{uuid} - For each component in the snippet and their descendant components", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 404, message = "The specified resource could not be found."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createTemplate(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The create template request.",
-            required = true
-        ) final CreateTemplateRequestEntity createTemplateRequestEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The create template request.",
+                    required = true
+            ) final CreateTemplateRequestEntity createTemplateRequestEntity) {
 
         if (createTemplateRequestEntity.getSnippetId() == null) {
             throw new IllegalArgumentException("The snippet identifier must be specified.");
@@ -1893,12 +1868,13 @@ public class ProcessGroupResource extends ApplicationResource {
             });
         }
         if (validationPhase) {
+            serviceFacade.verifyCanAddTemplate(groupId, createTemplateRequestEntity.getName());
             return generateContinueResponse().build();
         }
 
         // create the template and generate the json
         final TemplateDTO template = serviceFacade.createTemplate(createTemplateRequestEntity.getName(), createTemplateRequestEntity.getDescription(),
-            createTemplateRequestEntity.getSnippetId(), groupId, getIdGenerationSeed());
+                createTemplateRequestEntity.getSnippetId(), groupId, getIdGenerationSeed());
         templateResource.populateRemainingTemplateContent(template);
 
         // build the response entity
@@ -1913,10 +1889,7 @@ public class ProcessGroupResource extends ApplicationResource {
      * Imports the specified template.
      *
      * @param httpServletRequest request
-     * @param clientId Optional client id. If the client id is not specified, a
-     *            new one will be generated. This value (whether specified or generated) is
-     *            included in the response.
-     * @param in The template stream
+     * @param in                 The template stream
      * @return A templateEntity or an errorResponse XML snippet.
      * @throws InterruptedException if interrupted
      */
@@ -1924,16 +1897,29 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_XML)
     @Path("{id}/templates/upload")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+            value = "Uploads a template",
+            response = TemplateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response uploadTemplate(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @FormDataParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
-        @FormDataParam("template") final InputStream in) throws InterruptedException {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @FormDataParam("template") final InputStream in) throws InterruptedException {
 
         // unmarshal the template
         final TemplateDTO template;
@@ -1953,7 +1939,7 @@ public class ProcessGroupResource extends ApplicationResource {
         } catch (Exception e) {
             logger.warn("An error occurred while importing a template.", e);
             String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>",
-                Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+                    Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
@@ -1980,7 +1966,7 @@ public class ProcessGroupResource extends ApplicationResource {
                 return getRequestReplicator().replicate(HttpMethod.POST, importUri, entity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
             } else {
                 final Set<NodeIdentifier> coordinatorNode = Collections.singleton(getClusterCoordinatorNode());
-                return getRequestReplicator().replicate(coordinatorNode, HttpMethod.POST, importUri, entity, getHeaders(headersToOverride), false).awaitMergedResponse().getResponse();
+                return getRequestReplicator().replicate(coordinatorNode, HttpMethod.POST, importUri, entity, getHeaders(headersToOverride), false, true).awaitMergedResponse().getResponse();
             }
         }
 
@@ -1992,22 +1978,41 @@ public class ProcessGroupResource extends ApplicationResource {
      * Imports the specified template.
      *
      * @param httpServletRequest request
-     * @param templateEntity A templateEntity.
+     * @param templateEntity     A templateEntity.
      * @return A templateEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_XML)
     @Produces(MediaType.APPLICATION_XML)
     @Path("{id}/templates/import")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
+    @ApiOperation(
+            value = "Imports a template",
+            response = TemplateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response importTemplate(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        final TemplateEntity templateEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            final TemplateEntity templateEntity) {
+
+        // verify the template was specified
+        if (templateEntity == null || templateEntity.getTemplate() == null || templateEntity.getTemplate().getSnippet() == null) {
+            throw new IllegalArgumentException("Template details must be specified.");
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, templateEntity);
@@ -2018,20 +2023,16 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
         if (validationPhase) {
+            serviceFacade.verifyCanAddTemplate(groupId, templateEntity.getTemplate().getName());
             return generateContinueResponse().build();
         }
 
         try {
-            // verify the template was specified
-            if (templateEntity == null || templateEntity.getTemplate() == null) {
-                throw new IllegalArgumentException("Template details must be specified.");
-            }
-
             // import the template
             final TemplateDTO template = serviceFacade.importTemplate(templateEntity.getTemplate(), groupId, getIdGenerationSeed());
             templateResource.populateRemainingTemplateContent(template);
@@ -2049,7 +2050,7 @@ public class ProcessGroupResource extends ApplicationResource {
         } catch (Exception e) {
             logger.warn("An error occurred while importing a template.", e);
             String responseXml
-                = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+                    = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
     }
@@ -2061,7 +2062,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Creates a new Controller Service.
      *
-     * @param httpServletRequest request
+     * @param httpServletRequest      request
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -2069,33 +2070,32 @@ public class ProcessGroupResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/controller-services")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
-        value = "Creates a new controller service",
-        response = ControllerServiceEntity.class,
-        authorizations = {
-            @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
-        }
+            value = "Creates a new controller service",
+            response = ControllerServiceEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}", type = "")
+            }
     )
     @ApiResponses(
-        value = {
-            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-            @ApiResponse(code = 401, message = "Client could not be authenticated."),
-            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
-        }
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
     )
     public Response createControllerService(
-        @Context final HttpServletRequest httpServletRequest,
-        @ApiParam(
-            value = "The process group id.",
-            required = true
-        )
-        @PathParam("id") final String groupId,
-        @ApiParam(
-            value = "The controller service configuration details.",
-            required = true
-        ) final ControllerServiceEntity controllerServiceEntity) {
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The controller service configuration details.",
+                    required = true
+            ) final ControllerServiceEntity controllerServiceEntity) {
 
         if (controllerServiceEntity == null || controllerServiceEntity.getComponent() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
@@ -2115,7 +2115,7 @@ public class ProcessGroupResource extends ApplicationResource {
 
         if (controllerServiceEntity.getComponent().getParentGroupId() != null && !groupId.equals(controllerServiceEntity.getComponent().getParentGroupId())) {
             throw new IllegalArgumentException(String.format("If specified, the parent process group id %s must be the same as specified in the URI %s",
-                controllerServiceEntity.getComponent().getParentGroupId(), groupId));
+                    controllerServiceEntity.getComponent().getParentGroupId(), groupId));
         }
         controllerServiceEntity.getComponent().setParentGroupId(groupId);
 
@@ -2128,7 +2128,7 @@ public class ProcessGroupResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processGroup = lookup.getProcessGroup(groupId);
+                final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
                 processGroup.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -2149,6 +2149,7 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

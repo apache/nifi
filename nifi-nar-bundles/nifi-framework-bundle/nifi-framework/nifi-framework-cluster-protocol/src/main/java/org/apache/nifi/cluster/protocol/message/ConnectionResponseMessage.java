@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ConnectionResponseMessage extends ProtocolMessage {
 
     private ConnectionResponse connectionResponse;
-    private String coordinatorDN;
 
     public ConnectionResponseMessage() {
     }
@@ -35,25 +34,6 @@ public class ConnectionResponseMessage extends ProtocolMessage {
 
     public void setConnectionResponse(final ConnectionResponse connectionResponse) {
         this.connectionResponse = connectionResponse;
-
-        if (coordinatorDN != null) {
-            this.connectionResponse.setCoordinatorDN(coordinatorDN);
-        }
-    }
-
-    public void setCoordinatorDN(final String dn) {
-        if (connectionResponse != null) {
-            connectionResponse.setCoordinatorDN(dn);
-        }
-        this.coordinatorDN = dn;
-    }
-
-    /**
-     * @return the DN of the Coordinator, if it is available or <code>null</code>
-     * otherwise
-     */
-    public String getCoordinatorDN() {
-        return coordinatorDN;
     }
 
     @Override

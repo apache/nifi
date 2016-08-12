@@ -250,13 +250,16 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.addGroup(userGroup) >> userGroup
+        1 * authorizer.getUsers() >> users
+        1 * authorizer.getGroups() >> groups
+        1 * authorizer.doAddGroup(userGroup) >> userGroup
         0 * _
         result?.equals userGroup
 
         where:
-        userGroup                                                                                              | _
-        new Group.Builder().identifier('user-group-id-1').name('user-group-id-1').addUser('user-id-1').build() | _
+        userGroup                                                       | users         | groups
+        new Group.Builder().identifier('user-group-id-1')
+                .name('user-group-id-1').addUser('user-id-1').build()   | [] as Set     | [] as Set
     }
 
     @Unroll
@@ -324,13 +327,16 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         then:
         1 * authorizer.getGroup(requestDTO.id) >> userGroup
-        1 * authorizer.updateGroup(userGroup) >> userGroup
+        1 * authorizer.getUsers() >> users
+        1 * authorizer.getGroups() >> groups
+        1 * authorizer.doUpdateGroup(userGroup) >> userGroup
         0 * _
         result?.equals(userGroup)
 
         where:
-        userGroup                                                                                              | _
-        new Group.Builder().identifier('user-group-id-1').name('user-group-id-1').addUser('user-id-1').build() | _
+        userGroup                                                     | users       | groups
+        new Group.Builder().identifier('user-group-id-1')
+                .name('user-group-id-1').addUser('user-id-1').build() | [] as Set   | [] as Set
     }
 
     @Unroll
@@ -417,13 +423,16 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
         noExceptionThrown()
 
         then:
-        1 * authorizer.addUser(user) >> user
+        1 * authorizer.getUsers() >> users
+        1 * authorizer.getGroups() >> groups
+        1 * authorizer.doAddUser(user) >> user
         0 * _
         result?.equals user
 
         where:
-        user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
+        user                                        | users         | groups
+        new User.Builder().identifier('user-id-1')
+                .identity('user identity').build()  | [] as Set     | [] as Set
     }
 
     @Unroll
@@ -491,13 +500,16 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
 
         then:
         1 * authorizer.getUser(requestDTO.id) >> user
-        1 * authorizer.updateUser(user) >> user
+        1 * authorizer.getUsers() >> users
+        1 * authorizer.getGroups() >> groups
+        1 * authorizer.doUpdateUser(user) >> user
         0 * _
         result?.equals(user)
 
         where:
-        user                                                                                                     | _
-        new User.Builder().identifier('user-id-1').identity('user identity').build() | _
+        user                                        | users         | groups
+        new User.Builder().identifier('user-id-1')
+                .identity('user identity').build()  | [] as Set     | [] as Set
     }
 
     @Unroll

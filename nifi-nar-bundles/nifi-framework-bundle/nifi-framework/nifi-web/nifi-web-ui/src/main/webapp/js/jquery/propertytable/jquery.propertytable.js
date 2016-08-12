@@ -76,6 +76,7 @@
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
                 'background-color': 'rgb(255, 255, 255)',
                 'overflow': 'hidden',
+                'padding': '10px 20px',
                 'cursor': 'move'
             }).appendTo(container);
 
@@ -83,7 +84,9 @@
             input = $('<textarea hidefocus rows="5"/>').css({
                 'height': '80px',
                 'width': args.position.width + 'px',
-                'margin': '20px 20px'
+                'min-width': '212px',
+                'margin-bottom': '5px',
+                'margin-top': '10px'
             }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
 
             wrapper.draggable({
@@ -93,10 +96,11 @@
 
             // create the button panel
             var stringCheckPanel = $('<div class="string-check-container">');
+            stringCheckPanel.appendTo(wrapper);
 
             // build the custom checkbox
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
+            $('<span class="string-check-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',
@@ -116,7 +120,14 @@
                 }, function () {
                     $(this).css('background', '#E3E8EB');
                 }).on('click', scope.cancel);
-            $('<div></div>').append(stringCheckPanel).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
+            $('<div></div>').css({
+                'position': 'relative',
+                'top': '10px',
+                'left': '20px',
+                'width': '212px',
+                'clear': 'both',
+                'float': 'right'
+            }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
             scope.position(args.position);
@@ -154,8 +165,8 @@
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 5,
-                'left': position.left - 5
+                'top': position.top - 27,
+                'left': position.left - 20
             });
         };
 
@@ -299,8 +310,8 @@
             // create the editor
             editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                 languageId: languageId,
-                width: args.position.width,
-                minWidth: 175,
+                width: (args.position.width < 212) ? 212 : args.position.width,
+                minWidth: 212,
                 minHeight: 100,
                 resizable: true,
                 sensitive: sensitive,
@@ -314,10 +325,11 @@
 
             // create the button panel
             var stringCheckPanel = $('<div class="string-check-container">');
+            stringCheckPanel.appendTo(wrapper);
 
             // build the custom checkbox
             isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label">&nbsp;Empty</span>').appendTo(stringCheckPanel);
+            $('<span class="string-check-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',
@@ -338,11 +350,13 @@
                     $(this).css('background', '#E3E8EB');
                 }).on('click', scope.cancel);
             $('<div></div>').css({
-                'position': 'absolute',
-                'bottom': '0',
-                'left': '0',
-                'right': '0'
-            }).append(stringCheckPanel).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
+                'position': 'relative',
+                'top': '10px',
+                'left': '20px',
+                'width': '212px',
+                'clear': 'both',
+                'float': 'right'
+            }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
 
             // position and focus
             scope.position(args.position);
@@ -364,13 +378,13 @@
 
         this.show = function () {
             wrapper.show();
-            editor.nfeditor('setSize', args.position.width, null).nfeditor('refresh');
+            editor.nfeditor('refresh');
         };
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 5,
-                'left': position.left - 5
+                'top': position.top - 22,
+                'left': position.left - 20
             });
         };
 
@@ -433,7 +447,7 @@
 
                 // if the field hasn't been modified return the previous value... this
                 // is important because sensitive properties contain the text 'sensitive
-                // value set' which is cleared when the value is edited. we do not 
+                // value set' which is cleared when the value is edited. we do not
                 // want to actually use this value
                 if (editor.nfeditor('isModified') === false) {
                     return previousValue;
@@ -487,7 +501,7 @@
             wrapper = $('<div class="combo-editor"></div>').css({
                 'z-index': 1999,
                 'position': 'absolute',
-                'padding': '5px',
+                'padding': '10px 20px',
                 'overflow': 'hidden',
                 'border-radius': '2px',
                 'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
@@ -557,12 +571,13 @@
                         promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, configurationOptions);
                     }
                 }
-            }).width(position.width - 16).appendTo(wrapper);
+            }).css({
+                'margin-top': '10px',
+                'margin-bottom': '10px',
+                'width': ((position.width - 16) < 212) ? 212 : (position.width - 16) + 'px'}).appendTo(wrapper);
 
             // add buttons for handling user input
-            $('<div class="secondary-button">Cancel</div>').css({
-                'margin': '0 0 0 5px',
-                'float': 'left',
+            var cancel = $('<div class="secondary-button">Cancel</div>').css({
                 'color': '#004849',
                 'background': '#E3E8EB'
             }).hover(
@@ -570,10 +585,8 @@
                     $(this).css('background', '#C7D2D7');
                 }, function () {
                     $(this).css('background', '#E3E8EB');
-                }).on('click', scope.cancel).appendTo(wrapper);
-            $('<div class="button">Ok</div>').css({
-                'margin': '0 0 0 5px',
-                'float': 'left',
+                }).on('click', scope.cancel);
+            var ok = $('<div class="button">Ok</div>').css({
                 'color': '#fff',
                 'background': '#728E9B'
             }).hover(
@@ -581,7 +594,16 @@
                     $(this).css('background', '#004849');
                 }, function () {
                     $(this).css('background', '#728E9B');
-                }).on('click', scope.save).appendTo(wrapper);
+                }).on('click', scope.save);
+
+            $('<div></div>').css({
+                'position': 'relative',
+                'top': '10px',
+                'left': '20px',
+                'width': '212px',
+                'clear': 'both',
+                'float': 'right'
+            }).append(ok).append(cancel).appendTo(wrapper);
 
             // position and focus
             scope.position(position);
@@ -605,8 +627,8 @@
 
         this.position = function (position) {
             wrapper.css({
-                'top': position.top - 5,
-                'left': position.left - 5
+                'top': position.top - 24,
+                'left': position.left - 20
             });
         };
 
@@ -1715,11 +1737,11 @@
             return this.each(function () {
                 var propertyTableContainer = $(this);
                 var options = propertyTableContainer.data('options');
-                
+
                 if (nf.Common.isDefinedAndNotNull(options)) {
                     // clear the property table container
                     clear(propertyTableContainer);
-                    
+
                     // clear any existing new property dialogs
                     if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
                         $('#new-property-dialog').modal("hide");

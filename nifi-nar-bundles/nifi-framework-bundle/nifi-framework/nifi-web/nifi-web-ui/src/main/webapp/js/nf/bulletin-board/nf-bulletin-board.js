@@ -58,9 +58,6 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
             bulletinBoard: '../nifi-api/flow/bulletin-board'
-        },
-        styles: {
-            filterList: 'bulletin-board-filter-list'
         }
     };
 
@@ -76,17 +73,6 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
         $('#clear-bulletins-button').click(function () {
             $('#bulletin-board-container').empty();
         });
-
-        // define the function for filtering the list
-        $('#bulletin-board-filter').focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList);
-            }
-        }).addClass(config.styles.filterList);
 
         // filter type
         $('#bulletin-board-filter-type').combo({
@@ -276,23 +262,18 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
         init: function () {
             //alter styles if we're not in the shell
             if (top === window) {
-                $('body').css({
-                    'height': $(window).height() + 'px',
-                    'width': $(window).width() + 'px'
+                $('#bulletin-board').css({
+                    "position": "absolute",
+                    "bottom": "40px",
+                    "left": "40px",
+                    "right": "40px",
+                    "top": "40px"
                 });
-
-                $('#bulletin-board').css('margin', 40);
                 $('#bulletin-board-refresh-container').css({
                     "position": "absolute",
-                    "width": "100%",
                     "bottom": "40px",
                     "left": "40px",
                     "right": "40px"
-                });
-
-                $('#bulletin-board-status-container').css({
-                    "float": "right",
-                    "padding-right": "80px"
                 });
             }
             
@@ -319,26 +300,23 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
             var bulletinContainer = $('#bulletin-board-container');
 
             // get the filter text
-            var filterField = $('#bulletin-board-filter');
-            if (!filterField.hasClass(config.styles.filterList)) {
-                var filter = filterField.val();
-                if (filter !== '') {
-                    // determine which field to filter on
-                    var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
-                    data[filterOption.value] = filter;
+            var filter = $('#bulletin-board-filter').val();
+            if (filter !== '') {
+                // determine which field to filter on
+                var filterOption = $('#bulletin-board-filter-type').combo('getSelectedOption');
+                data[filterOption.value] = filter;
 
-                    // append filtering message if necessary
-                    if (filterText !== filter || filterType !== filterOption.text) {
-                        var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
-                        appendAndScroll(bulletinContainer, filterContent.get(0));
-                        filterText = filter;
-                        filterType = filterOption.text;
-                    }
-                } else if (filterText !== null) {
-                    appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
-                    filterText = null;
-                    filterType = null;
+                // append filtering message if necessary
+                if (filterText !== filter || filterType !== filterOption.text) {
+                    var filterContent = $('<div class="bulletin-action"></div>').text('Filter ' + filterOption.text + ' matching \'' + filter + '\'');
+                    appendAndScroll(bulletinContainer, filterContent.get(0));
+                    filterText = filter;
+                    filterType = filterOption.text;
                 }
+            } else if (filterText !== null) {
+                appendAndScroll(bulletinContainer, '<div class="bulletin-action">Filter removed</div>');
+                filterText = null;
+                filterType = null;
             }
 
             return $.ajax({
@@ -360,49 +338,51 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
 
                     // append each bulletin
                     $.each(bulletins, function (i, bulletin) {
-                        // format the severity
-                        var severityStyle = 'bulletin-normal';
-                        if (bulletin.level === 'ERROR') {
-                            severityStyle = 'bulletin-error';
-                        } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
-                            severityStyle = 'bulletin-warn';
-                        }
-
-                        // format the source id
-                        var source;
-                        if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
-                            source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
-                                goToSource(bulletin.groupId, bulletin.sourceId);
-                            });
-                        } else {
-                            var sourceId = bulletin.sourceId;
-                            if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
-                                sourceId = '';
+                        if (!nf.Common.isBlank(bulletin.level)) {
+                            // format the severity
+                            var severityStyle = 'bulletin-normal';
+                            if (bulletin.level === 'ERROR') {
+                                severityStyle = 'bulletin-error';
+                            } else if (bulletin.level === 'WARN' || bulletin.level === 'WARNING') {
+                                severityStyle = 'bulletin-warn';
                             }
-                            source = $('<div class="bulletin-source"></div>').text(sourceId);
+
+                            // format the source id
+                            var source;
+                            if (nf.Common.isDefinedAndNotNull(bulletin.sourceId) && nf.Common.isDefinedAndNotNull(bulletin.groupId) && top !== window) {
+                                source = $('<div class="bulletin-source bulletin-link"></div>').text(bulletin.sourceId).on('click', function () {
+                                    goToSource(bulletin.groupId, bulletin.sourceId);
+                                });
+                            } else {
+                                var sourceId = bulletin.sourceId;
+                                if (nf.Common.isUndefined(sourceId) || nf.Common.isNull(sourceId)) {
+                                    sourceId = '';
+                                }
+                                source = $('<div class="bulletin-source"></div>').text(sourceId);
+                            }
+
+                            // build the markup for this bulletin
+                            var bulletinMarkup = $('<div class="bulletin"></div>');
+
+                            // build the markup for this bulletins info
+                            var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
+                            $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
+                            $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
+                            source.appendTo(bulletinInfoMarkup);
+                            $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
+
+                            // format the node address if applicable
+                            if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
+                                $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
+                            }
+
+                            // add the bulletin message (treat as text)
+                            $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
+                            $('<div class="clear"></div>').appendTo(bulletinMarkup);
+
+                            // append the content
+                            content.push(bulletinMarkup.get(0));
                         }
-
-                        // build the markup for this bulletin
-                        var bulletinMarkup = $('<div class="bulletin"></div>');
-
-                        // build the markup for this bulletins info
-                        var bulletinInfoMarkup = $('<div class="bulletin-info"></div>').appendTo(bulletinMarkup);
-                        $('<div class="bulletin-timestamp"></div>').text(bulletin.timestamp).appendTo(bulletinInfoMarkup);
-                        $('<div class="bulletin-severity"></div>').addClass(severityStyle).text(bulletin.level).appendTo(bulletinInfoMarkup);
-                        source.appendTo(bulletinInfoMarkup);
-                        $('<div class="clear"></div>').appendTo(bulletinInfoMarkup);
-
-                        // format the node address if applicable
-                        if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
-                            $('<div class="bulletin-node"></div>').text(bulletin.nodeAddress).appendTo(bulletinMarkup);
-                        }
-
-                        // add the bulletin message (treat as text)
-                        $('<pre class="bulletin-message"></pre>').text(bulletin.message).appendTo(bulletinMarkup);
-                        $('<div class="clear"></div>').appendTo(bulletinMarkup);
-
-                        // append the content
-                        content.push(bulletinMarkup.get(0));
 
                         // record the id of the last bulletin in this request
                         if (i + 1 === bulletins.length) {

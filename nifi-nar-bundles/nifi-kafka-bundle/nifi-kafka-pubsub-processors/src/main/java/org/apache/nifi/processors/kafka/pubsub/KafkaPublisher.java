@@ -33,27 +33,22 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.stream.io.util.StreamDemarcator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Wrapper over {@link KafkaProducer} to assist {@link PublishKafka} processor
  * with sending contents of the {@link FlowFile}s to Kafka.
  */
 class KafkaPublisher implements Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(KafkaPublisher.class);
-
     private final Producer<byte[], byte[]> kafkaProducer;
 
     private volatile long ackWaitTime = 30000;
 
-    private volatile ComponentLog processLog;
+    private final ComponentLog componentLog;
 
     private final int ackCheckSize;
 
-    KafkaPublisher(Properties kafkaProperties) {
-        this(kafkaProperties, 100);
+    KafkaPublisher(Properties kafkaProperties, ComponentLog componentLog) {
+        this(kafkaProperties, 100, componentLog);
     }
 
     /**
@@ -65,9 +60,10 @@ class KafkaPublisher implements Closeable {
      *            instance of {@link Properties} used to bootstrap
      *            {@link KafkaProducer}
      */
-    KafkaPublisher(Properties kafkaProperties, int ackCheckSize) {
+    KafkaPublisher(Properties kafkaProperties, int ackCheckSize, ComponentLog componentLog) {
         this.kafkaProducer = new KafkaProducer<>(kafkaProperties);
         this.ackCheckSize = ackCheckSize;
+        this.componentLog = componentLog;
     }
 
     /**
@@ -200,27 +196,13 @@ class KafkaPublisher implements Closeable {
     }
 
     /**
-     * Will set {@link ComponentLog} as an additional logger to forward log
-     * messages to NiFi bulletin
-     */
-    void setProcessLog(ComponentLog processLog) {
-        this.processLog = processLog;
-    }
-
-    /**
      *
      */
     private void warnOrError(String message, Exception e) {
         if (e == null) {
-            logger.warn(message);
-            if (this.processLog != null) {
-                this.processLog.warn(message);
-            }
+            this.componentLog.warn(message);
         } else {
-            logger.error(message, e);
-            if (this.processLog != null) {
-                this.processLog.error(message, e);
-            }
+            this.componentLog.error(message, e);
         }
     }
 
@@ -244,7 +226,7 @@ class KafkaPublisher implements Closeable {
         }
 
         public boolean isAllAcked() {
-            return this.messagesSent - 1 == this.lastMessageAcked;
+            return this.lastMessageAcked > -1 && this.messagesSent - 1 == this.lastMessageAcked;
         }
 
         @Override

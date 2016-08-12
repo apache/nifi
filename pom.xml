@@ -33,6 +33,7 @@ language governing permissions and limitations under the License. -->
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
+        <module>nifi-toolkit</module>
     </modules>
     <url>http://nifi.apache.org</url>
     <organization>
@@ -98,6 +99,7 @@ language governing permissions and limitations under the License. -->
         <hadoop.guava.version>12.0.1</hadoop.guava.version>
         <hadoop.http.client.version>4.2.5</hadoop.http.client.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
+        <ranger.version>0.6.0</ranger.version>
     </properties>
 
 
@@ -243,6 +245,11 @@ language governing permissions and limitations under the License. -->
                 <version>1.6.0</version>
             </dependency>
             <dependency>
+                <groupId>commons-cli</groupId>
+                <artifactId>commons-cli</artifactId>
+                <version>1.3.1</version>
+            </dependency>
+            <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>1.10</version>
@@ -255,7 +262,7 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.4</version>
+                <version>2.5</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -772,12 +779,17 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-framework</artifactId>
-                <version>2.10.0</version>
+                <version>2.11.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
                 <artifactId>curator-recipes</artifactId>
-                <version>2.10.0</version>
+                <version>2.11.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-log4j12</artifactId>
+                <version>${org.slf4j.version}</version>
             </dependency>
 
             
@@ -865,6 +877,11 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bootstrap</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-toolkit-tls</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -1016,7 +1033,7 @@ language governing permissions and limitations under the License. -->
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-geo-nar</artifactId>
+                <artifactId>nifi-enrich-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -1150,8 +1167,8 @@ language governing permissions and limitations under the License. -->
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
-		        <type>nar</type>
-	         </dependency>
+		<type>nar</type>
+	     </dependency>
              <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-lumberjack-nar</artifactId>
@@ -1182,13 +1199,13 @@ language governing permissions and limitations under the License. -->
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	    <dependency>
+	        <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-reporting-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-	    <dependency>
+	        <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-evtx-nar</artifactId>
                 <version>1.0.0-SNAPSHOT</version>
@@ -1257,6 +1274,11 @@ language governing permissions and limitations under the License. -->
                 <version>1.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-assembly</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
                 <version>2.0.0</version>
@@ -1270,6 +1292,33 @@ language governing permissions and limitations under the License. -->
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-java-sdk</artifactId>
                 <version>1.11.8</version>
+            </dependency>
+            <!-- Ranger dependencies, only included when using -Pinclude-ranger -->
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ranger-nar</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ranger-resources</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>ranger-plugins-common</artifactId>
+                <version>${ranger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>ranger-plugins-audit</artifactId>
+                <version>${ranger.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.ranger</groupId>
+                <artifactId>credentialbuilder</artifactId>
+                <version>${ranger.version}</version>
             </dependency>
             <!-- Groovy support is primarily as a test dependency -->
             <dependency>
@@ -1745,6 +1794,99 @@ language governing permissions and limitations under the License. -->
                     </plugins>
                 </pluginManagement>
             </build>
+        </profile>
+        <!-- The following profiles are here as a convenience for folks that want to build against vendor-specific
+         distributions of the various Hadoop ecosystem libraries.  These will alter which dependencies are sourced
+         in a manner that can adjust the correct LICENSE and NOTICE requirements for any affected jar and the
+         resulting assembly overall.  These L&N impacts are not automatically handled by the build process and are
+         the responsibility of those creating and using the resulting binary artifacts. -->
+        <profile>
+            <!-- This profile adds the Hortonworks repository for resolving Hortonworks Data Platform (HDP)
+                 artifacts for the Hadoop bundles -->
+            <id>hortonworks</id>
+            <repositories>
+                <repository>
+                    <id>hortonworks-releases</id>
+                    <name>Hortonworks Repository</name>
+                    <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>fail</checksumPolicy>
+                    </snapshots>
+                </repository>
+                <repository>
+                    <id>hortonworks-jetty</id>
+                    <name>Hortonworks Jetty Repository</name>
+                    <url>http://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
+                    <releases>
+                        <enabled>true</enabled>
+                        <updatePolicy>always</updatePolicy>
+                        <checksumPolicy>warn</checksumPolicy>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                        <updatePolicy>never</updatePolicy>
+                        <checksumPolicy>fail</checksumPolicy>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <properties>
+                <!-- Vendor-specific version number included here as default, should be overridden on the
+                     command-line -->
+                <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version>
+            </properties>
+        </profile>
+        <profile>
+            <!-- This profile will add the MapR repository for resolving MapR Hadoop
+                 artifacts for the Hadoop bundles -->
+            <id>mapr</id>
+            <repositories>
+                <repository>
+                    <id>mapr-releases</id>
+                    <name>MapR Repository</name>
+                    <url>http://repository.mapr.com/maven/</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                </repository>
+            </repositories>
+            <properties>
+                <!-- Vendor-specific version number included here as default, should be overridden on the
+                     command-line -->
+                <hadoop.version>2.7.0-mapr-1602</hadoop.version>
+            </properties>
+        </profile>
+        <profile>
+            <!-- This profile will add the Cloudera repository for resolving Cloudera Distribution of Hadoop (CDH)
+                 artifacts for the Hadoop bundles -->
+            <id>cloudera</id>
+            <repositories>
+                <repository>
+                    <id>cloudera-repo</id>
+                    <name>Cloudera Repository</name>
+                    <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <properties>
+                <!-- Vendor-specific version number included here as default, should be overridden on the
+                     command-line -->
+                <hadoop.version>2.6.0-cdh5.8.1</hadoop.version>
+            </properties>
         </profile>
     </profiles>
 </project>

@@ -23,10 +23,6 @@ nf.ControllerServices = (function () {
     var initialized = false;
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api',
             controllerServiceTypes: '../nifi-api/flow/controller-service-types'
@@ -49,12 +45,7 @@ nf.ControllerServices = (function () {
      * accounts for that.
      */
     var getControllerServiceTypeFilterText = function () {
-        var filterText = '';
-        var filterField = $('#controller-service-type-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#controller-service-type-filter').val();
     };
 
     /**
@@ -261,17 +252,6 @@ nf.ControllerServices = (function () {
      * Initializes the new controller service dialog.
      */
     var initNewControllerServiceDialog = function () {
-        // define the function for filtering the list
-        $('#controller-service-type-filter').focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
-
         // initialize the processor type table
         var controllerServiceTypesColumns = [
             {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
@@ -387,7 +367,7 @@ nf.ControllerServices = (function () {
                     clearSelectedControllerService();
 
                     // clear any filter strings
-                    $('#controller-service-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    $('#controller-service-type-filter').val('');
 
                     // clear the tagcloud
                     $('#controller-service-tag-cloud').tagcloud('clearSelectedTags');
@@ -471,34 +451,45 @@ nf.ControllerServices = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if (sortDetails.columnId === 'moreDetails') {
-                var aBulletins = 0;
-                if (!nf.Common.isEmpty(a.bulletins)) {
-                    aBulletins = a.bulletins.length;
+            if(a.permissions.canRead && b.permissions.canRead) {
+                if (sortDetails.columnId === 'moreDetails') {
+                    var aBulletins = 0;
+                    if (!nf.Common.isEmpty(a.bulletins)) {
+                        aBulletins = a.bulletins.length;
+                    }
+                    var bBulletins = 0;
+                    if (!nf.Common.isEmpty(b.bulletins)) {
+                        bBulletins = b.bulletins.length;
+                    }
+                    return aBulletins - bBulletins;
+                } else if (sortDetails.columnId === 'type') {
+                    var aType = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(a.component[sortDetails.columnId], '.') : '';
+                    var bType = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? nf.Common.substringAfterLast(b.component[sortDetails.columnId], '.') : '';
+                    return aType === bType ? 0 : aType > bType ? 1 : -1;
+                } else if (sortDetails.columnId === 'state') {
+                    var aState = 'Invalid';
+                    if (nf.Common.isEmpty(a.component.validationErrors)) {
+                        aState = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    }
+                    var bState = 'Invalid';
+                    if (nf.Common.isEmpty(b.component.validationErrors)) {
+                        bState = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    }
+                    return aState === bState ? 0 : aState > bState ? 1 : -1;
+                } else {
+                    var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
+                    var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
+                    return aString === bString ? 0 : aString > bString ? 1 : -1;
                 }
-                var bBulletins = 0;
-                if (!nf.Common.isEmpty(b.bulletins)) {
-                    bBulletins = b.bulletins.length;
-                }
-                return aBulletins - bBulletins;
-            } else if (sortDetails.columnId === 'type') {
-                var aType = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? nf.Common.substringAfterLast(a[sortDetails.columnId], '.') : '';
-                var bType = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? nf.Common.substringAfterLast(b[sortDetails.columnId], '.') : '';
-                return aType === bType ? 0 : aType > bType ? 1 : -1;
-            } else if (sortDetails.columnId === 'state') {
-                var aState = 'Invalid';
-                if (nf.Common.isEmpty(a.validationErrors)) {
-                    aState = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                }
-                var bState = 'Invalid';
-                if (nf.Common.isEmpty(b.validationErrors)) {
-                    bState = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                }
-                return aState === bState ? 0 : aState > bState ? 1 : -1;
             } else {
-                var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
+                if (!a.permissions.canRead && !b.permissions.canRead){
+                    return 0;
+                }
+                if(a.permissions.canRead){
+                    return 1;
+                } else {
+                    return -1;
+                }
             }
         };
 
@@ -527,11 +518,11 @@ nf.ControllerServices = (function () {
             var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
 
             if (hasErrors) {
-                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px;" ></div>';
+                markup += '<div class="pointer has-errors fa fa-warning" style="margin-top: 4px; margin-right: 3px; float: left;" ></div>';
             }
 
             if (hasBulletins) {
-                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px;"></div>';
+                markup += '<div class="has-bulletins fa fa-sticky-note-o" style="margin-top: 5px; margin-right: 3px; float: left;"></div>';
             }
 
             if (hasErrors || hasBulletins) {
@@ -585,8 +576,6 @@ nf.ControllerServices = (function () {
                     if (nf.Common.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div class="pointer enable-controller-service fa fa-flash" title="Enable" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
-
-                    markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
@@ -594,8 +583,14 @@ nf.ControllerServices = (function () {
                 }
             }
 
-            // TODO - only if we can adminster policies
-            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            if (dataContext.permissions.canWrite) {
+                markup += '<div class="pointer delete-controller-service fa fa-trash" title="Remove" style="margin-top: 2px; margin-right: 3px;" ></div>';
+            }
+
+            // allow policy configuration conditionally
+            if (nf.Canvas.isConfigurableAuthorizer() && nf.Common.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            }
 
             return markup;
         };

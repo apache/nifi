@@ -26,7 +26,7 @@
                     Displaying&nbsp;<span id="displayed-controller-service-types"></span>&nbsp;of&nbsp;<span id="total-controller-service-types"></span>
                 </div>
                 <div id="controller-service-type-filter-container">
-                    <input type="text" id="controller-service-type-filter"/>
+                    <input type="text" id="controller-service-type-filter" placeholder="Filter"/>
                 </div>
             </div>
         </div>

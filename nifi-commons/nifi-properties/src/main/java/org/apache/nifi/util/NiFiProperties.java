@@ -28,6 +28,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -163,7 +164,6 @@ public class NiFiProperties extends Properties {
     public static final String CLUSTER_NODE_ADDRESS = "nifi.cluster.node.address";
     public static final String CLUSTER_NODE_PROTOCOL_PORT = "nifi.cluster.node.protocol.port";
     public static final String CLUSTER_NODE_PROTOCOL_THREADS = "nifi.cluster.node.protocol.threads";
-    public static final String REQUEST_REPLICATION_CLAIM_TIMEOUT = "nifi.cluster.request.replication.claim.timeout";
     public static final String CLUSTER_NODE_CONNECTION_TIMEOUT = "nifi.cluster.node.connection.timeout";
     public static final String CLUSTER_NODE_READ_TIMEOUT = "nifi.cluster.node.read.timeout";
     public static final String CLUSTER_FIREWALL_FILE = "nifi.cluster.firewall.file";
@@ -187,6 +187,9 @@ public class NiFiProperties extends Properties {
     public static final String STATE_MANAGEMENT_CLUSTER_PROVIDER_ID = "nifi.state.management.provider.cluster";
     public static final String STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER = "nifi.state.management.embedded.zookeeper.start";
     public static final String STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES = "nifi.state.management.embedded.zookeeper.properties";
+
+    // expression language properties
+    public static final String VARIABLE_REGISTRY_PROPERTIES = "nifi.variable.registry.properties";
 
     // defaults
     public static final String DEFAULT_TITLE = "NiFi";
@@ -242,6 +245,12 @@ public class NiFiProperties extends Properties {
 
     private NiFiProperties() {
         super();
+    }
+
+    public NiFiProperties copy() {
+        final NiFiProperties copy = new NiFiProperties();
+        copy.putAll(this);
+        return copy;
     }
 
     /**
@@ -963,4 +972,27 @@ public class NiFiProperties extends Properties {
     public String getFlowConfigurationArchiveMaxStorage() {
         return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE);
     }
+
+    public String getVariableRegistryProperties(){
+        return getProperty(VARIABLE_REGISTRY_PROPERTIES);
+    }
+
+    public Path[] getVariableRegistryPropertiesPaths() {
+        final List<Path> vrPropertiesPaths = new ArrayList<>();
+
+        final String vrPropertiesFiles = getVariableRegistryProperties();
+        if(!StringUtils.isEmpty(vrPropertiesFiles)) {
+
+            final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
+
+            for(String propertiesFile : vrPropertiesFileList){
+                vrPropertiesPaths.add(Paths.get(propertiesFile));
+            }
+
+            return vrPropertiesPaths.toArray( new Path[vrPropertiesPaths.size()]);
+        } else {
+            return new Path[]{};
+        }
+    }
+
 }
