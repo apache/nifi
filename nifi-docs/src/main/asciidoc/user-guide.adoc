@@ -1537,7 +1537,7 @@ received from others can then be imported into an instance of NiFi and dragged o
 To create a Template, select the components that are to be a part of the template, and then click the
 ``Create Template'' (
 image:iconNewTemplate.png["Create Template"]
-) button in the Actions Toolbar (See <<User_Interface>> for more information on the Actions Toolbar).
+) button in the Operate Palette (See <<User_Interface>> for more information on the Operate Palette).
 
 Clicking this button without selecting anything will create a Template that contains all of the contents of the
 current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
@@ -1556,6 +1556,21 @@ created Processors may not be valid if they are missing values for their sensiti
 Connection that was selected when making the Template is not included in the Template if either the source or the
 destination of the Connection is not also included in the Template.
 ********************************************************************************************************************
+
+[[Import_Template]]
+=== Importing a Template
+After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
+the template into this instance of NiFi. You may import templates into any Process Group where you have the appropriate
+authorization.
+
+From the Operate Palette, click the ``Upload Template'' (
+image:iconUploadTemplate.png["Upload Template"]
+)  button (See <<User_Interface>> for more information on the Operate Palette).  This will display the Upload Template
+dialog.  Click the find icon and use the File Selection dialog to choose which template file to upload.
+Select the file and click Open.
+Clicking the ``Upload'' button will attempt to import the Template into this instance of NiFi.
+The Upload Template dialog will update to show ``Success'' or an error message if there was a problem importing the template.
+
 
 === Instantiating a Template
 
@@ -1579,18 +1594,7 @@ One of the most powerful features of NiFi Templates is the ability to easily exp
 and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
 of a DataFlow with others. You can select Templates from the Global Menu (see <<User_Interface>>) to open a dialog
 that displays all of the Templates that are currently available,
-filter the templates to see only those of interest, and import, export, and delete Templates.
-
-
-[[Import_Template]]
-==== Importing a Template
-After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
-the template into this instance of NiFi. From the Template Management dialog (see <<Manage_Templates>>), click the
-``Browse'' button. This provides a File Selection dialog that allows the user to choose which template file to upload.
-Select the file and click Open. The ``Browse'' button is replaced by an ``Import'' button and a ``Cancel'' button.
-Clicking the ``Import'' button will attempt to import the Template into this instance of NiFi. If unable to import
-the Template, an error message will appear in red next to the ``Browse'' button. Otherwise, the Template will be
-added to the table and the ``Browse'' button will reappear.
+filter the templates to see only those of interest, export, and delete Templates.
 
 
 [[Export_Template]]
