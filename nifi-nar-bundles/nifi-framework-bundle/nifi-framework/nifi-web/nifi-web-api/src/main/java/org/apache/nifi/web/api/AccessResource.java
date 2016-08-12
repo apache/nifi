@@ -333,7 +333,6 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 401, message = "NiFi was unable to complete the request because it did not contain a valid Kerberos " +
                             "ticket in the Authorization header. Retry this request after initializing a ticket with kinit and " +
                             "ensuring your browser is configured to support SPNEGO."),
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
                     @ApiResponse(code = 409, message = "Unable to create access token because NiFi is not in the appropriate state. (i.e. may not be configured to support Kerberos login."),
                     @ApiResponse(code = 500, message = "Unable to create access token because an unexpected error occurred.")
             }

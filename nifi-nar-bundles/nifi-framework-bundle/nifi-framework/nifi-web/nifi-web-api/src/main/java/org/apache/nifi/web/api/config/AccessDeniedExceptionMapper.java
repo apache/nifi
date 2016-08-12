@@ -41,15 +41,24 @@ public class AccessDeniedExceptionMapper implements ExceptionMapper<AccessDenied
         // get the current user
         NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        // if the user was authenticated - forbidden, otherwise unauthorized
+        // if the user was authenticated - forbidden, otherwise unauthorized... the user may be null if the
+        // AccessDeniedException was thrown from a /access endpoint that isn't subject to the security
+        // filter chain. for instance, one that performs kerberos negotiation
         final Response.Status status;
-        if (user.isAnonymous()) {
+        if (user == null || user.isAnonymous()) {
             status = Status.UNAUTHORIZED;
         } else {
             status = Status.FORBIDDEN;
         }
 
-        logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", user.getIdentity(), status));
+        final String identity;
+        if (user == null) {
+            identity = "<no user found>";
+        } else {
+            identity = user.getIdentity();
+        }
+
+        logger.info(String.format("%s does not have permission to access the requested resource. Returning %s response.", identity, status));
 
         if (logger.isDebugEnabled()) {
             logger.debug(StringUtils.EMPTY, exception);
