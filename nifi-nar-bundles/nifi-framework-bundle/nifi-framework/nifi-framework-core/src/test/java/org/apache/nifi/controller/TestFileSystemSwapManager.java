@@ -159,6 +159,10 @@ public class TestFileSystemSwapManager {
         @Override
         public void purge() {
         }
+
+        @Override
+        public void freeze(ResourceClaim claim) {
+        }
     }
 
 
