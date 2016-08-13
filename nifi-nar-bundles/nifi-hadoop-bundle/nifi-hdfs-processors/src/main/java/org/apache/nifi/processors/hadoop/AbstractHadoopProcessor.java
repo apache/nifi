@@ -90,25 +90,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    // validator to ensure that valid EL expressions are used in the directory property
-    static final Validator PATH_WITH_EL_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
-                try {
-                    final String result = context.newExpressionLanguageCompiler().validateExpression(input, true);
-                    if (!StringUtils.isEmpty(result)) {
-                        return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(result).build();
-                    }
-                } catch (final Exception e) {
-                    return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(e.getMessage()).build();
-                }
-            }
-
-            return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-        }
-    };
-
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
@@ -122,7 +103,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .name("Directory")
             .description("The HDFS directory from which files should be read")
             .required(true)
-            .addValidator(PATH_WITH_EL_VALIDATOR)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
 

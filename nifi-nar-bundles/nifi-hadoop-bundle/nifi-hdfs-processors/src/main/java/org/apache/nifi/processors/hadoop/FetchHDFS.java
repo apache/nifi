@@ -33,6 +33,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
 import java.io.FileNotFoundException;
@@ -60,7 +61,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
         .required(true)
         .expressionLanguageSupported(true)
         .defaultValue("${path}/${filename}")
-        .addValidator(PATH_WITH_EL_VALIDATOR)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
