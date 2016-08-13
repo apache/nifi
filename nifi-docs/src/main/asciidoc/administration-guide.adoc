@@ -955,7 +955,6 @@ image:allow-weak-crypto.png["Allow Insecure Cryptographic Modes", width=940]
 
 On a JVM with limited strength cryptography, some PBE algorithms limit the maximum password length to 7, and in this case it will not be possible to provide a "safe" password. It is recommended to install the JCE Unlimited Strength Jurisdiction Policy files for the JVM to mitigate this issue.
 
-* http://www.oracle.com/technetwork/java/javase/downloads/jce-7-download-432124.html[JCE Unlimited Strength Jurisdiction Policy files for Java 7]
 * http://www.oracle.com/technetwork/java/javase/downloads/jce8-download-2133166.html[JCE Unlimited Strength Jurisdiction Policy files for Java 8]
 
 If on a system where the unlimited strength policies cannot be installed, it is recommended to switch to an algorithm that supports longer passwords (see table above).
@@ -968,6 +967,115 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 
 It is preferable to request upstream/downstream systems to switch to https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption] or use a "strong" https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi].
 
+Encrypted Passwords in Configuration Files
+------------------------------------------
+
+In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
+
+This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files
+
+If no administrator action is taken, the configuration values remain unencrypted.
+
+[[encrypt-config_tool]]
+Encrypt-Config Tool
+~~~~~~~~~~~~~~~~~~~
+
+The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a 'nifi.properties' file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new 'nifi.properties' file if specified.
+
+The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
+
+You can use the following command line options with the `encrypt-config` tool:
+
+* `-b,--bootstrapConf <arg>`          The bootstrap.conf file to persist master key
+* `-h,--help`                         Prints this usage message
+* `-k,--key <arg>`                    The raw hexadecimal key to use to encrypt the sensitive properties (the key can be entered with spaces or '-' delimiters to assist manual entry -- these will be ignored)
+* `-n,--niFiProperties <arg>`         The 'nifi.properties' file containing unprotected config values (will be overwritten by default unless `-o` is provided)
+* `-o,--outputNiFiProperties <arg>`   The destination 'nifi.properties' file containing protected config values (will not modify input 'nifi.properties')
+* `-p,--password <arg>`               The password from which to derive the key to use to encrypt the sensitive properties
+* `-r,--useRawKey`                    If provided, the secure console will prompt for the raw key value in hexadecimal form
+* `-v,--verbose`                      Sets verbose mode (default false)
+
+As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the 'nifi.properties' file:
+
+----
+# security properties #
+nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.provider=BC
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=thisIsABadKeystorePassword
+nifi.security.keyPasswd=thisIsABadKeyPassword
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+----
+
+Enter the following arguments when using the tool:
+
+----
+encrypt-config.sh
+-b bootstrap.conf
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+-n nifi.properties
+----
+
+As a result, the 'nifi.properties' file is overwritten with protected properties and sibling encryption identifiers (`aes/gcm/256`, the currently supported algorithm):
+
+----
+# security properties #
+nifi.sensitive.props.key=n2z+tTTbHuZ4V4V2||uWhdasyDXD4ZG2lMAes/vqh6u4vaz4xgL4aEbF4Y/dXevqk3ulRcOwf1vc4RDQ==
+nifi.sensitive.props.key.protected=aes/gcm/256
+nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.provider=BC
+nifi.sensitive.props.additional.keys=
+
+nifi.security.keystore=/path/to/keystore.jks
+nifi.security.keystoreType=JKS
+nifi.security.keystorePasswd=oBjT92hIGRElIGOh||MZ6uYuWNBrOA6usq/Jt3DaD2e4otNirZDytac/w/KFe0HOkrJR03vcbo
+nifi.security.keystorePasswd.protected=aes/gcm/256
+nifi.security.keyPasswd=ac/BaE35SL/esLiJ||+ULRvRLYdIDA2VqpE0eQXDEMjaLBMG2kbKOdOwBk/hGebDKlVg==
+nifi.security.keyPasswd.protected=aes/gcm/256
+nifi.security.truststore=
+nifi.security.truststoreType=
+nifi.security.truststorePasswd=
+----
+
+Additionally, the 'bootstrap.conf' file is updated with the encryption key as follows:
+
+----
+# Master key in hexadecimal format for encrypted sensitive configuration values
+nifi.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+----
+
+Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired.  To encrypt additional properties, specify them as comma-separated values in the `nifi.sensitive.props.additional.keys` property.
+
+If the 'nifi.properties' file already has valid protected values, those property values are not modified by the tool.
+
+[[encrypt-config_password]]
+Password Key Derivation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of providing a 32 or 64 character raw hexadecimal key, you can provide a password from which the key will be derived. As of 1.0.0, the password must be at least 12 characters, and the key will be derived using `SCrypt` with the parameters:
+
+* `pw` -- the password bytes in `UTF-8`
+* `salt` -- the fixed salt value (`NIFI_SCRYPT_SALT`) bytes in `UTF-8`
+* `N` -- 2^16^
+* `r` -- 8
+* `p` -- 1
+* `dkLen` -- determined by the JCE policies available
+
+As of August 2016, these values are determined to be strong for this threat model but may change in future versions.
+
+NOTE: While fixed salts are counter to best practices, a static salt is necessary for deterministic key derivation without additional storage of the salt value.
+
+[[encrypt-config_secure_prompt]]
+Secure Prompt
+~~~~~~~~~~~~~
+
+If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
 
 [[clustering]]
 Clustering Configuration
@@ -1869,6 +1977,7 @@ Security Configuration section of this Administrator's Guide.
 |nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
 |nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 |nifi.sensitive.props.provider|The sensitive property provider. The default value is BC.
+|nifi.sensitive.props.additional.keys|The comma separated list of properties to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
 |nifi.security.keystore*|The full path and name of the keystore. It is blank by default.
 |nifi.security.keystoreType|The keystore type. It is blank by default.
 |nifi.security.keystorePasswd|The keystore password. It is blank by default.
