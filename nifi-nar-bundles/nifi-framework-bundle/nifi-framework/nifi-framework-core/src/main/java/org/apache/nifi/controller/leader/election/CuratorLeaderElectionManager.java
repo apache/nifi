@@ -21,12 +21,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
+import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.retry.RetryForever;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
@@ -47,7 +49,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     private volatile boolean stopped = true;
 
     private final Map<String, LeaderRole> leaderRoles = new HashMap<>();
-    private final Map<String, LeaderElectionStateChangeListener> registeredRoles = new HashMap<>();
+    private final Map<String, RegisteredRole> registeredRoles = new HashMap<>();
 
 
     public CuratorLeaderElectionManager(final int threadPoolSize) {
@@ -82,8 +84,9 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         // Call #register for each already-registered role. This will
         // cause us to start listening for leader elections for that
         // role again
-        for (final Map.Entry<String, LeaderElectionStateChangeListener> entry : registeredRoles.entrySet()) {
-            register(entry.getKey(), entry.getValue());
+        for (final Map.Entry<String, RegisteredRole> entry : registeredRoles.entrySet()) {
+            final RegisteredRole role = entry.getValue();
+            register(entry.getKey(), role.getListener(), role.getParticipantId());
         }
 
         logger.info("{} started", this);
@@ -97,7 +100,12 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
 
     @Override
-    public synchronized void register(final String roleName, final LeaderElectionStateChangeListener listener) {
+    public void register(String roleName, LeaderElectionStateChangeListener listener) {
+        register(roleName, listener, null);
+    }
+
+    @Override
+    public synchronized void register(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
         logger.debug("{} Registering new Leader Selector for role {}", this, roleName);
 
         if (leaderRoles.containsKey(roleName)) {
@@ -114,18 +122,23 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             throw new IllegalStateException("Cannot register leader election for role '" + roleName + "' because this is not a valid role name");
         }
 
-        registeredRoles.put(roleName, listener);
+        registeredRoles.put(roleName, new RegisteredRole(participantId, listener));
 
         if (!isStopped()) {
             final ElectionListener electionListener = new ElectionListener(roleName, listener);
             final LeaderSelector leaderSelector = new LeaderSelector(curatorClient, leaderPath, leaderElectionMonitorEngine, electionListener);
             leaderSelector.autoRequeue();
+            if (participantId != null) {
+                leaderSelector.setId(participantId);
+            }
+
             leaderSelector.start();
 
             final LeaderRole leaderRole = new LeaderRole(leaderSelector, electionListener);
 
             leaderRoles.put(roleName, leaderRole);
         }
+
         logger.info("{} Registered new Leader Selector for role {}", this, roleName);
     }
 
@@ -185,6 +198,32 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         return role.isLeader();
     }
 
+    @Override
+    public synchronized String getLeader(final String roleName) {
+        final LeaderRole role = leaderRoles.get(roleName);
+        if (role == null) {
+            return null;
+        }
+
+        Participant participant;
+        try {
+            participant = role.getLeaderSelector().getLeader();
+        } catch (Exception e) {
+            logger.debug("Unable to determine leader for role '{}'; returning null", roleName);
+            return null;
+        }
+
+        if (participant == null) {
+            return null;
+        }
+
+        final String participantId = participant.getId();
+        if (StringUtils.isEmpty(participantId)) {
+            return null;
+        }
+
+        return participantId;
+    }
 
     private static class LeaderRole {
         private final LeaderSelector leaderSelector;
@@ -204,6 +243,23 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
     }
 
+    private static class RegisteredRole {
+        private final LeaderElectionStateChangeListener listener;
+        private final String participantId;
+
+        public RegisteredRole(final String participantId, final LeaderElectionStateChangeListener listener) {
+            this.participantId = participantId;
+            this.listener = listener;
+        }
+
+        public LeaderElectionStateChangeListener getListener() {
+            return listener;
+        }
+
+        public String getParticipantId() {
+            return participantId;
+        }
+    }
 
     private class ElectionListener extends LeaderSelectorListenerAdapter implements LeaderSelectorListener {
         private final String roleName;

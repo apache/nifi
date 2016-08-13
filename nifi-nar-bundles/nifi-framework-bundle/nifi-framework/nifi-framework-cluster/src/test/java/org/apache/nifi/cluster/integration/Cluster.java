@@ -22,6 +22,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.util.NiFiProperties;
@@ -89,6 +93,19 @@ public class Cluster {
         return Collections.unmodifiableSet(nodes);
     }
 
+    public CuratorFramework createCuratorClient() {
+        final RetryPolicy retryPolicy = new RetryNTimes(20, 500);
+        final CuratorFramework curatorClient = CuratorFrameworkFactory.builder()
+            .connectString(getZooKeeperConnectString())
+            .sessionTimeoutMs(3000)
+            .connectionTimeoutMs(3000)
+            .retryPolicy(retryPolicy)
+            .defaultData(new byte[0])
+            .build();
+
+        curatorClient.start();
+        return curatorClient;
+    }
 
     public Node createNode() {
         NiFiProperties.getInstance().setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, getZooKeeperConnectString());

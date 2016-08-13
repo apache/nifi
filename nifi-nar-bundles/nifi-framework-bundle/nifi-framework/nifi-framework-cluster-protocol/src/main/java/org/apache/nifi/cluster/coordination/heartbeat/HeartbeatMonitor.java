@@ -52,4 +52,9 @@ public interface HeartbeatMonitor {
      * @param nodeId the id of the node whose heartbeat should be removed
      */
     void removeHeartbeat(NodeIdentifier nodeId);
+
+    /**
+     * @return the address that heartbeats should be sent to when this node is elected coordinator.
+     */
+    String getHeartbeatAddress();
 }

@@ -35,6 +35,12 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
+    <!-- Leader Election Manager -->
+    <bean id="leaderElectionManager" class="org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager">
+        <constructor-arg index="0" type="int" value="4" />
+        <constructor-arg index="1" ref="nifiProperties" />
+    </bean>
+
     <!-- Cluster Coordinator -->
     <bean id="clusterCoordinator" class="org.apache.nifi.cluster.spring.NodeClusterCoordinatorFactoryBean">
         <property name="properties" ref="nifiProperties"/>

@@ -96,7 +96,6 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
-import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -389,6 +388,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 bulletinRepo,
                 /* cluster coordinator */ null,
                 /* heartbeat monitor */ null,
+            /* leader election manager */ null,
                 /* variable registry */ variableRegistry);
     }
 
@@ -402,7 +402,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
-            VariableRegistry variableRegistry) {
+        final LeaderElectionManager leaderElectionManager,
+        final VariableRegistry variableRegistry) {
 
         final FlowController flowController = new FlowController(
                 flowFileEventRepo,
@@ -414,7 +415,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 protocolSender,
                 bulletinRepo,
                 clusterCoordinator,
-                heartbeatMonitor, variableRegistry);
+            heartbeatMonitor,
+            leaderElectionManager,
+            variableRegistry);
 
         return flowController;
     }
@@ -430,6 +433,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
+        final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
@@ -579,10 +583,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
+        this.leaderElectionManager = leaderElectionManager;
 
         if (configuredForClustering) {
-            leaderElectionManager = new CuratorLeaderElectionManager(4, properties);
-            heartbeater = new ClusterProtocolHeartbeater(protocolSender, properties);
+            heartbeater = new ClusterProtocolHeartbeater(protocolSender, leaderElectionManager);
 
             // Check if there is already a cluster coordinator elected. If not, go ahead
             // and register for coordinator role. If there is already one elected, do not register until
@@ -602,7 +606,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             leaderElectionManager.start();
         } else {
-            leaderElectionManager = null;
             heartbeater = null;
         }
     }
@@ -3308,6 +3311,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
 
     private void registerForClusterCoordinator() {
+        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
             public synchronized void onLeaderRelinquish() {
@@ -3336,7 +3341,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                     clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
                 }
             }
-        });
+        }, participantId);
     }
 
     private void registerForPrimaryNode() {

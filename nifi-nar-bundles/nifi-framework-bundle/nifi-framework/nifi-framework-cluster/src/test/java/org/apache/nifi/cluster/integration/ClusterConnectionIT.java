@@ -125,7 +125,7 @@ public class ClusterConnectionIT {
 
             // wait for node 1 and 3 to recognize that node 2 is gone
             Stream.of(firstNode, thirdNode).forEach(node -> {
-                node.assertNodeDisconnects(secondNode.getIdentifier(), 5, TimeUnit.SECONDS);
+                node.assertNodeDisconnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
             });
 
             // restart node
@@ -222,17 +222,20 @@ public class ClusterConnectionIT {
             firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
             secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
 
-            secondNode.suspendHeartbeating();
+            final Node nodeToSuspend = firstNode;
+            final Node otherNode = secondNode;
+
+            System.out.println("\n\n\nSuspending heartbeats on node. Roles = " + nodeToSuspend.getRoles() + "\n\n\n");
+            nodeToSuspend.suspendHeartbeating();
 
             // Heartbeat interval in nifi.properties is set to 1 sec. This means that the node should be kicked out
             // due to lack of heartbeat after 8 times this amount of time, or 8 seconds.
-            firstNode.assertNodeDisconnects(secondNode.getIdentifier(), 12, TimeUnit.SECONDS);
+            otherNode.assertNodeDisconnects(nodeToSuspend.getIdentifier(), 12, TimeUnit.SECONDS);
 
-            secondNode.resumeHeartbeating();
-            firstNode.assertNodeConnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
+            nodeToSuspend.resumeHeartbeating();
+            otherNode.assertNodeConnects(nodeToSuspend.getIdentifier(), 10, TimeUnit.SECONDS);
         } finally {
             cluster.stop();
         }
     }
-
 }

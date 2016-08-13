@@ -47,6 +47,7 @@
         <property name="bulletinRepository" ref="bulletinRepository" />
         <property name="clusterCoordinator" ref="clusterCoordinator" />
         <property name="variableRegistry" ref="variableRegistry"/>
+        <property name="leaderElectionManager" ref="leaderElectionManager" />
     </bean>
 
     <!-- flow service -->

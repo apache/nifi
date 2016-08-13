@@ -360,5 +360,10 @@ public class TestAbstractHeartbeatMonitor {
                 mutex.wait();
             }
         }
+
+        @Override
+        public String getHeartbeatAddress() {
+            return "localhost";
+        }
     }
 }
