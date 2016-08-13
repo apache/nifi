@@ -65,7 +65,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -74,6 +73,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
@@ -96,7 +96,6 @@ import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
-import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -388,6 +387,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 bulletinRepo,
                 /* cluster coordinator */ null,
                 /* heartbeat monitor */ null,
+            /* leader election manager */ null,
                 /* variable registry */ variableRegistry);
     }
 
@@ -401,7 +401,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
-            VariableRegistry variableRegistry) {
+        final LeaderElectionManager leaderElectionManager,
+        final VariableRegistry variableRegistry) {
 
         final FlowController flowController = new FlowController(
                 flowFileEventRepo,
@@ -413,7 +414,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 protocolSender,
                 bulletinRepo,
                 clusterCoordinator,
-                heartbeatMonitor, variableRegistry);
+            heartbeatMonitor,
+            leaderElectionManager,
+            variableRegistry);
 
         return flowController;
     }
@@ -429,6 +432,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final BulletinRepository bulletinRepo,
             final ClusterCoordinator clusterCoordinator,
             final HeartbeatMonitor heartbeatMonitor,
+        final LeaderElectionManager leaderElectionManager,
             final VariableRegistry variableRegistry) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
@@ -578,10 +582,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         this.connectionStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false));
+        this.leaderElectionManager = leaderElectionManager;
 
         if (configuredForClustering) {
-            leaderElectionManager = new CuratorLeaderElectionManager(4, properties);
-            heartbeater = new ClusterProtocolHeartbeater(protocolSender, properties);
+            heartbeater = new ClusterProtocolHeartbeater(protocolSender, clusterCoordinator, leaderElectionManager);
 
             // Check if there is already a cluster coordinator elected. If not, go ahead
             // and register for coordinator role. If there is already one elected, do not register until
@@ -601,7 +605,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
             leaderElectionManager.start();
         } else {
-            leaderElectionManager = null;
             heartbeater = null;
         }
     }
@@ -3307,6 +3310,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
 
     private void registerForClusterCoordinator() {
+        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
             public synchronized void onLeaderRelinquish() {
@@ -3320,25 +3325,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 // call start() when we become the leader, and this will ensure that initialization is handled. The heartbeat monitor
                 // then will check the zookeeper znode to check if it is the cluster coordinator before kicking any nodes out of the
                 // cluster.
-
-                if (clusterCoordinator != null) {
-                    clusterCoordinator.removeRole(ClusterRoles.CLUSTER_COORDINATOR);
-                }
             }
 
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
                 heartbeatMonitor.start();   // ensure heartbeat monitor is started
-
-                if (clusterCoordinator != null) {
-                    clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
-                }
             }
-        });
+        }, participantId);
     }
 
     private void registerForPrimaryNode() {
+        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+
         leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
             @Override
             public void onLeaderElection() {
@@ -3349,7 +3348,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             public void onLeaderRelinquish() {
                 setPrimary(false);
             }
-        });
+        }, participantId);
     }
 
     /**
@@ -3854,7 +3853,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         @Override
         public void run() {
-            try {
+            try (final NarCloseable narCloseable = NarCloseable.withFrameworkNar()) {
                 if (heartbeatsSuspended.get()) {
                     return;
                 }
@@ -3916,6 +3915,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final QueueSize queueSize = getTotalFlowFileCount(bean.getRootGroup());
             hbPayload.setTotalFlowFileCount(queueSize.getObjectCount());
             hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
+            hbPayload.setClusterStatus(clusterCoordinator.getConnectionStatuses());
 
             // create heartbeat message
             final NodeIdentifier nodeId = getNodeId();
@@ -3924,15 +3924,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 return null;
             }
 
-            final Set<String> roles = new HashSet<>();
-            if (bean.isPrimary()) {
-                roles.add(ClusterRoles.PRIMARY_NODE);
-            }
-            if (clusterCoordinator.isActiveClusterCoordinator()) {
-                roles.add(ClusterRoles.CLUSTER_COORDINATOR);
-            }
-
-            final Heartbeat heartbeat = new Heartbeat(nodeId, roles, connectionStatus, hbPayload.marshal());
+            final Heartbeat heartbeat = new Heartbeat(nodeId, connectionStatus, hbPayload.marshal());
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 

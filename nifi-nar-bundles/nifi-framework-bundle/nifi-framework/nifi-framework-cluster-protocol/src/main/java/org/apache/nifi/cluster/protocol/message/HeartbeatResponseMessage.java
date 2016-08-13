@@ -15,21 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cluster.coordination.node;
+package org.apache.nifi.cluster.protocol.message;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ClusterRoles {
+import javax.xml.bind.annotation.XmlRootElement;
 
-    public static final String PRIMARY_NODE = "Primary Node";
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
-    public static final String CLUSTER_COORDINATOR = "Cluster Coordinator";
+@XmlRootElement(name = "heartbeatResponse")
+public class HeartbeatResponseMessage extends ProtocolMessage {
 
-    public static Set<String> getAllRoles() {
-        final Set<String> roles = new HashSet<>();
-        roles.add(PRIMARY_NODE);
-        roles.add(CLUSTER_COORDINATOR);
-        return roles;
+    private List<NodeConnectionStatus> updatedNodeStatuses = new ArrayList<>();
+
+
+    @Override
+    public MessageType getType() {
+        return MessageType.HEARTBEAT_RESPONSE;
+    }
+
+    public List<NodeConnectionStatus> getUpdatedNodeStatuses() {
+        return updatedNodeStatuses;
+    }
+
+    public void setUpdatedNodeStatuses(final List<NodeConnectionStatus> nodeStatuses) {
+        this.updatedNodeStatuses = new ArrayList<>(nodeStatuses);
     }
 }

@@ -22,6 +22,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.curator.RetryPolicy;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFrameworkFactory;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.curator.test.TestingServer;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.util.NiFiProperties;
@@ -89,6 +93,19 @@ public class Cluster {
         return Collections.unmodifiableSet(nodes);
     }
 
+    public CuratorFramework createCuratorClient() {
+        final RetryPolicy retryPolicy = new RetryNTimes(20, 500);
+        final CuratorFramework curatorClient = CuratorFrameworkFactory.builder()
+            .connectString(getZooKeeperConnectString())
+            .sessionTimeoutMs(3000)
+            .connectionTimeoutMs(3000)
+            .retryPolicy(retryPolicy)
+            .defaultData(new byte[0])
+            .build();
+
+        curatorClient.start();
+        return curatorClient;
+    }
 
     public Node createNode() {
         NiFiProperties.getInstance().setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, getZooKeeperConnectString());
@@ -104,11 +121,24 @@ public class Cluster {
 
     public Node waitForClusterCoordinator(final long time, final TimeUnit timeUnit) {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
-            () -> getNodes().stream().filter(node -> node.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null));
+            () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null));
     }
 
     public Node waitForPrimaryNode(final long time, final TimeUnit timeUnit) {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
-            () -> getNodes().stream().filter(node -> node.getRoles().contains(ClusterRoles.PRIMARY_NODE)).findFirst().orElse(null));
+            () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.PRIMARY_NODE)).findFirst().orElse(null));
+    }
+
+    /**
+     * Waits for each node in the cluster to connect. The time given is the maximum amount of time to wait for each node to connect, not for
+     * the entire cluster to connect.
+     *
+     * @param time the max amount of time to wait for a node to connect
+     * @param timeUnit the unit of time that the given <code>time</code> value represents
+     */
+    public void waitUntilAllNodesConnected(final long time, final TimeUnit timeUnit) {
+        for (final Node node : nodes) {
+            node.waitUntilConnected(time, timeUnit);
+        }
     }
 }

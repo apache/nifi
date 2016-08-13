@@ -32,9 +32,12 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 import org.apache.nifi.cluster.protocol.DataFlow;
+import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.web.Revision;
@@ -95,5 +98,30 @@ public class TestJaxbProtocolUtils {
 
         final NodeConnectionStatus unmarshalledStatus = unmarshalledMsg.getNodeConnectionStatus();
         assertEquals(nodeStatus, unmarshalledStatus);
+    }
+
+    @Test
+    public void testRoundTripHeartbeat() throws JAXBException {
+        final NodeIdentifier nodeId = new NodeIdentifier("id", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, true);
+        final NodeConnectionStatus nodeStatus = new NodeConnectionStatus(nodeId, DisconnectionCode.NOT_YET_CONNECTED);
+
+        final HeartbeatPayload payload = new HeartbeatPayload();
+        payload.setActiveThreadCount(1);
+        payload.setSystemStartTime(System.currentTimeMillis());
+        payload.setTotalFlowFileBytes(83L);
+        payload.setTotalFlowFileCount(4);
+
+        final List<NodeConnectionStatus> clusterStatus = Collections.singletonList(nodeStatus);
+        payload.setClusterStatus(clusterStatus);
+
+        final Heartbeat heartbeat = new Heartbeat(nodeId, nodeStatus, payload.marshal());
+
+        final HeartbeatMessage msg = new HeartbeatMessage();
+        msg.setHeartbeat(heartbeat);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        JaxbProtocolUtils.JAXB_CONTEXT.createMarshaller().marshal(msg, baos);
+        final Object unmarshalled = JaxbProtocolUtils.JAXB_CONTEXT.createUnmarshaller().unmarshal(new ByteArrayInputStream(baos.toByteArray()));
+        assertTrue(unmarshalled instanceof HeartbeatMessage);
     }
 }

@@ -17,8 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.util.Set;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
@@ -38,11 +36,6 @@ public interface NodeHeartbeat {
      * @return the Connection Status reported by the node
      */
     NodeConnectionStatus getConnectionStatus();
-
-    /**
-     * @return the set of Roles that the node currently possesses.
-     */
-    Set<String> getRoles();
 
     /**
      * @return the number of FlowFiles that are queued up on the node

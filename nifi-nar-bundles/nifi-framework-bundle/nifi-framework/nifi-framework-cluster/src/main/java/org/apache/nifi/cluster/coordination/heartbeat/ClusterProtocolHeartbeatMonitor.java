@@ -17,39 +17,34 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
-import org.apache.curator.RetryPolicy;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryForever;
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,13 +54,6 @@ import org.slf4j.LoggerFactory;
  */
 public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor implements HeartbeatMonitor, ProtocolHandler {
     protected static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeatMonitor.class);
-    private static final String COORDINATOR_ZNODE_NAME = "coordinator";
-
-    private final ZooKeeperClientConfig zkClientConfig;
-    private final String clusterNodesPath;
-
-    private volatile Map<String, NodeIdentifier> clusterNodeIds = new HashMap<>();
-    private volatile CuratorFramework curatorClient;
 
     private final String heartbeatAddress;
     private final ConcurrentMap<NodeIdentifier, NodeHeartbeat> heartbeatMessages = new ConcurrentHashMap<>();
@@ -86,8 +74,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         super(clusterCoordinator, properties);
 
         protocolListener.addHandler(this);
-        this.zkClientConfig = ZooKeeperClientConfig.createConfig(properties);
-        this.clusterNodesPath = zkClientConfig.resolvePath("cluster/nodes");
 
         String hostname = properties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
         if (hostname == null || hostname.trim().isEmpty()) {
@@ -111,17 +97,12 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     }
 
     @Override
-    public void onStart() {
-        final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.builder()
-            .connectString(zkClientConfig.getConnectString())
-            .sessionTimeoutMs(zkClientConfig.getSessionTimeoutMillis())
-            .connectionTimeoutMs(zkClientConfig.getConnectionTimeoutMillis())
-            .retryPolicy(retryPolicy)
-            .defaultData(new byte[0])
-            .build();
-        curatorClient.start();
+    public String getHeartbeatAddress() {
+        return heartbeatAddress;
+    }
 
+    @Override
+    public void onStart() {
         // We don't know what the heartbeats look like for the nodes, since we were just elected to monitoring
         // them. However, the map may be filled with old heartbeats. So we clear the heartbeats and populate the
         // map with new heartbeats set to the current time and using the currently known status. We do this so
@@ -130,58 +111,13 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         heartbeatMessages.clear();
         for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
             final NodeHeartbeat heartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-                clusterCoordinator.getConnectionStatus(nodeId), Collections.emptySet(), 0, 0L, 0, System.currentTimeMillis());
+                clusterCoordinator.getConnectionStatus(nodeId), 0, 0L, 0, System.currentTimeMillis());
             heartbeatMessages.put(nodeId, heartbeat);
         }
-
-        final Thread publishAddress = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (!isStopped()) {
-                    final String path = clusterNodesPath + "/" + COORDINATOR_ZNODE_NAME;
-                    try {
-                        try {
-                            curatorClient.setData().forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
-                            logger.info("Successfully published Cluster Heartbeat Monitor Address of {} to ZooKeeper", heartbeatAddress);
-                            return;
-                        } catch (final NoNodeException nne) {
-                            // ensure that parents are created, using a wide-open ACL because the parents contain no data
-                            // and the path is not in any way sensitive.
-                            try {
-                                curatorClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path);
-                            } catch (final NodeExistsException nee) {
-                                // This is okay. Node already exists.
-                            }
-
-                            curatorClient.create().withMode(CreateMode.EPHEMERAL).forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
-                            logger.info("Successfully published address as heartbeat monitor address at path {} with value {}", path, heartbeatAddress);
-
-                            return;
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Failed to update ZooKeeper to notify nodes of the heartbeat address. Will continue to retry.");
-
-                        try {
-                            Thread.sleep(2000L);
-                        } catch (final InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            return;
-                        }
-                    }
-                }
-            }
-        });
-
-        publishAddress.setName("Publish Heartbeat Address");
-        publishAddress.setDaemon(true);
-        publishAddress.start();
     }
 
     @Override
     public void onStop() {
-        if (curatorClient != null) {
-            curatorClient.close();
-        }
     }
 
     @Override
@@ -193,10 +129,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     public synchronized void removeHeartbeat(final NodeIdentifier nodeId) {
         logger.debug("Deleting heartbeat for node {}", nodeId);
         heartbeatMessages.remove(nodeId);
-    }
-
-    protected Set<NodeIdentifier> getClusterNodeIds() {
-        return new HashSet<>(clusterNodeIds.values());
     }
 
 
@@ -211,7 +143,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
         final NodeConnectionStatus connectionStatus = heartbeat.getConnectionStatus();
-        final Set<String> roles = heartbeat.getRoles();
         final byte[] payloadBytes = heartbeat.getPayload();
         final HeartbeatPayload payload = HeartbeatPayload.unmarshal(payloadBytes);
         final int activeThreadCount = payload.getActiveThreadCount();
@@ -220,11 +151,49 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         final long systemStartTime = payload.getSystemStartTime();
 
         final NodeHeartbeat nodeHeartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-            connectionStatus, roles, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
+            connectionStatus, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
         heartbeatMessages.put(heartbeat.getNodeIdentifier(), nodeHeartbeat);
         logger.debug("Received new heartbeat from {}", nodeId);
 
-        return null;
+        // Formulate a List of differences between our view of the cluster topology and the node's view
+        // and send that back to the node so that it is in-sync with us
+        final List<NodeConnectionStatus> nodeStatusList = payload.getClusterStatus();
+        final List<NodeConnectionStatus> updatedStatuses = getUpdatedStatuses(nodeStatusList);
+
+        final HeartbeatResponseMessage responseMessage = new HeartbeatResponseMessage();
+        responseMessage.setUpdatedNodeStatuses(updatedStatuses);
+        return responseMessage;
+    }
+
+
+    private List<NodeConnectionStatus> getUpdatedStatuses(final List<NodeConnectionStatus> nodeStatusList) {
+        // Map node's statuses by NodeIdentifier for quick & easy lookup
+        final Map<NodeIdentifier, NodeConnectionStatus> nodeStatusMap = nodeStatusList.stream()
+            .collect(Collectors.toMap(status -> status.getNodeIdentifier(), Function.identity()));
+
+        // Check if our connection status is the same for each Node Identifier and if not, add our version of the status
+        // to a List of updated statuses.
+        final List<NodeConnectionStatus> currentStatuses = clusterCoordinator.getConnectionStatuses();
+        final List<NodeConnectionStatus> updatedStatuses = new ArrayList<>();
+        for (final NodeConnectionStatus currentStatus : currentStatuses) {
+            final NodeConnectionStatus nodeStatus = nodeStatusMap.get(currentStatus.getNodeIdentifier());
+            if (!currentStatus.equals(nodeStatus)) {
+                updatedStatuses.add(currentStatus);
+            }
+        }
+
+        // If the node has any statuses that we do not have, add a REMOVED status to the update list
+        final Set<NodeIdentifier> nodeIds = currentStatuses.stream().map(status -> status.getNodeIdentifier()).collect(Collectors.toSet());
+        for (final NodeConnectionStatus nodeStatus : nodeStatusList) {
+            if (!nodeIds.contains(nodeStatus.getNodeIdentifier())) {
+                updatedStatuses.add(new NodeConnectionStatus(nodeStatus.getNodeIdentifier(), NodeConnectionState.REMOVED, null));
+            }
+        }
+
+        logger.debug("\n\nCalculated diff between current cluster status and node cluster status as follows:\nNode: {}\nSelf: {}\nDifference: {}\n\n",
+            nodeStatusList, currentStatuses, updatedStatuses);
+
+        return updatedStatuses;
     }
 
     @Override

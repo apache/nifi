@@ -18,28 +18,23 @@
 package org.apache.nifi.cluster.coordination.node;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.queue.CircularFifoQueue;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.curator.RetryPolicy;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMerger;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMerger;
@@ -50,7 +45,6 @@ import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDisconnectionException;
 import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
-import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.ComponentRevision;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
@@ -68,14 +62,11 @@ import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.web.revision.RevisionManager;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,37 +83,24 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final EventReporter eventReporter;
     private final ClusterNodeFirewall firewall;
     private final RevisionManager revisionManager;
-
-    // Curator used to determine which node is coordinator
-    private final CuratorFramework curatorClient;
-    private final String nodesPathPrefix;
-    private final String coordinatorPath;
+    private final LeaderElectionManager leaderElectionManager;
+    private final AtomicLong latestUpdateId = new AtomicLong(-1);
 
     private volatile FlowService flowService;
     private volatile boolean connected;
-    private volatile String coordinatorAddress;
     private volatile boolean closed = false;
 
     private final ConcurrentMap<NodeIdentifier, NodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();
     private final ConcurrentMap<NodeIdentifier, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>();
 
-    public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter,
-        final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final Properties nifiProperties) {
+    public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter, final LeaderElectionManager leaderElectionManager,
+        final ClusterNodeFirewall firewall, final RevisionManager revisionManager) {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
         this.firewall = firewall;
         this.revisionManager = revisionManager;
-
-        final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
-        final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(nifiProperties);
-
-        curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
-            zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
-
-        curatorClient.start();
-        nodesPathPrefix = zkConfig.resolvePath("cluster/nodes");
-        coordinatorPath = nodesPathPrefix + "/coordinator";
+        this.leaderElectionManager = leaderElectionManager;
 
         senderListener.addHandler(this);
     }
@@ -138,9 +116,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeConnectionStatus shutdownStatus = new NodeConnectionStatus(getLocalNodeIdentifier(), DisconnectionCode.NODE_SHUTDOWN);
         updateNodeStatus(shutdownStatus, false);
         logger.info("Successfully notified other nodes that I am shutting down");
-
-        curatorClient.close();
     }
+
 
     @Override
     public void setLocalNodeIdentifier(final NodeIdentifier nodeId) {
@@ -151,10 +128,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public NodeIdentifier getLocalNodeIdentifier() {
         return nodeId;
-    }
-
-    private NodeIdentifier waitForLocalNodeIdentifier() {
-        return waitForNodeIdentifier(() -> getLocalNodeIdentifier());
     }
 
     private NodeIdentifier waitForElectedClusterCoordinator() {
@@ -174,6 +147,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     Thread.sleep(100L);
                 } catch (final InterruptedException ie) {
                     Thread.currentThread().interrupt();
+                    return null;
                 }
             }
         }
@@ -182,34 +156,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     private String getElectedActiveCoordinatorAddress() throws IOException {
-        final String curAddress = coordinatorAddress;
-        if (curAddress != null) {
-            return curAddress;
-        }
-
-        try {
-            // Get coordinator address and add watcher to change who we are heartbeating to if the value changes.
-            final byte[] coordinatorAddressBytes = curatorClient.getData().usingWatcher(new Watcher() {
-                @Override
-                public void process(final WatchedEvent event) {
-                    coordinatorAddress = null;
-                }
-            }).forPath(coordinatorPath);
-            final String address = coordinatorAddress = new String(coordinatorAddressBytes, StandardCharsets.UTF_8);
-
-            logger.info("Determined that Cluster Coordinator is located at {}", address);
-            return address;
-        } catch (final KeeperException.NoNodeException nne) {
-            throw new NoClusterCoordinatorException();
-        } catch (Exception e) {
-            throw new IOException("Unable to determine Cluster Coordinator from ZooKeeper", e);
-        }
+        return leaderElectionManager.getLeader(ClusterRoles.CLUSTER_COORDINATOR);
     }
 
     @Override
     public void resetNodeStatuses(final Map<NodeIdentifier, NodeConnectionStatus> statusMap) {
         logger.info("Resetting cluster node statuses from {} to {}", nodeStatuses, statusMap);
-        coordinatorAddress = null;
 
         // For each proposed replacement, update the nodeStatuses map if and only if the replacement
         // has a larger update id than the current value.
@@ -217,12 +169,29 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             final NodeIdentifier nodeId = entry.getKey();
             final NodeConnectionStatus proposedStatus = entry.getValue();
 
-            boolean updated = false;
-            while (!updated) {
-                final NodeConnectionStatus currentStatus = nodeStatuses.get(nodeId);
-                updated = replaceNodeStatus(nodeId, currentStatus, proposedStatus);
+            if (proposedStatus.getState() == NodeConnectionState.REMOVED) {
+                nodeStatuses.remove(nodeId);
+            } else {
+                nodeStatuses.put(nodeId, proposedStatus);
             }
         }
+    }
+
+    @Override
+    public boolean resetNodeStatus(final NodeConnectionStatus connectionStatus, final long qualifyingUpdateId) {
+        final NodeIdentifier nodeId = connectionStatus.getNodeIdentifier();
+        final NodeConnectionStatus currentStatus = getConnectionStatus(nodeId);
+
+        if (currentStatus == null) {
+            return replaceNodeStatus(nodeId, null, connectionStatus);
+        } else {
+            if (currentStatus.getUpdateIdentifier() == qualifyingUpdateId) {
+                return replaceNodeStatus(nodeId, currentStatus, connectionStatus);
+            }
+        }
+
+        // The update identifier is not the same. We will not replace the value
+        return false;
     }
 
     /**
@@ -242,11 +211,19 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         if (currentStatus == null) {
-            final NodeConnectionStatus existingValue = nodeStatuses.putIfAbsent(nodeId, newStatus);
-            return existingValue == null;
+            if (newStatus.getState() == NodeConnectionState.REMOVED) {
+                return nodeStatuses.remove(nodeId, currentStatus);
+            } else {
+                final NodeConnectionStatus existingValue = nodeStatuses.putIfAbsent(nodeId, newStatus);
+                return existingValue == null;
+            }
         }
 
-        return nodeStatuses.replace(nodeId, currentStatus, newStatus);
+        if (newStatus.getState() == NodeConnectionState.REMOVED) {
+            return nodeStatuses.remove(nodeId, currentStatus);
+        } else {
+            return nodeStatuses.replace(nodeId, currentStatus, newStatus);
+        }
     }
 
     @Override
@@ -257,7 +234,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             reportEvent(nodeId, Severity.INFO, "Requesting that node connect to cluster on behalf of " + userDn);
         }
 
-        updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis(), getRoles(nodeId)));
+        updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis()));
 
         // create the request
         final ReconnectionRequestMessage request = new ReconnectionRequestMessage();
@@ -267,10 +244,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         requestReconnectionAsynchronously(request, 10, 5);
     }
 
-    private Set<String> getRoles(final NodeIdentifier nodeId) {
-        final NodeConnectionStatus status = getConnectionStatus(nodeId);
-        return status == null ? Collections.emptySet() : status.getRoles();
-    }
 
     @Override
     public void finishNodeConnection(final NodeIdentifier nodeId) {
@@ -293,7 +266,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         logger.info("{} is now connected", nodeId);
-        updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, getRoles(nodeId)));
+        updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED));
     }
 
 
@@ -350,7 +323,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         reportEvent(nodeId, Severity.INFO, "User " + userDn + " requested that node be removed from cluster");
         nodeStatuses.remove(nodeId);
         nodeEvents.remove(nodeId);
-        notifyOthersOfNodeStatusChange(new NodeConnectionStatus(nodeId, NodeConnectionState.REMOVED, Collections.emptySet()));
+        notifyOthersOfNodeStatusChange(new NodeConnectionStatus(nodeId, NodeConnectionState.REMOVED));
     }
 
     @Override
@@ -363,6 +336,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return status == null ? null : status.getState();
     }
 
+    @Override
+    public List<NodeConnectionStatus> getConnectionStatuses() {
+        return new ArrayList<>(nodeStatuses.values());
+    }
 
     @Override
     public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
@@ -402,57 +379,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
     }
 
-    @Override
-    public synchronized void updateNodeRoles(final NodeIdentifier nodeId, final Set<String> roles) {
-        boolean updated = false;
-        while (!updated) {
-            final NodeConnectionStatus currentStatus = nodeStatuses.get(nodeId);
-            if (currentStatus == null) {
-                throw new UnknownNodeException("Cannot update roles for " + nodeId + " to " + roles + " because the node is not part of this cluster");
-            }
-
-            if (currentStatus.getRoles().equals(roles)) {
-                logger.debug("Roles for {} already up-to-date as {}", nodeId, roles);
-                return;
-            }
-
-            final NodeConnectionStatus updatedStatus = new NodeConnectionStatus(currentStatus, roles);
-            updated = replaceNodeStatus(nodeId, currentStatus, updatedStatus);
-
-            if (updated) {
-                logger.info("Updated Roles of {} from {} to {}", nodeId, currentStatus, updatedStatus);
-                notifyOthersOfNodeStatusChange(updatedStatus);
-            }
-        }
-
-        // If any other node contains any of the given roles, revoke the role from the other node.
-        for (final String role : roles) {
-            for (final Map.Entry<NodeIdentifier, NodeConnectionStatus> entry : nodeStatuses.entrySet()) {
-                if (entry.getKey().equals(nodeId)) {
-                    continue;
-                }
-
-                updated = false;
-                while (!updated) {
-                    final NodeConnectionStatus status = entry.getValue();
-                    if (status.getRoles().contains(role)) {
-                        final Set<String> newRoles = new HashSet<>(status.getRoles());
-                        newRoles.remove(role);
-
-                        final NodeConnectionStatus updatedStatus = new NodeConnectionStatus(status, newRoles);
-                        updated = replaceNodeStatus(entry.getKey(), status, updatedStatus);
-
-                        if (updated) {
-                            logger.info("Updated Roles of {} from {} to {}", nodeId, status, updatedStatus);
-                            notifyOthersOfNodeStatusChange(updatedStatus);
-                        }
-                    } else {
-                        updated = true;
-                    }
-                }
-            }
-        }
-    }
 
     @Override
     public NodeIdentifier getNodeIdentifier(final String uuid) {
@@ -465,47 +391,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return null;
     }
 
-    // method is synchronized because it modifies local node state and then broadcasts the change. We synchronize any time that this
-    // is done so that we don't have an issue where we create a NodeConnectionStatus, then another thread creates one and sends it
-    // before the first one is sent (as this results in the first status having a larger id, which means that the first status is never
-    // seen by other nodes).
-    @Override
-    public synchronized void addRole(final String clusterRole) {
-        final NodeIdentifier localNodeId = waitForLocalNodeIdentifier();
-        final NodeConnectionStatus status = getConnectionStatus(localNodeId);
-        final Set<String> roles = new HashSet<>();
-        if (status != null) {
-            roles.addAll(status.getRoles());
-        }
-
-        final boolean roleAdded = roles.add(clusterRole);
-
-        if (roleAdded) {
-            updateNodeRoles(localNodeId, roles);
-            logger.info("Cluster role {} added. This node is now responsible for the following roles: {}", clusterRole, roles);
-        }
-    }
-
-    // method is synchronized because it modifies local node state and then broadcasts the change. We synchronize any time that this
-    // is done so that we don't have an issue where we create a NodeConnectionStatus, then another thread creates one and sends it
-    // before the first one is sent (as this results in the first status having a larger id, which means that the first status is never
-    // seen by other nodes).
-    @Override
-    public synchronized void removeRole(final String clusterRole) {
-        final NodeIdentifier localNodeId = waitForLocalNodeIdentifier();
-        final NodeConnectionStatus status = getConnectionStatus(localNodeId);
-        final Set<String> roles = new HashSet<>();
-        if (status != null) {
-            roles.addAll(status.getRoles());
-        }
-
-        final boolean roleRemoved = roles.remove(clusterRole);
-
-        if (roleRemoved) {
-            updateNodeRoles(localNodeId, roles);
-            logger.info("Cluster role {} removed. This node is now responsible for the following roles: {}", clusterRole, roles);
-        }
-    }
 
     @Override
     public Set<NodeIdentifier> getNodeIdentifiers(final NodeConnectionState... states) {
@@ -528,10 +413,14 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
     @Override
     public NodeIdentifier getPrimaryNode() {
-        return nodeStatuses.values().stream()
-            .filter(status -> status.getRoles().contains(ClusterRoles.PRIMARY_NODE))
+        final String primaryNodeAddress = leaderElectionManager.getLeader(ClusterRoles.PRIMARY_NODE);
+        if (primaryNodeAddress == null) {
+            return null;
+        }
+
+        return nodeStatuses.keySet().stream()
+            .filter(nodeId -> primaryNodeAddress.equals(nodeId.getSocketAddress() + ":" + nodeId.getSocketPort()))
             .findFirst()
-            .map(status -> status.getNodeIdentifier())
             .orElse(null);
     }
 
@@ -555,6 +444,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 }
             }
 
+            return null;
+        }
+
+        if (electedNodeAddress == null) {
+            logger.debug("There is currently no elected active Cluster Coordinator");
             return null;
         }
 
@@ -679,12 +573,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         logger.info("Status of {} changed from {} to {}", nodeId, currentStatus, status);
         logger.debug("State of cluster nodes is now {}", nodeStatuses);
 
+        latestUpdateId.updateAndGet(curVal -> Math.max(curVal, status.getUpdateIdentifier()));
+
         if (currentState == null || currentState != status.getState()) {
-            // We notify all nodes of the status change if either this node is the current cluster coordinator, OR if the node was
-            // the cluster coordinator and no longer is. This is done because if a user disconnects the cluster coordinator, we need
-            // to broadcast to the cluster that this node is no longer the coordinator. Otherwise, all nodes but this one will still
-            // believe that this node is connected to the cluster.
-            final boolean notifyAllNodes = isActiveClusterCoordinator() || (currentStatus != null && currentStatus.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR));
+            final boolean notifyAllNodes = isActiveClusterCoordinator();
             if (notifyAllNodes) {
                 logger.debug("Notifying all nodes that status changed from {} to {}", currentStatus, status);
             } else {
@@ -696,6 +588,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             logger.debug("Not notifying other nodes that status changed because previous state of {} is same as new state of {}", currentState, status.getState());
         }
     }
+
 
     void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus) {
         notifyOthersOfNodeStatusChange(updatedStatus, isActiveClusterCoordinator(), true);
@@ -784,7 +677,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
 
                         request.setDataFlow(new StandardDataFlow(flowService.createDataFlow()));
-                        request.setNodeConnectionStatuses(new ArrayList<>(nodeStatuses.values()));
+                        request.setNodeConnectionStatuses(getConnectionStatuses());
                         request.setComponentRevisions(revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
 
                         // Issue a reconnection request to the node.
@@ -843,43 +736,9 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private String summarizeStatusChange(final NodeConnectionStatus oldStatus, final NodeConnectionStatus status) {
         final StringBuilder sb = new StringBuilder();
 
-        if (oldStatus != null && status.getState() == oldStatus.getState()) {
-            // Check if roles changed
-            final Set<String> oldRoles = oldStatus.getRoles();
-            final Set<String> newRoles = status.getRoles();
-
-            final Set<String> rolesRemoved = new HashSet<>(oldRoles);
-            rolesRemoved.removeAll(newRoles);
-
-            final Set<String> rolesAdded = new HashSet<>(newRoles);
-            rolesAdded.removeAll(oldRoles);
-
-            if (!rolesRemoved.isEmpty()) {
-                sb.append("Relinquished role");
-                if (rolesRemoved.size() != 1) {
-                    sb.append("s");
-                }
-
-                sb.append(" ").append(rolesRemoved);
-            }
-
-            if (!rolesAdded.isEmpty()) {
-                if (sb.length() > 0) {
-                    sb.append("; ");
-                }
-
-                sb.append("Acquired role");
-                if (rolesAdded.size() != 1) {
-                    sb.append("s");
-                }
-
-                sb.append(" ").append(rolesAdded);
-            }
-        } else {
+        if (oldStatus == null || status.getState() != oldStatus.getState()) {
             sb.append("Node Status changed from ").append(oldStatus == null ? "[Unknown Node]" : oldStatus.getState().toString()).append(" to ").append(status.getState().toString());
-            if (status.getState() == NodeConnectionState.CONNECTED) {
-                sb.append(" (Roles=").append(status.getRoles().toString()).append(")");
-            } else if (status.getDisconnectReason() != null) {
+            if (status.getDisconnectReason() != null) {
                 sb.append(" due to ").append(status.getDisconnectReason());
             } else if (status.getDisconnectCode() != null) {
                 sb.append(" due to ").append(status.getDisconnectCode().toString());
@@ -894,34 +753,29 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeIdentifier nodeId = statusChangeMessage.getNodeId();
         logger.debug("Handling request {}", statusChangeMessage);
 
-        boolean updated = false;
-        while (!updated) {
-            final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId());
+        final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId());
 
-            // Either remove the value from the map or update the map depending on the connection state
-            if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
-                updated = nodeStatuses.remove(nodeId, oldStatus);
-            } else {
-                updated = replaceNodeStatus(nodeId, oldStatus, updatedStatus);
-            }
-
-            if (updated) {
-                logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
-                logger.debug("State of cluster nodes is now {}", nodeStatuses);
-
-                final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
-                final String summary = summarizeStatusChange(oldStatus, status);
-                if (!StringUtils.isEmpty(summary)) {
-                    addNodeEvent(nodeId, summary);
-                }
-
-                // Update our counter so that we are in-sync with the cluster on the
-                // most up-to-date version of the NodeConnectionStatus' Update Identifier.
-                // We do this so that we can accurately compare status updates that are generated
-                // locally against those generated from other nodes in the cluster.
-                NodeConnectionStatus.updateIdGenerator(updatedStatus.getUpdateIdentifier());
-            }
+        // Either remove the value from the map or update the map depending on the connection state
+        if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
+        nodeStatuses.remove(nodeId, oldStatus);
+        } else {
+        nodeStatuses.put(nodeId, updatedStatus);
         }
+
+        logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
+        logger.debug("State of cluster nodes is now {}", nodeStatuses);
+
+        final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
+        final String summary = summarizeStatusChange(oldStatus, status);
+        if (!StringUtils.isEmpty(summary)) {
+            addNodeEvent(nodeId, summary);
+        }
+
+        // Update our counter so that we are in-sync with the cluster on the
+        // most up-to-date version of the NodeConnectionStatus' Update Identifier.
+        // We do this so that we can accurately compare status updates that are generated
+        // locally against those generated from other nodes in the cluster.
+        NodeConnectionStatus.updateIdGenerator(updatedStatus.getUpdateIdentifier());
 
         if (isActiveClusterCoordinator()) {
             notifyOthersOfNodeStatusChange(statusChangeMessage.getNodeConnectionStatus());
@@ -980,7 +834,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             addNodeEvent(resolvedNodeIdentifier, "Connection requested from existing node.  Setting status to connecting");
         }
 
-        status = new NodeConnectionStatus(resolvedNodeIdentifier, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis(), getRoles(resolvedNodeIdentifier));
+        status = new NodeConnectionStatus(resolvedNodeIdentifier, NodeConnectionState.CONNECTING, null, null, System.currentTimeMillis());
         updateNodeStatus(status);
 
         DataFlow dataFlow = null;
@@ -1004,7 +858,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             return new ConnectionResponse(tryAgainSeconds);
         }
 
-        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, new ArrayList<>(nodeStatuses.values()),
+        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, getConnectionStatuses(),
             revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
     }
 
@@ -1103,7 +957,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     @Override
     public void setConnected(final boolean connected) {
         this.connected = connected;
-        this.coordinatorAddress = null; // if connection state changed, we are not sure about the coordinator. Check for address again.
     }
 
     @Override

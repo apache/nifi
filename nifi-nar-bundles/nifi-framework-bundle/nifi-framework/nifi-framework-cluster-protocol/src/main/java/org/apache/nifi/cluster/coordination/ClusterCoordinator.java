@@ -107,11 +107,18 @@ public interface ClusterCoordinator {
     Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState... states);
 
     /**
-     * Returns a Map of NodeConnectionStatus to all Node Identifiers that have that status.
+     * Returns a Map of NodeConnectionStates to all Node Identifiers that have that state.
      *
-     * @return the NodeConnectionStatus for each Node in the cluster, grouped by the Connection Status
+     * @return the NodeConnectionState for each Node in the cluster, grouped by the Connection State
      */
     Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates();
+
+    /**
+     * Returns a List of the NodeConnectionStatus for each node in the cluster
+     *
+     * @return a List of the NodeConnectionStatus for each node in the cluster
+     */
+    List<NodeConnectionStatus> getConnectionStatuses();
 
     /**
      * Checks if the given hostname is blocked by the configured firewall, returning
@@ -133,14 +140,6 @@ public interface ClusterCoordinator {
      * @param event an explanation of the event
      */
     void reportEvent(NodeIdentifier nodeId, Severity severity, String event);
-
-    /**
-     * Updates the roles held by the given node
-     *
-     * @param nodeId the id of the node to update
-     * @param roles the new roles that the node possesses
-     */
-    void updateNodeRoles(NodeIdentifier nodeId, Set<String> roles);
 
     /**
      * Returns the NodeIdentifier that exists that has the given UUID, or <code>null</code> if no NodeIdentifier
@@ -197,6 +196,17 @@ public interface ClusterCoordinator {
     void resetNodeStatuses(Map<NodeIdentifier, NodeConnectionStatus> statusMap);
 
     /**
+     * Resets the status of the node to be in accordance with the given NodeConnectionStatus if and only if the
+     * currently held status for this node has an Update ID equal to the given <code>qualifyingUpdateId</code>
+     *
+     * @param connectionStatus the new status of the node
+     * @param qualifyingUpdateId the Update ID to compare the current ID with. If the current ID for the node described by the provided
+     *            NodeConnectionStatus is not equal to this value, the value will not be updated
+     * @return <code>true</code> if the node status was updated, <code>false</code> if the <code>qualifyingUpdateId</code> is out of date.
+     */
+    boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId);
+
+    /**
      * Notifies the Cluster Coordinator of the Node Identifier that the coordinator is currently running on
      *
      * @param nodeId the ID of the current node
@@ -216,18 +226,4 @@ public interface ClusterCoordinator {
      * @return <code>true</code> if connected, <code>false</code> otherwise
      */
     boolean isConnected();
-
-    /**
-     * Notifies the cluster coordinator that this node has been granted the given role
-     *
-     * @param clusterRole the role that this node has been granted
-     */
-    void addRole(String clusterRole);
-
-    /**
-     * Notifies the cluster coordinator that this node is no longer responsible for the given role
-     *
-     * @param clusterRole the role that this node is no longer responsible for
-     */
-    void removeRole(String clusterRole);
 }

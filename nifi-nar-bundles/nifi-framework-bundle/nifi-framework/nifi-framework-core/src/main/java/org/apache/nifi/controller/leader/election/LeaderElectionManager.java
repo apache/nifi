@@ -31,13 +31,35 @@ public interface LeaderElectionManager {
     void register(String roleName);
 
     /**
-     * Adds a new role for which a leader is required
+     * Adds a new role for which a leader is required, without providing a Participant ID
      *
      * @param roleName the name of the role
      * @param listener a listener that will be called when the node gains or relinquishes
      *            the role of leader
      */
     void register(String roleName, LeaderElectionStateChangeListener listener);
+
+    /**
+     * Adds a new role for which a leader is required, providing the given value for this node as the Participant ID
+     *
+     * @param roleName the name of the role
+     * @param listener a listener that will be called when the node gains or relinquishes
+     *            the role of leader
+     * @param participantId the ID to register as this node's Participant ID. All nodes will see this as the identifier when
+     *            asking to see who the leader is via the {@link #getLeader(String)} method
+     */
+    void register(String roleName, LeaderElectionStateChangeListener listener, String participantId);
+
+    /**
+     * Returns the Participant ID of the node that is elected the leader, if one was provided when the node registered
+     * for the role via {@link #register(String, LeaderElectionStateChangeListener, String)}. If there is currently no leader
+     * known or if the role was registered without providing a Participant ID, this will return <code>null</code>.
+     *
+     * @param roleName the name of the role
+     * @return the Participant ID of the node that is elected leader, or <code>null</code> if either no leader is known or the leader
+     *         did not register with a Participant ID.
+     */
+    String getLeader(String roleName);
 
     /**
      * Removes the role with the given name from this manager. If this

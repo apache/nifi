@@ -24,13 +24,21 @@ import java.util.function.Supplier;
 public class ClusterUtils {
 
     public static void waitUntilConditionMet(final long time, final TimeUnit timeUnit, final BooleanSupplier test) {
+        waitUntilConditionMet(time, timeUnit, test, null);
+    }
+
+    public static void waitUntilConditionMet(final long time, final TimeUnit timeUnit, final BooleanSupplier test, final Supplier<String> errorMessageSupplier) {
         final long nanosToWait = timeUnit.toNanos(time);
         final long start = System.nanoTime();
         final long maxTime = start + nanosToWait;
 
         while (!test.getAsBoolean()) {
             if (System.nanoTime() > maxTime) {
-                throw new AssertionError("Condition never occurred after waiting " + time + " " + timeUnit);
+                if (errorMessageSupplier == null) {
+                    throw new AssertionError("Condition never occurred after waiting " + time + " " + timeUnit);
+                } else {
+                    throw new AssertionError("Condition never occurred after waiting " + time + " " + timeUnit + " : " + errorMessageSupplier.get());
+                }
             }
         }
     }
