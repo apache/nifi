@@ -39,25 +39,16 @@ public class TestListenSMTP {
 
     private ScheduledExecutorService executor;
 
-    /**
-     *
-     */
     @Before
     public void before() {
         this.executor = Executors.newScheduledThreadPool(2);
     }
 
-    /**
-     *
-     */
     @After
     public void after() {
         this.executor.shutdown();
     }
 
-    /**
-     *
-     */
     @Test
     public void validateSuccessfulInteraction() throws Exception, EmailException {
         int port = NetworkUtils.availablePort();
@@ -68,21 +59,14 @@ public class TestListenSMTP {
         runner.setProperty(ListenSMTP.SMTP_TIMEOUT, "10 seconds");
 
         runner.assertValid();
-
-        int messageCount = 5;
-        CountDownLatch latch = new CountDownLatch(messageCount);
-
-        this.executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                runner.run(1, false);
-            }
-        }, 0, 500, TimeUnit.MILLISECONDS);
+        runner.run(5, false);
+        final int numMessages = 5;
+        CountDownLatch latch = new CountDownLatch(numMessages);
 
         this.executor.schedule(new Runnable() {
             @Override
             public void run() {
-                for (int i = 0; i < messageCount; i++) {
+                for (int i = 0; i < numMessages; i++) {
                     try {
                         Email email = new SimpleEmail();
                         email.setHostName("localhost");
@@ -100,17 +84,14 @@ public class TestListenSMTP {
                     }
                 }
             }
-        }, 1000, TimeUnit.MILLISECONDS);
+        }, 1500, TimeUnit.MILLISECONDS);
 
         boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
         runner.shutdown();
         assertTrue(complete);
-        runner.assertAllFlowFilesTransferred("success", 5);
+        runner.assertAllFlowFilesTransferred(ListenSMTP.REL_SUCCESS, numMessages);
     }
 
-    /**
-     *
-     */
     @Test
     public void validateSuccessfulInteractionWithTls() throws Exception, EmailException {
         System.setProperty("mail.smtp.ssl.trust", "*");
@@ -134,7 +115,6 @@ public class TestListenSMTP {
         runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
         runner.enableControllerService(sslContextService);
 
-
         // and add the SSL context to the runner
         runner.setProperty(ListenSMTP.SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(ListenSMTP.CLIENT_AUTH, SSLContextService.ClientAuth.NONE.name());
@@ -142,13 +122,7 @@ public class TestListenSMTP {
 
         int messageCount = 5;
         CountDownLatch latch = new CountDownLatch(messageCount);
-
-        this.executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                runner.run(1, false);
-            }
-        }, 0, 500, TimeUnit.MILLISECONDS);
+        runner.run(messageCount, false);
 
         this.executor.schedule(new Runnable() {
             @Override
@@ -181,12 +155,9 @@ public class TestListenSMTP {
         boolean complete = latch.await(5000, TimeUnit.MILLISECONDS);
         runner.shutdown();
         assertTrue(complete);
-        runner.assertAllFlowFilesTransferred("success", 5);
+        runner.assertAllFlowFilesTransferred("success", messageCount);
     }
 
-    /**
-     *
-     */
     @Test
     public void validateTooLargeMessage() throws Exception, EmailException {
         int port = NetworkUtils.availablePort();
@@ -202,12 +173,7 @@ public class TestListenSMTP {
         int messageCount = 1;
         CountDownLatch latch = new CountDownLatch(messageCount);
 
-        this.executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                runner.run(1, false);
-            }
-        }, 0, 500, TimeUnit.MILLISECONDS);
+        runner.run(messageCount, false);
 
         this.executor.schedule(new Runnable() {
             @Override
