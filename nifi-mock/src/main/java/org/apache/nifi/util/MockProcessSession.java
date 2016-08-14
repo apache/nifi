@@ -590,6 +590,10 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void rollback(final boolean penalize) {
+        //if we've already committed then rollback is basically a no-op
+        if(committed){
+            return;
+        }
         final List<InputStream> openStreamCopy = new ArrayList<>(openInputStreams); // avoid ConcurrentModificationException by creating a copy of the List
         for (final InputStream openInputStream : openStreamCopy) {
             try {
