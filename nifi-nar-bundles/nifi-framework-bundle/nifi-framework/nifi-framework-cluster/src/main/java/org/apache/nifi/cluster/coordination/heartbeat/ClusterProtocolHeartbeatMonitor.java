@@ -17,25 +17,15 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
-import org.apache.curator.RetryPolicy;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.curator.retry.RetryForever;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
@@ -47,11 +37,7 @@ import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,15 +45,8 @@ import org.slf4j.LoggerFactory;
  * Uses Apache ZooKeeper to advertise the address to send heartbeats to, and then relies on the NiFi Cluster
  * Protocol to receive heartbeat messages from nodes in the cluster.
  */
-public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor implements HeartbeatMonitor, ProtocolHandler, ConnectionStateListener {
+public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor implements HeartbeatMonitor, ProtocolHandler {
     protected static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeatMonitor.class);
-    private static final String COORDINATOR_ZNODE_NAME = "coordinator";
-
-    private final ZooKeeperClientConfig zkClientConfig;
-    private final String clusterNodesPath;
-
-    private volatile Map<String, NodeIdentifier> clusterNodeIds = new HashMap<>();
-    private volatile CuratorFramework curatorClient;
 
     private final String heartbeatAddress;
     private final ConcurrentMap<NodeIdentifier, NodeHeartbeat> heartbeatMessages = new ConcurrentHashMap<>();
@@ -88,8 +67,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         super(clusterCoordinator, properties);
 
         protocolListener.addHandler(this);
-        this.zkClientConfig = ZooKeeperClientConfig.createConfig(properties);
-        this.clusterNodesPath = zkClientConfig.resolvePath("cluster/nodes");
 
         String hostname = properties.getProperty(NiFiProperties.CLUSTER_NODE_ADDRESS);
         if (hostname == null || hostname.trim().isEmpty()) {
@@ -119,17 +96,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
     @Override
     public void onStart() {
-        final RetryPolicy retryPolicy = new RetryForever(5000);
-        curatorClient = CuratorFrameworkFactory.builder()
-            .connectString(zkClientConfig.getConnectString())
-            .sessionTimeoutMs(zkClientConfig.getSessionTimeoutMillis())
-            .connectionTimeoutMs(zkClientConfig.getConnectionTimeoutMillis())
-            .retryPolicy(retryPolicy)
-            .defaultData(new byte[0])
-            .build();
-        curatorClient.getConnectionStateListenable().addListener(this);
-        curatorClient.start();
-
         // We don't know what the heartbeats look like for the nodes, since we were just elected to monitoring
         // them. However, the map may be filled with old heartbeats. So we clear the heartbeats and populate the
         // map with new heartbeats set to the current time and using the currently known status. We do this so
@@ -138,16 +104,13 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         heartbeatMessages.clear();
         for (final NodeIdentifier nodeId : clusterCoordinator.getNodeIdentifiers()) {
             final NodeHeartbeat heartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-                clusterCoordinator.getConnectionStatus(nodeId), Collections.emptySet(), 0, 0L, 0, System.currentTimeMillis());
+                clusterCoordinator.getConnectionStatus(nodeId), 0, 0L, 0, System.currentTimeMillis());
             heartbeatMessages.put(nodeId, heartbeat);
         }
     }
 
     @Override
     public void onStop() {
-        if (curatorClient != null) {
-            curatorClient.close();
-        }
     }
 
     @Override
@@ -159,10 +122,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     public synchronized void removeHeartbeat(final NodeIdentifier nodeId) {
         logger.debug("Deleting heartbeat for node {}", nodeId);
         heartbeatMessages.remove(nodeId);
-    }
-
-    protected Set<NodeIdentifier> getClusterNodeIds() {
-        return new HashSet<>(clusterNodeIds.values());
     }
 
 
@@ -177,7 +136,6 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
 
         final NodeIdentifier nodeId = heartbeat.getNodeIdentifier();
         final NodeConnectionStatus connectionStatus = heartbeat.getConnectionStatus();
-        final Set<String> roles = heartbeat.getRoles();
         final byte[] payloadBytes = heartbeat.getPayload();
         final HeartbeatPayload payload = HeartbeatPayload.unmarshal(payloadBytes);
         final int activeThreadCount = payload.getActiveThreadCount();
@@ -186,7 +144,7 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         final long systemStartTime = payload.getSystemStartTime();
 
         final NodeHeartbeat nodeHeartbeat = new StandardNodeHeartbeat(nodeId, System.currentTimeMillis(),
-            connectionStatus, roles, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
+            connectionStatus, flowFileCount, flowFileBytes, activeThreadCount, systemStartTime);
         heartbeatMessages.put(heartbeat.getNodeIdentifier(), nodeHeartbeat);
         logger.debug("Received new heartbeat from {}", nodeId);
 
@@ -196,57 +154,5 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
     @Override
     public boolean canHandle(ProtocolMessage msg) {
         return msg.getType() == MessageType.HEARTBEAT;
-    }
-
-    protected void publishAddressAsync() {
-        final Thread publishAddressThread = new Thread(() -> publishAddress());
-
-        publishAddressThread.setName("Publish Heartbeat Address");
-        publishAddressThread.setDaemon(true);
-        publishAddressThread.start();
-    }
-
-    protected void publishAddress() {
-        if (true) {
-            return;
-        }
-        while (!isStopped()) {
-            final String path = clusterNodesPath + "/" + COORDINATOR_ZNODE_NAME;
-            try {
-                try {
-                    curatorClient.setData().forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
-                    logger.info("Successfully published Cluster Heartbeat Monitor Address of {} to ZooKeeper", heartbeatAddress);
-                    return;
-                } catch (final NoNodeException nne) {
-                    // ensure that parents are created, using a wide-open ACL because the parents contain no data
-                    // and the path is not in any way sensitive.
-                    try {
-                        curatorClient.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path, heartbeatAddress.getBytes(StandardCharsets.UTF_8));
-                    } catch (final NodeExistsException nee) {
-                        // This is okay. Node already exists.
-                    }
-
-                    logger.info("Successfully published address as heartbeat monitor address at path {} with value {}", path, heartbeatAddress);
-
-                    return;
-                }
-            } catch (Exception e) {
-                logger.warn("Failed to update ZooKeeper to notify nodes of the heartbeat address. Will continue to retry.");
-
-                try {
-                    Thread.sleep(2000L);
-                } catch (final InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
-        }
-    }
-
-    @Override
-    public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
-        if (newState.isConnected()) {
-            publishAddressAsync();
-        }
     }
 }

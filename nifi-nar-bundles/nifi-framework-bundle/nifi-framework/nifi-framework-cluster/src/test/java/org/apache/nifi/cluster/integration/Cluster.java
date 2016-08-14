@@ -121,11 +121,11 @@ public class Cluster {
 
     public Node waitForClusterCoordinator(final long time, final TimeUnit timeUnit) {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
-            () -> getNodes().stream().filter(node -> node.getRoles().contains(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null));
+            () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.CLUSTER_COORDINATOR)).findFirst().orElse(null));
     }
 
     public Node waitForPrimaryNode(final long time, final TimeUnit timeUnit) {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
-            () -> getNodes().stream().filter(node -> node.getRoles().contains(ClusterRoles.PRIMARY_NODE)).findFirst().orElse(null));
+            () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.PRIMARY_NODE)).findFirst().orElse(null));
     }
 }

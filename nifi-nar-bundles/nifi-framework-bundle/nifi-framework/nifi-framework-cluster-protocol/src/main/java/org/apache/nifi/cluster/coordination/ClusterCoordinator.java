@@ -107,9 +107,9 @@ public interface ClusterCoordinator {
     Set<NodeIdentifier> getNodeIdentifiers(NodeConnectionState... states);
 
     /**
-     * Returns a Map of NodeConnectionStatus to all Node Identifiers that have that status.
+     * Returns a Map of NodeConnectionStates to all Node Identifiers that have that state.
      *
-     * @return the NodeConnectionStatus for each Node in the cluster, grouped by the Connection Status
+     * @return the NodeConnectionState for each Node in the cluster, grouped by the Connection State
      */
     Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates();
 
@@ -133,14 +133,6 @@ public interface ClusterCoordinator {
      * @param event an explanation of the event
      */
     void reportEvent(NodeIdentifier nodeId, Severity severity, String event);
-
-    /**
-     * Updates the roles held by the given node
-     *
-     * @param nodeId the id of the node to update
-     * @param roles the new roles that the node possesses
-     */
-    void updateNodeRoles(NodeIdentifier nodeId, Set<String> roles);
 
     /**
      * Returns the NodeIdentifier that exists that has the given UUID, or <code>null</code> if no NodeIdentifier
@@ -216,18 +208,4 @@ public interface ClusterCoordinator {
      * @return <code>true</code> if connected, <code>false</code> otherwise
      */
     boolean isConnected();
-
-    /**
-     * Notifies the cluster coordinator that this node has been granted the given role
-     *
-     * @param clusterRole the role that this node has been granted
-     */
-    void addRole(String clusterRole);
-
-    /**
-     * Notifies the cluster coordinator that this node is no longer responsible for the given role
-     *
-     * @param clusterRole the role that this node is no longer responsible for
-     */
-    void removeRole(String clusterRole);
 }

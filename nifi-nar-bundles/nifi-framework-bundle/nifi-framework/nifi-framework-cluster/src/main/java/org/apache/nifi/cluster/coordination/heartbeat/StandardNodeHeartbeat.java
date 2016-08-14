@@ -17,10 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.Heartbeat;
@@ -32,18 +28,16 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
     private final NodeIdentifier nodeId;
     private final long timestamp;
     private final NodeConnectionStatus connectionStatus;
-    private final Set<String> roles;
     private final int flowFileCount;
     private final long flowFileBytes;
     private final int activeThreadCount;
     private final long systemStartTime;
 
     public StandardNodeHeartbeat(final NodeIdentifier nodeId, final long timestamp, final NodeConnectionStatus connectionStatus,
-        final Set<String> roles, final int flowFileCount, final long flowFileBytes, final int activeThreadCount, final long systemStartTime) {
+        final int flowFileCount, final long flowFileBytes, final int activeThreadCount, final long systemStartTime) {
         this.timestamp = timestamp;
         this.nodeId = nodeId;
         this.connectionStatus = connectionStatus;
-        this.roles = roles == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(roles));
         this.flowFileCount = flowFileCount;
         this.flowFileBytes = flowFileBytes;
         this.activeThreadCount = activeThreadCount;
@@ -63,11 +57,6 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
     @Override
     public NodeConnectionStatus getConnectionStatus() {
         return connectionStatus;
-    }
-
-    @Override
-    public Set<String> getRoles() {
-        return roles;
     }
 
     @Override
@@ -96,7 +85,7 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
         final HeartbeatPayload payload = HeartbeatPayload.unmarshal(heartbeat.getPayload());
 
         return new StandardNodeHeartbeat(heartbeat.getNodeIdentifier(), timestamp, heartbeat.getConnectionStatus(),
-            heartbeat.getRoles(), (int) payload.getTotalFlowFileCount(), payload.getTotalFlowFileBytes(),
+            (int) payload.getTotalFlowFileCount(), payload.getTotalFlowFileBytes(),
             payload.getActiveThreadCount(), payload.getSystemStartTime());
     }
 }

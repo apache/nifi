@@ -163,6 +163,7 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="heartbeatMonitor" ref="heartbeatMonitor" />
         <property name="bulletinRepository" ref="bulletinRepository"/>
+        <property name="leaderElectionManager" ref="leaderElectionManager" />
     </bean>
     
     <!-- component ui extension configuration context -->

@@ -3326,25 +3326,19 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 // call start() when we become the leader, and this will ensure that initialization is handled. The heartbeat monitor
                 // then will check the zookeeper znode to check if it is the cluster coordinator before kicking any nodes out of the
                 // cluster.
-
-                if (clusterCoordinator != null) {
-                    clusterCoordinator.removeRole(ClusterRoles.CLUSTER_COORDINATOR);
-                }
             }
 
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
                 heartbeatMonitor.start();   // ensure heartbeat monitor is started
-
-                if (clusterCoordinator != null) {
-                    clusterCoordinator.addRole(ClusterRoles.CLUSTER_COORDINATOR);
-                }
             }
         }, participantId);
     }
 
     private void registerForPrimaryNode() {
+        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+
         leaderElectionManager.register(ClusterRoles.PRIMARY_NODE, new LeaderElectionStateChangeListener() {
             @Override
             public void onLeaderElection() {
@@ -3355,7 +3349,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             public void onLeaderRelinquish() {
                 setPrimary(false);
             }
-        });
+        }, participantId);
     }
 
     /**
@@ -3930,15 +3924,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 return null;
             }
 
-            final Set<String> roles = new HashSet<>();
-            if (bean.isPrimary()) {
-                roles.add(ClusterRoles.PRIMARY_NODE);
-            }
-            if (clusterCoordinator.isActiveClusterCoordinator()) {
-                roles.add(ClusterRoles.CLUSTER_COORDINATOR);
-            }
-
-            final Heartbeat heartbeat = new Heartbeat(nodeId, roles, connectionStatus, hbPayload.marshal());
+            final Heartbeat heartbeat = new Heartbeat(nodeId, connectionStatus, hbPayload.marshal());
             final HeartbeatMessage message = new HeartbeatMessage();
             message.setHeartbeat(heartbeat);
 

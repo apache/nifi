@@ -225,7 +225,6 @@ public class ClusterConnectionIT {
             final Node nodeToSuspend = firstNode;
             final Node otherNode = secondNode;
 
-            System.out.println("\n\n\nSuspending heartbeats on node. Roles = " + nodeToSuspend.getRoles() + "\n\n\n");
             nodeToSuspend.suspendHeartbeating();
 
             // Heartbeat interval in nifi.properties is set to 1 sec. This means that the node should be kicked out

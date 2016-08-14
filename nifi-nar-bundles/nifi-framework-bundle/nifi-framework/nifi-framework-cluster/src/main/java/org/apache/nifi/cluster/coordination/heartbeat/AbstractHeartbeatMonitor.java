@@ -256,8 +256,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             clusterCoordinator.finishNodeConnection(nodeId);
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received first heartbeat from connecting node. Node connected.");
         }
-
-        clusterCoordinator.updateNodeRoles(nodeId, heartbeat.getRoles());
     }
 
 

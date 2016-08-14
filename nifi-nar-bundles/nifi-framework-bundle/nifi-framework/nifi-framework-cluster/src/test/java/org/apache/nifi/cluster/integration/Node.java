@@ -18,11 +18,11 @@
 package org.apache.nifi.cluster.integration;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -201,11 +201,6 @@ public class Node {
         }
     }
 
-    public Set<String> getRoles() {
-        final NodeConnectionStatus status = getConnectionStatus();
-        return status == null ? Collections.emptySet() : status.getRoles();
-    }
-
     public NodeConnectionStatus getConnectionStatus() {
         return clusterCoordinator.getConnectionStatus(nodeId);
     }
@@ -284,8 +279,22 @@ public class Node {
         ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> isConnected());
     }
 
+    private String getClusterAddress() {
+        final InetSocketAddress address = nodeProperties.getClusterNodeProtocolAddress();
+        return address.getHostName() + ":" + address.getPort();
+    }
+
+    public boolean hasRole(final String roleName) {
+        final String leaderAddress = electionManager.getLeader(roleName);
+        if (leaderAddress == null) {
+            return false;
+        }
+
+        return leaderAddress.equals(getClusterAddress());
+    }
+
     public void waitUntilElectedForRole(final String roleName, final long time, final TimeUnit timeUnit) {
-        ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> getRoles().contains(roleName));
+        ClusterUtils.waitUntilConditionMet(time, timeUnit, () -> hasRole(roleName));
     }
 
     // Assertions

@@ -17,9 +17,19 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ClusterRoles {
 
     public static final String PRIMARY_NODE = "Primary Node";
 
     public static final String CLUSTER_COORDINATOR = "Cluster Coordinator";
+
+    public static Set<String> getAllRoles() {
+        final Set<String> roles = new HashSet<>();
+        roles.add(PRIMARY_NODE);
+        roles.add(CLUSTER_COORDINATOR);
+        return roles;
+    }
 }

@@ -30,8 +30,7 @@ public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectio
             adapted.getState(),
             adapted.getDisconnectCode(),
             adapted.getDisconnectReason(),
-            adapted.getConnectionRequestTime(),
-            adapted.getRoles());
+            adapted.getConnectionRequestTime());
     }
 
     @Override
@@ -44,7 +43,6 @@ public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectio
             adapted.setDisconnectCode(toAdapt.getDisconnectCode());
             adapted.setDisconnectReason(toAdapt.getDisconnectReason());
             adapted.setState(toAdapt.getState());
-            adapted.setRoles(toAdapt.getRoles());
         }
         return adapted;
     }
