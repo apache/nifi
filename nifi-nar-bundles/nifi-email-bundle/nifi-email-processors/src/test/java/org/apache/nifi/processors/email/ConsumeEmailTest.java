@@ -98,6 +98,7 @@ public class ConsumeEmailTest {
         runner.setProperty(ConsumeIMAP.FOLDER, "MYBOX");
         runner.setProperty(ConsumeIMAP.USE_SSL, "false");
         runner.setProperty(ConsumeIMAP.SHOULD_DELETE_MESSAGES, "false");
+        runner.setProperty(ConsumeIMAP.CONNECTION_TIMEOUT, "130 ms");
 
         runner.run(2);
         flowFiles = runner.getFlowFilesForRelationship(ConsumeIMAP.REL_SUCCESS);
@@ -108,11 +109,33 @@ public class ConsumeEmailTest {
         ff.assertContentEquals("You've Got Mail - 1".getBytes(StandardCharsets.UTF_8));
     }
 
+    @Test
+    public void validateConsumeIMAPWithTimeout() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(new TestImapProcessor(1));
+        runner.setProperty(ConsumeIMAP.HOST, "foo.bar.com");
+        runner.setProperty(ConsumeIMAP.PORT, "1234");
+        runner.setProperty(ConsumeIMAP.USER, "jon");
+        runner.setProperty(ConsumeIMAP.PASSWORD, "qhgwjgehr");
+        runner.setProperty(ConsumeIMAP.FOLDER, "MYBOX");
+        runner.setProperty(ConsumeIMAP.USE_SSL, "false");
+        runner.setProperty(ConsumeIMAP.SHOULD_DELETE_MESSAGES, "false");
+        runner.setProperty(ConsumeIMAP.CONNECTION_TIMEOUT, "${random():mod(10):plus(1)} secs");
+
+        runner.run(1);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeIMAP.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        MockFlowFile ff = flowFiles.get(0);
+        ff.assertContentEquals("You've Got Mail - 0".getBytes(StandardCharsets.UTF_8));
+    }
+
     public static class TestImapProcessor extends ConsumeIMAP {
+
         private final int messagesToGenerate;
+
         TestImapProcessor(int messagesToGenerate) {
             this.messagesToGenerate = messagesToGenerate;
         }
+
         @Override
         protected ImapMailReceiver buildMessageReceiver(ProcessContext processContext) {
             ImapMailReceiver receiver = mock(ImapMailReceiver.class);
