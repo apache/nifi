@@ -13,16 +13,15 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package org.apache.nifi.processors.email;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,71 +30,57 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.lang3.StringUtils;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
-import org.subethamail.smtp.server.SMTPServer;
-
-
-import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.DataUnit;
-
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
-
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
-
-import org.apache.nifi.processors.email.smtp.event.SmtpEvent;
-import org.apache.nifi.processors.email.smtp.handler.SMTPResultCode;
-import org.apache.nifi.processors.email.smtp.handler.SMTPMessageHandlerFactory;
+import org.apache.nifi.stream.io.LimitingInputStream;
+import org.springframework.util.StringUtils;
+import org.subethamail.smtp.server.SMTPServer;
 
 @Tags({"listen", "email", "smtp"})
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("This processor implements a lightweight SMTP server to an arbitrary port, " +
-        "allowing nifi to listen for incoming email. " +
-        "" +
-        "Note this server does not perform any email validation. If direct exposure to the internet is sought," +
-        "it may be a better idea to use the combination of NiFi and an industrial scale MTA (e.g. Postfix)")
+@CapabilityDescription("This processor implements a lightweight SMTP server to an arbitrary port, "
+        + "allowing nifi to listen for incoming email. Note this server does not perform any email "
+        + "validation. If direct exposure to the internet is sought, it may be a better idea to use "
+        + "the combination of NiFi and an industrial scale MTA (e.g. Postfix)")
 @WritesAttributes({
-        @WritesAttribute(attribute = "mime.type", description = "The value used during HELO"),
-        @WritesAttribute(attribute = "smtp.helo", description = "The value used during HELO"),
-        @WritesAttribute(attribute = "smtp.certificates.*.serial", description = "The serial numbers for each of the " +
-                "certificates used by an TLS peer"),
-        @WritesAttribute(attribute = "smtp.certificates.*.principal", description = "The principal for each of the " +
-                "certificates used by an TLS peer"),
-        @WritesAttribute(attribute = "smtp.from", description = "The value used during MAIL FROM (i.e. envelope)"),
-        @WritesAttribute(attribute = "smtp.to", description = "The value used during RCPT TO (i.e. envelope)"),
-        @WritesAttribute(attribute = "smtp.src", description = "The source IP of the SMTP connection")})
-
-public class ListenSMTP extends AbstractProcessor {
-    public static final String SMTP_HELO = "smtp.helo";
-    public static final String SMTP_FROM = "smtp.from";
-    public static final String SMTP_TO = "smtp.to";
-    public static final String MIME_TYPE = "message/rfc822";
-    public static final String SMTP_SRC_IP = "smtp.src";
-
-
-    protected static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
+    @WritesAttribute(attribute = "smtp.helo", description = "The value used during HELO"),
+    @WritesAttribute(attribute = "smtp.certificates.*.serial", description = "The serial numbers for each of the " +
+            "certificates used by an TLS peer"),
+    @WritesAttribute(attribute = "smtp.certificates.*.principal", description = "The principal for each of the " +
+            "certificates used by an TLS peer"),
+    @WritesAttribute(attribute = "smtp.src", description = "The source IP of the SMTP connection"),
+    @WritesAttribute(attribute = "smtp.from", description = "The value used during MAIL FROM (i.e. envelope)"),
+    @WritesAttribute(attribute = "smtp.recipient", description = "The value used during RCPT TO (i.e. envelope)"),
+    @WritesAttribute(attribute = "mime.type", description = "Mime type of the message")})
+public class ListenSMTP extends AbstractSessionFactoryProcessor {
+    static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
             .name("SMTP_PORT")
             .displayName("Listening Port")
             .description("The TCP port the ListenSMTP processor will bind to." +
@@ -106,26 +91,17 @@ public class ListenSMTP extends AbstractProcessor {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
-    protected static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("SMTP_HOSTNAME")
-            .displayName("SMTP hostname")
-            .description("The hostname to be embedded into the banner displayed when an " +
-                    "SMTP client connects to the processor TCP port .")
-            .required(true)
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    protected static final PropertyDescriptor SMTP_MAXIMUM_CONNECTIONS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SMTP_MAXIMUM_CONNECTIONS = new PropertyDescriptor.Builder()
             .name("SMTP_MAXIMUM_CONNECTIONS")
             .displayName("Maximum number of SMTP connection")
             .description("The maximum number of simultaneous SMTP connections.")
             .required(true)
+            .defaultValue("1")
             .expressionLanguageSupported(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .build();
 
-    protected static final PropertyDescriptor SMTP_TIMEOUT = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SMTP_TIMEOUT = new PropertyDescriptor.Builder()
             .name("SMTP_TIMEOUT")
             .displayName("SMTP connection timeout")
             .description("The maximum time to wait for an action of SMTP client.")
@@ -135,29 +111,17 @@ public class ListenSMTP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    protected static final PropertyDescriptor SMTP_MAXIMUM_MSG_SIZE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SMTP_MAXIMUM_MSG_SIZE = new PropertyDescriptor.Builder()
             .name("SMTP_MAXIMUM_MSG_SIZE")
             .displayName("SMTP Maximum Message Size")
             .description("The maximum number of bytes the server will accept.")
             .required(true)
-            .defaultValue("20MB")
+            .defaultValue("20 MB")
             .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Integer.MAX_VALUE))
             .build();
 
-    protected static final PropertyDescriptor SMTP_MAXIMUM_INCOMING_MESSAGE_QUEUE = new PropertyDescriptor.Builder()
-            .name("SMTP_MAXIMUM_INCOMING_MESSAGE_QUEUE")
-            .displayName("SMTP message buffer length")
-            .description("This property control the size of the Queue utilised by the processor to hold messages as they are processed. " +
-                    "Setting a very small value will decrease the number of emails the processor simultaneously, while setting an very large" +
-                    "queue will result in higher memory and CPU utilisation. The default setting of 1024 is generally a fair number.")
-            .required(true)
-            .expressionLanguageSupported(false)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .defaultValue("1024")
-            .build();
-
-    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL_CONTEXT_SERVICE")
             .displayName("SSL Context Service")
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
@@ -166,7 +130,7 @@ public class ListenSMTP extends AbstractProcessor {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("CLIENT_AUTH")
             .displayName("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
@@ -174,309 +138,243 @@ public class ListenSMTP extends AbstractProcessor {
             .allowableValues(SSLContextService.ClientAuth.NONE.toString(), SSLContextService.ClientAuth.REQUIRED.toString())
             .build();
 
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>();
-
-        final String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
-        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        if (sslContextService != null && StringUtils.isBlank(clientAuth)) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Client Auth must be provided when using TLS/SSL")
-                    .valid(false).subject("Client Auth").build());
-        }
-
-        return results;
-
-    }
-
-
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("Extraction was successful")
+    protected static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
+            .name("SMTP_HOSTNAME")
+            .displayName("SMTP hostname")
+            .description("The hostname to be embedded into the banner displayed when an " +
+                    "SMTP client connects to the processor TCP port .")
+            .expressionLanguageSupported(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> propertyDescriptors;
-    private volatile LinkedBlockingQueue<SmtpEvent> incomingMessages;
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All new messages will be routed as FlowFiles to this relationship")
+            .build();
 
-    private volatile SMTPServer server;
-    private AtomicBoolean initialized = new AtomicBoolean(false);
-    private AtomicBoolean stopping = new AtomicBoolean(false);
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
+    private final static Set<Relationship> relationships;
+
+    static {
+        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        _propertyDescriptors.add(SMTP_PORT);
+        _propertyDescriptors.add(SMTP_MAXIMUM_CONNECTIONS);
+        _propertyDescriptors.add(SMTP_TIMEOUT);
+        _propertyDescriptors.add(SMTP_MAXIMUM_MSG_SIZE);
+        _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
+        _propertyDescriptors.add(CLIENT_AUTH);
+        _propertyDescriptors.add(SMTP_HOSTNAME);
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+
+        Set<Relationship> _relationships = new HashSet<>();
+        _relationships.add(REL_SUCCESS);
+        relationships = Collections.unmodifiableSet(_relationships);
+    }
+
+    private volatile SMTPServer smtp;
+
+    private volatile SmtpConsumer smtpConsumer;
+
+    private volatile int maxMessageSize;
+
+    /**
+     *
+     */
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+        ProcessSession processSession = sessionFactory.createSession();
+        if (this.smtp == null) {
+            this.setupSmtpIfNecessary(context, processSession);
+        }
+
+        /*
+         * Will consume incoming message directly from the wire and into
+         * FlowFile/Content repository before exiting. This essentially limits
+         * any potential data loss by allowing SMTPServer thread to actually
+         * commit NiFi session if all good. However in the event of exception,
+         * such exception will be propagated back to the email sender via
+         * "undeliverable message" allowing such user to re-send the message
+         */
+        this.smtpConsumer.consumeUsing((inputDataStream) -> {
+            FlowFile flowFile = processSession.create();
+            AtomicInteger size = new AtomicInteger();
+            try {
+                flowFile = processSession.write(flowFile, new OutputStreamCallback() {
+                    @Override
+                    public void process(OutputStream out) throws IOException {
+                        size.set(IOUtils.copy(new LimitingInputStream(inputDataStream, ListenSMTP.this.maxMessageSize, true), out));
+                    }
+                });
+                flowFile = updateFlowFileWithAttributes(flowFile, processSession);
+
+                processSession.getProvenanceReporter().receive(flowFile,
+                        "smtp://" + ListenSMTP.this.smtp.getHostName() + ":" + ListenSMTP.this.smtp.getPort() + "/");
+                processSession.transfer(flowFile, REL_SUCCESS);
+                processSession.commit();
+                return size.get();
+            } catch (Exception e) {
+                context.yield();
+                this.getLogger().error("Failed while processing incoming mail. " + e.getMessage(), e);
+                throw new IllegalStateException("Failed while processing incoming mail. " + e.getMessage(), e);
+            }
+        });
+    }
+
+    /**
+     *
+     */
+    @OnStopped
+    public void stop() {
+        this.getLogger().info("Stopping SMTPServer");
+        this.smtp.stop();
+        this.smtp = null;
+        this.getLogger().info("SMTPServer stopped");
+    }
+
+    /**
+     *
+     */
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
     }
 
+    /**
+     *
+     */
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        List<ValidationResult> results = new ArrayList<>();
+
+        String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
+        SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+
+        if (sslContextService != null && !StringUtils.hasText(clientAuth)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(CLIENT_AUTH.getDisplayName())
+                    .explanation(CLIENT_AUTH.getDisplayName() + " must be provided when using " + SSL_CONTEXT_SERVICE.getDisplayName())
+                    .valid(false)
+                    .build());
+        } else if (sslContextService == null && StringUtils.hasText(clientAuth)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(SSL_CONTEXT_SERVICE.getDisplayName())
+                    .explanation(SSL_CONTEXT_SERVICE.getDisplayName() + " must be provided when selecting " + CLIENT_AUTH.getDisplayName())
+                    .valid(false)
+                    .build());
+        }
+        return results;
+    }
+
+    /**
+    *
+    */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return propertyDescriptors;
     }
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_SUCCESS);
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(SMTP_PORT);
-        props.add(SMTP_HOSTNAME);
-        props.add(SMTP_MAXIMUM_CONNECTIONS);
-        props.add(SMTP_TIMEOUT);
-        props.add(SMTP_MAXIMUM_MSG_SIZE);
-        props.add(SMTP_MAXIMUM_INCOMING_MESSAGE_QUEUE);
-        props.add(SSL_CONTEXT_SERVICE);
-        props.add(CLIENT_AUTH);
-        this.propertyDescriptors = Collections.unmodifiableList(props);
-
-    }
-
-    // Upon Schedule, reset the initialized state to false
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        initialized.set(false);
-        stopping.set(false);
-    }
-
-    protected synchronized void initializeSMTPServer(final ProcessContext context) throws Exception {
-
-        // check if we are already running or if it is stopping
-        if (initialized.get() && server.isRunning() || stopping.get() ) {
-            return;
+    /**
+     *
+     */
+    private FlowFile updateFlowFileWithAttributes(FlowFile flowFile, ProcessSession processSession) {
+        Map<String, String> attributes = new HashMap<>();
+        Certificate[] tlsPeerCertificates = this.smtpConsumer.getMessageContext().getTlsPeerCertificates();
+        if (tlsPeerCertificates != null) {
+            for (int i = 0; i < tlsPeerCertificates.length; i++) {
+                if (tlsPeerCertificates[i] instanceof X509Certificate) {
+                    X509Certificate x509Cert = (X509Certificate) tlsPeerCertificates[i];
+                    attributes.put("smtp.certificate." + i + ".serial", x509Cert.getSerialNumber().toString());
+                    attributes.put("smtp.certificate." + i + ".subjectName", x509Cert.getSubjectDN().getName());
+                }
+            }
         }
 
-        incomingMessages = new LinkedBlockingQueue<>(context.getProperty(SMTP_MAXIMUM_INCOMING_MESSAGE_QUEUE).asInteger());
+        attributes.put("smtp.helo", this.smtpConsumer.getMessageContext().getHelo());
+        attributes.put("smtp.remote.addr", this.smtpConsumer.getMessageContext().getRemoteAddress().toString());
+        attributes.put("smtp.from", this.smtpConsumer.getFrom());
+        attributes.put("smtp.recepient", this.smtpConsumer.getRecipient());
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "message/rfc822");
+        return processSession.putAllAttributes(flowFile, attributes);
+    }
 
-        String clientAuth = null;
+    /**
+     *
+     */
+    private synchronized void setupSmtpIfNecessary(ProcessContext context, ProcessSession processSession) {
+        if (this.smtp == null) {
+            SmtpConsumer consumer = new SmtpConsumer();
+            SMTPServer smtpServer = this.createServerInstance(context, consumer);
+            smtpServer.setSoftwareName("Apache NiFi");
+            smtpServer.setPort(context.getProperty(SMTP_PORT).asInteger());
+            smtpServer.setMaxConnections(context.getProperty(SMTP_MAXIMUM_CONNECTIONS).asInteger());
+            this.maxMessageSize = context.getProperty(SMTP_MAXIMUM_MSG_SIZE).asDataSize(DataUnit.B).intValue();
+            smtpServer.setMaxMessageSize(this.maxMessageSize);
+            smtpServer.setConnectionTimeout(context.getProperty(SMTP_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            if (context.getProperty(SMTP_HOSTNAME).isSet()) {
+                smtpServer.setHostName(context.getProperty(SMTP_HOSTNAME).getValue());
+            }
 
-        // If an SSLContextService was provided then create an SSLContext to pass down to the server
-        SSLContext sslContext = null;
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
-            clientAuth = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuth));
+            this.smtpConsumer = consumer;
+            this.smtp = smtpServer;
+            this.smtp.start();
         }
+    }
 
-        final SSLContext finalSslContext = sslContext;
-
-        SMTPMessageHandlerFactory smtpMessageHandlerFactory = new SMTPMessageHandlerFactory(incomingMessages, getLogger());
-        final SMTPServer server = new SMTPServer(smtpMessageHandlerFactory) {
-
+    /**
+     *
+     */
+    private SMTPServer createServerInstance(ProcessContext context, SmtpConsumer consumer) {
+        SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        SMTPServer smtpServer = sslContextService == null ? new ConsumerAwareSmtpServer(consumer) : new ConsumerAwareSmtpServer(consumer) {
             @Override
             public SSLSocket createSSLSocket(Socket socket) throws IOException {
                 InetSocketAddress remoteAddress = (InetSocketAddress) socket.getRemoteSocketAddress();
+                String clientAuth = context.getProperty(CLIENT_AUTH).getValue();
+                SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuth));
+                SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+                SSLSocket sslSocket = (SSLSocket) (socketFactory.createSocket(socket, remoteAddress.getHostName(),socket.getPort(), true));
+                sslSocket.setUseClientMode(false);
 
-                SSLSocketFactory socketFactory = finalSslContext.getSocketFactory();
-
-                SSLSocket s = (SSLSocket) (socketFactory.createSocket(socket, remoteAddress.getHostName(), socket.getPort(), true));
-
-                s.setUseClientMode(false);
-
-
-                // For some reason the createSSLContext above is not enough to enforce
-                // client side auth
-                // If client auth is required...
-                if (SSLContextService.ClientAuth.REQUIRED.toString().equals(context.getProperty(CLIENT_AUTH).getValue())) {
-                    s.setNeedClientAuth(true);
+                if (SSLContextService.ClientAuth.REQUIRED.toString().equals(clientAuth)) {
+                    this.setRequireTLS(true);
+                    sslSocket.setNeedClientAuth(true);
                 }
-
-
-                return s;
+                return sslSocket;
             }
         };
-
-        // Set some parameters to our server
-        server.setSoftwareName("Apache NiFi");
-
-
-        // Set the Server options based on properties
-        server.setPort(context.getProperty(SMTP_PORT).asInteger());
-        server.setHostName(context.getProperty(SMTP_HOSTNAME).getValue());
-        server.setMaxMessageSize(context.getProperty(SMTP_MAXIMUM_MSG_SIZE).asDataSize(DataUnit.B).intValue());
-        server.setMaxConnections(context.getProperty(SMTP_MAXIMUM_CONNECTIONS).asInteger());
-        server.setConnectionTimeout(context.getProperty(SMTP_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-
-
-        // Check if TLS should be enabled
         if (sslContextService != null) {
-            server.setEnableTLS(true);
+            smtpServer.setEnableTLS(true);
         } else {
-            server.setHideTLS(true);
+            smtpServer.setHideTLS(true);
         }
-
-        // Set TLS to required in case CLIENT_AUTH = required
-        if (SSLContextService.ClientAuth.REQUIRED.toString().equals(context.getProperty(CLIENT_AUTH).getValue())) {
-            server.setRequireTLS(true);
-        }
-
-        this.server = server;
-        server.start();
-
-        getLogger().info("Server started and listening on port " + server.getPort());
-
-        initialized.set(true);
-        stopping.set(false);
+        return smtpServer;
     }
 
-    @OnUnscheduled
-    public void startShutdown() throws Exception {
-        if (server != null) {
-            stopping.set(true);
-            getLogger().info("Shutting down processor P{}", new Object[]{server});
-            server.stop();
-            getLogger().info("Shut down {}", new Object[]{server});
-        }
-    }
+    /**
+     * Wrapper over {@link SMTPServer} that is aware of the {@link SmtpConsumer}
+     * to ensure that its stop() operation is called during server stoppage.
+     */
+    private static class ConsumerAwareSmtpServer extends SMTPServer {
 
-    @OnStopped
-    public void completeShutdown() throws Exception {
-        if (server != null) {
-            if (!server.isRunning() && stopping.get() ) {
-                stopping.set(false);
-            }
-            getLogger().info("Completed shut down {}", new Object[]{server});
-        }
-    }
-
-    @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-
-        try {
-            initializeSMTPServer(context);
-        } catch (Exception e) {
-            context.yield();
-            throw new ProcessException("Failed to initialize the SMTP server", e);
+        /**
+         *
+         */
+        public ConsumerAwareSmtpServer(SmtpConsumer consumer) {
+            super(consumer);
         }
 
-        while (!incomingMessages.isEmpty()) {
-            SmtpEvent message = incomingMessages.poll();
-
-            if (message == null) {
-                return;
-            }
-
-            synchronized (message) {
-                if (resultCodeSetAndIsError(message)) {
-                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
-                    getLogger().warn("Message failed before onTrigger processing message was: " + resultCode.getLogMessage());
-                    continue;
-                }
-
-                try {
-                    FlowFile flowfile = session.create();
-
-                    if (message.getMessageData() != null) {
-                        flowfile = session.write(flowfile, out -> {
-                            InputStream inputStream = message.getMessageData();
-                            byte [] buffer = new byte[1024];
-
-                            int rd;
-                            long totalBytesRead =0;
-
-                            while ((rd = inputStream.read(buffer, 0, buffer.length)) != -1 ) {
-                                totalBytesRead += rd;
-                                if (totalBytesRead > server.getMaxMessageSize() ) {
-                                    message.setReturnCode(500);
-                                    message.setProcessed();
-                                    break;
-                                }
-                                out.write(buffer, 0, rd);
-                            }
-                            out.flush();
-                        });
-                    } else {
-                        getLogger().debug("Message body was null");
-                        message.setReturnCode(SMTPResultCode.UNKNOWN_ERROR_CODE.getCode());
-                        message.setProcessed();
-                    }
-
-                    if (!message.getProcessed()) {
-                        HashMap<String, String> attributes = new HashMap<>();
-                        // Gather message attributes
-                        attributes.put(SMTP_HELO, message.getHelo());
-                        attributes.put(SMTP_SRC_IP, message.getHelo());
-                        attributes.put(SMTP_FROM, message.getFrom());
-                        attributes.put(SMTP_TO, message.getTo());
-
-                        List<Map<String, String>> details = message.getCertifcateDetails();
-                        int c = 0;
-
-                        // Add a selection of each X509 certificates to the already gathered attributes
-
-                        for (Map<String, String> detail : details) {
-                            attributes.put("smtp.certificate." + c + ".serial", detail.getOrDefault("SerialNumber", null));
-                            attributes.put("smtp.certificate." + c + ".subjectName", detail.getOrDefault("SubjectName", null));
-                            c++;
-                        }
-
-                        // Set Mime-Type
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), MIME_TYPE);
-
-                        // Add the attributes. to flowfile
-                        flowfile = session.putAllAttributes(flowfile, attributes);
-                        session.getProvenanceReporter().receive(flowfile, "smtp://" + SMTP_HOSTNAME + ":" + SMTP_PORT + "/");
-                        session.transfer(flowfile, REL_SUCCESS);
-
-                        getLogger().info("Transferring {} to success", new Object[]{flowfile});
-                    }
-                } catch (Exception e) {
-                    message.setProcessed();
-                    message.setReturnCode(SMTPResultCode.UNEXPECTED_ERROR.getCode());
-                }
-
-                // Check to see if it failed when creating the FlowFile
-                if (resultCodeSetAndIsError(message)) {
-                    session.rollback();
-                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
-                    getLogger().warn("Failed to received message due to: " + resultCode.getLogMessage());
-                    message.notifyAll();
-                    continue;
-                }
-
-                // Finished processing,
-                message.setProcessed();
-
-                // notify on the message so data() can process the rest of the method
-                message.notifyAll();
-
-                // Wait for data() to tell sender we received the message and double check we didn't timeout
-                final long serverTimeout = context.getProperty(SMTP_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
-                try {
-                    message.wait(serverTimeout);
-                } catch (InterruptedException e) {
-                    getLogger().info("Interrupted while waiting for Message Handler to acknowledge message.");
-                }
-
-                // Check to see if the sender was correctly notified
-                if (resultCodeSetAndIsError(message)) {
-                    SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
-                    session.rollback();
-                    getLogger().warn("Failed to received message due to: " + resultCode.getLogMessage());
-                } else {
-                    // Need to commit because if we didn't and a following message needed to be rolled back, this message would be too, causing data loss.
-                    session.commit();
-                }
+        /**
+         *
+         */
+        @Override
+        public synchronized void stop() {
+            try {
+                SmtpConsumer consumer = (SmtpConsumer) this.getMessageHandlerFactory();
+                consumer.stop();
+            } finally {
+                super.stop();
             }
         }
     }
-
-    private boolean resultCodeSetAndIsError(SmtpEvent message){
-        if (message.getReturnCode() != null ) {
-            SMTPResultCode resultCode = SMTPResultCode.fromCode(message.getReturnCode());
-            if (resultCode.isError()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // Same old... same old... used for testing to access the random port that was selected
-    protected int getPort() {
-        return server == null ? 0 : server.getPort();
-    }
-
-
 }
