@@ -112,6 +112,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -463,6 +464,8 @@ public class SiteToSiteRestApiClient implements Closeable {
         final HttpAsyncRequestProducer asyncRequestProducer = new HttpAsyncRequestProducer() {
 
             private final ByteBuffer buffer = ByteBuffer.allocate(DATA_PACKET_CHANNEL_READ_BUFFER_SIZE);
+            private int totalRead = 0;
+            private int totalProduced = 0;
 
             @Override
             public HttpHost getTarget() {
@@ -485,43 +488,59 @@ public class SiteToSiteRestApiClient implements Closeable {
                 return post;
             }
 
+            private final AtomicBoolean bufferHasRemainingData = new AtomicBoolean(false);
+
             @Override
             public void produceContent(final ContentEncoder encoder, final IOControl ioControl) throws IOException {
 
-                int totalRead = 0;
-                int totalProduced = 0;
+                if (bufferHasRemainingData.get()) {
+                    // If there's remaining buffer last time, send it first.
+                    writeBuffer(encoder);
+                    if (bufferHasRemainingData.get()) {
+                        return;
+                    }
+                }
+
                 int read;
                 // This read() blocks until data becomes available,
                 // or corresponding outputStream is closed.
-                while ((read = dataPacketChannel.read(buffer)) > -1) {
+                if ((read = dataPacketChannel.read(buffer)) > -1) {
 
-                    buffer.flip();
-                    while (buffer.hasRemaining()) {
-                        totalProduced += encoder.write(buffer);
-                    }
-                    buffer.clear();
                     logger.trace("Read {} bytes from dataPacketChannel. {}", read, flowFilesPath);
                     totalRead += read;
 
+                    buffer.flip();
+                    writeBuffer(encoder);
+
+                } else {
+
+                    final long totalWritten = commSession.getOutput().getBytesWritten();
+                    logger.debug("sending data to {} has reached to its end. produced {} bytes by reading {} bytes from channel. {} bytes written in this transaction.",
+                            flowFilesPath, totalProduced, totalRead, totalWritten);
+                    if (totalRead != totalWritten || totalProduced != totalWritten) {
+                        final String msg = "Sending data to %s has reached to its end, but produced : read : wrote byte sizes (%d : %d : %d) were not equal. Something went wrong.";
+                        throw new RuntimeException(String.format(msg, flowFilesPath, totalProduced, totalRead, totalWritten));
+                    }
+                    transferDataLatch.countDown();
+                    encoder.complete();
+                    dataPacketChannel.close();
                 }
 
-                // There might be remaining bytes in buffer. Make sure it's fully drained.
-                buffer.flip();
+            }
+
+            private void writeBuffer(ContentEncoder encoder) throws IOException {
                 while (buffer.hasRemaining()) {
-                    totalProduced += encoder.write(buffer);
+                    final int written = encoder.write(buffer);
+                    logger.trace("written {} bytes to encoder.", written);
+                    if (written == 0) {
+                        logger.trace("Buffer still has remaining. {}", buffer);
+                        bufferHasRemainingData.set(true);
+                        return;
+                    }
+                    totalProduced += written;
                 }
-
-                final long totalWritten = commSession.getOutput().getBytesWritten();
-                logger.debug("sending data to {} has reached to its end. produced {} bytes by reading {} bytes from channel. {} bytes written in this transaction.",
-                    flowFilesPath, totalProduced, totalRead, totalWritten);
-                if (totalRead != totalWritten || totalProduced != totalWritten) {
-                    final String msg = "Sending data to %s has reached to its end, but produced : read : wrote byte sizes (%d : $d : %d) were not equal. Something went wrong.";
-                    throw new RuntimeException(String.format(msg, flowFilesPath, totalProduced, totalRead, totalWritten));
-                }
-                transferDataLatch.countDown();
-                encoder.complete();
-                dataPacketChannel.close();
-
+                bufferHasRemainingData.set(false);
+                buffer.clear();
             }
 
             @Override
