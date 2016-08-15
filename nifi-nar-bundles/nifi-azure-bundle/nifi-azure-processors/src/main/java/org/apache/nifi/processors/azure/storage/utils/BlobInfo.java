@@ -2,8 +2,6 @@ package org.apache.nifi.processors.azure.storage.utils;
 
 import java.io.Serializable;
 
-import org.apache.nifi.processors.standard.util.ListableEntity;
-
 public class BlobInfo implements Comparable<BlobInfo>, Serializable, ListableEntity {
     private static final long serialVersionUID = 1L;
 

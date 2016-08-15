@@ -10,6 +10,8 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -20,14 +22,23 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AzureConstants;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
-import org.apache.nifi.processors.standard.AbstractListProcessor;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
@@ -55,10 +66,31 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
         @WritesAttribute(attribute = "azure.blobtype", description = "This is the type of blob and can be either page or block type") })
 @Stateful(scopes = { Scope.LOCAL, Scope.CLUSTER }, description = "After performing a listing of blobs, the timestamp of the newest blob is stored. "
         + "This allows the Processor to list only blobs that have been added or modified after " + "this date the next time that the Processor is run.")
-public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
+public class ListAzureBlobStorage extends AbstractProcessor {
 
+    private volatile Long lastListingTime = null;
+    private volatile Long lastProcessedTime = 0L;
+    private volatile Long lastRunTime = 0L;
+    private volatile boolean justElectedPrimaryNode = false;
+    private volatile boolean resetState = false;
+
+    /*
+     * A constant used in determining an internal "yield" of processing files. Given the logic to provide a pause on the newest
+     * files according to timestamp, it is ensured that at least the specified millis has been eclipsed to avoid getting scheduled
+     * near instantaneously after the prior iteration effectively voiding the built in buffer
+     */
+    static final long LISTING_LAG_NANOS = TimeUnit.MILLISECONDS.toNanos(100L);
+    static final String LISTING_TIMESTAMP_KEY = "listing.timestamp";
+    static final String PROCESSED_TIMESTAMP_KEY = "processed.timestamp";
+
+    
     private static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder().name("Prefix").description("Search prefix for listing").addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true).required(false).build();
+
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are received are routed to success")
+            .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(AzureConstants.ACCOUNT_NAME, AzureConstants.ACCOUNT_KEY, AzureConstants.CONTAINER, PREFIX));
 
@@ -68,6 +100,197 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (isConfigurationRestored() && isListingResetNecessary(descriptor)) {
+            resetTimeStates(); // clear lastListingTime so that we have to fetch new time
+            resetState = true;
+        }
+    }
+
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
+        justElectedPrimaryNode = (newState == PrimaryNodeState.ELECTED_PRIMARY_NODE);
+    }
+    
+    @OnScheduled
+    public final void updateState(final ProcessContext context) throws IOException {
+        // Check if state already exists for this path. If so, we have already migrated the state.
+        final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
+        
+        // When scheduled to run, check if the associated timestamp is null, signifying a clearing of state and reset the internal timestamp
+        if (lastListingTime != null && stateMap.get(LISTING_TIMESTAMP_KEY) == null) {
+            getLogger().info("Detected that state was cleared for this component.  Resetting internal values.");
+            resetTimeStates();
+        }
+        if (resetState) {
+            context.getStateManager().clear(getStateScope(context));
+            resetState = false;
+        }
+    }
+
+    private void persist(final long listingTimestamp, final long processedTimestamp, final StateManager stateManager, final Scope scope) throws IOException {
+        final Map<String, String> updatedState = new HashMap<>(1);
+        updatedState.put(LISTING_TIMESTAMP_KEY, String.valueOf(listingTimestamp));
+        updatedState.put(PROCESSED_TIMESTAMP_KEY, String.valueOf(processedTimestamp));
+        stateManager.setState(updatedState, scope);
+    }
+
+    protected String getKey(final String directory) {
+        return getIdentifier() + ".lastListingTime." + directory;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        Long minTimestamp = lastListingTime;
+
+        if (this.lastListingTime == null || this.lastProcessedTime == null || justElectedPrimaryNode) {
+            try {
+                // Attempt to retrieve state from the state manager if a last listing was not yet established or
+                // if just elected the primary node
+                final StateMap stateMap = context.getStateManager().getState(getStateScope(context));
+                final String listingTimestampString = stateMap.get(LISTING_TIMESTAMP_KEY);
+                final String lastProcessedString= stateMap.get(PROCESSED_TIMESTAMP_KEY);
+                if (lastProcessedString != null) {
+                    this.lastProcessedTime = Long.parseLong(lastProcessedString);
+                }
+                if (listingTimestampString != null) {
+                    minTimestamp = Long.parseLong(listingTimestampString);
+                    // If our determined timestamp is the same as that of our last listing, skip this execution as there are no updates
+                    if (minTimestamp == this.lastListingTime) {
+                        context.yield();
+                        return;
+                    } else {
+                        this.lastListingTime = minTimestamp;
+                    }
+                }
+                justElectedPrimaryNode = false;
+            } catch (final IOException ioe) {
+                getLogger().error("Failed to retrieve timestamp of last listing from the State Manager. Will not perform listing until this is accomplished.");
+                context.yield();
+                return;
+            }
+        }
+
+        final List<BlobInfo> entityList;
+        try {
+            // track of when this last executed for consideration of the lag nanos
+            entityList = performListing(context, minTimestamp);
+        } catch (final IOException e) {
+            getLogger().error("Failed to perform listing on remote host due to {}", e);
+            context.yield();
+            return;
+        }
+
+        if (entityList == null || entityList.isEmpty()) {
+            context.yield();
+            return;
+        }
+
+        Long latestListingTimestamp = null;
+        final TreeMap<Long, List<BlobInfo>> orderedEntries = new TreeMap<>();
+
+        // Build a sorted map to determine the latest possible entries
+        for (final BlobInfo entity : entityList) {
+            final long entityTimestamp = entity.getTimestamp();
+            // New entries are all those that occur at or after the associated timestamp
+            final boolean newEntry = minTimestamp == null || entityTimestamp >= minTimestamp && entityTimestamp > lastProcessedTime;
+
+            if (newEntry) {
+                List<BlobInfo> entitiesForTimestamp = orderedEntries.get(entity.getTimestamp());
+                if (entitiesForTimestamp == null) {
+                    entitiesForTimestamp = new ArrayList<BlobInfo>();
+                    orderedEntries.put(entity.getTimestamp(), entitiesForTimestamp);
+                }
+                entitiesForTimestamp.add(entity);
+            }
+        }
+
+        int flowfilesCreated = 0;
+
+        if (orderedEntries.size() > 0) {
+            latestListingTimestamp = orderedEntries.lastKey();
+
+            // If the last listing time is equal to the newest entries previously seen,
+            // another iteration has occurred without new files and special handling is needed to avoid starvation
+            if (latestListingTimestamp.equals(lastListingTime)) {
+                /* We are done when either:
+                 *   - the latest listing timestamp is If we have not eclipsed the minimal listing lag needed due to being triggered too soon after the last run
+                 *   - the latest listing timestamp is equal to the last processed time, meaning we handled those items originally passed over
+                 */
+                if (System.nanoTime() - lastRunTime < LISTING_LAG_NANOS || latestListingTimestamp.equals(lastProcessedTime)) {
+                    context.yield();
+                    return;
+                }
+            } else {
+                // Otherwise, newest entries are held back one cycle to avoid issues in writes occurring exactly when the listing is being performed to avoid missing data
+                orderedEntries.remove(latestListingTimestamp);
+            }
+
+            for (List<BlobInfo> timestampEntities : orderedEntries.values()) {
+                for (BlobInfo entity : timestampEntities) {
+                    // Create the FlowFile for this path.
+                    final Map<String, String> attributes = createAttributes(entity, context);
+                    FlowFile flowFile = session.create();
+                    flowFile = session.putAllAttributes(flowFile, attributes);
+                    session.transfer(flowFile, REL_SUCCESS);
+                    flowfilesCreated++;
+                }
+            }
+        }
+
+        // As long as we have a listing timestamp, there is meaningful state to capture regardless of any outputs generated
+        if (latestListingTimestamp != null) {
+            boolean processedNewFiles = flowfilesCreated > 0;
+            if (processedNewFiles) {
+                // If there have been files created, update the last timestamp we processed
+                lastProcessedTime = orderedEntries.lastKey();
+                getLogger().info("Successfully created listing with {} new objects", new Object[]{flowfilesCreated});
+                session.commit();
+            }
+
+            lastRunTime = System.nanoTime();
+
+            if (!latestListingTimestamp.equals(lastListingTime) || processedNewFiles) {
+                // We have performed a listing and pushed any FlowFiles out that may have been generated
+                // Now, we need to persist state about the Last Modified timestamp of the newest file
+                // that we evaluated. We do this in order to avoid pulling in the same file twice.
+                // However, we want to save the state both locally and remotely.
+                // We store the state remotely so that if a new Primary Node is chosen, it can pick up where the
+                // previously Primary Node left off.
+                // We also store the state locally so that if the node is restarted, and the node cannot contact
+                // the distributed state cache, the node can continue to run (if it is primary node).
+                try {
+                    lastListingTime = latestListingTimestamp;
+                    persist(latestListingTimestamp, lastProcessedTime, context.getStateManager(), getStateScope(context));
+                } catch (final IOException ioe) {
+                    getLogger().warn("Unable to save state due to {}. If NiFi is restarted before state is saved, or "
+                        + "if another node begins executing this Processor, data duplication may occur.", ioe);
+                }
+            }
+
+        } else {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
+
+            // lastListingTime = 0 so that we don't continually poll the distributed cache / local file system
+            if (lastListingTime == null) {
+                lastListingTime = 0L;
+            }
+
+            return;
+        }
+    }
+
+    private void resetTimeStates() {
+        lastListingTime = null;
+        lastProcessedTime = 0L;
+        lastRunTime = 0L;
+    }
+    
+    private boolean isListingResetNecessary(PropertyDescriptor descriptor) {
+        return true;
+    }
+
     protected Map<String, String> createAttributes(BlobInfo entity, ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("azure.etag", entity.getEtag());
@@ -83,23 +306,10 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         return attributes;
     }
 
-    @Override
-    protected String getPath(final ProcessContext context) {
-        return context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions().getValue();
-    }
-
-    @Override
-    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
-        // TODO - implement
-        return false;
-    }
-
-    @Override
     protected Scope getStateScope(final ProcessContext context) {
         return Scope.CLUSTER;
     }
 
-    @Override
     protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
         String containerName = context.getProperty(AzureConstants.CONTAINER).evaluateAttributeExpressions().getValue();
         String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
