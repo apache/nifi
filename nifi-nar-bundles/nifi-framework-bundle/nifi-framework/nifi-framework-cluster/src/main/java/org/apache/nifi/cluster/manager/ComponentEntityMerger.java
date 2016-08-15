@@ -17,7 +17,7 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.Permissible;
 
@@ -47,7 +47,7 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
         }
 
         if (clientEntity.getPermissions().getCanRead()) {
-            final Map<NodeIdentifier, List<BulletinDTO>> bulletinDtos = new HashMap<>();
+            final Map<NodeIdentifier, List<BulletinEntity>> bulletinEntities = new HashMap<>();
             for (final Map.Entry<NodeIdentifier, ? extends ComponentEntity> entry : entityMap.entrySet()) {
                 final NodeIdentifier nodeIdentifier = entry.getKey();
                 final ComponentEntity entity = entry.getValue();
@@ -55,11 +55,11 @@ public interface ComponentEntityMerger<EntityType extends ComponentEntity & Perm
                 // consider the bulletins if present and authorized
                 if (entity.getBulletins() != null) {
                     entity.getBulletins().forEach(bulletin -> {
-                        bulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+                        bulletinEntities.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                     });
                 }
             }
-            clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
+            clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities));
 
             // sort the results
             Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);

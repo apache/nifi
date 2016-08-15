@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
@@ -29,19 +28,19 @@ import java.util.List;
 @XmlRootElement(name = "controllerConfigurationEntity")
 public class ControllerBulletinsEntity extends Entity {
 
-    private List<BulletinDTO> bulletins;
-    private List<BulletinDTO> controllerServiceBulletins;
-    private List<BulletinDTO> reportingTaskBulletins;
+    private List<BulletinEntity> bulletins;
+    private List<BulletinEntity> controllerServiceBulletins;
+    private List<BulletinEntity> reportingTaskBulletins;
 
     /**
      * @return System bulletins to be reported to the user
      */
     @ApiModelProperty("System level bulletins to be reported to the user.")
-    public List<BulletinDTO> getBulletins() {
+    public List<BulletinEntity> getBulletins() {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinDTO> bulletins) {
+    public void setBulletins(List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 
@@ -49,11 +48,11 @@ public class ControllerBulletinsEntity extends Entity {
      * @return Controller service bulletins to be reported to the user
      */
     @ApiModelProperty("Controller service bulletins to be reported to the user.")
-    public List<BulletinDTO> getControllerServiceBulletins() {
+    public List<BulletinEntity> getControllerServiceBulletins() {
         return controllerServiceBulletins;
     }
 
-    public void setControllerServiceBulletins(List<BulletinDTO> controllerServiceBulletins) {
+    public void setControllerServiceBulletins(List<BulletinEntity> controllerServiceBulletins) {
         this.controllerServiceBulletins = controllerServiceBulletins;
     }
 
@@ -61,11 +60,11 @@ public class ControllerBulletinsEntity extends Entity {
      * @return Reporting task bulletins to be reported to the user
      */
     @ApiModelProperty("Reporting task bulletins to be reported to the user.")
-    public List<BulletinDTO> getReportingTaskBulletins() {
+    public List<BulletinEntity> getReportingTaskBulletins() {
         return reportingTaskBulletins;
     }
 
-    public void setReportingTaskBulletins(List<BulletinDTO> reportingTaskBulletins) {
+    public void setReportingTaskBulletins(List<BulletinEntity> reportingTaskBulletins) {
         this.reportingTaskBulletins = reportingTaskBulletins;
     }
 

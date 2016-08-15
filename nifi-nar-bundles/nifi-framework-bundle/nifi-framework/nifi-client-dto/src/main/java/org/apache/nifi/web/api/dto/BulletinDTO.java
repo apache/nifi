@@ -17,10 +17,11 @@
 package org.apache.nifi.web.api.dto;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import java.util.Date;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
+
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.Date;
 
 /**
  * A bulletin that represents a notification about a passing event including, the source component (if applicable), the timestamp, the message, and where the bulletin originated (if applicable).
@@ -56,7 +57,7 @@ public class BulletinDTO {
      * @return When clustered, the address of the node from which this bulletin originated
      */
     @ApiModelProperty(
-            value = "If clustered, the address of the node from whicih the bulletin originated."
+            value = "If clustered, the address of the node from which the bulletin originated."
     )
     public String getNodeAddress() {
         return nodeAddress;

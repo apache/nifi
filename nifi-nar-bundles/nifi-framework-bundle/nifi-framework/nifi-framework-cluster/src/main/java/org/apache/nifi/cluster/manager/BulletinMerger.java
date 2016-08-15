@@ -17,7 +17,7 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,9 +31,9 @@ public final class BulletinMerger {
 
     private BulletinMerger() {}
 
-    public static Comparator<BulletinDTO> BULLETIN_COMPARATOR = new Comparator<BulletinDTO>() {
+    public static Comparator<BulletinEntity> BULLETIN_COMPARATOR = new Comparator<BulletinEntity>() {
         @Override
-        public int compare(BulletinDTO o1, BulletinDTO o2) {
+        public int compare(BulletinEntity o1, BulletinEntity o2) {
             if (o1 == null && o2 == null) {
                 return 0;
             }
@@ -49,19 +49,19 @@ public final class BulletinMerger {
     };
 
     /**
-     * Merges the validation errors.
+     * Merges the bulletins.
      *
      * @param bulletins bulletins
      */
-    public static List<BulletinDTO> mergeBulletins(final Map<NodeIdentifier, List<BulletinDTO>> bulletins) {
-        final List<BulletinDTO> bulletinDtos = new ArrayList<>();
+    public static List<BulletinEntity> mergeBulletins(final Map<NodeIdentifier, List<BulletinEntity>> bulletins) {
+        final List<BulletinEntity> bulletinDtos = new ArrayList<>();
 
-        for (final Map.Entry<NodeIdentifier, List<BulletinDTO>> entry : bulletins.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, List<BulletinEntity>> entry : bulletins.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final List<BulletinDTO> nodeBulletins = entry.getValue();
+            final List<BulletinEntity> nodeBulletins = entry.getValue();
             final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
 
-            for (final BulletinDTO bulletin : nodeBulletins) {
+            for (final BulletinEntity bulletin : nodeBulletins) {
                 if (bulletin.getNodeAddress() == null) {
                     bulletin.setNodeAddress(nodeAddress);
                 }
@@ -70,7 +70,7 @@ public final class BulletinMerger {
             }
         }
 
-        Collections.sort(bulletinDtos, (BulletinDTO o1, BulletinDTO o2) -> {
+        Collections.sort(bulletinDtos, (BulletinEntity o1, BulletinEntity o2) -> {
             final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
             if (timeComparison != 0) {
                 return timeComparison;

@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -37,7 +36,7 @@ public class ComponentEntity extends Entity {
     private String uri;
     private PositionDTO position;
     private PermissionsDTO permissions;
-    private List<BulletinDTO> bulletins;
+    private List<BulletinEntity> bulletins;
 
     /**
      * @return revision for this request/response
@@ -125,11 +124,11 @@ public class ComponentEntity extends Entity {
     @ApiModelProperty(
             value = "The bulletins for this component."
     )
-    public List<BulletinDTO> getBulletins() {
+    public List<BulletinEntity> getBulletins() {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinDTO> bulletins) {
+    public void setBulletins(List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 

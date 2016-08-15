@@ -21,8 +21,8 @@ import org.apache.nifi.cluster.manager.BulletinMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -52,16 +52,16 @@ public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<Bulle
 
     @Override
     protected void mergeResponses(BulletinBoardDTO clientDto, Map<NodeIdentifier, BulletinBoardDTO> dtoMap, Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
-        final Map<NodeIdentifier, List<BulletinDTO>> bulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> bulletinEntities = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, BulletinBoardDTO> entry : dtoMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final BulletinBoardDTO boardDto = entry.getValue();
             boardDto.getBulletins().forEach(bulletin -> {
-                bulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+                bulletinEntities.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
             });
         }
 
-        clientDto.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos));
+        clientDto.setBulletins(BulletinMerger.mergeBulletins(bulletinEntities));
     }
 
 }
