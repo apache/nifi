@@ -19,8 +19,8 @@ package org.apache.nifi.authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.resource.AccessPolicyAuthorizable;
 import org.apache.nifi.authorization.resource.Authorizable;
-import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
+import org.apache.nifi.authorization.resource.DataTransferAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.resource.TenantAuthorizable;
@@ -46,6 +46,10 @@ import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.ReportingTaskDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.TemplateDAO;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 
 class StandardAuthorizableLookup implements AuthorizableLookup {
@@ -152,8 +156,32 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getProcessGroup(final String id) {
-        return processGroupDAO.getProcessGroup(id);
+    public ProcessGroupAuthorizable getProcessGroup(final String id) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
+
+        final Set<Authorizable> encapsulatedAuthorizables = new HashSet<>();
+        processGroup.findAllProcessors().forEach(processor -> encapsulatedAuthorizables.add(processor));
+        processGroup.findAllConnections().forEach(connection -> encapsulatedAuthorizables.add(connection));
+        processGroup.findAllInputPorts().forEach(inputPort -> encapsulatedAuthorizables.add(inputPort));
+        processGroup.findAllOutputPorts().forEach(outputPort -> encapsulatedAuthorizables.add(outputPort));
+        processGroup.findAllFunnels().forEach(funnel -> encapsulatedAuthorizables.add(funnel));
+        processGroup.findAllLabels().forEach(label -> encapsulatedAuthorizables.add(label));
+        processGroup.findAllProcessGroups().forEach(childGroup -> encapsulatedAuthorizables.add(childGroup));
+        processGroup.findAllRemoteProcessGroups().forEach(remoteProcessGroup -> encapsulatedAuthorizables.add(remoteProcessGroup));
+        processGroup.findAllTemplates().forEach(template -> encapsulatedAuthorizables.add(template));
+        processGroup.findAllControllerServices().forEach(controllerService -> encapsulatedAuthorizables.add(controllerService));
+
+        return new ProcessGroupAuthorizable() {
+            @Override
+            public Authorizable getAuthorizable() {
+                return processGroup;
+            }
+
+            @Override
+            public Set<Authorizable> getEncapsulatedAuthorizables() {
+                return Collections.unmodifiableSet(encapsulatedAuthorizables);
+            }
+        };
     }
 
     @Override
@@ -198,18 +226,31 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         return COUNTERS_AUTHORIZABLE;
     }
 
-    @Override
-    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
-        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
-        final ControllerServiceReference referencingComponents = controllerService.getReferences();
-
+    private ConfiguredComponent findControllerServiceReferencingComponent(final ControllerServiceReference referencingComponents, final String id) {
         ConfiguredComponent reference = null;
         for (final ConfiguredComponent component : referencingComponents.getReferencingComponents()) {
             if (component.getIdentifier().equals(id)) {
                 reference = component;
                 break;
             }
+
+            if (component instanceof ControllerServiceNode) {
+                final ControllerServiceNode refControllerService = (ControllerServiceNode) component;
+                reference = findControllerServiceReferencingComponent(refControllerService.getReferences(), id);
+                if (reference != null) {
+                    break;
+                }
+            }
         }
+
+        return reference;
+    }
+
+    @Override
+    public Authorizable getControllerServiceReferencingComponent(String controllerSeriveId, String id) {
+        final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerSeriveId);
+        final ControllerServiceReference referencingComponents = controllerService.getReferences();
+        final ConfiguredComponent reference = findControllerServiceReferencingComponent(referencingComponents, id);
 
         if (reference == null) {
             throw new ResourceNotFoundException("Unable to find referencing component with id " + id);
@@ -334,7 +375,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
                 authorizable = getProcessor(componentId);
                 break;
             case ProcessGroup:
-                authorizable = getProcessGroup(componentId);
+                authorizable = getProcessGroup(componentId).getAuthorizable();
                 break;
             case RemoteProcessGroup:
                 authorizable = getRemoteProcessGroup(componentId);

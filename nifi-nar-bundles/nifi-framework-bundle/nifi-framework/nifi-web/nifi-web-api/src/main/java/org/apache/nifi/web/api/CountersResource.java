@@ -42,7 +42,6 @@ import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.entity.CounterEntity;
 import org.apache.nifi.web.api.entity.CountersEntity;
-import org.apache.nifi.web.api.entity.Entity;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -85,7 +84,7 @@ public class CountersResource extends ApplicationResource {
     private void authorizeCounters(final RequestAction action) {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        final Map<String,String> userContext;
+        final Map<String, String> userContext;
         if (!StringUtils.isBlank(user.getClientAddress())) {
             userContext = new HashMap<>();
             userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), user.getClientAddress());
@@ -119,14 +118,12 @@ public class CountersResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("") // necessary due to a bug in swagger
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets the current counters for this NiFi",
-            response = Entity.class,
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = CountersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /counters", type = "")
             }
     )
     @ApiResponses(
@@ -204,7 +201,7 @@ public class CountersResource extends ApplicationResource {
      * Update the specified counter. This will reset the counter value to 0.
      *
      * @param httpServletRequest request
-     * @param id The id of the counter.
+     * @param id                 The id of the counter.
      * @return A counterEntity.
      */
     @PUT
@@ -214,9 +211,10 @@ public class CountersResource extends ApplicationResource {
     // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates the specified counter. This will reset the counter value to 0",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = CounterEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /counters", type = "")
             }
     )
     @ApiResponses(

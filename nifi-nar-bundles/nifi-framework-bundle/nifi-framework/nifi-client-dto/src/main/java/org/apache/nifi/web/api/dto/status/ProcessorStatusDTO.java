@@ -17,15 +17,14 @@
 
 package org.apache.nifi.web.api.dto.status;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
-import com.wordnik.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * DTO for serializing the status of a processor.

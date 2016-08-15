@@ -94,7 +94,7 @@ public class TestSiteToSiteProvenanceReportingTask {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
                 final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor), null);
+                return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 

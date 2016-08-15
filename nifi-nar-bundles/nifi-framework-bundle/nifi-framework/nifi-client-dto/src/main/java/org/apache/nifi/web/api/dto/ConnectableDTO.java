@@ -152,6 +152,6 @@ public class ConnectableDTO {
 
     @Override
     public String toString() {
-        return "ConnectableDTO [Type=" + type + ", Name=" + name + ", Id=" + id + "]";
+        return "ConnectableDTO [Id=" + id + "]";
     }
 }

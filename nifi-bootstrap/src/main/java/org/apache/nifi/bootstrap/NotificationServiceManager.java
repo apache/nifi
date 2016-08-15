@@ -46,6 +46,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.registry.VariableRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -62,8 +63,15 @@ public class NotificationServiceManager {
 
     private final ScheduledExecutorService notificationExecutor;
     private int maxAttempts = 5;
+    private final VariableRegistry variableRegistry;
+
 
     public NotificationServiceManager() {
+        this(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
+    }
+
+    NotificationServiceManager(final VariableRegistry variableRegistry){
+        this.variableRegistry = variableRegistry;
         notificationExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(final Runnable r) {
@@ -141,7 +149,7 @@ public class NotificationServiceManager {
                 }
 
                 // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
+                final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
                 final Collection<ValidationResult> validationResults = service.validate(validationContext);
                 final List<String> invalidReasons = new ArrayList<>();
 
@@ -179,7 +187,7 @@ public class NotificationServiceManager {
                 @Override
                 public void run() {
                     // Check if the service is valid; if not, warn now so that users know this before they fail to receive notifications
-                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config));
+                    final ValidationContext validationContext = new NotificationValidationContext(buildNotificationContext(config), variableRegistry);
                     final Collection<ValidationResult> validationResults = service.validate(validationContext);
                     final List<String> invalidReasons = new ArrayList<>();
 
@@ -247,7 +255,7 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(configuredValue, null);
+                return new StandardPropertyValue(configuredValue, null, variableRegistry);
             }
 
             @Override
@@ -364,7 +372,7 @@ public class NotificationServiceManager {
                         value = descriptor.getDefaultValue();
                     }
 
-                    return new StandardPropertyValue(value, null);
+                    return new StandardPropertyValue(value, null, variableRegistry);
                 }
 
                 @Override

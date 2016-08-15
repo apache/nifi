@@ -17,18 +17,21 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.cluster.manager.ComponentEntityStatusMerger;
+import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.status.NodeProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 
-public class ProcessorStatusEndpointMerger extends AbstractNodeStatusEndpoint<ProcessorStatusEntity, ProcessorStatusDTO> {
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+public class ProcessorStatusEndpointMerger extends AbstractSingleEntityEndpoint<ProcessorStatusEntity> implements ComponentEntityStatusMerger<ProcessorStatusDTO> {
     public static final Pattern PROCESSOR_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/processors/[a-f0-9\\-]{36}/status");
 
     @Override
@@ -42,17 +45,19 @@ public class ProcessorStatusEndpointMerger extends AbstractNodeStatusEndpoint<Pr
     }
 
     @Override
-    protected ProcessorStatusDTO getDto(ProcessorStatusEntity entity) {
-        return entity.getProcessorStatus();
-    }
+    protected void mergeResponses(ProcessorStatusEntity clientEntity, Map<NodeIdentifier, ProcessorStatusEntity> entityMap, Set<NodeResponse> successfulResponses,
+                                  Set<NodeResponse> problematicResponses) {
+        final ProcessorStatusDTO mergedProcessorStatus = clientEntity.getProcessorStatus();
+        mergedProcessorStatus.setNodeSnapshots(new ArrayList<>());
 
-    @Override
-    protected void mergeResponses(ProcessorStatusDTO clientDto, Map<NodeIdentifier, ProcessorStatusDTO> dtoMap, NodeIdentifier selectedNodeId) {
-        final ProcessorStatusDTO mergedProcessorStatus = clientDto;
-        mergedProcessorStatus.setNodeSnapshots(new ArrayList<NodeProcessorStatusSnapshotDTO>());
+        final NodeIdentifier selectedNodeId = entityMap.entrySet().stream()
+                .filter(e -> e.getValue() == clientEntity)
+                .map(e -> e.getKey())
+                .findFirst()
+                .orElse(null);
 
         final NodeProcessorStatusSnapshotDTO selectedNodeSnapshot = new NodeProcessorStatusSnapshotDTO();
-        selectedNodeSnapshot.setStatusSnapshot(clientDto.getAggregateSnapshot().clone());
+        selectedNodeSnapshot.setStatusSnapshot(mergedProcessorStatus.getAggregateSnapshot().clone());
         selectedNodeSnapshot.setAddress(selectedNodeId.getApiAddress());
         selectedNodeSnapshot.setApiPort(selectedNodeId.getApiPort());
         selectedNodeSnapshot.setNodeId(selectedNodeId.getId());
@@ -60,15 +65,21 @@ public class ProcessorStatusEndpointMerger extends AbstractNodeStatusEndpoint<Pr
         mergedProcessorStatus.getNodeSnapshots().add(selectedNodeSnapshot);
 
         // merge the other nodes
-        for (final Map.Entry<NodeIdentifier, ProcessorStatusDTO> entry : dtoMap.entrySet()) {
+        for (final Map.Entry<NodeIdentifier, ProcessorStatusEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
-            final ProcessorStatusDTO nodeProcessorStatus = entry.getValue();
-            if (nodeProcessorStatus == clientDto) {
+            final ProcessorStatusEntity nodeProcessorStatusEntity = entry.getValue();
+            final ProcessorStatusDTO nodeProcessorStatus = nodeProcessorStatusEntity.getProcessorStatus();
+            if (nodeProcessorStatus == mergedProcessorStatus) {
                 continue;
             }
 
-            StatusMerger.merge(mergedProcessorStatus, nodeProcessorStatus, nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
+            mergeStatus(mergedProcessorStatus, clientEntity.getCanRead(), nodeProcessorStatus, nodeProcessorStatusEntity.getCanRead(), nodeId);
         }
     }
 
+    @Override
+    public void mergeStatus(ProcessorStatusDTO clientStatus, boolean clientStatusReadablePermission, ProcessorStatusDTO status, boolean statusReadablePermission, NodeIdentifier statusNodeIdentifier) {
+        StatusMerger.merge(clientStatus, clientStatusReadablePermission, status, statusReadablePermission, statusNodeIdentifier.getId(), statusNodeIdentifier.getApiAddress(),
+                statusNodeIdentifier.getApiPort());
+    }
 }

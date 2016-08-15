@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<RemoteProcessGroupEntity> implements EndpointResponseMerger {
     public static final Pattern REMOTE_PROCESS_GROUPS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/remote-process-groups");
     public static final Pattern REMOTE_PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/remote-process-groups/[a-f0-9\\-]{36}");
+    private final RemoteProcessGroupEntityMerger remoteProcessGroupEntityMerger = new RemoteProcessGroupEntityMerger();
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
@@ -52,6 +53,6 @@ public class RemoteProcessGroupEndpointMerger extends AbstractSingleEntityEndpoi
     protected void mergeResponses(RemoteProcessGroupEntity clientEntity, Map<NodeIdentifier, RemoteProcessGroupEntity> entityMap,
                                   Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
 
-        RemoteProcessGroupEntityMerger.mergeRemoteProcessGroups(clientEntity, entityMap);
+        remoteProcessGroupEntityMerger.merge(clientEntity, entityMap);
     }
 }

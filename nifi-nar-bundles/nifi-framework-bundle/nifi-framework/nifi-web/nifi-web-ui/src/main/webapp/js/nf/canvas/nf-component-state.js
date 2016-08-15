@@ -22,13 +22,6 @@
  */
 nf.ComponentState = (function () {
 
-    var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        }
-    };
-
     /**
      * Filters the component state table.
      */
@@ -90,20 +83,9 @@ nf.ComponentState = (function () {
     var sort = function (sortDetails, data) {
         // defines a function for sorting
         var comparer = function (a, b) {
-            if(a.permissions.canRead && b.permissions.canRead) {
-                var aString = nf.Common.isDefinedAndNotNull(a.component[sortDetails.columnId]) ? a.component[sortDetails.columnId] : '';
-                var bString = nf.Common.isDefinedAndNotNull(b.component[sortDetails.columnId]) ? b.component[sortDetails.columnId] : '';
-                return aString === bString ? 0 : aString > bString ? 1 : -1;
-            } else {
-                if (!a.permissions.canRead && !b.permissions.canRead){
-                    return 0;
-                }
-                if(a.permissions.canRead){
-                    return 1;
-                } else {
-                    return -1;
-                }
-            }
+            var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
+            var bString = nf.Common.isDefinedAndNotNull(b[sortDetails.columnId]) ? b[sortDetails.columnId] : '';
+            return aString === bString ? 0 : aString > bString ? 1 : -1;
         };
 
         // perform the sort
@@ -116,12 +98,7 @@ nf.ComponentState = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#component-state-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#component-state-filter').val();
     };
 
     /**
@@ -206,7 +183,7 @@ nf.ComponentState = (function () {
         $('#component-state-description').text('');
 
         // clear any filter strings
-        $('#component-state-filter').addClass(config.styles.filterList).val(config.filterText);
+        $('#component-state-filter').val('');
 
         // reset clear link
         $('#clear-link').removeClass('disabled').attr('title', '');
@@ -221,17 +198,9 @@ nf.ComponentState = (function () {
     return {
         init: function () {
             // intialize the component state filter
-            $('#component-state-filter').on('focus', function () {
-                if ($(this).hasClass(config.styles.filterList)) {
-                    $(this).removeClass(config.styles.filterList).val('');
-                }
-            }).on('blur', function () {
-                if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList).val(config.filterText);
-                }
-            }).on('keyup', function () {
+            $('#component-state-filter').on('keyup', function () {
                 applyFilter();
-            }).addClass(config.styles.filterList).val(config.filterText);
+            });
 
             // initialize the processor configuration dialog
             $('#component-state-dialog').modal({

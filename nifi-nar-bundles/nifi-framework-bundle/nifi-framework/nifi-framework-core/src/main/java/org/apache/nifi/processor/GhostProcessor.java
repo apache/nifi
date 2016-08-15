@@ -94,6 +94,6 @@ public class GhostProcessor implements Processor {
 
     @Override
     public String toString() {
-        return "GhostProcessor[id=" + id + ", class=" + canonicalClassName + "]";
+        return "GhostProcessor[id=" + id + "]";
     }
 }

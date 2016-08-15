@@ -16,33 +16,81 @@
  */
 package org.apache.nifi.security.util;
 
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.CertIOException;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSocket;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.Socket;
 import java.net.URL;
+import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSocket;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public final class CertificateUtils {
-
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
+
+    private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
+
+    private static Map<ASN1ObjectIdentifier, Integer> createDnOrderMap() {
+        Map<ASN1ObjectIdentifier, Integer> orderMap = new HashMap<>();
+        int count = 0;
+        orderMap.put(BCStyle.CN, count++);
+        orderMap.put(BCStyle.L, count++);
+        orderMap.put(BCStyle.ST, count++);
+        orderMap.put(BCStyle.O, count++);
+        orderMap.put(BCStyle.OU, count++);
+        orderMap.put(BCStyle.C, count++);
+        orderMap.put(BCStyle.STREET, count++);
+        orderMap.put(BCStyle.DC, count++);
+        orderMap.put(BCStyle.UID, count++);
+        return Collections.unmodifiableMap(orderMap);
+    }
 
     public enum ClientAuth {
         NONE(0, "none"),
@@ -323,6 +371,164 @@ public final class CertificateUtils {
         } catch (CertificateException e) {
             logger.error("Error converting the certificate", e);
             throw e;
+        }
+    }
+
+    /**
+     * Reorders DN to the order the elements appear in the RFC 2253 table
+     *
+     * https://www.ietf.org/rfc/rfc2253.txt
+     *
+     * String  X.500 AttributeType
+     * ------------------------------
+     * CN      commonName
+     * L       localityName
+     * ST      stateOrProvinceName
+     * O       organizationName
+     * OU      organizationalUnitName
+     * C       countryName
+     * STREET  streetAddress
+     * DC      domainComponent
+     * UID     userid
+     *
+     * @param dn a possibly unordered DN
+     * @return the ordered dn
+     */
+    public static String reorderDn(String dn) {
+        RDN[] rdNs = new X500Name(dn).getRDNs();
+        Arrays.sort(rdNs, new Comparator<RDN>() {
+            @Override
+            public int compare(RDN o1, RDN o2) {
+                AttributeTypeAndValue o1First = o1.getFirst();
+                AttributeTypeAndValue o2First = o2.getFirst();
+
+                ASN1ObjectIdentifier o1Type = o1First.getType();
+                ASN1ObjectIdentifier o2Type = o2First.getType();
+
+                Integer o1Rank = dnOrderMap.get(o1Type);
+                Integer o2Rank = dnOrderMap.get(o2Type);
+                if (o1Rank == null) {
+                    if (o2Rank == null) {
+                        int idComparison = o1Type.getId().compareTo(o2Type.getId());
+                        if (idComparison != 0) {
+                            return idComparison;
+                        }
+                        return String.valueOf(o1Type).compareTo(String.valueOf(o2Type));
+                    }
+                    return 1;
+                } else if (o2Rank == null) {
+                    return -1;
+                }
+                return o1Rank - o2Rank;
+            }
+        });
+        return new X500Name(rdNs).toString();
+    }
+
+    /**
+     * Reverses the X500Name in order make the certificate be in the right order
+     * [see http://stackoverflow.com/questions/7567837/attributes-reversed-in-certificate-subject-and-issuer/12645265]
+     *
+     * @param x500Name the X500Name created with the intended order
+     * @return the X500Name reversed
+     */
+    private static X500Name reverseX500Name(X500Name x500Name) {
+        List<RDN> rdns = Arrays.asList(x500Name.getRDNs());
+        Collections.reverse(rdns);
+        return new X500Name(rdns.toArray(new RDN[rdns.size()]));
+    }
+
+    /**
+     * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
+     *
+     * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
+     * @param dn                      the distinguished name to user for the {@link X509Certificate}
+     * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
+     * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
+     * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
+     * @throws CertificateException      if there is an generating the new certificate
+     */
+    public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays)
+            throws CertificateException {
+        try {
+            ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
+            SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
+            Date startDate = new Date();
+            Date endDate = new Date(startDate.getTime() + TimeUnit.DAYS.toMillis(certificateDurationDays));
+
+            X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
+                    reverseX500Name(new X500Name(dn)),
+                    BigInteger.valueOf(System.currentTimeMillis()),
+                    startDate, endDate,
+                    reverseX500Name(new X500Name(dn)),
+                    subPubKeyInfo);
+
+            // Set certificate extensions
+            // (1) digitalSignature extension
+            certBuilder.addExtension(Extension.keyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment | KeyUsage.dataEncipherment
+                    | KeyUsage.keyAgreement | KeyUsage.nonRepudiation | KeyUsage.cRLSign | KeyUsage.keyCertSign));
+
+            certBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(true));
+
+            certBuilder.addExtension(Extension.subjectKeyIdentifier, false, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(keyPair.getPublic()));
+
+            certBuilder.addExtension(Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(keyPair.getPublic()));
+
+            // (2) extendedKeyUsage extension
+            certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
+
+            // Sign the certificate
+            X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
+            return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certificateHolder);
+        } catch (CertIOException | NoSuchAlgorithmException | OperatorCreationException e) {
+            throw new CertificateException(e);
+        }
+    }
+
+    /**
+     * Generates an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
+     *
+     * @param dn the distinguished name to use
+     * @param publicKey the public key to issue the certificate to
+     * @param issuer the issuer's certificate
+     * @param issuerKeyPair the issuer's keypair
+     * @param signingAlgorithm the signing algorithm to use
+     * @param days the number of days it should be valid for
+     * @return an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
+     * @throws CertificateException if there is an error issueing the certificate
+     */
+    public static X509Certificate generateIssuedCertificate(String dn, PublicKey publicKey, X509Certificate issuer, KeyPair issuerKeyPair, String signingAlgorithm, int days)
+            throws CertificateException {
+        try {
+            ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(issuerKeyPair.getPrivate());
+            SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(publicKey.getEncoded());
+            Date startDate = new Date();
+            Date endDate = new Date(startDate.getTime() + TimeUnit.DAYS.toMillis(days));
+
+            X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
+                    reverseX500Name(new X500Name(issuer.getSubjectX500Principal().getName())),
+                    BigInteger.valueOf(System.currentTimeMillis()),
+                    startDate, endDate,
+                    reverseX500Name(new X500Name(dn)),
+                    subPubKeyInfo);
+
+            certBuilder.addExtension(Extension.subjectKeyIdentifier, false, new JcaX509ExtensionUtils().createSubjectKeyIdentifier(publicKey));
+
+            certBuilder.addExtension(Extension.authorityKeyIdentifier, false, new JcaX509ExtensionUtils().createAuthorityKeyIdentifier(issuerKeyPair.getPublic()));
+            // Set certificate extensions
+            // (1) digitalSignature extension
+            certBuilder.addExtension(Extension.keyUsage, true,
+                    new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment | KeyUsage.dataEncipherment | KeyUsage.keyAgreement | KeyUsage.nonRepudiation));
+
+            certBuilder.addExtension(Extension.basicConstraints, false, new BasicConstraints(false));
+
+            // (2) extendedKeyUsage extension
+            certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
+
+            X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
+            return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certificateHolder);
+        } catch (CertIOException | NoSuchAlgorithmException | OperatorCreationException e) {
+            throw new CertificateException(e);
         }
     }
 

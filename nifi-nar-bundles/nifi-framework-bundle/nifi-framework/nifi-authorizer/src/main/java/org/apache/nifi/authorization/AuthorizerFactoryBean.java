@@ -74,6 +74,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     private NiFiProperties properties;
     private final Map<String, Authorizer> authorizers = new HashMap<>();
 
+
     @Override
     public Authorizer getAuthorizer(String identifier) {
         return authorizers.get(identifier);
@@ -189,7 +190,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
         for (final Property property : authorizer.getProperty()) {
             authorizerProperties.put(property.getName(), property.getValue());
         }
-
         return new StandardAuthorizerConfigurationContext(authorizer.getIdentifier(), authorizerProperties);
     }
 
@@ -484,4 +484,5 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, Autho
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
+
 }

@@ -32,12 +32,15 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 - Web-based user interface
   - Seamless experience for design, control, and monitoring
+  - Multi-tenant user experience
 - Highly configurable
   - Loss tolerant vs guaranteed delivery
   - Low latency vs high throughput
   - Dynamic prioritization
   - Flows can be modified at runtime
   - Back pressure
+  - Scales up to leverage full machine capability
+  - Scales out with zero-master clustering model
 - Data Provenance
   - Track dataflow from beginning to end
 - Designed for extension
@@ -45,11 +48,13 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - Enables rapid development and effective testing
 - Secure
   - SSL, SSH, HTTPS, encrypted content, etc...
-  - Pluggable role-based authentication/authorization
+  - Pluggable fine-grained role-based authentication/authorization
+  - Multiple teams can manage and share specific portions of the flow
 
 ## Requirements
-* JDK 1.7 or higher
-* Apache Maven 3.1.0 or higher
+* JDK 1.8 or newer
+* Apache Maven 3.1.0 or newer
+* Git Client (used during build process by 'bower' plugin)
 
 ## Getting Started
 
@@ -64,7 +69,7 @@ To build:
   modest development laptop that is a couple of years old, the latter build takes a bit under ten
   minutes. After a large amount of output you should eventually see a success message.
 
-        laptop:nifi fhampton$ mvn -T 2.0C clean install
+        laptop:nifi myuser$ mvn -T 2.0C clean install
         [INFO] Scanning for projects...
         [INFO] Inspecting build with total of 115 modules...
             ...tens of thousands of lines elided...
@@ -79,28 +84,28 @@ To build:
 To deploy:
 - Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
 
-        laptop:nifi fhampton$ cd nifi-assembly
-        laptop:nifi-assembly fhampton$ ls -lhd target/nifi*
-        drwxr-xr-x  3 fhampton  staff   102B Apr 30 00:29 target/nifi-0.1.0-SNAPSHOT-bin
-        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.tar.gz
-        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.zip
+        laptop:nifi myuser$ cd nifi-assembly
+        laptop:nifi-assembly myuser$ ls -lhd target/nifi*
+        drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
+        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
+        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
 
 - For testing ongoing development you could use the already unpacked build present in the directory
   named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
   location make use of either the tarball or zipfile and unpack them wherever you like. The
   distribution will be within a common parent directory named for the version.
 
-        laptop:nifi-assembly fhampton$ mkdir ~/example-nifi-deploy
-        laptop:nifi-assembly fhampton$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
-        laptop:nifi-assembly fhampton$ ls -lh ~/example-nifi-deploy/
+        laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
+        laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
+        laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
         total 0
-        drwxr-xr-x  10 fhampton  staff   340B Apr 30 01:06 nifi-0.1.0-SNAPSHOT
+        drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
 
 To run NiFi:
 - Change directory to the location where you installed NiFi and run it.
 
-        laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh start
+        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
 
 - Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
@@ -109,8 +114,8 @@ To run NiFi:
 
 - If you are testing ongoing development, you will likely want to stop your instance.
 
-        laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh stop
+        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org

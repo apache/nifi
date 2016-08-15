@@ -32,8 +32,6 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
-import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -59,8 +57,8 @@ import java.util.Set;
  */
 @Path("/connections")
 @Api(
-    value = "/connections",
-    description = "Endpoint for managing a Connection."
+        value = "/connections",
+        description = "Endpoint for managing a Connection."
 )
 public class ConnectionResource extends ApplicationResource {
 
@@ -87,40 +85,8 @@ public class ConnectionResource extends ApplicationResource {
      * @return dto
      */
     public ConnectionEntity populateRemainingConnectionEntityContent(ConnectionEntity connectionEntity) {
-       connectionEntity.setUri(generateResourceUri("connections", connectionEntity.getId()));
+        connectionEntity.setUri(generateResourceUri("connections", connectionEntity.getId()));
         return connectionEntity;
-    }
-
-    /**
-     * Populate the URIs for the specified flowfile listing.
-     *
-     * @param connectionId connection
-     * @param flowFileListing flowfile listing
-     * @return dto
-     */
-    public ListingRequestDTO populateRemainingFlowFileListingContent(final String connectionId, final ListingRequestDTO flowFileListing) {
-        // uri of the listing
-        flowFileListing.setUri(generateResourceUri("connections", connectionId, "listing-requests", flowFileListing.getId()));
-
-        // uri of each flowfile
-        if (flowFileListing.getFlowFileSummaries() != null) {
-            for (final FlowFileSummaryDTO flowFile : flowFileListing.getFlowFileSummaries()) {
-                populateRemainingFlowFileContent(connectionId, flowFile);
-            }
-        }
-        return flowFileListing;
-    }
-
-    /**
-     * Populate the URIs for the specified flowfile.
-     *
-     * @param connectionId the connection id
-     * @param flowFile the flowfile
-     * @return the dto
-     */
-    public FlowFileSummaryDTO populateRemainingFlowFileContent(final String connectionId, final FlowFileSummaryDTO flowFile) {
-        flowFile.setUri(generateResourceUri("connections", connectionId, "flowfiles", flowFile.getUuid()));
-        return flowFile;
     }
 
     /**
@@ -134,23 +100,21 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read Source - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Read Destination - /{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getConnection(
@@ -158,7 +122,7 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-        @PathParam("id") final String id) throws InterruptedException {
+            @PathParam("id") final String id) throws InterruptedException {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -183,8 +147,8 @@ public class ConnectionResource extends ApplicationResource {
      * Updates the specified connection.
      *
      * @param httpServletRequest request
-     * @param id The id of the connection.
-     * @param connectionEntity A connectionEntity.
+     * @param id                 The id of the connection.
+     * @param connectionEntity   A connectionEntity.
      * @return A connectionEntity.
      * @throws InterruptedException if interrupted
      */
@@ -192,21 +156,23 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write New Destination - /{component-type}/{uuid} - if updating Destination", type = ""),
+                    @Authorization(value = "Write Process Group - /process-groups/{uuid} - if updating Destination", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateConnection(
@@ -219,7 +185,7 @@ public class ConnectionResource extends ApplicationResource {
             @ApiParam(
                     value = "The connection configuration details.",
                     required = true
-        ) final ConnectionEntity connectionEntity) throws InterruptedException {
+            ) final ConnectionEntity connectionEntity) throws InterruptedException {
 
         if (connectionEntity == null || connectionEntity.getComponent() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
@@ -247,41 +213,41 @@ public class ConnectionResource extends ApplicationResource {
 
         final Revision revision = getRevision(connectionEntity, id);
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                // verifies write access to this connection (this checks the current source and destination)
-                ConnectionAuthorizable connAuth = lookup.getConnection(id);
-                connAuth.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                serviceFacade,
+                revision,
+                lookup -> {
+                    // verifies write access to this connection (this checks the current source and destination)
+                    ConnectionAuthorizable connAuth = lookup.getConnection(id);
+                    connAuth.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // if a destination has been specified and is different
-                final Connectable currentDestination = connAuth.getDestination();
-                if (connection.getDestination() != null && currentDestination.getIdentifier().equals(connection.getDestination().getId())) {
-                    // verify access of the new destination (current destination was already authorized as part of the connection check)
-                    final Authorizable newDestinationAuthorizable = lookup.getConnectable(connection.getDestination().getId());
-                    newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    // if a destination has been specified and is different
+                    final Connectable currentDestination = connAuth.getDestination();
+                    if (connection.getDestination() != null && currentDestination.getIdentifier().equals(connection.getDestination().getId())) {
+                        // verify access of the new destination (current destination was already authorized as part of the connection check)
+                        final Authorizable newDestinationAuthorizable = lookup.getConnectable(connection.getDestination().getId());
+                        newDestinationAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                    // verify access of the parent group (this is the same check that is performed when creating the connection)
-                    connAuth.getParentGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-                }
-            },
-            () -> serviceFacade.verifyUpdateConnection(connection),
-            () -> {
-                final ConnectionEntity entity = serviceFacade.updateConnection(revision, connection);
-                populateRemainingConnectionEntityContent(entity);
+                        // verify access of the parent group (this is the same check that is performed when creating the connection)
+                        connAuth.getParentGroup().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    }
+                },
+                () -> serviceFacade.verifyUpdateConnection(connection),
+                () -> {
+                    final ConnectionEntity entity = serviceFacade.updateConnection(revision, connection);
+                    populateRemainingConnectionEntityContent(entity);
 
-                // generate the response
-                return clusterContext(generateOkResponse(entity)).build();
-            });
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                });
     }
 
     /**
      * Removes the specified connection.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the connection.
+     * @param version            The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id                 The id of the connection.
      * @return An Entity containing the client id and an updated revision.
      * @throws InterruptedException if interrupted
      */
@@ -289,21 +255,21 @@ public class ConnectionResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a connection",
             response = ConnectionEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write Source - /{component-type}/{uuid}", type = ""),
+                    @Authorization(value = "Write Destination - /{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response deleteConnection(
@@ -322,7 +288,7 @@ public class ConnectionResource extends ApplicationResource {
                     value = "The connection id.",
                     required = true
             )
-        @PathParam("id") final String id) throws InterruptedException {
+            @PathParam("id") final String id) throws InterruptedException {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
@@ -334,21 +300,21 @@ public class ConnectionResource extends ApplicationResource {
 
         // get the current user
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                // verifies write access to the source and destination
-                final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            () -> serviceFacade.verifyDeleteConnection(id),
-            () -> {
-                // delete the connection
-                final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
+                serviceFacade,
+                revision,
+                lookup -> {
+                    // verifies write access to the source and destination
+                    final Authorizable authorizable = lookup.getConnection(id).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyDeleteConnection(id),
+                () -> {
+                    // delete the connection
+                    final ConnectionEntity entity = serviceFacade.deleteConnection(revision, id);
 
-                // generate the response
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                    // generate the response
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 

@@ -32,6 +32,8 @@ public abstract class ProtocolMessage {
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
         HEARTBEAT,
+        NODE_CONNECTION_STATUS_REQUEST,
+        NODE_CONNECTION_STATUS_RESPONSE,
         NODE_STATUS_CHANGE;
     }
 

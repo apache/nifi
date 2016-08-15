@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.expression;
 
+@FunctionalInterface
 public interface AttributeValueDecorator {
 
     /**
-     * Decorates the value of a FlowFile Attribute or System/JVM property in
-     * some way
-     *
+     * Decorates the given value
      * @param attributeValue to decorate
      * @return decorated value
      */

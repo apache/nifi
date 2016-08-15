@@ -24,8 +24,11 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
@@ -37,6 +40,8 @@ import org.springframework.context.ApplicationContextAware;
 @SuppressWarnings("rawtypes")
 public class FlowControllerFactoryBean implements FactoryBean, ApplicationContextAware {
 
+    private static final Logger LOG = LoggerFactory.getLogger(FlowControllerFactoryBean.class);
+
     private ApplicationContext applicationContext;
     private FlowController flowController;
     private NiFiProperties properties;
@@ -45,6 +50,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     private StringEncryptor encryptor;
     private BulletinRepository bulletinRepository;
     private ClusterCoordinator clusterCoordinator;
+    private VariableRegistry variableRegistry;
 
     @Override
     public Object getObject() throws Exception {
@@ -63,7 +69,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     nodeProtocolSender,
                     bulletinRepository,
                     clusterCoordinator,
-                    heartbeatMonitor);
+                    heartbeatMonitor, variableRegistry);
             } else {
                 flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -71,13 +77,15 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
                     authorizer,
                     auditService,
                     encryptor,
-                    bulletinRepository);
+                    bulletinRepository, variableRegistry);
             }
 
         }
 
         return flowController;
     }
+
+
 
     @Override
     public Class getObjectType() {
@@ -112,6 +120,10 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
 
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
+    }
+
+    public void setVariableRegistry(VariableRegistry variableRegistry) {
+        this.variableRegistry = variableRegistry;
     }
 
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {

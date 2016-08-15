@@ -45,6 +45,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -90,19 +91,35 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     // properties
-    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder().name("Hadoop Configuration Resources")
+    public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
+            .name("Hadoop Configuration Resources")
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
-            .required(false).addValidator(createMultipleFilesExistValidator()).build();
+            .required(false)
+            .addValidator(createMultipleFilesExistValidator())
+            .build();
 
-    public static final String DIRECTORY_PROP_NAME = "Directory";
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Directory")
+            .description("The HDFS directory from which files should be read")
+            .required(true)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
 
-    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder().name("Compression codec").required(true)
-            .allowableValues(CompressionType.values()).defaultValue(CompressionType.NONE.toString()).build();
+    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+            .name("Compression codec")
+            .required(true)
+            .allowableValues(CompressionType.values())
+            .defaultValue(CompressionType.NONE.toString())
+            .build();
 
-    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder().name("Kerberos Relogin Period").required(false)
-            .description("Period of time which should pass before attempting a kerberos relogin").defaultValue("4 hours")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    public static final PropertyDescriptor KERBEROS_RELOGIN_PERIOD = new PropertyDescriptor.Builder()
+            .name("Kerberos Relogin Period").required(false)
+            .description("Period of time which should pass before attempting a kerberos relogin")
+            .defaultValue("4 hours")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     private static final Object RESOURCES_LOCK = new Object();
@@ -178,8 +195,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     /*
-         * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
-         */
+     * If your subclass also has an @OnScheduled annotated method and you need hdfsResources in that method, then be sure to call super.abstractOnScheduled(context)
+     */
     @OnScheduled
     public final void abstractOnScheduled(ProcessContext context) throws IOException {
         try {
@@ -190,10 +207,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             }
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
-                String dir = context.getProperty(DIRECTORY_PROP_NAME).getValue();
-                dir = dir == null ? "/" : dir;
-                resources = resetHDFSResources(configResources, dir, context);
+                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+                resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
         } catch (IOException ex) {
@@ -239,7 +254,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(String configResources, String dir, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
         // org.apache.hadoop.conf.Configuration saves its current thread context class loader to use for threads that it creates
         // later to do I/O. We need this class loader to be the NarClassLoader instead of the magical
         // NarThreadContextClassLoader.
@@ -255,6 +270,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // disable caching of Configuration and FileSystem objects, else we cannot reconfigure the processor without a complete
             // restart
             String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
+            config.set(disableCacheName, "true");
 
             // If kerberos is enabled, create the file system as the kerberos principal
             // -- use RESOURCE_LOCK to guarantee UserGroupInformation is accessed by only a single thread at at time
@@ -274,9 +290,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     fs = getFileSystemAsUser(config, ugi);
                 }
             }
-            config.set(disableCacheName, "true");
+
+            final Path workingDir = fs.getWorkingDirectory();
             getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                    new Object[] { fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)), fs.getDefaultReplication(new Path(dir)), config.toString() });
+                    new Object[]{workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString()});
+
             return new HdfsResources(config, fs, ugi);
 
         } finally {
@@ -413,11 +431,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected FileSystem getFileSystem() {
-        // if kerberos is enabled, check if the ticket should be renewed before returning the FS
-        if (hdfsResources.get().getUserGroupInformation() != null && isTicketOld()) {
-            tryKerberosRelogin(hdfsResources.get().getUserGroupInformation());
-        }
+        // trigger Relogin if necessary
+        getUserGroupInformation();
         return hdfsResources.get().getFileSystem();
+    }
+
+    protected UserGroupInformation getUserGroupInformation() {
+        // if kerberos is enabled, check if the ticket should be renewed before returning
+        UserGroupInformation userGroupInformation = hdfsResources.get().getUserGroupInformation();
+        if (userGroupInformation != null && isTicketOld()) {
+            tryKerberosRelogin(userGroupInformation);
+        }
+        return userGroupInformation;
     }
 
     protected void tryKerberosRelogin(UserGroupInformation ugi) {

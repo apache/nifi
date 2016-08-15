@@ -29,9 +29,10 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
     protected final HttpInput input;
     protected final HttpOutput output;
     protected String checksum;
+    private String dataTransferUrl;
 
     public HttpCommunicationsSession(){
-        super(null);
+        super();
         this.input = new HttpInput();
         this.output = new HttpOutput();
     }
@@ -93,5 +94,15 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
         this.checksum = checksum;
     }
 
+    /**
+     * @param dataTransferUrl Set data transfer url to use as provenance event transit url.
+     */
+    public void setDataTransferUrl(String dataTransferUrl) {
+        this.dataTransferUrl = dataTransferUrl;
+    }
 
+    @Override
+    public String createTransitUri(String communicantUrl, String sourceFlowFileIdentifier) {
+        return dataTransferUrl;
+    }
 }

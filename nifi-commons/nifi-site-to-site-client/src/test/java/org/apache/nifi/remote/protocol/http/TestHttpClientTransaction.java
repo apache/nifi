@@ -101,7 +101,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doReturn(false).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
+        doReturn(false).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(Peer.class));
 
         ByteArrayInputStream serverResponse = new ByteArrayInputStream(new byte[0]);
         ByteArrayOutputStream clientRequest = new ByteArrayOutputStream();
@@ -117,7 +117,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
+        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(Peer.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(CONFIRM_TRANSACTION.getCode());
         doReturn(resultEntity).when(apiClient).commitReceivingFlowFiles(eq(transactionUrl), eq(CONFIRM_TRANSACTION), eq("3680976076"));
@@ -139,7 +139,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
+        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(Peer.class));
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(CONFIRM_TRANSACTION.getCode());
         doReturn(resultEntity).when(apiClient).commitReceivingFlowFiles(eq(transactionUrl), eq(CONFIRM_TRANSACTION), eq("2969091230"));
@@ -162,7 +162,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(CommunicationsSession.class));
+        doReturn(true).when(apiClient).openConnectionForReceive(eq(transactionUrl), any(Peer.class));
         // The checksum is correct, but here we simulate as if it's wrong, BAD_CHECKSUM.
         TransactionResultEntity resultEntity = new TransactionResultEntity();
         resultEntity.setResponseCode(ResponseCode.BAD_CHECKSUM.getCode());
@@ -186,7 +186,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
+        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(Peer.class));
 
         ByteArrayOutputStream serverResponseBos = new ByteArrayOutputStream();
         ByteArrayInputStream serverResponse = new ByteArrayInputStream(serverResponseBos.toByteArray());
@@ -203,7 +203,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
+        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {
             @Override
@@ -237,7 +237,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(CommunicationsSession.class));
+        doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {
             @Override
@@ -272,7 +272,7 @@ public class TestHttpClientTransaction {
     public void testSendWithInvalidChecksum() throws IOException {
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(CommunicationsSession.class));
+        doNothing().when(apiClient).openConnectionForSend(eq(transactionUrl), any(Peer.class));
         // Emulate that server returns incorrect checksum.
         doAnswer(new Answer() {
             @Override
@@ -313,7 +313,7 @@ public class TestHttpClientTransaction {
 
         SiteToSiteRestApiClient apiClient = mock(SiteToSiteRestApiClient.class);
         final String transactionUrl = "http://www.example.com/data-transfer/input-ports/portId/transactions/transactionId";
-        doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(CommunicationsSession.class));
+        doNothing().when(apiClient).openConnectionForSend(eq("portId"), any(Peer.class));
         // Emulate that server returns correct checksum.
         doAnswer(new Answer() {
             @Override

@@ -33,8 +33,14 @@
     margin-bottom: 24px;
 }
 
+#delete-policy-button {
+    margin-top: -4px;
+}
+
 #new-policy-user-button {
+    margin-top: -4px;
     margin-right: 5px;
+    padding-left: 5px;
 }
 
 button.policy-button {
@@ -133,7 +139,7 @@ div.policy-selected-component-name {
     color: #262626;
     width: 300px;
     text-overflow: ellipsis;
-    overflow-x: hidden;
+    overflow: hidden;
     white-space: nowrap;
 }
 
@@ -178,7 +184,8 @@ div.policy-selected-component-type {
 }
 
 #policy-last-refreshed {
-    font-weight: bold;
+    color: #775351;
+    font-weight: 500;
 }
 
 /*
@@ -202,4 +209,16 @@ div.policy-selected-component-type {
     background: #D4E0E5 !important;
     border: 1px solid #999999;
     border-radius: 0;
+}
+
+/*
+    admin policy message
+*/
+
+#admin-policy-message {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
 }

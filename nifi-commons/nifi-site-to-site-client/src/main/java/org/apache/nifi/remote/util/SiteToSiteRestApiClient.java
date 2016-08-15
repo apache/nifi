@@ -54,6 +54,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.PortNotRunningException;
@@ -90,14 +91,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -371,9 +375,12 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    public boolean openConnectionForReceive(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
+    public boolean openConnectionForReceive(final String transactionUrl, final Peer peer) throws IOException {
 
         final HttpGet get = createGet(transactionUrl + "/flow-files");
+        // Set uri so that it'll be used as transit uri.
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(get.getURI().toString());
+
         get.setHeader(HttpHeaders.PROTOCOL_VERSION, String.valueOf(transportProtocolVersionNegotiator.getVersion()));
 
         setHandshakeProperties(get);
@@ -411,7 +418,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                             return r;
                         }
                     };
-                    ((HttpInput) commSession.getInput()).setInputStream(streamCapture);
+                    ((HttpInput) peer.getCommunicationsSession().getInput()).setInputStream(streamCapture);
 
                     startExtendingTtl(transactionUrl, httpIn, response);
                     keepItOpen = true;
@@ -433,10 +440,13 @@ public class SiteToSiteRestApiClient implements Closeable {
     private Future<HttpResponse> postResult;
     private CountDownLatch transferDataLatch = new CountDownLatch(1);
 
-    public void openConnectionForSend(final String transactionUrl, final CommunicationsSession commSession) throws IOException {
+    public void openConnectionForSend(final String transactionUrl, final Peer peer) throws IOException {
 
+        final CommunicationsSession commSession = peer.getCommunicationsSession();
         final String flowFilesPath = transactionUrl + "/flow-files";
         final HttpPost post = createPost(flowFilesPath);
+        // Set uri so that it'll be used as transit uri.
+        ((HttpCommunicationsSession)peer.getCommunicationsSession()).setDataTransferUrl(post.getURI().toString());
 
         post.setHeader("Content-Type", "application/octet-stream");
         post.setHeader("Accept", "text/plain");
@@ -823,7 +833,15 @@ public class SiteToSiteRestApiClient implements Closeable {
     private String execute(final HttpGet get) throws IOException {
         final CloseableHttpClient httpClient = getHttpClient();
 
+        if (logger.isTraceEnabled()) {
+            Arrays.stream(get.getAllHeaders()).forEach(h -> logger.debug("REQ| {}", h));
+        }
+
         try (final CloseableHttpResponse response = httpClient.execute(get)) {
+            if (logger.isTraceEnabled()) {
+                Arrays.stream(response.getAllHeaders()).forEach(h -> logger.debug("RES| {}", h));
+            }
+
             final StatusLine statusLine = response.getStatusLine();
             final int statusCode = statusLine.getStatusCode();
             if (RESPONSE_CODE_OK != statusCode) {
@@ -865,7 +883,12 @@ public class SiteToSiteRestApiClient implements Closeable {
 
         final ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        return mapper.readValue(responseMessage, entityClass);
+        try {
+            return mapper.readValue(responseMessage, entityClass);
+        } catch (JsonParseException e) {
+            logger.warn("Failed to parse Json, response={}", responseMessage);
+            throw e;
+        }
     }
 
     public String getBaseUrl() {
@@ -906,8 +929,13 @@ public class SiteToSiteRestApiClient implements Closeable {
         return resolveBaseUrl(scheme, host, port, "/nifi-api");
     }
 
-    public String resolveBaseUrl(final String scheme, final String host, final int port, final String path) {
-        final String baseUri = scheme + "://" + host + ":" + port + path;
+    private String resolveBaseUrl(final String scheme, final String host, final int port, final String path) {
+        final String baseUri;
+        try {
+            baseUri = new URL(scheme, host, port, path).toURI().toString();
+        } catch (MalformedURLException|URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
         this.setBaseUrl(baseUri);
         return baseUri;
     }

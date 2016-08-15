@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.expression.AttributeValueDecorator;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import org.antlr.runtime.tree.Tree;
@@ -37,53 +36,22 @@ public class StandardPreparedQuery implements PreparedQuery {
         this.trees = new HashMap<>(trees);
     }
 
-    @Override
-    public String evaluateExpressions(Map<String, String> attributes) throws ProcessException {
-        return evaluateExpressions(attributes, null);
-    }
 
     @Override
-    public String evaluateExpressions(final Map<String, String> attributes, final AttributeValueDecorator decorator) throws ProcessException {
+    public String evaluateExpressions(final Map<String, String> valueMap, final AttributeValueDecorator decorator) throws ProcessException {
         final StringBuilder sb = new StringBuilder();
         for (final String val : queryStrings) {
             final Tree tree = trees.get(val);
             if (tree == null) {
                 sb.append(val);
             } else {
-                final String evaluated = Query.evaluateExpression(tree, val, attributes, decorator);
+                final String evaluated = Query.evaluateExpression(tree, val, valueMap, decorator);
                 if (evaluated != null) {
                     sb.append(evaluated);
                 }
             }
         }
         return sb.toString();
-    }
-
-    @Override
-    public String evaluateExpressions(final FlowFile flowFile, final Map<String, String> additionalAttributes, final AttributeValueDecorator decorator) throws ProcessException {
-        final Map<String, String> expressionMap = Query.createExpressionMap(flowFile, additionalAttributes);
-        return evaluateExpressions(expressionMap, decorator);
-    }
-
-    @Override
-    public String evaluateExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
-        final Map<String, String> expressionMap = Query.createExpressionMap(flowFile);
-        return evaluateExpressions(expressionMap, decorator);
-    }
-
-    @Override
-    public String evaluateExpressions() throws ProcessException {
-        return evaluateExpressions((FlowFile) null, null);
-    }
-
-    @Override
-    public String evaluateExpressions(final AttributeValueDecorator decorator) throws ProcessException {
-        return evaluateExpressions((FlowFile) null, decorator);
-    }
-
-    @Override
-    public String evaluateExpressions(final FlowFile flowFile) throws ProcessException {
-        return evaluateExpressions(flowFile, null);
     }
 
 }

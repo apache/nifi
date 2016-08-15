@@ -47,13 +47,25 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>tenants</id>
+                        <goals>
+                            <goal>xjc</goal>
+                        </goals>
+                        <configuration>
+                            <schemaDirectory>src/main/xsd</schemaDirectory>
+                            <schemaFiles>tenants.xsd</schemaFiles>
+                            <packageName>org.apache.nifi.authorization.file.tenants.generated</packageName>
+                            <clearOutputDir>false</clearOutputDir>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>users</id>
                         <goals>
                             <goal>xjc</goal>
                         </goals>
                         <configuration>
                             <schemaDirectory>src/main/xsd</schemaDirectory>
-                            <schemaFiles>users.xsd</schemaFiles>
+                            <schemaFiles>legacy-users.xsd</schemaFiles>
                             <packageName>org.apache.nifi.user.generated</packageName>
                             <clearOutputDir>false</clearOutputDir>
                         </configuration>
@@ -67,7 +79,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
-                    <excludes>**/authorization/file/generated/*.java,**/user/generated/*.java</excludes>
+                    <excludes>**/authorization/file/generated/*.java,**/authorization/file/tenants/generated/*.java,**/user/generated/*.java</excludes>
                 </configuration>
             </plugin>            
         </plugins>

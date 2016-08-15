@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a FunnelDTO.
  */
 @XmlRootElement(name = "funnelEntity")
-public class FunnelEntity extends ComponentEntity {
+public class FunnelEntity extends ComponentEntity implements Permissible<FunnelDTO> {
 
     private FunnelDTO component;
 

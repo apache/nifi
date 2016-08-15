@@ -23,9 +23,6 @@ nf.CountersTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        styles: {
-            filterList: 'counters-filter-list'
-        },
         urls: {
             counters: '../nifi-api/counters'
         }
@@ -61,12 +58,7 @@ nf.CountersTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#counters-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#counters-filter').val();
     };
 
     /**
@@ -141,15 +133,7 @@ nf.CountersTable = (function () {
             // define the function for filtering the list
             $('#counters-filter').keyup(function () {
                 applyFilter();
-            }).focus(function () {
-                if ($(this).hasClass(config.styles.filterList)) {
-                    $(this).removeClass(config.styles.filterList).val('');
-                }
-            }).blur(function () {
-                if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList);
-                }
-            }).addClass(config.styles.filterList);
+            });
 
             // filter type
             $('#counters-filter-type').combo({

@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.NodeCountersSnapshotDTO;
 import org.apache.nifi.web.api.entity.CountersEntity;
 
 public class CountersEndpointMerger extends AbstractNodeStatusEndpoint<CountersEntity, CountersDTO> {
-    public static final Pattern COUNTERS_URI_PATTERN = Pattern.compile("/nifi-api/controller/counters");
+    public static final Pattern COUNTERS_URI_PATTERN = Pattern.compile("/nifi-api/counters");
 
     @Override
     public boolean canHandle(URI uri, String method) {

@@ -314,10 +314,11 @@ public class ITPutS3Object extends AbstractS3IT {
     public void testGetPropertyDescriptors() throws Exception {
         PutS3Object processor = new PutS3Object();
         List<PropertyDescriptor> pd = processor.getSupportedPropertyDescriptors();
-        assertEquals("size should be eq", 25, pd.size());
+        assertEquals("size should be eq", 26, pd.size());
         assertTrue(pd.contains(PutS3Object.ACCESS_KEY));
         assertTrue(pd.contains(PutS3Object.AWS_CREDENTIALS_PROVIDER_SERVICE));
         assertTrue(pd.contains(PutS3Object.BUCKET));
+        assertTrue(pd.contains(PutS3Object.CANNED_ACL));
         assertTrue(pd.contains(PutS3Object.CREDENTIALS_FILE));
         assertTrue(pd.contains(PutS3Object.ENDPOINT_OVERRIDE));
         assertTrue(pd.contains(PutS3Object.FULL_CONTROL_USER_LIST));

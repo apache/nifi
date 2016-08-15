@@ -181,6 +181,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
+    @Override
     public ProvenanceEventRecord getEvent(final long id) {
         final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
             @Override
@@ -192,6 +193,7 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         return records.isEmpty() ? null : records.get(0);
     }
 
+    @Override
     public ProvenanceEventRecord getEvent(final long id, final NiFiUser user) {
         final ProvenanceEventRecord event = getEvent(id);
         if (event == null) {
@@ -471,6 +473,20 @@ public class VolatileProvenanceRepository implements ProvenanceRepository {
         }
 
         return new FlowFileLineage(result.getNodes(), result.getEdges());
+    }
+
+    @Override
+    public ComputeLineageSubmission submitLineageComputation(final long eventId, final NiFiUser user) {
+        final ProvenanceEventRecord event = getEvent(eventId);
+        if (event == null) {
+            final String userId = user.getIdentity();
+            final AsyncLineageSubmission result = new AsyncLineageSubmission(LineageComputationType.FLOWFILE_LINEAGE, eventId, Collections.<String> emptySet(), 1, userId);
+            result.getResult().setError("Could not find event with ID " + eventId);
+            lineageSubmissionMap.put(result.getLineageIdentifier(), result);
+            return result;
+        }
+
+        return submitLineageComputation(event.getFlowFileUuid(), user);
     }
 
     @Override

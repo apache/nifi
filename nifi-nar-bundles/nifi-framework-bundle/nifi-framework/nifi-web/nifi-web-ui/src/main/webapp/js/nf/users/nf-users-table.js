@@ -23,10 +23,6 @@ nf.UsersTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'users-filter-list'
-        },
         urls: {
             users: '../nifi-api/tenants/users',
             userGroups: '../nifi-api/tenants/user-groups'
@@ -480,15 +476,7 @@ nf.UsersTable = (function () {
         // define the function for filtering the list
         $('#users-filter').keyup(function () {
             applyFilter();
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        });
 
         // filter type
         $('#users-filter-type').combo({
@@ -654,12 +642,7 @@ nf.UsersTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#users-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#users-filter').val();
     };
 
     /**

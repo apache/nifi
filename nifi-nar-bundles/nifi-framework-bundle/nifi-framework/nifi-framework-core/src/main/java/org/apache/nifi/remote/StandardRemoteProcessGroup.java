@@ -526,7 +526,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         writeLock.lock();
         try {
             if (requireNonNull(port).getTargetExists()) {
-                throw new IllegalStateException("Cannot remove Remote Port " + port + " because it still exists on the Remote Instance");
+                throw new IllegalStateException("Cannot remove Remote Port " + port.getIdentifier() + " because it still exists on the Remote Instance");
             }
             if (!port.getConnections().isEmpty() || port.hasIncomingConnection()) {
                 throw new IllegalStateException("Cannot remove Remote Port because it is connected to other components");
@@ -1229,15 +1229,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         readLock.lock();
         try {
             if (isTransmitting()) {
-                throw new IllegalStateException(this + " is transmitting");
+                throw new IllegalStateException(this.getIdentifier() + " is transmitting");
             }
 
             for (final Port port : inputPorts.values()) {
                 if (!ignoreConnections && port.hasIncomingConnection()) {
-                    throw new IllegalStateException(this + " is the destination of another component");
+                    throw new IllegalStateException(this.getIdentifier() + " is the destination of another component");
                 }
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
             }
 
@@ -1249,7 +1249,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 }
 
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
             }
         } finally {
@@ -1262,26 +1262,26 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         readLock.lock();
         try {
             if (isTransmitting()) {
-                throw new IllegalStateException(this + " is already transmitting");
+                throw new IllegalStateException(this.getIdentifier() + " is already transmitting");
             }
 
             for (final StandardRemoteGroupPort port : inputPorts.values()) {
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
 
                 if (port.hasIncomingConnection() && !port.getTargetExists()) {
-                    throw new IllegalStateException(this + " has a Connection to Port " + port + ", but that Port no longer exists on the remote system");
+                    throw new IllegalStateException(this.getIdentifier() + " has a Connection to Port " + port.getIdentifier() + ", but that Port no longer exists on the remote system");
                 }
             }
 
             for (final StandardRemoteGroupPort port : outputPorts.values()) {
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
 
                 if (!port.getConnections().isEmpty() && !port.getTargetExists()) {
-                    throw new IllegalStateException(this + " has a Connection to Port " + port + ", but that Port no longer exists on the remote system");
+                    throw new IllegalStateException(this.getIdentifier() + " has a Connection to Port " + port.getIdentifier() + ", but that Port no longer exists on the remote system");
                 }
             }
         } finally {
@@ -1292,7 +1292,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public void verifyCanStopTransmitting() {
         if (!isTransmitting()) {
-            throw new IllegalStateException(this + " is not transmitting");
+            throw new IllegalStateException(this.getIdentifier() + " is not transmitting");
         }
     }
 
@@ -1301,18 +1301,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         readLock.lock();
         try {
             if (isTransmitting()) {
-                throw new IllegalStateException(this + " is currently transmitting");
+                throw new IllegalStateException(this.getIdentifier() + " is currently transmitting");
             }
 
             for (final Port port : inputPorts.values()) {
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
             }
 
             for (final Port port : outputPorts.values()) {
                 if (port.isRunning()) {
-                    throw new IllegalStateException(this + " has running Port: " + port);
+                    throw new IllegalStateException(this.getIdentifier() + " has running Port: " + port.getIdentifier());
                 }
             }
         } finally {

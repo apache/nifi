@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.ssl.SSLContextService;
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit;
  * Base class for ReportingTasks that send data over site-to-site.
  */
 public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingTask {
+    protected static final String DESTINATION_URL_PATH = "/nifi";
 
     static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
@@ -110,15 +112,16 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     public void setup(final ConfigurationContext context) throws IOException {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
         final SSLContext sslContext = sslContextService == null ? null : sslContextService.createSSLContext(SSLContextService.ClientAuth.REQUIRED);
+        final ComponentLog logger = getLogger();
         final EventReporter eventReporter = new EventReporter() {
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 switch (severity) {
                     case WARNING:
-                        getLogger().warn(message);
+                        logger.warn(message);
                         break;
                     case ERROR:
-                        getLogger().error(message);
+                        logger.error(message);
                         break;
                     default:
                         break;
@@ -168,12 +171,12 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
                         .build();
             }
 
-            if (url != null && !url.getPath().endsWith("/nifi")) {
+            if (url != null && !url.getPath().equals(DESTINATION_URL_PATH)) {
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
                         .valid(false)
-                        .explanation("URL path must be /nifi")
+                        .explanation("URL path must be " + DESTINATION_URL_PATH)
                         .build();
             }
 

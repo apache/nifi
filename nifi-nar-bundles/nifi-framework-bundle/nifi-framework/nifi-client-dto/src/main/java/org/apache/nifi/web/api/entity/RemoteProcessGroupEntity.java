@@ -26,7 +26,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupEntity")
-public class RemoteProcessGroupEntity extends ComponentEntity {
+public class RemoteProcessGroupEntity extends ComponentEntity implements Permissible<RemoteProcessGroupDTO> {
 
     private RemoteProcessGroupDTO component;
     private RemoteProcessGroupStatusDTO status;

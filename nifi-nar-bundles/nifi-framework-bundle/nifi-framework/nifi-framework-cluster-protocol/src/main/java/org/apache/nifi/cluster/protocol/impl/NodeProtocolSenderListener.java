@@ -46,16 +46,18 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     @Override
     public void stop() throws IOException {
         if (!isRunning()) {
-            throw new IllegalStateException("Instance is already stopped.");
+            return;
         }
+
         listener.stop();
     }
 
     @Override
     public void start() throws IOException {
         if (isRunning()) {
-            throw new IllegalStateException("Instance is already started.");
+            return;
         }
+
         listener.start();
     }
 

@@ -217,7 +217,7 @@ public class StandardFunnel implements Funnel {
 
             final boolean removed = outgoingConnections.remove(connection);
             if (!removed) {
-                throw new IllegalStateException(connection + " is not registered with " + this);
+                throw new IllegalStateException(connection.getIdentifier() + " is not registered with " + this.getIdentifier());
             }
         } finally {
             writeLock.unlock();
@@ -505,7 +505,7 @@ public class StandardFunnel implements Funnel {
                 if (connection.getSource().equals(this)) {
                     connection.verifyCanDelete();
                 } else {
-                    throw new IllegalStateException(this + " is the destination of another component");
+                    throw new IllegalStateException("Funnel " + this.getIdentifier() + " is the destination of another component");
                 }
             }
         } finally {

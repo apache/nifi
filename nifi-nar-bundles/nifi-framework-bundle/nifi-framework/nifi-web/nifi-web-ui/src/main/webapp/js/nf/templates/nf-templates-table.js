@@ -23,10 +23,6 @@ nf.TemplatesTable = (function () {
      * Configuration object used to hold a number of configuration items.
      */
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'templates-filter-list'
-        },
         urls: {
             templates: '../nifi-api/flow/templates',
             downloadToken: '../nifi-api/access/download-token'
@@ -126,12 +122,7 @@ nf.TemplatesTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#templates-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#templates-filter').val();
     };
 
     /**
@@ -214,15 +205,7 @@ nf.TemplatesTable = (function () {
             // define the function for filtering the list
             $('#templates-filter').keyup(function () {
                 applyFilter();
-            }).focus(function () {
-                if ($(this).hasClass(config.styles.filterList)) {
-                    $(this).removeClass(config.styles.filterList).val('');
-                }
-            }).blur(function () {
-                if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList).val(config.filterText);
-                }
-            }).addClass(config.styles.filterList).val(config.filterText);
+            });
 
             // filter type
             $('#templates-filter-type').combo({
@@ -283,10 +266,11 @@ nf.TemplatesTable = (function () {
                     markup += '<div title="Remove Template" class="pointer prompt-to-delete-template fa fa-trash" style="margin-top: 2px; margin-right: 3px;"></div>';
                 }
 
-                // if we in the shell
-                // TODO - only if we can adminster policies
-                if (top !== window) {
-                    markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                // allow policy configuration conditionally
+                if (top !== window && nf.Common.canAccessTenants()) {
+                    if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.Canvas) && parent.nf.Canvas.isConfigurableAuthorizer()) {
+                        markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+                    }
                 }
 
                 return markup;

@@ -37,7 +37,7 @@
         <module>nifi-solr-bundle</module>
         <module>nifi-aws-bundle</module>
         <module>nifi-social-media-bundle</module>
-        <module>nifi-geo-bundle</module>
+        <module>nifi-enrich-bundle</module>
         <module>nifi-hl7-bundle</module>
         <module>nifi-language-translation-bundle</module>
         <module>nifi-mongodb-bundle</module>

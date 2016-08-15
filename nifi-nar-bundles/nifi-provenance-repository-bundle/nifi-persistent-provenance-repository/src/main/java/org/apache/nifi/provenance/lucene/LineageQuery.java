@@ -74,6 +74,7 @@ public class LineageQuery {
                 }
 
                 final long searchStart = System.nanoTime();
+                logger.debug("Searching {} for {}", indexDirectory, flowFileIdQuery);
                 final TopDocs uuidQueryTopDocs = searcher.search(flowFileIdQuery, MAX_QUERY_RESULTS);
                 final long searchEnd = System.nanoTime();
 

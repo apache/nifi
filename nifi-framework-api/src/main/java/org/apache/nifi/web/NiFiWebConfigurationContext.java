@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.controller.ControllerService;
-
 import java.util.Collection;
 import java.util.Map;
+
+import org.apache.nifi.controller.ControllerService;
 
 /**
  * NiFi web context providing limited access to dataflow configuration for

@@ -56,23 +56,33 @@ public class FileAuthorizerTest {
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         + "<authorizations/>";
 
+    private static final String EMPTY_TENANTS_CONCISE =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        + "<tenants/>";
+
     private static final String EMPTY_AUTHORIZATIONS =
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         + "<authorizations>"
         + "</authorizations>";
+
+    private static final String EMPTY_TENANTS =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        + "<tenants>"
+        + "</tenants>";
 
     private static final String BAD_SCHEMA_AUTHORIZATIONS =
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
         + "<authorization>"
         + "</authorization>";
 
+    private static final String BAD_SCHEMA_TENANTS =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+        + "<tenant>"
+        + "</tenant>";
+
     private static final String SIMPLE_AUTHORIZATION_BY_USER =
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<authorizations>" +
-            "  <users>" +
-            "    <user identifier=\"user-1\" identity=\"user-1\"/>" +
-            "    <user identifier=\"user-2\" identity=\"user-2\"/>" +
-            "  </users>" +
             "  <policies>" +
             "      <policy identifier=\"policy-1\" resource=\"/flow\" action=\"R\">" +
             "        <user identifier=\"user-1\" />" +
@@ -80,21 +90,18 @@ public class FileAuthorizerTest {
             "  </policies>" +
             "</authorizations>";
 
+    private static final String SIMPLE_TENANTS_BY_USER =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<tenants>" +
+            "  <users>" +
+            "    <user identifier=\"user-1\" identity=\"user-1\"/>" +
+            "    <user identifier=\"user-2\" identity=\"user-2\"/>" +
+            "  </users>" +
+            "</tenants>";
+
     private static final String AUTHORIZATIONS =
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<authorizations>" +
-            "  <groups>" +
-            "    <group identifier=\"group-1\" name=\"group-1\">" +
-            "       <user identifier=\"user-1\" />" +
-            "    </group>" +
-            "    <group identifier=\"group-2\" name=\"group-2\">" +
-            "       <user identifier=\"user-2\" />" +
-            "    </group>" +
-            "  </groups>" +
-            "  <users>" +
-            "    <user identifier=\"user-1\" identity=\"user-1\" />" +
-            "    <user identifier=\"user-2\" identity=\"user-2\" />" +
-            "  </users>" +
             "  <policies>" +
             "      <policy identifier=\"policy-1\" resource=\"/flow\" action=\"R\">" +
                     "  <group identifier=\"group-1\" />" +
@@ -107,13 +114,42 @@ public class FileAuthorizerTest {
             "  </policies>" +
             "</authorizations>";
 
+    private static final String TENANTS =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<tenants>" +
+            "  <groups>" +
+            "    <group identifier=\"group-1\" name=\"group-1\">" +
+            "       <user identifier=\"user-1\" />" +
+            "    </group>" +
+            "    <group identifier=\"group-2\" name=\"group-2\">" +
+            "       <user identifier=\"user-2\" />" +
+            "    </group>" +
+            "  </groups>" +
+            "  <users>" +
+            "    <user identifier=\"user-1\" identity=\"user-1\" />" +
+            "    <user identifier=\"user-2\" identity=\"user-2\" />" +
+            "  </users>" +
+            "</tenants>";
+
+    private static final String TENANTS_FOR_ADMIN_AND_NODES =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                    "<tenants>" +
+                    "  <users>" +
+                    "    <user identifier=\"admin-user\" identity=\"admin-user\"/>" +
+                    "    <user identifier=\"node1\" identity=\"node1\"/>" +
+                    "    <user identifier=\"node2\" identity=\"node2\"/>" +
+                    "  </users>" +
+                    "</tenants>";
+
     // This is the root group id from the flow.xml.gz in src/test/resources
     private static final String ROOT_GROUP_ID = "e530e14c-adcf-41c2-b5d6-d9a59ba8765c";
 
     private NiFiProperties properties;
     private FileAuthorizer authorizer;
-    private File primary;
-    private File restore;
+    private File primaryAuthorizations;
+    private File primaryTenants;
+    private File restoreAuthorizations;
+    private File restoreTenants;
     private File flow;
     private File flowNoPorts;
     private File flowWithDns;
@@ -123,12 +159,20 @@ public class FileAuthorizerTest {
     @Before
     public void setup() throws IOException {
         // primary authorizations
-        primary = new File("target/primary/authorizations.xml");
-        FileUtils.ensureDirectoryExistAndCanAccess(primary.getParentFile());
+        primaryAuthorizations = new File("target/authorizations/authorizations.xml");
+        FileUtils.ensureDirectoryExistAndCanAccess(primaryAuthorizations.getParentFile());
+
+        // primary tenants
+        primaryTenants = new File("target/authorizations/users.xml");
+        FileUtils.ensureDirectoryExistAndCanAccess(primaryTenants.getParentFile());
 
         // restore authorizations
-        restore = new File("target/restore/authorizations.xml");
-        FileUtils.ensureDirectoryExistAndCanAccess(restore.getParentFile());
+        restoreAuthorizations = new File("target/restore/authorizations.xml");
+        FileUtils.ensureDirectoryExistAndCanAccess(restoreAuthorizations.getParentFile());
+
+        // restore authorizations
+        restoreTenants = new File("target/restore/users.xml");
+        FileUtils.ensureDirectoryExistAndCanAccess(restoreTenants.getParentFile());
 
         flow = new File("src/test/resources/flow.xml.gz");
         FileUtils.ensureDirectoryExistAndCanAccess(flow.getParentFile());
@@ -140,11 +184,12 @@ public class FileAuthorizerTest {
         FileUtils.ensureDirectoryExistAndCanAccess(flowWithDns.getParentFile());
 
         properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
 
         configurationContext = mock(AuthorizerConfigurationContext.class);
-        when(configurationContext.getProperty(Mockito.eq("Authorizations File"))).thenReturn(new StandardPropertyValue(primary.getPath(), null));
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_AUTHORIZATIONS_FILE))).thenReturn(new StandardPropertyValue(primaryAuthorizations.getPath(), null));
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_TENANTS_FILE))).thenReturn(new StandardPropertyValue(primaryTenants.getPath(), null));
 
         authorizer = new FileAuthorizer();
         authorizer.setNiFiProperties(properties);
@@ -153,8 +198,10 @@ public class FileAuthorizerTest {
 
     @After
     public void cleanup() throws Exception {
-        deleteFile(primary);
-        deleteFile(restore);
+        deleteFile(primaryAuthorizations);
+        deleteFile(primaryTenants);
+        deleteFile(restoreAuthorizations);
+        deleteFile(restoreTenants);
     }
 
     @Test
@@ -162,7 +209,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-multirole.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -180,13 +228,14 @@ public class FileAuthorizerTest {
     @Test
     public void testOnConfiguredWhenLegacyUsersFileProvidedAndFlowHasNoPorts() throws Exception {
         properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flowNoPorts);
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         boolean foundDataTransferPolicy = false;
@@ -205,7 +254,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         // verify all users got created correctly
@@ -347,14 +397,15 @@ public class FileAuthorizerTest {
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
 
         properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flowWithDns);
         authorizer.setNiFiProperties(properties);
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users-with-dns.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final User user1 = authorizer.getUserByIdentity("user1");
@@ -401,27 +452,29 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/does-not-exist.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenInitialAdminAndLegacyUsersProvided() throws Exception {
         final String adminIdentity = "admin-user";
-
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_LEGACY_AUTHORIZED_USERS_FILE)))
                 .thenReturn(new StandardPropertyValue("src/test/resources/authorized-users.xml", null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
     @Test
     public void testOnConfiguredWhenInitialAdminNotProvided() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -438,7 +491,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -467,7 +521,7 @@ public class FileAuthorizerTest {
     public void testOnConfiguredWhenInitialAdminProvidedAndNoFlowExists() throws Exception {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(new File("src/test/resources/does-not-exist.xml.gz"));
         authorizer.setNiFiProperties(properties);
 
@@ -475,7 +529,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -504,7 +559,7 @@ public class FileAuthorizerTest {
     public void testOnConfiguredWhenInitialAdminProvidedAndFlowIsNull() throws Exception {
         // setup NiFi properties to return a file that does not exist
         properties = mock(NiFiProperties.class);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(null);
         authorizer.setNiFiProperties(properties);
 
@@ -512,7 +567,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -544,7 +600,7 @@ public class FileAuthorizerTest {
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1_$2_$3");
 
         properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
         authorizer.setNiFiProperties(properties);
 
@@ -552,7 +608,8 @@ public class FileAuthorizerTest {
         when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
                 .thenReturn(new StandardPropertyValue(adminIdentity, null));
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         final Set<User> users = authorizer.getUsers();
@@ -578,8 +635,52 @@ public class FileAuthorizerTest {
 
         when(configurationContext.getProperties()).thenReturn(props);
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
+
+        User adminUser = authorizer.getUserByIdentity(adminIdentity);
+        assertNotNull(adminUser);
+
+        User nodeUser1 = authorizer.getUserByIdentity(nodeIdentity1);
+        assertNotNull(nodeUser1);
+
+        User nodeUser2 = authorizer.getUserByIdentity(nodeIdentity2);
+        assertNotNull(nodeUser2);
+
+        AccessPolicy proxyReadPolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.READ);
+        AccessPolicy proxyWritePolicy = authorizer.getUsersAndAccessPolicies().getAccessPolicy(ResourceType.Proxy.getValue(), RequestAction.WRITE);
+
+        assertNotNull(proxyReadPolicy);
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyReadPolicy.getUsers().contains(nodeUser2.getIdentifier()));
+
+        assertNotNull(proxyWritePolicy);
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser1.getIdentifier()));
+        assertTrue(proxyWritePolicy.getUsers().contains(nodeUser2.getIdentifier()));
+    }
+
+    @Test
+    public void testOnConfiguredWhenNodeIdentitiesProvidedAndUsersAlreadyExist() throws Exception {
+        final String adminIdentity = "admin-user";
+
+        when(configurationContext.getProperty(Mockito.eq(FileAuthorizer.PROP_INITIAL_ADMIN_IDENTITY)))
+                .thenReturn(new StandardPropertyValue(adminIdentity, null));
+
+        final String nodeIdentity1 = "node1";
+        final String nodeIdentity2 = "node2";
+
+        final Map<String,String> props = new HashMap<>();
+        props.put("Node Identity 1", nodeIdentity1);
+        props.put("Node Identity 2", nodeIdentity2);
+
+        when(configurationContext.getProperties()).thenReturn(props);
+
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, TENANTS_FOR_ADMIN_AND_NODES);
+        authorizer.onConfigured(configurationContext);
+
+        assertEquals(3, authorizer.getUsers().size());
 
         User adminUser = authorizer.getUserByIdentity(adminIdentity);
         assertNotNull(adminUser);
@@ -609,7 +710,7 @@ public class FileAuthorizerTest {
         props.setProperty("nifi.security.identity.mapping.value.dn1", "$1");
 
         properties = getNiFiProperties(props);
-        when(properties.getRestoreDirectory()).thenReturn(restore.getParentFile());
+        when(properties.getRestoreDirectory()).thenReturn(restoreAuthorizations.getParentFile());
         when(properties.getFlowConfigurationFile()).thenReturn(flow);
         authorizer.setNiFiProperties(properties);
 
@@ -626,7 +727,8 @@ public class FileAuthorizerTest {
 
         when(configurationContext.getProperties()).thenReturn(nodeProps);
 
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
         User adminUser = authorizer.getUserByIdentity("user1");
@@ -639,42 +741,72 @@ public class FileAuthorizerTest {
         assertNotNull(nodeUser2);
     }
 
+    public void testOnConfiguredWhenTenantsAndAuthorizationsFileDoesNotExist() {
+        authorizer.onConfigured(configurationContext);
+        assertEquals(0, authorizer.getAccessPolicies().size());
+    }
+
     @Test
-    public void testOnConfiguredWhenAuthorizationsFileDoesNotExist() {
+    public void testOnConfiguredWhenAuthorizationsFileDoesNotExist() throws Exception {
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+        assertEquals(0, authorizer.getAccessPolicies().size());
+    }
+
+    @Test
+    public void testOnConfiguredWhenTenantsFileDoesNotExist() throws Exception {
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
     }
 
     @Test
     public void testOnConfiguredWhenRestoreDoesNotExist() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(primaryTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
 
-        assertEquals(primary.length(), restore.length());
+        assertEquals(primaryAuthorizations.length(), restoreAuthorizations.length());
+        assertEquals(primaryTenants.length(), restoreTenants.length());
     }
 
     @Test(expected = AuthorizerCreationException.class)
     public void testOnConfiguredWhenPrimaryDoesNotExist() throws Exception {
-        writeAuthorizationsFile(restore, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
+        writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testOnConfiguredWhenPrimaryDifferentThanRestore() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
-        writeAuthorizationsFile(restore, EMPTY_AUTHORIZATIONS_CONCISE);
+    public void testOnConfiguredWhenPrimaryAuthorizationsDifferentThanRestore() throws Exception {
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(restoreAuthorizations, EMPTY_AUTHORIZATIONS_CONCISE);
         authorizer.onConfigured(configurationContext);
     }
 
     @Test(expected = AuthorizerCreationException.class)
-    public void testOnConfiguredWithBadSchema() throws Exception {
-        writeAuthorizationsFile(primary, BAD_SCHEMA_AUTHORIZATIONS);
+    public void testOnConfiguredWhenPrimaryTenantsDifferentThanRestore() throws Exception {
+        writeFile(primaryTenants, EMPTY_TENANTS);
+        writeFile(restoreTenants, EMPTY_TENANTS_CONCISE);
+        authorizer.onConfigured(configurationContext);
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWithBadAuthorizationsSchema() throws Exception {
+        writeFile(primaryAuthorizations, BAD_SCHEMA_AUTHORIZATIONS);
+        authorizer.onConfigured(configurationContext);
+    }
+
+    @Test(expected = AuthorizerCreationException.class)
+    public void testOnConfiguredWithBadTenantsSchema() throws Exception {
+        writeFile(primaryTenants, BAD_SCHEMA_TENANTS);
         authorizer.onConfigured(configurationContext);
     }
 
     @Test
     public void testAuthorizedUserAction() throws Exception {
-        writeAuthorizationsFile(primary, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryAuthorizations, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
         authorizer.onConfigured(configurationContext);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -691,7 +823,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUnauthorizedUser() throws Exception {
-        writeAuthorizationsFile(primary, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryAuthorizations, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
         authorizer.onConfigured(configurationContext);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -708,7 +841,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUnauthorizedAction() throws Exception {
-        writeAuthorizationsFile(primary, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryAuthorizations, SIMPLE_AUTHORIZATION_BY_USER);
+        writeFile(primaryTenants, SIMPLE_TENANTS_BY_USER);
         authorizer.onConfigured(configurationContext);
 
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
@@ -725,7 +859,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetAllUsersGroupsPolicies() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
 
         final Set<Group> groups = authorizer.getGroups();
@@ -798,7 +933,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testAddUser() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryTenants, EMPTY_TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getUsers().size());
 
@@ -818,7 +954,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetUserByIdentifierWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -830,7 +967,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetUserByIdentifierWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -841,7 +979,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetUserByIdentityWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -853,7 +992,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetUserByIdentityWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -864,7 +1004,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteUser() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -891,7 +1032,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteUserWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -906,7 +1048,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateUserWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -923,7 +1066,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateUserWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getUsers().size());
 
@@ -940,7 +1084,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testAddGroup() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryTenants, EMPTY_TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getGroups().size());
 
@@ -961,7 +1106,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testAddGroupWithUser() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -984,7 +1130,8 @@ public class FileAuthorizerTest {
 
     @Test(expected = IllegalStateException.class)
     public void testAddGroupWhenUserDoesNotExist() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryTenants, EMPTY_TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getGroups().size());
 
@@ -999,7 +1146,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetGroupByIdentifierWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1011,7 +1159,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetGroupByIdentifierWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1022,7 +1171,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteGroupWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1051,7 +1201,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteGroupWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1067,7 +1218,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateGroupWhenFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1092,7 +1244,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateGroupWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getGroups().size());
 
@@ -1110,7 +1263,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testAddAccessPolicy() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryTenants, EMPTY_TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
 
@@ -1152,7 +1306,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testAddAccessPolicyWithEmptyUsersAndGroups() throws Exception {
-        writeAuthorizationsFile(primary, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, EMPTY_AUTHORIZATIONS);
+        writeFile(primaryTenants, EMPTY_TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(0, authorizer.getAccessPolicies().size());
 
@@ -1175,7 +1330,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetAccessPolicy() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1196,7 +1352,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testGetAccessPolicyWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1206,7 +1363,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateAccessPolicy() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1234,7 +1392,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testUpdateAccessPolicyWhenResourceNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1252,7 +1411,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteAccessPolicy() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1275,7 +1435,8 @@ public class FileAuthorizerTest {
 
     @Test
     public void testDeleteAccessPolicyWhenNotFound() throws Exception {
-        writeAuthorizationsFile(primary, AUTHORIZATIONS);
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
         authorizer.onConfigured(configurationContext);
         assertEquals(2, authorizer.getAccessPolicies().size());
 
@@ -1291,7 +1452,7 @@ public class FileAuthorizerTest {
         assertNull(deletedAccessPolicy);
     }
 
-    private static void writeAuthorizationsFile(final File file, final String content) throws Exception {
+    private static void writeFile(final File file, final String content) throws Exception {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(bytes);

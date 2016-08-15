@@ -55,6 +55,8 @@ public interface SSLContextService extends ControllerService {
 
     public String getKeyStorePassword();
 
+    public String getKeyPassword();
+
     public boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();

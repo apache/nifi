@@ -102,20 +102,14 @@ classes should alter those!
     border-right: 0px !important;
 }
 
-.grid-canvas *:last-child .fa{
-    float: left;
-}
-
-.grid-canvas *:last-child .icon{
-    float: left;
-}
-
 .slick-viewport .fa {
     color: #004849;
     line-height: 22px;
     margin-top: 0px !important;
     width: 12px;
     height: 12px;
+    float: left;
+    margin-right: 3px !important;
 }
 
 .slick-viewport .icon {
@@ -125,6 +119,7 @@ classes should alter those!
     width: 12px;
     height: 12px;
     float: left;
+    margin-right: 3px !important;
 }
 
 .slick-header.ui-state-default, .slick-headerrow.ui-state-default {

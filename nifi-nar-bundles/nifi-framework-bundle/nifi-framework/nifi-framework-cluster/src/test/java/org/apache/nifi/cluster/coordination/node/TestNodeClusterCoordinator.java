@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -78,7 +77,7 @@ public class TestNodeClusterCoordinator {
 
         coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes) {
+            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
                 nodeStatuses.add(updatedStatus);
             }
         };
@@ -133,7 +132,7 @@ public class TestNodeClusterCoordinator {
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes) {
+            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
         };
 
@@ -171,7 +170,7 @@ public class TestNodeClusterCoordinator {
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, revisionManager, createProperties()) {
             @Override
-            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes) {
+            void notifyOthersOfNodeStatusChange(NodeConnectionStatus updatedStatus, boolean notifyAllNodes, boolean waitForCoordinator) {
             }
         };
 
@@ -396,21 +395,6 @@ public class TestNodeClusterCoordinator {
         // Ensure that no status change message was send
         Thread.sleep(1000);
         assertTrue(nodeStatuses.isEmpty());
-
-        // Status should not have changed because our status id is too small.
-        NodeConnectionStatus curStatus = coordinator.getConnectionStatus(nodeId1);
-        assertEquals(NodeConnectionState.CONNECTED, curStatus.getState());
-
-        // Verify that resetMap updates only the newer statuses
-        final NodeConnectionStatus node2Disconnecting = new NodeConnectionStatus(nodeId2, NodeConnectionState.DISCONNECTING, Collections.emptySet());
-        final Map<NodeIdentifier, NodeConnectionStatus> resetMap = new HashMap<>();
-        resetMap.put(nodeId1, oldStatus);
-        resetMap.put(nodeId2, node2Disconnecting);
-        coordinator.resetNodeStatuses(resetMap);
-
-        curStatus = coordinator.getConnectionStatus(nodeId1);
-        assertEquals(NodeConnectionState.CONNECTED, curStatus.getState());
-        assertEquals(NodeConnectionState.DISCONNECTING, coordinator.getConnectionStatus(nodeId2).getState());
     }
 
     @Test(timeout = 5000)

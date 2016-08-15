@@ -26,10 +26,7 @@
 }
 
 #add-process-group-configuration-controller-service {
-    margin-top: 4px;
-    position: absolute;
-    top: 0px;
-    right: 0px;
+    float: right;
 }
 
 /* settings tabs */
@@ -64,18 +61,21 @@
 }
 
 #process-group-configuration-last-refreshed {
-    font-weight: bold;
+    color: #775351;
+    font-weight: 500;
 }
 
 /* general */
 
 #general-process-group-configuration input, #general-process-group-configuration textarea {
-    font-size: 11px !important;
-    font-family: Verdana;
     width: 350px;
     vertical-align: middle;
 }
 
 #process-group-comments {
     height: 100px;
+}
+
+#process-group-controller-services-tab-content {
+    top: 32px;
 }

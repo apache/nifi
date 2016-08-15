@@ -52,6 +52,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
@@ -81,12 +82,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(8, "StandardProcessScheduler", true);
 
     private final StringEncryptor encryptor;
+    private final VariableRegistry variableRegistry;
 
     public StandardProcessScheduler(final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor,
-        final StateManagerProvider stateManagerProvider) {
+                                    final StateManagerProvider stateManagerProvider, final VariableRegistry variableRegistry) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;
+        this.variableRegistry = variableRegistry;
 
         administrativeYieldDuration = NiFiProperties.getInstance().getAdministrativeYieldDuration();
         administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
@@ -216,6 +219,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             + "ReportingTask and will attempt to schedule it again after {}",
                             new Object[] { reportingTask, e.toString(), administrativeYieldDuration }, e);
 
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, taskNode.getConfigurationContext());
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, taskNode.getConfigurationContext());
+
                         try {
                             Thread.sleep(administrativeYieldMillis);
                         } catch (final InterruptedException ie) {
@@ -290,7 +296,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState scheduleState = getScheduleState(requireNonNull(procNode));
 
         SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -324,7 +330,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {
         StandardProcessContext processContext = new StandardProcessContext(procNode, this.controllerServiceProvider,
-                this.encryptor, getStateManager(procNode.getIdentifier()));
+                this.encryptor, getStateManager(procNode.getIdentifier()), variableRegistry);
         final ScheduleState state = getScheduleState(procNode);
 
         procNode.stop(this.componentLifeCycleThreadPool, processContext, new Callable<Boolean>() {
@@ -377,7 +383,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void startPort(final Port port) {
         if (!port.isValid()) {
-            throw new IllegalStateException("Port " + port.getName() + " is not in a valid state");
+            throw new IllegalStateException("Port " + port.getIdentifier() + " is not in a valid state");
         }
 
         port.onSchedulingStart();
@@ -404,7 +410,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     private synchronized void startConnectable(final Connectable connectable) {
         if (connectable.getScheduledState() == ScheduledState.DISABLED) {
-            throw new IllegalStateException(connectable + " is disabled, so it cannot be started");
+            throw new IllegalStateException(connectable.getIdentifier() + " is disabled, so it cannot be started");
         }
 
         final ScheduleState scheduleState = getScheduleState(requireNonNull(connectable));

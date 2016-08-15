@@ -31,7 +31,8 @@ nf.History = (function () {
         urls: {
             banners: '../nifi-api/flow/banners',
             about: '../nifi-api/flow/about',
-            currentUser: '../nifi-api/flow/current-user'
+            currentUser: '../nifi-api/flow/current-user',
+            clusterSummary: '../nifi-api/flow/cluster/summary'
         }
     };
 
@@ -46,6 +47,26 @@ nf.History = (function () {
         }).done(function (currentUser) {
             nf.Common.setCurrentUser(currentUser);
         }).fail(nf.Common.handleAjaxError);
+    };
+
+    /**
+     * Loads the flow configuration and updated the cluster state.
+     *
+     * @returns xhr
+     */
+    var loadClusterSummary = function () {
+        return $.ajax({
+            type: 'GET',
+            url: config.urls.clusterSummary,
+            dataType: 'json'
+        }).done(function (response) {
+            var clusterSummary = response.clusterSummary;
+
+            // if clustered, show message to indicate location of actions
+            if (clusterSummary.clustered === true) {
+                $('#cluster-history-message').show();
+            }
+        });
     };
 
     /**
@@ -116,6 +137,8 @@ nf.History = (function () {
             
             // load the current user
             loadCurrentUser().done(function () {
+                loadClusterSummary();
+
                 // create the history table
                 nf.HistoryTable.init();
 

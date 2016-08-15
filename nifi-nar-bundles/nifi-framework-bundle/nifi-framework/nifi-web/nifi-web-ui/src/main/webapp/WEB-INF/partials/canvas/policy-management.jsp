@@ -24,6 +24,7 @@
             <div id="policy-message"></div>
             <div id="new-policy-message" class="hidden"><span id="create-policy-link" class="link">Create</span> a new policy.</div>
             <div id="override-policy-message" class="hidden"><span id="override-policy-link" class="link">Override</span> this policy.</div>
+            <div id="add-local-admin-message" class="hidden"><span id="add-local-admin-link" class="link">Add</span> policy for additional administrators.</div>
             <div class="clear"></div>
         </div>
         <div id="global-policy-controls" class="hidden policy-controls">
@@ -88,5 +89,7 @@
             Last updated:&nbsp;<span id="policy-last-refreshed" class="last-refreshed"></span>
         </div>
         <div id="policy-loading-container" class="loading-container"></div>
+        <div id="admin-policy-message" class="hidden">Only listing component specific administrators. Inherited administrators not shown.</div>
+        <div class="clear"></div>
     </div>
 </div>

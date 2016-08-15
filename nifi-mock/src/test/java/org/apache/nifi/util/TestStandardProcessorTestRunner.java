@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -108,6 +109,19 @@ public class TestStandardProcessorTestRunner {
 
         runner.run(1, true);
         runner.assertAllFlowFilesContainAttribute(AddAttributeProcessor.KEY);
+    }
+
+    @Test
+    public void testVariables() {
+        final AddAttributeProcessor proc = new AddAttributeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        assertNull(runner.getVariableValue("hello"));
+
+        runner.setVariable("hello", "world");
+        assertEquals("world", runner.getVariableValue("hello"));
+
+        assertEquals("world", runner.removeVariable("hello"));
+        assertNull(runner.getVariableValue("hello"));
     }
 
     private static class ProcessorWithOnStop extends AbstractProcessor {

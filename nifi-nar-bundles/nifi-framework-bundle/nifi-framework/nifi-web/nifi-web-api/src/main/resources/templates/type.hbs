@@ -43,7 +43,9 @@
                         {{/ifeq}}
                     </td>
                     <td>{{#required}}required{{/required}}{{^required}}optional{{/required}}</td>
-                    <td>{{#description}}{{{description}}}{{/description}}{{#if enum}} Allowable values: {{join enum ", "}}{{/if}}</td>
+                    <td>{{#description}}{{{description}}}{{/description}}
+                        {{#if enum}} Allowable values: {{join enum ", "}}{{/if}}
+                        {{#if readOnly}} This property is read only.{{/if}}</td>
                 </tr>
             {{/each}}
         </table>

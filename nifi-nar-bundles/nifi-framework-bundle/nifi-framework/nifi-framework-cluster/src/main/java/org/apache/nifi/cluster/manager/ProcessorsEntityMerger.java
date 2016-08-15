@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class ProcessorsEntityMerger {
 
+    private static final ProcessorEntityMerger processorEntityMerger = new ProcessorEntityMerger();
+
     /**
      * Merges multiple ProcessorEntity responses.
      *
@@ -32,7 +34,7 @@ public class ProcessorsEntityMerger {
      */
     public static void mergeProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, Map<NodeIdentifier, ProcessorEntity>> entityMap) {
         for (final ProcessorEntity entity : processorEntities) {
-            ProcessorEntityMerger.mergeProcessors(entity, entityMap.get(entity.getId()));
+            processorEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

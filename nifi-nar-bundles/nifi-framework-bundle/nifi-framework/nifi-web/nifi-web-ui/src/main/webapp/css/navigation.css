@@ -53,9 +53,9 @@
     margin-left: -1px;
 }
 
-#graph-controls .graph-control-icon {
-    font-size: 15px;
+.graph-control-header-icon.fa {
     color: #004849; /*link-color*/
+    margin-left: 7px !important;
 }
 
 div.graph-control {
@@ -64,8 +64,26 @@ div.graph-control {
     border-top: 1px solid #aabbc3;
     border-right: 1px solid #aabbc3;
     border-bottom: 1px solid #aabbc3;
-    padding: 10px;
     margin-bottom: 2px;
+}
+
+.graph-control-content {
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+}
+
+.docked {
+    height: 32px;
+    width: 32px;
+}
+
+div.graph-control-docked {
+    height: 100%;
+    width: 100%;
+    text-align: center;
+    line-height: 34px;
+    color: #004849;
 }
 
 .docked:hover {
@@ -92,12 +110,14 @@ div.graph-control button:disabled {
 }
 
 div.graph-control div.graph-control-expansion {
-    color: #004849; /*link-color*/
+    color: #728E9B;
+    line-height: 34px;
+    margin-left: 9px !important;
 }
 
 div.graph-control-header-icon {
     float: left;
-    padding: 0 5px 0 0;
+    margin: 8px 10px 0px 0px;
 }
 
 div.graph-control-header {
@@ -106,12 +126,17 @@ div.graph-control-header {
     font-family: 'Roboto Slab';
     color: #262626;
     letter-spacing: 0.05rem;
-    line-height: 15px;
+    margin: 10px 0px;
 }
 
 div.graph-control-header-action {
     float: right;
-    font-size: 15px;
+    height: 32px;
+    width: 32px;
+}
+
+.graph-control-header-container:hover {
+    background: linear-gradient(90deg, rgba(227,232,235,0) 254px, rgba(227,232,235,1) 32px);
 }
 
 /* navigate buttons */
@@ -210,7 +235,7 @@ div.button-spacer-large {
 }
 
 #birdseye {
-    width: 248px;
+    width: 264px;
     height: 150px;
     background: #fff;
     z-index: 1001;

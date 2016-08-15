@@ -31,13 +31,13 @@
                 Oldest event available:&nbsp;<span id="oldest-event" class="value-color"></span>
             </div>
             <div id="provenance-filter-container" class="filter-container">
-                <input type="text" id="provenance-filter" class="filter"/>
+                <input type="text" placeholder="Filter" id="provenance-filter" class="filter"/>
                 <div id="provenance-filter-type" class="filter-type"></div>
             </div>
         </div>
         <div id="provenance-search-container">
             <div id="provenance-search-overview">
-                <span id="provenance-query-message"></span>
+                <span id="provenance-query-message">&nbsp;</span>
                 <span id="clear-provenance-search" class="link">Clear search</span>
             </div>
             <button id="provenance-search-button" class="fa fa-search"></button>
@@ -57,9 +57,9 @@
         </div>
         <div id="provenance-lineage-close-container">
             <div id="provenance-lineage-downloader" class="hidden" title="Download"></div>
-            <div id="provenance-lineage-closer" title="Close"></div>
+            <div id="provenance-lineage-closer" class="fa fa-long-arrow-left" title="Go back to event list"></div>
         </div>
-        <div id="provenance-lineage-context-menu"></div>
+        <div id="provenance-lineage-context-menu" class="context-menu"></div>
         <div id="provenance-lineage-slider-container">
             <div id="provenance-lineage-slider"></div>
             <div id="event-timeline">

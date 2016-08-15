@@ -901,4 +901,35 @@ public interface TestRunner {
      * @param primaryNode Specify if this test emulates running as a primary node
      */
     void setPrimaryNode(boolean primaryNode);
+
+    /**
+     * Sets the value of the variable with the given name to be the given value. This exposes the variable
+     * for use by the Expression Language.
+     *
+     * @param name the name of the variable to set
+     * @param value the value of the variable
+     *
+     * @throws NullPointerException if either the name or the value is null
+     */
+    void setVariable(String name, String value);
+
+    /**
+     * Returns the current value of the variable with the given name
+     *
+     * @param name the name of the variable whose value should be returned.
+     * @return the current value of the variable with the given name or <code>null</code> if no value is currently set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String getVariableValue(String name);
+
+    /**
+     * Removes the variable with the given name from this Test Runner, if it is set.
+     *
+     * @param name the name of the variable to remove
+     * @return the value that was set for the variable, or <code>null</code> if the variable was not set
+     *
+     * @throws NullPointerException if the name is null
+     */
+    String removeVariable(String name);
 }

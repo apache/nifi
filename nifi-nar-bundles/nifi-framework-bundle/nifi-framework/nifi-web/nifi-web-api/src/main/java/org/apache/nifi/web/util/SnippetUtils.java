@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.web.util;
 
+
+
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.RequestAction;
@@ -36,8 +52,9 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.util.TypeOneUUIDGenerator;
+import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
+import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -46,6 +63,7 @@ import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
+import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -58,25 +76,14 @@ import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 /**
  * Template utilities.
  */
 public final class SnippetUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(SnippetUtils.class);
+
+    private static final SecureRandom randomGenerator = new SecureRandom();
 
     private FlowController flowController;
     private DtoFactory dtoFactory;
@@ -91,6 +98,7 @@ public final class SnippetUtils {
      * @param includeControllerServices whether or not to include controller services in the flow snippet dto
      * @return snippet
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
@@ -104,8 +112,8 @@ public final class SnippetUtils {
         final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         // add any processors
+        final Set<ProcessorDTO> processors = new LinkedHashSet<>();
         if (!snippet.getProcessors().isEmpty()) {
-            final Set<ProcessorDTO> processors = new LinkedHashSet<>();
             for (final String processorId : snippet.getProcessors().keySet()) {
                 final ProcessorNode processor = processGroup.getProcessor(processorId);
                 if (processor == null) {
@@ -117,15 +125,11 @@ public final class SnippetUtils {
                     controllerServices.addAll(getControllerServices(processor.getProperties()));
                 }
             }
-            this.normalizeCoordinates(processors);
-            snippetDto.setProcessors(processors);
         }
 
-
-
         // add any connections
+        final Set<ConnectionDTO> connections = new LinkedHashSet<>();
         if (!snippet.getConnections().isEmpty()) {
-            final Set<ConnectionDTO> connections = new LinkedHashSet<>();
             for (final String connectionId : snippet.getConnections().keySet()) {
                 final Connection connection = processGroup.getConnection(connectionId);
                 if (connection == null) {
@@ -133,12 +137,11 @@ public final class SnippetUtils {
                 }
                 connections.add(dtoFactory.createConnectionDto(connection));
             }
-            snippetDto.setConnections(connections);
         }
 
         // add any funnels
+        final Set<FunnelDTO> funnels = new LinkedHashSet<>();
         if (!snippet.getFunnels().isEmpty()) {
-            final Set<FunnelDTO> funnels = new LinkedHashSet<>();
             for (final String funnelId : snippet.getFunnels().keySet()) {
                 final Funnel funnel = processGroup.getFunnel(funnelId);
                 if (funnel == null) {
@@ -146,12 +149,11 @@ public final class SnippetUtils {
                 }
                 funnels.add(dtoFactory.createFunnelDto(funnel));
             }
-            snippetDto.setFunnels(funnels);
         }
 
         // add any input ports
+        final Set<PortDTO> inputPorts = new LinkedHashSet<>();
         if (!snippet.getInputPorts().isEmpty()) {
-            final Set<PortDTO> inputPorts = new LinkedHashSet<>();
             for (final String inputPortId : snippet.getInputPorts().keySet()) {
                 final Port inputPort = processGroup.getInputPort(inputPortId);
                 if (inputPort == null) {
@@ -159,12 +161,11 @@ public final class SnippetUtils {
                 }
                 inputPorts.add(dtoFactory.createPortDto(inputPort));
             }
-            snippetDto.setInputPorts(inputPorts);
         }
 
         // add any labels
+        final Set<LabelDTO> labels = new LinkedHashSet<>();
         if (!snippet.getLabels().isEmpty()) {
-            final Set<LabelDTO> labels = new LinkedHashSet<>();
             for (final String labelId : snippet.getLabels().keySet()) {
                 final Label label = processGroup.getLabel(labelId);
                 if (label == null) {
@@ -172,12 +173,11 @@ public final class SnippetUtils {
                 }
                 labels.add(dtoFactory.createLabelDto(label));
             }
-            snippetDto.setLabels(labels);
         }
 
         // add any output ports
+        final Set<PortDTO> outputPorts = new LinkedHashSet<>();
         if (!snippet.getOutputPorts().isEmpty()) {
-            final Set<PortDTO> outputPorts = new LinkedHashSet<>();
             for (final String outputPortId : snippet.getOutputPorts().keySet()) {
                 final Port outputPort = processGroup.getOutputPort(outputPortId);
                 if (outputPort == null) {
@@ -185,12 +185,11 @@ public final class SnippetUtils {
                 }
                 outputPorts.add(dtoFactory.createPortDto(outputPort));
             }
-            snippetDto.setOutputPorts(outputPorts);
         }
 
         // add any process groups
+        final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
         if (!snippet.getProcessGroups().isEmpty()) {
-            final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
             for (final String childGroupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
@@ -202,12 +201,11 @@ public final class SnippetUtils {
 
                 addControllerServices(childGroup, childGroupDto);
             }
-            snippetDto.setProcessGroups(processGroups);
         }
 
         // add any remote process groups
+        final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
         if (!snippet.getRemoteProcessGroups().isEmpty()) {
-            final Set<RemoteProcessGroupDTO> remoteProcessGroups = new LinkedHashSet<>();
             for (final String remoteProcessGroupId : snippet.getRemoteProcessGroups().keySet()) {
                 final RemoteProcessGroup remoteProcessGroup = processGroup.getRemoteProcessGroup(remoteProcessGroupId);
                 if (remoteProcessGroup == null) {
@@ -215,8 +213,28 @@ public final class SnippetUtils {
                 }
                 remoteProcessGroups.add(dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup));
             }
-            snippetDto.setRemoteProcessGroups(remoteProcessGroups);
         }
+
+        // Normalize the coordinates based on the locations of the other components
+        final List<? extends ComponentDTO> components = new ArrayList<>();
+        components.addAll((Set) processors);
+        components.addAll((Set) connections);
+        components.addAll((Set) funnels);
+        components.addAll((Set) inputPorts);
+        components.addAll((Set) labels);
+        components.addAll((Set) outputPorts);
+        components.addAll((Set) processGroups);
+        components.addAll((Set) remoteProcessGroups);
+        normalizeCoordinates(components);
+
+        snippetDto.setProcessors(processors);
+        snippetDto.setConnections(connections);
+        snippetDto.setFunnels(funnels);
+        snippetDto.setInputPorts(inputPorts);
+        snippetDto.setLabels(labels);
+        snippetDto.setOutputPorts(outputPorts);
+        snippetDto.setProcessGroups(processGroups);
+        snippetDto.setRemoteProcessGroups(remoteProcessGroups);
 
         snippetDto.setControllerServices(controllerServices);
 
@@ -612,6 +630,10 @@ public final class SnippetUtils {
      * @param idGenerationSeed id generation seed
      */
     private void cloneComponentSpecificPolicies(final Resource originalComponentResource, final Resource clonedComponentResource, final String idGenerationSeed) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         final Map<Resource, Resource> resources = new HashMap<>();
         resources.put(originalComponentResource, clonedComponentResource);
         resources.put(ResourceFactory.getDataResource(originalComponentResource), ResourceFactory.getDataResource(clonedComponentResource));
@@ -661,6 +683,10 @@ public final class SnippetUtils {
      * @param snippet snippet
      */
     public void rollbackClonedPolicies(final FlowSnippetDTO snippet) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         snippet.getControllerServices().forEach(controllerServiceDTO -> {
             rollbackClonedPolicy(ResourceFactory.getComponentResource(ResourceType.ControllerService, controllerServiceDTO.getId(), controllerServiceDTO.getName()));
         });
@@ -699,6 +725,10 @@ public final class SnippetUtils {
      * @param componentResource component resource
      */
     private void rollbackClonedPolicy(final Resource componentResource) {
+        if (!accessPolicyDAO.supportsConfigurableAuthorizer()) {
+            return;
+        }
+
         final List<Resource> resources = new ArrayList<>();
         resources.add(componentResource);
         resources.add(ResourceFactory.getDataResource(componentResource));
@@ -759,15 +789,44 @@ public final class SnippetUtils {
     }
 
     /**
-     * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
+     * Generates a new type 1 id (UUID) for the current id that is specified. If
+     * seed is provided, it will be incorporated into generation logic of the
+     * new ID.
+     * The contract of this method is as follows:
+     * - The 'currentId' must never be null and it must be String representation
+     *   of type-one UUID.
+     * - If seed is provided, the new ID will be generated from the 'msb' extracted from
+     *   the 'currentId' and the 'lsb' extracted from the UUID generated via
+     *   UUID.nameUUIDFromBytes(currentId + seed).
+     * - If seed is NOT provided and 'isCopy' flag is set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'. In this case
+     *   the new ID will always be > the previous ID essentially resulting in the new ID for
+     *   the component that being copied (e.g., copy/paste).
+     * - If seed is NOT provided and 'isCopy' flag is NOT set the new ID will be generated from
+     *   the 'msb' extracted from the 'currentId' and random integer as 'lsb'.
      */
     private String generateId(final String currentId, final String seed, boolean isCopy) {
         long msb = UUID.fromString(currentId).getMostSignificantBits();
-        int lsb = StringUtils.isBlank(seed)
-                ? Math.abs(new Random().nextInt())
-                : Math.abs(seed.hashCode());
 
-        return isCopy ? TypeOneUUIDGenerator.generateId(msb, lsb).toString() : new UUID(msb, lsb).toString();
+        UUID uuid;
+        if (StringUtils.isBlank(seed)) {
+            long lsb = randomGenerator.nextLong();
+            if (isCopy) {
+                uuid = ComponentIdGenerator.generateId(msb, lsb, true); // will increment msb if necessary
+            } else {
+                // since msb is extracted from type-one UUID, the type-one semantics will be preserved
+                uuid = new UUID(msb, lsb);
+            }
+        } else {
+            UUID seedId = UUID.nameUUIDFromBytes((currentId + seed).getBytes(StandardCharsets.UTF_8));
+            if (isCopy) {
+                // will ensure the type-one semantics for new UUID generated from msb extracted from seedId
+                uuid = ComponentIdGenerator.generateId(seedId.getMostSignificantBits(), seedId.getLeastSignificantBits(), false);
+            } else {
+                uuid = new UUID(msb, seedId.getLeastSignificantBits());
+            }
+        }
+        return uuid.toString();
     }
 
     /* setters */
@@ -784,28 +843,43 @@ public final class SnippetUtils {
     }
 
     /**
-     * Will normalize the coordinates of the processors to ensure their
+     * Will normalize the coordinates of the components to ensure their
      * consistency across exports. It will do so by fist calculating the
      * smallest X and smallest Y and then subtracting it from all X's and Y's of
-     * each processor ensuring that coordinates are consistent across export
+     * each component ensuring that coordinates are consistent across export
      * while preserving relative locations set by the user.
      */
-    private void normalizeCoordinates(Collection<ProcessorDTO> processors) {
+    private void normalizeCoordinates(Collection<? extends ComponentDTO> components) {
+        // determine the smallest x,y coordinates in the collection of components
         double smallestX = Double.MAX_VALUE;
         double smallestY = Double.MAX_VALUE;
-        for (ProcessorDTO processor : processors) {
-            double d = processor.getPosition().getX();
-            if (d < smallestX) {
-                smallestX = d;
-            }
-            d = processor.getPosition().getY();
-            if (d < smallestY) {
-                smallestY = d;
+        for (ComponentDTO component : components) {
+            // Connections don't have positions themselves but their bendpoints do, so we need
+            // to check those bend points for the smallest x,y coordinates
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    smallestX = Math.min(smallestX, position.getX());
+                    smallestY = Math.min(smallestY, position.getY());
+                }
+            } else {
+                smallestX = Math.min(smallestX, component.getPosition().getX());
+                smallestY = Math.min(smallestY, component.getPosition().getY());
             }
         }
-        for (ProcessorDTO processor : processors) {
-            processor.getPosition().setX(processor.getPosition().getX() - smallestX);
-            processor.getPosition().setY(processor.getPosition().getY() - smallestY);
+
+        // position the components accordingly
+        for (ComponentDTO component : components) {
+            if (component instanceof ConnectionDTO) {
+                final ConnectionDTO connection = (ConnectionDTO) component;
+                for (final PositionDTO position : connection.getBends()) {
+                    position.setX(position.getX() - smallestX);
+                    position.setY(position.getY() - smallestY);
+                }
+            } else {
+                component.getPosition().setX(component.getPosition().getX() - smallestX);
+                component.getPosition().setY(component.getPosition().getY() - smallestY);
+            }
         }
     }
 

@@ -23,23 +23,26 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.registry.VariableRegistry;
 
 public class StandardValidationContextFactory implements ValidationContextFactory {
 
     private final ControllerServiceProvider serviceProvider;
+    private final VariableRegistry variableRegistry;
 
-    public StandardValidationContextFactory(final ControllerServiceProvider serviceProvider) {
+    public StandardValidationContextFactory(final ControllerServiceProvider serviceProvider, final VariableRegistry variableRegistry) {
         this.serviceProvider = serviceProvider;
+        this.variableRegistry = variableRegistry;
     }
 
     @Override
     public ValidationContext newValidationContext(final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId, final String componentId) {
-        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId);
+        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId,variableRegistry);
     }
 
     @Override
     public ValidationContext newValidationContext(final Set<String> serviceIdentifiersToNotValidate,
             final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId, String componentId) {
-        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData, groupId, componentId);
+        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData, groupId, componentId,variableRegistry);
     }
 }

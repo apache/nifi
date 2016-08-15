@@ -55,11 +55,12 @@ class DocsReader {
         }
 
         final long start = System.nanoTime();
-        final int numDocs = Math.min(topDocs.scoreDocs.length, maxResults);
+        final ScoreDoc[] scoreDocs = topDocs.scoreDocs;
+        final int numDocs = Math.min(scoreDocs.length, maxResults);
         final List<Document> docs = new ArrayList<>(numDocs);
 
-        for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
-            final int docId = scoreDoc.doc;
+        for (int i = numDocs - 1; i >= 0; i--) {
+            final int docId = scoreDocs[i].doc;
             final Document d = indexReader.document(docId);
             docs.add(d);
         }

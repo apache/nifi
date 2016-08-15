@@ -149,7 +149,7 @@ public class ConnectionDTO extends ComponentDTO {
      * @return relationships that the source of the connection currently supports. This property is read only
      */
     @ApiModelProperty(
-            value = "The relationships that the source of the connection currently supports. This property is read only.",
+            value = "The relationships that the source of the connection currently supports.",
             readOnly = true
     )
     public Set<String> getAvailableRelationships() {
@@ -232,6 +232,6 @@ public class ConnectionDTO extends ComponentDTO {
 
     @Override
     public String toString() {
-        return "ConnectionDTO [name: " + name + " from " + source + " to " + destination + "]";
+        return "ConnectionDTO [id: " + getId() + "]";
     }
 }

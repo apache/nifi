@@ -148,4 +148,9 @@ public class Peer implements Communicant {
     public String getDistinguishedName() {
         return commsSession.getUserDn();
     }
+
+    @Override
+    public String createTransitUri(String sourceFlowFileIdentifier) {
+        return commsSession.createTransitUri(url, sourceFlowFileIdentifier);
+    }
 }

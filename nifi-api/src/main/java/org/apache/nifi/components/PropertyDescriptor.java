@@ -26,7 +26,7 @@ import java.util.Set;
 import org.apache.nifi.controller.ControllerService;
 
 /**
- * An immutable object for holding information about a type of processor
+ * An immutable object for holding information about a type of component
  * property.
  *
  */

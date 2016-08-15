@@ -142,7 +142,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/queue-listing.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/component-state-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
-        <div id="context-menu" class="unselectable"></div>
+        <div id="context-menu" class="context-menu unselectable"></div>
         <span id="nifi-content-viewer-url" class="hidden"></span>
     </body>
 </html>

@@ -32,6 +32,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     public static final String CONTROLLER_CONTROLLER_SERVICES_URI = "/nifi-api/controller/controller-services";
     public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
     public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}");
+    private final ControllerServiceEntityMerger controllerServiceEntityMerger = new ControllerServiceEntityMerger();
 
     @Override
     public boolean canHandle(URI uri, String method) {
@@ -53,6 +54,6 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     protected void mergeResponses(ControllerServiceEntity clientEntity, Map<NodeIdentifier, ControllerServiceEntity> entityMap,
                                   Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
 
-        ControllerServiceEntityMerger.mergeControllerServices(clientEntity, entityMap);
+        controllerServiceEntityMerger.merge(clientEntity, entityMap);
     }
 }

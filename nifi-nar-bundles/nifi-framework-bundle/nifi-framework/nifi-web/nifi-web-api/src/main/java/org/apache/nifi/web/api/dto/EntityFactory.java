@@ -19,13 +19,22 @@ package org.apache.nifi.web.api.dto;
 import org.apache.nifi.web.api.dto.flow.FlowBreadcrumbDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
+import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
+import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
@@ -33,13 +42,22 @@ import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.PortStatusEntity;
+import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
@@ -49,6 +67,88 @@ import java.util.List;
 
 public final class EntityFactory {
 
+    public StatusHistoryEntity createStatusHistoryEntity(final StatusHistoryDTO statusHistory, final PermissionsDTO permissions) {
+        final StatusHistoryEntity entity = new StatusHistoryEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setStatusHistory(statusHistory); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ProcessorStatusEntity createProcessorStatusEntity(final ProcessorStatusDTO status, final PermissionsDTO permissions) {
+        final ProcessorStatusEntity entity = new ProcessorStatusEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setProcessorStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ProcessorStatusSnapshotEntity createProcessorStatusSnapshotEntity(final ProcessorStatusSnapshotDTO status, final PermissionsDTO permissions) {
+        final ProcessorStatusSnapshotEntity entity = new ProcessorStatusSnapshotEntity();
+        entity.setId(status.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setProcessorStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatusEntity createConnectionStatusEntity(final ConnectionStatusDTO status, final PermissionsDTO permissions) {
+        final ConnectionStatusEntity entity = new ConnectionStatusEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ConnectionStatusSnapshotEntity createConnectionStatusSnapshotEntity(final ConnectionStatusSnapshotDTO status, final PermissionsDTO permissions) {
+        final ConnectionStatusSnapshotEntity entity = new ConnectionStatusSnapshotEntity();
+        entity.setId(status.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setConnectionStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ProcessGroupStatusEntity createProcessGroupStatusEntity(final ProcessGroupStatusDTO status, final PermissionsDTO permissions) {
+        final ProcessGroupStatusEntity entity = new ProcessGroupStatusEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setProcessGroupStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public ProcessGroupStatusSnapshotEntity createProcessGroupStatusSnapshotEntity(final ProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
+        final ProcessGroupStatusSnapshotEntity entity = new ProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public RemoteProcessGroupStatusEntity createRemoteProcessGroupStatusEntity(final RemoteProcessGroupStatusDTO status, final PermissionsDTO permissions) {
+        final RemoteProcessGroupStatusEntity entity = new RemoteProcessGroupStatusEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setRemoteProcessGroupStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public RemoteProcessGroupStatusSnapshotEntity createRemoteProcessGroupStatusSnapshotEntity(final RemoteProcessGroupStatusSnapshotDTO status, final PermissionsDTO permissions) {
+        final RemoteProcessGroupStatusSnapshotEntity entity = new RemoteProcessGroupStatusSnapshotEntity();
+        entity.setId(status.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setRemoteProcessGroupStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public PortStatusEntity createPortStatusEntity(final PortStatusDTO status, final PermissionsDTO permissions) {
+        final PortStatusEntity entity = new PortStatusEntity();
+        entity.setCanRead(permissions.getCanRead());
+        entity.setPortStatus(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
+    public PortStatusSnapshotEntity createPortStatusSnapshotEntity(final PortStatusSnapshotDTO status, final PermissionsDTO permissions) {
+        final PortStatusSnapshotEntity entity = new PortStatusSnapshotEntity();
+        entity.setId(status.getId());
+        entity.setCanRead(permissions.getCanRead());
+        entity.setPortStatusSnapshot(status); // always set the status, as it's always allowed... just need to provide permission context for merging responses
+        return entity;
+    }
+
     public ControllerConfigurationEntity createControllerConfigurationEntity(final ControllerConfigurationDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
         entity.setRevision(revision);
@@ -56,7 +156,7 @@ public final class EntityFactory {
         if (dto != null) {
             entity.setPermissions(permissions);
             if (permissions != null && permissions.getCanRead()) {
-                entity.setControllerConfiguration(dto);
+                entity.setComponent(dto);
             }
         }
         return entity;
@@ -107,9 +207,9 @@ public final class EntityFactory {
 
     public ProcessGroupEntity createProcessGroupEntity(final ProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                        final ProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
-
         final ProcessGroupEntity entity = new ProcessGroupEntity();
         entity.setRevision(revision);
+        entity.setCurrentTime(new Date());
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setStatus(status);
@@ -123,9 +223,9 @@ public final class EntityFactory {
             entity.setDisabledCount(dto.getDisabledCount());
             entity.setActiveRemotePortCount(dto.getActiveRemotePortCount());
             entity.setInactiveRemotePortCount(dto.getInactiveRemotePortCount());
+            entity.setBulletins(bulletins); // include bulletins as authorized descendant component bulletins should be available
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
-                entity.setBulletins(bulletins);
             }
         }
         return entity;
@@ -262,7 +362,6 @@ public final class EntityFactory {
 
     public RemoteProcessGroupEntity createRemoteProcessGroupEntity(final RemoteProcessGroupDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
                                                                    final RemoteProcessGroupStatusDTO status, final List<BulletinDTO> bulletins) {
-
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -332,7 +431,6 @@ public final class EntityFactory {
 
     public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(
         final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions) {
-
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -355,6 +453,13 @@ public final class EntityFactory {
                 entity.setBreadcrumb(dto);
             }
         }
+        return entity;
+    }
+
+    public AllowableValueEntity createAllowableValueEntity(final AllowableValueDTO dto, final boolean canRead) {
+        final AllowableValueEntity entity = new AllowableValueEntity();
+        entity.setCanRead(canRead);
+        entity.setAllowableValue(dto);
         return entity;
     }
 }

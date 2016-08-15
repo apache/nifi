@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ClusterCoordinationProtocolSender;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
@@ -105,7 +106,12 @@ public class ClusterCoordinationProtocolSenderListener implements ClusterCoordin
     }
 
     @Override
-    public void notifyNodeStatusChange(Set<NodeIdentifier> nodesToNotify, NodeStatusChangeMessage msg) {
+    public void notifyNodeStatusChange(final Set<NodeIdentifier> nodesToNotify, final NodeStatusChangeMessage msg) {
         sender.notifyNodeStatusChange(nodesToNotify, msg);
+    }
+
+    @Override
+    public NodeConnectionStatus requestNodeConnectionStatus(final String hostname, final int port) {
+        return sender.requestNodeConnectionStatus(hostname, port);
     }
 }

@@ -462,6 +462,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public List<Funnel> findAllFunnels() {
+        return null;
+    }
+
+    @Override
     public void removeFunnel(final Funnel funnel) {
 
     }

@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.IOException;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +32,6 @@ import java.util.Map;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
 
 import org.junit.Test;
 
@@ -59,7 +61,6 @@ public class TestTransformXml {
         original.assertContentEquals("not xml");
     }
 
-    @Ignore("this test fails")
     @Test
     public void testTransformMath() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
@@ -72,12 +73,11 @@ public class TestTransformXml {
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
-        final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.UTF_8);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
-        transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/math.html"));
+        transformed.assertContentEquals(expectedContent);
     }
 
-    @Ignore("this test fails")
     @Test
     public void testTransformCsv() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
@@ -108,9 +108,44 @@ public class TestTransformXml {
             runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
             final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
             final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
+            final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/tokens.xml")));
 
-            transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/tokens.xml"));
+            transformed.assertContentEquals(expectedContent);
         }
+    }
+
+    @Test
+    public void testTransformExpressionLanguage() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "${xslt.path}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("xslt.path", "src/test/resources/TestTransformXml/math.xsl");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
+    }
+
+    @Test
+    public void testTransformNoCache() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
+        runner.setProperty("header", "Test for mod");
+        runner.setProperty(TransformXml.CACHE_SIZE, "0");
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
+        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
+
+        transformed.assertContentEquals(expectedContent);
     }
 
 }

@@ -26,7 +26,7 @@
                     Displaying&nbsp;<span id="displayed-reporting-task-types"></span>&nbsp;of&nbsp;<span id="total-reporting-task-types"></span>
                 </div>
                 <div id="controller-service-type-filter-container">
-                    <input type="text" id="reporting-task-type-filter"/>
+                    <input type="text" id="reporting-task-type-filter" placeholder="Filter"/>
                 </div>
             </div>
         </div>

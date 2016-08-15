@@ -43,7 +43,6 @@ public class ConnectionResponse {
     private final List<NodeConnectionStatus> nodeStatuses;
     private final List<ComponentRevision> componentRevisions;
 
-    private volatile String coordinatorDN;
 
     public ConnectionResponse(final NodeIdentifier nodeIdentifier, final DataFlow dataFlow,
         final String instanceId, final List<NodeConnectionStatus> nodeStatuses, final List<ComponentRevision> componentRevisions) {
@@ -121,9 +120,6 @@ public class ConnectionResponse {
         return instanceId;
     }
 
-    public void setCoordinatorDN(final String dn) {
-        this.coordinatorDN = dn;
-    }
 
     public List<NodeConnectionStatus> getNodeConnectionStatuses() {
         return nodeStatuses;
@@ -131,13 +127,5 @@ public class ConnectionResponse {
 
     public List<ComponentRevision> getComponentRevisions() {
         return componentRevisions;
-    }
-
-    /**
-     * @return the DN of the Coordinator, if it is available or <code>null</code>
-     * otherwise
-     */
-    public String getCoordinatorDN() {
-        return coordinatorDN;
     }
 }

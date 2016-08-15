@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
@@ -33,6 +34,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -40,9 +42,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -61,6 +67,7 @@ public class TestFlowController {
     private StringEncryptor encryptor;
     private NiFiProperties properties;
     private BulletinRepository bulletinRepo;
+    private VariableRegistry variableRegistry;
 
     @Before
     public void setup() {
@@ -111,9 +118,10 @@ public class TestFlowController {
         policies1.add(policy2);
 
         authorizer = new MockPolicyBasedAuthorizer(groups1, users1, policies1);
+        variableRegistry = new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths());
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo,variableRegistry);
 
         standardFlowSynchronizer = new StandardFlowSynchronizer(StringEncryptor.createEncryptor());
     }
@@ -121,6 +129,104 @@ public class TestFlowController {
     @After
     public void cleanup() {
         controller.shutdown(true);
+    }
+
+    @Test
+    public void testSynchronizeFlowWithReportingTaskAndProcessorReferencingControllerService() throws IOException {
+        // create a mock proposed data flow with the same auth fingerprint as the current authorizer
+        final String authFingerprint = authorizer.getFingerprint();
+        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
+        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
+
+        final File flowFile = new File("src/test/resources/conf/reporting-task-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile));
+        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+
+        // should be two controller services
+        final Set<ControllerServiceNode> controllerServiceNodes = controller.getAllControllerServices();
+        assertNotNull(controllerServiceNodes);
+        assertEquals(2, controllerServiceNodes.size());
+
+        // find the controller service that was moved to the root group
+        final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
+        assertNotNull(rootGroupCs);
+
+        // find the controller service that was not moved to the root group
+        final ControllerServiceNode controllerCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() == null).findFirst().get();
+        assertNotNull(controllerCs);
+
+        // should be same class (not Ghost), different ids, and same properties
+        assertEquals(rootGroupCs.getCanonicalClassName(), controllerCs.getCanonicalClassName());
+        assertFalse(rootGroupCs.getCanonicalClassName().contains("Ghost"));
+        assertNotEquals(rootGroupCs.getIdentifier(), controllerCs.getIdentifier());
+        assertEquals(rootGroupCs.getProperties(), controllerCs.getProperties());
+
+        // should be one processor
+        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        assertNotNull(processorNodes);
+        assertEquals(1, processorNodes.size());
+
+        // verify the processor is still pointing at the controller service that got moved to the root group
+        final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
+        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+                .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
+                .map(e -> e.getKey())
+                .findFirst()
+                .get();
+        assertNotNull(procControllerServiceProp);
+
+        // should be one reporting task
+        final Set<ReportingTaskNode> reportingTaskNodes = controller.getAllReportingTasks();
+        assertNotNull(reportingTaskNodes);
+        assertEquals(1, reportingTaskNodes.size());
+
+        // verify that the reporting task is pointing at the controller service at the controller level
+        final ReportingTaskNode reportingTaskNode = reportingTaskNodes.stream().findFirst().get();
+        final PropertyDescriptor reportingTaskControllerServiceProp = reportingTaskNode.getProperties().entrySet().stream()
+                .filter(e -> e.getValue().equals(controllerCs.getIdentifier()))
+                .map(e -> e.getKey())
+                .findFirst()
+                .get();
+        assertNotNull(reportingTaskControllerServiceProp);
+    }
+
+    @Test
+    public void testSynchronizeFlowWithProcessorReferencingControllerService() throws IOException {
+        // create a mock proposed data flow with the same auth fingerprint as the current authorizer
+        final String authFingerprint = authorizer.getFingerprint();
+        final DataFlow proposedDataFlow = Mockito.mock(DataFlow.class);
+        when(proposedDataFlow.getAuthorizerFingerprint()).thenReturn(authFingerprint.getBytes(StandardCharsets.UTF_8));
+
+        final File flowFile = new File("src/test/resources/conf/processor-with-cs-flow-0.7.0.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile));
+        when(proposedDataFlow.getFlow()).thenReturn(flow.getBytes(StandardCharsets.UTF_8));
+
+        controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
+
+        // should be two controller services
+        final Set<ControllerServiceNode> controllerServiceNodes = controller.getAllControllerServices();
+        assertNotNull(controllerServiceNodes);
+        assertEquals(1, controllerServiceNodes.size());
+
+        // find the controller service that was moved to the root group
+        final ControllerServiceNode rootGroupCs = controllerServiceNodes.stream().filter(c -> c.getProcessGroup() != null).findFirst().get();
+        assertNotNull(rootGroupCs);
+
+        // should be one processor
+        final Set<ProcessorNode> processorNodes = controller.getGroup(controller.getRootGroupId()).getProcessors();
+        assertNotNull(processorNodes);
+        assertEquals(1, processorNodes.size());
+
+        // verify the processor is still pointing at the controller service that got moved to the root group
+        final ProcessorNode processorNode = processorNodes.stream().findFirst().get();
+        final PropertyDescriptor procControllerServiceProp = processorNode.getProperties().entrySet().stream()
+                .filter(e -> e.getValue().equals(rootGroupCs.getIdentifier()))
+                .map(e -> e.getKey())
+                .findFirst()
+                .get();
+        assertNotNull(procControllerServiceProp);
     }
 
     @Test
@@ -165,7 +271,7 @@ public class TestFlowController {
         assertNotEquals(authFingerprint, authorizer.getFingerprint());
 
         controller.shutdown(true);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, properties, authorizer, auditService, encryptor, bulletinRepo,variableRegistry);
         controller.synchronize(standardFlowSynchronizer, proposedDataFlow);
         assertEquals(authFingerprint, authorizer.getFingerprint());
     }

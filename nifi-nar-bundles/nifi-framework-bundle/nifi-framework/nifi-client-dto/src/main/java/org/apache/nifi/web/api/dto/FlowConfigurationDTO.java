@@ -29,6 +29,7 @@ import java.util.Date;
 @XmlType(name = "flowConfiguration")
 public class FlowConfigurationDTO {
 
+    private Boolean supportsConfigurableAuthorizer;
     private Long autoRefreshIntervalSeconds;
 
     private Date currentTime;
@@ -47,6 +48,21 @@ public class FlowConfigurationDTO {
 
     public void setAutoRefreshIntervalSeconds(Long autoRefreshIntervalSeconds) {
         this.autoRefreshIntervalSeconds = autoRefreshIntervalSeconds;
+    }
+
+    /**
+     * @return whether this NiFi supports a configurable authorizer. This value is read only
+     */
+    @ApiModelProperty(
+            value = "Whether this NiFi supports a configurable authorizer.",
+            readOnly = true
+    )
+    public Boolean getSupportsConfigurableAuthorizer() {
+        return supportsConfigurableAuthorizer;
+    }
+
+    public void setSupportsConfigurableAuthorizer(Boolean supportsConfigurableAuthorizer) {
+        this.supportsConfigurableAuthorizer = supportsConfigurableAuthorizer;
     }
 
     /**

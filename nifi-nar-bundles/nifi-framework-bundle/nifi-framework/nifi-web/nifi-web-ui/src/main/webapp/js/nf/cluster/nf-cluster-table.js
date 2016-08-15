@@ -25,10 +25,6 @@ nf.ClusterTable = (function () {
     var config = {
         primaryNode: 'Primary Node',
         clusterCoorindator: 'Cluster Coordinator',
-        filterText: 'Filter',
-        styles: {
-            filterList: 'cluster-filter-list'
-        },
         urls: {
             cluster: '../nifi-api/controller/cluster',
             nodes: '../nifi-api/controller/cluster/nodes'
@@ -244,12 +240,7 @@ nf.ClusterTable = (function () {
      * accounts for that.
      */
     var getFilterText = function () {
-        var filterText = '';
-        var filterField = $('#cluster-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#cluster-filter').val();
     };
 
     /**
@@ -365,15 +356,7 @@ nf.ClusterTable = (function () {
             // define the function for filtering the list
             $('#cluster-filter').keyup(function () {
                 applyFilter();
-            }).focus(function () {
-                if ($(this).hasClass(config.styles.filterList)) {
-                    $(this).removeClass(config.styles.filterList).val('');
-                }
-            }).blur(function () {
-                if ($(this).val() === '') {
-                    $(this).addClass(config.styles.filterList).val(config.filterText);
-                }
-            }).addClass(config.styles.filterList).val(config.filterText);
+            });
 
             // filter type
             $('#cluster-filter-type').combo({

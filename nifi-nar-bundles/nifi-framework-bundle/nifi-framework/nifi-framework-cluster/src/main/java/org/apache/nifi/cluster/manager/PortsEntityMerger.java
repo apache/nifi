@@ -24,6 +24,8 @@ import java.util.Set;
 
 public class PortsEntityMerger {
 
+    private static final PortEntityMerger portEntityMerger = new PortEntityMerger();
+
     /**
      * Merges multiple PortEntity responses.
      *
@@ -32,7 +34,7 @@ public class PortsEntityMerger {
      */
     public static void mergePorts(final Set<PortEntity> portEntities, final Map<String, Map<NodeIdentifier, PortEntity>> entityMap) {
         for (final PortEntity entity : portEntities) {
-            PortEntityMerger.mergePorts(entity, entityMap.get(entity.getId()));
+            portEntityMerger.merge(entity, entityMap.get(entity.getId()));
         }
     }
 }

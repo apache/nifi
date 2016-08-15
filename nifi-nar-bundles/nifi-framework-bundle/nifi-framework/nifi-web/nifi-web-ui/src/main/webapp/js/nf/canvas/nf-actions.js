@@ -57,12 +57,10 @@ nf.Actions = (function () {
             dataType: 'json',
             contentType: 'application/json'
         }).fail(function (xhr, status, error) {
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                nf.Dialog.showOkDialog({
-                    headerText: 'Update Resource',
-                    dialogContent: nf.Common.escapeHtml(xhr.responseText)
-                });
-            }
+            nf.Dialog.showOkDialog({
+                headerText: 'Update Resource',
+                dialogContent: nf.Common.escapeHtml(xhr.responseText)
+            });
         });
     };
 
@@ -1152,16 +1150,13 @@ nf.Actions = (function () {
                 return;
             }
 
-            // ensure the selected components are eligible being moved into a new group
-            $.when(nf.CanvasUtils.eligibleForMove(selection)).done(function () {
-                // determine the origin of the bounding box for the selected components
-                var origin = nf.CanvasUtils.getOrigin(selection);
+            // determine the origin of the bounding box for the selected components
+            var origin = nf.CanvasUtils.getOrigin(selection);
 
-                var pt = {'x': origin.x, 'y': origin.y};
-                $.when(nf.ng.Bridge.injector.get('groupComponent').promptForGroupName(pt)).done(function (processGroup) {
-                    var group = d3.select('#id-' + processGroup.id);
-                    nf.CanvasUtils.moveComponents(selection, group);
-                });
+            var pt = {'x': origin.x, 'y': origin.y};
+            $.when(nf.ng.Bridge.injector.get('groupComponent').promptForGroupName(pt)).done(function (processGroup) {
+                var group = d3.select('#id-' + processGroup.id);
+                nf.CanvasUtils.moveComponents(selection, group);
             });
         },
 

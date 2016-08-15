@@ -56,20 +56,8 @@ nf.ClusterSearch = (function () {
                             }).done(function (response) {
                                 var searchResults = response.nodeResults;
 
-                                // ensure the search found some results
-                                if (!$.isArray(searchResults) || searchResults.length === 0) {
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'Cluster Search',
-                                        dialogContent: 'No nodes match \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
-                                    });
-                                } else if (searchResults.length > 1) {
-                                    nf.Dialog.showOkDialog({
-                                        headerText: 'Cluster Search',
-                                        dialogContent: 'More than one node matches \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
-                                    });
-                                } else if (searchResults.length === 1) {
-                                    var node = searchResults[0];
-
+                                // selects the specified node
+                                var selectNode = function (node) {
                                     // update the urls to point to this specific node of the cluster
                                     nf.SummaryTable.setClusterNodeId(node.id);
 
@@ -78,6 +66,38 @@ nf.ClusterSearch = (function () {
 
                                     // update the header
                                     $('#summary-header-text').text(node.address + ' Summary');
+                                };
+
+                                // ensure the search found some results
+                                if (!$.isArray(searchResults) || searchResults.length === 0) {
+                                    nf.Dialog.showOkDialog({
+                                        headerText: 'Cluster Search',
+                                        dialogContent: 'No nodes match \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                    });
+                                } else if (searchResults.length > 1) {
+                                    var exactMatch = false;
+
+                                    // look for an exact match
+                                    $.each(searchResults, function (_, result) {
+                                        if (result.address === clusterSearchTerm) {
+                                            selectNode(result);
+                                            exactMatch = true;
+                                            return false;
+                                        }
+                                    });
+
+                                    // if there is an exact match, use it
+                                    if (exactMatch) {
+                                        // close the dialog
+                                        $('#view-single-node-dialog').modal('hide');
+                                    } else {
+                                        nf.Dialog.showOkDialog({
+                                            headerText: 'Cluster Search',
+                                            dialogContent: 'More than one node matches \'' + nf.Common.escapeHtml(clusterSearchTerm) + '\'.'
+                                        });
+                                    }
+                                } else if (searchResults.length === 1) {
+                                    selectNode(searchResults[0]);
 
                                     // close the dialog
                                     $('#view-single-node-dialog').modal('hide');
@@ -103,13 +123,16 @@ nf.ClusterSearch = (function () {
                 handler: {
                     close: function () {
                         // reset the search field
-                        $('#cluster-search-field').val(config.search).addClass('search-nodes');
+                        $('#cluster-search-field').val(config.search).addClass('search-nodes').clusterSearchAutocomplete('reset');
                     }
                 }
             });
 
             // configure the cluster auto complete
             $.widget('nf.clusterSearchAutocomplete', $.ui.autocomplete, {
+                reset: function () {
+                    this.term = null;
+                },
                 _normalize: function (searchResults) {
                     var items = [];
                     items.push(searchResults);
@@ -134,7 +157,7 @@ nf.ClusterSearch = (function () {
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
-                    ul.width(299);
+                    ul.width($('#cluster-search-field').width() + 6);
                 }
             });
 
@@ -171,6 +194,7 @@ nf.ClusterSearch = (function () {
             $('#view-single-node-link').click(function () {
                 // hold the search nodes dialog
                 $('#view-single-node-dialog').modal('show');
+                $('#cluster-search-field').focus();
             });
 
             // handle the view cluster click event

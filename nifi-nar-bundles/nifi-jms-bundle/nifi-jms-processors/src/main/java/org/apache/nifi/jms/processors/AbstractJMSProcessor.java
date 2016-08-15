@@ -69,6 +69,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
             .description("The name of the JMS Destination. Usually provided by the administrator (e.g., 'topic://myTopic').")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     static final PropertyDescriptor DESTINATION_TYPE = new PropertyDescriptor.Builder()
             .name("Destination Type")
@@ -198,7 +199,7 @@ abstract class AbstractJMSProcessor<T extends JMSWorker> extends AbstractProcess
 
             JmsTemplate jmsTemplate = new JmsTemplate();
             jmsTemplate.setConnectionFactory(this.cachingConnectionFactory);
-            jmsTemplate.setDefaultDestinationName(context.getProperty(DESTINATION).getValue());
+            jmsTemplate.setDefaultDestinationName(context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue());
             jmsTemplate.setPubSubDomain(TOPIC.equals(context.getProperty(DESTINATION_TYPE).getValue()));
 
             // set of properties that may be good candidates for exposure via configuration

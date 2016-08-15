@@ -26,7 +26,7 @@ All data in Apache NiFi is represented by an abstraction called a FlowFile.
 A FlowFile is comprised of two major pieces: content and attributes.
 The content portion of the FlowFile represents the data on which to operate.
 For instance, if a file is picked up from a local file system using the
-GetFile Processor, the contents of the file will become the contents of the 
+GetFile Processor, the contents of the file will become the contents of the
 FlowFile.
 
 The attributes portion of the FlowFile represents information about the data
@@ -71,7 +71,7 @@ by the Expression Language to achieve many different goals. Some functions provi
 manipulation, such as the `toUpper` function. Others, such as the `equals` and `matches` functions,
 provide comparison functionality. Functions also exist for manipulating dates and times and
 for performing mathematical operations. Each of these functions is described below, in the
-<<functions>> section, with an explanation of what the function does, the arguments that it 
+<<functions>> section, with an explanation of what the function does, the arguments that it
 requires, and the type of information that it returns.
 
 When we perform a function call on an attribute, as above, we refer to the attribute as the
@@ -117,12 +117,12 @@ the Expression Language will return a `null` value.
 
 There also exist some functions that expect to have no subject. These functions are invoked simply
 by calling the function at the beginning of the Expression, such as `${hostname()}`. These functions
-can then be changed together, as well. For example, `${hostname():toUpper()}`. Attempting to 
+can then be changed together, as well. For example, `${hostname():toUpper()}`. Attempting to
 evaluate the function with subject will result in an error. In the <<functions>>
 section below, these functions will clearly indicate in their descriptions that they do not
 require a subject.
 
-Often times, we will need to compare the values of two different attributes to each other. 
+Often times, we will need to compare the values of two different attributes to each other.
 We are able to accomplish this by using embedded Expressions. We can, for example, check if
 the ``filename'' attribute is the same as the ``uuid'' attribute: `${filename:equals( ${uuid} )}`.
 Notice here, also, that we have a space between the opening parenthesis for the `equals` method and
@@ -176,9 +176,9 @@ it with the mouse or using the arrow keys to highlight the desired function and 
 == Functions
 
 Functions provide a convenient way to manipulate and compare values of attributes. The Expression Language
-provides many different functions to meet the needs of a automated dataflow. Each function takes 
+provides many different functions to meet the needs of a automated dataflow. Each function takes
 zero or more arguments and returns a single value. These functions can then be chained together to create
-powerful Expressions to evaluate conditions and manipulate values. See <<structure>> for more information 
+powerful Expressions to evaluate conditions and manipulate values. See <<structure>> for more information
 on how to call and chain functions together.
 
 [[types]]
@@ -189,7 +189,7 @@ Language supports four different data types:
 
 - *String*: A String is a sequence of characters that can consist of numbers, letters, white space, and
 	special characters.
-- *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language 
+- *Number*: A Number is an integer comprised of one or more digits (`0` through `9`). The Expression Language
 	does not provide support for fractional numbers. When converting to numbers from Date data types, they are represented as
 	the number of milliseconds since midnight GMT on January 1, 1970.
 - *Date*: A Date is an object that holds a Date and Time. Utilizing the <<dates>> and <<type_cast>> functions this data
@@ -201,8 +201,8 @@ Language supports four different data types:
 All attributes are considered to be of type String.
 
 The Expression Language is generally able to automatically coerce a value of one data type to the appropriate
-data type for a function. However, functions do exist to manually coerce a value into a specific data type. 
-See the <<type_cast>> section for more information. 
+data type for a function. However, functions do exist to manually coerce a value into a specific data type.
+See the <<type_cast>> section for more information.
 
 
 
@@ -214,7 +214,7 @@ See the <<type_cast>> section for more information.
 
 One of the most powerful features of the Expression Language is the ability to compare an attribute value against
 some other value. This is used often, for example, to configure how a Processor should route data. The following
-functions are used for performing boolean logic, such as comparing two values. 
+functions are used for performing boolean logic, such as comparing two values.
 Each of these functions returns a value of type Boolean.
 
 
@@ -229,7 +229,7 @@ if an attribute exists.#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*:	`${filename:isNull()}` returns `true` if the "filename" attribute does not exist. 
+*Examples*:	`${filename:isNull()}` returns `true` if the "filename" attribute does not exist.
 	It returns `false` if the attribute exists.
 
 
@@ -238,7 +238,7 @@ if an attribute exists.#
 === notNull
 *Description*: [.description]#The `notNull` function returns the opposite value of the `isNull` function. That is, it will return `true` if the
 subject exists and `false` otherwise.#
-	
+
 *Subject Type*: [.subject]#Any#
 
 *Arguments*: No arguments
@@ -263,8 +263,8 @@ subject exists and `false` otherwise.#
 
 *Examples*: `${filename:isEmpty()}` returns `true` if the "filename" attribute does not exist or contains only
 	white space.
-	
-	
+
+
 
 
 [.function]
@@ -275,12 +275,12 @@ subject exists and `false` otherwise.#
 	Note that the `equals` function performs a direct comparison of two String values. Take care not to confuse this
 	function with the <<matches>> function, which evaluates its subject against a Regular Expression.#
 
-[.subject]	
+[.subject]
 *Subject Type*: [.subject]#Any#
 
 [.arguments]
 *Arguments*:
-	
+
 	- [.argName]#_value_# : [.argDesc]#The value to compare the Subject to. Must be same type as the Subject.#
 
 [.returnType]
@@ -307,7 +307,7 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: `${filename:equalsIgnoreCase('hello.txt')}` will evaluate to `true` if filename is equal to "hello.txt" 
+*Examples*: `${filename:equalsIgnoreCase('hello.txt')}` will evaluate to `true` if filename is equal to "hello.txt"
 	or "HELLO.TXT" or "HeLLo.TxT".
 
 
@@ -315,8 +315,8 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 [.function]
 === gt
-*Description*: [.description]#The `gt` function is used for numeric comparison and returns `true` if the subject is Greater Than 
-	its argument. If either the subject or the argument cannot be coerced into a Number, 
+*Description*: [.description]#The `gt` function is used for numeric comparison and returns `true` if the subject is Greater Than
+	its argument. If either the subject or the argument cannot be coerced into a Number,
 	this function returns `false`.#
 
 *Subject Type*: [.subject]#Number#
@@ -335,8 +335,8 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 [.function]
 === ge
-*Description*: [.description]#The `ge` function is used for numeric comparison and returns `true` if the subject is Greater Than 
-	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number, 
+*Description*: [.description]#The `ge` function is used for numeric comparison and returns `true` if the subject is Greater Than
+	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number,
 	this function returns `false`.#
 
 *Subject Type*: [.subject]#Number#
@@ -354,8 +354,8 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 [.function]
 === lt
-*Description*: [.description]#The `lt` function is used for numeric comparison and returns `true` if the subject is Less Than 
-	its argument. If either the subject or the argument cannot be coerced into a Number, 
+*Description*: [.description]#The `lt` function is used for numeric comparison and returns `true` if the subject is Less Than
+	its argument. If either the subject or the argument cannot be coerced into a Number,
 	this function returns `false`.#
 
 *Subject Type*: [.subject]#Number#
@@ -374,8 +374,8 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 [.function]
 === le
-*Description*: [.description]#The `le` function is used for numeric comparison and returns `true` if the subject is Less Than 
-	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number, 
+*Description*: [.description]#The `le` function is used for numeric comparison and returns `true` if the subject is Less Than
+	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number,
 	this function returns `false`.#
 
 *Subject Type*: [.subject]#Number#
@@ -461,7 +461,7 @@ ${filename:toLower():equals( ${filename} ):or(
 *Return Type*: [.returnType]#Boolean#
 
 [.examples]
-*Examples*: We can invert the value of another function by using the `not` function, as 
+*Examples*: We can invert the value of another function by using the `not` function, as
 	`${filename:equals('hello.txt'):not()}`. This will return `true` if the filename is NOT equal to
 	"hello.txt" and will return `false` if the filename is "hello.txt."
 
@@ -491,7 +491,7 @@ Each of the following functions manipulates a String in some way.
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: If the "filename" attribute is "abc123.txt", then the Expression `${filename:toUpper()}` 
+*Examples*: If the "filename" attribute is "abc123.txt", then the Expression `${filename:toUpper()}`
 	will return "ABC123.TXT"
 
 
@@ -534,49 +534,10 @@ Each of the following functions manipulates a String in some way.
 
 
 
-
-[.function]
-=== urlEncode
-
-*Description*: [.description]#Returns a URL-friendly version of the Subject. This is useful, for instance, when using an
-	attribute value to indicate the URL of a website.#
-
-*Subject Type*: [.subject]#String#
-
-*Arguments*: No arguments
-
-*Return Type*: [.returnType]#String#
-
-*Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
-	the value of the "url" attribute is "https://nifi.apache.org/some value with spaces", this
-	Expression will then return "https://nifi.apache.org/some%20value%20with%20spaces".
-
-
-
-
-[.function]
-=== urlDecode
-
-*Description*: [.description]#Converts a URL-friendly version of the Subject into a human-readable form.#
-
-*Subject Type*: [.subject]#String#
-
-*Arguments*: No arguments
-
-*Return Type*: [.returnType]#String#
-
-*Examples*: If we have a URL-Encoded attribute named "url" with the value 
-	"https://nifi.apache.org/some%20value%20with%20spaces", then the Expression
-	`${url:urlDecode()}` will return "https://nifi.apache.org/some value with spaces".
-
-
-
-
-
 [.function]
 === substring
 
-*Description*: 
+*Description*:
 [.description]#Returns a portion of the Subject, given a _starting index_ and an optional _ending index_.
 	If the _ending index_ is not supplied, it will return the portion of the Subject starting at the given
 	'start index' and ending at the end of the Subject value.#
@@ -595,14 +556,14 @@ Each of the following functions manipulates a String in some way.
 
 *Subject Type*: [.subject]#String#
 
-*Arguments*: 
+*Arguments*:
 
 	- [.argName]#_starting index_# : [.argDesc]#The 0-based index of the first character to capture (inclusive)#
 	- [.argName]#_ending index_# : [.argDesc]#The 0-based index of the last character to capture (exclusive)#
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: 
+*Examples*:
 
 If we have an attribute named "filename" with the value "a brand new filename.txt",
 then the following Expressions will result in the following values:
@@ -636,7 +597,7 @@ then the following Expressions will result in the following values:
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
-	
+
 .SubstringBefore Examples
 |======================================================================
 | Expression | Value
@@ -667,7 +628,7 @@ then the following Expressions will result in the following values:
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
-	
+
 .SubstringBeforeLast Examples
 |==========================================================================
 | Expression | Value
@@ -699,7 +660,7 @@ then the following Expressions will result in the following values:
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
-	
+
 .SubstringAfter Examples
 |======================================================================
 | Expression | Value
@@ -730,7 +691,7 @@ then the following Expressions will result in the following values:
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
-	
+
 .SubstringAfterLast Examples
 |=========================================================================
 | Expression | Value
@@ -753,9 +714,9 @@ then the following Expressions will result in the following values:
 
 *Arguments*:
 
-	- [.argName]#_index_# : [.argDesc]#The index of the field to return. A value of 1 will return the first field, 
+	- [.argName]#_index_# : [.argDesc]#The index of the field to return. A value of 1 will return the first field,
 		a value of 2 will return the second field, and so on.#
-	- [.argName]#_delimiter_# : [.argDesc]#Optional argument that provides the character to use as a field separator. 
+	- [.argName]#_delimiter_# : [.argDesc]#Optional argument that provides the character to use as a field separator.
 		If not specified, a comma will be used. This value must be exactly 1 character.#
 	- [.argName]#_quoteChar_# : [.argDesc]#Optional argument that provides the character that can be used to quote values
 		so that the delimiter can be used within a single field. If not specified, a double-quote (") will be used. This value
@@ -945,7 +906,7 @@ Expressions will provide the following results:
 *Return Type*: [.returnType]#Type of Subject if Subject is not null; else, type of Argument#
 
 *Examples*: If the attribute "filename" has the value "a brand new filename.txt" and the attribute
-	"hello" does not exist, then the Expression `${filename:replaceNull('abc')}` will return 
+	"hello" does not exist, then the Expression `${filename:replaceNull('abc')}` will return
 	"a brand new filename.txt", while `${hello:replaceNull('abc')}` will return "abc".
 
 
@@ -967,7 +928,7 @@ Expressions will provide the following results:
 *Return Type*: [.returnType]#String#
 
 *Examples*: If the attribute "filename" has the value "a brand new filename.txt" and the attribute
-	"hello" has the value "  ", then the Expression `${filename:replaceEmpty('abc')}` will return 
+	"hello" has the value "  ", then the Expression `${filename:replaceEmpty('abc')}` will return
 	"a brand new filename.txt", while `${hello:replaceEmpty('abc')}` will return "abc".
 
 
@@ -992,6 +953,229 @@ Expressions will provide the following results:
 
 
 
+
+[[encode]]
+== Encode/Decode Functions
+
+Each of the following functions will encode a string according the rules of the given data format.
+
+
+
+
+[.function]
+=== escapeJson
+
+*Description*: [.description]#This function prepares the Subject to be inserted into JSON document by escaping the characters
+        in the String using Json String rules. The function correctly escapes quotes and control-chars (tab, backslash,
+        cr, ff, etc.)#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is 'He didn't say, "Stop!"', then the Expression `${message:escapeJson()}`
+        will return 'He didn't say, \"Stop!\"'
+
+
+
+
+[.function]
+=== escapeXml
+
+*Description*: [.description]#This function prepares the Subject to be inserted into XML document by escaping the characters
+        in a String using XML entities. The function correctly escapes quotes, apostrophe, ampersand, <, > and
+        control-chars.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '"bread" & "butter"', then the Expression `${message:escapeXml()}`
+        will return '&quot;bread&quot; &amp; &quot;butter&quot;'
+
+
+
+
+[.function]
+=== escapeCsv
+
+*Description*: [.description]#This function prepares the Subject to be inserted into CSV document by escaping the characters
+        in a String using the rules in RFC 4180. The function correctly escapes quotes and surround the string in quotes if needed.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is 'But finally, she left', then the Expression `${message:escapeCsv()}`
+        will return '"But finally, she left"'
+
+
+
+
+[.function]
+=== escapeHtml3
+
+*Description*: [.description]#This function prepares the Subject to be inserted into HTML document by escaping the characters
+        in a String using the HTML entities. Supports only the HTML 3.0 entities.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '"bread" & "butter"', then the Expression `${message:escapeHtml3()}`
+        will return '&quot;bread&quot; &amp; &quot;butter&quot;'
+
+
+
+
+[.function]
+=== escapeHtml4
+
+*Description*: [.description]#This function prepares the Subject to be inserted into HTML document by escaping the characters
+        in a String using the HTML entities. Supports all known HTML 4.0 entities.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '"bread" & "butter"', then the Expression `${message:escapeHtml4()}`
+        will return '&quot;bread&quot; &amp; &quot;butter&quot;'
+
+
+
+
+[.function]
+=== unescapeJson
+
+*Description*: [.description]#This function unescapes any Json literals found in the String.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is 'He didn't say, \"Stop!\"', then the Expression `${message:unescapeJson()}`
+        will return 'He didn't say, "Stop!"'
+
+
+
+
+[.function]
+=== unescapeXml
+
+*Description*: [.description]#This function unescapes a string containing XML entity escapes to a string containing the
+        actual Unicode characters corresponding to the escapes. Supports only the five basic XML entities (gt, lt,
+        quot, amp, apos).#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '&quot;bread&quot; &amp; &quot;butter&quot;', then the Expression `${message:unescapeXml()}`
+        will return '"bread" & "butter"'
+
+
+
+
+[.function]
+=== unescapeCsv
+
+*Description*: [.description]#This function unescapes a String from a CSV document according to the rules of RFC 4180.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '"But finally, she left"', then the Expression `${message:unescapeCsv()}`
+        will return 'But finally, she left'
+
+
+
+
+[.function]
+=== unescapeHtml3
+
+*Description*: [.description]#This function unescapes a string containing HTML 3 entity to a string containing the
+        actual Unicode characters corresponding to the escapes. Supports only HTML 3.0 entities.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '&quot;bread&quot; &amp; &quot;butter&quot;', then the Expression `${message:unescapeHtml3()}`
+        will return '"bread" & "butter"'
+
+
+
+
+[.function]
+=== unescapeHtml4
+
+*Description*: [.description]#This function unescapes a string containing HTML 4 entity to a string containing the
+        actual Unicode characters corresponding to the escapes. Supports all known HTML 4.0 entities.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "message" attribute is '&quot;bread&quot; &amp; &quot;butter&quot;', then the Expression `${message:unescapeHtml4()}`
+        will return '"bread" & "butter"'
+
+
+
+
+[.function]
+=== urlEncode
+
+*Description*: [.description]#Returns a URL-friendly version of the Subject. This is useful, for instance, when using an
+	attribute value to indicate the URL of a website.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
+	the value of the "url" attribute is "https://nifi.apache.org/some value with spaces", this
+	Expression will then return "https://nifi.apache.org/some%20value%20with%20spaces".
+
+
+
+
+[.function]
+=== urlDecode
+
+*Description*: [.description]#Converts a URL-friendly version of the Subject into a human-readable form.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If we have a URL-Encoded attribute named "url" with the value
+	"https://nifi.apache.org/some%20value%20with%20spaces", then the Expression
+	`${url:urlDecode()}` will return "https://nifi.apache.org/some value with spaces".
 
 
 
@@ -1103,7 +1287,7 @@ Each of the following functions is used to search its subject for some value.
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: 
+*Examples*:
 
 If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
@@ -1128,13 +1312,13 @@ Expressions will provide the following results:
 
 *Subject Type*: [.subject]#String#
 
-*Arguments*: 
+*Arguments*:
 
 	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in the Java Pattern syntax) to match against the Subject#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: 
+*Examples*:
 
 If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
@@ -1271,7 +1455,7 @@ Expressions will provide the following results:
 | `${myJson:jsonPath('$.bad-json-path..')}` | _exception bulletin_
 |===================================================================
 
-An empty subject value or a subject value with an invalid JSON document results in an exception bulletin. 
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
 
 [[numbers]]
 == Mathematical Operations and Numeric Manipulation
@@ -1395,7 +1579,7 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Examples*: If the "fileSize" attributes has a value of 1024, then the following Expressions will yield
 	the following results:
-	
+
 
 .toRadix Examples
 |=======================================================================================
@@ -1445,7 +1629,7 @@ An empty subject value or a subject value with an invalid JSON document results 
 
 *Examples*: If the attribute "time" has the value "1420058163264", then the following Expressions will yield
 	the following results:
-	
+
 .format Examples
 |============================================================================
 | Expression | Value
@@ -1469,7 +1653,7 @@ An empty subject value or a subject value with an invalid JSON document results 
 *Subject Type*: [.subject]#String#
 
 *Arguments*:
-	
+
 		- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java SimpleDateFormat syntax.#
 
 
@@ -1479,7 +1663,7 @@ An empty subject value or a subject value with an invalid JSON document results 
 	then the Expression `${year:toDate('yyyy')}` will return a Date data type with a value representing Midnight GMT on
 	January 1, 2014. The Expression `${time:toDate("yyyy/MM/dd HH:mm:ss.SSS'Z'")}` will result in a Date data type for
 	15:36:03.264 GMT on December 31, 2014.
-	
+
 Often, this function is used in conjunction with the <<format>> function to change the format of a date/time. For example,
 if the attribute "date" has the value "12-24-2014" and we want to change the format to "2014/12/24", we can do so by
 chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/MM/dd')}`.
@@ -1633,10 +1817,10 @@ an error when validating the function.
 [.function]
 === nextInt
 
-*Description*: [.description]#Returns a one-up value (starting at 0) and increasing over the lifetime of the running instance of NiFi. 
-	This value is not persisted across restarts and is not guaranteed to be unique across a cluster. 
-	This value is considered "one-up" in that if called multiple times across the NiFi instance, the values will be sequential. 
-	However, this counter is shared across all NiFi components, so calling this function multiple times from one Processor will 
+*Description*: [.description]#Returns a one-up value (starting at 0) and increasing over the lifetime of the running instance of NiFi.
+	This value is not persisted across restarts and is not guaranteed to be unique across a cluster.
+	This value is considered "one-up" in that if called multiple times across the NiFi instance, the values will be sequential.
+	However, this counter is shared across all NiFi components, so calling this function multiple times from one Processor will
 	not guarantee sequential values within the context of a particular Processor.#
 
 *Subject Type*: [.subjectless]#No Subject#
@@ -1645,7 +1829,7 @@ an error when validating the function.
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: If the previous value returned by `nextInt` was `5`, the Expression `${nextInt():divide(2)}` obtains the next available 
+*Examples*: If the previous value returned by `nextInt` was `5`, the Expression `${nextInt():divide(2)}` obtains the next available
 	integer (6) and divides the result by 2, returning a value of `3`.
 
 
@@ -1656,25 +1840,25 @@ an error when validating the function.
 *Description*: [.description]#Returns its argument as a literal String value. This is useful in order to treat a string or a number
 	at the beginning of an Expression as an actual value, rather than treating it as an attribute name. Additionally, it
 	can be used when the argument is an embedded Expression that we would then like to evaluate additional functions against.#
-	
+
 *Subject Type*: [.subjectless]#No Subject#
 
-*Arguments*: 
+*Arguments*:
 
 	- [.argName]#_value_# : [.argDesc]#The value to be treated as a literal string, number, or boolean value.#
-	
+
 *Return Type*: [.returnType]#String#
 
 *Examples*: `${literal(2):gt(1)}` returns `true`
 
 `${literal( ${allMatchingAttributes('a.*'):count()} ):gt(3)}` returns true if there are more than 3 attributes whose
 names begin with the letter `a`.
-			
+
 
 [[multi]]
 == Evaluating Multiple Attributes
 
-When it becomes necessary to evaluate the same conditions against multiple attributes, this can be accomplished by means of the 
+When it becomes necessary to evaluate the same conditions against multiple attributes, this can be accomplished by means of the
 `and` and `or` functions. However, this quickly becomes tedious, error-prone, and difficult to maintain. For this reason, NiFi
 provides several functions for evaluating the same conditions against groups of attributes at the same time.
 
@@ -1683,7 +1867,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 [.function]
 === anyAttribute
-  
+
 *Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
 	arguments that are the names of attributes to which the remainder of the Expression is to be applied. If any of the attributes specified,
 	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
@@ -1698,7 +1882,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "filename" contains "file.txt" consider the following examples:
 
 .anyAttribute Examples
@@ -1721,13 +1905,13 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Subject Type*: [.subjectless]#No Subject#
 
-*Arguments*: 
+*Arguments*:
 
 	- [.argName]#_Attribute Names_# : [.argDesc]#One or more attribute names to evaluate#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "filename" contains "file.txt" consider the following examples:
 
 .allAttributes Example
@@ -1759,7 +1943,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "filename" contains "file.txt" consider the following examples:
 
 .anyMatchingAttribute Example
@@ -1788,7 +1972,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "filename" contains "file.txt" consider the following examples:
 
 .anyMatchingAttributes Examples
@@ -1814,13 +1998,13 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Arguments*:
 
-	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally an embedded Expression, 
+	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally an embedded Expression,
 		though it does not have to be.#
 	- [.argName]#_Delimiter_# : [.argDesc]#The value to use to split apart the _delineatedValue_ argument.#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "the,and,or,not", 
+*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "the,and,or,not",
 	consider the following examples:
 
 .anyDelineatedValue Examples
@@ -1843,14 +2027,14 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Arguments*:
 
-	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally 
+	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally
 		an embedded Expression, though it does not have to be.#
 
 	- [.argName]#_Delimiter_# : [.argDesc]#The value to use to split apart the _delineatedValue_ argument.#
 
 *Return Type*: [.returnType]#Boolean#
 
-*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "those,known,or,not", 
+*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "those,known,or,not",
 	consider the following examples:
 
 .allDelineatedValues Examples
@@ -1868,7 +2052,7 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === join
 
-*Description*: [.description]#Aggregate function that concatenates multiple values with the specified delimiter. This function 
+*Description*: [.description]#Aggregate function that concatenates multiple values with the specified delimiter. This function
 	may be used only in conjunction with the `allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`
 	functions.#
 
@@ -1880,7 +2064,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "filename" contains "file.txt" consider the following examples:
 
 .join Examples
@@ -1898,8 +2082,8 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === count
 
-*Description*: [.description]#Aggregate function that counts the number of non-null, non-false values returned by the 
-	`allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`. This function 
+*Description*: [.description]#Aggregate function that counts the number of non-null, non-false values returned by the
+	`allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`. This function
 	may be used only in conjunction with the `allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`
 	functions.#
 
@@ -1909,7 +2093,7 @@ provides several functions for evaluating the same conditions against groups of 
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world",
 	and "number_list" contains "1,2,3,4,5" consider the following examples:
 
 .count Examples
@@ -1921,4 +2105,3 @@ provides several functions for evaluating the same conditions against groups of 
 | `${allAttributes("abc", "non-existent-attr", "xyz"):count()}` | `2`
 | `${allMatchingAttributes(".*"):length():gt(10):count()}` | `2`
 |===========================================================================
-

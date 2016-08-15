@@ -18,9 +18,10 @@ package org.apache.nifi.authorization;
 
 
 import org.apache.nifi.authorization.file.generated.Authorizations;
-import org.apache.nifi.authorization.file.generated.Groups;
 import org.apache.nifi.authorization.file.generated.Policies;
-import org.apache.nifi.authorization.file.generated.Users;
+import org.apache.nifi.authorization.file.tenants.generated.Groups;
+import org.apache.nifi.authorization.file.tenants.generated.Tenants;
+import org.apache.nifi.authorization.file.tenants.generated.Users;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import java.util.Set;
  */
 public class AuthorizationsHolder implements UsersAndAccessPolicies {
 
+    private final Tenants tenants;
     private final Authorizations authorizations;
 
     private final Set<AccessPolicy> allPolicies;
@@ -52,15 +54,16 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
      *
      * @param authorizations the current authorizations instance
      */
-    public AuthorizationsHolder(final Authorizations authorizations) {
+    public AuthorizationsHolder(final Authorizations authorizations, final Tenants tenants) {
         this.authorizations = authorizations;
+        this.tenants = tenants;
 
         // load all users
-        final Users users = authorizations.getUsers();
+        final Users users = tenants.getUsers();
         final Set<User> allUsers = Collections.unmodifiableSet(createUsers(users));
 
         // load all groups
-        final Groups groups = authorizations.getGroups();
+        final Groups groups = tenants.getGroups();
         final Set<Group> allGroups = Collections.unmodifiableSet(createGroups(groups, users));
 
         // load all access policies
@@ -152,13 +155,13 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
      * @param users the JAXB Users
      * @return a set of API Users matching the provided JAXB Users
      */
-    private Set<User> createUsers(org.apache.nifi.authorization.file.generated.Users users) {
+    private Set<User> createUsers(org.apache.nifi.authorization.file.tenants.generated.Users users) {
         Set<User> allUsers = new HashSet<>();
         if (users == null || users.getUser() == null) {
             return allUsers;
         }
 
-        for (org.apache.nifi.authorization.file.generated.User user : users.getUser()) {
+        for (org.apache.nifi.authorization.file.tenants.generated.User user : users.getUser()) {
             final User.Builder builder = new User.Builder()
                     .identity(user.getIdentity())
                     .identifier(user.getIdentifier());
@@ -175,19 +178,19 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
      * @param groups the JAXB Groups
      * @return a set of API Groups matching the provided JAXB Groups
      */
-    private Set<Group> createGroups(org.apache.nifi.authorization.file.generated.Groups groups,
-                                    org.apache.nifi.authorization.file.generated.Users users) {
+    private Set<Group> createGroups(org.apache.nifi.authorization.file.tenants.generated.Groups groups,
+                                    org.apache.nifi.authorization.file.tenants.generated.Users users) {
         Set<Group> allGroups = new HashSet<>();
         if (groups == null || groups.getGroup() == null) {
             return allGroups;
         }
 
-        for (org.apache.nifi.authorization.file.generated.Group group : groups.getGroup()) {
+        for (org.apache.nifi.authorization.file.tenants.generated.Group group : groups.getGroup()) {
             final Group.Builder builder = new Group.Builder()
                     .identifier(group.getIdentifier())
                     .name(group.getName());
 
-            for (org.apache.nifi.authorization.file.generated.Group.User groupUser : group.getUser()) {
+            for (org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser : group.getUser()) {
                 builder.addUser(groupUser.getIdentifier());
             }
 
@@ -302,6 +305,10 @@ public class AuthorizationsHolder implements UsersAndAccessPolicies {
 
     public Authorizations getAuthorizations() {
         return authorizations;
+    }
+
+    public Tenants getTenants() {
+        return tenants;
     }
 
     public Set<AccessPolicy> getAllPolicies() {

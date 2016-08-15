@@ -107,6 +107,29 @@ public interface ProvenanceRepository extends ProvenanceEventRepository {
     ComputeLineageSubmission submitLineageComputation(String flowFileUuid, NiFiUser user);
 
     /**
+     * Submits a Lineage Computation to be completed and returns the
+     * AsynchronousLineageResult that indicates the status of the request and
+     * the results, if the computation is complete. If the given user does not
+     * have authorization to view one of the events in the lineage, a placeholder
+     * event will be used instead that provides none of the event details except
+     * for the identifier of the component that emitted the Provenance Event. It is
+     * necessary to include this node in the lineage view so that the lineage makes
+     * sense, rather than showing disconnected graphs when the user is not authorized
+     * for all components' provenance events.
+     *
+     * This method is preferred to {@link #submitLineageComputation(String, NiFiUser)} because
+     * it is much more efficient, but the former may be used if a particular Event ID is not
+     * available.
+     *
+     * @param eventId the numeric ID of the event that the lineage is for
+     * @param user the NiFi User to authorize events against
+     *
+     * @return a {@link ComputeLineageSubmission} object that can be used to
+     *         check if the computing is complete and if so get the results
+     */
+    ComputeLineageSubmission submitLineageComputation(long eventId, NiFiUser user);
+
+    /**
      * @param lineageIdentifier identifier of lineage to compute
      * @param user the user who is retrieving the lineage submission
      *

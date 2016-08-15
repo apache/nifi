@@ -23,6 +23,7 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -45,6 +46,7 @@ import org.apache.nifi.web.api.entity.UserGroupsEntity;
 import org.apache.nifi.web.api.entity.UsersEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.dao.AccessPolicyDAO;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -105,7 +107,7 @@ public class TenantsResource extends ApplicationResource {
      * @return userEntity
      */
     public UserEntity populateRemainingUserEntityContent(UserEntity userEntity) {
-        userEntity.setUri(generateResourceUri("tenants/users", userEntity.getId()));
+        userEntity.setUri(generateResourceUri("tenants", "users", userEntity.getId()));
         return userEntity;
     }
 
@@ -120,12 +122,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -143,6 +145,11 @@ public class TenantsResource extends ApplicationResource {
                     value = "The user configuration details.",
                     required = true
             ) final UserEntity userEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (userEntity == null || userEntity.getComponent() == null) {
             throw new IllegalArgumentException("User details must be specified.");
@@ -198,14 +205,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -223,6 +228,11 @@ public class TenantsResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String id) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -250,14 +260,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all users",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UsersEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -270,6 +278,11 @@ public class TenantsResource extends ApplicationResource {
             }
     )
     public Response getUsers() {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -305,12 +318,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -333,6 +346,11 @@ public class TenantsResource extends ApplicationResource {
                     value = "The user configuration details.",
                     required = true
             ) final UserEntity userEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (userEntity == null || userEntity.getComponent() == null) {
             throw new IllegalArgumentException("User details must be specified.");
@@ -389,12 +407,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("users/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a user",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -424,6 +442,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
         }
@@ -435,7 +458,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
-                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -466,7 +489,7 @@ public class TenantsResource extends ApplicationResource {
      * @return userGroupEntity
      */
     public UserGroupEntity populateRemainingUserGroupEntityContent(UserGroupEntity userGroupEntity) {
-        userGroupEntity.setUri(generateResourceUri("tenants/user-groups", userGroupEntity.getId()));
+        userGroupEntity.setUri(generateResourceUri("tenants", "user-groups", userGroupEntity.getId()));
         return userGroupEntity;
     }
 
@@ -481,12 +504,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Creates a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -504,6 +527,11 @@ public class TenantsResource extends ApplicationResource {
                     value = "The user group configuration details.",
                     required = true
             ) final UserGroupEntity userGroupEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (userGroupEntity == null || userGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("User group details must be specified.");
@@ -559,14 +587,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -584,6 +610,11 @@ public class TenantsResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String id) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -611,14 +642,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets all user groups",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                    @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -631,6 +660,11 @@ public class TenantsResource extends ApplicationResource {
             }
     )
     public Response getUserGroups() {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -665,12 +699,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -693,6 +727,11 @@ public class TenantsResource extends ApplicationResource {
                     value = "The user group configuration details.",
                     required = true
             ) final UserGroupEntity userGroupEntity) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (userGroupEntity == null || userGroupEntity.getComponent() == null) {
             throw new IllegalArgumentException("User group details must be specified.");
@@ -749,12 +788,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user-groups/{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a user group",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = UserGroupEntity.class,
             authorizations = {
-                    @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -784,6 +823,11 @@ public class TenantsResource extends ApplicationResource {
             )
             @PathParam("id") final String id) {
 
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.DELETE);
         }
@@ -795,7 +839,7 @@ public class TenantsResource extends ApplicationResource {
                 revision,
                 lookup -> {
                     final Authorizable tenants = lookup.getTenant();
-                    tenants.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    tenants.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 null,
                 () -> {
@@ -820,14 +864,12 @@ public class TenantsResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("search-results")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Searches the cluster for a node with the specified address",
+            notes = NON_GUARANTEED_ENDPOINT,
             response = ClusterSearchResultsEntity.class,
             authorizations = {
-                    @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                    @Authorization(value = "DFM", type = "ROLE_DFM"),
-                    @Authorization(value = "Admin", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /tenants", type = "")
             }
     )
     @ApiResponses(
@@ -845,6 +887,11 @@ public class TenantsResource extends ApplicationResource {
                     required = true
             )
             @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+
+        // ensure we're running with a configurable authorizer
+        if (!(authorizer instanceof AbstractPolicyBasedAuthorizer)) {
+            throw new IllegalStateException(AccessPolicyDAO.MSG_NON_ABSTRACT_POLICY_BASED_AUTHORIZER);
+        }
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);

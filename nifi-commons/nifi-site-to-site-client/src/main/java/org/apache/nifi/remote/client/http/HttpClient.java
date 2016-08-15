@@ -126,7 +126,6 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
 
             final CommunicationsSession commSession = new HttpCommunicationsSession();
             final String nodeApiUrl = resolveNodeApiUrl(peerStatus.getPeerDescription());
-            commSession.setUri(nodeApiUrl);
             final String clusterUrl = config.getUrl();
             final Peer peer = new Peer(peerStatus.getPeerDescription(), commSession, nodeApiUrl, clusterUrl);
 

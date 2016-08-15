@@ -610,7 +610,7 @@ public final class FingerprintFactory {
         // If we have a Processor to use, first determine if the value given is the default value for the specified property.
         // If so, we do not add the property to the fingerprint.
         // We do this because if a Processor is updated to add a new property, whenever we connect to the cluster, we have issues because
-        // the NCM's flow comes from disk, where the flow.xml doesn't have the new property but our FlowController does have the new property.
+        // the Cluster Coordinator's flow comes from disk, where the flow.xml doesn't have the new property but our FlowController does have the new property.
         // This causes the fingerprints not to match. As a result, we just ignore default values, and this resolves the issue.
         if (processor != null) {
             final String propName = DomUtils.getChildElementsByTagName(propElem, "name").get(0).getTextContent();
@@ -627,11 +627,16 @@ public final class FingerprintFactory {
             }
         }
 
-        // name
+        // check if there is a value
+        String propValue = getFirstValue(DomUtils.getChildNodesByTagName(propElem, "value"), null);
+        if (propValue == null) {
+            return builder;
+        }
+
+        // append name
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(propElem, "name"));
 
-        // value
-        String propValue = getFirstValue(DomUtils.getChildNodesByTagName(propElem, "value"));
+        // append value
         if (isEncrypted(propValue)) {
             propValue = decrypt(propValue);
         }
@@ -778,7 +783,7 @@ public final class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[]{"id", "scheduledState", "maxConcurrentTasks", "useCompression"}) {
+        for (final String childName : new String[] {"id", "maxConcurrentTasks", "useCompression"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 
@@ -787,7 +792,6 @@ public final class FingerprintFactory {
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final RemoteProcessGroupPortDTO port) {
         builder.append(port.getId());
-        builder.append(Boolean.TRUE.equals(port.isTransmitting()) ? "RUNNING" : "STOPPED");
         builder.append(port.getConcurrentlySchedulableTaskCount());
         builder.append(port.getUseCompression());
         return builder;

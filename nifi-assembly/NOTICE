@@ -17,7 +17,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
       Apache Commons IO
-      Copyright 2002-2012 The Apache Software Foundation
+      Copyright 2002-2016 The Apache Software Foundation
 
   (ASLv2) Apache Commons Net
     The following NOTICE information applies:
@@ -859,10 +859,73 @@ The following binary components are provided under the Apache Software License v
        Apache Commons Email
        Copyright 2002-2015 The Apache Software Foundation
 
+    (ASLv2) Apache Hive
+       The following NOTICE information applies:
+       Apache Hive
+       Copyright 2008-2015 The Apache Software Foundation
+
+       This product includes software developed by The Apache Software Foundation (http://www.apache.org/).
+
+       This product includes Jersey (https://jersey.java.net/)
+       Copyright (c) 2010-2014 Oracle and/or its affiliates.
+
+       This project includes software copyrighted by Microsoft Corporation and
+       licensed under the Apache License, Version 2.0.
+
+       This project includes software copyrighted by Dell SecureWorks and
+       licensed under the Apache License, Version 2.0.
+
+    (ASLv2) BoneCP
+       The following NOTICE information applies:
+       BoneCP
+       Copyright 2010 Wallace Wadge
+
+  (ASLv2) Apache Hadoop
+    The following NOTICE information applies:
+      The binary distribution of this product bundles binaries of
+      org.iq80.leveldb:leveldb-api (https://github.com/dain/leveldb), which has the
+      following notices:
+      * Copyright 2011 Dain Sundstrom <dain@iq80.com>
+      * Copyright 2011 FuseSource Corp. http://fusesource.com
+
+      The binary distribution of this product bundles binaries of
+      org.fusesource.hawtjni:hawtjni-runtime (https://github.com/fusesource/hawtjni),
+      which has the following notices:
+      * This product includes software developed by FuseSource Corp.
+        http://fusesource.com
+      * This product includes software developed at
+        Progress Software Corporation and/or its  subsidiaries or affiliates.
+      * This product includes software developed by IBM Corporation and others.
+
+  (ASLv2) Dropwizard Metrics
+      The following NOTICE information applies:
+        Metrics
+        Copyright 2010-2013 Coda Hale and Yammer, Inc.
+
+        This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+        LongAdder), which was released with the following comments:
+
+            Written by Doug Lea with assistance from members of JCP JSR-166
+            Expert Group and released to the public domain, as explained at
+            http://creativecommons.org/publicdomain/zero/1.0/
+
 This includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
 Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
 while at Mandiant http://www.mandiant.com
 The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
+
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+Copyright 2015 The Apache Software Foundation
+The derived work is adapted from
+  org/apache/storm/hive/common/HiveWriter.java
+  org/apache/storm/hive/common/HiveOptions.java
+and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+Copyright 2008-2016 The Apache Software Foundation
+The derived work is adapted from
+  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+and can be found in the org.apache.hadoop.hive.ql.io.orc package
 
 ************************
 Common Development and Distribution License 1.1

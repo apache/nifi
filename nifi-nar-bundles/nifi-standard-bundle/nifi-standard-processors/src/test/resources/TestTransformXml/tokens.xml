@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <test release="0.0" id="uuid_0">
-    <event id="uuid_1">
-        <token>1</token>
-        <token>2</token>
-        <token>3</token>
-        <token>4</token>
-        <token>C:\dir$abc</token>
-        <token>6</token>
-        <token>7</token>
-        <token>A,B</token>
-        <token>"don't"</token>
-        <token>2014-05-01T30:23:00Z</token>
-        <token>11</token>
-        <token>12</token>
-    </event>
+   <event id="uuid_1">
+      <token>1</token>
+      <token>2</token>
+      <token>3</token>
+      <token>4</token>
+      <token>C:\dir$abc</token>
+      <token>6</token>
+      <token>7</token>
+      <token>A,B</token>
+      <token>"don't"</token>
+      <token>2014-05-01T30:23:00Z</token>
+      <token>11</token>
+      <token>12</token>
+   </event>
 </test>

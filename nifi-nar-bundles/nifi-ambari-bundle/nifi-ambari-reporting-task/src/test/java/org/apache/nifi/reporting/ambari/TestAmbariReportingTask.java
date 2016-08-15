@@ -105,11 +105,12 @@ public class TestAmbariReportingTask {
         // mock the ReportingContext for onTrigger(...)
         final ReportingContext context = Mockito.mock(ReportingContext.class);
         Mockito.when(context.getProperty(AmbariReportingTask.METRICS_COLLECTOR_URL))
-                .thenReturn(new MockPropertyValue(metricsUrl, null));
+                .thenReturn(new MockPropertyValue(metricsUrl));
         Mockito.when(context.getProperty(AmbariReportingTask.APPLICATION_ID))
-                .thenReturn(new MockPropertyValue(applicationId, null));
+                .thenReturn(new MockPropertyValue(applicationId));
         Mockito.when(context.getProperty(AmbariReportingTask.HOSTNAME))
-                .thenReturn(new MockPropertyValue(hostName, null));
+                .thenReturn(new MockPropertyValue(hostName));
+
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
@@ -121,7 +122,6 @@ public class TestAmbariReportingTask {
         task.setup(configurationContext);
         task.onTrigger(context);
     }
-
     // override the creation of the client to provide a mock
     private class TestableAmbariReportingTask extends AmbariReportingTask {
 

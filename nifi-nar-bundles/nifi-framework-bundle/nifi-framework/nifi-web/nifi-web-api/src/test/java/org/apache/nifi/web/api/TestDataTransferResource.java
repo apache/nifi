@@ -64,6 +64,9 @@ public class TestDataTransferResource {
     private HttpServletRequest createCommonHttpServletRequest() {
         final HttpServletRequest req = mock(HttpServletRequest.class);
         doReturn("1").when(req).getHeader(eq(HttpHeaders.PROTOCOL_VERSION));
+        doReturn(new StringBuffer("http://nifi.example.com:8080")
+                .append("/nifi-api/data-transfer/output-ports/port-id/transactions/tx-id/flow-files"))
+                .when(req).getRequestURL();
         return req;
     }
 

@@ -34,6 +34,7 @@ import org.apache.nifi.action.details.PurgeDetails;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.Group;
@@ -109,7 +110,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
-import org.apache.nifi.web.api.dto.PropertyDescriptorDTO.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
@@ -140,7 +140,13 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -199,6 +205,7 @@ public final class DtoFactory {
         // get the refresh interval
         final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
         dto.setAutoRefreshIntervalSeconds(refreshInterval);
+        dto.setSupportsConfigurableAuthorizer(authorizer instanceof AbstractPolicyBasedAuthorizer);
 
         final Date now = new Date();
         dto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
@@ -220,7 +227,7 @@ public final class DtoFactory {
         actionDto.setSourceName(action.getSourceName());
         actionDto.setSourceType(action.getSourceType().name());
         actionDto.setTimestamp(action.getTimestamp());
-        actionDto.setUserDn(action.getUserIdentity());
+        actionDto.setUserIdentity(action.getUserIdentity());
         actionDto.setOperation(action.getOperation().name());
         actionDto.setActionDetails(createActionDetailsDto(action.getActionDetails()));
         actionDto.setComponentDetails(createComponentDetailsDto(action.getComponentDetails()));
@@ -898,73 +905,86 @@ public final class DtoFactory {
         return processGroupStatusDto;
     }
 
-    public ProcessGroupStatusDTO createProcessGroupStatusDto(final ProcessGroupStatus processGroupStatus) {
+    public ProcessGroupStatusDTO createProcessGroupStatusDto(final ProcessGroup processGroup, final ProcessGroupStatus processGroupStatus) {
         final ProcessGroupStatusDTO processGroupStatusDto = createConciseProcessGroupStatusDto(processGroupStatus);
         final ProcessGroupStatusSnapshotDTO snapshot = processGroupStatusDto.getAggregateSnapshot();
 
         // processor status
-        final Collection<ProcessorStatusSnapshotDTO> processorStatDtoCollection = new ArrayList<>();
-        snapshot.setProcessorStatusSnapshots(processorStatDtoCollection);
+        final Collection<ProcessorStatusSnapshotEntity> processorStatusSnapshotEntities = new ArrayList<>();
+        snapshot.setProcessorStatusSnapshots(processorStatusSnapshotEntities);
         final Collection<ProcessorStatus> processorStatusCollection = processGroupStatus.getProcessorStatus();
         if (processorStatusCollection != null) {
             for (final ProcessorStatus processorStatus : processorStatusCollection) {
                 final ProcessorStatusDTO processorStatusDto = createProcessorStatusDto(processorStatus);
-                processorStatDtoCollection.add(processorStatusDto.getAggregateSnapshot());
+                final ProcessorNode processor = processGroup.findProcessor(processorStatusDto.getId());
+                final PermissionsDTO processorPermissions = createPermissionsDto(processor);
+                processorStatusSnapshotEntities.add(entityFactory.createProcessorStatusSnapshotEntity(processorStatusDto.getAggregateSnapshot(), processorPermissions));
             }
         }
 
         // connection status
-        final Collection<ConnectionStatusSnapshotDTO> connectionStatusDtoCollection = new ArrayList<>();
+        final Collection<ConnectionStatusSnapshotEntity> connectionStatusDtoCollection = new ArrayList<>();
         snapshot.setConnectionStatusSnapshots(connectionStatusDtoCollection);
         final Collection<ConnectionStatus> connectionStatusCollection = processGroupStatus.getConnectionStatus();
         if (connectionStatusCollection != null) {
             for (final ConnectionStatus connectionStatus : connectionStatusCollection) {
                 final ConnectionStatusDTO connectionStatusDto = createConnectionStatusDto(connectionStatus);
-                connectionStatusDtoCollection.add(connectionStatusDto.getAggregateSnapshot());
+                final Connection connection = processGroup.findConnection(connectionStatusDto.getId());
+                final PermissionsDTO connectionPermissions = createPermissionsDto(connection);
+                connectionStatusDtoCollection.add(entityFactory.createConnectionStatusSnapshotEntity(connectionStatusDto.getAggregateSnapshot(), connectionPermissions));
             }
         }
 
         // local child process groups
-        final Collection<ProcessGroupStatusSnapshotDTO> childProcessGroupStatusDtoCollection = new ArrayList<>();
+        final Collection<ProcessGroupStatusSnapshotEntity> childProcessGroupStatusDtoCollection = new ArrayList<>();
         snapshot.setProcessGroupStatusSnapshots(childProcessGroupStatusDtoCollection);
         final Collection<ProcessGroupStatus> childProcessGroupStatusCollection = processGroupStatus.getProcessGroupStatus();
         if (childProcessGroupStatusCollection != null) {
             for (final ProcessGroupStatus childProcessGroupStatus : childProcessGroupStatusCollection) {
-                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(childProcessGroupStatus);
-                childProcessGroupStatusDtoCollection.add(childProcessGroupStatusDto.getAggregateSnapshot());
+                final ProcessGroupStatusDTO childProcessGroupStatusDto = createProcessGroupStatusDto(processGroup, childProcessGroupStatus);
+                final ProcessGroup childProcessGroup = processGroup.findProcessGroup(childProcessGroupStatusDto.getId());
+                final PermissionsDTO childProcessGroupPermissions = createPermissionsDto(childProcessGroup);
+                childProcessGroupStatusDtoCollection.add(entityFactory.createProcessGroupStatusSnapshotEntity(childProcessGroupStatusDto.getAggregateSnapshot(), childProcessGroupPermissions));
             }
         }
 
         // remote child process groups
-        final Collection<RemoteProcessGroupStatusSnapshotDTO> childRemoteProcessGroupStatusDtoCollection = new ArrayList<>();
+        final Collection<RemoteProcessGroupStatusSnapshotEntity> childRemoteProcessGroupStatusDtoCollection = new ArrayList<>();
         snapshot.setRemoteProcessGroupStatusSnapshots(childRemoteProcessGroupStatusDtoCollection);
         final Collection<RemoteProcessGroupStatus> childRemoteProcessGroupStatusCollection = processGroupStatus.getRemoteProcessGroupStatus();
         if (childRemoteProcessGroupStatusCollection != null) {
             for (final RemoteProcessGroupStatus childRemoteProcessGroupStatus : childRemoteProcessGroupStatusCollection) {
                 final RemoteProcessGroupStatusDTO childRemoteProcessGroupStatusDto = createRemoteProcessGroupStatusDto(childRemoteProcessGroupStatus);
-                childRemoteProcessGroupStatusDtoCollection.add(childRemoteProcessGroupStatusDto.getAggregateSnapshot());
+                final RemoteProcessGroup remoteProcessGroup = processGroup.findRemoteProcessGroup(childRemoteProcessGroupStatusDto.getId());
+                final PermissionsDTO remoteProcessGroupPermissions = createPermissionsDto(remoteProcessGroup);
+                childRemoteProcessGroupStatusDtoCollection.add(entityFactory.createRemoteProcessGroupStatusSnapshotEntity(childRemoteProcessGroupStatusDto.getAggregateSnapshot(),
+                        remoteProcessGroupPermissions));
             }
         }
 
         // input ports
-        final Collection<PortStatusSnapshotDTO> inputPortStatusDtoCollection = new ArrayList<>();
+        final Collection<PortStatusSnapshotEntity> inputPortStatusDtoCollection = new ArrayList<>();
         snapshot.setInputPortStatusSnapshots(inputPortStatusDtoCollection);
         final Collection<PortStatus> inputPortStatusCollection = processGroupStatus.getInputPortStatus();
         if (inputPortStatusCollection != null) {
             for (final PortStatus portStatus : inputPortStatusCollection) {
                 final PortStatusDTO portStatusDto = createPortStatusDto(portStatus);
-                inputPortStatusDtoCollection.add(portStatusDto.getAggregateSnapshot());
+                final Port inputPort = processGroup.findInputPort(portStatus.getId());
+                final PermissionsDTO inputPortPermissions = createPermissionsDto(inputPort);
+                inputPortStatusDtoCollection.add(entityFactory.createPortStatusSnapshotEntity(portStatusDto.getAggregateSnapshot(), inputPortPermissions));
             }
         }
 
         // output ports
-        final Collection<PortStatusSnapshotDTO> outputPortStatusDtoCollection = new ArrayList<>();
+        final Collection<PortStatusSnapshotEntity> outputPortStatusDtoCollection = new ArrayList<>();
         snapshot.setOutputPortStatusSnapshots(outputPortStatusDtoCollection);
         final Collection<PortStatus> outputPortStatusCollection = processGroupStatus.getOutputPortStatus();
         if (outputPortStatusCollection != null) {
             for (final PortStatus portStatus : outputPortStatusCollection) {
                 final PortStatusDTO portStatusDto = createPortStatusDto(portStatus);
-                outputPortStatusDtoCollection.add(portStatusDto.getAggregateSnapshot());
+                final Port outputPort = processGroup.findOutputPort(portStatus.getId());
+                final PermissionsDTO outputPortPermissions = createPermissionsDto(outputPort);
+                outputPortStatusDtoCollection.add(entityFactory.createPortStatusSnapshotEntity(portStatusDto.getAggregateSnapshot(), outputPortPermissions));
             }
         }
 
@@ -1601,12 +1621,14 @@ public final class DtoFactory {
         return createProcessGroupDto(group, false);
     }
 
-    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
+    public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
+                                                         final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
+
         final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
         dto.setId(group.getIdentifier());
         dto.setLastRefreshed(new Date());
         dto.setBreadcrumb(createBreadcrumbEntity(group));
-        dto.setFlow(createFlowDto(group, groupStatus, revisionManager));
+        dto.setFlow(createFlowDto(group, groupStatus, revisionManager, getProcessGroupBulletins));
 
         final ProcessGroup parent = group.getParent();
         if (parent != null) {
@@ -1616,7 +1638,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager) {
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager,
+                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
         if (snippet == null) {
             return null;
         }
@@ -1698,7 +1721,7 @@ public final class DtoFactory {
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> processGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(processGroup.getIdentifier()));
+            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(processGroup);
             flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, accessPolicy, status, bulletins));
         }
 
@@ -1746,7 +1769,8 @@ public final class DtoFactory {
         return statusDTO;
     }
 
-    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager) {
+    public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
+                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
         final FlowDTO dto = new FlowDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
@@ -1789,7 +1813,7 @@ public final class DtoFactory {
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> childGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(childGroup.getIdentifier()));
+            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(childGroup);
             dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, status, bulletins));
         }
 
@@ -2477,27 +2501,31 @@ public final class DtoFactory {
             if (serviceDefinition == null) {
                 dto.setAllowableValues(null);
             } else {
-                final List<AllowableValueDTO> allowableValues = new ArrayList<>();
-                for (final String serviceIdentifier : controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId)) {
+                final List<AllowableValueEntity> allowableValues = new ArrayList<>();
+                final List<String> controllerServiceIdentifiers = new ArrayList<>(controllerServiceProvider.getControllerServiceIdentifiers(serviceDefinition, groupId));
+                Collections.sort(controllerServiceIdentifiers, Collator.getInstance(Locale.US));
+                for (final String serviceIdentifier : controllerServiceIdentifiers) {
                     final ControllerServiceNode service = controllerServiceProvider.getControllerServiceNode(serviceIdentifier);
-                    final String displayName = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser()) ? service.getName() : serviceIdentifier;
+                    final boolean isServiceAuthorized = service.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                    final String displayName = isServiceAuthorized ? service.getName() : serviceIdentifier;
 
                     final AllowableValueDTO allowableValue = new AllowableValueDTO();
                     allowableValue.setDisplayName(displayName);
                     allowableValue.setValue(serviceIdentifier);
-                    allowableValues.add(allowableValue);
+                    allowableValues.add(entityFactory.createAllowableValueEntity(allowableValue, isServiceAuthorized));
                 }
                 dto.setAllowableValues(allowableValues);
             }
         } else {
-            final List<AllowableValueDTO> allowableValues = new ArrayList<>();
+            final List<AllowableValueEntity> allowableValues = new ArrayList<>();
             for (final AllowableValue allowableValue : propertyDescriptor.getAllowableValues()) {
                 final AllowableValueDTO allowableValueDto = new AllowableValueDTO();
                 allowableValueDto.setDisplayName(allowableValue.getDisplayName());
                 allowableValueDto.setValue(allowableValue.getValue());
                 allowableValueDto.setDescription(allowableValue.getDescription());
-                allowableValues.add(allowableValueDto);
+                allowableValues.add(entityFactory.createAllowableValueEntity(allowableValueDto, true));
             }
+
             dto.setAllowableValues(allowableValues);
         }
 

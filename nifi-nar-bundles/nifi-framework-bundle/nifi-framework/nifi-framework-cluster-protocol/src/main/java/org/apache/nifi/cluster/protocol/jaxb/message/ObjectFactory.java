@@ -25,6 +25,8 @@ import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.MulticastProtocolMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
+import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.PingMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -86,4 +88,13 @@ public class ObjectFactory {
     public NodeStatusChangeMessage createNodeStatusChangeMessage() {
         return new NodeStatusChangeMessage();
     }
+
+    public NodeConnectionStatusRequestMessage createNodeConnectionStatusRequestMessage() {
+        return new NodeConnectionStatusRequestMessage();
+    }
+
+    public NodeConnectionStatusResponseMessage createNodeConnectionStatusResponsetMessage() {
+        return new NodeConnectionStatusResponseMessage();
+    }
+
 }

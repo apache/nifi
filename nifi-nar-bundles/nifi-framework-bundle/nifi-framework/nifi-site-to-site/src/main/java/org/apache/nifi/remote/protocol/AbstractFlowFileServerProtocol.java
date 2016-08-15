@@ -63,7 +63,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     protected boolean shutdown = false;
     protected FlowFileCodec negotiatedFlowFileCodec = null;
 
-    protected HandshakenProperties handshakenProperties;
+    protected HandshakeProperties handshakenProperties;
 
     protected static final long DEFAULT_BATCH_NANOS = TimeUnit.SECONDS.toNanos(5L);
 
@@ -82,7 +82,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         return handshakeCompleted;
     }
 
-    protected void validateHandshakeRequest(HandshakenProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
+    protected void validateHandshakeRequest(HandshakeProperties confirmed, final Peer peer, final Map<String, String> properties) throws HandshakeException {
         Boolean useGzip = null;
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             final String propertyName = entry.getKey();
@@ -201,7 +201,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         handshakeCompleted = true;
     }
 
-    abstract protected HandshakenProperties doHandshake(final Peer peer) throws  IOException, HandshakeException;
+    abstract protected HandshakeProperties doHandshake(final Peer peer) throws  IOException, HandshakeException;
 
     @Override
     public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
@@ -271,8 +271,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             flowFilesSent.add(flowFile);
             bytesSent += flowFile.getSize();
 
-            String transitUriPrefix = handshakenProperties.getTransitUriPrefix();
-            final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + flowFile.getAttribute(CoreAttributes.UUID.key());
+            final String transitUri = createTransitUri(peer, flowFile.getAttribute(CoreAttributes.UUID.key()));
             session.getProvenanceReporter().send(flowFile, transitUri, "Remote Host=" + peer.getHost() + ", Remote DN=" + remoteDn, transmissionMillis, false);
             session.remove(flowFile);
 
@@ -317,6 +316,10 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         FlowFileTransaction transaction = new FlowFileTransaction(session, context, stopWatch, bytesSent, flowFilesSent, calculatedCRC);
         return commitTransferTransaction(peer, transaction);
 
+    }
+
+    protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
+        return peer.createTransitUri(sourceFlowFileIdentifier);
     }
 
     protected int commitTransferTransaction(Peer peer, FlowFileTransaction transaction) throws IOException {
@@ -446,8 +449,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final String sourceSystemFlowFileUuid = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
             flowFile = session.putAttribute(flowFile, CoreAttributes.UUID.key(), UUID.randomUUID().toString());
 
-            String transitUriPrefix = handshakenProperties.getTransitUriPrefix();
-            final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceSystemFlowFileUuid;
+            final String transitUri = createTransitUri(peer, sourceSystemFlowFileUuid);
             session.getProvenanceReporter().receive(flowFile, transitUri, sourceSystemFlowFileUuid == null
                     ? null : "urn:nifi:" + sourceSystemFlowFileUuid, "Remote Host=" + peer.getHost() + ", Remote DN=" + remoteDn, transferMillis);
             session.transfer(flowFile, Relationship.ANONYMOUS);

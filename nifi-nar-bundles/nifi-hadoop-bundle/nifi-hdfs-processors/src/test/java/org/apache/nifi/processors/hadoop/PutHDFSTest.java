@@ -58,7 +58,7 @@ public class PutHDFSTest {
     private KerberosProperties kerberosProperties;
 
     @BeforeClass
-    public static void setUpClass() throws Exception{
+    public static void setUpClass() throws Exception {
         /*
          * Running Hadoop on Windows requires a special build which will produce required binaries and native modules [1]. Since functionality
          * provided by this module and validated by these test does not have any native implication we do not distribute required binaries and native modules
@@ -199,7 +199,6 @@ public class PutHDFSTest {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        runner.setValidateExpressionUsage(false);
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
@@ -232,7 +231,6 @@ public class PutHDFSTest {
         runner.setProperty(PutHDFS.DIRECTORY, "target/test-classes");
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
         runner.setProperty(PutHDFS.COMPRESSION_CODEC, "GZIP");
-        runner.setValidateExpressionUsage(false);
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();
             attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
@@ -281,7 +279,6 @@ public class PutHDFSTest {
         });
         runner.setProperty(PutHDFS.DIRECTORY, dirName);
         runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
-        runner.setValidateExpressionUsage(false);
 
         try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
             Map<String, String> attributes = new HashMap<String, String>();
@@ -296,6 +293,73 @@ public class PutHDFSTest {
         assertTrue(failedFlowFiles.get(0).isPenalized());
 
         fs.delete(p, true);
+    }
+
+    @Test
+    public void testPutFileWhenDirectoryUsesValidELFunction() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):substring(0,4)}");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        Configuration config = new Configuration();
+        FileSystem fs = FileSystem.get(config);
+
+        List<MockFlowFile> failedFlowFiles = runner
+                .getFlowFilesForRelationship(new Relationship.Builder().name("failure").build());
+        assertTrue(failedFlowFiles.isEmpty());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(fs.exists(new Path("target/test-classes/randombytes-1")));
+        assertEquals("randombytes-1", flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        assertEquals("target/data_test", flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
+    }
+
+    @Test
+    public void testPutFileWhenDirectoryUsesUnrecognizedEL() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+
+        // this value somehow causes NiFi to not even recognize the EL, and thus it returns successfully from calling
+        // evaluateAttributeExpressions and then tries to create a Path with the exact value below and blows up
+        runner.setProperty(PutHDFS.DIRECTORY, "data_${literal('testing'):substring(0,4)%7D");
+
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        try (FileInputStream fis = new FileInputStream("src/test/resources/testdata/randombytes-1");) {
+            Map<String, String> attributes = new HashMap<String, String>();
+            attributes.put(CoreAttributes.FILENAME.key(), "randombytes-1");
+            runner.enqueue(fis, attributes);
+            runner.run();
+        }
+
+        runner.assertAllFlowFilesTransferred(PutHDFS.REL_FAILURE);
+    }
+
+    @Test
+    public void testPutFileWhenDirectoryUsesInvalidEL() throws IOException {
+        // Refer to comment in the BeforeClass method for an explanation
+        assumeTrue(isNotWindows());
+
+        PutHDFS proc = new TestablePutHDFS(kerberosProperties);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        // the validator should pick up the invalid EL
+        runner.setProperty(PutHDFS.DIRECTORY, "target/data_${literal('testing'):foo()}");
+        runner.setProperty(PutHDFS.CONFLICT_RESOLUTION, "replace");
+        runner.assertNotValid();
     }
 
     private boolean isNotWindows() {

@@ -28,12 +28,13 @@ import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.AbstractFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.FlowFileTransaction;
-import org.apache.nifi.remote.protocol.HandshakenProperties;
+import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -48,7 +49,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     private final VersionNegotiator versionNegotiator;
     private final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
 
-    public StandardHttpFlowFileServerProtocol(VersionNegotiator versionNegotiator) {
+    public StandardHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
         super();
         this.versionNegotiator = versionNegotiator;
     }
@@ -64,12 +65,22 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
-        HandshakenProperties confirmed = new HandshakenProperties();
+    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
 
         HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
-        confirmed.setCommsIdentifier(commsSession.getTransactionId());
-        validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+        final String transactionId = commsSession.getTransactionId();
+
+        HandshakeProperties confirmed = null;
+        if (!StringUtils.isEmpty(transactionId)) {
+            // If handshake is already done, use it.
+            confirmed = transactionManager.getHandshakenProperties(transactionId);
+        }
+        if (confirmed == null) {
+            // If it's not, then do handshake.
+            confirmed = new HandshakeProperties();
+            confirmed.setCommsIdentifier(transactionId);
+            validateHandshakeRequest(confirmed, peer, commsSession.getHandshakeParams());
+        }
 
         logger.debug("{} Done handshake, confirmed={}", this, confirmed);
         return confirmed;
@@ -168,7 +179,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         String transactionId = commSession.getTransactionId();
         logger.debug("{} Holding transaction. transactionId={}", this, transactionId);
-        transactionManager.holdTransaction(transactionId, transaction);
+        transactionManager.holdTransaction(transactionId, transaction, handshakenProperties);
 
         return transaction.getFlowFilesSent().size();
     }
@@ -222,4 +233,5 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     public String getResourceName() {
         return RESOURCE_NAME;
     }
+
 }

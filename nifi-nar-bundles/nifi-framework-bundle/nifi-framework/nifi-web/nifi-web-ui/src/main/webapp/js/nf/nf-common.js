@@ -1217,25 +1217,27 @@ nf.Common = (function () {
         getFormattedBulletins: function (bulletins) {
             var formattedBulletins = [];
             $.each(bulletins, function (j, bulletin) {
-                // format the node address
-                var nodeAddress = '';
-                if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
-                    nodeAddress = '-&nbsp' + nf.Common.escapeHtml(bulletin.nodeAddress) + '&nbsp;-&nbsp;';
+                if (!nf.Common.isBlank(bulletin.level)) {
+                    // format the node address
+                    var nodeAddress = '';
+                    if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
+                        nodeAddress = '-&nbsp' + nf.Common.escapeHtml(bulletin.nodeAddress) + '&nbsp;-&nbsp;';
+                    }
+
+                    // set the bulletin message (treat as text)
+                    var bulletinMessage = $('<pre></pre>').css({
+                        'white-space': 'pre-wrap'
+                    }).text(bulletin.message);
+
+                    // create the bulletin message
+                    var formattedBulletin = $('<div>' +
+                            nf.Common.escapeHtml(bulletin.timestamp) + '&nbsp;' +
+                            nodeAddress + '&nbsp;' +
+                            '<b>' + nf.Common.escapeHtml(bulletin.level) + '</b>&nbsp;' +
+                            '</div>').append(bulletinMessage);
+
+                    formattedBulletins.push(formattedBulletin);
                 }
-
-                // set the bulletin message (treat as text)
-                var bulletinMessage = $('<pre></pre>').css({
-                    'white-space': 'pre-wrap'
-                }).text(bulletin.message);
-
-                // create the bulletin message
-                var formattedBulletin = $('<div>' +
-                        nf.Common.escapeHtml(bulletin.timestamp) + '&nbsp;' +
-                        nodeAddress + '&nbsp;' +
-                        '<b>' + nf.Common.escapeHtml(bulletin.level) + '</b>&nbsp;' +
-                        '</div>').append(bulletinMessage);
-
-                formattedBulletins.push(formattedBulletin);
             });
             return formattedBulletins;
         }

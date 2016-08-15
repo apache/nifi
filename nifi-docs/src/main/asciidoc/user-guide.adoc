@@ -29,8 +29,8 @@ along several dimensions of quality of service, such as loss-tolerant versus gua
 high throughput, and priority-based queuing. NiFi provides fine-grained data provenance for all data received, forked, joined
 cloned, modified, sent, and ultimately dropped upon reaching its configured end-state.
 
-See the Admin Guide for information about system requirements, installation, and configuration. Once NiFi is installed,
-use a supported web browser to view the User Interface (UI).
+See the link:administration-guide.html[System Administrator’s Guide] for information about system requirements, installation, and configuration. Once NiFi is installed,
+use a supported web browser to view the UI.
 
 
 Browser Support
@@ -57,6 +57,12 @@ against the supported browsers. Any problem using a supported browser should be 
 While the UI may run successfully in unsupported browsers, it is not actively tested against them. Additionally, the UI is designed as a desktop
 experience and is not currently supported in mobile browsers.
 
+=== Viewing the UI in Variably Sized Browsers
+In most environments, all of the UI is visible in your browser. However, the UI has a responsive design that allows you
+to scroll through screens as needed, in smaller sized browsers or tablet environments.
+
+In environments where your browser width is less than 800 pixels and the height less than 600 pixels, portions of the
+UI may become unavailable.
 
 [template="glossary", id="terminology"]
 Terminology
@@ -110,7 +116,7 @@ Terminology
 	Whenever a component reports a Bulletin, a bulletin icon is displayed on that component. System-level bulletins are displayed on the Status bar near the top of the page.
 	Using the mouse to hover over that icon will provide a tool-tip that shows the time and severity (Debug, Info, Warning, Error) of the Bulletin,
 	as well as the message of the Bulletin.
-	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Management Toolbar.
+	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Global Menu.
 
 *Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DFMs to select a part of the dataflow
 	(or the entire dataflow) and create a Template. This Template is given a name and can then be dragged onto the canvas just like the other components.
@@ -123,7 +129,7 @@ Terminology
 	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace flow.xml.gz with a desired backup copy, then restart NiFi.
 	In a clustered environment, stop the entire NiFi cluster, replace the flow.xml.gz of one of nodes, and restart the node. Remove flow.xml.gz from other nodes.
 	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
-	The name and location of flow.xml.gz, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[Admin Guide] for further details.
+	The name and location of flow.xml.gz, and auto archive behavior are configurable. See the link:administration-guide.html#core-properties-br[System Administrator’s Guide] for further details.
 
 
 
@@ -131,93 +137,117 @@ Terminology
 NiFi User Interface
 -------------------
 
-The NiFi User Interface (UI) provides mechanisms for creating automated dataflows, as well as visualizing,
+The NiFi UI provides mechanisms for creating automated dataflows, as well as visualizing,
 editing, monitoring, and administering those dataflows. The UI can be broken down into several segments,
 each responsible for different functionality of the application. This section provides screenshots of the
 application and highlights the different segments of the UI. Each segment is discussed in further detail later
 in the document.
 
-When the application is started, the user is able to navigate to the User Interface by going to the default address of
+When the application is started, the user is able to navigate to the UI by going to the default address of
 `http://<hostname>:8080/nifi` in a web browser. There are no permissions configured by default, so anyone is
-able to view and modify the dataflow. For information on securing the system, see the Systems Administrator guide.
+able to view and modify the dataflow. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
-image::new-flow.png["Empty Flow"]
-
-Along the top of the of the screen is a toolbar that contains several of these segments.
-To the left is the Components Toolbar. This toolbar consists of the different components that can be dragged onto the canvas.
-
-Next to the Components Toolbar is the Actions Toolbar. This toolbar consists of buttons to manipulate the existing
-components on the canvas. To the right of the Actions Toolbar is the Search Toolbar. This toolbar consists of a single
-Search field that allows users to easily find components on the canvas. Users are able to search by component name,
-type, identifier, configuration properties, and their values.
-
-The Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are
-used by DFMs to manage the flow as well as by administrators who manage user access
-and configure system properties, such as how many system resources should be provided to the application.
-
 image::nifi-toolbar-components.png["NiFi Components Toolbar"]
 
-Next, we have segments that provide capabilities to easily navigate around the canvas. On the left-hand side is a toolbar that
-provides the ability to pan around the canvas and zoom in and out. On the right-hand side is a “Birds-Eye View” of the dataflow.
-This provides a high-level view of the dataflow and allows the user to quickly and easily pan across large portions of the dataflow.
-Along the top of the screen is a trail of breadcrumbs. As users navigate into and out of Process Groups, the breadcrumbs show
-the depth in the flow and each Process Group that was entered to reach this depth. Each of the Process Groups listed in the breadcrumbs
-is a link that will take you back up to that level in the flow.
+The Components Toolbar runs across the top left portion of your screen. It consists of the components you can drag onto the
+canvas to build your dataflow. Each component is described in more detail in link:building-dataflow.html[Building a Dataflow].
+
+The Status Bar is under the Components Toolbar. The Status bar provides information about how many Processors exist on the canvas in
+each state (Stopped, Running, Invalid, Disabled), how many Remote Process Groups exist on the canvas in each state
+(Transmitting, Not Transmitting), the number of threads that are currently active in the flow, the amount of data that currently
+exists in the flow, and the timestamp at which all of this information was last refreshed. Additionally, if the instance of NiFi is clustered, the Status bar shows how many nodes
+are in the cluster and how many are currently connected.
+
+The Operate Palette sits to the left-hand side of the screen. It consists of buttons that are
+used by DFMs to manage the flow, as well as by administrators who manage user access
+and configure system properties, such as how many system resources should be provided to the application.
+
+On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
+canvas and can to search by component name, type, identifier, configuration properties, and their values. The Global Menu
+contain options that allow you to manipulate existing components on the canvas:
+
+image::global-menu.png[NiFi Global Menu]
+
+Additionally, the UI has allows has some features that allow you to easily navigate around the canvas. You can use the
+Navigate Palette to pan around the canvas, and to zoom in and out. The “Birds Eye View” of the dataflow provides a high-level
+view of the dataflow and allows you to pan across large portions of the dataflow. You can also find breadcrumbs along the
+bottom of the screen. As you navigate into and out of Process Groups, the breadcrumbs show
+the depth in the flow, and each Process Group that you entered to reach this depth. Each of the Process Groups listed in the
+breadcrumbs is a link that will take you back up to that level in the flow.
 
 image::nifi-navigation.png["NiFi Navigation"]
 
-[[status_bar]]
-Below the breadcrumbs lives the Status bar. The Status bar provides information about how many Processors exist on the canvas in
-each state (Stopped, Running, Invalid, Disabled), how many Remote Process Groups exist on the canvas in each state
-(Transmitting, Not Transmitting), the number of threads that are currently active in the flow, the amount of data that currently
-exists in the flow, and the timestamp at which all of this information was last refreshed. If there are any System-Level bulletins,
-these are shown in the Status bar as well. Additionally, if the instance of NiFi is clustered, the Status bar shows how many nodes
-are in the cluster and how many are currently connected.
+[[UI-with-multi-tenant-authorization]]
+Accessing the UI with Multi-Tenant Authorization
+------------------------------------------------
+Multi-tenant authorization enables multiple groups of users (tenants) to command, control, and observe different parts of the dataflow,
+with varying levels of authorization. When an authenticated user attempts to view or modify a NiFi resource, the system checks whether the
+user has privileges to perform that action. These privileges are defined by policies that you can apply system wide or to individual
+components. What this means from a Dataflow Manager perspective is that once you have access to the NiFi canvas, a range of functionality
+is visible and available to you, depending on the privileges assigned to you.
 
-image::status-bar.png["NiFi Status Bar"]
+The available global access policies are:
+[options="header"]
+|======================
+|Policy  |Privilege
+|view the UI   |Allows users to view the UI
+|access the controller  |Allows users to view and modify the controller including reporting tasks, Controller Services, and nodes in the cluster
+|query provenance     |Allows users to submit a provenance search and request even lineage
+|access all policies   |Allows users to view and modify the policies for all components
+|access users/groups   |Allows users view and modify the users and user groups
+|retrieve site-to-site details | Allows other NiFi instances to retrieve Site-To-Site details
+|view system diagnostics  |Allows users to view System Diagnostics
+|proxy user requests  |Allows proxy machines to send requests on the behalf of others
+|access counters  |Allows users to view and modify counters
+|======================
 
+The available component-level access policies are:
+
+[options="header"]
+|======================
+|Policy  |Privilege
+|view the component   |Allows users to view component configuration details
+|modify the component  |Allows users to modify component configuration details
+|view the data     |Allows users to view metadata and content for this component through provenance data and flowfile queues in outbound connection
+|modify the data   |Allows users to empty flowfile queues in outbound connections and to submit replays
+|view the policies |Allows users to view the list of users who can view and modify a component
+|modify the policies  |Allows users to modify the list of users who can view and modify a component
+|retrieve data via site-to-site  |Allows a port to receive data from NiFi instances
+|send data via site-to-site  |Allows a port to send data from NiFi instances
+|======================
+
+If you are unable to view or modify a NiFi resource, contact your System Administrator or see Configuring Users and Access Policies in the
+link:administration-guide.html[System Administrator’s Guide] for more information.
 
 [[logging-in]]
 Logging In
 ---------
 
-If NiFi is configured to run securely, users will be able to request access to the DataFlow. For information on configuring NiFi to run 
-securely, see the link:administration-guide.html[Admin Guide]. If NiFi supports anonymous access, users will be given access 
+If NiFi is configured to run securely, users will be able to request access to the DataFlow. For information on configuring NiFi to run
+securely, see the link:administration-guide.html[System Administrator’s Guide]. If NiFi supports anonymous access, users will be given access
 accordingly and given an option to log in.
 
-image::anonymous-access.png["Anonymous Access"]
-
 Clicking the 'login' link will open the log in page. If the user is logging in with their username/password they will be presented with
-a form to do so. If NiFi is not configured to support anonymous access and the user is logging in with their username/password, they will 
+a form to do so. If NiFi is not configured to support anonymous access and the user is logging in with their username/password, they will
 be immediately sent to the login form bypassing the canvas.
 
 image::login.png["Log In"]
-
-Once the user has logged in or if they are accessing NiFi using a client certificate loaded in their browser, they will be prompted
-to request access by submitting a justification if this is the first time they have accessed this NiFi. Fill in an optional justification 
-that the administrator will review while granting the account access. If NiFi is not configured to support anonymous access and the 
-user is using a client certificate, they will be immediately sent to the form to request access bypassing the canvas and login form.
-
-image::request-access.png["Request Access"]
-
-Press Submit to send the account request. If NiFi supports anonymous access, the user can continue accessing the DataFlow by closing the
-login page. Returning to the login page will check the status of the account request. If access has been granted, press the home link or
-reload the page to assume the new roles.
 
 
 [[building-dataflow]]
 Building a DataFlow
 -------------------
 
-A DFM is able to build an automated dataflow using the NiFi User Interface (UI). Simply drag components from the toolbar to the canvas, configure the components to meet specific needs, and connect
+A DFM is able to build an automated dataflow using the NiFi UI. Simply drag components from the toolbar to the canvas,
+configure the components to meet specific needs, and connect
 the components together.
 
 
 === Adding Components to the Canvas
 
-In the User Interface section above outlined the different segments of the UI and pointed out a Components Toolbar.
+The User Interface section above outlined the different segments of the UI and pointed out a Components Toolbar.
 This section looks at each of the Components in that toolbar:
 
 image::components.png["Components"]
@@ -243,19 +273,21 @@ image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
 
-*Note*: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas. Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding down the Shift key and dragging a selection box around the desired components. 
+*Note*: For any component added to the canvas, it is possible to select it with the mouse and move it anywhere on the canvas.
+Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding
+down the Shift key and dragging a selection box around the desired components.
 
-Once a Processor has been dragged onto the canvas, the user may interact with it by right-clicking on the Processor and selecting an option from the context menu. 
+Once you have dragged a Processor onto the canvas, you can interact with it by right-clicking on the Processor and
+selecting an option from the context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::nifi-processor-menu.png["Processor Menu", width=300]
+image::nifi-processor-menu.png["Processor Menu"]
 
-The following options are available:
+While the options available from the context menu vary, the following options are typically available when you have full privileges to work with a Processor:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Processor. (See <<Configuring_a_Processor>>.)
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
 - *Stats*: This option opens a graphical representation of the Processor's statistical information over time.
-- *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Processor. This is particularly useful when processors connect into and out of other Process Groups.
-- *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Processor. This is particularly useful when processors connect into and out of other Process Groups.
+- *Data provenance*: This option displays the NiFi Data Provenance table, with information about  data provenance events for the FlowFiles routed through that Processor
 - *Usage*: This option takes the user to the Processor's usage documentation.
 - *Change color*: This option allows the user to change the color of the Processor, which can make the visual management of large flows easier.
 - *Center in view*: This option centers the view of the canvas on the given Processor.
@@ -269,12 +301,12 @@ image:iconInputPort.png["Input Port", width=32]
 *Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
-All components exist only within a Process Group. When a user initially navigates to the NiFi page, the user is placed 
+All components exist only within a Process Group. When a user initially navigates to the NiFi page, the user is placed
 in the Root Process Group. If the Input Port is dragged onto the Root Process Group, the Input Port provides a mechanism
-to receive data from remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Input Port can be configured 
-to restrict access to appropriate users, if NiFi is configured to run securely. For information on configuring NiFi to run 
-securely, see the 
-link:administration-guide.html[Admin Guide].
+to receive data from remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Input Port can be configured
+to restrict access to appropriate users, if NiFi is configured to run securely. For information on configuring NiFi to run
+securely, see the
+link:administration-guide.html[System Administrator’s Guide].
 
 
 
@@ -285,11 +317,11 @@ of the Process Group. When an Output Port is dragged onto the canvas, the DFM is
 within a Process Group must have unique names.
 
 If the Output Port is dragged onto the Root Process Group, the Output Port provides a mechanism for sending data to
-remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Port acts as a queue. As remote instances 
-of NiFi pull data from the port, that data is removed from the queues of the incoming Connections. If NiFi is configured 
-to run securely, the Output Port can be configured to restrict access to appropriate users. For information on configuring 
-NiFi to run securely, see the 
-link:administration-guide.html[Admin Guide].
+remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Port acts as a queue. As remote instances
+of NiFi pull data from the port, that data is removed from the queues of the incoming Connections. If NiFi is configured
+to run securely, the Output Port can be configured to restrict access to appropriate users. For information on configuring
+NiFi to run securely, see the
+link:administration-guide.html[System Administrator’s Guide].
 
 
 [[process_group]]
@@ -298,20 +330,18 @@ image:iconProcessGroup.png["Process Group", width=32]
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
 Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
 
-Once a Process Group has been dragged onto the canvas, the user may interact with it by right-clicking on the Process Group and selecting an option from
-context menu. 
+Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from
+context menu.The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::nifi-process-group-menu.png["Process Group Menu", width=300]
+image::nifi-process-group-menu.png["Process Group Menu"]
 
-The following options are available:
+While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Process Group.
 - *Enter group*: This option allows the user to enter the Process Group. It is also possible to double-click on the Process Group to enter it.
 - *Start*: This option allows the user to start a Process Group.
 - *Stop*: This option allows the user to stop a Process Group.
 - *Stats*: This option opens a graphical representation of the Process Group's statistical information over time.
-- *Upstream connections*: This option allows the user to see and "jump to" upstream connections that are coming into the Process Group.
-- *Downstream connections*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
 - *Center in view*: This option centers the view of the canvas on the given Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
 - *Delete*: This option allows the DFM to delete a Process Group.
@@ -326,15 +356,15 @@ is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clu
 is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
 via an RPG, the RPG will first connect to the remote instance's NCM to determine which nodes are in the cluster and
 how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
-then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to 
+then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to
 recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
 
 Once a Remote Process Group has been dragged onto the canvas, the user may interact with it by right-clicking on the Remote Process Group and selecting an option from
-context menu. 
+context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
 
-image::nifi-rpg-menu.png["Remote Process Group Menu", width=300]
+image::nifi-rpg-menu.png["Remote Process Group Menu"]
 
-The following options are available:
+While the options available from the context menu vary, the following options are typically available when you have full privileges to work with the Remote Process Group:
 
 - *Configure*: This option allows the user to establish or change the configuration of the Remote Process Group.
 - *Remote Ports*: This option allows the user to see input ports and/or output ports that exist on the remote instance of NiFi that the Remote Process Group is connected to. Note that if the Site-to-Site configuration is secure, only the ports that the connecting NiFi has been given accessed to will be visible.
@@ -352,7 +382,7 @@ The following options are available:
 
 
 [[funnel]]
-image:iconFunnel.png["Funnel", width=32]
+image:iconFunnel.png["Funnel"]
 *Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages.
 First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections
 have to span a large space. By funneling these Connections into a single Connection, that single Connection can then be
@@ -362,7 +392,7 @@ one Connection, rather than prioritizing the data on each Connection independent
 
 
 [[template]]
-image:iconTemplate.png["Template", width=32]
+image:iconTemplate.png["Template"]
 *Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
 dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
 dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
@@ -418,7 +448,7 @@ piece of data (a FlowFile), an event may occur that indicates that the data cann
 data may be processable at a later time. When this occurs, the Processor may choose to Penalize the FlowFile. This will
 prevent the FlowFile from being Processed for some period of time. For example, if the Processor is to push the data
 to a remote service, but the remote service already has a file with the same name as the filename that the Processor
-is specifying, the Processor may penalize the FlowFile. The `Penalty duration' allows the DFM to specify how long the 
+is specifying, the Processor may penalize the FlowFile. The `Penalty duration' allows the DFM to specify how long the
 FlowFile should be penalized. The default value is 30 seconds.
 
 Similarly, the Processor may determine that some situation exists such that the Processor can no longer make any progress,
@@ -451,27 +481,26 @@ image::scheduling-tab.png["Scheduling Tab"]
 
 The first configuration option is the Scheduling Strategy. There are three possible options for scheduling components:
 
-- *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
+* *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
 	at which the Processor is run is defined by the `Run schedule' option (see below).
-- *Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
+* *Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
 	feeding this Processor. This mode is currently considered experimental and is not supported by all Processors. When this mode is
 	selected, the `Run schedule' option is not configurable, as the Processor is not triggered to run periodically but
         as the result of an event. Additionally, this is the only mode for which the `Concurrent tasks'
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
 	the administrator has configured.
-- *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
+* *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
 	Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of
 	increasing the complexity of the configuration. This value is made up of six fields, each separated by a space. These
 	fields include:
-+
-		. Seconds
-		. Minutes
-		. Hours
-		. Day of Month
-		. Month
-		. Day of Week
-		. Year
-+
+** Seconds
+** Minutes
+** Hours
+** Day of Month
+** Month
+** Day of Week
+** Year
+
 The value for each of these fields should be a number, range, or increment.
 Range here refers to a syntax of <number>-<number>.
 For example,the Seconds field could be set to 0-30, meaning that the Processor should only be scheduled if the time is 0 to 30 seconds
@@ -479,9 +508,9 @@ after the minute. Additionally, a value of `*` indicates that all values are val
 be entered using a `,` as a separator: `0,5,10,15,30`.
 An increment is written as <start value>/<increment>. For example, settings a value of `0/10` for the seconds fields means that valid
 values are 0, 10, 20, 30, 40, and 50. However, if we change this to `5/10`, valid values become 5, 15, 25, 35, 45, and 55.
-+
+
 For the Month field, valid values are 1 (January) through 12 (December).
-+
+
 For the Day of Week field, valid values are 1 (Sunday) through 7 (Saturday). Additionally, a value of `L` may be appended to one of these
 values to indicate the last occurrence of this day in the month. For example, `1L` can be used to indicate the last Monday of the month.
 
@@ -530,8 +559,8 @@ the user is either provided a drop-down from which to choose a value or is given
 image::edit-property-dropdown.png["Edit Property with Dropdown"]
 
 In the top-right corner of the tab is a button for adding a New Property. Clicking this button will provide the DFM with a dialog to
-enter the name and value of a new property. Not all Processors allow User-Defined properties. In processors that do not allow them, 
-the Processor becomes invalid when User-Defined properties are applied. RouteOnAttribute, however, does allow User-Defined properties. 
+enter the name and value of a new property. Not all Processors allow User-Defined properties. In processors that do not allow them,
+the Processor becomes invalid when User-Defined properties are applied. RouteOnAttribute, however, does allow User-Defined properties.
 In fact, this Processor will not be valid until the user has added a property.
 
 image:edit-property-textarea.png["Edit Property with Text Area"]
@@ -540,7 +569,7 @@ Note that after a User-Defined property has been added, an icon will appear on t
 image:iconDelete.png["Delete Icon"]
 ). Clicking it will remove the User-Defined property from the Processor.
 
-Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button. 
+Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button.
 
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services_and_Reporting_Tasks>> section.
 
@@ -556,57 +585,82 @@ image::comments-tab.png["Comments Tab"]
 
 === Additional Help
 
-The user may access additional documentation about each Processor's usage by right-clicking
-on the Processor and then selecting `Usage' from the context menu. Alternatively, clicking the `Help' link in the top-right
-corner of the User Interface will provide a Help page with all of the documentation, including usage documentation
-for all the Processors that are available. Clicking on the desired Processor in the list will display its usage documentation.
+You can access additional documentation about each Processor's usage by right-clicking
+on the Processor and selecting `Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right
+corner of the UI to display a Help page with all of the documentation, including usage documentation
+for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
 
 
 [[Controller_Services_and_Reporting_Tasks]]
 === Controller Services and Reporting Tasks
 
-While DFMs have the ability to create Controller Services from the Configure Processor window, there is also a central place within the User Interface for adding and configuring both Controller Services and Reporting Tasks. To get there, click on the Controller Settings button in the Management section of the toolbar.
+While DFMs have the ability to create Controller Services from the Configure Processor window, there is also a central place within the
+UI for adding and configuring both Controller Services and Reporting Tasks. To get there, select Controller Settings from the Global Menu.
 
 [[Controller_Settings]]
 ==== Controller Settings
 
-image:controller-settings-button.png["Controller Settings Button", width=200]
+image:controller-settings-button.png["Controller Settings Button"]
 
 
-The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
+The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is
+for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for
+the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance
+that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
 
 The General tab also provides settings for the overall maximum thread counts of the instance.
 
-image:settings-general-tab.png["Controller Settings General Tab", width=700]
+image:settings-general-tab.png["Controller Settings General Tab"]
 
-To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right corner to create a new Controller Service.
+To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right
+corner to create a new Controller Service.
 
-image:controller-services-tab.png["Controller Services Tab", width=900]
+image:controller-services-tab.png["Controller Services Tab"]
 
-The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services to those that fit the categories desired. The DFM may also use the Filter field at the top of the window to search for the desired Controller Service. Upon selecting a Controller Service from the list, the DFM can see a description of the the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
+The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the
+available Controller Services on the right and a tag cloud, showing the most common category tags used for Controller
+Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services
+to those that fit the categories desired. The DFM may also use the Filter field at the top of the window to search
+for the desired Controller Service. Upon selecting a Controller Service from the list, the DFM can see a description of
+the the service below. Select the desired controller service and click Add, or simply double-click the name of the service
+to add it.
 
-image:add-controller-service-window.png["Add Controller Service Window", width=700]
+image:add-controller-service-window.png["Add Controller Service Window"]
 
-Once a Controller Service has been added, the DFM may configure it by clicking the Edit button (pencil icon) in the far-right column. Other buttons in this column include the Enable button (to enable a configured service), the Remove button, and the Usage button, which links to the documentation for the particular Controller Service.
+
+Once you have added a Controller Service, you can configure it by clicking the Edit button in the
+far-right column. Other buttons in this column include Remove and Access Policies.
 
 image:controller-services-edit-buttons.png["Controller Services Buttons"]
 
-When the DFM clicks the Edit button, a Configure Controller Service window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID for the service and provides a list of other components (processors or other controller services) that reference the service.
+You can obtain information about Controller Services by clicking the Details, Usage, and Alerts buttons in the left-hand column.
 
-image:configure-controller-service-settings.png["Configure Controller Service Settings", width=700]
+image:controller-services-information-buttons.png["Controller Services Information Buttons"]
 
-The Properties tab lists the various properties that apply to the particular controller service. As with configuring processors, the DFM may hover the mouse over the question mark icons to see more information about each property.
+When the DFM clicks the Edit button, a Configure Controller Service window opens. It has three tabs: Settings, Properties,
+and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM
+to give the Controller Service a unique name (if desired). It also lists the UUID for the service and provides a list
+of other components (processors or other controller services) that reference the service.
 
-image:configure-controller-service-properties.png["Configure Controller Service Properties", width=700]
+image:configure-controller-service-settings.png["Configure Controller Service Settings"]
 
-The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel button to cancel the changes and close the window.
+The Properties tab lists the various properties that apply to the particular controller service. As with configuring
+processors, the DFM may hover the over the question mark icons to see more information about each property.
 
-Note that after a Controller Service has been configured, it must be enabled in order to run. Do this using the Enable button in the far-right column of the Controller Services tab of the Controller Settings window. Then, in order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing processors, reporting tasks, and controller services). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. Likewise, when enabling a controller service, the DFM has the option to start/enable all referencing processors, reporting tasks, and controller services.
+image:configure-controller-service-properties.png["Configure Controller Service Properties"]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring
+a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel
+button to cancel the changes and close the window.
+
+Note that after a Controller Service has been configured, it must be enabled in order to run. Do this using the
+Enable button in the far-right column of the Controller Services tab of the Controller Settings window. Then,
+in order to modify an existing/running controller service, the DFM needs to stop/disable it (as well as all referencing processors, reporting tasks, and controller services). Rather than having to hunt down each component that is referenced by that controller service, the DFM has the ability to stop/disable them when disabling the controller service in question. Likewise, when enabling a controller service, the DFM has the option to start/enable all referencing processors, reporting tasks, and controller services.
 
 The Reporting Tasks tab behaves similarly to the Controller Services tab. The DFM has the option to add Reporting Tasks and configure them in the same way as Controller Services.
 
-image:reporting-tasks-tab.png["Reporting Tasks Tab", width=900]
+image:reporting-tasks-tab.png["Reporting Tasks Tab"]
 
 Once a Reporting Task has been added, the DFM may configure it by clicking the Edit (pencil icon) in the far-right column. Other buttons in this column include the Start button, Remove button, and Usage button, which links to the documentation for the particular Reporting Task.
 
@@ -614,11 +668,11 @@ image:reporting-tasks-edit-buttons2.png["Reporting Tasks Buttons"]
 
 When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is also similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists a UUID for the Reporting Task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
 
-image:configure-reporting-task-settings.png["Configure Reporting Task Settings", width=700]
+image:configure-reporting-task-settings.png["Configure Reporting Task Settings"]
 
 The Properties tab for a Reporting Task lists the properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
 
-image:configure-reporting-task-properties.png["Configure Reporting Task Properties", width=700]
+image:configure-reporting-task-properties.png["Configure Reporting Task Properties"]
 
 The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click Cancel to cancel the changes and close the window.
 
@@ -638,9 +692,10 @@ image:processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
 releases the mouse, a `Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
-discussed in detail below. Note that it is possible to draw a connection so that it loops back on the same processor. This can be 
+discussed in detail below. Note that it is possible to draw a connection so that it loops back on the same processor. This can be
 useful if the DFM wants the processor to try to re-process FlowFiles if they go down a failure Relationship. To create this type of looping
-connection, simply drag the connection bubble away and then back to the same processor until it is highlighted. Then release the mouse and the same 'Create Connection' dialog appears. 
+connection, simply drag the connection bubble away and then back to the same processor until it is highlighted. Then release the mouse
+and the same 'Create Connection' dialog appears.
 
 ==== Details Tab
 
@@ -676,7 +731,7 @@ NiFi provides two configuration elements for Back Pressure. These thresholds ind
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
 This allows the system to avoid being overrun with data. The first option provided is the ``Back pressure object threshold.''
 This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
-is the ``Back pressure data size threshold.'' 
+is the ``Back pressure data size threshold.''
 This specifies the maximum amount of data (in size) that should be queued up before
 applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
 kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
@@ -697,12 +752,12 @@ The following prioritizers are available:
 
 *Note*: After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
-image:nifi-connection.png["Connection", width=300]
+image:nifi-connection.png["Connection"]
 
 
 To change a connection's configuration or interact with the connection in other ways, right-click on the connection to open the connection context menu.
 
-image:nifi-connection-menu.png["Connection Menu", width=200]
+image:nifi-connection-menu.png["Connection Menu"]
 
 The following options are available:
 
@@ -720,14 +775,14 @@ To add a bend point (or elbow) to an existing connection, simply double-click on
 the bend point and drag it so that the connection is bent in the desired way. You can add as many bend points as you want. You can also use the mouse to drag and move the label on the connection to any existing
 bend point. To remove a bend point, simply double-click it again.
 
-image:nifi-connection-bend-points.png["Connection Bend Points", width=500]
+image:nifi-connection-bend-points.png["Connection Bend Points"]
 
 
 === Processor Validation
 
 Before trying to start a Processor, it's important to make sure that the Processor's configuration is valid.
 A status indicator is shown in the top-left of the Processor. If the Processor is invalid, the indicator
-will show a yellow Warning indicator with an exclamation mark indicating that there is a problem:
+will show a red Warning indicator with an exclamation mark indicating that there is a problem:
 
 image::invalid-processor.png["Invalid Processor"]
 
@@ -756,7 +811,7 @@ Using Site-to-Site provides the following benefits:
    to allow only specific users, and only those users will be able to see that the port even exists. For information on configuring the Certificates,
    see the
 link:administration-guide.html#security-configuration[Security Configuration] section of the
-link:administration-guide.html[Admin Guide].
+link:administration-guide.html[System Administrator’s Guide].
 
 * Scalable
 ** As nodes in the remote cluster change, those changes are automatically detected and data is scaled out across all nodes in the cluster.
@@ -799,8 +854,8 @@ It is important to understand which NiFi instance will be the client or server i
 
 [[Site-to-Site_Remote_Process_Group]]
 *Remote Process Group*: In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the canvas
-and enter the URL of the remote NiFi instance (for more information on the components of a Remote Process Group, see 
-<<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same 
+and enter the URL of the remote NiFi instance (for more information on the components of a Remote Process Group, see
+<<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same
 URL you would use to go to that instance's User Interface. At that point, you can drag a connection to or from the Remote Process Group
 in the same way you would drag a connection to or from a Processor or a local Process Group. When you drag the connection, you will have
 a chance to choose which Port to connect to. Note that it may take up to one minute for the Remote Process Group to determine
@@ -812,12 +867,12 @@ the ports shown will be the Input Ports of the remote group, as this implies tha
 
 *Note*: if the remote instance is configured to use secure data transmission, you will see only ports that you are authorized to
 communicate with. For information on configuring NiFi to run securely, see the
-link:administration-guide.html[Admin Guide].
+link:administration-guide.html[System Administrator’s Guide].
 
 [[Site-to-Site_Transport_Protocol]]
 *Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
 
-image:configure-remote-process-group.png["Configure Remote Process Group", width=395]
+image:configure-remote-process-group.png["Configure Remote Process Group"]
 
 By default, it is set to _RAW_ which uses raw socket communication using a dedicated port. _HTTP_ transport protocol is especially useful if the remote NiFi instance is in a restricted network that only allow access through HTTP(S) protocol or only accessible from a specific HTTP Proxy server. For accessing through a HTTP Proxy Server, BASIC and DIGEST authentication are supported.
 
@@ -836,7 +891,7 @@ Process Group and choose to "Refresh" the flow.
 [[Site-to-Site_Output_Port]]
 *Output Port*: Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an
 authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port will again allow the
-DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured. 
+DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured.
 
 In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
 For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
@@ -850,12 +905,12 @@ section of the link:administration-guide.html[Admin Guide].
 
 For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
-link:administration-guide.html[Admin Guide].
+link:administration-guide.html[System Administrator’s Guide].
 
 
 === Example Dataflow
 
-This section has described the steps required to build a dataflow. Now, to put it all together. The following example dataflow 
+This section has described the steps required to build a dataflow. Now, to put it all together. The following example dataflow
 consists of just two processors: GenerateFlowFile and LogAttribute. These processors are normally used for testing, but they can also be used
 to build a quick flow for demonstration purposes and see NiFi in action.
 
@@ -871,7 +926,7 @@ After you drag the GenerateFlowFile and LogAttribute processors to the canvas an
 
 The dataflow should look like the following:
 
-image::simple-flow.png["Simple Flow", width=900]
+image::simple-flow.png["Simple Flow"]
 
 
 Now see the following section on how to start and stop the dataflow. When the dataflow is running, be sure to note the statistical information that is displayed on the face of each processor (see <<processor_anatomy>>).
@@ -896,7 +951,7 @@ In order to start a component, the following conditions must be met:
 
 - The component must be enabled.
 
-- The component must have no active tasks. For more information about active tasks, see the ``Anatomy of ...'' 
+- The component must have no active tasks. For more information about active tasks, see the ``Anatomy of ...''
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
 Components can be started by selecting all of the components to start and then clicking the Start icon (
@@ -933,16 +988,16 @@ for more information).
 === Enabling/Disabling a Component
 
 When a component is enabled, it is able to be started. Users may choose to disable components when they are part of a
-dataflow that is still being assembled, for example. Typically, if a component is not intended to be run, the component 
-is disabled, rather than being left in the Stopped state. This helps to distinguish between components that are 
-intentionally not running and those that may have been stopped temporarily (for instance, to change the component's 
-configuration) and inadvertently were never restarted. 
+dataflow that is still being assembled, for example. Typically, if a component is not intended to be run, the component
+is disabled, rather than being left in the Stopped state. This helps to distinguish between components that are
+intentionally not running and those that may have been stopped temporarily (for instance, to change the component's
+configuration) and inadvertently were never restarted.
 
-When it is desirable to re-enable a component, it can be enabled by selecting the component and 
+When it is desirable to re-enable a component, it can be enabled by selecting the component and
 clicking the Enable icon (
 image:iconEnable.png["Enable"]
 ) in the Actions Toolbar. This is available only when the selected component or components are disabled.
-Alternatively, a component can be enabled by checking the checkbox next  to the ``Enabled'' option in 
+Alternatively, a component can be enabled by checking the checkbox next  to the ``Enabled'' option in
 the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
 
 Once enabled, the component's status indicator will change to either Invalid (
@@ -970,7 +1025,7 @@ image:iconTransmissionInactive.png["Transmission Disabled"]
 RPG and clicking the ``Enable Transmission'' menu item. This will cause all ports for which there is a Connection
 to begin transmitting data. This will cause the status indicator to then change to the Transmission Enabled icon (
 image:iconTransmissionActive.png["Transmission Enabled"]
-). 
+).
 
 If there are problems communicating with the Remote Process Group, a Warning indicator (
 image:iconAlert.png["Warning"]
@@ -980,7 +1035,7 @@ more information about the problem.
 [[Remote_Port_Configuration]]
 ==== Individual Port Transmission
 
-There are times when the DFM may want to either enable or disable transmission for only a specific 
+There are times when the DFM may want to either enable or disable transmission for only a specific
 Port within the Remote Process Group. This can be accomplished by right-clicking on the Remote Process Group
 and choosing the ``Remote ports'' menu item. This provides a configuration dialog from which each Port can be
 configured:
@@ -989,7 +1044,7 @@ image::remote-group-ports-dialog.png["Remote Process Groups"]
 
 The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to.
 The right-hand side lists all of the Output Ports from which this instance is able to pull data.
-If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, 
+If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`,
 rather than `http://`), any Ports that the remote instance has not made available to this instance will not
 be shown.
 
@@ -1006,7 +1061,7 @@ to turn the Port on or off. Those Ports that have no Connections attached to the
 image::remote-port-connection-status.png["Remote Port Statuses"]
 
 The on/off switch provides a mechanism to enable and disable transmission for each Port in the Remote
-Process Group independently. Those Ports that are connected but are not currently transmitting can be 
+Process Group independently. Those Ports that are connected but are not currently transmitting can be
 configured by clicking the pencil icon (
 image:iconEdit.png["Edit"]
 ) below the on/off switch. Clicking this icon will allow the DFM to change the number of Concurrent tasks and whether
@@ -1026,15 +1081,15 @@ the NiFi canvas; however, once a flow exists on the canvas, there are additional
 == Monitoring of DataFlow
 
 NiFi provides a great deal of information about the status of the DataFlow in order to monitor the
-health and status. The Status bar provides information about the overall system health 
+health and status. The Status bar provides information about the overall system health
 (See <<status_bar>> above for more information). Processors, Process Groups, and Remote Process Groups
-provide fine-grained details about their operations. Connections and Process Groups provide information 
+provide fine-grained details about their operations. Connections and Process Groups provide information
 about the amount of data in their queues. The Summary Page provides information about all of the components
 on the canvas in a tabular format and also provides System Diagnostics information that includes disk usage,
 CPU utilization, and Java Heap and Garbage Collection information. In a clustered environment, this
-information is available per-node or as aggregates across the entire cluster. We will explore each of these 
+information is available per-node or as aggregates across the entire cluster. We will explore each of these
 monitoring artifacts below.
-  
+
 
 [[processor_anatomy]]
 === Anatomy of a Processor
@@ -1050,7 +1105,7 @@ The image outlines the following elements:
 	of tasks to be performed. Each type of Processor is designed to perform one specific task. The Processor
 	type (PutFile, in this example) describes the task that this Processor performs. In this case, the
 	Processor writes a FlowFile to disk - or ``Puts'' a FlowFile to a File.
-	
+
 - *Bulletin Indicator*: When a Processor logs that some event has occurred, it generates a Bulletin to notify
 	those who are monitoring NiFi via the User Interface. The DFM is able to configure which
 	bulletins should be displayed in the User Interface by updating the ``Bulletin level'' field in the
@@ -1059,32 +1114,32 @@ The image outlines the following elements:
 	Processor. When it is present, hovering over the icon with the mouse will provide a tooltip explaining the
 	message provided by the Processor as well as the Bulletin level. If the instance of NiFi is clustered,
 	it will also show the Node that emitted the Bulletin. Bulletins automatically expire after five minutes.
-	
+
 - *Status Indicator*: Shows the current Status of the Processor. The following indicators are possible:
 	** image:iconRun.png["Running"]
 		*Running*: The Processor is currently running.
 	** image:iconStop.png["Stopped"]
 		*Stopped*: The Processor is valid and enabled but is not running.
 	** image:iconAlert.png["Invalid"]
-		*Invalid*: The Processor is enabled but is not currently valid and cannot be started. 
+		*Invalid*: The Processor is enabled but is not currently valid and cannot be started.
 		Hovering over this icon will provide a tooltip indicating why the Processor is not valid.
 	** image:iconDisable.png["Disabled"]
 		*Disabled*: The Processor is not running and cannot be started until it has been enabled.
 		This status does not indicate whether or not the Processor is valid.
-		
+
 - *Processor Name*: This is the user-defined name of the Processor. By default, the name of the Processor is
 	the same as the Processor Type. In the example, this value is "Copy to /review".
-	
+
 - *Active Tasks*: The number of tasks that this Processor is currently executing. This number is constrained
 	by the ``Concurrent tasks'' setting in the ``Scheduling'' tab of the Processor configuration dialog.
 	Here, we can see that the Processor is currently performing two tasks. If the NiFi instance is clustered,
 	this value represents the number of tasks that are currently executing across all nodes in the cluster.
-	
+
 - *5-Minute Statistics*: The Processor shows several different statistics in tabular form. Each of these
 	statistics represents the amount of work that has been performed in the past five minutes. If the NiFi
 	instance is clustered, these values indicate how much work has been done by all of the Nodes combined
 	in the past five minutes. These metrics are:
-	
+
 	** *In*: The amount of data that the Processor has pulled from the queues of its incoming Connections.
 		This value is represented as <count> / <size> where <count> is the number of FlowFiles that have been
 		pulled from the queues and <size> is the total size of those FlowFiles' content. In this example,
@@ -1102,7 +1157,7 @@ The image outlines the following elements:
 		which already existed in the output directory, data was neither read nor written to disk.
 	** *Out*: The amount of data that the Processor has transferred to its outbound Connections. This does
 		not include FlowFiles that the Processor removes itself, or FlowFiles that are routed to connections
-		that are auto-terminated. Like the ``In'' metric above, this value is represented as <count> / <size> 
+		that are auto-terminated. Like the ``In'' metric above, this value is represented as <count> / <size>
 		where <count> is the number of FlowFiles that have been transferred to outbound Connections and <size>
 		is the total size of those FlowFiles' content. In this example, all of the Relationships are configured to be
 		auto-terminated, so no FlowFiles are reported as having been transferred Out.
@@ -1114,8 +1169,8 @@ The image outlines the following elements:
 		case we will see the Time metric showing that it took 60 seconds, instead of 1 second. This time can be
 		thought of as ``System Time,'' or said another way, this value is 60 seconds because that's the amount of
 		time it would have taken to perform the action if only a single concurrent task were used.
-	
-		 
+
+
 
 
 
@@ -1123,7 +1178,7 @@ The image outlines the following elements:
 === Anatomy of a Process Group
 
 The Process Group provides a mechanism for grouping components together into a logical construct in order
-to organize the DataFlow in a way that makes it more understandable from a higher level. 
+to organize the DataFlow in a way that makes it more understandable from a higher level.
 The following image highlights the different elements that make up the anatomy of a Process Group:
 
 image::process-group-anatomy.png["Anatomy of a Process Group"]
@@ -1133,16 +1188,16 @@ The Process Group consists of the following elements:
 - *Name*: This is the user-defined name of the Process Group. This name is set when the Process Group
 	is added to the canvas. The name can later by changed by right-clicking on the Process Group and clicking
 	the ``Configure'' menu option. In this example, the name of the Process Group is ``Process Group ABC.''
-	
+
 - *Bulletin Indicator*: When a child component of a Process Group emits a bulletin, that bulletin is propagated to
 	the component's parent Process Group, as well. When any component has an active Bulletin, this indicator will appear,
 	allowing the user to hover over the icon with the mouse to see the Bulletin.
-	
+
 - *Active Tasks*: The number of tasks that are currently executing by the components within this
-	Process Group. Here, we can see that the Process Group is currently performing one task. If the 
-	NiFi instance is clustered, this value represents the number of tasks that are currently executing 
+	Process Group. Here, we can see that the Process Group is currently performing one task. If the
+	NiFi instance is clustered, this value represents the number of tasks that are currently executing
 	across all nodes in the cluster.
-	
+
 - *Comments*: When the Process Group is added to the canvas, the user is given the option of specifying Comments in order
 	to provide information about the Process Group. The comments can later be changed by right-clicking on the Process
 	Group and clicking the ``Configure'' menu option. In this example, the Comments are set to ``Example Process Group.''
@@ -1154,57 +1209,49 @@ The Process Group consists of the following elements:
 		This field is represented as <count> / <size> where <count> is the number of FlowFiles that are
 		currently enqueued in the Process Group and <size> is the total size of those FlowFiles' content. In this example,
 		the Process Group currently has 1,738 FlowFiles enqueued; those FlowFiles have a total size of 350.03 megabytes (MB).
- 	
+
  	** *In*: The number of FlowFiles that have been transferred into the Process Group through all of its Input Ports
  		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
-		have entered the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content. 
+		have entered the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content.
 		In this example, 686 FlowFiles have entered the Process Group and their total size is 214.01 MB.
-	
-	** *Read/Write*: The total size of the FlowFile content that the components within the Process Group have 
-		read from disk and written to disk. This provides valuable information about the I/O performance that this 
-		Process Group requires. In this example, we see that in the past five minutes, components within this 
+
+	** *Read/Write*: The total size of the FlowFile content that the components within the Process Group have
+		read from disk and written to disk. This provides valuable information about the I/O performance that this
+		Process Group requires. In this example, we see that in the past five minutes, components within this
 		Process Group have read 72.9 MB of the FlowFile content and have written 686.65 MB.
-		
+
 	** *Out*: The number of FlowFiles that have been transferred out of the Process Group through its Output Ports
 		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
 		have exited the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content.
 		In this example, 657 FlowFiles have exited the Process Group and their total size is 477.74 MB.
- 
+
 - *Component Counts*: The Component Counts element provides information about how many components of each type exist
 	within the Process Group. The following provides information about each of these icons and their meanings:
-	
-	** image:iconInputPortSmall.png["Input Port", width=16]
-		*Input Ports*: The number of Input Ports that exist directly within this Process Group. This does not include any
-			Input Ports that exist within child Process Groups, as child groups' ports cannot be accessed directly.
-			
-	** image:iconOutputPortSmall.png["Output Port"]
-		*Output Ports*: The number of Output Ports that exist directly within this Process Group. This does not include any
-			 Output Ports that exist within child Process Groups as child groups' ports cannot be accessed directly.
-			 
+
 	** image:iconTransmissionActive.png["Transmission Active"]
 		*Transmitting Ports*: The number of Remote Process Group Ports that currently are configured to transmit data to remote
 			instances of NiFi or pull data from remote instances of NiFi.
-			
+
 	** image:iconTransmissionInactive.png["Transmission Inactive"]
 		*Non-Transmitting Ports*: The number of Remote Process Group Ports that are currently connected to components within this
 			Process Group but currently have their transmission disabled.
-			
+
 	** image:iconRun.png["Running"]
 		*Running Components*: The number of Processors, Input Ports, and Output Ports that are currently running within this
 			Process Group.
-	
+
 	** image:iconStop.png["Stopped Components"]
 		*Stopped Components*: The number of Processors, Input Ports, and Output Ports that are currently not running but are
 			valid and enabled. These components are ready to be started.
-			
+
 	** image:iconAlert.png["Invalid Components"]
-		*Invalid Components*: The number of Processors, Input Ports, and Output Ports that are enabled but are currently 
+		*Invalid Components*: The number of Processors, Input Ports, and Output Ports that are enabled but are currently
 			not in a valid state. This may be due to misconfigured properties or missing Relationships.
-		
+
 	** image:iconDisable.png["Disabled Components"]
 		*Disabled Components*: The number of Processors, Input Ports, and Output Ports that are currently disabled. These
 			components may or may not be valid. If the Process Group is started, these components will not cause any errors
-			but will not be started. 
+			but will not be started.
 
 
 
@@ -1230,7 +1277,7 @@ explanation of the icons and details about the information provided.
 	instance of NiFi and the remote instance is currently enabled. The icon shown will be the
 	Transmission Enabled icon (
 image:iconTransmissionActive.png["Transmission Active"]
-	) if any of the Input Ports or Output Ports is currently configured to transmit or the Transmission 
+	) if any of the Input Ports or Output Ports is currently configured to transmit or the Transmission
 	Disabled icon (
 image:iconTransmissionInactive.png["Transmission Inactive"]
 	) if all of the Input Ports and Output Ports that are currently connected are stopped.
@@ -1241,7 +1288,7 @@ image:iconTransmissionInactive.png["Transmission Inactive"]
 
 - *Remote Instance URL*: This is the URL of the remote instance that the Remote Process Group points to.
 	This URL is entered when the Remote Process Group is added to the canvas and it cannot be changed.
-	
+
 - *Secure Indicator*: This icon indicates whether or not communications with the remote NiFi instance are
 	secure. If communications with the remote instance are secure, this will be indicated by the ``locked''
 	icon (
@@ -1251,46 +1298,14 @@ image:iconNotSecure.png["Not Secure"]
 	). If the communications are secure, this instance of NiFi will not be able to communicate with the
 	remote instance until an administrator for the remote instance grants access. Whenever the Remote Process
 	Group is added to the canvas, this will automatically initiate a request to have a user for this instance of NiFi created on the
-	remote instance. This instance will be unable to communicate with the remote instance until an administrator 
+	remote instance. This instance will be unable to communicate with the remote instance until an administrator
 	on the remote instance adds the user to the system and adds the ``NiFi'' role to the user.
 	In the event that communications are not secure, the Remote Process Group is able to receive data from anyone,
 	and the data is not encrypted while it is transferred between instances of NiFi.
-	
-- *Input Ports*: This section shows three pieces of information:
-	** image:iconInputPortSmall.png["Input Ports"]
-		*Input Ports*: The number of Input Ports that are available to send data to on the remote instance of NiFi.
-			If the remote instance is secure, only the ports to which this instance of NiFi has been granted access
-			will be counted.
-			
-	** image:iconTransmissionActive.png["Transmitting"]
-		*Transmitting Ports*: The number of Input Ports to which this NiFi is connected and currently configured to
-			send data to. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
-			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
-	
-	** image:iconTransmissionInactive.png["Not Transmitting"]
-		*Non-Transmitting Ports*: The number of Input Ports to which this NiFi is connected but is not currently configured
-			to send data to. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
-			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
 
-- *Output Ports*: Similar to the ``Input Ports'' section above, this element shows three pieces of information:
-	** image:iconOutputPortSmall.png["Output Ports"]
-		*Output Ports*: The number of Output Ports that are available to pull data from the remote instance of NiFi.
-			If the remote instance is secure, only the ports to which this instance of NiFi has been granted access
-			will be counted.
-			
-	** image:iconTransmissionActive.png["Transmitting"]
-		*Transmitting Ports*: The number of Output Ports from which this NiFi is connected and currently configured
-			to pull data from. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
-			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
-			
-	** image:iconTransmissionInactive.png["Not Transmitting"]
-		*Non-Transmitting Ports*: The number of Output Ports to which this NiFi is connected but is not currently configured
-			to pull data from. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
-			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
-			
 - *5-Minute Statistics*: Two statistics are shown for Remote Process Groups: *Sent* and *Received*. Both of these are
 	in the format <count> / <size> where <count> is the number of FlowFiles that have been sent or received in the previous
-	five minutes and <size> is the total size of those FlowFiles' content. 
+	five minutes and <size> is the total size of those FlowFiles' content.
 
 - *Comments*: The Comments that are provided for a Remote Process Group are not comments added by the users of this NiFi but
 	rather the Comments added by the administrators of the remote instance. These comments indicate the purpose of the NiFi
@@ -1328,12 +1343,10 @@ are actively running.
 
 While the NiFi canvas is useful for understanding how the configured DataFlow is laid out, this view is not always optimal
 when trying to discern the status of the system. In order to help the user understand how the DataFlow is functioning
-at a higher level, NiFi provides a Summary page. This page is available in the Management Toolbar in the top-right corner
+at a higher level, NiFi provides a Summary page. This page is available in the Global Menu in the top-right corner
 of the User Interface. See the <<User_Interface>> section for more information about the location of this toolbar.
 
-The Summary Page is opened by clicking the Summary icon (
-image:iconSummary.png["Summary"]
-) from the Management Toolbar. This opens the Summary table dialog:
+The Summary Page is opened by selecting Summary from the Global Menu. This opens the Summary table dialog:
 
 image::summary-table.png["Summary Table"]
 
@@ -1355,21 +1368,21 @@ The Summary page also includes the following elements:
 	the Bulletin was generated, and (in a clustered environment) the node that generated the Bulletin. Like all the columns in the
 	Summary table, this column where bulletins are shown may be sorted
 	by clicking on the heading so that all the currently existing bulletins are shown at the top of the list.
-	
+
 - *Details*: Clicking the Details icon will provide the user with the details of the component. This dialog is the same as the
 	dialog provided when the user right-clicks on the component and chooses the ``View configuration'' menu item.
-	
+
 - *Go To*: Clicking this button will close the Summary page and take the user directly to the component on the NiFi canvas. This
 	may change the Process Group that the user is currently in. This icon is not available if the Summary page has been opened
 	in a new browser tab or window (by clicking the ``Pop Out'' button, as described below).
-	
+
 - *Stats History*: Clicking the Stats History icon will open a new dialog that shows a historical view of the statistics that
 	are rendered for this component. See the section <<Stats_History>> for more information.
 
 - *Refresh*: The Refresh button allows the user to refresh the information displayed without closing the dialog and opening it
 	again. The time at which the information was last refreshed is shown just to the right of the Refresh button. The information
 	on the page is not automatically refreshed.
-	
+
 - *Filter*: The Filter element allows users to filter the contents of the Summary table by typing in all or part of some criteria,
 	such as a Processor Type or Processor Name. The types of filters available differ according to the selected tab. For instance,
 	if viewing the Processor tab, the user is able to filter by name or by type. When viewing the Connections tab, the user
@@ -1386,7 +1399,7 @@ The Summary page also includes the following elements:
 	system resource utilization. While this is intended mostly for administrators, it is provided in this view because it
 	does provide a summary of the system. This dialog shows information such as CPU utilization, how full the disks are,
 	and Java-specific metrics, such as memory size and utilization, as well as Garbage Collection information.
-	
+
 
 
 
@@ -1399,7 +1412,7 @@ by right-clicking on a component and choosing the ``Stats'' menu option or by cl
 for more information).
 
 The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours. For specific
-configuration information reference the Component Status Repository of the Administration guide.
+configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
 When the Stats dialog is opened, it provides a graph of historical statistics:
 
 image::stats-history.png["Stats History"]
@@ -1425,7 +1438,7 @@ representation of the statistics being graphed. The following information is pro
 	are shown for the cluster as a whole, as well as each individual node. In a clustered environment, each node is shown
 	in a different color. This also serves as the graph's legend, showing the color of each node that is shown in the graph.
 	Hovering the mouse over the Cluster or one of the nodes in the legend will also make the corresponding node bold in the graph.
-	
+
 
 The right-hand side of the dialog provides a drop-down list of the different types of metrics to render in the graphs below.
 The top graph is larger so as to provide an easier-to-read rendering of the information. In the bottom-right corner of
@@ -1434,13 +1447,13 @@ image:iconResize.png["Resize"]
 ) that can be dragged to resize the graph. The blank areas of the dialog can also be dragged around
 to move the entire dialog.
 
-The bottom graph is much shorter and provides the ability to select a time range. Selecting a time range here will 
-cause the top graph to show only the time range selected, but in a more detailed manner. Additionally, this will cause the 
-Min/Max/Mean values on the left-hand side to be recalculated. Once a selection has been created by dragging a 
-rectangle over the graph, double-clicking on the selected portion will cause the selection to fully expand in the 
-vertical direction (i.e., it will select all values in this time range). Clicking on the bottom graph without dragging 
+The bottom graph is much shorter and provides the ability to select a time range. Selecting a time range here will
+cause the top graph to show only the time range selected, but in a more detailed manner. Additionally, this will cause the
+Min/Max/Mean values on the left-hand side to be recalculated. Once a selection has been created by dragging a
+rectangle over the graph, double-clicking on the selected portion will cause the selection to fully expand in the
+vertical direction (i.e., it will select all values in this time range). Clicking on the bottom graph without dragging
 will remove the selection.
- 
+
 
 
 [[templates]]
@@ -1462,7 +1475,7 @@ To create a Template, select the components that are to be a part of the templat
 image:iconNewTemplate.png["Create Template"]
 ) button in the Actions Toolbar (See <<User_Interface>> for more information on the Actions Toolbar).
 
-Clicking this button without selecting anything will create a Template that contains all of the contents of the 
+Clicking this button without selecting anything will create a Template that contains all of the contents of the
 current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
 will create a single Template that contains the entire flow.
 
@@ -1475,8 +1488,8 @@ error message if unable to create the template for some reason.
 ********************************************************************************************************************
 It is important to note that if any Processor that is Templated has a sensitive property (such as a password), the value of that
 sensitive property is not included in the Template. As a result, when dragging the Template onto the canvas, newly
-created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any 
-Connection that was selected when making the Template is not included in the Template if either the source or the 
+created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any
+Connection that was selected when making the Template is not included in the Template if either the source or the
 destination of the Connection is not also included in the Template.
 ********************************************************************************************************************
 
@@ -1493,28 +1506,27 @@ being placed wherever the user dropped the Template icon.
 
 This leaves the contents of the newly instantiated Template selected. If there was a mistake, and this Template is no
 longer wanted, it may be deleted.
- 
+
 
 [[Manage_Templates]]
 === Managing Templates
 
 One of the most powerful features of NiFi Templates is the ability to easily export a Template to an XML file
 and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
-of a DataFlow with others. The Management Toolbar (see <<User_Interface>>) has a button for managing Templates (
-image:iconTemplate.png["Manage Templates"]
-). Clicking this button opens a dialog that allows the user to see all of the Templates that are currently available,
-filter the templates to see only those of interest, and import, export, and delete Templates. 
+of a DataFlow with others. You can select Templates from the Global Menu (see <<User_Interface>>) to open a dialog
+that displays all of the Templates that are currently available,
+filter the templates to see only those of interest, and import, export, and delete Templates.
 
 
 [[Import_Template]]
 ==== Importing a Template
 After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
-the template into this instance of NiFi. From the Template Management dialog (see <<Manage_Templates>>), click the 
-``Browse'' button. This provides a File Selection dialog that allows the user to choose which template file to upload. 
-Select the file and click Open. The ``Browse'' button is replaced by an ``Import'' button and a ``Cancel'' button. 
+the template into this instance of NiFi. From the Template Management dialog (see <<Manage_Templates>>), click the
+``Browse'' button. This provides a File Selection dialog that allows the user to choose which template file to upload.
+Select the file and click Open. The ``Browse'' button is replaced by an ``Import'' button and a ``Cancel'' button.
 Clicking the ``Import'' button will attempt to import the Template into this instance of NiFi. If unable to import
 the Template, an error message will appear in red next to the ``Browse'' button. Otherwise, the Template will be
-added to the table and the ``Browse'' button will reappear. 
+added to the table and the ``Browse'' button will reappear.
 
 
 [[Export_Template]]
@@ -1542,24 +1554,23 @@ and will no longer be available to add to the canvas.
 
 == Data Provenance
 While monitoring a dataflow, users often need a way to determine what happened to a particular data object (FlowFile).
-NiFi's Data Provenance page provides that information. Because NiFi records and indexes data provenance details 
+NiFi's Data Provenance page provides that information. Because NiFi records and indexes data provenance details
 as objects flow through the system, users may perform searches, conduct troubleshooting and evaluate things
 like dataflow compliance and optimization in real time. By default, NiFi updates this information every five minutes, but that
-is configurable. 
+is configurable.
 
 
-To access the Data Provenance page, click the Data Provenance button in the Management Toolbar (see <<User_Interface>>)
-( image:iconProvenance.png["Data Provenance", width=28]
-). Clicking this button opens a dialog window that allows the user to see the most recent Data Provenance information available,
+To access the Data Provenance page, select  Data Provenance from the Global Menu. Clicking this button opens a dialog window t
+hat allows the user to see the most recent Data Provenance information available,
 search the information for specific items, and filter the search results. It is also possible to open additional dialog windows to see event details,
 replay data at any point within the dataflow, and see a graphical representation of the data's lineage, or path through the flow.
 (These features are described in depth below.)
 
 image:provenance-annotated.png["Provenance Table"]
 
-Each point in a dataflow where a FlowFile is processed in some way is considered a "processing event". Various types of processing 
-events occur, depending on the dataflow design. For example, when data is brought into the flow, a RECEIVE event occurs, and when 
-data is sent out of the flow, a SEND event occurs. Other types of processing events may occur, such as if the data is cloned (CLONE event), routed (ROUTE event), modified (CONTENT_MODIFIED or ATTRIBUTES_MODIFIED event), 
+Each point in a dataflow where a FlowFile is processed in some way is considered a "processing event". Various types of processing
+events occur, depending on the dataflow design. For example, when data is brought into the flow, a RECEIVE event occurs, and when
+data is sent out of the flow, a SEND event occurs. Other types of processing events may occur, such as if the data is cloned (CLONE event), routed (ROUTE event), modified (CONTENT_MODIFIED or ATTRIBUTES_MODIFIED event),
 split (FORK event), combined with other data objects (JOIN event), and ultimately removed from the flow (DROP event).
 
 
@@ -1568,14 +1579,14 @@ One of the most common tasks performed in the Data Provenance page is a search f
 click the `Search` button in the upper-right corner of the Data Provenance page. This opens a dialog window with parameters that the user can
 define for the search. The parameters include the processing event of interest, distinguishing characteristics about the FlowFile or the component that produced the event, the timeframe within which to search, and the size of the FlowFile.
 
-image:search-events.png["Search Events", width=400]
+image:search-events.png["Search Events"]
 
 For example, to determine if a particular FlowFile was received, search for an Event Type of "RECEIVE" and include an
 identifier for the FlowFile, such as its uuid or filename. The asterisk (*) may be used as a wildcard for any number of characters.
 So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on Jan. 6, 2015, the search shown in the following
 image could be performed:
 
-image:search-receive-event-abc.png["Search for RECEIVE Event", width=400]
+image:search-receive-event-abc.png["Search for RECEIVE Event"]
 
 [[event_details]]
 === Details of an Event
@@ -1599,15 +1610,18 @@ image:event-attributes.png["Event Attributes", width=700]
 A DFM may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
 is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again. The Content tab of the View Details dialog window is where the DFM can do these things. The Content tab shows information about the FlowFile's content, such as its location in the Content Repository
 and its size. In addition, it is here that the user may click the `Download` button to download a copy of the FlowFile's content as it existed
-at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`, 
+at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`,
 the FlowFile is sent to the connection feeding the component that produced this processing event.
 
 image:event-content.png["Event Content", width=700]
 
 === Viewing FlowFile Lineage
 
-It is often useful to see a graphical representation of the lineage or path a FlowFile took within the dataflow. To see a FlowFile's lineage, click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
-of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the various processing events that have occurred. The selected event will be highlighted in yellow. It is possible to right-click on any event to see that event's details (See <<event_details>>). 
+It is often useful to see a graphical representation of the lineage or path a FlowFile took within the dataflow. To see a FlowFile's lineage,
+click on the "Show Lineage" icon ( image:iconLineage.png["Show Lineage", width=28] ) in the far-right column
+of the Data Provenance table. This opens a graph displaying the FlowFile ( image:lineage-flowfile.png["FlowFile", width=32] ) and the
+various processing events that have occurred. The selected event will be highlighted in red. It is possible to right-click on any
+event to see that event's details (See <<event_details>>).
 To see how the lineage evolved over time, click the slider at the bottom-left of the window and move it to the left to see the state of the lineage at earlier stages in the dataflow.
 
 image:lineage-graph-annotated.png["Lineage Graph", width=900]
@@ -1617,32 +1631,36 @@ Sometimes, a user may need to track down the original FlowFile that another Flow
 track of the parent FlowFile that produced other FlowFiles, and it is possible to find that parent FlowFile in the Lineage. Right-click on the event in the
 lineage graph and select "Find parents" from the context menu.
 
-image:find-parents.png["Find Parents", width=250]
+image:find-parents.png["Find Parents"]
 
 Once "Find parents" is selected, the graph is re-drawn to show the parent FlowFile and its lineage as well as the child and its lineage.
 
-image:parent-found.png["Parent Found", width=250]
+image:parent-found.png["Parent Found"]
 
 
 ==== Expanding an Event
 In the same way that it is useful to find a parent FlowFile, the user may also want to determine what children were spawned from a given FlowFile. To do this, right-click on the event in the lineage graph and select "Expand" from the context menu.
 
-image:expand-event.png["Expand Event", width=250]
+image:expand-event.png["Expand Event"]
 
 Once "Expand" is selected, the graph is re-drawn to show the children and their lineage.
 
-image:expanded-events.png["Expanded Events", width=300]
+image:expanded-events.png["Expanded Events"]
 
 
 [[other_management_features]]
 Other Management Features
 -------------------------
 
-In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the DFM. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the dataflow that will fix the problem.
+In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are
+other tools in the Global Menu (See <<User_Interface>>) that are useful to the DFM. Select Flow Configuration History to view
+all the changes that have been made to the dataflow. The history can aid in troubleshooting, such as if a
+recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and
+adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the
+dataflow that will fix the problem.
 
-Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the link:administration-guide.html[Admin Guide].
-
-
-
-
-
+Two other tools in the Global Menu are Controller Settings and  Users. The Controller Settings page provides the ability to change
+the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available
+to the application. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks
+(see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in
+the link:administration-guide.html[System Administrator's Guide].

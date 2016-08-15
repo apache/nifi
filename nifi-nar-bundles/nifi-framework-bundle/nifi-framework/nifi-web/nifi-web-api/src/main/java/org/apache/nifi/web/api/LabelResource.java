@@ -55,8 +55,8 @@ import java.util.Set;
  */
 @Path("/labels")
 @Api(
-    value = "/labels",
-    description = "Endpoint for managing a Label."
+        value = "/labels",
+        description = "Endpoint for managing a Label."
 )
 public class LabelResource extends ApplicationResource {
 
@@ -97,23 +97,20 @@ public class LabelResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Gets a label",
             response = LabelEntity.class,
             authorizations = {
-                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
-                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+                    @Authorization(value = "Read - /labels/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response getLabel(
@@ -144,29 +141,28 @@ public class LabelResource extends ApplicationResource {
      * Updates the specified label.
      *
      * @param httpServletRequest request
-     * @param id The id of the label to update.
-     * @param labelEntity A labelEntity.
+     * @param id                 The id of the label to update.
+     * @param labelEntity        A labelEntity.
      * @return A labelEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Updates a label",
             response = LabelEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /labels/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response updateLabel(
@@ -203,20 +199,20 @@ public class LabelResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision revision = getRevision(labelEntity, id);
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                Authorizable authorizable  = lookup.getLabel(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            null,
-            () -> {
-                // update the label
-                final LabelEntity entity = serviceFacade.updateLabel(revision, requestLabelDTO);
-                populateRemainingLabelEntityContent(entity);
+                serviceFacade,
+                revision,
+                lookup -> {
+                    Authorizable authorizable = lookup.getLabel(id);
+                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                () -> {
+                    // update the label
+                    final LabelEntity entity = serviceFacade.updateLabel(revision, requestLabelDTO);
+                    populateRemainingLabelEntityContent(entity);
 
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
@@ -224,30 +220,29 @@ public class LabelResource extends ApplicationResource {
      * Removes the specified label.
      *
      * @param httpServletRequest request
-     * @param version The revision is used to verify the client is working with the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param id The id of the label to remove.
+     * @param version            The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id                 The id of the label to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}")
-    // TODO - @PreAuthorize("hasRole('ROLE_DFM')")
     @ApiOperation(
             value = "Deletes a label",
             response = LabelEntity.class,
             authorizations = {
-                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+                    @Authorization(value = "Write - /labels/{uuid}", type = "")
             }
     )
     @ApiResponses(
             value = {
-                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
-                @ApiResponse(code = 401, message = "Client could not be authenticated."),
-                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                @ApiResponse(code = 404, message = "The specified resource could not be found."),
-                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
     public Response removeLabel(
@@ -275,22 +270,23 @@ public class LabelResource extends ApplicationResource {
         // handle expects request (usually from the cluster manager)
         final Revision revision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
         return withWriteLock(
-            serviceFacade,
-            revision,
-            lookup -> {
-                final Authorizable label = lookup.getLabel(id);
-                label.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-            },
-            null,
-            () -> {
-                // delete the specified label
-                final LabelEntity entity = serviceFacade.deleteLabel(revision, id);
-                return clusterContext(generateOkResponse(entity)).build();
-            }
+                serviceFacade,
+                revision,
+                lookup -> {
+                    final Authorizable label = lookup.getLabel(id);
+                    label.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                null,
+                () -> {
+                    // delete the specified label
+                    final LabelEntity entity = serviceFacade.deleteLabel(revision, id);
+                    return clusterContext(generateOkResponse(entity)).build();
+                }
         );
     }
 
     // setters
+
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

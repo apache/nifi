@@ -4,6 +4,19 @@ Copyright 2014-2016 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+Copyright 2015 The Apache Software Foundation
+The derived work is adapted from
+  org/apache/storm/hive/common/HiveWriter.java
+  org/apache/storm/hive/common/HiveOptions.java
+and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+Copyright 2008-2016 The Apache Software Foundation
+The derived work is adapted from
+  release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+and can be found in the org.apache.hadoop.hive.ql.io.orc package
+
 ===========================================
 Apache Software License v2
 ===========================================
@@ -65,7 +78,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons IO
     The following NOTICE information applies:
       Apache Commons IO
-      Copyright 2002-2012 The Apache Software Foundation
+      Copyright 2002-2016 The Apache Software Foundation
 
   (ASLv2) Apache Hive
     The following NOTICE information applies:
@@ -83,18 +96,6 @@ The following binary components are provided under the Apache Software License v
 
       This project includes software copyrighted by Dell SecureWorks and
       licensed under the Apache License, Version 2.0.
-
-  (ASLv2) Apache ORC
-    The following NOTICE information applies:
-      Apache ORC
-      Copyright 2013-2015 The Apache Software Foundation
-
-      This product includes software developed by The Apache Software
-      Foundation (http://www.apache.org/).
-
-      This product includes software developed by Hewlett-Packard:
-      (c) Copyright [2014-2015] Hewlett-Packard Development Company, L.P
-
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:

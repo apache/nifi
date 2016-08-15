@@ -85,14 +85,18 @@ import org.apache.nifi.processors.standard.util.FileInfo;
                 "then files picked up from /tmp will have the path attribute set to \"/tmp/\". If the Recurse " +
                 "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path " +
                 "attribute will be set to \"/tmp/abc/1/2/3/\"."),
-        @WritesAttribute(attribute="fs.owner", description="The user that owns the file in filesystem"),
-        @WritesAttribute(attribute="fs.group", description="The group that owns the file in filesystem"),
-        @WritesAttribute(attribute="fs.lastModified", description="The timestamp of when the file in filesystem was " +
-                "last modified, as milliseconds since midnight Jan 1, 1970 UTC"),
-        @WritesAttribute(attribute="fs.length", description="The number of bytes in the file in filesystem"),
-        @WritesAttribute(attribute="fs.permissions", description="The permissions for the file in filesystem. This " +
+        @WritesAttribute(attribute=ListFile.FILE_OWNER_ATTRIBUTE, description="The user that owns the file in filesystem"),
+        @WritesAttribute(attribute=ListFile.FILE_GROUP_ATTRIBUTE, description="The group that owns the file in filesystem"),
+        @WritesAttribute(attribute=ListFile.FILE_SIZE_ATTRIBUTE, description="The number of bytes in the file in filesystem"),
+        @WritesAttribute(attribute=ListFile.FILE_PERMISSIONS_ATTRIBUTE, description="The permissions for the file in filesystem. This " +
                 "is formatted as 3 characters for the owner, 3 for the group, and 3 for other users. For example " +
-                "rw-rw-r--")
+                "rw-rw-r--"),
+        @WritesAttribute(attribute=ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+                "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+        @WritesAttribute(attribute=ListFile.FILE_LAST_ACCESS_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+                "last accessed as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+        @WritesAttribute(attribute=ListFile.FILE_CREATION_TIME_ATTRIBUTE, description="The timestamp of when the file in filesystem was " +
+                "created as 'yyyy-MM-dd'T'HH:mm:ssZ'")
 })
 @SeeAlso({GetFile.class, PutFile.class, FetchFile.class})
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "

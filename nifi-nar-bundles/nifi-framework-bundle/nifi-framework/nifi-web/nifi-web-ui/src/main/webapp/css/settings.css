@@ -41,9 +41,7 @@ div.settings-container {
 }
 
 #new-service-or-task {
-    position: absolute;
-    top: 0px;
-    right: 0px;
+    float: right;
 }
 
 #settings-refresh-container {
@@ -60,7 +58,7 @@ div.settings-tabs {
 }
 
 #settings-tabs-content {
-    top: 53px;
+    top: 43px;
     bottom: 48px;
 }
 
@@ -93,14 +91,12 @@ div.settings-refresh-button {
 }
 
 #settings-last-refreshed {
-    font-weight: bold;
+    font-weight: 500;
 }
 
 /* general */
 
 #general-settings input {
-    font-size: 11px !important;
-    font-family: Verdana;
     width: 350px;
     vertical-align: middle;
 }
@@ -115,4 +111,8 @@ div.settings-buttons {
 
 div.settings-buttons div.button {
     float: left;
+}
+
+div.controller-settings-table {
+    top: 32px;
 }

@@ -1109,28 +1109,6 @@ nf.ProcessGroup = (function () {
         },
 
         /**
-         * Sets the process group status using the specified status.
-         *
-         * @param {array} processGroupStatus       Process group status
-         */
-        setStatus: function (processGroupStatus) {
-            if (nf.Common.isEmpty(processGroupStatus)) {
-                return;
-            }
-
-            // update the specified process group status
-            $.each(processGroupStatus, function (_, status) {
-                if (processGroupMap.has(status.id)) {
-                    var processGroup = processGroupMap.get(status.id);
-                    processGroup.status = status;
-                }
-            });
-
-            // update the visible process groups
-            d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
-        },
-
-        /**
          * Removes the specified process group.
          *
          * @param {string} processGroups      The process group id(s)

@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.protocol;
 
 import java.util.Set;
 
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -61,4 +62,11 @@ public interface ClusterCoordinationProtocolSender {
      * @param msg the message that indicates which node's status changed and what it changed to
      */
     void notifyNodeStatusChange(Set<NodeIdentifier> nodesToNotify, NodeStatusChangeMessage msg);
+
+    /**
+     * Sends a request to the given hostname and port to request its connection status
+     *
+     * @return the connection status returned from the node at the given hostname & port
+     */
+    NodeConnectionStatus requestNodeConnectionStatus(String hostname, int port);
 }

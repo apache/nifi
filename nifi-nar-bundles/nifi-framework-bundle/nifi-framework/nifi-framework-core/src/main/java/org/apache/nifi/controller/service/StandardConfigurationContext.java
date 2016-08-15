@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 
 public class StandardConfigurationContext implements ConfigurationContext {
@@ -35,13 +36,17 @@ public class StandardConfigurationContext implements ConfigurationContext {
     private final ConfiguredComponent component;
     private final ControllerServiceLookup serviceLookup;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
+    private final VariableRegistry variableRegistry;
     private final String schedulingPeriod;
     private final Long schedulingNanos;
 
-    public StandardConfigurationContext(final ConfiguredComponent component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod) {
+    public StandardConfigurationContext(final ConfiguredComponent component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod,
+                                        final VariableRegistry variableRegistry) {
         this.component = component;
         this.serviceLookup = serviceLookup;
         this.schedulingPeriod = schedulingPeriod;
+        this.variableRegistry = variableRegistry;
+
         if (schedulingPeriod == null) {
             schedulingNanos = null;
         } else {
@@ -68,7 +73,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final String configuredValue = component.getProperty(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, serviceLookup, preparedQueries.get(property));
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, serviceLookup, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

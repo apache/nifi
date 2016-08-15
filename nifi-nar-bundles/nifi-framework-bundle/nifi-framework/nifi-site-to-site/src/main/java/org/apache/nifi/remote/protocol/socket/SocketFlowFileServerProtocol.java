@@ -27,7 +27,7 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.protocol.AbstractFlowFileServerProtocol;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.HandshakenProperties;
+import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.util.NiFiProperties;
@@ -51,9 +51,9 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
 
     @Override
-    protected HandshakenProperties doHandshake(Peer peer) throws IOException, HandshakeException {
+    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
 
-        HandshakenProperties confirmed = new HandshakenProperties();
+        HandshakeProperties confirmed = new HandshakeProperties();
 
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
@@ -216,5 +216,11 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     @Override
     public VersionNegotiator getVersionNegotiator() {
         return versionNegotiator;
+    }
+
+    @Override
+    protected String createTransitUri(Peer peer, String sourceFlowFileIdentifier) {
+        String transitUriPrefix = handshakenProperties.getTransitUriPrefix();
+        return (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
     }
 }

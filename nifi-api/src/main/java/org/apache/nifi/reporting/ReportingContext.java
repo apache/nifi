@@ -92,4 +92,16 @@ public interface ReportingContext {
      * @return the StateManager that can be used to store and retrieve state for this component
      */
     StateManager getStateManager();
+
+    /**
+     * @return <code>true</code> if this instance of NiFi is configured to be part of a cluster, <code>false</code>
+     *         if this instance of NiFi is a standalone instance
+     */
+    boolean isClustered();
+
+    /**
+     * @return the ID of this node in the cluster, or <code>null</code> if either this node is not clustered or the Node Identifier
+     *         has not yet been established
+     */
+    String getClusterNodeIdentifier();
 }

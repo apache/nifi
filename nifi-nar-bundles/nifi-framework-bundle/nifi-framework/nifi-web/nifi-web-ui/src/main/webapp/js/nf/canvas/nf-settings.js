@@ -20,10 +20,6 @@
 nf.Settings = (function () {
 
     var config = {
-        filterText: 'Filter',
-        styles: {
-            filterList: 'filter-list'
-        },
         urls: {
             api: '../nifi-api',
             controllerConfig: '../nifi-api/controller/config',
@@ -66,7 +62,7 @@ nf.Settings = (function () {
                     'version': version
                 }
             }),
-            'controllerConfiguration': configuration
+            'component': configuration
         };
 
         // save the new configuration details
@@ -256,12 +252,7 @@ nf.Settings = (function () {
      * accounts for that.
      */
     var getReportingTaskTypeFilterText = function () {
-        var filterText = '';
-        var filterField = $('#reporting-task-type-filter');
-        if (!filterField.hasClass(config.styles.filterList)) {
-            filterText = filterField.val();
-        }
-        return filterText;
+        return $('#reporting-task-type-filter').val();
     };
 
     /**
@@ -419,15 +410,7 @@ nf.Settings = (function () {
             } else {
                 applyReportingTaskTypeFilter();
             }
-        }).focus(function () {
-            if ($(this).hasClass(config.styles.filterList)) {
-                $(this).removeClass(config.styles.filterList).val('');
-            }
-        }).blur(function () {
-            if ($(this).val() === '') {
-                $(this).addClass(config.styles.filterList).val(config.filterText);
-            }
-        }).addClass(config.styles.filterList).val(config.filterText);
+        });
 
         // initialize the processor type table
         var reportingTaskTypesColumns = [
@@ -574,7 +557,7 @@ nf.Settings = (function () {
                     clearSelectedReportingTask();
 
                     // clear any filter strings
-                    $('#reporting-task-type-filter').addClass(config.styles.filterList).val(config.filterText);
+                    $('#reporting-task-type-filter').val('');
 
                     // clear the tagcloud
                     $('#reporting-task-tag-cloud').tagcloud('clearSelectedTags');
@@ -673,8 +656,6 @@ nf.Settings = (function () {
                     if (dataContext.component.state === 'STOPPED' && nf.Common.isEmpty(dataContext.component.validationErrors)) {
                         markup += '<div title="Start" class="pointer start-reporting-task fa fa-play" style="margin-top: 2px; margin-right: 3px;"></div>';
                     }
-
-                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
                 }
 
                 if (dataContext.component.persistsState === true) {
@@ -682,8 +663,14 @@ nf.Settings = (function () {
                 }
             }
 
-            // TODO - only if we can adminster policies
-            markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            if (dataContext.permissions.canWrite) {
+                markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash" style="margin-top: 2px; margin-right: 3px;" ></div>';
+            }
+
+            // allow policy configuration conditionally
+            if (nf.Canvas.isConfigurableAuthorizer() && nf.Common.canAccessTenants()) {
+                markup += '<div title="Access Policies" class="pointer edit-access-policies fa fa-key" style="margin-top: 2px;"></div>';
+            }
 
             return markup;
         };
@@ -873,8 +860,8 @@ nf.Settings = (function () {
 
                 if (response.permissions.canWrite) {
                     // populate the settings
-                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.controllerConfiguration.maxEventDrivenThreadCount);
+                    $('#maximum-timer-driven-thread-count-field').removeClass('unset').val(response.component.maxTimerDrivenThreadCount);
+                    $('#maximum-event-driven-thread-count-field').removeClass('unset').val(response.component.maxEventDrivenThreadCount);
 
                     setEditable(true);
 
@@ -885,8 +872,8 @@ nf.Settings = (function () {
                 } else {
                     if (response.permissions.canRead) {
                         // populate the settings
-                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxTimerDrivenThreadCount);
-                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.controllerConfiguration.maxEventDrivenThreadCount);
+                        $('#read-only-maximum-timer-driven-thread-count-field').removeClass('unset').text(response.component.maxTimerDrivenThreadCount);
+                        $('#read-only-maximum-event-driven-thread-count-field').removeClass('unset').text(response.component.maxEventDrivenThreadCount);
                     } else {
                         setUnauthorizedText();
                     }
@@ -950,16 +937,13 @@ nf.Settings = (function () {
      * Shows the process group configuration.
      */
     var showSettings = function () {
-        if (nf.Common.canModifyController()) {
-            $('#new-service-or-task').show();
-        } else {
-            $('#new-service-or-task').hide();
-        }
-
         // show the settings dialog
         nf.Shell.showContent('#settings').done(function () {
             reset();
         });
+
+        //reset content to account for possible policy changes
+        $('#settings-tabs').find('.selected-tab').click();
 
         // adjust the table size
         nf.Settings.resetTableSize();
@@ -1001,6 +985,7 @@ nf.Settings = (function () {
                     } else {
                         if (nf.Common.canModifyController()) {
                             $('#new-service-or-task').show();
+                            $('div.controller-settings-table').css('top', '32px');
 
                             // update the tooltip on the button
                             $('#new-service-or-task').attr('title', function () {
@@ -1012,6 +997,9 @@ nf.Settings = (function () {
                                     return 'Create a new reporting task';
                                 }
                             });
+                        } else {
+                            $('#new-service-or-task').hide();
+                            $('div.controller-settings-table').css('top', '0');
                         }
 
                         // resize the table

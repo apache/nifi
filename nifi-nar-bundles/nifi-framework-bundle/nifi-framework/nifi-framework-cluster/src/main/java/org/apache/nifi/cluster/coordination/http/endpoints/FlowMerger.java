@@ -18,6 +18,8 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.nifi.cluster.manager.ConnectionsEntityMerger;
+import org.apache.nifi.cluster.manager.FunnelsEntityMerger;
+import org.apache.nifi.cluster.manager.LabelsEntityMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PortsEntityMerger;
 import org.apache.nifi.cluster.manager.ProcessGroupsEntityMerger;
@@ -36,10 +38,7 @@ import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -73,11 +72,13 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         final Set<PortEntity> clientOutputPorts = flowDto.getOutputPorts();
         final Set<RemoteProcessGroupEntity> clientRemoteProcessGroups = flowDto.getRemoteProcessGroups();
         final Set<ProcessGroupEntity> clientProcessGroups = flowDto.getProcessGroups();
+        final Set<LabelEntity> clientLabels = flowDto.getLabels();
+        final Set<FunnelEntity> clientFunnels = flowDto.getFunnels();
 
         final Map<String, Map<NodeIdentifier, ConnectionEntity>> connections = new HashMap<>();
-        final Map<String, List<FunnelEntity>> funnels = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, FunnelEntity>> funnels = new HashMap<>();
         final Map<String, Map<NodeIdentifier, PortEntity>> inputPorts = new HashMap<>();
-        final Map<String, List<LabelEntity>> labels = new HashMap<>();
+        final Map<String, Map<NodeIdentifier, LabelEntity>> labels = new HashMap<>();
         final Map<String, Map<NodeIdentifier, PortEntity>> outputPorts = new HashMap<>();
         final Map<String, Map<NodeIdentifier, ProcessorEntity>> processors = new HashMap<>();
         final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> rpgs = new HashMap<>();
@@ -95,7 +96,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
             }
 
             for (final FunnelEntity entity : nodeFlowDto.getFunnels()) {
-                funnels.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                funnels.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final PortEntity entity : nodeFlowDto.getInputPorts()) {
@@ -107,7 +108,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
             }
 
             for (final LabelEntity entity : nodeFlowDto.getLabels()) {
-                labels.computeIfAbsent(entity.getId(), id -> new ArrayList<>()).add(entity);
+                labels.computeIfAbsent(entity.getId(), id -> new HashMap<>()).computeIfAbsent(nodeIdentifier, nodeId -> entity);
             }
 
             for (final ProcessorEntity entity : nodeFlowDto.getProcessors()) {
@@ -131,11 +132,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         ConnectionsEntityMerger.mergeConnections(clientConnections, connections);
 
         // Merge funnel statuses
-        final Set<FunnelEntity> mergedFunnels = new HashSet<>();
-        for (final List<FunnelEntity> funnelList : funnels.values()) {
-            mergedFunnels.add(mergeFunnels(funnelList));
-        }
-        flowDto.setFunnels(mergedFunnels);
+        FunnelsEntityMerger.mergeFunnels(clientFunnels, funnels);
 
         // Merge input ports
         PortsEntityMerger.mergePorts(clientInputPorts, inputPorts);
@@ -144,11 +141,7 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
         PortsEntityMerger.mergePorts(clientOutputPorts, outputPorts);
 
         // Merge labels
-        final Set<LabelEntity> mergedLabels = new HashSet<>();
-        for (final List<LabelEntity> labelList : labels.values()) {
-            mergedLabels.add(mergeLabels(labelList));
-        }
-        flowDto.setLabels(mergedLabels);
+        LabelsEntityMerger.mergeLabels(clientLabels, labels);
 
         // Merge processors
         ProcessorsEntityMerger.mergeProcessors(clientProcessors, processors);
@@ -158,13 +151,5 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
 
         // Merge Process Groups
         ProcessGroupsEntityMerger.mergeProcessGroups(clientProcessGroups, processGroups);
-    }
-
-    private FunnelEntity mergeFunnels(final List<FunnelEntity> funnels) {
-        return funnels.get(0);
-    }
-
-    private LabelEntity mergeLabels(final List<LabelEntity> labels) {
-        return labels.get(0);
     }
 }

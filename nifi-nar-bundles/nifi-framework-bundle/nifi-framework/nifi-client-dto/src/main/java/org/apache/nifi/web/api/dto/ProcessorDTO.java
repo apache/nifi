@@ -185,7 +185,8 @@ public class ProcessorDTO extends ComponentDTO {
      * @return The available relationships
      */
     @ApiModelProperty(
-            value = "The available relationships that the processor currently supports."
+            value = "The available relationships that the processor currently supports.",
+            readOnly = true
     )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
