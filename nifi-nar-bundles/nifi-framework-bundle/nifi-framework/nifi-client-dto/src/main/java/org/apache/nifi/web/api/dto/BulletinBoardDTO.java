@@ -23,6 +23,7 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 
 /**
  * The contents for the bulletin board including the bulletins and the timestamp when the board was generated.
@@ -30,7 +31,7 @@ import org.apache.nifi.web.api.dto.util.TimeAdapter;
 @XmlType(name = "bulletinBoard")
 public class BulletinBoardDTO {
 
-    private List<BulletinDTO> bulletins;
+    private List<BulletinEntity> bulletins;
     private Date generated;
 
     /**
@@ -39,11 +40,11 @@ public class BulletinBoardDTO {
     @ApiModelProperty(
             value = "The bulletins in the bulletin board, that matches the supplied request."
     )
-    public List<BulletinDTO> getBulletins() {
+    public List<BulletinEntity> getBulletins() {
         return bulletins;
     }
 
-    public void setBulletins(List<BulletinDTO> bulletins) {
+    public void setBulletins(List<BulletinEntity> bulletins) {
         this.bulletins = bulletins;
     }
 

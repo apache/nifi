@@ -141,6 +141,7 @@ import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -175,6 +176,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class DtoFactory {
 
@@ -1622,7 +1624,7 @@ public final class DtoFactory {
     }
 
     public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
-                                                         final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
+                                                         final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins) {
 
         final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
         dto.setId(group.getIdentifier());
@@ -1639,7 +1641,7 @@ public final class DtoFactory {
     }
 
     public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final FlowSnippetDTO snippet, final RevisionManager revisionManager,
-                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
+                                 final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins) {
         if (snippet == null) {
             return null;
         }
@@ -1676,13 +1678,14 @@ public final class DtoFactory {
             // marshal the actual port as the snippet is pruned
             final PortDTO dto = createPortDto(inputPort);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(inputPort.getIdentifier()));
-            final PermissionsDTO accessPolicy = createPermissionsDto(inputPort);
+            final PermissionsDTO permissions = createPermissionsDto(inputPort);
             final PortStatusDTO status = getComponentStatus(
                 () -> groupStatus.getInputPortStatus().stream().filter(inputPortStatus -> inputPort.getIdentifier().equals(inputPortStatus.getId())).findFirst().orElse(null),
                 inputPortStatus -> createPortStatusDto(inputPortStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPort.getIdentifier()));
-            flow.getInputPorts().add(entityFactory.createPortEntity(dto, revision, accessPolicy, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            flow.getInputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, status, bulletinEntities));
         }
 
         for (final PortDTO snippetOutputPort : snippet.getOutputPorts()) {
@@ -1691,13 +1694,14 @@ public final class DtoFactory {
             // marshal the actual port as the snippet is pruned
             final PortDTO dto = createPortDto(outputPort);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(outputPort.getIdentifier()));
-            final PermissionsDTO accessPolicy = createPermissionsDto(outputPort);
+            final PermissionsDTO permissions = createPermissionsDto(outputPort);
             final PortStatusDTO status = getComponentStatus(
                 () -> groupStatus.getOutputPortStatus().stream().filter(outputPortStatus -> outputPort.getIdentifier().equals(outputPortStatus.getId())).findFirst().orElse(null),
                 outputPortStatus -> createPortStatusDto(outputPortStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPort.getIdentifier()));
-            flow.getOutputPorts().add(entityFactory.createPortEntity(dto, revision, accessPolicy, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            flow.getOutputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, status, bulletinEntities));
         }
 
         for (final LabelDTO snippetLabel : snippet.getLabels()) {
@@ -1716,13 +1720,13 @@ public final class DtoFactory {
             // marshal the actual group as the snippet is pruned
             final ProcessGroupDTO dto = createProcessGroupDto(processGroup);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
-            final PermissionsDTO accessPolicy = createPermissionsDto(processGroup);
+            final PermissionsDTO permissions = createPermissionsDto(processGroup);
             final ProcessGroupStatusDTO status = getComponentStatus(
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> processGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(processGroup);
-            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, accessPolicy, status, bulletins));
+            final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(processGroup);
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, status, bulletins));
         }
 
         for (final ProcessorDTO snippetProcessor : snippet.getProcessors()) {
@@ -1731,13 +1735,14 @@ public final class DtoFactory {
             // marshal the actual processor as the snippet is pruned
             final ProcessorDTO dto = createProcessorDto(processor);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
-            final PermissionsDTO accessPolicy = createPermissionsDto(processor);
+            final PermissionsDTO permissions = createPermissionsDto(processor);
             final ProcessorStatusDTO status = getComponentStatus(
                 () -> groupStatus.getProcessorStatus().stream().filter(processorStatus -> processor.getIdentifier().equals(processorStatus.getId())).findFirst().orElse(null),
                 processorStatus -> createProcessorStatusDto(processorStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
-            flow.getProcessors().add(entityFactory.createProcessorEntity(dto, revision, accessPolicy, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            flow.getProcessors().add(entityFactory.createProcessorEntity(dto, revision, permissions, status, bulletinEntities));
         }
 
         for (final RemoteProcessGroupDTO snippetRemoteProcessGroup : snippet.getRemoteProcessGroups()) {
@@ -1746,13 +1751,14 @@ public final class DtoFactory {
             // marshal the actual rpm as the snippet is pruned
             final RemoteProcessGroupDTO dto = createRemoteProcessGroupDto(remoteProcessGroup);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(remoteProcessGroup.getIdentifier()));
-            final PermissionsDTO accessPolicy = createPermissionsDto(remoteProcessGroup);
+            final PermissionsDTO permissions = createPermissionsDto(remoteProcessGroup);
             final RemoteProcessGroupStatusDTO status = getComponentStatus(
                 () -> groupStatus.getRemoteProcessGroupStatus().stream().filter(rpgStatus -> remoteProcessGroup.getIdentifier().equals(rpgStatus.getId())).findFirst().orElse(null),
                 remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(remoteProcessGroupStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(remoteProcessGroup.getIdentifier()));
-            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(dto, revision, accessPolicy, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(dto, revision, permissions, status, bulletinEntities));
         }
 
         return flow;
@@ -1770,7 +1776,7 @@ public final class DtoFactory {
     }
 
     public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
-                                 final Function<ProcessGroup, List<BulletinDTO>> getProcessGroupBulletins) {
+                                 final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins) {
         final FlowDTO dto = new FlowDTO();
 
         for (final ProcessorNode procNode : group.getProcessors()) {
@@ -1781,7 +1787,8 @@ public final class DtoFactory {
                 processorStatus -> createProcessorStatusDto(processorStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(procNode.getIdentifier()));
-            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), revision, permissions, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), revision, permissions, status, bulletinEntities));
         }
 
         for (final Connection connNode : group.getConnections()) {
@@ -1813,7 +1820,7 @@ public final class DtoFactory {
                 () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> childGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
                 processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
             );
-            final List<BulletinDTO> bulletins = getProcessGroupBulletins.apply(childGroup);
+            final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(childGroup);
             dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, status, bulletins));
         }
 
@@ -1825,7 +1832,8 @@ public final class DtoFactory {
                 remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(remoteProcessGroupStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(rpg.getIdentifier()));
-            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), revision, permissions, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), revision, permissions, status, bulletinEntities));
         }
 
         for (final Port inputPort : group.getInputPorts()) {
@@ -1836,7 +1844,8 @@ public final class DtoFactory {
                 inputPortStatus -> createPortStatusDto(inputPortStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPort.getIdentifier()));
-            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), revision, permissions, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), revision, permissions, status, bulletinEntities));
         }
 
         for (final Port outputPort : group.getOutputPorts()) {
@@ -1847,7 +1856,8 @@ public final class DtoFactory {
                 outputPortStatus -> createPortStatusDto(outputPortStatus)
             );
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPort.getIdentifier()));
-            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), revision, permissions, status, bulletins));
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), revision, permissions, status, bulletinEntities));
         }
 
         return dto;
@@ -2069,11 +2079,11 @@ public final class DtoFactory {
      * @param bulletins bulletins
      * @return dto
      */
-    public BulletinBoardDTO createBulletinBoardDto(final List<BulletinDTO> bulletins) {
+    public BulletinBoardDTO createBulletinBoardDto(final List<BulletinEntity> bulletins) {
         // sort the bulletins
-        Collections.sort(bulletins, new Comparator<BulletinDTO>() {
+        Collections.sort(bulletins, new Comparator<BulletinEntity>() {
             @Override
-            public int compare(final BulletinDTO bulletin1, final BulletinDTO bulletin2) {
+            public int compare(final BulletinEntity bulletin1, final BulletinEntity bulletin2) {
                 if (bulletin1 == null && bulletin2 == null) {
                     return 0;
                 } else if (bulletin1 == null) {

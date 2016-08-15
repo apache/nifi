@@ -16,62 +16,58 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
+import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ReadablePermission;
-import org.apache.nifi.web.api.dto.action.ActionDTO;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
 import java.util.Date;
 
 /**
- * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to an ActionDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a BulletinDTO.
  */
-@XmlRootElement(name = "actionEntity")
-public class ActionEntity extends Entity implements ReadablePermission {
+public class BulletinEntity extends Entity implements ReadablePermission {
 
-    private Integer id;
-    private Date timestamp;
+    private Long id;
+    private String groupId;
     private String sourceId;
+    private Date timestamp;
+    private String nodeAddress;
     private Boolean canRead;
 
-    private ActionDTO action;
+    private BulletinDTO bulletin;
 
     /**
-     * The ActionDTO that is being serialized.
+     * The BulletinDTO that is being serialized.
      *
-     * @return The ActionDTO object
+     * @return The BulletinDTO object
      */
-    public ActionDTO getAction() {
-        return action;
+    public BulletinDTO getBulletin() {
+        return bulletin;
     }
 
-    public void setAction(ActionDTO action) {
-        this.action = action;
+    public void setBulletin(BulletinDTO bulletin) {
+        this.bulletin = bulletin;
     }
 
     /**
-     * @return The action ID.
+     * @return The id of the bulletin.
      */
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
     /**
-     * @return The timestamp of the action.
+     * @return The group id of the source component.
      */
-    @XmlJavaTypeAdapter(DateTimeAdapter.class)
-    public Date getTimestamp() {
-        return timestamp;
+    public String getGroupId() {
+        return groupId;
     }
 
-    public void setTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
     }
 
     /**
@@ -83,6 +79,28 @@ public class ActionEntity extends Entity implements ReadablePermission {
 
     public void setSourceId(String sourceId) {
         this.sourceId = sourceId;
+    }
+
+    /**
+     * @return When this bulletin was generated.
+     */
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * @return If clustered, the address of the node from which the bulletin originated.
+     */
+    public String getNodeAddress() {
+        return nodeAddress;
+    }
+
+    public void setNodeAddress(String nodeAddress) {
+        this.nodeAddress = nodeAddress;
     }
 
     @Override

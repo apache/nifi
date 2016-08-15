@@ -54,7 +54,6 @@ import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -2039,12 +2038,8 @@ public class FlowResource extends ApplicationResource {
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
-        // get the specified action
-        final ActionDTO action = serviceFacade.getAction(id.getInteger());
-
-        // create the response entity
-        final ActionEntity entity = new ActionEntity();
-        entity.setAction(action);
+        // get the response entity for the specified action
+        final ActionEntity entity = serviceFacade.getAction(id.getInteger());
 
         // generate the response
         return generateOkResponse(entity).build();

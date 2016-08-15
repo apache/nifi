@@ -21,7 +21,7 @@ import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
 import org.apache.nifi.cluster.manager.BulletinMerger;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 
 import java.net.URI;
@@ -54,9 +54,9 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
     protected void mergeResponses(ControllerBulletinsEntity clientEntity, Map<NodeIdentifier, ControllerBulletinsEntity> entityMap,
                                   Set<NodeResponse> successfulResponses, Set<NodeResponse> problematicResponses) {
 
-        final Map<NodeIdentifier, List<BulletinDTO>> bulletinDtos = new HashMap<>();
-        final Map<NodeIdentifier, List<BulletinDTO>> controllerServiceBulletinDtos = new HashMap<>();
-        final Map<NodeIdentifier, List<BulletinDTO>> reportingTaskBulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> bulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> controllerServiceBulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> reportingTaskBulletinDtos = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ControllerBulletinsEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerBulletinsEntity entity = entry.getValue();
