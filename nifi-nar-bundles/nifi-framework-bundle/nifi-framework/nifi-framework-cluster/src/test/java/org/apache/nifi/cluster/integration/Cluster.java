@@ -128,4 +128,17 @@ public class Cluster {
         return ClusterUtils.waitUntilNonNull(time, timeUnit,
             () -> getNodes().stream().filter(node -> node.hasRole(ClusterRoles.PRIMARY_NODE)).findFirst().orElse(null));
     }
+
+    /**
+     * Waits for each node in the cluster to connect. The time given is the maximum amount of time to wait for each node to connect, not for
+     * the entire cluster to connect.
+     *
+     * @param time the max amount of time to wait for a node to connect
+     * @param timeUnit the unit of time that the given <code>time</code> value represents
+     */
+    public void waitUntilAllNodesConnected(final long time, final TimeUnit timeUnit) {
+        for (final Node node : nodes) {
+            node.waitUntilConnected(time, timeUnit);
+        }
+    }
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolListener {
@@ -92,7 +93,7 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     }
 
     @Override
-    public void heartbeat(HeartbeatMessage msg, String address) throws ProtocolException {
-        sender.heartbeat(msg, address);
+    public HeartbeatResponseMessage heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
+        return sender.heartbeat(msg, address);
     }
 }

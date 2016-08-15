@@ -53,7 +53,7 @@ public class NodeConnectionStatus {
     }
 
     public NodeConnectionStatus(final NodeIdentifier nodeId, final NodeConnectionState state, final DisconnectionCode disconnectionCode) {
-        this(nodeId, state, disconnectionCode, disconnectionCode.toString(), null);
+        this(nodeId, state, disconnectionCode, disconnectionCode == null ? null : disconnectionCode.toString(), null);
     }
 
     public NodeConnectionStatus(final NodeConnectionStatus status) {
@@ -109,7 +109,7 @@ public class NodeConnectionStatus {
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         final NodeConnectionState state = getState();
-        sb.append("NodeConnectionStatus[state=").append(state);
+        sb.append("NodeConnectionStatus[nodeId=").append(nodeId).append(", state=").append(state);
         if (state == NodeConnectionState.DISCONNECTED || state == NodeConnectionState.DISCONNECTING) {
             sb.append(", Disconnect Code=").append(getDisconnectCode()).append(", Disconnect Reason=").append(getDisconnectReason());
         }

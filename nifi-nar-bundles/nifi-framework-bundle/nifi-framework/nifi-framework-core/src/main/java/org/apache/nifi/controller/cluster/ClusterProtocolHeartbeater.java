@@ -18,12 +18,22 @@
 package org.apache.nifi.controller.cluster;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Uses Leader Election Manager in order to determine which node is the elected Cluster Coordinator and to indicate
@@ -31,11 +41,15 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
  * sent directly to the Cluster Coordinator.
  */
 public class ClusterProtocolHeartbeater implements Heartbeater {
+    private static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeater.class);
+
     private final NodeProtocolSender protocolSender;
     private final LeaderElectionManager electionManager;
+    private final ClusterCoordinator clusterCoordinator;
 
-    public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final LeaderElectionManager electionManager) {
+    public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final ClusterCoordinator clusterCoordinator, final LeaderElectionManager electionManager) {
         this.protocolSender = protocolSender;
+        this.clusterCoordinator = clusterCoordinator;
         this.electionManager = electionManager;
     }
 
@@ -52,7 +66,28 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final String heartbeatAddress = getHeartbeatAddress();
-        protocolSender.heartbeat(heartbeatMessage, heartbeatAddress);
+        final HeartbeatResponseMessage responseMessage = protocolSender.heartbeat(heartbeatMessage, heartbeatAddress);
+
+        final byte[] payloadBytes = heartbeatMessage.getHeartbeat().getPayload();
+        final HeartbeatPayload payload = HeartbeatPayload.unmarshal(payloadBytes);
+        final List<NodeConnectionStatus> nodeStatusList = payload.getClusterStatus();
+        final Map<NodeIdentifier, Long> updateIdMap = nodeStatusList.stream().collect(
+            Collectors.toMap(status -> status.getNodeIdentifier(), status -> status.getUpdateIdentifier()));
+
+        final List<NodeConnectionStatus> updatedStatuses = responseMessage.getUpdatedNodeStatuses();
+        if (updatedStatuses != null) {
+            for (final NodeConnectionStatus updatedStatus : updatedStatuses) {
+                final NodeIdentifier nodeId = updatedStatus.getNodeIdentifier();
+                final Long updateId = updateIdMap.get(nodeId);
+
+                final boolean updated = clusterCoordinator.resetNodeStatus(updatedStatus, updateId == null ? -1L : updateId);
+                if (updated) {
+                    logger.info("After receiving heartbeat response, updated status of {} to {}", updatedStatus.getNodeIdentifier(), updatedStatus);
+                } else {
+                    logger.debug("After receiving heartbeat response, did not update status of {} to {} because the update is out-of-date", updatedStatus.getNodeIdentifier(), updatedStatus);
+                }
+            }
+        }
     }
 
     @Override

@@ -309,6 +309,16 @@ public class TestAbstractHeartbeatMonitor {
         public NodeIdentifier getLocalNodeIdentifier() {
             return null;
         }
+
+        @Override
+        public List<NodeConnectionStatus> getConnectionStatuses() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId) {
+            return false;
+        }
     }
 
 

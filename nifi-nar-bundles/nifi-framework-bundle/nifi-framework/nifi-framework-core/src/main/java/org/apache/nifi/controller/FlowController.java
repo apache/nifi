@@ -65,7 +65,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -74,6 +73,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
@@ -586,7 +586,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.leaderElectionManager = leaderElectionManager;
 
         if (configuredForClustering) {
-            heartbeater = new ClusterProtocolHeartbeater(protocolSender, leaderElectionManager);
+            heartbeater = new ClusterProtocolHeartbeater(protocolSender, clusterCoordinator, leaderElectionManager);
 
             // Check if there is already a cluster coordinator elected. If not, go ahead
             // and register for coordinator role. If there is already one elected, do not register until
@@ -3854,7 +3854,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         @Override
         public void run() {
-            try {
+            try (final NarCloseable narCloseable = NarCloseable.withFrameworkNar()) {
                 if (heartbeatsSuspended.get()) {
                     return;
                 }
@@ -3916,6 +3916,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final QueueSize queueSize = getTotalFlowFileCount(bean.getRootGroup());
             hbPayload.setTotalFlowFileCount(queueSize.getObjectCount());
             hbPayload.setTotalFlowFileBytes(queueSize.getByteCount());
+            hbPayload.setClusterStatus(clusterCoordinator.getConnectionStatuses());
 
             // create heartbeat message
             final NodeIdentifier nodeId = getNodeId();

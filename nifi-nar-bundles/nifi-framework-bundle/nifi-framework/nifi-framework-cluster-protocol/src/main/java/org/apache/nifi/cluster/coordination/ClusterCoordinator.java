@@ -114,6 +114,13 @@ public interface ClusterCoordinator {
     Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates();
 
     /**
+     * Returns a List of the NodeConnectionStatus for each node in the cluster
+     *
+     * @return a List of the NodeConnectionStatus for each node in the cluster
+     */
+    List<NodeConnectionStatus> getConnectionStatuses();
+
+    /**
      * Checks if the given hostname is blocked by the configured firewall, returning
      * <code>true</code> if the node is blocked, <code>false</code> if the node is
      * allowed through the firewall or if there is no firewall configured
@@ -187,6 +194,17 @@ public interface ClusterCoordinator {
      * @param statusMap the new states of all nodes in the cluster
      */
     void resetNodeStatuses(Map<NodeIdentifier, NodeConnectionStatus> statusMap);
+
+    /**
+     * Resets the status of the node to be in accordance with the given NodeConnectionStatus if and only if the
+     * currently held status for this node has an Update ID equal to the given <code>qualifyingUpdateId</code>
+     *
+     * @param connectionStatus the new status of the node
+     * @param qualifyingUpdateId the Update ID to compare the current ID with. If the current ID for the node described by the provided
+     *            NodeConnectionStatus is not equal to this value, the value will not be updated
+     * @return <code>true</code> if the node status was updated, <code>false</code> if the <code>qualifyingUpdateId</code> is out of date.
+     */
+    boolean resetNodeStatus(NodeConnectionStatus connectionStatus, long qualifyingUpdateId);
 
     /**
      * Notifies the Cluster Coordinator of the Node Identifier that the coordinator is currently running on

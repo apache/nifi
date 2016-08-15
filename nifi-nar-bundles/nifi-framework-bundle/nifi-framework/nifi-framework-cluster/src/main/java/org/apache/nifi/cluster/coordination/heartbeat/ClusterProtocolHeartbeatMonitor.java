@@ -17,24 +17,31 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.ProtocolListener;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.util.NiFiProperties;
@@ -148,7 +155,45 @@ public class ClusterProtocolHeartbeatMonitor extends AbstractHeartbeatMonitor im
         heartbeatMessages.put(heartbeat.getNodeIdentifier(), nodeHeartbeat);
         logger.debug("Received new heartbeat from {}", nodeId);
 
-        return null;
+        // Formulate a List of differences between our view of the cluster topology and the node's view
+        // and send that back to the node so that it is in-sync with us
+        final List<NodeConnectionStatus> nodeStatusList = payload.getClusterStatus();
+        final List<NodeConnectionStatus> updatedStatuses = getUpdatedStatuses(nodeStatusList);
+
+        final HeartbeatResponseMessage responseMessage = new HeartbeatResponseMessage();
+        responseMessage.setUpdatedNodeStatuses(updatedStatuses);
+        return responseMessage;
+    }
+
+
+    private List<NodeConnectionStatus> getUpdatedStatuses(final List<NodeConnectionStatus> nodeStatusList) {
+        // Map node's statuses by NodeIdentifier for quick & easy lookup
+        final Map<NodeIdentifier, NodeConnectionStatus> nodeStatusMap = nodeStatusList.stream()
+            .collect(Collectors.toMap(status -> status.getNodeIdentifier(), Function.identity()));
+
+        // Check if our connection status is the same for each Node Identifier and if not, add our version of the status
+        // to a List of updated statuses.
+        final List<NodeConnectionStatus> currentStatuses = clusterCoordinator.getConnectionStatuses();
+        final List<NodeConnectionStatus> updatedStatuses = new ArrayList<>();
+        for (final NodeConnectionStatus currentStatus : currentStatuses) {
+            final NodeConnectionStatus nodeStatus = nodeStatusMap.get(currentStatus.getNodeIdentifier());
+            if (!currentStatus.equals(nodeStatus)) {
+                updatedStatuses.add(currentStatus);
+            }
+        }
+
+        // If the node has any statuses that we do not have, add a REMOVED status to the update list
+        final Set<NodeIdentifier> nodeIds = currentStatuses.stream().map(status -> status.getNodeIdentifier()).collect(Collectors.toSet());
+        for (final NodeConnectionStatus nodeStatus : nodeStatusList) {
+            if (!nodeIds.contains(nodeStatus.getNodeIdentifier())) {
+                updatedStatuses.add(new NodeConnectionStatus(nodeStatus.getNodeIdentifier(), NodeConnectionState.REMOVED, null));
+            }
+        }
+
+        logger.debug("\n\nCalculated diff between current cluster status and node cluster status as follows:\nNode: {}\nSelf: {}\nDifference: {}\n\n",
+            nodeStatusList, currentStatuses, updatedStatuses);
+
+        return updatedStatuses;
     }
 
     @Override

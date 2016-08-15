@@ -17,9 +17,9 @@
 
 package org.apache.nifi.cluster.coordination.heartbeat;
 
-import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.Heartbeat;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 
@@ -73,7 +73,6 @@ public class StandardNodeHeartbeat implements NodeHeartbeat {
     public int getActiveThreadCount() {
         return activeThreadCount;
     }
-
 
     @Override
     public long getSystemStartTime() {

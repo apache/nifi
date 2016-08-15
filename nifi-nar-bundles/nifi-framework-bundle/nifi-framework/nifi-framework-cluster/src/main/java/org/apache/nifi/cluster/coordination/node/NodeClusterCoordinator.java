@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -83,6 +84,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final ClusterNodeFirewall firewall;
     private final RevisionManager revisionManager;
     private final LeaderElectionManager leaderElectionManager;
+    private final AtomicLong latestUpdateId = new AtomicLong(-1);
 
     private volatile FlowService flowService;
     private volatile boolean connected;
@@ -167,12 +169,29 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             final NodeIdentifier nodeId = entry.getKey();
             final NodeConnectionStatus proposedStatus = entry.getValue();
 
-            boolean updated = false;
-            while (!updated) {
-                final NodeConnectionStatus currentStatus = nodeStatuses.get(nodeId);
-                updated = replaceNodeStatus(nodeId, currentStatus, proposedStatus);
+            if (proposedStatus.getState() == NodeConnectionState.REMOVED) {
+                nodeStatuses.remove(nodeId);
+            } else {
+                nodeStatuses.put(nodeId, proposedStatus);
             }
         }
+    }
+
+    @Override
+    public boolean resetNodeStatus(final NodeConnectionStatus connectionStatus, final long qualifyingUpdateId) {
+        final NodeIdentifier nodeId = connectionStatus.getNodeIdentifier();
+        final NodeConnectionStatus currentStatus = getConnectionStatus(nodeId);
+
+        if (currentStatus == null) {
+            return replaceNodeStatus(nodeId, null, connectionStatus);
+        } else {
+            if (currentStatus.getUpdateIdentifier() == qualifyingUpdateId) {
+                return replaceNodeStatus(nodeId, currentStatus, connectionStatus);
+            }
+        }
+
+        // The update identifier is not the same. We will not replace the value
+        return false;
     }
 
     /**
@@ -192,11 +211,19 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         if (currentStatus == null) {
-            final NodeConnectionStatus existingValue = nodeStatuses.putIfAbsent(nodeId, newStatus);
-            return existingValue == null;
+            if (newStatus.getState() == NodeConnectionState.REMOVED) {
+                return nodeStatuses.remove(nodeId, currentStatus);
+            } else {
+                final NodeConnectionStatus existingValue = nodeStatuses.putIfAbsent(nodeId, newStatus);
+                return existingValue == null;
+            }
         }
 
-        return nodeStatuses.replace(nodeId, currentStatus, newStatus);
+        if (newStatus.getState() == NodeConnectionState.REMOVED) {
+            return nodeStatuses.remove(nodeId, currentStatus);
+        } else {
+            return nodeStatuses.replace(nodeId, currentStatus, newStatus);
+        }
     }
 
     @Override
@@ -309,6 +336,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return status == null ? null : status.getState();
     }
 
+    @Override
+    public List<NodeConnectionStatus> getConnectionStatuses() {
+        return new ArrayList<>(nodeStatuses.values());
+    }
 
     @Override
     public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
@@ -542,6 +573,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         logger.info("Status of {} changed from {} to {}", nodeId, currentStatus, status);
         logger.debug("State of cluster nodes is now {}", nodeStatuses);
 
+        latestUpdateId.updateAndGet(curVal -> Math.max(curVal, status.getUpdateIdentifier()));
+
         if (currentState == null || currentState != status.getState()) {
             final boolean notifyAllNodes = isActiveClusterCoordinator();
             if (notifyAllNodes) {
@@ -555,6 +588,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             logger.debug("Not notifying other nodes that status changed because previous state of {} is same as new state of {}", currentState, status.getState());
         }
     }
+
 
     void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus) {
         notifyOthersOfNodeStatusChange(updatedStatus, isActiveClusterCoordinator(), true);
@@ -643,7 +677,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
 
                         request.setDataFlow(new StandardDataFlow(flowService.createDataFlow()));
-                        request.setNodeConnectionStatuses(new ArrayList<>(nodeStatuses.values()));
+                        request.setNodeConnectionStatuses(getConnectionStatuses());
                         request.setComponentRevisions(revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
 
                         // Issue a reconnection request to the node.
@@ -719,34 +753,29 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeIdentifier nodeId = statusChangeMessage.getNodeId();
         logger.debug("Handling request {}", statusChangeMessage);
 
-        boolean updated = false;
-        while (!updated) {
-            final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId());
+        final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId());
 
-            // Either remove the value from the map or update the map depending on the connection state
-            if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
-                updated = nodeStatuses.remove(nodeId, oldStatus);
-            } else {
-                updated = replaceNodeStatus(nodeId, oldStatus, updatedStatus);
-            }
-
-            if (updated) {
-                logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
-                logger.debug("State of cluster nodes is now {}", nodeStatuses);
-
-                final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
-                final String summary = summarizeStatusChange(oldStatus, status);
-                if (!StringUtils.isEmpty(summary)) {
-                    addNodeEvent(nodeId, summary);
-                }
-
-                // Update our counter so that we are in-sync with the cluster on the
-                // most up-to-date version of the NodeConnectionStatus' Update Identifier.
-                // We do this so that we can accurately compare status updates that are generated
-                // locally against those generated from other nodes in the cluster.
-                NodeConnectionStatus.updateIdGenerator(updatedStatus.getUpdateIdentifier());
-            }
+        // Either remove the value from the map or update the map depending on the connection state
+        if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
+        nodeStatuses.remove(nodeId, oldStatus);
+        } else {
+        nodeStatuses.put(nodeId, updatedStatus);
         }
+
+        logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
+        logger.debug("State of cluster nodes is now {}", nodeStatuses);
+
+        final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
+        final String summary = summarizeStatusChange(oldStatus, status);
+        if (!StringUtils.isEmpty(summary)) {
+            addNodeEvent(nodeId, summary);
+        }
+
+        // Update our counter so that we are in-sync with the cluster on the
+        // most up-to-date version of the NodeConnectionStatus' Update Identifier.
+        // We do this so that we can accurately compare status updates that are generated
+        // locally against those generated from other nodes in the cluster.
+        NodeConnectionStatus.updateIdGenerator(updatedStatus.getUpdateIdentifier());
 
         if (isActiveClusterCoordinator()) {
             notifyOthersOfNodeStatusChange(statusChangeMessage.getNodeConnectionStatus());
@@ -829,7 +858,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             return new ConnectionResponse(tryAgainSeconds);
         }
 
-        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, new ArrayList<>(nodeStatuses.values()),
+        return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, getConnectionStatuses(),
             revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
     }
 
