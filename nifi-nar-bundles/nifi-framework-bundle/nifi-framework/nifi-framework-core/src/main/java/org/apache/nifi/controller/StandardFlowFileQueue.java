@@ -1300,6 +1300,11 @@ public class StandardFlowFileQueue implements FlowFileQueue {
             public String getSwapLocation() {
                 return null;
             }
+
+            @Override
+            public List<ContentClaim> getTransientClaims() {
+                return Collections.emptyList();
+            }
         };
     }
 

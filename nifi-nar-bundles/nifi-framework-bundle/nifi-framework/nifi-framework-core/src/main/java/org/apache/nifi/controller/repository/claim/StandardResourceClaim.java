@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.controller.repository.claim;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class StandardResourceClaim implements ResourceClaim, Comparable<ResourceClaim> {
+    private final StandardResourceClaimManager claimManager;
     private final String id;
     private final String container;
     private final String section;
     private final boolean lossTolerant;
-    private final AtomicInteger claimantCount = new AtomicInteger(0);
     private final int hashCode;
+    private volatile boolean writable = true;
 
-    public StandardResourceClaim(final String container, final String section, final String id, final boolean lossTolerant) {
+    public StandardResourceClaim(final StandardResourceClaimManager claimManager, final String container, final String section, final String id, final boolean lossTolerant) {
+        this.claimManager = claimManager;
         this.container = container.intern();
         this.section = section.intern();
         this.id = id;
@@ -62,18 +62,6 @@ public class StandardResourceClaim implements ResourceClaim, Comparable<Resource
     @Override
     public String getSection() {
         return section;
-    }
-
-    int getClaimantCount() {
-        return claimantCount.get();
-    }
-
-    int decrementClaimantCount() {
-        return claimantCount.decrementAndGet();
-    }
-
-    int incrementClaimantCount() {
-        return claimantCount.incrementAndGet();
     }
 
     /**
@@ -131,4 +119,27 @@ public class StandardResourceClaim implements ResourceClaim, Comparable<Resource
         return "StandardResourceClaim[id=" + id + ", container=" + container + ", section=" + section + "]";
     }
 
+    @Override
+    public boolean isWritable() {
+        return writable;
+    }
+
+    /**
+     * Freeze the Resource Claim so that it can now longer be written to
+     */
+    void freeze() {
+        this.writable = false;
+    }
+
+    @Override
+    public boolean isInUse() {
+        // Note that it is critical here that we always check isWritable() BEFORE checking
+        // the claimant count. This is due to the fact that if the claim is in fact writable, the claimant count
+        // could increase. So if we first check claimant count and that is 0, and then we check isWritable, it may be
+        // that the claimant count has changed to 1 before checking isWritable.
+        // However, if isWritable() is false, then the only way that the claimant count can increase is if a FlowFile referencing
+        // the Resource Claim is cloned. In this case, though, the claimant count has not become 0.
+        // Said another way, if isWritable() == false, then the claimant count can never increase from 0.
+        return isWritable() || claimManager.getClaimantCount(this) > 0;
+    }
 }

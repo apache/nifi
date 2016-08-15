@@ -51,4 +51,17 @@ public interface ResourceClaim extends Comparable<ResourceClaim> {
      */
     boolean isLossTolerant();
 
+    /**
+     * @return <code>true</code> if the Resource Claim may still be written to, <code>false</code> if the Resource Claim
+     *         will no longer be written to
+     */
+    boolean isWritable();
+
+    /**
+     * Indicates whether or not the Resource Claim is in use. A Resource Claim is said to be in use if either it is
+     * writable or at least one Content Claim still refers to the it
+     *
+     * @return <code>true</code> if the Resource Claim is in use, <code>false</code> otherwise
+     */
+    boolean isInUse();
 }

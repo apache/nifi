@@ -36,7 +36,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
 
     @Override
     public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant) {
-        return new StandardResourceClaim(container, section, id, lossTolerant);
+        return new StandardResourceClaim(this, container, section, id, lossTolerant);
     }
 
     private static AtomicInteger getCounter(final ResourceClaim claim) {
@@ -59,8 +59,11 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         if (claim == null) {
             return 0;
         }
-        final AtomicInteger counter = claimantCounts.get(claim);
-        return counter == null ? 0 : counter.get();
+
+        synchronized (claim) {
+            final AtomicInteger counter = claimantCounts.get(claim);
+            return counter == null ? 0 : counter.get();
+        }
     }
 
     @Override
@@ -69,18 +72,30 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             return 0;
         }
 
-        final AtomicInteger counter = claimantCounts.get(claim);
-        if (counter == null) {
-            logger.debug("Decrementing claimant count for {} but claimant count is not known. Returning -1", claim);
-            return -1;
-        }
+        synchronized (claim) {
+            final AtomicInteger counter = claimantCounts.get(claim);
+            if (counter == null) {
+                logger.warn("Decrementing claimant count for {} but claimant count is not known. Returning -1", claim);
+                return -1;
+            }
 
-        final int newClaimantCount = counter.decrementAndGet();
-        logger.debug("Decrementing claimant count for {} to {}", claim, newClaimantCount);
-        if (newClaimantCount == 0) {
-            claimantCounts.remove(claim);
+            final int newClaimantCount = counter.decrementAndGet();
+            if (newClaimantCount < 0) {
+                logger.error("Decremented claimant count for {} to {}", claim, newClaimantCount);
+            } else {
+                logger.debug("Decrementing claimant count for {} to {}", claim, newClaimantCount);
+            }
+
+            if (newClaimantCount == 0) {
+                removeClaimantCount(claim);
+            }
+            return newClaimantCount;
         }
-        return newClaimantCount;
+    }
+
+    // protected so that it can be used in unit tests
+    protected void removeClaimantCount(final ResourceClaim claim) {
+        claimantCounts.remove(claim);
     }
 
     @Override
@@ -90,15 +105,22 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
 
     @Override
     public int incrementClaimantCount(final ResourceClaim claim, final boolean newClaim) {
-        final AtomicInteger counter = getCounter(claim);
-
-        final int newClaimantCount = counter.incrementAndGet();
-        logger.debug("Incrementing claimant count for {} to {}", claim, newClaimantCount);
-        // If the claimant count moved from 0 to 1, remove it from the queue of destructable claims.
-        if (!newClaim && newClaimantCount == 1) {
-            destructableClaims.remove(claim);
+        if (claim == null) {
+            return 0;
         }
-        return newClaimantCount;
+
+        synchronized (claim) {
+            final AtomicInteger counter = getCounter(claim);
+
+            final int newClaimantCount = counter.incrementAndGet();
+            logger.debug("Incrementing claimant count for {} to {}", claim, newClaimantCount);
+
+            // If the claimant count moved from 0 to 1, remove it from the queue of destructable claims.
+            if (!newClaim && newClaimantCount == 1) {
+                destructableClaims.remove(claim);
+            }
+            return newClaimantCount;
+        }
     }
 
     @Override
@@ -107,15 +129,17 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             return;
         }
 
-        if (getClaimantCount(claim) > 0) {
-            return;
-        }
-
-        logger.debug("Marking claim {} as destructable", claim);
-        try {
-            while (!destructableClaims.offer(claim, 30, TimeUnit.MINUTES)) {
+        synchronized (claim) {
+            if (getClaimantCount(claim) > 0) {
+                return;
             }
-        } catch (final InterruptedException ie) {
+
+            logger.debug("Marking claim {} as destructable", claim);
+            try {
+                while (!destructableClaims.offer(claim, 30, TimeUnit.MINUTES)) {
+                }
+            } catch (final InterruptedException ie) {
+            }
         }
     }
 
@@ -142,4 +166,16 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
         claimantCounts.clear();
     }
 
+    @Override
+    public void freeze(final ResourceClaim claim) {
+        if (claim == null) {
+            return;
+        }
+
+        if (!(claim instanceof StandardResourceClaim)) {
+            throw new IllegalArgumentException("The given resource claim is not managed by this Resource Claim Manager");
+        }
+
+        ((StandardResourceClaim) claim).freeze();
+    }
 }
