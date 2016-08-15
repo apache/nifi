@@ -94,7 +94,13 @@ div.remote-port-removed {
     margin-top: 17px;
     width: 18px;
     height: 18px;
-    background-image: url("../images/iconPortRemoved.png");
+}
+
+div.remote-port-removed:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    font-size: 16px;
+    color: #ba554a;
 }
 
 div.remote-port-edit-container {

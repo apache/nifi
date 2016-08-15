@@ -334,12 +334,18 @@ span.sorted {
 }
 
 #cluster-processor-icon {
-    background-image: url(../images/iconProcessor.png);
     width: 28px;
     height: 26px;
     float: left;
     margin-right: 5px;
     margin-top: -2px;
+}
+
+#cluster-processor-icon:before {
+    font-family: flowfont;
+    content: "\e808";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-processor-details {
@@ -400,13 +406,19 @@ span.sorted {
 }
 
 #cluster-input-port-icon {
-    background-image: url(../images/iconInputPort.png);
     background-size: cover;
     width: 40px;
     height: 26px;
     float: left;
     margin-right: 5px;
     margin-top: -2px;
+}
+
+#cluster-input-port-icon:before {
+    font-family: flowfont;
+    content: "\e832";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-input-port-details {
@@ -467,13 +479,19 @@ span.sorted {
 }
 
 #cluster-output-port-icon {
-    background-image: url(../images/iconOutputPort.png);
     background-size: cover;
     width: 40px;
     height: 26px;
     float: left;
     margin-right: 5px;
     margin-top: -2px;
+}
+
+#cluster-output-port-icon:before {
+    font-family: flowfont;
+    content: "\e833";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-output-port-details {
@@ -534,11 +552,17 @@ span.sorted {
 }
 
 #cluster-remote-process-group-icon {
-    background-image: url(../images/iconRemoteProcessGroup.png);
     width: 30px;
     height: 22px;
     float: left;
     margin-right: 5px;
+}
+
+#cluster-remote-process-group-icon:before {
+    font-family: flowfont;
+    content: "\e805";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-remote-process-group-details {
@@ -599,12 +623,18 @@ span.sorted {
 }
 
 #cluster-connection-icon {
-    background-image: url(../images/iconConnection.png);
     width: 28px;
     height: 28px;
     float: left;
     margin-right: 5px;
     margin-top: -4px;
+}
+
+#cluster-connection-icon:before {
+    font-family: flowfont;
+    content: "\e834";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-connection-details {
@@ -665,12 +695,18 @@ span.sorted {
 }
 
 #cluster-process-group-icon {
-    background-image: url(../images/iconProcessGroup.png);
     width: 29px;
     height: 20px;
     float: left;
     margin-right: 5px;
     margin-top: 1px;
+}
+
+#cluster-process-group-icon:before {
+    font-family: flowfont;
+    content: "\e804";
+    font-size: 16px;
+    color: #ad9897;
 }
 
 #cluster-process-group-details {

@@ -417,6 +417,7 @@ public class FlowResource extends ApplicationResource {
 
         // create the response entity
         final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setCurrentTime(new Date());
         entity.setControllerServices(controllerServices);
 
         // generate the response
@@ -467,6 +468,7 @@ public class FlowResource extends ApplicationResource {
 
         // create the response entity
         final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setCurrentTime(new Date());
         entity.setControllerServices(controllerServices);
 
         // generate the response

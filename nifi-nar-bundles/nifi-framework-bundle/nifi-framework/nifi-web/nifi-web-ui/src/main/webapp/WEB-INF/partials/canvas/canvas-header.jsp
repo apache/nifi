@@ -128,8 +128,7 @@
                     <md-menu-divider></md-menu-divider>
                     <md-menu-item layout-align="space-around center">
                         <a id="flow-settings-link"
-                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();"
-                           ng-class="{disabled: !appCtrl.nf.Common.canAccessController()}">
+                           ng-click="appCtrl.serviceProvider.headerCtrl.globalMenuCtrl.controllerSettings.shell.launch();">
                             <i class="fa fa-wrench"></i>Controller Settings
                         </a>
                     </md-menu-item>

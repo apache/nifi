@@ -28,7 +28,9 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -39,7 +41,9 @@ import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -230,7 +234,8 @@ public class ControllerResource extends ApplicationResource {
             value = "Creates a new reporting task",
             response = ReportingTaskEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -256,11 +261,12 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Reporting task.");
         }
 
-        if (reportingTaskEntity.getComponent().getId() != null) {
+        final ReportingTaskDTO requestReportingTask = reportingTaskEntity.getComponent();
+        if (requestReportingTask.getId() != null) {
             throw new IllegalArgumentException("Reporting task ID cannot be specified.");
         }
 
-        if (StringUtils.isBlank(reportingTaskEntity.getComponent().getType())) {
+        if (StringUtils.isBlank(requestReportingTask.getType())) {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
 
@@ -274,6 +280,11 @@ public class ControllerResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 authorizeController(RequestAction.WRITE);
+
+                if (requestReportingTask.getProperties() != null) {
+                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTaskByType(requestReportingTask.getType());
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
+                }
             });
         }
         if (validationPhase) {
@@ -281,11 +292,11 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // set the processor id as appropriate
-        reportingTaskEntity.getComponent().setId(generateUuid());
+        requestReportingTask.setId(generateUuid());
 
         // create the reporting task and generate the json
-        final Revision revision = getRevision(reportingTaskEntity, reportingTaskEntity.getComponent().getId());
-        final ReportingTaskEntity entity = serviceFacade.createReportingTask(revision, reportingTaskEntity.getComponent());
+        final Revision revision = getRevision(reportingTaskEntity, requestReportingTask.getId());
+        final ReportingTaskEntity entity = serviceFacade.createReportingTask(revision, requestReportingTask);
         reportingTaskResource.populateRemainingReportingTaskEntityContent(entity);
 
         // build the response
@@ -311,7 +322,8 @@ public class ControllerResource extends ApplicationResource {
             value = "Creates a new controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller", type = "")
+                    @Authorization(value = "Write - /controller", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -337,11 +349,16 @@ public class ControllerResource extends ApplicationResource {
             throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Controller service.");
         }
 
-        if (controllerServiceEntity.getComponent().getId() != null) {
+        final ControllerServiceDTO requestControllerService = controllerServiceEntity.getComponent();
+        if (requestControllerService.getId() != null) {
             throw new IllegalArgumentException("Controller service ID cannot be specified.");
         }
 
-        if (StringUtils.isBlank(controllerServiceEntity.getComponent().getType())) {
+        if (requestControllerService.getParentGroupId() != null) {
+            throw new IllegalArgumentException("Parent process group ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestControllerService.getType())) {
             throw new IllegalArgumentException("The type of controller service to create must be specified.");
         }
 
@@ -355,6 +372,11 @@ public class ControllerResource extends ApplicationResource {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
                 authorizeController(RequestAction.WRITE);
+
+                if (requestControllerService.getProperties() != null) {
+                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerServiceByType(requestControllerService.getType());
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
+                }
             });
         }
         if (validationPhase) {
@@ -362,11 +384,11 @@ public class ControllerResource extends ApplicationResource {
         }
 
         // set the processor id as appropriate
-        controllerServiceEntity.getComponent().setId(generateUuid());
+        requestControllerService.setId(generateUuid());
 
         // create the controller service and generate the json
-        final Revision revision = getRevision(controllerServiceEntity, controllerServiceEntity.getComponent().getId());
-        final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, null, controllerServiceEntity.getComponent());
+        final Revision revision = getRevision(controllerServiceEntity, requestControllerService.getId());
+        final ControllerServiceEntity entity = serviceFacade.createControllerService(revision, null, requestControllerService);
         controllerServiceResource.populateRemainingControllerServiceEntityContent(entity);
 
         // build the response

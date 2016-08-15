@@ -68,6 +68,7 @@ import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -1666,6 +1667,62 @@ public class TestPersistentProvenanceRepository {
         }
 
         assertEquals(10000, counter);
+    }
+
+    @Test
+    public void testRolloverRetry() throws IOException, InterruptedException {
+        final AtomicInteger retryAmount = new AtomicInteger(0);
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS){
+            @Override
+            File mergeJournals(List<File> journalFiles, File suggestedMergeFile, EventReporter eventReporter) throws IOException {
+                retryAmount.incrementAndGet();
+                return super.mergeJournals(journalFiles, suggestedMergeFile, eventReporter);
+            }
+        };
+        repo.initialize(getEventReporter(), null, null);
+
+        final Map<String, String> attributes = new HashMap<>();
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+
+        final ExecutorService exec = Executors.newFixedThreadPool(10);
+        for (int i = 0; i < 10000; i++) {
+            exec.submit(new Runnable() {
+                @Override
+                public void run() {
+                    repo.registerEvent(record);
+                }
+            });
+        }
+
+        final File storageDir = config.getStorageDirectories().get(0);
+        //trigger retry through full file deletion
+        Arrays.asList(storageDir.listFiles())
+                .stream()
+                .map(file -> new File(storageDir, "journals"))
+                .map(journalDir -> Arrays.asList(journalDir.listFiles()))
+                .flatMap(partials -> partials.stream())
+                .filter(partial -> partial.exists())
+                .forEach(file -> {
+                  file.delete();
+                });
+
+        repo.waitForRollover();
+
+        assertEquals(5,retryAmount.get());
+
     }
 
     @Test

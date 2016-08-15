@@ -294,7 +294,7 @@ nf.ng.Canvas.GraphControlsCtrl = function (serviceProvider, navigateCtrl, operat
             var selection = nf.CanvasUtils.getSelection();
 
             if (selection.empty()) {
-                return nf.Canvas.canRead() || nf.Canvas.canWrite();
+                return true;
             }
 
             return nf.CanvasUtils.isConfigurable(selection) || nf.CanvasUtils.hasDetails(selection);

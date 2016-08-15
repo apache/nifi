@@ -668,7 +668,20 @@ nf.ControllerServices = (function () {
                      nf.Shell.showPage('../nifi-docs/documentation?' + $.param({
                          select: nf.Common.substringAfterLast(controllerServiceEntity.component.type, '.')
                      })).done(function() {
-                         nf.Settings.showSettings();
+                         if (nf.Common.isDefinedAndNotNull(controllerServiceEntity.component.parentGroupId)) {
+                             var groupId;
+                             var processGroup = nf.ProcessGroup.get(controllerServiceEntity.component.parentGroupId);
+                             if (nf.Common.isDefinedAndNotNull(processGroup)) {
+                                 groupId = processGroup.id;
+                             } else {
+                                 groupId = nf.Canvas.getGroupId();
+                             }
+
+                             // reload the corresponding group
+                             nf.ProcessGroupConfiguration.showConfiguration(groupId);
+                         } else {
+                             nf.Settings.showSettings();
+                         }
                      });
                  }
             }

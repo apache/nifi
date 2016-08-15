@@ -263,12 +263,18 @@ div.ajax-loading {
     background-image: url(../images/iconLoading.gif);
 }
 
-div.ajax-complete {
-    background-image: url(../images/iconCommit.png);
+div.ajax-complete:before {
+    font-family: FontAwesome;
+    content: "\f00c";
+    font-size: 16px;
+    color: #70B59A;
 }
 
-div.ajax-error {
-    background-image: url(../images/iconDelete.png);
+div.ajax-error:before {
+    font-family: FontAwesome;
+    content: "\f1f8";
+    font-size: 16px;
+    color: #004849;
 }
 
 .refresh-button {

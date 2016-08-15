@@ -57,12 +57,21 @@ div.context-menu-provenance {
     white-space: normal;
 }
 
-.collapsed {
-    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top left;
+.collapsed:before {
+    font-family: FontAwesome;
+    content: "\f0da";
+    font-size: 16px;
+    color: #004849;
+    float: left;
+    margin-right: 3px;
 }
 
-.expanded {
-    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
+.expanded:before {
+    font-family: FontAwesome;
+    content: "\f0d7";
+    font-size: 16px;
+    color: #004849;
+    float: left;
 }
 
 #new-template-description {
@@ -96,6 +105,12 @@ div.running {
 div.has-errors, div.invalid {
     float: left;
     color: #ba554a !important;
+}
+
+div.has-errors:before, div.invalid:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    color: #ba554a;
 }
 
 div.transmitting {

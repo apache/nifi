@@ -69,7 +69,13 @@ div.processor-configuration-warning-icon {
     margin-right: 8px;
     width: 18px;
     height: 16px;
-    background-image: url(../images/iconAlert.png);
+}
+
+div.processor-configuration-warning-icon:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    font-size: 16px;
+    color: #ba554a;
 }
 
 #auto-terminate-relationship-names {

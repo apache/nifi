@@ -34,7 +34,17 @@ public interface AuthorizableLookup {
      * @param id processor id
      * @return authorizable
      */
-    Authorizable getProcessor(String id);
+    ControllerServiceReferencingComponentAuthorizable getProcessor(String id);
+
+    /**
+     * Get the authorizable for this Processor. This will create a dummy instance of the
+     * processor. The intent of this method is to provide access to the PropertyDescriptors
+     * prior to the component being created.
+     *
+     * @param type processor type
+     * @return authorizable
+     */
+    ControllerServiceReferencingComponentAuthorizable getProcessorByType(String type);
 
     /**
      * Get the authorizable for querying Provenance.
@@ -130,7 +140,17 @@ public interface AuthorizableLookup {
      * @param id controller service id
      * @return authorizable
      */
-    Authorizable getControllerService(String id);
+    ControllerServiceReferencingComponentAuthorizable getControllerService(String id);
+
+    /**
+     * Get the authorizable for this Controller Service. This will create a dummy instance of the
+     * controller service. The intent of this method is to provide access to the PropertyDescriptors
+     * prior to the component being created.
+     *
+     * @param type processor type
+     * @return authorizable
+     */
+    ControllerServiceReferencingComponentAuthorizable getControllerServiceByType(String type);
 
     /**
      * Get the authorizable referencing component.
@@ -147,7 +167,17 @@ public interface AuthorizableLookup {
      * @param id reporting task id
      * @return authorizable
      */
-    Authorizable getReportingTask(String id);
+    ControllerServiceReferencingComponentAuthorizable getReportingTask(String id);
+
+    /**
+     * Get the authorizable for this Reporting Task. This will create a dummy instance of the
+     * reporting task. The intent of this method is to provide access to the PropertyDescriptors
+     * prior to the component being created.
+     *
+     * @param type processor type
+     * @return authorizable
+     */
+    ControllerServiceReferencingComponentAuthorizable getReportingTaskByType(String type);
 
     /**
      * Get the authorizable Template.

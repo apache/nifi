@@ -2275,13 +2275,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             switch (type) {
                 case PROCESSOR:
-                    authorizable = authorizableLookup.getProcessor(sourceId);
+                    authorizable = authorizableLookup.getProcessor(sourceId).getAuthorizable();
                     break;
                 case REPORTING_TASK:
-                    authorizable = authorizableLookup.getReportingTask(sourceId);
+                    authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
                     break;
                 case CONTROLLER_SERVICE:
-                    authorizable = authorizableLookup.getControllerService(sourceId);
+                    authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
                     break;
                 case FLOW_CONTROLLER:
                     authorizable = controllerFacade;
@@ -2465,7 +2465,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<Bulletin> authorizedControllerServiceBulletins = new ArrayList<>();
         for (final Bulletin bulletin : allControllerServiceBulletins) {
             try {
-                final Authorizable controllerServiceAuthorizable = authorizableLookup.getControllerService(bulletin.getSourceId());
+                final Authorizable controllerServiceAuthorizable = authorizableLookup.getControllerService(bulletin.getSourceId()).getAuthorizable();
                 if (controllerServiceAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
                     authorizedControllerServiceBulletins.add(bulletin);
                 }
@@ -2481,7 +2481,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<Bulletin> authorizedReportingTaskBulletins = new ArrayList<>();
         for (final Bulletin bulletin : allReportingTaskBulletins) {
             try {
-                final Authorizable reportingTaskAuthorizable = authorizableLookup.getReportingTask(bulletin.getSourceId());
+                final Authorizable reportingTaskAuthorizable = authorizableLookup.getReportingTask(bulletin.getSourceId()).getAuthorizable();
                 if (reportingTaskAuthorizable.isAuthorized(authorizer, RequestAction.READ, user)) {
                     authorizedReportingTaskBulletins.add(bulletin);
                 }
@@ -2957,13 +2957,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             switch (type) {
                 case Processor:
-                    authorizable = authorizableLookup.getProcessor(sourceId);
+                    authorizable = authorizableLookup.getProcessor(sourceId).getAuthorizable();
                     break;
                 case ReportingTask:
-                    authorizable = authorizableLookup.getReportingTask(sourceId);
+                    authorizable = authorizableLookup.getReportingTask(sourceId).getAuthorizable();
                     break;
                 case ControllerService:
-                    authorizable = authorizableLookup.getControllerService(sourceId);
+                    authorizable = authorizableLookup.getControllerService(sourceId).getAuthorizable();
                     break;
                 case Controller:
                     authorizable = controllerFacade;

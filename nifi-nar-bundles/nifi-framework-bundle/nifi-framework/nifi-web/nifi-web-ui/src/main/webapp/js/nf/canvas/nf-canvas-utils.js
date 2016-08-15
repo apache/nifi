@@ -936,6 +936,10 @@ nf.CanvasUtils = (function () {
             if (selection.size() !== 1) {
                 return false;
             }
+
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
             if (nf.CanvasUtils.canRead(selection) === false || nf.CanvasUtils.canModify(selection) === false) {
                 return false;
             }
@@ -956,16 +960,19 @@ nf.CanvasUtils = (function () {
             if (selection.size() !== 1) {
                 return false;
             }
+
+            if (nf.CanvasUtils.isProcessGroup(selection)) {
+                return true;
+            }
             if (nf.CanvasUtils.canRead(selection) === false) {
                 return false;
             }
-
             if (nf.CanvasUtils.canModify(selection)) {
                 if (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isConnection(selection)) {
                     return !nf.CanvasUtils.isConfigurable(selection);
                 }
             } else {
-                return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
+                return nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isConnection(selection) || nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection) || nf.CanvasUtils.isRemoteProcessGroup(selection);
             }
 
             return false;
