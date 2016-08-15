@@ -49,7 +49,7 @@ public class TestInferAvroSchema {
     public void setup() {
         runner = TestRunners.newTestRunner(InferAvroSchema.class);
 
-        //Prepare the common setup.
+        // Prepare the common setup.
         runner.assertNotValid();
 
         runner.setProperty(InferAvroSchema.INPUT_CONTENT_TYPE, InferAvroSchema.USE_MIME_TYPE);
@@ -90,7 +90,7 @@ public class TestInferAvroSchema {
 
         runner.setProperty(InferAvroSchema.INPUT_CONTENT_TYPE, InferAvroSchema.USE_MIME_TYPE);
 
-        //Purposely set to True to test that none of the JSON file is read which would cause issues.
+        // Purposely set to True to test that none of the JSON file is read which would cause issues.
         runner.setProperty(InferAvroSchema.GET_CSV_HEADER_DEFINITION_FROM_INPUT, "true");
         runner.setProperty(InferAvroSchema.SCHEMA_DESTINATION, InferAvroSchema.DESTINATION_ATTRIBUTE);
 
@@ -106,12 +106,10 @@ public class TestInferAvroSchema {
 
         MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
         String avroSchema = data.getAttribute(InferAvroSchema.AVRO_SCHEMA_ATTRIBUTE_NAME);
-        String knownSchema = new String(unix2PlatformSpecificLineEndings(
-                    new File("src/test/resources/Shapes.json.avro")),
-                    StandardCharsets.UTF_8);
+        String knownSchema = new String(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes.json.avro")), StandardCharsets.UTF_8);
         Assert.assertEquals(avroSchema, knownSchema);
 
-        //Since that avro schema is written to an attribute this should be teh same as the original
+        // Since that avro schema is written to an attribute this should be teh same as the original
         data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
     }
 
@@ -120,7 +118,7 @@ public class TestInferAvroSchema {
 
         runner.assertValid();
 
-        //Read in the header
+        // Read in the header
         StringWriter writer = new StringWriter();
         IOUtils.copy((Files.newInputStream(Paths.get("src/test/resources/ShapesHeader.csv"), StandardOpenOption.READ)), writer, "UTF-8");
         runner.setProperty(InferAvroSchema.CSV_HEADER_DEFINITION, writer.toString());
@@ -168,7 +166,7 @@ public class TestInferAvroSchema {
     }
 
     @Test
-    public void inferSchemaFromEmptyContent() throws Exception  {
+    public void inferSchemaFromEmptyContent() throws Exception {
         runner.assertValid();
 
         Map<String, String> attributes = new HashMap<>();
@@ -223,13 +221,81 @@ public class TestInferAvroSchema {
         flowFile.assertContentEquals(new File("src/test/resources/Shapes_Header_TabDelimited.csv").toPath());
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/csv");
     }
-    static byte [] unix2PlatformSpecificLineEndings(final File file) throws IOException {
-        try ( final BufferedInputStream in = new BufferedInputStream(new FileInputStream(file));
-                final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+
+    @Test
+    public void specifyCSVparametersInExpressionLanguage() throws Exception {
+        runner.setProperty(InferAvroSchema.DELIMITER, "${csv.delimiter}");
+        runner.setProperty(InferAvroSchema.ESCAPE_STRING, "${csv.escape}");
+        runner.setProperty(InferAvroSchema.QUOTE_STRING, "${csv.quote}");
+        runner.setProperty(InferAvroSchema.CHARSET, "${csv.charset}");
+        runner.setProperty(InferAvroSchema.GET_CSV_HEADER_DEFINITION_FROM_INPUT, "true");
+
+        runner.assertValid();
+
+        @SuppressWarnings("serial")
+        Map<String, String> attributes = new HashMap<String, String>() {
+            {
+                put("csv.delimiter",",");
+                put("csv.escape", "\\");
+                put("csv.quote", "\"");
+                put("csv.charset", "UTF-8");
+                put(CoreAttributes.MIME_TYPE.key(), "text/csv");
+            }
+        };
+
+        runner.enqueue(new File("src/test/resources/Shapes_Header.csv").toPath(), attributes);
+
+        runner.run();
+        runner.assertTransferCount(InferAvroSchema.REL_UNSUPPORTED_CONTENT, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_FAILURE, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_ORIGINAL, 1);
+        runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
+
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(unix2PlatformSpecificLineEndings(new File("src/test/resources/Shapes_header.csv.avro")));
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/avro-binary");
+
+    }
+
+    @Test
+    public void specifyJsonParametersInExpressionLanguage() throws Exception {
+        runner.assertValid();
+        runner.setProperty(InferAvroSchema.INPUT_CONTENT_TYPE, InferAvroSchema.USE_MIME_TYPE);
+
+        // Purposely set to True to test that none of the JSON file is read which would cause issues.
+        runner.setProperty(InferAvroSchema.GET_CSV_HEADER_DEFINITION_FROM_INPUT, "true");
+        runner.setProperty(InferAvroSchema.SCHEMA_DESTINATION, InferAvroSchema.DESTINATION_ATTRIBUTE);
+        runner.setProperty(InferAvroSchema.RECORD_NAME, "${record.name}");
+        runner.setProperty(InferAvroSchema.NUM_RECORDS_TO_ANALYZE, "${records.analyze}");
+
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
+        attributes.put("record.name", "myrecord");
+        attributes.put("records.analyze", "2");
+        runner.enqueue(new File("src/test/resources/Shapes.json").toPath(), attributes);
+
+        runner.run();
+        runner.assertTransferCount(InferAvroSchema.REL_UNSUPPORTED_CONTENT, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_FAILURE, 0);
+        runner.assertTransferCount(InferAvroSchema.REL_ORIGINAL, 1);
+        runner.assertTransferCount(InferAvroSchema.REL_SUCCESS, 1);
+
+        MockFlowFile data = runner.getFlowFilesForRelationship(InferAvroSchema.REL_SUCCESS).get(0);
+        String avroSchema = data.getAttribute(InferAvroSchema.AVRO_SCHEMA_ATTRIBUTE_NAME);
+        Assert.assertTrue(avroSchema.contains("\"name\" : \"myrecord\""));
+
+        // Since that avro schema is written to an attribute this should be teh same as the original
+        data.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+    }
+
+
+    static byte[] unix2PlatformSpecificLineEndings(final File file) throws IOException {
+        try (final BufferedInputStream in = new BufferedInputStream(new FileInputStream(file)); final ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte eol[] = System.lineSeparator().getBytes(StandardCharsets.UTF_8);
             int justRead;
             while ((justRead = in.read()) != -1) {
-                if (justRead == '\n'){
+                if (justRead == '\n') {
                     out.write(eol);
                 } else {
                     out.write(justRead);
@@ -238,4 +304,5 @@ public class TestInferAvroSchema {
             return out.toByteArray();
         }
     }
+
 }
