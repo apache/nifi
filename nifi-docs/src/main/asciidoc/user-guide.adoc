@@ -590,7 +590,37 @@ on the Processor and selecting `Usage' from the context menu. Alternatively, sel
 corner of the UI to display a Help page with all of the documentation, including usage documentation
 for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
+[[Using_Custom_Properties]]
+=== Using Custom Properties with Expression Language
+You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values,
+and manipulate their values when you are creating and configuring dataflows.
 
+In addition to using FlowFile attributes, system properties, and environment properties within Express
+Language, you can also define custom properties for Expression Language use. Defining custom properties
+gives you more flexibility in handling and processing dataflows. You can also create custom properties
+for connection, server, and service properties, for easier dataflow configuration.
+
+To create custom properties for use with Expression Language, identify one or more sets of key/value
+pairs, and give them to your system administrator.
+
+NiFi properties have resolution precedence of which you should be aware when creating custom properties: 
+
+
+* Processor-specific attributes
+* FlowFile properties 
+* FlowFile attributes 
+* From variable registry: 
+** User defined properties (custom properties)
+** System properties 
+** Operating System environment variables
+
+When you are creating custom properties, ensure that each custom property contains a distinct property value,
+so that it is not overridden by existing environment properties, system properties, or FlowFile attributes.
+Once you have added the new custom properties, ensure that you have updated the nifi.variable.registry.properties
+field in the nifi.properties file, with the custom properties location.
+
+For more information on Expression Language, see the link:expression-language-guide.html[Expression Lanuaguage Guide].
+For information on how to define custom properties, see the link:administration-guide.html[System Administrator’s Guide].
 
 [[Controller_Services_and_Reporting_Tasks]]
 === Controller Services and Reporting Tasks
