@@ -54,6 +54,8 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -768,7 +770,16 @@ public class PutSQL extends AbstractProcessor {
                     stmt.setTime(parameterIndex, new Time(Long.parseLong(parameterValue)));
                     break;
                 case Types.TIMESTAMP:
-                    stmt.setTimestamp(parameterIndex, new Timestamp(Long.parseLong(parameterValue)));
+                    long lTimestamp=0L;
+
+                    try {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+                        java.util.Date parsedDate = dateFormat.parse(parameterValue);
+                        stmt.setTimestamp(parameterIndex, new Timestamp(parsedDate.getTime()));
+                    } catch(ParseException e){
+                        stmt.setTimestamp(parameterIndex, new Timestamp(Long.parseLong(parameterValue)));
+                    }
+
                     break;
                 case Types.CHAR:
                 case Types.VARCHAR:
