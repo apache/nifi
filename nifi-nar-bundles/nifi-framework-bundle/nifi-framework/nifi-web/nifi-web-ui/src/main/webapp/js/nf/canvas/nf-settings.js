@@ -985,7 +985,13 @@ nf.Settings = (function () {
                         $('#new-service-or-task').hide();
                         $('#settings-save').show();
                     } else {
-                        if (nf.Common.canModifyController()) {
+                        var canModifyController = false;
+                        if (nf.Common.isDefinedAndNotNull(nf.Common.currentUser)) {
+                            // only consider write permissions for creating new controller services/reporting tasks
+                            canModifyController = nf.Common.currentUser.controllerPermissions.canWrite === true;
+                        }
+
+                        if (canModifyController) {
                             $('#new-service-or-task').show();
                             $('div.controller-settings-table').css('top', '32px');
 

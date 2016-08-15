@@ -150,6 +150,17 @@ nf.ProcessGroupConfiguration = (function () {
                 deferred.resolve();
             }).fail(function (xhr, status, error) {
                 if (xhr.status === 403) {
+                    if (groupId === nf.Canvas.getGroupId()) {
+                        $('#process-group-configuration').data('process-group', {
+                            'permissions': {
+                                canRead: false,
+                                canWrite: nf.Canvas.canWrite()
+                            }
+                        });
+                    } else {
+                        $('#process-group-configuration').data('process-group', nf.ProcessGroup.get(groupId));
+                    }
+
                     setUnauthorizedText();
                     setEditable(false);
                     deferred.resolve();
