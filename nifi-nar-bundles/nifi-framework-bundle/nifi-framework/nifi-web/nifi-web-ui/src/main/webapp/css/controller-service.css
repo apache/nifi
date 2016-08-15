@@ -39,10 +39,6 @@
 
 /* controller-service settings */
 
-#controller-service-configuration .setting-input {
-    font-size: 11px !important;
-}
-
 #controller-service-name {
     width: 250px;
     float: left;
@@ -82,10 +78,6 @@ ul.referencing-component-listing li {
     white-space: nowrap;
 }
 
-div.referencing-component-state {
-    margin-top: -2px;
-}
-
 div.referencing-component-bulletins {
     float: left;
     margin-left: 5px;
@@ -95,10 +87,16 @@ div.referencing-component-bulletins {
     display: none;
 }
 
+div.referencing-component-bulletins:before {
+    font-family: FontAwesome;
+    content: "\f24a";
+    font-size: 16px;
+    color: #004849;
+}
+
 div.service.expansion-button {
     float: left;
     margin-right: 4px;
-    margin-top: 2px;
     width: 10px;
     height: 10px;
 }

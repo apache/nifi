@@ -51,26 +51,10 @@
     font-size: 16px;
 }
 
-div.undock-normal {
-    background: transparent url(../images/iconPopOut.png) no-repeat left;
-}
-
-div.undock-hover {
-    background: transparent url(../images/iconPopOut.png) no-repeat right;
-}
-
 #shell-close-button {
     float: left;
     color: #004849;
     font-size: 16px;
-}
-
-div.close-normal {
-    background: transparent url(../images/iconClose.png) no-repeat left;
-}
-
-div.close-hover {
-    background: transparent url(../images/iconClose.png) no-repeat right;
 }
 
 #shell {
