@@ -20,6 +20,7 @@
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
+        <curator.version>2.11.0</curator.version>
     </properties>
     <dependencies>
         <dependency>
@@ -45,6 +46,12 @@
             <groupId>com.github.stephenc.findbugs</groupId>
             <artifactId>findbugs-annotations</artifactId>
             <version>1.3.9-1</version>
+        </dependency>
+        <!-- Hadoop brings in Curator 2.6.0 but 2.11.0 is needed for the HiveQL processors -->
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-client</artifactId>
+            <version>${curator.version}</version>
         </dependency>
     </dependencies>
 </project>
