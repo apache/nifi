@@ -948,10 +948,18 @@ nf.PolicyManagement = (function () {
                     resetPolicy();
                     loadPolicy();
                 }
+
+                nf.Canvas.reload({
+                    'transition': true
+                });
             }).fail(function (xhr, status, error) {
-                nf.Common.handleAjaxError(xhr, status, error)
+                nf.Common.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
+
+                nf.Canvas.reload({
+                    'transition': true
+                });
             });
         } else {
             nf.Dialog.showOkDialog({

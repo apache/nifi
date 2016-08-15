@@ -1082,19 +1082,25 @@ nf.ProcessGroup = (function () {
 
         /**
          * Reloads the process group state from the server and refreshes the UI.
-         * If the process group is currently unknown, this function just returns.
+         * If the process group is currently unknown, this function reloads the canvas.
          *
          * @param {object} processGroup The process group to reload
          */
         reload: function (processGroup) {
-            if (processGroupMap.has(processGroup.id)) {
-                var processGroupEntity = processGroupMap.get(processGroup.id);
-                return $.ajax({
-                    type: 'GET',
-                    url: processGroupEntity.uri,
-                    dataType: 'json'
-                }).done(function (response) {
-                    nf.ProcessGroup.set(response);
+            if(nf.Common.isDefinedAndNotNull(processGroup)) {
+                if (processGroupMap.has(processGroup.id)) {
+                    var processGroupEntity = processGroupMap.get(processGroup.id);
+                    return $.ajax({
+                        type: 'GET',
+                        url: processGroupEntity.uri,
+                        dataType: 'json'
+                    }).done(function (response) {
+                        nf.ProcessGroup.set(response);
+                    });
+                }
+            } else {
+                nf.Canvas.reload({
+                    'transition': true
                 });
             }
         },
