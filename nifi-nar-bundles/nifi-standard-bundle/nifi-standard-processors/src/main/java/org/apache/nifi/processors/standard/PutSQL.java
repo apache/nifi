@@ -775,10 +775,12 @@ public class PutSQL extends AbstractProcessor {
                     try {
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
                         java.util.Date parsedDate = dateFormat.parse(parameterValue);
-                        stmt.setTimestamp(parameterIndex, new Timestamp(parsedDate.getTime()));
+                        lTimestamp = parsedDate.getTime();
                     } catch(ParseException e){
-                        stmt.setTimestamp(parameterIndex, new Timestamp(Long.parseLong(parameterValue)));
+                        lTimestamp = Long.parseLong(parameterValue);
                     }
+
+                    stmt.setTimestamp(parameterIndex, new Timestamp(lTimestamp));
 
                     break;
                 case Types.CHAR:
