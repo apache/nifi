@@ -77,6 +77,10 @@ div.selected-disabled-option {
     padding: 0px 10px;
 }
 
+.combo-options ul > li.disabled {
+    font-style: italic;
+}
+
 .combo-option-text {
     overflow: hidden;
     white-space: nowrap;

@@ -29,7 +29,9 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
@@ -145,7 +147,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             case ProcessorConfiguration:
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
-                    final Authorizable authorizable = lookup.getProcessor(requestContext.getId());
+                    final Authorizable authorizable = lookup.getProcessor(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
@@ -154,7 +156,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             case ControllerServiceConfiguration:
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
-                    final Authorizable authorizable = lookup.getControllerService(requestContext.getId());
+                    final Authorizable authorizable = lookup.getControllerService(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
@@ -163,7 +165,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             case ReportingTaskConfiguration:
                 // authorize access
                 serviceFacade.authorizeAccess(lookup -> {
-                    final Authorizable authorizable = lookup.getReportingTask(requestContext.getId());
+                    final Authorizable authorizable = lookup.getReportingTask(requestContext.getId()).getAuthorizable();
                     authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 });
 
@@ -336,7 +338,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getProcessor(id);
+                final Authorizable authorizable = lookup.getProcessor(id).getAuthorizable();
                 authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
@@ -387,8 +389,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getProcessor(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                // authorize the processor
+                final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getProcessor(id);
+                authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // authorize any referenced service
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
             });
 
             final ProcessorDTO processor;
@@ -516,7 +522,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getControllerService(id);
+                final Authorizable authorizable = lookup.getControllerService(id).getAuthorizable();
                 authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
@@ -574,8 +580,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getControllerService(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                // authorize the controller service
+                final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerService(id);
+                authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // authorize any referenced service
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
             });
 
             final ControllerServiceDTO controllerService;
@@ -677,7 +687,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getReportingTask(id);
+                final Authorizable authorizable = lookup.getReportingTask(id).getAuthorizable();
                 authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
             });
 
@@ -735,8 +745,12 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable authorizable = lookup.getReportingTask(id);
-                authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                // authorize the reporting task
+                final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getReportingTask(id);
+                authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                // authorize any referenced service
+                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
             });
 
             final ReportingTaskDTO reportingTask;

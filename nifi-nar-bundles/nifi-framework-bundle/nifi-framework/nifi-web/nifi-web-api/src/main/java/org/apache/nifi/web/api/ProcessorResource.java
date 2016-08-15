@@ -23,9 +23,12 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -173,7 +176,7 @@ public class ProcessorResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processor = lookup.getProcessor(id);
+            final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
             processor.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -241,7 +244,7 @@ public class ProcessorResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processor = lookup.getProcessor(id);
+            final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
             processor.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -296,7 +299,7 @@ public class ProcessorResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable processor = lookup.getProcessor(id);
+            final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
             processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
@@ -355,7 +358,7 @@ public class ProcessorResource extends ApplicationResource {
         if (isValidationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable processor = lookup.getProcessor(id);
+                final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
                 processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -391,7 +394,8 @@ public class ProcessorResource extends ApplicationResource {
             value = "Updates a processor",
             response = ProcessorEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /processors/{uuid}", type = "")
+                    @Authorization(value = "Write - /processors/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -440,8 +444,15 @@ public class ProcessorResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getProcessor(id);
-                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getProcessor(id);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
+                    if (config != null) {
+                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
+                    }
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
                 () -> {
@@ -511,7 +522,7 @@ public class ProcessorResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable processor = lookup.getProcessor(id);
+                    final Authorizable processor = lookup.getProcessor(id).getAuthorizable();
                     processor.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteProcessor(id),

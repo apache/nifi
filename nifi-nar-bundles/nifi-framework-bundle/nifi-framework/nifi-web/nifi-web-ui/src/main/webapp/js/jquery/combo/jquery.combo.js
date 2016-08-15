@@ -118,30 +118,6 @@
 
     };
 
-    var setDisabled = function (combo, optionElement, option, disabled) {
-        // reset the option element
-        optionElement.removeClass('unset').off('click');
-        
-        if (disabled === true) {
-            optionElement.addClass('unset');
-        } else {
-            optionElement.on('click', function () {
-                //remove active styles
-                $('.combo').removeClass('combo-open');
-
-                // select the option
-                selectOption(combo, option.text, option.value);
-
-                // click the glass pane which will hide the options
-                $('.combo-glass-pane').click();
-            }).hover(function () {
-                $(this).addClass('pointer').css('background', '#eaeef0');
-            }, function () {
-                $(this).removeClass('pointer').css('background', '#ffffff');
-            });
-        }
-    };
-
     var methods = {
 
         /**
@@ -212,7 +188,7 @@
 
                             // this is option is enabled register appropriate listeners
                             if (option.disabled === true) {
-                                optionElement.addClass('unset');
+                                optionElement.addClass('unset disabled');
                             } else {
                                 optionElement.click(function () {
                                     //remove active styles

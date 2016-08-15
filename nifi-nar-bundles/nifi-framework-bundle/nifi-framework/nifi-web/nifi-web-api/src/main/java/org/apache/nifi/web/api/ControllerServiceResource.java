@@ -23,7 +23,9 @@ import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 import com.wordnik.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ControllerServiceReferencingComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -175,7 +177,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable controllerService = lookup.getControllerService(id);
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
             controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -236,7 +238,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable controllerService = lookup.getControllerService(id);
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
             controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -290,7 +292,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable controllerService = lookup.getControllerService(id);
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
             controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
         });
 
@@ -348,7 +350,7 @@ public class ControllerServiceResource extends ApplicationResource {
         if (validationPhase || !isTwoPhaseRequest(httpServletRequest)) {
             // authorize access
             serviceFacade.authorizeAccess(lookup -> {
-                final Authorizable controllerService = lookup.getControllerService(id);
+                final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
                 controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
             });
         }
@@ -406,7 +408,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable controllerService = lookup.getControllerService(id);
+            final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
             controllerService.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
@@ -545,7 +547,8 @@ public class ControllerServiceResource extends ApplicationResource {
             value = "Updates a controller service",
             response = ControllerServiceEntity.class,
             authorizations = {
-                    @Authorization(value = "Write - /controller-services/{uuid}", type = "")
+                    @Authorization(value = "Write - /controller-services/{uuid}", type = ""),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -594,8 +597,12 @@ public class ControllerServiceResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    Authorizable authorizable = lookup.getControllerService(id);
-                    authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    // authorize the service
+                    final ControllerServiceReferencingComponentAuthorizable authorizable = lookup.getControllerService(id);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+
+                    // authorize any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
                 },
                 () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
                 () -> {
@@ -668,7 +675,7 @@ public class ControllerServiceResource extends ApplicationResource {
                 serviceFacade,
                 revision,
                 lookup -> {
-                    final Authorizable controllerService = lookup.getControllerService(id);
+                    final Authorizable controllerService = lookup.getControllerService(id).getAuthorizable();
                     controllerService.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyDeleteControllerService(id),
