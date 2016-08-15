@@ -71,7 +71,7 @@ import org.subethamail.smtp.server.SMTPServer;
             + "certificates used by an TLS peer"),
     @WritesAttribute(attribute = "smtp.certificates.*.principal", description = "The principal for each of the "
             + "certificates used by an TLS peer"),
-    @WritesAttribute(attribute = "smtp.src", description = "The source IP of the SMTP connection"),
+    @WritesAttribute(attribute = "smtp.src", description = "The source IP and port of the SMTP connection"),
     @WritesAttribute(attribute = "smtp.from", description = "The value used during MAIL FROM (i.e. envelope)"),
     @WritesAttribute(attribute = "smtp.recipient.*", description = "The values used during RCPT TO (i.e. envelope)"),
     @WritesAttribute(attribute = "mime.type", description = "Mime type of the message")})
