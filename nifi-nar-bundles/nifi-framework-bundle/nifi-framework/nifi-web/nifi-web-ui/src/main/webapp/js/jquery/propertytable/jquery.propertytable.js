@@ -530,6 +530,7 @@
                     options.push({
                         text: allowableValue.displayName,
                         value: allowableValue.value,
+                        disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
                         description: nf.Common.escapeHtml(allowableValue.description)
                     });
                 });

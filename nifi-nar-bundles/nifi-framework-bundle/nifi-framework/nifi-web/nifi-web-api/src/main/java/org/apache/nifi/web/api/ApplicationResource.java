@@ -426,7 +426,7 @@ public abstract class ApplicationResource {
             processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
         });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
-        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
         snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
         snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
@@ -451,7 +451,7 @@ public abstract class ApplicationResource {
             processGroupAuthorizable.getEncapsulatedAuthorizables().forEach(authorize);
         });
         snippet.getRemoteProcessGroups().keySet().stream().map(id -> lookup.getRemoteProcessGroup(id)).forEach(authorize);
-        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id)).forEach(authorize);
+        snippet.getProcessors().keySet().stream().map(id -> lookup.getProcessor(id).getAuthorizable()).forEach(authorize);
         snippet.getInputPorts().keySet().stream().map(id -> lookup.getInputPort(id)).forEach(authorize);
         snippet.getOutputPorts().keySet().stream().map(id -> lookup.getOutputPort(id)).forEach(authorize);
         snippet.getConnections().keySet().stream().map(id -> lookup.getConnection(id)).forEach(connAuth -> authorize.accept(connAuth.getAuthorizable()));
