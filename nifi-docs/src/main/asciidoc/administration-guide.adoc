@@ -185,10 +185,33 @@ Standalone mode can be invoked by running “tls-toolkit.sh standalone -h” whi
 
 The most common options to specify are:
 
-* -n (or --hostnames) a comma-separated list of hostnames that you’d like to generate certificates for
+* -n (or --hostnames) a comma-separated list of hostnames that you’d like to generate certificates for.  It can be specified multiple times.  Range and instance patterns are supported. (see below for details)
+* -C (or --clientCertDn) a DN that you'd like to generate a client certificate for.  It can be specified multiple times.
 * -f (or --nifiPropertiesFile) a base nifi.properties file that the tool will update for each host
 * -o (or --outputDirectory) the directory to use for the resulting Certificate Authority files and NiFi configurations.  A subdirectory will be made for each host.
-* -p (or --httpsPort) the https port in nifi.properties and enable secure site-to-site.  This is optional and not required if you’ve provided a template nifi.properties.
+
+Hostname Patterns:
+
+* Square brackets can be used in order to easily specify a range of hostnames. Example: [01-20]
+* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: (5)
+
+Examples:
+
+Create 4 sets of keystore, truststore, nifi.properties for localhost along with a client certificate with the given DN:
+----
+bin/tls-toolkit.sh standalone -n 'localhost(4)' -C 'CN=username,OU=NIFI'
+----
+
+Create keystore, truststore, nifi.properties for 10 nifi hostnames in each of 4 subdomains:
+----
+bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain'
+----
+
+Create 2 sets of keystore, truststore, nifi.properties for 10 nifi hostnames in each of 4 subdomains along with a client certificate with the given DN:
+----
+bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
+----
+
 
 Client/Server
 ^^^^^^^^^^^^^
@@ -215,12 +238,12 @@ The most common options to specify are:
 * -f (or --configJson) the json config file
 * -c (or --certificateAuthorityHostname) the hostname of the CA
 * -D (or --DN) the DN for the CSR (and Certificate)
-* -t (or --token) the token used to prevent man in the middle attacks (this should be a long, random value and needs to be known when invoking the client)
-* -T (or --keyStoreType) the type of keystore to create (specify jks for NiFi nodes, leave default to create client cert)
+* -t (or --token) the token used to prevent man in the middle attacks (this should be a long, random value and needs to be the same one used to start the CA server)
+* -T (or --keyStoreType) the type of keystore to create (leave default for NiFi nodes, specify PKCS12 to create client cert)
 
 After running the client you will have the CA’s certificate, a keystore, a truststore, and a config.json with information about them as well as their passwords.
 
-If you leave -T (or --keyStoreType) as its default value, PKCS12 will be used in order to make it easy to import into a browser for client certificates.
+For a client certificate that can be easily imported into the browser, specify: -T PKCS12
 
 User Authentication
 -------------------
