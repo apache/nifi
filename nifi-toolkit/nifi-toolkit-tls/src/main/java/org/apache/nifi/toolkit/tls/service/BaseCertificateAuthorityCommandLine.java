@@ -26,6 +26,9 @@ import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 
+/**
+ * Common base argument logic for the CA server and client
+ */
 public abstract class BaseCertificateAuthorityCommandLine extends BaseCommandLine {
     public static final String TOKEN_ARG = "token";
     public static final String CONFIG_JSON_ARG = "configJson";

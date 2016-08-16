@@ -17,15 +17,23 @@
 
 package org.apache.nifi.toolkit.tls.commandLine;
 
+/**
+ * Exception for errors while parsing the command line
+ */
 public class CommandLineParseException extends Exception {
-    private final int exitCode;
+    private final ExitCode exitCode;
 
-    public CommandLineParseException(String message, int exitCode) {
+    public CommandLineParseException(String message, ExitCode exitCode) {
         super(message);
         this.exitCode = exitCode;
     }
 
-    public int getExitCode() {
+    /**
+     * Returns the exit code to use
+     *
+     * @return the exit code to use
+     */
+    public ExitCode getExitCode() {
         return exitCode;
     }
 }

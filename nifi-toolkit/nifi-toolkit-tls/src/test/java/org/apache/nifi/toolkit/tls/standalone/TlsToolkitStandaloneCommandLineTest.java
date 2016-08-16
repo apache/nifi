@@ -69,7 +69,7 @@ public class TlsToolkitStandaloneCommandLineTest {
             tlsToolkitStandaloneCommandLine.parse("-h");
             fail("Expected usage and help exit");
         } catch (CommandLineParseException e) {
-            Assert.assertEquals(ExitCode.HELP.ordinal(), e.getExitCode());
+            Assert.assertEquals(ExitCode.HELP, e.getExitCode());
         }
     }
 
@@ -79,7 +79,7 @@ public class TlsToolkitStandaloneCommandLineTest {
             tlsToolkitStandaloneCommandLine.parse("--unknownArg");
             fail("Expected error parsing command line");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_COMMAND_LINE.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.ERROR_PARSING_COMMAND_LINE, e.getExitCode());
         }
     }
 
@@ -96,7 +96,7 @@ public class TlsToolkitStandaloneCommandLineTest {
             tlsToolkitStandaloneCommandLine.parse("-k", "badVal");
             fail("Expected bad keysize exit code");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_INT_ARG.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
         }
     }
 
@@ -119,7 +119,7 @@ public class TlsToolkitStandaloneCommandLineTest {
         try {
             tlsToolkitStandaloneCommandLine.parse("-d", "badVal");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_PARSING_INT_ARG.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.ERROR_PARSING_INT_ARG, e.getExitCode());
         }
     }
 
@@ -175,7 +175,7 @@ public class TlsToolkitStandaloneCommandLineTest {
             tlsToolkitStandaloneCommandLine.parse("-f", "/this/file/should/not/exist.txt");
             fail("Expected error when unable to read file");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_READING_NIFI_PROPERTIES.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.ERROR_READING_NIFI_PROPERTIES, e.getExitCode());
         }
     }
 

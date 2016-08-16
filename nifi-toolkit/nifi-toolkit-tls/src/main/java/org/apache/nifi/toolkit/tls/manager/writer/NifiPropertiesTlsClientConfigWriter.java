@@ -37,22 +37,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Will write a nifi.properties file appropriate for the given client config
+ */
 public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<TlsClientConfig> {
     public static final String HOSTNAME_PROPERTIES = "hostname.properties";
     public static final String OVERLAY_PROPERTIES = "overlay.properties";
     public static final String CONF = "./conf/";
     private final NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
-    private final OutputStreamFactory outputStreamFactory;
     private final File outputFile;
     private final String hostname;
     private final int hostNum;
     private final Properties overlayProperties;
     private final Set<String> explicitProperties;
 
-    public NifiPropertiesTlsClientConfigWriter(NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, OutputStreamFactory outputStreamFactory, File outputFile, String hostname, int hostNum)
-            throws IOException {
+    public NifiPropertiesTlsClientConfigWriter(NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, File outputFile, String hostname, int hostNum) throws IOException {
         this.niFiPropertiesWriterFactory = niFiPropertiesWriterFactory;
-        this.outputStreamFactory = outputStreamFactory;
         this.outputFile = outputFile;
         this.hostname = hostname;
         this.hostNum = hostNum;
@@ -64,7 +64,7 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
     }
 
     @Override
-    public void write(TlsClientConfig tlsClientConfig) throws IOException {
+    public void write(TlsClientConfig tlsClientConfig, OutputStreamFactory outputStreamFactory) throws IOException {
         NiFiPropertiesWriter niFiPropertiesWriter = niFiPropertiesWriterFactory.create();
         updateProperties(niFiPropertiesWriter, tlsClientConfig);
         try (OutputStream stream = outputStreamFactory.create(outputFile)) {

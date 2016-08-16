@@ -30,6 +30,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Command line parser for a TlsConfig object and a main entry point to invoke the parser and run the CA server
+ */
 public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAuthorityCommandLine {
     public static final String DESCRIPTION = "Acts as a Certificate Authority that can be used by clients to get Certificates";
     public static final String NIFI_CA_KEYSTORE = "nifi-ca-" + KEYSTORE;
@@ -51,7 +54,7 @@ public class TlsCertificateAuthorityServiceCommandLine extends BaseCertificateAu
         try {
             tlsCertificateAuthorityServiceCommandLine.parse(args);
         } catch (CommandLineParseException e) {
-            System.exit(e.getExitCode());
+            System.exit(e.getExitCode().ordinal());
         }
         TlsCertificateAuthorityService tlsCertificateAuthorityService = new TlsCertificateAuthorityService();
         tlsCertificateAuthorityService.start(tlsCertificateAuthorityServiceCommandLine.createConfig(), tlsCertificateAuthorityServiceCommandLine.getConfigJson(),

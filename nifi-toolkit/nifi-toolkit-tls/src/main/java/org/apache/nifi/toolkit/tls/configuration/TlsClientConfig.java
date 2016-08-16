@@ -22,6 +22,9 @@ import org.apache.nifi.util.StringUtils;
 
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Configuration object for CA client
+ */
 public class TlsClientConfig extends TlsConfig {
     private String trustStore;
     private String trustStorePassword;

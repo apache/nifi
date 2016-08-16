@@ -28,11 +28,22 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.X509Certificate;
 
+/**
+ * KeyStore manager capable of reading or instantiating a CA Certificate
+ */
 public class TlsCertificateAuthorityManager extends BaseTlsManager {
     public TlsCertificateAuthorityManager(TlsConfig tlsConfig) throws GeneralSecurityException, IOException {
         super(tlsConfig);
     }
 
+    /**
+     * Reads the CA from the KeyStore, creating one and putting it into the KeyStore if not present
+     *
+     * @return the PrivateKeyEntry for the CA
+     *
+     * @throws GeneralSecurityException if there is a security problem
+     * @throws IOException if there is an IO problem
+     */
     public KeyStore.PrivateKeyEntry getOrGenerateCertificateAuthority() throws GeneralSecurityException, IOException {
         KeyStore.Entry entry = getEntry(TlsToolkitStandalone.NIFI_KEY);
         if (entry == null) {

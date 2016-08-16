@@ -49,7 +49,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
             tlsCertificateAuthorityClientCommandLine.parse(new String[0]);
             fail("Expected failure with no token argument");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.ERROR_TOKEN_ARG_EMPTY.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.ERROR_TOKEN_ARG_EMPTY, e.getExitCode());
         }
     }
 
@@ -95,7 +95,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
             tlsCertificateAuthorityClientCommandLine.parse("-h");
             fail("Expected exception");
         } catch (CommandLineParseException e) {
-            assertEquals(ExitCode.HELP.ordinal(), e.getExitCode());
+            assertEquals(ExitCode.HELP, e.getExitCode());
         }
     }
 

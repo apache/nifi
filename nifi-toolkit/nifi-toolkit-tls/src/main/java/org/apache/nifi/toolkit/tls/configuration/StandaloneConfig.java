@@ -22,6 +22,9 @@ import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import java.io.File;
 import java.util.List;
 
+/**
+ * Configuration object of the standalone service
+ */
 public class StandaloneConfig extends TlsConfig {
     private File baseDir;
     private NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;

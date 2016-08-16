@@ -45,7 +45,10 @@ public class PasswordUtilTest {
             System.arraycopy(val, 0, bytes, bytes.length - val.length, val.length);
             return null;
         }).when(secureRandom).nextBytes(any(byte[].class));
-        String expected = Base64.getEncoder().encodeToString(BigInteger.valueOf(Integer.valueOf(value).longValue()).toByteArray()).split("=")[0];
+        byte[] expectedBytes = new byte[32];
+        byte[] numberBytes = BigInteger.valueOf(Integer.valueOf(value).longValue()).toByteArray();
+        System.arraycopy(numberBytes, 0, expectedBytes, expectedBytes.length - numberBytes.length, numberBytes.length);
+        String expected = Base64.getEncoder().encodeToString(expectedBytes).split("=")[0];
         String actual = passwordUtil.generatePassword();
         assertEquals(expected, actual);
     }

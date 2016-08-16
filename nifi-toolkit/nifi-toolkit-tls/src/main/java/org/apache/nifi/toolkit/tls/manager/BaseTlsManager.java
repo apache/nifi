@@ -34,13 +34,14 @@ import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.UnrecoverableEntryException;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Base class for managing KeyStores and Certificates
+ */
 public class BaseTlsManager {
     public static final String PKCS_12 = "PKCS12";
     private final TlsConfig tlsConfig;
@@ -63,24 +64,47 @@ public class BaseTlsManager {
         this.configurationWriters = new ArrayList<>();
     }
 
+    /**
+     * Returns the KeyStore
+     *
+     * @return the KeyStore
+     */
     public KeyStore getKeyStore() {
         return keyStore;
     }
 
-    public KeyStore.Entry getEntry(String alias) throws UnrecoverableEntryException, NoSuchAlgorithmException, KeyStoreException {
+    /**
+     * Returns an entry from the KeyStore with the given alias
+     *
+     * @param alias the alias
+     * @return an entry from the KeyStore with the given alias
+     * @throws GeneralSecurityException if there is a problem retrieving the entry
+     */
+    public KeyStore.Entry getEntry(String alias) throws GeneralSecurityException {
         String keyPassword = getKeyPassword();
         return keyStore.getEntry(alias, new KeyStore.PasswordProtection(keyPassword == null ? null : keyPassword.toCharArray()));
     }
 
-    public KeyStore.Entry addPrivateKeyToKeyStore(KeyPair keyPair, String alias, Certificate... certificates) throws GeneralSecurityException, IOException {
-        return addPrivateKeyToKeyStore(keyStore, keyPair, alias, getKeyPassword(), certificates);
-    }
-
-    private KeyStore.Entry addPrivateKeyToKeyStore(KeyStore keyStore, KeyPair keyPair, String alias, String passphrase, Certificate... certificates) throws GeneralSecurityException, IOException {
+    /**
+     * Adds the private key of the KeyPair to the KeyStore and returns the entry
+     *
+     * @param keyPair the KeyPair
+     * @param alias the alias
+     * @param certificates the certificate chain
+     * @return the entry
+     * @throws GeneralSecurityException if there is a problem performing the operation
+     */
+    public KeyStore.Entry addPrivateKeyToKeyStore(KeyPair keyPair, String alias, Certificate... certificates) throws GeneralSecurityException {
+        String passphrase = getKeyPassword();
         keyStore.setKeyEntry(alias, keyPair.getPrivate(), passphrase == null ? null : passphrase.toCharArray(), certificates);
         return getEntry(alias);
     }
 
+    /**
+     * Sets a flag indicating whether to use a different key and keystore password
+     *
+     * @param differentKeyAndKeyStorePassword a flag indicating whether to use a different key and keystore password
+     */
     public void setDifferentKeyAndKeyStorePassword(boolean differentKeyAndKeyStorePassword) {
         this.differentKeyAndKeyStorePassword = differentKeyAndKeyStorePassword;
     }
@@ -134,24 +158,36 @@ public class BaseTlsManager {
         return result;
     }
 
+    /**
+     * Writes the KeyStore and configuration information
+     *
+     * @param outputStreamFactory factory interface for creating output streams
+     * @throws IOException if there is an IO problem while writing
+     * @throws GeneralSecurityException if there is a security problem while writing
+     */
     public void write(OutputStreamFactory outputStreamFactory) throws IOException, GeneralSecurityException {
         String keyStorePassword = getKeyStorePassword();
         tlsConfig.setKeyStorePassword(TlsHelper.writeKeyStore(keyStore, outputStreamFactory, new File(tlsConfig.getKeyStore()), keyStorePassword, keyStorePasswordGenerated));
 
         for (ConfigurationWriter<TlsConfig> configurationWriter : configurationWriters) {
-            configurationWriter.write(tlsConfig);
+            configurationWriter.write(tlsConfig, outputStreamFactory);
         }
     }
 
-    public PasswordUtil getPasswordUtil() {
+    protected PasswordUtil getPasswordUtil() {
         return passwordUtil;
     }
 
+    /**
+     * Adds a ConfigurationWriter which will have an opportunity to write configuration information
+     *
+     * @param configurationWriter a ConfigurationWriter which will have an opportunity to write configuration information
+     */
     public void addConfigurationWriter(ConfigurationWriter<TlsConfig> configurationWriter) {
         configurationWriters.add(configurationWriter);
     }
 
-    public TlsConfig getTlsConfig() {
+    protected TlsConfig getTlsConfig() {
         return tlsConfig;
     }
 }

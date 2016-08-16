@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+/**
+ * Command line parser for a StandaloneConfig object and a main entry point to invoke the parser and run the standalone generator
+ */
 public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String OUTPUT_DIRECTORY_ARG = "outputDirectory";
     public static final String NIFI_PROPERTIES_FILE_ARG = "nifiPropertiesFile";
@@ -95,7 +98,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         try {
             tlsToolkitStandaloneCommandLine.parse(args);
         } catch (CommandLineParseException e) {
-            System.exit(e.getExitCode());
+            System.exit(e.getExitCode().ordinal());
         }
         try {
             new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
@@ -181,6 +184,11 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         }
     }
 
+    /**
+     * Creates the StandaloneConfig for use in running TlsToolkitStandalone
+     *
+     * @return the StandaloneConfig for use in running TlsToolkitStandalone
+     */
     public StandaloneConfig createConfig() {
         StandaloneConfig standaloneConfig = new StandaloneConfig();
 

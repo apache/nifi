@@ -17,8 +17,22 @@
 
 package org.apache.nifi.toolkit.tls.manager.writer;
 
+import org.apache.nifi.toolkit.tls.util.OutputStreamFactory;
+
 import java.io.IOException;
 
+/**
+ * Class that can write out configuration information on the given object
+ *
+ * @param <T> the type of Object to write information about
+ */
 public interface ConfigurationWriter<T> {
-    void write(T t) throws IOException;
+    /**
+     * Writes configuration information about the given object
+     *
+     * @param t the object
+     * @param outputStreamFactory an OutputStreamFactory
+     * @throws IOException if there is an IO problem
+     */
+    void write(T t, OutputStreamFactory outputStreamFactory) throws IOException;
 }

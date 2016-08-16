@@ -35,6 +35,9 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+/**
+ * Command line parser for a TlsClientConfig object and a main entry point to invoke the parser and run the CA client
+ */
 public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAuthorityCommandLine {
     public static final String DESCRIPTION = "Generates a private key and gets it signed by the certificate authority.";
     public static final String CERTIFICATE_DIRECTORY = "certificateDirectory";
@@ -61,7 +64,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         try {
             tlsCertificateAuthorityClientCommandLine.parse(args);
         } catch (CommandLineParseException e) {
-            System.exit(e.getExitCode());
+            System.exit(e.getExitCode().ordinal());
         }
         new TlsCertificateAuthorityClient().generateCertificateAndGetItSigned(tlsCertificateAuthorityClientCommandLine.createClientConfig(),
                 tlsCertificateAuthorityClientCommandLine.getCertificateDirectory(), tlsCertificateAuthorityClientCommandLine.getConfigJson(),

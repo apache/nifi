@@ -92,13 +92,13 @@ public class NifiPropertiesTlsClientConfigWriterTest {
 
         niFiPropertiesWriter = new NiFiPropertiesWriter(new ArrayList<>());
         when(niFiPropertiesWriterFactory.create()).thenReturn(niFiPropertiesWriter);
-        nifiPropertiesTlsClientConfigWriter = new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, outputFile, testHostname, hostNum);
+        nifiPropertiesTlsClientConfigWriter = new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputFile, testHostname, hostNum);
         overlayProperties = nifiPropertiesTlsClientConfigWriter.getOverlayProperties();
     }
 
     @Test
     public void testDefaults() throws IOException {
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
         testHostnamesAndPorts();
         assertNotEquals(0, nifiPropertiesTlsClientConfigWriter.getPropertyPortMap().size());
     }
@@ -106,13 +106,13 @@ public class NifiPropertiesTlsClientConfigWriterTest {
     @Test(expected = NumberFormatException.class)
     public void testBadPortNum() throws IOException {
         nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(nifiPropertiesTlsClientConfigWriter.getPropertyPortMap().keySet().iterator().next(), "notAnInt");
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
     }
 
     @Test
     public void testNoHostnameProperties() throws IOException {
         nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(NifiPropertiesTlsClientConfigWriter.HOSTNAME_PROPERTIES, "");
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
         testHostnamesAndPorts();
         Properties nifiProperties = getNifiProperties();
         nifiProperties.stringPropertyNames().forEach(s -> assertNotEquals(testHostname, nifiProperties.getProperty(s)));
