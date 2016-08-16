@@ -18,7 +18,7 @@ language governing permissions and limitations under the License. -->
     </parent>
     <artifactId>nifi-toolkit-assembly</artifactId>
     <packaging>pom</packaging>
-    <description>This is the assembly Apache NiFi Toolkit</description>
+    <description>This is the assembly for the Apache NiFi Toolkit</description>
     <build>
         <plugins>
             <plugin>
@@ -63,6 +63,10 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-toolkit-tls</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-toolkit-encrypt-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

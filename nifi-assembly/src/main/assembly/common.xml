@@ -28,6 +28,8 @@
                 <include>slf4j-api</include>
                 <include>logback-classic</include>
                 <include>nifi-api</include>
+                <include>commons-lang3</include>
+                <include>bcprov-jdk15on</include>
             </includes>
         </dependencySet>
 

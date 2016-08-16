@@ -173,14 +173,14 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * constructor or a constructor which takes a NiFiProperties object
      * (preferred).
      *
-     * @param <T> type
-     * @param implementationClassName class
-     * @param typeDefinition def
-     * @param nifiProperties props
+     * @param <T> the type to create an instance for
+     * @param implementationClassName the implementation class name
+     * @param typeDefinition the type definition
+     * @param nifiProperties the NiFiProperties instance
      * @return constructed instance
-     * @throws InstantiationException ex
-     * @throws IllegalAccessException ex
-     * @throws ClassNotFoundException ex
+     * @throws InstantiationException if there is an error instantiating the class
+     * @throws IllegalAccessException if there is an error accessing the type
+     * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
             throws InstantiationException, IllegalAccessException, ClassNotFoundException {
@@ -199,7 +199,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);
-            if (nifiProperties == null) {
+            if(nifiProperties == null){
                 return typeDefinition.cast(desiredClass.newInstance());
             }
             Constructor<?> constructor = null;

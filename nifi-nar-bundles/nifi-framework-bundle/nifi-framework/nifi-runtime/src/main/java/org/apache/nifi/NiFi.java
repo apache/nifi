@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
@@ -30,12 +33,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -45,6 +49,7 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 public class NiFi {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFi.class);
+    private static final String KEY_FLAG = "-k";
     private final NiFiServer nifiServer;
     private final BootstrapListener bootstrapListener;
 
@@ -158,7 +163,7 @@ public class NiFi {
             }
             logger.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
-            logger.warn("Problem occured ensuring Jetty web server was properly terminated due to " + t);
+            logger.warn("Problem occurred ensuring Jetty web server was properly terminated due to " + t);
         }
     }
 
@@ -183,14 +188,14 @@ public class NiFi {
         });
 
         final AtomicInteger occurrencesOutOfRange = new AtomicInteger(0);
-        final AtomicInteger occurences = new AtomicInteger(0);
+        final AtomicInteger occurrences = new AtomicInteger(0);
         final Runnable command = new Runnable() {
             @Override
             public void run() {
                 final long curMillis = System.currentTimeMillis();
                 final long difference = curMillis - lastTriggerMillis.get();
                 final long millisOff = Math.abs(difference - 2000L);
-                occurences.incrementAndGet();
+                occurrences.incrementAndGet();
                 if (millisOff > 500L) {
                     occurrencesOutOfRange.incrementAndGet();
                 }
@@ -206,7 +211,7 @@ public class NiFi {
                 future.cancel(true);
                 service.shutdownNow();
 
-                if (occurences.get() < minRequiredOccurrences || occurrencesOutOfRange.get() > maxOccurrencesOutOfRange) {
+                if (occurrences.get() < minRequiredOccurrences || occurrencesOutOfRange.get() > maxOccurrencesOutOfRange) {
                     logger.warn("NiFi has detected that this box is not responding within the expected timing interval, which may cause "
                             + "Processors to be scheduled erratically. Please see the NiFi documentation for more information.");
                 }
@@ -224,9 +229,96 @@ public class NiFi {
     public static void main(String[] args) {
         logger.info("Launching NiFi...");
         try {
-            new NiFi(NiFiProperties.createBasicNiFiProperties(null, null));
+            NiFiProperties properties = initializeProperties(args);
+            new NiFi(properties);
         } catch (final Throwable t) {
             logger.error("Failure to launch NiFi due to " + t, t);
         }
+    }
+
+    private static NiFiProperties initializeProperties(String[] args) {
+        // Try to get key
+        // If key doesn't exist, instantiate without
+        // Load properties
+        // If properties are protected and key missing, throw RuntimeException
+
+        try {
+            String key = loadFormattedKey(args);
+            // The key might be empty or null when it is passed to the loader
+            try {
+                NiFiProperties properties = NiFiPropertiesLoader.withKey(key).get();
+                logger.info("Loaded {} properties", properties.size());
+                return properties;
+            } catch (SensitivePropertyProtectionException e) {
+                final String msg = "There was an issue decrypting protected properties";
+                logger.error(msg, e);
+                throw new IllegalArgumentException(msg);
+            }
+        } catch (IllegalArgumentException e) {
+            final String msg = "The bootstrap process did not provide a valid key and there are protected properties present in the properties file";
+            logger.error(msg, e);
+            throw new IllegalArgumentException(msg);
+        }
+    }
+
+    private static String loadFormattedKey(String[] args) {
+        String key = null;
+        List<String> parsedArgs = parseArgs(args);
+        // Check if args contain protection key
+        if (parsedArgs.contains(KEY_FLAG)) {
+            key = getKeyFromArgs(parsedArgs);
+
+            // Format the key (check hex validity and remove spaces)
+            key = formatHexKey(key);
+            if (!isHexKeyValid(key)) {
+                throw new IllegalArgumentException("The key was not provided in valid hex format and of the correct length");
+            }
+
+            return key;
+        } else {
+            // throw new IllegalStateException("No key provided from bootstrap");
+            return "";
+        }
+    }
+
+    private static String getKeyFromArgs(List<String> parsedArgs) {
+        String key;
+        logger.debug("The bootstrap process provided the " + KEY_FLAG + " flag");
+        int i = parsedArgs.indexOf(KEY_FLAG);
+        if (parsedArgs.size() <= i + 1) {
+            logger.error("The bootstrap process passed the {} flag without a key", KEY_FLAG);
+            throw new IllegalArgumentException("The bootstrap process provided the " + KEY_FLAG + " flag but no key");
+        }
+        key = parsedArgs.get(i + 1);
+        logger.info("Read property protection key from bootstrap process");
+        return key;
+    }
+
+    private static List<String> parseArgs(String[] args) {
+        List<String> parsedArgs = new ArrayList<>(Arrays.asList(args));
+        for (int i = 0; i < parsedArgs.size(); i++) {
+            if (parsedArgs.get(i).startsWith(KEY_FLAG + " ")) {
+                String[] split = parsedArgs.get(i).split(" ", 2);
+                parsedArgs.set(i, split[0]);
+                parsedArgs.add(i + 1, split[1]);
+                break;
+            }
+        }
+        return parsedArgs;
+    }
+
+    private static String formatHexKey(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return "";
+        }
+        return input.replaceAll("[^0-9a-fA-F]", "").toLowerCase();
+    }
+
+    private static boolean isHexKeyValid(String key) {
+        if (key == null || key.trim().isEmpty()) {
+            return false;
+        }
+        // Key length is in "nibbles" (i.e. one hex char = 4 bits)
+        return Arrays.asList(128, 196, 256).contains(key.length() * 4) && key.matches("^[0-9a-fA-F]*$");
     }
 }

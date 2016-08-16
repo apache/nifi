@@ -52,5 +52,4 @@ public interface ProcessorInitializationContext extends KerberosContext {
      * type of this NiFi instance.
      */
     NodeTypeProvider getNodeTypeProvider();
-
 }
