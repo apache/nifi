@@ -160,7 +160,8 @@ public class JdbcCommon {
                 dataFileWriter.append(rec);
                 nrOfRows += 1;
 
-                if(maxRows > 0 && nrOfRows == maxRows) break;
+                if(maxRows > 0 && nrOfRows == maxRows)
+                    break;
             }
 
             return nrOfRows;

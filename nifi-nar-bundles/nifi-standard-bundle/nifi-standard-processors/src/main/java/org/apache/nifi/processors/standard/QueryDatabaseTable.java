@@ -180,7 +180,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
-        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, stateMap);
+        final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, statePropertyMap);
         final StopWatch stopWatch = new StopWatch(true);
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
@@ -194,6 +194,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                     // Not all drivers support this, just log the error (at debug level) and move on
                     logger.debug("Cannot set fetch size to {} due to {}", new Object[]{fetchSize, se.getLocalizedMessage()}, se);
                 }
+            }
+
+            String jdbcURL = "DBCPService";
+            try {
+                DatabaseMetaData databaseMetaData = con.getMetaData();
+                if (databaseMetaData != null) {
+                    jdbcURL = databaseMetaData.getURL();
+                }
+            } catch (SQLException se) {
+                // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
@@ -227,26 +237,16 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
                         logger.info("{} contains {} Avro records; transferring to 'success'",
                                 new Object[]{fileToProcess, nrOfRows.get()});
-                        String jdbcURL = "DBCPService";
-                        try {
-                            DatabaseMetaData databaseMetaData = con.getMetaData();
-                            if (databaseMetaData != null) {
-                                jdbcURL = databaseMetaData.getURL();
-                            }
-                        } catch (SQLException se) {
-                            // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
-                        }
+
                         session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
 
+                        resultSetFlowFiles.add(fileToProcess);
                     } else {
                         // If there were no rows returned, don't send the flowfile
                         session.remove(fileToProcess);
                         context.yield();
+                        break;
                     }
-
-                    resultSetFlowFiles.add(fileToProcess);
-
-                    if(maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) break;
 
                     fragmentIndex++;
                 }
@@ -274,18 +274,17 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     }
 
     protected String getQuery(DatabaseAdapter dbAdapter, String tableName, String columnNames, List<String> maxValColumnNames,
-                              StateMap stateMap) {
+                              Map<String, String> stateMap) {
         if (StringUtils.isEmpty(tableName)) {
             throw new IllegalArgumentException("Table name must be specified");
         }
         final StringBuilder query = new StringBuilder(dbAdapter.getSelectStatement(tableName, columnNames, null, null, null, null));
 
         // Check state map for last max values
-        if (stateMap != null && stateMap.getVersion() != -1 && maxValColumnNames != null) {
-            Map<String, String> stateProperties = stateMap.toMap();
+        if (stateMap != null  && !stateMap.isEmpty() && maxValColumnNames != null) {
             List<String> whereClauses = new ArrayList<>(maxValColumnNames.size());
             for (String colName : maxValColumnNames) {
-                String maxValue = stateProperties.get(colName.toLowerCase());
+                String maxValue = stateMap.get(colName.toLowerCase());
                 if (!StringUtils.isEmpty(maxValue)) {
                     Integer type = columnTypeMap.get(colName.toLowerCase());
                     if (type == null) {
@@ -314,7 +313,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
             if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) continue;
 
-            defaultMaxValues.put(key.substring(0,INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
+            defaultMaxValues.put(key.substring(INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
         }
 
         return defaultMaxValues;
