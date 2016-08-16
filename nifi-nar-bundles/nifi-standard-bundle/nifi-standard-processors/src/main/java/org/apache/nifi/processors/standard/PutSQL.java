@@ -156,6 +156,8 @@ public class PutSQL extends AbstractProcessor {
     private static final String FRAGMENT_INDEX_ATTR = "fragment.index";
     private static final String FRAGMENT_COUNT_ATTR = "fragment.count";
 
+    private static final Pattern LONG_PATTERN = Pattern.compile("^\\d{1,19}$");
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -613,6 +615,8 @@ public class PutSQL extends AbstractProcessor {
                     setParameter(stmt, valueAttrName, parameterIndex, parameterValue, jdbcType);
                 } catch (final NumberFormatException nfe) {
                     throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted into the necessary data type", nfe);
+                } catch (ParseException pe) {
+                    throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted to a timestamp", pe);
                 }
             }
         }
@@ -731,7 +735,7 @@ public class PutSQL extends AbstractProcessor {
      * @param jdbcType the JDBC Type of the SQL parameter to set
      * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
      */
-    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException {
+    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException, ParseException {
         if (parameterValue == null) {
             stmt.setNull(parameterIndex, jdbcType);
         } else {
@@ -772,12 +776,12 @@ public class PutSQL extends AbstractProcessor {
                 case Types.TIMESTAMP:
                     long lTimestamp=0L;
 
-                    try {
+                    if(LONG_PATTERN.matcher(parameterValue).matches()){
+                        lTimestamp = Long.parseLong(parameterValue);
+                    }else {
                         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
                         java.util.Date parsedDate = dateFormat.parse(parameterValue);
                         lTimestamp = parsedDate.getTime();
-                    } catch(ParseException e){
-                        lTimestamp = Long.parseLong(parameterValue);
                     }
 
                     stmt.setTimestamp(parameterIndex, new Timestamp(lTimestamp));
