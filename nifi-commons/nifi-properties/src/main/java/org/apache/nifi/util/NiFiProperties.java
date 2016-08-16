@@ -38,7 +38,7 @@ import java.util.Set;
  * values to be available at runtime. It is strongly tied to the startup
  * properties needed and is often refer to as the 'nifi.properties' file. The
  * properties contains keys and values. Great care should be taken in leveraging
- * this class or passing it along. It's use should be refactored and minimized
+ * this class or passing it along. Its use should be refactored and minimized
  * over time.
  */
 public abstract class NiFiProperties {
@@ -247,9 +247,9 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
     /**
-     * Retrieves the property value for the given property key
+     * Retrieves the property value for the given property key.
      *
-     * @param key the key of property value to lookup.
+     * @param key the key of property value to lookup
      * @return value of property at given key or null if not found
      */
     public abstract String getProperty(String key);
@@ -257,7 +257,7 @@ public abstract class NiFiProperties {
     /**
      * Retrieves all known property keys.
      *
-     * @return all known property keys.
+     * @return all known property keys
      */
     public abstract Set<String> getPropertyKeys();
 
@@ -375,11 +375,7 @@ public abstract class NiFiProperties {
     public Boolean isSiteToSiteSecure() {
         final String secureVal = getProperty(SITE_TO_SITE_SECURE, "true");
 
-        if ("false".equalsIgnoreCase(secureVal)) {
-            return false;
-        } else {
-            return true;
-        }
+        return !"false".equalsIgnoreCase(secureVal);
 
     }
 
@@ -389,11 +385,7 @@ public abstract class NiFiProperties {
     public Boolean isSiteToSiteHttpEnabled() {
         final String remoteInputHttpEnabled = getProperty(SITE_TO_SITE_HTTP_ENABLED, "false");
 
-        if ("true".equalsIgnoreCase(remoteInputHttpEnabled)) {
-            return true;
-        } else {
-            return false;
-        }
+        return "true".equalsIgnoreCase(remoteInputHttpEnabled);
 
     }
 
@@ -769,8 +761,8 @@ public abstract class NiFiProperties {
      * Returns true if client certificates are required for REST API. Determined
      * if the following conditions are all true:
      *
-     * - login identity provider is not populated - Kerberos service support is
-     * not enabled
+     * - login identity provider is not populated
+     * - Kerberos service support is not enabled
      *
      * @return true if client certificates are required for access to the REST
      * API

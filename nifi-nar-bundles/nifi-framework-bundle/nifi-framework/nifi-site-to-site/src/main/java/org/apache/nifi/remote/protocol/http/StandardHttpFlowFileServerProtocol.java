@@ -93,7 +93,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
         HttpServerCommunicationsSession commSession = (HttpServerCommunicationsSession) commsSession;
 
         commSession.setResponseCode(response);
-        if (isTransfer) {
+        if(isTransfer){
             switch (response) {
                 case NO_MORE_DATA:
                     logger.debug("{} There's no data to send.", this);
@@ -138,8 +138,8 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
 
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         Transaction.TransactionState currentStatus = commSession.getStatus();
-        if (isTransfer) {
-            switch (currentStatus) {
+        if(isTransfer){
+            switch (currentStatus){
                 case DATA_EXCHANGED:
                     String clientChecksum = commSession.getChecksum();
                     logger.debug("readTransactionResponse. clientChecksum={}", clientChecksum);
@@ -151,7 +151,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
                     break;
             }
         } else {
-            switch (currentStatus) {
+            switch (currentStatus){
                 case TRANSACTION_STARTED:
                     logger.debug("readTransactionResponse. returning CONTINUE_TRANSACTION.");
                     // We don't know if there's more data to receive, so just continue it.
@@ -161,7 +161,7 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
                     // Checksum was successfully validated at client side, or BAD_CHECKSUM is returned.
                     ResponseCode responseCode = commSession.getResponseCode();
                     logger.debug("readTransactionResponse. responseCode={}", responseCode);
-                    if (responseCode.containsMessage()) {
+                    if(responseCode.containsMessage()){
                         responseCode.writeResponse(new DataOutputStream(bos), "");
                     } else {
                         responseCode.writeResponse(new DataOutputStream(bos));
@@ -228,8 +228,8 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     }
 
     @Override
-    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, String remoteInputHost,
-            int remoteInputPort, int remoteInputHttpPort, boolean isSiteToSiteSecure) throws IOException {
+    public void sendPeerList(Peer peer, Optional<ClusterNodeInformation> clusterNodeInfo, String remoteInputHost, int remoteInputPort, int remoteInputHttpPort,
+                             boolean isSiteToSiteSecure) throws IOException {
     }
 
     @Override

@@ -13,6 +13,8 @@ Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
 while at Mandiant http://www.mandiant.com
 The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py and can be found in the org.apache.nifi.processors.evtx.parser package.
 
+
+
 This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
 Copyright 2015 The Apache Software Foundation
 The derived work is adapted from

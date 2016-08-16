@@ -40,6 +40,7 @@
         <module>nifi-resources</module>
         <module>nifi-documentation</module>
         <module>nifi-authorizer</module>
+        <module>nifi-properties-loader</module>
     </modules>
     <dependencies>
         <dependency>

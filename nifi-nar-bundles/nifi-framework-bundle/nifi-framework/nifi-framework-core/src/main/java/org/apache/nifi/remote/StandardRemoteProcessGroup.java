@@ -16,10 +16,34 @@
  */
 package org.apache.nifi.remote;
 
+import static java.util.Objects.requireNonNull;
+
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.UniformInterfaceException;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.net.ssl.SSLContext;
+import javax.ws.rs.core.Response;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -51,31 +75,6 @@ import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.ws.rs.core.Response;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Represents the Root Process Group of a remote NiFi Instance. Holds
@@ -837,7 +836,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // perform the request
             final ControllerDTO dto;
             try (
-                    final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient();) {
+                    final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 dto = apiClient.getController();
             } catch (IOException e) {
                 writeLock.lock();
@@ -1202,8 +1201,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                             if (Response.Status.Family.SUCCESSFUL.equals(requestAccountResponse.getStatusInfo().getFamily())) {
                                 logger.info("{} Issued a Request to communicate with remote instance", this);
                             } else {
-                                logger.error("{} Failed to request account: got unexpected response code of {}:{}", new Object[]{
-                                    this, requestAccountResponse.getStatus(), requestAccountResponse.getStatusInfo().getReasonPhrase()});
+                                logger.error("{} Failed to request account: got unexpected response code of {}:{}", this,
+                                        requestAccountResponse.getStatus(), requestAccountResponse.getStatusInfo().getReasonPhrase());
                             }
                         } catch (final Exception re) {
                             logger.error("{} Failed to request account due to {}", this, re.toString());

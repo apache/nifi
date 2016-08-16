@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.ReportedEvent;
@@ -65,7 +64,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.mockito.Mockito;
@@ -117,7 +115,7 @@ public class Node {
         };
 
         revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.<Revision> emptyList());
+        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
     }

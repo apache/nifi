@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
@@ -430,7 +429,7 @@ public class TestStandardControllerServiceProvider {
         E.setProperty(ServiceA.OTHER_SERVICE.getName(), "A");
         E.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "F");
 
-        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[]{A, B, C, D, E, F}));
+        provider.enableControllerServices(Arrays.asList(A, B, C, D, E, F));
 
         assertTrue(A.isActive());
         assertTrue(B.isActive());
@@ -473,7 +472,7 @@ public class TestStandardControllerServiceProvider {
         F.setProperty(ServiceA.OTHER_SERVICE.getName(), "D");
         D.setProperty(ServiceA.OTHER_SERVICE.getName(), "C");
 
-        provider.enableControllerServices(Arrays.asList(new ControllerServiceNode[]{C, F, A, B, D}));
+        provider.enableControllerServices(Arrays.asList(C, F, A, B, D));
 
         assertTrue(A.isActive());
         assertTrue(B.isActive());
@@ -516,7 +515,7 @@ public class TestStandardControllerServiceProvider {
         serviceNode7.setProperty(ServiceC.REQ_SERVICE_2.getName(), "3");
 
         provider.enableControllerServices(Arrays.asList(
-                new ControllerServiceNode[]{serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5, serviceNode7}));
+                serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5, serviceNode7));
         assertFalse(serviceNode1.isActive());
         assertFalse(serviceNode2.isActive());
         assertFalse(serviceNode3.isActive());
@@ -526,7 +525,7 @@ public class TestStandardControllerServiceProvider {
 
         provider.enableControllerService(serviceNode6);
         provider.enableControllerServices(Arrays.asList(
-                new ControllerServiceNode[]{serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5}));
+                serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5));
 
         assertTrue(serviceNode1.isActive());
         assertTrue(serviceNode2.isActive());

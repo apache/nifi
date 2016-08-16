@@ -17,11 +17,9 @@
 package org.apache.nifi.controller.cluster;
 
 import java.io.IOException;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
