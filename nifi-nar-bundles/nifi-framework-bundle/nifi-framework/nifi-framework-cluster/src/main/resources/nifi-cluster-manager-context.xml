@@ -36,9 +36,9 @@
     </bean>
 
     <!-- Leader Election Manager -->
-    <bean id="leaderElectionManager" class="org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager">
-        <constructor-arg index="0" type="int" value="4" />
-        <constructor-arg index="1" ref="nifiProperties" />
+    <bean id="leaderElectionManager" class="org.apache.nifi.spring.LeaderElectionManagerFactoryBean">
+        <property name="numThreads" value="4" />
+        <property name="properties" ref="nifiProperties" />
     </bean>
 
     <!-- Cluster Coordinator -->

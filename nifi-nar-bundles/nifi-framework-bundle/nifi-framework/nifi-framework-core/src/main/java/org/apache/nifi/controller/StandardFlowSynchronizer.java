@@ -16,6 +16,34 @@
  */
 package org.apache.nifi.controller;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
 import org.apache.nifi.authorization.Authorizer;
@@ -41,7 +69,6 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.fingerprint.FingerprintException;
@@ -66,7 +93,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -85,33 +111,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 /**
  */
@@ -360,10 +359,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
                             // enable all the original controller services
                             ControllerServiceLoader.enableControllerServices(controllerServices, controller, encryptor, autoResumeState);
-                        } else {
-                            for (final Element serviceElement : serviceElements) {
-                                updateControllerService(controller, serviceElement, encryptor);
-                            }
                         }
                     }
 
@@ -505,22 +500,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         return baos.toByteArray();
     }
 
-    private void updateControllerService(final FlowController controller, final Element controllerServiceElement, final StringEncryptor encryptor) {
-        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
-
-        final ControllerServiceState dtoState = ControllerServiceState.valueOf(dto.getState());
-        final boolean dtoEnabled = (dtoState == ControllerServiceState.ENABLED || dtoState == ControllerServiceState.ENABLING);
-
-        final ControllerServiceNode serviceNode = controller.getControllerServiceNode(dto.getId());
-        final ControllerServiceState serviceState = serviceNode.getState();
-        final boolean serviceEnabled = (serviceState == ControllerServiceState.ENABLED || serviceState == ControllerServiceState.ENABLING);
-
-        if (dtoEnabled && !serviceEnabled) {
-            controller.enableControllerService(controller.getControllerServiceNode(dto.getId()));
-        } else if (!dtoEnabled && serviceEnabled) {
-            controller.disableControllerService(controller.getControllerServiceNode(dto.getId()));
-        }
-    }
 
     private ReportingTaskNode getOrCreateReportingTask(final FlowController controller, final ReportingTaskDTO dto, final boolean controllerInitialized, final boolean existingFlowEmpty)
             throws ReportingTaskInstantiationException {
@@ -664,12 +643,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         // get the real process group and ID
         final ProcessGroup processGroup = controller.getGroup(processGroupDto.getId());
-
-        // Update Controller Services
-        final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
-        for (final Element serviceNodeElement : serviceNodeList) {
-            updateControllerService(controller, serviceNodeElement, encryptor);
-        }
 
         // processors & ports cannot be updated - they must be the same. Except for the scheduled state.
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
