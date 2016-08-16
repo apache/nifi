@@ -1194,11 +1194,11 @@ nf.CanvasUtils = (function () {
                     if (sourceData.permissions.canRead) {
                         // update the source status if necessary
                         if (nf.CanvasUtils.isProcessor(source)) {
-                            nf.Processor.reload(sourceData.component);
+                            nf.Processor.reload(sourceData.id);
                         } else if (nf.CanvasUtils.isInputPort(source)) {
-                            nf.Port.reload(sourceData.component);
+                            nf.Port.reload(sourceData.id);
                         } else if (nf.CanvasUtils.isRemoteProcessGroup(source)) {
-                            nf.RemoteProcessGroup.reload(sourceData.component);
+                            nf.RemoteProcessGroup.reload(sourceData.id);
                         }
                     }
                 }
@@ -1212,9 +1212,9 @@ nf.CanvasUtils = (function () {
                     if (destinationData.permissions.canRead) {
                         // update the destination component accordingly
                         if (nf.CanvasUtils.isProcessor(destination)) {
-                            nf.Processor.reload(destinationData.component);
+                            nf.Processor.reload(destinationData.id);
                         } else if (nf.CanvasUtils.isRemoteProcessGroup(destination)) {
-                            nf.RemoteProcessGroup.reload(destinationData.component);
+                            nf.RemoteProcessGroup.reload(destinationData.id);
                         }
                     }
                 }
@@ -1371,7 +1371,7 @@ nf.CanvasUtils = (function () {
             // move the components into the destination and...
             moveComponents(components, groupData.id).done(function () {
                 // reload the target group
-                nf.ProcessGroup.reload(groupData.component);
+                nf.ProcessGroup.reload(groupData.id);
             });
         },
         

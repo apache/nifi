@@ -948,15 +948,11 @@ nf.PolicyManagement = (function () {
                     resetPolicy();
                     loadPolicy();
                 }
-
-                nf.Canvas.reload({
-                    'transition': true
-                });
             }).fail(function (xhr, status, error) {
                 nf.Common.handleAjaxError(xhr, status, error);
                 resetPolicy();
                 loadPolicy();
-
+            }).always(function () {
                 nf.Canvas.reload({
                     'transition': true
                 });

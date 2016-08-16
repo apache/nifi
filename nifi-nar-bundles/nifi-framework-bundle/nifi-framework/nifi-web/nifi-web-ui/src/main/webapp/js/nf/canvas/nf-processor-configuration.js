@@ -376,7 +376,7 @@ nf.ProcessorConfiguration = (function () {
         $.each(connections, function (_, connection) {
             if (connection.permissions.canRead) {
                 if (connection.sourceId === processor.id) {
-                    nf.Connection.reload(connection.component);
+                    nf.Connection.reload(connection.id);
                 }
             }
         });
@@ -577,7 +577,7 @@ nf.ProcessorConfiguration = (function () {
                 var requests = [];
 
                 // reload the processor in case an property descriptors have updated
-                requests.push(nf.Processor.reload(processor));
+                requests.push(nf.Processor.reload(processor.id));
 
                 // get the processor history
                 requests.push($.ajax({
@@ -764,7 +764,7 @@ nf.ProcessorConfiguration = (function () {
                                         // show the custom ui
                                         nf.CustomUi.showCustomUi(processorResponse, processor.config.customUiUrl, true).done(function () {
                                             // once the custom ui is closed, reload the processor
-                                            nf.Processor.reload(processor);
+                                            nf.Processor.reload(processor.id);
 
                                             // and reload the processor's outgoing connections
                                             reloadProcessorConnections(processor);

@@ -166,7 +166,7 @@ nf.RemoteProcessGroupPorts = (function () {
                         // if can modify, the over status of this node may have changed
                         if (nf.CanvasUtils.canModify(remoteProcessGroup)) {
                             // reload the remote process group
-                            nf.RemoteProcessGroup.reload(remoteProcessGroupData.component);
+                            nf.RemoteProcessGroup.reload(remoteProcessGroupData.id);
                         }
 
                         // hide the dialog

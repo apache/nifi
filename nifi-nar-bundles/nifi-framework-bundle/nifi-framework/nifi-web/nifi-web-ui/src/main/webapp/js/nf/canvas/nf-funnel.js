@@ -277,11 +277,11 @@ nf.Funnel = (function () {
          * Reloads the funnel state from the server and refreshes the UI.
          * If the funnel is currently unknown, this function just returns.
          *
-         * @param {object} funnel The funnel to reload
+         * @param {string} id The funnel id
          */
-        reload: function (funnel) {
-            if (funnelMap.has(funnel.id)) {
-                var funnelEntity = funnelMap.get(funnel.id);
+        reload: function (id) {
+            if (funnelMap.has(id)) {
+                var funnelEntity = funnelMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: funnelEntity.uri,

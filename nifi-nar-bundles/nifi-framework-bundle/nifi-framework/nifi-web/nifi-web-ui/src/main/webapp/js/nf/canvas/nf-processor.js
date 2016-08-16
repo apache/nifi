@@ -859,11 +859,11 @@ nf.Processor = (function () {
          * Reloads the processor state from the server and refreshes the UI.
          * If the processor is currently unknown, this function just returns.
          *
-         * @param {object} processor The processor to reload
+         * @param {string} id The processor id
          */
-        reload: function (processor) {
-            if (processorMap.has(processor.id)) {
-                var processorEntity = processorMap.get(processor.id);
+        reload: function (id) {
+            if (processorMap.has(id)) {
+                var processorEntity = processorMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: processorEntity.uri,
