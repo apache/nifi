@@ -188,8 +188,7 @@ nf.ControllerService = (function () {
             if (reference.referenceType === 'Processor') {
                 // reload the processor on the canvas if appropriate
                 if (nf.Canvas.getGroupId() === reference.groupId) {
-                    var processor = nf.Processor.get(reference.id);
-                    nf.Processor.reload(processor.component);
+                    nf.Processor.reload(reference.id);
                 }
 
                 // update the current active thread count

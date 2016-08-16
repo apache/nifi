@@ -143,7 +143,7 @@ nf.Actions = (function () {
                             var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
                             $.each(connections, function (_, connection) {
                                 if (connection.permissions.canRead) {
-                                    nf.Connection.reload(connection.component);
+                                    nf.Connection.reload(connection.id);
                                 }
                             });
                         }
@@ -519,7 +519,7 @@ nf.Actions = (function () {
 
                         startRequests.push(updateResource(uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessGroup(selected)) {
-                                nf.ProcessGroup.reload(d.component);
+                                nf.ProcessGroup.reload(d.id);
                             } else {
                                 nf[d.type].set(response);
                             }
@@ -589,7 +589,7 @@ nf.Actions = (function () {
 
                         stopRequests.push(updateResource(uri, entity).done(function (response) {
                             if (nf.CanvasUtils.isProcessGroup(selected)) {
-                                nf.ProcessGroup.reload(d.component);
+                                nf.ProcessGroup.reload(d.id);
                             } else {
                                 nf[d.type].set(response);
                             }

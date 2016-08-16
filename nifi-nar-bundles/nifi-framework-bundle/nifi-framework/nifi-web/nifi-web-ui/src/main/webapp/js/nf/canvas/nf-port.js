@@ -602,21 +602,17 @@ nf.Port = (function () {
          * Reloads the port state from the server and refreshes the UI.
          * If the port is currently unknown, this function just returns.
          *
-         * @param {object} port The port to reload
+         * @param {string} id The port id
          */
-        reload: function (port) {
-            if (portMap.has(port.id)) {
-                var portEntity = portMap.get(port.id);
+        reload: function (id) {
+            if (portMap.has(id)) {
+                var portEntity = portMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: portEntity.uri,
                     dataType: 'json'
                 }).done(function (response) {
-                    if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
-                        nf.Port.set(response);
-                    } else {
-                        nf.Port.set(response);
-                    }
+                    nf.Port.set(response);
                 });
             }
         },

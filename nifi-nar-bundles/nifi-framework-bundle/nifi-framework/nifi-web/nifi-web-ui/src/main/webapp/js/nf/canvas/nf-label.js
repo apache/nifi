@@ -457,11 +457,11 @@ nf.Label = (function () {
          * Reloads the label state from the server and refreshes the UI.
          * If the label is currently unknown, this function just returns.
          *
-         * @param {object} label The label to reload
+         * @param {string} id The label id
          */
-        reload: function (label) {
-            if (labelMap.has(label.id)) {
-                var labelEntity = labelMap.get(label.id);
+        reload: function (id) {
+            if (labelMap.has(id)) {
+                var labelEntity = labelMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: labelEntity.uri,

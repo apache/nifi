@@ -930,11 +930,11 @@ nf.RemoteProcessGroup = (function () {
          * Reloads the remote process group state from the server and refreshes the UI.
          * If the remote process group is currently unknown, this function just returns.
          *
-         * @param {object} remoteProcessGroup       The remote process group to reload
+         * @param {string} id       The remote process group id
          */
-        reload: function (remoteProcessGroup) {
-            if (remoteProcessGroupMap.has(remoteProcessGroup.id)) {
-                var remoteProcessGroupEntity = remoteProcessGroupMap.get(remoteProcessGroup.id);
+        reload: function (id) {
+            if (remoteProcessGroupMap.has(id)) {
+                var remoteProcessGroupEntity = remoteProcessGroupMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: remoteProcessGroupEntity.uri,
@@ -943,10 +943,10 @@ nf.RemoteProcessGroup = (function () {
                     nf.RemoteProcessGroup.set(response);
 
                     // reload the group's connections
-                    var connections = nf.Connection.getComponentConnections(remoteProcessGroup.id);
+                    var connections = nf.Connection.getComponentConnections(id);
                     $.each(connections, function (_, connection) {
                         if (connection.permissions.canRead) {
-                            nf.Connection.reload(connection.component);
+                            nf.Connection.reload(connection.id);
                         }
                     });
                 });

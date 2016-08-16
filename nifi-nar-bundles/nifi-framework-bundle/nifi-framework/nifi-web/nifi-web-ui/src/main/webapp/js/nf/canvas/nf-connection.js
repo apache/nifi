@@ -1676,11 +1676,11 @@ nf.Connection = (function () {
         /**
          * Reloads the connection state from the server and refreshes the UI.
          *
-         * @param {object} connection       The connection to reload
+         * @param {string} id       The connection id
          */
-        reload: function (connection) {
-            if (connectionMap.has(connection.id)) {
-                var connectionEntity = connectionMap.get(connection.id);
+        reload: function (id) {
+            if (connectionMap.has(id)) {
+                var connectionEntity = connectionMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: connectionEntity.uri,
