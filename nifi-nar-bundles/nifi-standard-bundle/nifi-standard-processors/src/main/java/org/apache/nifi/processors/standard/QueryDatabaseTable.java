@@ -30,6 +30,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -50,14 +51,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -79,12 +73,22 @@ import java.util.concurrent.atomic.AtomicLong;
 public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
+    public static final String INTIIAL_MAX_VALUE_PROP_START = "initial.maxvalue.";
 
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
             .name("Fetch Size")
             .description("The number of result rows to be fetched from the result set at a time. This is a hint to the driver and may not be "
                     + "honored and/or exact. If the value specified is zero, then the hint is ignored.")
+            .defaultValue("0")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
+            .name("Max Rows in Flow File")
+            .description("The maximum number of result rows that will be included in a single FlowFile. " +
+                    "This will allow you to break up very large result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -103,6 +107,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         pds.add(MAX_VALUE_COLUMN_NAMES);
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
+        pds.add(MAX_ROWS_PER_FLOW_FILE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -116,6 +121,18 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         return propDescriptors;
     }
 
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
+    }
+
     @OnScheduled
     public void setup(final ProcessContext context) {
         super.setup(context);
@@ -124,7 +141,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
-        FlowFile fileToProcess = null;
+        final Set<FlowFile> resultSetFlowFiles = new HashSet<>();
 
         final ComponentLog logger = getLogger();
 
@@ -134,6 +151,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         final String columnNames = context.getProperty(COLUMN_NAMES).getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).getValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).asInteger();
+
+        final Map<String,String> maxValueProperties = getDefaultMaxValueProperties(context.getProperties());
 
         final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
@@ -150,11 +170,19 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         // set as the current state map (after the session has been committed)
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
 
+        //If an initial max value for column(s) has been specified using properties, and this column is not in the state manager, sync them to the state property map
+        for(final Map.Entry<String,String> maxProp : maxValueProperties.entrySet()){
+            if(!statePropertyMap.containsKey(maxProp.getKey())){
+                statePropertyMap.put(maxProp.getKey(), maxProp.getValue());
+            }
+        }
+
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
         final String selectQuery = getQuery(dbAdapter, tableName, columnNames, maxValueColumnNameList, stateMap);
         final StopWatch stopWatch = new StopWatch(true);
+        final String fragmentIdentifier = UUID.randomUUID().toString();
 
         try (final Connection con = dbcpService.getConnection();
              final Statement st = con.createStatement()) {
@@ -170,50 +198,68 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
             final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
+            try {
+                logger.debug("Executing query {}", new Object[]{selectQuery});
+                final ResultSet resultSet = st.executeQuery(selectQuery);
+                int fragmentIndex=0;
+                while(true) {
+                    final AtomicLong nrOfRows = new AtomicLong(0L);
 
-            final AtomicLong nrOfRows = new AtomicLong(0L);
+                    FlowFile fileToProcess = session.create();
+                    fileToProcess = session.write(fileToProcess, out -> {
+                        // Max values will be updated in the state property map by the callback
+                        final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
+                        try {
+                            nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector, maxRowsPerFlowFile));
+                        } catch (SQLException e) {
+                            throw new ProcessException("Error during database query or conversion of records to Avro.", e);
+                        }
+                    });
 
-            fileToProcess = session.create();
-            fileToProcess = session.write(fileToProcess, out -> {
-                try {
-                    logger.debug("Executing query {}", new Object[]{selectQuery});
-                    final ResultSet resultSet = st.executeQuery(selectQuery);
-                    // Max values will be updated in the state property map by the callback
-                    final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(statePropertyMap, dbAdapter);
-                    nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out, tableName, maxValCollector));
+                    if (nrOfRows.get() > 0) {
+                        // set attribute how many rows were selected
+                        fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
 
-                } catch (final SQLException e) {
-                    throw new ProcessException("Error during database query or conversion of records to Avro", e);
-                }
-            });
+                        if(maxRowsPerFlowFile > 0) {
+                            fileToProcess = session.putAttribute(fileToProcess, "fragment.identifier", fragmentIdentifier);
+                            fileToProcess = session.putAttribute(fileToProcess, "fragment.index", String.valueOf(fragmentIndex));
+                        }
 
-            if (nrOfRows.get() > 0) {
-                // set attribute how many rows were selected
-                fileToProcess = session.putAttribute(fileToProcess, RESULT_ROW_COUNT, String.valueOf(nrOfRows.get()));
+                        logger.info("{} contains {} Avro records; transferring to 'success'",
+                                new Object[]{fileToProcess, nrOfRows.get()});
+                        String jdbcURL = "DBCPService";
+                        try {
+                            DatabaseMetaData databaseMetaData = con.getMetaData();
+                            if (databaseMetaData != null) {
+                                jdbcURL = databaseMetaData.getURL();
+                            }
+                        } catch (SQLException se) {
+                            // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
+                        }
+                        session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
 
-                logger.info("{} contains {} Avro records; transferring to 'success'",
-                        new Object[]{fileToProcess, nrOfRows.get()});
-                String jdbcURL = "DBCPService";
-                try {
-                    DatabaseMetaData databaseMetaData = con.getMetaData();
-                    if (databaseMetaData != null) {
-                        jdbcURL = databaseMetaData.getURL();
+                    } else {
+                        // If there were no rows returned, don't send the flowfile
+                        session.remove(fileToProcess);
+                        context.yield();
                     }
-                } catch (SQLException se) {
-                    // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
+
+                    resultSetFlowFiles.add(fileToProcess);
+
+                    if(maxRowsPerFlowFile > 0 && nrOfRows.get() < maxRowsPerFlowFile) break;
+
+                    fragmentIndex++;
                 }
-                session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-                session.transfer(fileToProcess, REL_SUCCESS);
-            } else {
-                // If there were no rows returned, don't send the flowfile
-                session.remove(fileToProcess);
-                context.yield();
+            } catch (final SQLException e) {
+                throw e;
             }
+
+            session.transfer(resultSetFlowFiles, REL_SUCCESS);
 
         } catch (final ProcessException | SQLException e) {
             logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectQuery, e});
-            if (fileToProcess != null) {
-                session.remove(fileToProcess);
+            if (!resultSetFlowFiles.isEmpty()) {
+                session.remove(resultSetFlowFiles);
             }
             context.yield();
         } finally {
@@ -259,6 +305,20 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         return query.toString();
     }
 
+
+    protected Map<String,String> getDefaultMaxValueProperties(final Map<PropertyDescriptor, String> properties){
+        final Map<String,String> defaultMaxValues = new HashMap<String, String>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final String key = entry.getKey().getName();
+
+            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) continue;
+
+            defaultMaxValues.put(key.substring(0,INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
+        }
+
+        return defaultMaxValues;
+    }
 
     protected class MaxValueResultSetRowCollector implements JdbcCommon.ResultSetRowCallback {
         DatabaseAdapter dbAdapter;
