@@ -17,7 +17,6 @@
 
 package org.apache.nifi.toolkit.tls.util;
 
-import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,8 +34,9 @@ public class PasswordUtil {
     }
 
     public String generatePassword() {
-        // [see http://stackoverflow.com/questions/41107/how-to-generate-a-random-alpha-numeric-string#answer-41156]
-        String string = Base64.getEncoder().encodeToString(new BigInteger(256, secureRandom).toByteArray());
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        String string = Base64.getEncoder().encodeToString(bytes);
         while (string.endsWith("=")) {
             string = string.substring(0, string.length() - 1);
         }

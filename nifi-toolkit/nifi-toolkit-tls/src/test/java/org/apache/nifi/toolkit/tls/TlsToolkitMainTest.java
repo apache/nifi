@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -96,6 +97,14 @@ public class TlsToolkitMainTest {
         systemExitCapturer.runAndAssertExitCode(() -> tlsToolkitMain.doMain(new String[]{noMain}), ExitCode.SERVICE_ERROR);
     }
 
+    @Test
+    public void testRemovesServiceArg() {
+        String storingMain = "storingmain";
+        tlsToolkitMain.getMainMap().put(storingMain, StoringMain.class);
+        tlsToolkitMain.doMain(new String[]{storingMain, "-h"});
+        assertArrayEquals(new String[]{"-h"}, StoringMain.args);
+    }
+
     private static class PrivateMain {
         private static void main(String[] args) {
 
@@ -110,5 +119,13 @@ public class TlsToolkitMainTest {
 
     private static class NoMain {
 
+    }
+
+    private static class StoringMain {
+        private static String[] args;
+
+        public static void main(String[] args) {
+            StoringMain.args = args;
+        }
     }
 }

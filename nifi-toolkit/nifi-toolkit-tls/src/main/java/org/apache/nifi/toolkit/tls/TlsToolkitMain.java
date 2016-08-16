@@ -25,11 +25,12 @@ import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Command line entry point
+ * Command line entry point that looks through a map of possible services to delegate to
  */
 public class TlsToolkitMain {
     public static final String DESCRIPTION = "DESCRIPTION";
@@ -43,6 +44,11 @@ public class TlsToolkitMain {
         mainMap.put("client", TlsCertificateAuthorityClientCommandLine.class);
     }
 
+    /**
+     * Callthrough to doMain
+     *
+     * @param args the command line arguments
+     */
     public static void main(String[] args) {
         new TlsToolkitMain().doMain(args);
     }
@@ -85,6 +91,11 @@ public class TlsToolkitMain {
         }
     }
 
+    /**
+     * Invokes the main of the relevant service
+     *
+     * @param args the command line arguments
+     */
     public void doMain(String[] args) {
         if (args.length < 1) {
             printUsageAndExit("Expected at least a service argument.", ExitCode.INVALID_ARGS);
@@ -93,7 +104,7 @@ public class TlsToolkitMain {
         String service = args[0].toLowerCase();
 
         try {
-            getMain(service).invoke(null, (Object) args);
+            getMain(service).invoke(null, (Object) Arrays.copyOfRange(args, 1, args.length, String[].class));
         } catch (IllegalAccessException e) {
             printUsageAndExit("Service " + service + " has invalid main method.", ExitCode.SERVICE_ERROR);
         } catch (InvocationTargetException e) {

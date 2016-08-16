@@ -86,7 +86,7 @@ public class TlsClientManager extends BaseTlsManager {
         tlsClientConfig.setTrustStorePassword(trustStorePassword);
 
         for (ConfigurationWriter<TlsClientConfig> configurationWriter : configurationWriters) {
-            configurationWriter.write(tlsClientConfig);
+            configurationWriter.write(tlsClientConfig, outputStreamFactory);
         }
 
         if (certificateAuthorityDirectory != null) {

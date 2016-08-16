@@ -28,6 +28,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Class capable of writing out updated NiFi properties.  It keeps a list of original lines and a map of updates to apply.
+ *
+ * It first writes all the original properties (with updated values if they exist) and then adds any new properties at the end.
+ */
 public class NiFiPropertiesWriter {
     private final List<String> lines;
     private final Map<String, String> updatedValues;
@@ -37,10 +42,22 @@ public class NiFiPropertiesWriter {
         this.updatedValues = new HashMap<>();
     }
 
+    /**
+     * Sets a property value
+     *
+     * @param key the property key
+     * @param value the property value
+     */
     public void setPropertyValue(String key, String value) {
         updatedValues.put(key, value);
     }
 
+    /**
+     * Write an updated nifi.properties to the given OutputStream
+     *
+     * @param outputStream the output stream
+     * @throws IOException if there is an IO error
+     */
     public void writeNiFiProperties(OutputStream outputStream) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream))) {
             Map<String, String> remainingValues = new HashMap<>(updatedValues);

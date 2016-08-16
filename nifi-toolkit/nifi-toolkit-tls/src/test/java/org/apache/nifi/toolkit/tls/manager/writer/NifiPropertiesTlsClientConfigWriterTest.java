@@ -92,27 +92,27 @@ public class NifiPropertiesTlsClientConfigWriterTest {
 
         niFiPropertiesWriter = new NiFiPropertiesWriter(new ArrayList<>());
         when(niFiPropertiesWriterFactory.create()).thenReturn(niFiPropertiesWriter);
-        nifiPropertiesTlsClientConfigWriter = new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputStreamFactory, outputFile, testHostname, hostNum);
+        nifiPropertiesTlsClientConfigWriter = new NifiPropertiesTlsClientConfigWriter(niFiPropertiesWriterFactory, outputFile, testHostname, hostNum);
         overlayProperties = nifiPropertiesTlsClientConfigWriter.getOverlayProperties();
     }
 
     @Test
     public void testDefaults() throws IOException {
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
         testHostnamesAndPorts();
-        assertNotEquals(0, nifiPropertiesTlsClientConfigWriter.getPropertyPortMap().size());
+        assertNotEquals(0, nifiPropertiesTlsClientConfigWriter.getIncrementingPropertyMap().size());
     }
 
     @Test(expected = NumberFormatException.class)
     public void testBadPortNum() throws IOException {
-        nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(nifiPropertiesTlsClientConfigWriter.getPropertyPortMap().keySet().iterator().next(), "notAnInt");
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(nifiPropertiesTlsClientConfigWriter.getIncrementingPropertyMap().keySet().iterator().next(), "notAnInt");
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
     }
 
     @Test
     public void testNoHostnameProperties() throws IOException {
         nifiPropertiesTlsClientConfigWriter.getOverlayProperties().setProperty(NifiPropertiesTlsClientConfigWriter.HOSTNAME_PROPERTIES, "");
-        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig);
+        nifiPropertiesTlsClientConfigWriter.write(tlsClientConfig, outputStreamFactory);
         testHostnamesAndPorts();
         Properties nifiProperties = getNifiProperties();
         nifiProperties.stringPropertyNames().forEach(s -> assertNotEquals(testHostname, nifiProperties.getProperty(s)));
@@ -133,9 +133,10 @@ public class NifiPropertiesTlsClientConfigWriterTest {
         assertEquals("", nifiProperties.getProperty(NiFiProperties.WEB_HTTP_HOST));
         assertEquals("", nifiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT));
         assertEquals(Boolean.toString(true), nifiProperties.getProperty(NiFiProperties.SITE_TO_SITE_SECURE));
+        assertEquals(Boolean.toString(true), nifiProperties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE));
 
         nifiPropertiesTlsClientConfigWriter.getHostnamePropertyStream().forEach(s -> assertEquals(testHostname, nifiProperties.getProperty(s)));
-        nifiPropertiesTlsClientConfigWriter.getPropertyPortMap().entrySet().forEach(propertyToPortEntry -> {
+        nifiPropertiesTlsClientConfigWriter.getIncrementingPropertyMap().entrySet().forEach(propertyToPortEntry -> {
             assertEquals(Integer.toString(propertyToPortEntry.getValue()), nifiProperties.getProperty(propertyToPortEntry.getKey()));
             assertEquals(Integer.parseInt(overlayProperties.getProperty(propertyToPortEntry.getKey())) + hostNum - 1, propertyToPortEntry.getValue().intValue());
         });

@@ -93,7 +93,7 @@ public class TlsCertificateAuthorityService {
                     BaseCertificateAuthorityCommandLine.USE_CONFIG_JSON_ARG);
             throw e;
         }
-        tlsManager.addConfigurationWriter(new JsonConfigurationWriter<>(objectMapper, outputStreamFactory, new File(configJson)));
+        tlsManager.addConfigurationWriter(new JsonConfigurationWriter<>(objectMapper, new File(configJson)));
 
         KeyStore.PrivateKeyEntry privateKeyEntry = tlsManager.getOrGenerateCertificateAuthority();
         KeyPair keyPair = new KeyPair(privateKeyEntry.getCertificate().getPublicKey(), privateKeyEntry.getPrivateKey());

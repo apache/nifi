@@ -66,7 +66,7 @@ public class TlsCertificateAuthorityClient {
         }
 
         if (!StringUtils.isEmpty(configJson)) {
-            tlsClientManager.addClientConfigurationWriter(new JsonConfigurationWriter<>(new ObjectMapper(), outputStreamFactory, new File(configJson)));
+            tlsClientManager.addClientConfigurationWriter(new JsonConfigurationWriter<>(new ObjectMapper(), new File(configJson)));
         }
 
         if (tlsClientManager.getEntry(TlsToolkitStandalone.NIFI_KEY) == null) {

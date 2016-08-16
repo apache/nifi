@@ -17,15 +17,57 @@
 
 package org.apache.nifi.toolkit.tls.commandLine;
 
+/**
+ * Possible exit codes
+ */
 public enum ExitCode {
+    /**
+     * Tool ran successfully
+     */
     SUCCESS,
+
+    /**
+     * Tool exited after printing help
+     */
     HELP,
+
+    /**
+     * Invalid arguments passed in via command line
+     */
     INVALID_ARGS,
+
+    /**
+     * Error invoking service
+     */
     SERVICE_ERROR,
+
+    /**
+     * Unable to parse command line
+     */
     ERROR_PARSING_COMMAND_LINE,
+
+    /**
+     * Unable to generate configuration
+     */
     ERROR_GENERATING_CONFIG,
+
+    /**
+     * Specified wrong number of passwords
+     */
     ERROR_INCORRECT_NUMBER_OF_PASSWORDS,
+
+    /**
+     * Expected an integer for an argument
+     */
     ERROR_PARSING_INT_ARG,
+
+    /**
+     * Did not specify token
+     */
     ERROR_TOKEN_ARG_EMPTY,
+
+    /**
+     * Unable to read nifi.properties
+     */
     ERROR_READING_NIFI_PROPERTIES
 }

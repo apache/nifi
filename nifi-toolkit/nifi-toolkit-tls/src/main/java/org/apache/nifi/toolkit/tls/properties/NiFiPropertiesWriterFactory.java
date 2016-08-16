@@ -27,6 +27,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Factory for creating NifiPropertiesWriters so that the lines only have to be read once
+ */
 public class NiFiPropertiesWriterFactory {
     private final List<String> lines;
 
@@ -45,6 +48,11 @@ public class NiFiPropertiesWriterFactory {
         this.lines = Collections.unmodifiableList(lines);
     }
 
+    /**
+     * Returns a NifiPropertiesWriter with based on the read nifi.properties
+     *
+     * @return a NifiPropertiesWriter with based on the read nifi.properties
+     */
     public NiFiPropertiesWriter create() {
         return new NiFiPropertiesWriter(lines);
     }
