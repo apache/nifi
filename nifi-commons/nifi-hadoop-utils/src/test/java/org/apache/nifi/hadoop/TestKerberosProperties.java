@@ -19,7 +19,6 @@ package org.apache.nifi.hadoop;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -27,17 +26,13 @@ import org.mockito.Mockito;
 import java.io.File;
 import java.util.List;
 
-import static org.mockito.Mockito.when;
-
 public class TestKerberosProperties {
 
     @Test
     public void testWithKerberosConfigFile() {
         final File file = new File("src/test/resources/krb5.conf");
-        final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
-        when(niFiProperties.getKerberosConfigurationFile()).thenReturn(file);
 
-        final KerberosProperties kerberosProperties = KerberosProperties.create(niFiProperties);
+        final KerberosProperties kerberosProperties = new KerberosProperties(file);
         Assert.assertNotNull(kerberosProperties);
 
         Assert.assertNotNull(kerberosProperties.getKerberosConfigFile());
@@ -51,10 +46,9 @@ public class TestKerberosProperties {
 
     @Test
     public void testWithoutKerberosConfigFile() {
-        final NiFiProperties niFiProperties = Mockito.mock(NiFiProperties.class);
-        when(niFiProperties.getKerberosConfigurationFile()).thenReturn(null);
+        final File file = new File("src/test/resources/krb5.conf");
 
-        final KerberosProperties kerberosProperties = KerberosProperties.create(niFiProperties);
+        final KerberosProperties kerberosProperties = new KerberosProperties(null);
         Assert.assertNotNull(kerberosProperties);
 
         Assert.assertNull(kerberosProperties.getKerberosConfigFile());

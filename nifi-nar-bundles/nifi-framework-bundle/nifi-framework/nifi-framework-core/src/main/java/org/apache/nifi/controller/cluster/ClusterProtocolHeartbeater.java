@@ -14,12 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.controller.cluster;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -28,17 +26,20 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Uses ZooKeeper in order to determine which node is the elected Cluster Coordinator and to indicate
- * that this node is part of the cluster. However, once the Cluster Coordinator is known, heartbeats are
- * sent directly to the Cluster Coordinator.
+ * Uses ZooKeeper in order to determine which node is the elected Cluster
+ * Coordinator and to indicate that this node is part of the cluster. However,
+ * once the Cluster Coordinator is known, heartbeats are sent directly to the
+ * Cluster Coordinator.
  */
 public class ClusterProtocolHeartbeater implements Heartbeater {
+
     private static final Logger logger = LoggerFactory.getLogger(ClusterProtocolHeartbeater.class);
 
     private final NodeProtocolSender protocolSender;
@@ -48,15 +49,14 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
     private final String coordinatorPath;
     private volatile String coordinatorAddress;
 
-
-    public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final Properties properties) {
+    public ClusterProtocolHeartbeater(final NodeProtocolSender protocolSender, final NiFiProperties nifiProperties) {
         this.protocolSender = protocolSender;
 
         final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
-        final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(properties);
+        final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(nifiProperties);
 
         curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
-            zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
+                zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
 
         curatorClient.start();
         nodesPathPrefix = zkConfig.resolvePath("cluster/nodes");
@@ -87,7 +87,6 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         }
     }
 
-
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final String heartbeatAddress = getHeartbeatAddress();
@@ -106,7 +105,6 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
             throw pe;
         }
     }
-
 
     @Override
     public void close() throws IOException {

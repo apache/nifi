@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.hbase;
 
+import java.io.File;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -55,7 +56,6 @@ import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.NiFiProperties;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -91,6 +91,9 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
+    private volatile String kerberosServicePrincipal = null;
+    private volatile File kerberosConfigFile = null;
+    private volatile File kerberosServiceKeytab = null;
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
@@ -108,10 +111,13 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         this.properties = Collections.unmodifiableList(props);
+        kerberosServicePrincipal = config.getKerberosServicePrincipal();
+        kerberosConfigFile = config.getKerberosConfigurationFile();
+        kerberosServiceKeytab = config.getKerberosServiceKeytab();
     }
 
     protected KerberosProperties getKerberosProperties() {
-        return KerberosProperties.create(NiFiProperties.getInstance());
+        return new KerberosProperties(kerberosConfigFile);
     }
 
     @Override

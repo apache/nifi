@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processor;
 
+import java.io.File;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardProcessorInitializationContext implements ProcessorInitializationContext {
 
@@ -27,12 +29,17 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     private final ComponentLog logger;
     private final ControllerServiceProvider serviceProvider;
     private final NodeTypeProvider nodeTypeProvider;
+    private final NiFiProperties nifiProperties;
 
-    public StandardProcessorInitializationContext(final String identifier, final ComponentLog componentLog, final ControllerServiceProvider serviceProvider, NodeTypeProvider nodeTypeProvider) {
+    public StandardProcessorInitializationContext(
+            final String identifier, final ComponentLog componentLog,
+            final ControllerServiceProvider serviceProvider, final NodeTypeProvider nodeTypeProvider,
+            final NiFiProperties nifiProperties) {
         this.identifier = identifier;
         this.logger = componentLog;
         this.serviceProvider = serviceProvider;
         this.nodeTypeProvider = nodeTypeProvider;
+        this.nifiProperties = nifiProperties;
     }
 
     @Override
@@ -53,5 +60,20 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
     @Override
     public NodeTypeProvider getNodeTypeProvider() {
         return nodeTypeProvider;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return nifiProperties.getKerberosServicePrincipal();
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return new File(nifiProperties.getKerberosKeytabLocation());
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return nifiProperties.getKerberosConfigurationFile();
     }
 }

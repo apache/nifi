@@ -23,20 +23,20 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * All processors and controller services that need properties for Kerberos Principal and Keytab
- * should obtain them through this class by calling:
+ * All processors and controller services that need properties for Kerberos
+ * Principal and Keytab should obtain them through this class by calling:
  *
- * KerberosProperties props = KerberosProperties.create(NiFiProperties.getInstance())
+ * KerberosProperties props =
+ * KerberosProperties.create(NiFiProperties.getInstance())
  *
- * The properties can be accessed from the resulting KerberosProperties instance.
+ * The properties can be accessed from the resulting KerberosProperties
+ * instance.
  */
 public class KerberosProperties {
 
@@ -45,7 +45,14 @@ public class KerberosProperties {
     private final PropertyDescriptor kerberosPrincipal;
     private final PropertyDescriptor kerberosKeytab;
 
-    private KerberosProperties(final File kerberosConfigFile) {
+    /**
+     * Instantiate a KerberosProperties object but keep in mind it is
+     * effectively a singleton because the krb5.conf file needs to be set as a
+     * system property which this constructor will take care of.
+     *
+     * @param kerberosConfigFile file of krb5.conf
+     */
+    public KerberosProperties(final File kerberosConfigFile) {
         this.kerberosConfigFile = kerberosConfigFile;
 
         if (this.kerberosConfigFile != null) {
@@ -91,13 +98,6 @@ public class KerberosProperties {
                 .build();
     }
 
-    public static KerberosProperties create(final NiFiProperties niFiProperties) {
-        if (niFiProperties == null) {
-            throw new IllegalArgumentException("NiFiProperties can not be null");
-        }
-        return new KerberosProperties(niFiProperties.getKerberosConfigurationFile());
-    }
-
     public File getKerberosConfigFile() {
         return kerberosConfigFile;
     }
@@ -120,7 +120,8 @@ public class KerberosProperties {
         // if security is enabled then the keytab and principal are required
         final boolean isSecurityEnabled = SecurityUtil.isSecurityEnabled(config);
 
-        if (isSecurityEnabled && StringUtils.isBlank(principal)) {
+        final boolean blankPrincipal = (principal == null || principal.isEmpty());
+        if (isSecurityEnabled && blankPrincipal) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(subject)
@@ -128,7 +129,8 @@ public class KerberosProperties {
                     .build());
         }
 
-        if (isSecurityEnabled && StringUtils.isBlank(keytab)) {
+        final boolean blankKeytab = (keytab == null || keytab.isEmpty());
+        if (isSecurityEnabled && blankKeytab) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(subject)
@@ -136,7 +138,7 @@ public class KerberosProperties {
                     .build());
         }
 
-        if (!isSecurityEnabled && (!StringUtils.isBlank(principal) || !StringUtils.isBlank(keytab))) {
+        if (!isSecurityEnabled && (!blankPrincipal || !blankKeytab)) {
             logger.warn("Configuration does not have security enabled, Keytab and Principal will be ignored");
         }
 

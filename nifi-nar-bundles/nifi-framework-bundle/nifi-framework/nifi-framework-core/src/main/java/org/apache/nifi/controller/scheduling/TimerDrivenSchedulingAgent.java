@@ -55,15 +55,20 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     private volatile String adminYieldDuration = "1 sec";
 
-    public TimerDrivenSchedulingAgent(final FlowController flowController, final FlowEngine flowEngine, final ProcessContextFactory contextFactory, final StringEncryptor encryptor,
-                                      final VariableRegistry variableRegistry) {
+    public TimerDrivenSchedulingAgent(
+            final FlowController flowController,
+            final FlowEngine flowEngine,
+            final ProcessContextFactory contextFactory,
+            final StringEncryptor encryptor,
+            final VariableRegistry variableRegistry,
+            final NiFiProperties nifiProperties) {
         super(flowEngine);
         this.flowController = flowController;
         this.contextFactory = contextFactory;
         this.encryptor = encryptor;
         this.variableRegistry = variableRegistry;
 
-        final String boredYieldDuration = NiFiProperties.getInstance().getBoredYieldDuration();
+        final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
         try {
             noWorkYieldNanos = FormatUtils.getTimeDuration(boredYieldDuration, TimeUnit.NANOSECONDS);
         } catch (final IllegalArgumentException e) {

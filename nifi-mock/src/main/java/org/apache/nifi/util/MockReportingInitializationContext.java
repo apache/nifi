@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -85,5 +86,20 @@ public class MockReportingInitializationContext extends MockControllerServiceLoo
     @Override
     public ComponentLog getLogger() {
         return logger;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null; //this needs to be wired in.
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null; //this needs to be wired in.
     }
 }

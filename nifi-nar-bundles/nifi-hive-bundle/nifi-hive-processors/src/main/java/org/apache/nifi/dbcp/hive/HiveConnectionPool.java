@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.dbcp.hive;
 
+import java.io.File;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -35,7 +36,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveUtils;
@@ -47,14 +47,15 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 
 /**
- * Implementation for Database Connection Pooling Service used for Apache Hive connections. Apache DBCP is used for connection pooling functionality.
+ * Implementation for Database Connection Pooling Service used for Apache Hive
+ * connections. Apache DBCP is used for connection pooling functionality.
  */
 @Tags({"hive", "dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service for Apache Hive. Connections can be asked from pool and returned after usage.")
@@ -122,9 +123,8 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     private final static List<PropertyDescriptor> properties;
-    private static KerberosProperties kerberosProperties;
 
-    private String  connectionUrl = "unknown";
+    private String connectionUrl = "unknown";
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
@@ -133,21 +133,31 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     private volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     private volatile UserGroupInformation ugi;
+    private volatile String kerberosServicePrincipal = null;
+    private volatile File kerberosConfigFile = null;
+    private volatile File kerberosServiceKeytab = null;
+    private volatile KerberosProperties kerberosProperties;
 
     static {
-        kerberosProperties = KerberosProperties.create(NiFiProperties.getInstance());
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(DATABASE_URL);
         props.add(HIVE_CONFIGURATION_RESOURCES);
-        props.add(kerberosProperties.getKerberosPrincipal());
-        props.add(kerberosProperties.getKerberosKeytab());
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
-        properties = Collections.unmodifiableList(props);
+        properties = props;
     }
 
+    @Override
+    protected void init(final ControllerServiceInitializationContext context) {
+        kerberosServicePrincipal = context.getKerberosServicePrincipal();
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosServiceKeytab = context.getKerberosServiceKeytab();
+        kerberosProperties = new KerberosProperties(kerberosConfigFile);
+        properties.add(kerberosProperties.getKerberosPrincipal());
+        properties.add(kerberosProperties.getKerberosKeytab());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -212,7 +222,6 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
                 log.error(ae.getMessage(), ae);
             }
             getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[]{principal, keyTab});
-
 
         }
         final String user = context.getProperty(DB_USER).getValue();

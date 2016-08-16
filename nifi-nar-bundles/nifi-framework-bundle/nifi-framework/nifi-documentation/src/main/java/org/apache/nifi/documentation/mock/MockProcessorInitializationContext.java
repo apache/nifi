@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation.mock;
 
+import java.io.File;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
@@ -47,5 +48,20 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     @Override
     public NodeTypeProvider getNodeTypeProvider() {
         return new MockNodeTypeProvider();
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return null;
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return null;
     }
 }

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.http;
 
 import org.apache.nifi.cluster.coordination.http.endpoints.BulletinBoardEndpointMerger;
@@ -71,13 +70,25 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardHttpResponseMerger implements HttpResponseMerger {
+
     private Logger logger = LoggerFactory.getLogger(StandardHttpResponseMerger.class);
 
-    private static final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
-    static {
+    private final List<EndpointResponseMerger> endpointMergers = new ArrayList<>();
+
+    public StandardHttpResponseMerger(final NiFiProperties nifiProperties) {
+        final String snapshotFrequency = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
+        long snapshotMillis;
+        try {
+            snapshotMillis = FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS);
+        } catch (final Exception e) {
+            snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
+        }
         endpointMergers.add(new ControllerStatusEndpointMerger());
         endpointMergers.add(new ControllerBulletinsEndpointMerger());
         endpointMergers.add(new GroupStatusEndpointMerger());
@@ -108,7 +119,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new ListFlowFilesEndpointMerger());
         endpointMergers.add(new ComponentStateEndpointMerger());
         endpointMergers.add(new BulletinBoardEndpointMerger());
-        endpointMergers.add(new StatusHistoryEndpointMerger());
+        endpointMergers.add(new StatusHistoryEndpointMerger(snapshotMillis));
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
@@ -120,9 +131,6 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         endpointMergers.add(new LabelsEndpointMerger());
         endpointMergers.add(new FunnelEndpointMerger());
         endpointMergers.add(new FunnelsEndpointMerger());
-    }
-
-    public StandardHttpResponseMerger() {
     }
 
     @Override
@@ -170,7 +178,6 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         return response;
     }
 
-
     @Override
     public Set<NodeResponse> getProblematicNodeResponses(final Set<NodeResponse> allResponses) {
         // Check if there are any 2xx responses
@@ -190,7 +197,7 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         return getEndpointResponseMerger(uri, httpMethod) != null;
     }
 
-    private static EndpointResponseMerger getEndpointResponseMerger(final URI uri, final String httpMethod) {
+    private EndpointResponseMerger getEndpointResponseMerger(final URI uri, final String httpMethod) {
         return endpointMergers.stream().filter(p -> p.canHandle(uri, httpMethod)).findFirst().orElse(null);
     }
 
@@ -198,13 +205,12 @@ public class StandardHttpResponseMerger implements HttpResponseMerger {
         return allResponses.stream().anyMatch(p -> p.is2xx());
     }
 
-
     private void drainResponses(final Set<NodeResponse> responses, final NodeResponse exclude) {
         responses.stream()
-            .parallel() // parallelize the draining of the responses, since we have multiple streams to consume
-            .filter(response -> response != exclude) // don't include the explicitly excluded node
-            .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
-            .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out
+                .parallel() // parallelize the draining of the responses, since we have multiple streams to consume
+                .filter(response -> response != exclude) // don't include the explicitly excluded node
+                .filter(response -> response.getStatus() != RequestReplicator.NODE_CONTINUE_STATUS_CODE) // don't include any 150-NodeContinue responses because they contain no content
+                .forEach(response -> drainResponse(response)); // drain all node responses that didn't get filtered out
     }
 
     private void drainResponse(final NodeResponse response) {

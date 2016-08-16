@@ -31,9 +31,10 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 class StandardFlowSynchronizerSpec extends Specification {
-
+    
     def setupSpec() {
-        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties"
+        def propFile = StandardFlowSynchronizerSpec.class.getResource("/nifi.properties").getFile()
+        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
     }
 
     def teardownSpec() {
@@ -64,7 +65,8 @@ class StandardFlowSynchronizerSpec extends Specification {
         def Map<String, Connection> connectionMocksById = [:]
         def Map<String, List<Position>> bendPointPositionsByConnectionId = [:]
         // the unit under test
-        def flowSynchronizer = new StandardFlowSynchronizer(null)
+        def nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null)
+        def flowSynchronizer = new StandardFlowSynchronizer(null,nifiProperties)
 
         when: "the flow is synchronized with the current state of the controller"
         flowSynchronizer.sync controller, proposedFlow, null

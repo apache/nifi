@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.VolatileContentRepository;
-
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
@@ -25,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -52,11 +52,11 @@ public class TestVolatileContentRepository {
 
     @Test
     public void testRedirects() throws IOException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
-        final NiFiProperties props = NiFiProperties.getInstance();
-        props.setProperty(VolatileContentRepository.MAX_SIZE_PROPERTY, "10 MB");
-
-        final VolatileContentRepository contentRepo = new VolatileContentRepository();
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestVolatileContentRepository.class.getResource("/conf/nifi.properties").getFile());
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(VolatileContentRepository.MAX_SIZE_PROPERTY, "10 MB");
+        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
         contentRepo.initialize(claimManager);
         final ContentClaim claim = contentRepo.create(true);
         final OutputStream out = contentRepo.write(claim);
@@ -106,11 +106,12 @@ public class TestVolatileContentRepository {
 
     @Test
     public void testMemoryIsFreed() throws IOException, InterruptedException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
-        final NiFiProperties props = NiFiProperties.getInstance();
-        props.setProperty(VolatileContentRepository.MAX_SIZE_PROPERTY, "11 MB");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestVolatileContentRepository.class.getResource("/conf/nifi.properties").getFile());
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(VolatileContentRepository.MAX_SIZE_PROPERTY, "11 MB");
+        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
 
-        final VolatileContentRepository contentRepo = new VolatileContentRepository();
         contentRepo.initialize(claimManager);
 
         final byte[] oneK = new byte[1024];
@@ -151,11 +152,11 @@ public class TestVolatileContentRepository {
 
     @Test
     public void testSimpleReadWrite() throws IOException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
-        final NiFiProperties props = NiFiProperties.getInstance();
-        props.setProperty(VolatileContentRepository.MAX_SIZE_PROPERTY, "10 MB");
-
-        final VolatileContentRepository contentRepo = new VolatileContentRepository();
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestVolatileContentRepository.class.getResource("/conf/nifi.properties").getFile());
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(VolatileContentRepository.MAX_SIZE_PROPERTY, "11 MB");
+        final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
         contentRepo.initialize(claimManager);
         final ContentClaim claim = contentRepo.create(true);
 

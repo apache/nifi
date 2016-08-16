@@ -135,6 +135,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
      */
     private NodeIdentifier nodeId;
 
+    private final NiFiProperties nifiProperties;
+
     // guardedBy rwLock
     private boolean firstControllerInitialization = true;
 
@@ -142,44 +144,45 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowService.class);
 
     public static StandardFlowService createStandaloneInstance(
-        final FlowController controller,
-        final NiFiProperties properties,
-        final StringEncryptor encryptor,
-        final RevisionManager revisionManager,
-        final Authorizer authorizer) throws IOException {
+            final FlowController controller,
+            final NiFiProperties nifiProperties,
+            final StringEncryptor encryptor,
+            final RevisionManager revisionManager,
+            final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, properties, null, encryptor, false, null, revisionManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, null, encryptor, false, null, revisionManager, authorizer);
     }
 
     public static StandardFlowService createClusteredInstance(
-        final FlowController controller,
-        final NiFiProperties properties,
-        final NodeProtocolSenderListener senderListener,
-        final ClusterCoordinator coordinator,
-        final StringEncryptor encryptor,
-        final RevisionManager revisionManager,
-        final Authorizer authorizer) throws IOException {
+            final FlowController controller,
+            final NiFiProperties nifiProperties,
+            final NodeProtocolSenderListener senderListener,
+            final ClusterCoordinator coordinator,
+            final StringEncryptor encryptor,
+            final RevisionManager revisionManager,
+            final Authorizer authorizer) throws IOException {
 
-        return new StandardFlowService(controller, properties, senderListener, encryptor, true, coordinator, revisionManager, authorizer);
+        return new StandardFlowService(controller, nifiProperties, senderListener, encryptor, true, coordinator, revisionManager, authorizer);
     }
 
     private StandardFlowService(
-        final FlowController controller,
-        final NiFiProperties properties,
-        final NodeProtocolSenderListener senderListener,
-        final StringEncryptor encryptor,
-        final boolean configuredForClustering,
-        final ClusterCoordinator clusterCoordinator,
-        final RevisionManager revisionManager,
-        final Authorizer authorizer) throws IOException {
+            final FlowController controller,
+            final NiFiProperties nifiProperties,
+            final NodeProtocolSenderListener senderListener,
+            final StringEncryptor encryptor,
+            final boolean configuredForClustering,
+            final ClusterCoordinator clusterCoordinator,
+            final RevisionManager revisionManager,
+            final Authorizer authorizer) throws IOException {
 
+        this.nifiProperties = nifiProperties;
         this.controller = controller;
-        flowXml = Paths.get(properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
+        flowXml = Paths.get(nifiProperties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
 
-        gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
-        autoResumeState = properties.getAutoResumeState();
+        gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
+        autoResumeState = nifiProperties.getAutoResumeState();
 
-        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor);
+        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor, nifiProperties);
         this.clusterCoordinator = clusterCoordinator;
         if (clusterCoordinator != null) {
             clusterCoordinator.setFlowService(this);
@@ -193,8 +196,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             this.senderListener = senderListener;
             senderListener.addHandler(this);
 
-            final InetSocketAddress nodeApiAddress = properties.getNodeApiAddress();
-            final InetSocketAddress nodeSocketAddress = properties.getClusterNodeProtocolAddress();
+            final InetSocketAddress nodeApiAddress = nifiProperties.getNodeApiAddress();
+            final InetSocketAddress nodeSocketAddress = nifiProperties.getClusterNodeProtocolAddress();
 
             String nodeUuid = null;
             final StateManager stateManager = controller.getStateManagerProvider().getStateManager(CLUSTER_NODE_CONFIG);
@@ -208,10 +211,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // use a random UUID as the proposed node identifier
             this.nodeId = new NodeIdentifier(nodeUuid,
-                nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
-                nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
-                properties.getRemoteInputHost(), properties.getRemoteInputPort(),
-                properties.getRemoteInputHttpPort(), properties.isSiteToSiteSecure());
+                    nodeApiAddress.getHostName(), nodeApiAddress.getPort(),
+                    nodeSocketAddress.getHostName(), nodeSocketAddress.getPort(),
+                    nifiProperties.getRemoteInputHost(), nifiProperties.getRemoteInputPort(),
+                    nifiProperties.getRemoteInputHttpPort(), nifiProperties.isSiteToSiteSecure());
 
         } else {
             this.configuredForClustering = false;
@@ -244,7 +247,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     public void overwriteFlow(final InputStream is) throws IOException {
         writeLock.lock();
         try (final OutputStream output = Files.newOutputStream(flowXml, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-            final OutputStream gzipOut = new GZIPOutputStream(output);) {
+                final OutputStream gzipOut = new GZIPOutputStream(output);) {
             FileUtils.copy(is, gzipOut);
         } finally {
             writeLock.unlock();
@@ -253,7 +256,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     @Override
     public void saveFlowChanges(final TimeUnit delayUnit, final long delay) {
-        final boolean archiveEnabled = NiFiProperties.getInstance().isFlowConfigurationArchiveEnabled();
+        final boolean archiveEnabled = nifiProperties.isFlowConfigurationArchiveEnabled();
         saveFlowChanges(delayUnit, delay, archiveEnabled);
     }
 
@@ -584,12 +587,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // reconnect
             final ConnectionResponse connectionResponse = new ConnectionResponse(getNodeId(), request.getDataFlow(),
-                request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
+                    request.getInstanceId(), request.getNodeConnectionStatuses(), request.getComponentRevisions());
 
             loadFromConnectionResponse(connectionResponse);
 
             clusterCoordinator.resetNodeStatuses(connectionResponse.getNodeConnectionStatuses().stream()
-                .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
+                    .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
             controller.resumeHeartbeats();  // we are now connected, so resume sending heartbeats.
 
             logger.info("Node reconnected.");
@@ -637,7 +640,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     // write lock must already be acquired
     private void loadFromBytes(final DataFlow proposedFlow, final boolean allowEmptyFlow)
-        throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
+            throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
         logger.trace("Loading flow from bytes");
 
         // resolve the given flow (null means load flow from disk)
@@ -695,16 +698,15 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     /**
-     * In NiFi 0.x, templates were stored in a templates directory as separate files. They are
-     * now stored in the flow itself. If there already are templates in that directory, though,
-     * we want to restore them.
+     * In NiFi 0.x, templates were stored in a templates directory as separate
+     * files. They are now stored in the flow itself. If there already are
+     * templates in that directory, though, we want to restore them.
      *
      * @return the templates found in the templates directory
      * @throws IOException if unable to read from the file system
      */
     public List<Template> loadTemplates() throws IOException {
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final Path templatePath = properties.getTemplateDirectory();
+        final Path templatePath = nifiProperties.getTemplateDirectory();
 
         final File[] files = templatePath.toFile().listFiles(pathname -> {
             final String lowerName = pathname.getName().toLowerCase();
@@ -718,7 +720,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         final List<Template> templates = new ArrayList<>();
         for (final File file : files) {
             try (final FileInputStream fis = new FileInputStream(file);
-                final BufferedInputStream bis = new BufferedInputStream(fis)) {
+                    final BufferedInputStream bis = new BufferedInputStream(fis)) {
 
                 final TemplateDTO templateDto;
                 try {
@@ -820,7 +822,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     controller.getStateManagerProvider().getStateManager(CLUSTER_NODE_CONFIG).setState(map, Scope.LOCAL);
                 } catch (final IOException ioe) {
                     logger.warn("Received successful response from Cluster Manager but failed to persist state about the Node's Unique Identifier and the Node's Index. "
-                        + "This node may be assigned a different UUID when the node is restarted.", ioe);
+                            + "This node may be assigned a different UUID when the node is restarted.", ioe);
                 }
 
                 return response;
@@ -834,7 +836,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         writeLock.lock();
         try {
             clusterCoordinator.resetNodeStatuses(response.getNodeConnectionStatuses().stream()
-                .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
+                    .collect(Collectors.toMap(status -> status.getNodeIdentifier(), status -> status)));
 
             // get the dataflow from the response
             final DataFlow dataFlow = response.getDataFlow();
@@ -869,7 +871,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             throw new ConnectionException(CONNECTION_EXCEPTION_MSG_PREFIX + "local or cluster flow is malformed.", fse);
         } catch (final FlowSynchronizationException fse) {
             throw new FlowSynchronizationException(CONNECTION_EXCEPTION_MSG_PREFIX + "local flow controller partially updated. "
-                + "Administrator should disconnect node and review flow for corruption.", fse);
+                    + "Administrator should disconnect node and review flow for corruption.", fse);
         } catch (final Exception ex) {
             throw new ConnectionException("Failed to connect node to cluster due to: " + ex, ex);
         } finally {
@@ -887,14 +889,13 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             }
 
             try (final InputStream in = Files.newInputStream(flowXml, StandardOpenOption.READ);
-                final InputStream gzipIn = new GZIPInputStream(in)) {
+                    final InputStream gzipIn = new GZIPInputStream(in)) {
                 FileUtils.copy(gzipIn, os);
             }
         } finally {
             readLock.unlock();
         }
     }
-
 
     public void loadSnippets(final byte[] bytes) throws IOException {
         if (bytes.length == 0) {
@@ -908,7 +909,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             snippetManager.addSnippet(snippet);
         }
     }
-
 
     private class SaveReportingTask implements Runnable {
 
@@ -962,6 +962,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     }
 
     private class SaveHolder {
+
         private final Calendar saveTime;
         private final boolean shouldArchive;
 

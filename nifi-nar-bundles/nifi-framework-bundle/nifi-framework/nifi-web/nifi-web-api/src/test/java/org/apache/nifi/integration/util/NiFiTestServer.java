@@ -18,6 +18,8 @@ package org.apache.nifi.integration.util;
 
 import com.sun.jersey.api.client.Client;
 import java.io.File;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Collections;
 import javax.servlet.ServletContext;
 import org.apache.nifi.util.NiFiProperties;
@@ -50,8 +52,15 @@ public class NiFiTestServer {
     private WebAppContext webappContext;
 
     public NiFiTestServer(String webappRoot, String contextPath) {
-        // load the configuration
-        properties = NiFiProperties.getInstance();
+        final URL resource = NiFiTestServer.class.getResource("/site-to-site/nifi.properties");
+        try {
+            final String propertiesFile = resource.toURI().getPath();
+            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile);
+            // load the configuration
+            properties = NiFiProperties.createBasicNiFiProperties(null, null);
+        } catch (final URISyntaxException ue) {
+            throw new RuntimeException();
+        }
 
         createWebAppContext(webappRoot, contextPath);
         createServer();
@@ -171,14 +180,16 @@ public class NiFiTestServer {
     }
 
     /**
-     * Convenience method to provide access to Spring beans accessible from the web application context.
+     * Convenience method to provide access to Spring beans accessible from the
+     * web application context.
      *
      * @param <T> target cast
      * @param beanName name of the spring bean
      * @param clazz class of the spring bean
      * @return Spring bean with given name and class type
      *
-     * @throws ClassCastException if the bean found cannot be cast to the given class type
+     * @throws ClassCastException if the bean found cannot be cast to the given
+     * class type
      */
     public <T> T getSpringBean(String beanName, Class<T> clazz) {
         ServletContext servletContext = webappContext.getServletHandler().getServletContext();

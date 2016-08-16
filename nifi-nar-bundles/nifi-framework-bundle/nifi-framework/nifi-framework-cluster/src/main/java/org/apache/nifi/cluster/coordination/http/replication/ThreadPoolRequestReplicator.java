@@ -75,6 +75,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.nifi.util.NiFiProperties;
 
 public class ThreadPoolRequestReplicator implements RequestReplicator {
 
@@ -107,10 +108,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param clusterCoordinator the cluster coordinator to use for interacting with node statuses
      * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
+     * @param nifiProperties properties
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
-        final RequestCompletionCallback callback, final EventReporter eventReporter) {
-        this(numThreads, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter);
+        final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
+        this(numThreads, client, clusterCoordinator, "5 sec", "5 sec", callback, eventReporter, nifiProperties);
     }
 
     /**
@@ -123,9 +125,11 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param readTimeout the read timeout specified in milliseconds
      * @param callback a callback that will be called whenever all of the responses have been gathered for a request. May be null.
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
+     * @param nifiProperties properties
      */
     public ThreadPoolRequestReplicator(final int numThreads, final Client client, final ClusterCoordinator clusterCoordinator,
-        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback, final EventReporter eventReporter) {
+        final String connectionTimeout, final String readTimeout, final RequestCompletionCallback callback,
+        final EventReporter eventReporter, final NiFiProperties nifiProperties) {
         if (numThreads <= 0) {
             throw new IllegalArgumentException("The number of threads must be greater than zero.");
         } else if (client == null) {
@@ -136,7 +140,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         this.clusterCoordinator = clusterCoordinator;
         this.connectionTimeoutMs = (int) FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         this.readTimeoutMs = (int) FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
-        this.responseMerger = new StandardHttpResponseMerger();
+        this.responseMerger = new StandardHttpResponseMerger(nifiProperties);
         this.eventReporter = eventReporter;
         this.callback = callback;
 

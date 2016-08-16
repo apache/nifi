@@ -64,8 +64,9 @@ public class ITAccessTokenEndpoint {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
 
         // update the flow.xml property
-        NiFiProperties props = NiFiProperties.getInstance();
-        props.setProperty("nifi.flow.configuration.file", FLOW_XML_PATH);
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put("nifi.flow.configuration.file", FLOW_XML_PATH);
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         // delete the database directory to avoid issues with re-registration in testRequestAccessUsingToken
         FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());

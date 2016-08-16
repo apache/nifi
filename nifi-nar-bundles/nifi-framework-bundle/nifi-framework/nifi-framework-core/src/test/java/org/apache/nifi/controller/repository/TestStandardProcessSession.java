@@ -80,6 +80,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -138,7 +139,7 @@ public class TestStandardProcessSession {
     public void setup() throws IOException {
         resourceClaimManager = new StandardResourceClaimManager();
 
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardProcessSession.class.getResource("/conf/nifi.properties").getFile());
         final FlowFileEventRepository flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         final CounterRepository counterRepo = Mockito.mock(CounterRepository.class);
         provenanceRepo = new MockProvenanceRepository();
@@ -192,9 +193,9 @@ public class TestStandardProcessSession {
                 final Relationship relationship = (Relationship) arguments[0];
                 if (relationship == Relationship.SELF) {
                     return Collections.emptySet();
-                } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP) ){
+                } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP)) {
                     return null;
-                }else {
+                } else {
                     return new HashSet<>(connList);
                 }
             }
@@ -213,10 +214,10 @@ public class TestStandardProcessSession {
     @Test
     public void testAppendToChildThrowsIOExceptionThenRemove() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .id(1000L)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(1000L)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile original = session.get();
         assertNotNull(original);
@@ -245,10 +246,10 @@ public class TestStandardProcessSession {
     @Test
     public void testWriteForChildThrowsIOExceptionThenRemove() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .id(1000L)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(1000L)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile original = session.get();
         assertNotNull(original);
@@ -274,7 +275,6 @@ public class TestStandardProcessSession {
         assertEquals(0, numClaims);
     }
 
-
     @Test
     public void testModifyContentThenRollback() throws IOException {
         assertEquals(0, contentRepo.getExistingClaims().size());
@@ -283,10 +283,10 @@ public class TestStandardProcessSession {
         assertEquals(1, contentRepo.getExistingClaims().size());
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         FlowFile flowFile = session.get();
@@ -384,10 +384,10 @@ public class TestStandardProcessSession {
     public void testAppendAfterSessionClosesStream() throws IOException {
         final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
@@ -405,10 +405,10 @@ public class TestStandardProcessSession {
     public void testExportTo() throws IOException {
         final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
@@ -440,15 +440,15 @@ public class TestStandardProcessSession {
     public void testReadAfterSessionClosesStream() throws IOException {
         final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         final FlowFile flowFile = session.get();
         assertNotNull(flowFile);
         final AtomicReference<InputStream> inputStreamHolder = new AtomicReference<>(null);
-        session.read(flowFile, true , new InputStreamCallback() {
+        session.read(flowFile, true, new InputStreamCallback() {
             @Override
             public void process(final InputStream inputStream) throws IOException {
                 inputStreamHolder.set(inputStream);
@@ -461,10 +461,10 @@ public class TestStandardProcessSession {
     public void testStreamAfterSessionClosesStream() throws IOException {
         final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
@@ -485,10 +485,10 @@ public class TestStandardProcessSession {
     public void testWriteAfterSessionClosesStream() throws IOException {
         final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
         FlowFile flowFile = session.get();
         assertNotNull(flowFile);
@@ -506,9 +506,9 @@ public class TestStandardProcessSession {
     public void testCreateThenRollbackRemovesContent() throws IOException {
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         final StreamCallback nop = new StreamCallback() {
@@ -536,9 +536,9 @@ public class TestStandardProcessSession {
     @Test
     public void testForksNotEmittedIfFilesDeleted() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -553,9 +553,9 @@ public class TestStandardProcessSession {
     @Test
     public void testProvenanceEventsEmittedForForkIfNotRemoved() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -570,9 +570,9 @@ public class TestStandardProcessSession {
     @Test
     public void testProvenanceEventsEmittedForRemove() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -590,10 +590,10 @@ public class TestStandardProcessSession {
     public void testUuidAttributeCannotBeUpdated() {
         String originalUuid = "11111111-1111-1111-1111-111111111111";
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
-            .id(1L)
-            .addAttribute("uuid", originalUuid)
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(1L)
+                .addAttribute("uuid", originalUuid)
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord1);
 
@@ -625,16 +625,16 @@ public class TestStandardProcessSession {
     @Test
     public void testUpdateAttributesThenJoin() throws IOException {
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
-            .id(1L)
-            .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(1L)
+                .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
-            .id(2L)
-            .addAttribute("uuid", "22222222-2222-2222-2222-222222222222")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(2L)
+                .addAttribute("uuid", "22222222-2222-2222-2222-222222222222")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord1);
         flowFileQueue.put(flowFileRecord2);
@@ -698,9 +698,9 @@ public class TestStandardProcessSession {
     @Test
     public void testForkOneToOneReported() throws IOException {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -815,11 +815,11 @@ public class TestStandardProcessSession {
     @Test
     public void testMissingFlowFileExceptionThrownWhenUnableToReadData() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-            .size(1L)
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .size(1L)
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         // attempt to read the data.
@@ -894,17 +894,16 @@ public class TestStandardProcessSession {
         assertEquals(1, countAfterAppend);
     }
 
-
     @Test
     @SuppressWarnings("unchecked")
     public void testExpireDecrementsClaimsOnce() throws IOException {
         final ContentClaim contentClaim = contentRepo.create(false);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(contentClaim)
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(contentClaim)
+                .build();
 
         Mockito.doAnswer(new Answer<List<FlowFileRecord>>() {
             int iterations = 0;
@@ -930,7 +929,7 @@ public class TestStandardProcessSession {
     public void testManyFilesOpened() throws IOException {
 
         StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
-        for(int i = 0; i<70000;i++){
+        for (int i = 0; i < 70000; i++) {
             standardProcessSessions[i] = new StandardProcessSession(context);
 
             FlowFile flowFile = standardProcessSessions[i].create();
@@ -950,12 +949,12 @@ public class TestStandardProcessSession {
                         StreamUtils.fillBuffer(in, buff);
                     }
                 });
-            } catch (Exception e){
-                System.out.println("Failed at file:"+i);
+            } catch (Exception e) {
+                System.out.println("Failed at file:" + i);
                 throw e;
             }
-            if(i%1000==0){
-                System.out.println("i:"+i);
+            if (i % 1000 == 0) {
+                System.out.println("i:" + i);
             }
         }
     }
@@ -963,11 +962,11 @@ public class TestStandardProcessSession {
     @Test
     public void testMissingFlowFileExceptionThrownWhenUnableToReadDataStreamCallback() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-            .size(1L)
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .size(1L)
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         // attempt to read the data.
@@ -987,10 +986,10 @@ public class TestStandardProcessSession {
     @Test
     public void testContentNotFoundExceptionThrownWhenUnableToReadDataStreamCallbackOffsetTooLarge() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         FlowFile ff1 = session.get();
@@ -1003,12 +1002,12 @@ public class TestStandardProcessSession {
         session.commit();
 
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-            .contentClaimOffset(1000L)
-            .size(1000L)
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .contentClaimOffset(1000L)
+                .size(1000L)
+                .build();
         flowFileQueue.put(flowFileRecord2);
 
         // attempt to read the data.
@@ -1028,10 +1027,10 @@ public class TestStandardProcessSession {
     @Test
     public void testContentNotFoundExceptionThrownWhenUnableToReadDataOffsetTooLarge() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-            .build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -1045,11 +1044,10 @@ public class TestStandardProcessSession {
         session.commit();
 
         final FlowFileRecord flowFileRecord2 = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-
-        .contentClaimOffset(1000L).size(1L).build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .contentClaimOffset(1000L).size(1L).build();
         flowFileQueue.put(flowFileRecord2);
 
         // attempt to read the data.
@@ -1110,15 +1108,13 @@ public class TestStandardProcessSession {
         }
     }
 
-
     @Test
     public void testCommitFailureRequeuesFlowFiles() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-
-        .contentClaimOffset(0L).size(0L).build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
 
         final FlowFile originalFlowFile = session.get();
@@ -1152,11 +1148,10 @@ public class TestStandardProcessSession {
     @Test
     public void testRollbackAfterCheckpoint() {
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
-
-        .contentClaimOffset(0L).size(0L).build();
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .contentClaim(new StandardContentClaim(resourceClaimManager.newResourceClaim("x", "x", "0", true), 0L))
+                .contentClaimOffset(0L).size(0L).build();
         flowFileQueue.put(flowFileRecord);
 
         final FlowFile originalFlowFile = session.get();
@@ -1246,9 +1241,9 @@ public class TestStandardProcessSession {
     @Test
     public void testContentModifiedEmittedAndNotAttributesModified() throws IOException {
         final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
-            .id(1L)
-            .addAttribute("uuid", "000000000000-0000-0000-0000-00000000")
-            .build();
+                .id(1L)
+                .addAttribute("uuid", "000000000000-0000-0000-0000-00000000")
+                .build();
         this.flowFileQueue.put(flowFile);
 
         FlowFile existingFlowFile = session.get();
@@ -1273,9 +1268,9 @@ public class TestStandardProcessSession {
     public void testGetWithCount() {
         for (int i = 0; i < 8; i++) {
             final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
-                .id(i)
-                .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
-                .build();
+                    .id(i)
+                    .addAttribute("uuid", "000000000000-0000-0000-0000-0000000" + i)
+                    .build();
             this.flowFileQueue.put(flowFile);
         }
 
@@ -1286,9 +1281,9 @@ public class TestStandardProcessSession {
     @Test
     public void testAttributesModifiedEmitted() throws IOException {
         final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
-            .id(1L)
-            .addAttribute("uuid", "000000000000-0000-0000-0000-00000000")
-            .build();
+                .id(1L)
+                .addAttribute("uuid", "000000000000-0000-0000-0000-00000000")
+                .build();
         this.flowFileQueue.put(flowFile);
 
         FlowFile existingFlowFile = session.get();
@@ -1351,11 +1346,11 @@ public class TestStandardProcessSession {
         }
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-            .contentClaim(claim)
-            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
-            .entryDate(System.currentTimeMillis())
-            .size(12L)
-            .build();
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .size(12L)
+                .build();
         flowFileQueue.put(flowFileRecord);
 
         final FlowFile flowFile = session.get();
@@ -1377,10 +1372,10 @@ public class TestStandardProcessSession {
     @Test
     public void testTransferUnknownRelationship() {
         final FlowFileRecord flowFileRecord1 = new StandardFlowFileRecord.Builder()
-            .id(1L)
-            .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
-            .entryDate(System.currentTimeMillis())
-            .build();
+                .id(1L)
+                .addAttribute("uuid", "11111111-1111-1111-1111-111111111111")
+                .entryDate(System.currentTimeMillis())
+                .build();
 
         flowFileQueue.put(flowFileRecord1);
 
@@ -1403,6 +1398,7 @@ public class TestStandardProcessSession {
     }
 
     private static class MockFlowFileRepository implements FlowFileRepository {
+
         private boolean failOnUpdate = false;
         private final AtomicLong idGenerator = new AtomicLong(0L);
 

@@ -201,7 +201,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         handshakeCompleted = true;
     }
 
-    abstract protected HandshakeProperties doHandshake(final Peer peer) throws  IOException, HandshakeException;
+    abstract protected HandshakeProperties doHandshake(final Peer peer) throws IOException, HandshakeException;
 
     @Override
     public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
@@ -394,9 +394,10 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
     protected final void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession) throws IOException {
         writeTransactionResponse(isTransfer, response, commsSession, null);
     }
+
     protected void writeTransactionResponse(boolean isTransfer, ResponseCode response, CommunicationsSession commsSession, String explanation) throws IOException {
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
-        if(explanation == null){
+        if (explanation == null) {
             response.writeResponse(dos);
         } else {
             response.writeResponse(dos, explanation);
@@ -436,7 +437,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             final CheckedInputStream checkedInputStream = new CheckedInputStream(flowFileInputStream, crc);
 
             final DataPacket dataPacket = codec.decode(checkedInputStream);
-            if(dataPacket == null){
+            if (dataPacket == null) {
                 logger.debug("{} Received null dataPacket indicating the end of transaction from {}", this, peer);
                 break;
             }
@@ -528,7 +529,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
         final String dataSize = FormatUtils.formatDataSize(bytesReceived);
         logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-                this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+            this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
 
         return flowFilesReceived.size();
     }

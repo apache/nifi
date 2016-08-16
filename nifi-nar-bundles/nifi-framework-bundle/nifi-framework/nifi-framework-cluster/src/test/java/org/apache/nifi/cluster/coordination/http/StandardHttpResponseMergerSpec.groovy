@@ -46,7 +46,8 @@ import spock.lang.Unroll
 class StandardHttpResponseMergerSpec extends Specification {
 
     def setup() {
-        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties"
+        def propFile = StandardHttpResponseMergerSpec.class.getResource("/conf/nifi.properties").getFile()
+        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
     }
 
     def cleanup() {
@@ -55,7 +56,7 @@ class StandardHttpResponseMergerSpec extends Specification {
 
     def "MergeResponses: mixed HTTP GET response statuses, expecting #expectedStatus"() {
         given:
-        def responseMerger = new StandardHttpResponseMerger()
+        def responseMerger = new StandardHttpResponseMerger(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI('http://server/resource')
         def requestId = UUID.randomUUID().toString()
         def Map<ClientResponse, Map<String, Integer>> mockToRequestEntity = [:]
@@ -93,7 +94,7 @@ class StandardHttpResponseMergerSpec extends Specification {
         mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
 
         and: "setup of the data to be used in the test"
-        def responseMerger = new StandardHttpResponseMerger()
+        def responseMerger = new StandardHttpResponseMerger(NiFiProperties.createBasicNiFiProperties(null,null))
         def requestUri = new URI("http://server/$requestUriPart")
         def requestId = UUID.randomUUID().toString()
         def Map<ClientResponse, Object> mockToRequestEntity = [:]

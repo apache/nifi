@@ -48,7 +48,6 @@ import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,16 +62,13 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class StandardClusterCoordinationProtocolSender implements ClusterCoordinationProtocolSender {
+
     private static final Logger logger = LoggerFactory.getLogger(StandardClusterCoordinationProtocolSender.class);
 
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final SocketConfiguration socketConfiguration;
     private final int maxThreadsPerRequest;
     private int handshakeTimeoutSeconds;
-
-    public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
-        this(socketConfiguration, protocolContext, NiFiProperties.getInstance().getClusterNodeProtocolThreads());
-    }
 
     public StandardClusterCoordinationProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext, final int maxThreadsPerRequest) {
         if (socketConfiguration == null) {
@@ -89,7 +85,6 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
     @Override
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
     }
-
 
     /**
      * Requests a node to reconnect to the cluster. The configured value for
@@ -157,7 +152,6 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
             SocketUtils.closeQuietly(socket);
         }
     }
-
 
     private void setConnectionHandshakeTimeoutOnSocket(final Socket socket) throws SocketException {
         // update socket timeout, if handshake timeout was set; otherwise use socket's current timeout

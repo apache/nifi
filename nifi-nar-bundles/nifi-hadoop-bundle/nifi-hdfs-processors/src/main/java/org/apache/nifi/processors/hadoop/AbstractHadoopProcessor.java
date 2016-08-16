@@ -41,7 +41,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.SocketFactory;
@@ -128,6 +127,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private long lastKerberosReloginTime;
     protected KerberosProperties kerberosProperties;
     protected List<PropertyDescriptor> properties;
+    private volatile String kerberosServicePrincipal = null;
+    private volatile File kerberosConfigFile = null;
+    private volatile File kerberosServiceKeytab = null;
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
@@ -147,10 +149,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(KERBEROS_RELOGIN_PERIOD);
         properties = Collections.unmodifiableList(props);
+        kerberosServicePrincipal = context.getKerberosServicePrincipal();
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosServiceKeytab = context.getKerberosServiceKeytab();
     }
 
     protected KerberosProperties getKerberosProperties() {
-        return KerberosProperties.create(NiFiProperties.getInstance());
+        return new KerberosProperties(kerberosConfigFile);
     }
 
     @Override

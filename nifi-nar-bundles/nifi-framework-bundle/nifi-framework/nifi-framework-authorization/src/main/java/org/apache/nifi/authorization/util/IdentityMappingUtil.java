@@ -43,7 +43,7 @@ public class IdentityMappingUtil {
         final List<IdentityMapping> mappings = new ArrayList<>();
 
         // go through each property
-        for (String propertyName : properties.stringPropertyNames()) {
+        for (String propertyName : properties.getPropertyKeys()) {
             if (StringUtils.startsWith(propertyName, NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX)) {
                 final String key = StringUtils.substringAfter(propertyName, NiFiProperties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX);
                 final String identityPattern = properties.getProperty(propertyName);

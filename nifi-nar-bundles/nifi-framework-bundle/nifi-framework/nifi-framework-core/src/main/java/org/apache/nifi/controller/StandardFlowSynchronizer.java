@@ -121,10 +121,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     public static final URL FLOW_XSD_RESOURCE = StandardFlowSynchronizer.class.getResource("/FlowConfiguration.xsd");
     private final StringEncryptor encryptor;
     private final boolean autoResumeState;
+    private final NiFiProperties nifiProperties;
 
-    public StandardFlowSynchronizer(final StringEncryptor encryptor) {
+    public StandardFlowSynchronizer(final StringEncryptor encryptor, final NiFiProperties nifiProperties) {
         this.encryptor = encryptor;
-        autoResumeState = NiFiProperties.getInstance().getAutoResumeState();
+        autoResumeState = nifiProperties.getAutoResumeState();
+        this.nifiProperties = nifiProperties;
     }
 
     public static boolean isEmpty(final DataFlow dataFlow) {
@@ -309,7 +311,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     }
 
                     // get/create all the reporting task nodes and DTOs, but don't apply their scheduled state yet
-                    final Map<ReportingTaskNode,ReportingTaskDTO> reportingTaskNodesToDTOs = new HashMap<>();
+                    final Map<ReportingTaskNode, ReportingTaskDTO> reportingTaskNodesToDTOs = new HashMap<>();
                     for (final Element taskElement : reportingTaskElements) {
                         final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(taskElement, encryptor);
                         final ReportingTaskNode reportingTask = getOrCreateReportingTask(controller, dto, initialized, existingFlowEmpty);
@@ -344,7 +346,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                                         .collect(Collectors.toSet());
 
                                 // clone the controller services and map the original id to the clone
-                                final Map<String,ControllerServiceNode> controllerServiceMapping = new HashMap<>();
+                                final Map<String, ControllerServiceNode> controllerServiceMapping = new HashMap<>();
                                 for (ControllerServiceNode controllerService : controllerServicesToClone) {
                                     final ControllerServiceNode clone = ControllerServiceLoader.cloneControllerService(controller, controllerService);
                                     controller.addRootControllerService(clone);
@@ -370,7 +372,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     scaleRootGroup(rootGroup, encodingVersion);
 
                     // now that controller services are loaded and enabled we can apply the scheduled state to each reporting task
-                    for (Map.Entry<ReportingTaskNode,ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
+                    for (Map.Entry<ReportingTaskNode, ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
                         applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), initialized, existingFlowEmpty);
                     }
                 }
@@ -403,15 +405,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String,ControllerServiceNode> controllerServiceMapping) {
+    private void updateReportingTaskControllerServices(final Set<ReportingTaskNode> reportingTasks, final Map<String, ControllerServiceNode> controllerServiceMapping) {
         for (ReportingTaskNode reportingTask : reportingTasks) {
             if (reportingTask.getProperties() != null) {
-                final Set<Map.Entry<PropertyDescriptor,String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
+                final Set<Map.Entry<PropertyDescriptor, String>> propertyDescriptors = reportingTask.getProperties().entrySet().stream()
                         .filter(e -> e.getKey().getControllerServiceDefinition() != null)
                         .filter(e -> controllerServiceMapping.containsKey(e.getValue()))
                         .collect(Collectors.toSet());
 
-                for (Map.Entry<PropertyDescriptor,String> propEntry : propertyDescriptors) {
+                for (Map.Entry<PropertyDescriptor, String> propEntry : propertyDescriptors) {
                     final PropertyDescriptor propertyDescriptor = propEntry.getKey();
                     final ControllerServiceNode clone = controllerServiceMapping.get(propEntry.getValue());
                     reportingTask.setProperty(propertyDescriptor.getName(), clone.getIdentifier());
@@ -490,7 +492,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private byte[] readFlowFromDisk() throws IOException {
-        final Path flowPath = NiFiProperties.getInstance().getFlowConfigurationFile().toPath();
+        final Path flowPath = nifiProperties.getFlowConfigurationFile().toPath();
         if (!Files.exists(flowPath) || Files.size(flowPath) == 0) {
             return new byte[0];
         }
@@ -544,7 +546,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
             final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
             final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
-                    SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller);
+                    SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller, nifiProperties);
 
             try {
                 reportingTask.getReportingTask().initialize(config);
@@ -560,7 +562,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void applyReportingTaskScheduleState(final FlowController controller, final ReportingTaskDTO dto, final ReportingTaskNode reportingTask,
-                                                 final boolean controllerInitialized, final boolean existingFlowEmpty) {
+            final boolean controllerInitialized, final boolean existingFlowEmpty) {
         if (!controllerInitialized || existingFlowEmpty) {
             applyNewReportingTaskScheduleState(controller, dto, reportingTask);
         } else {
@@ -636,7 +638,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-        final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
+            final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
@@ -792,10 +794,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     if (inputPort.getScheduledState() != ScheduledState.RUNNING && inputPort.getScheduledState() != ScheduledState.STARTING) {
                         rpg.startTransmitting(inputPort);
                     }
-                } else {
-                    if (inputPort.getScheduledState() != ScheduledState.STOPPED && inputPort.getScheduledState() != ScheduledState.STOPPING) {
-                        rpg.stopTransmitting(inputPort);
-                    }
+                } else if (inputPort.getScheduledState() != ScheduledState.STOPPED && inputPort.getScheduledState() != ScheduledState.STOPPING) {
+                    rpg.stopTransmitting(inputPort);
                 }
             }
 
@@ -813,14 +813,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     if (outputPort.getScheduledState() != ScheduledState.RUNNING && outputPort.getScheduledState() != ScheduledState.STARTING) {
                         rpg.startTransmitting(outputPort);
                     }
-                } else {
-                    if (outputPort.getScheduledState() != ScheduledState.STOPPED && outputPort.getScheduledState() != ScheduledState.STOPPING) {
-                        rpg.stopTransmitting(outputPort);
-                    }
+                } else if (outputPort.getScheduledState() != ScheduledState.STOPPED && outputPort.getScheduledState() != ScheduledState.STOPPING) {
+                    rpg.stopTransmitting(outputPort);
                 }
             }
         }
-
 
         // add labels
         final List<Element> labelNodeList = getChildrenByTagName(processGroupElement, "label");
@@ -969,7 +966,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-        final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
+            final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) throws ProcessorInstantiationException {
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
 
@@ -1285,12 +1282,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     /**
-     * If both authorizers are external authorizers, or if the both are internal authorizers with equal fingerprints,
-     * then an uniheritable result with no reason is returned to indicate nothing to do.
+     * If both authorizers are external authorizers, or if the both are internal
+     * authorizers with equal fingerprints, then an uniheritable result with no
+     * reason is returned to indicate nothing to do.
      *
-     * If both are internal authorizers and the current authorizer is empty, then an inheritable result is returned.
+     * If both are internal authorizers and the current authorizer is empty,
+     * then an inheritable result is returned.
      *
-     * All other cases return uninheritable with a reason which indicates to throw an exception.
+     * All other cases return uninheritable with a reason which indicates to
+     * throw an exception.
      *
      * @param existingFlow the existing DataFlow
      * @param proposedFlow the proposed DataFlow
@@ -1336,13 +1336,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     /**
-     * Returns true if the given controller can inherit the proposed flow without orphaning flow files.
+     * Returns true if the given controller can inherit the proposed flow
+     * without orphaning flow files.
      *
      * @param existingFlow flow
      * @param controller the running controller
      * @param proposedFlow the flow to inherit
      *
-     * @return null if the controller can inherit the specified flow, an explanation of why it cannot be inherited otherwise
+     * @return null if the controller can inherit the specified flow, an
+     * explanation of why it cannot be inherited otherwise
      *
      * @throws FingerprintException if flow fingerprints could not be generated
      */
@@ -1453,7 +1455,8 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     /**
-     * Holder for the result of determining if a proposed Authorizer is inheritable.
+     * Holder for the result of determining if a proposed Authorizer is
+     * inheritable.
      */
     private static final class AuthorizerInheritability {
 

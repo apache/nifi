@@ -51,7 +51,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     private ProcessGroup rootGroup;
     private ScheduledFuture<?> transactionMaintenanceTask;
 
-    private HttpRemoteSiteListener() {
+    private HttpRemoteSiteListener(final NiFiProperties nifiProperties) {
         super();
         taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
@@ -65,10 +65,9 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             }
         });
 
-        NiFiProperties properties = NiFiProperties.getInstance();
         int txTtlSec;
         try {
-            final String snapshotFrequency = properties.getProperty(SITE_TO_SITE_HTTP_TRANSACTION_TTL, DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL);
+            final String snapshotFrequency = nifiProperties.getProperty(SITE_TO_SITE_HTTP_TRANSACTION_TTL, DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL);
             txTtlSec = (int) FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.SECONDS);
         } catch (final Exception e) {
             txTtlSec = (int) FormatUtils.getTimeDuration(DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL, TimeUnit.SECONDS);
@@ -78,11 +77,11 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         transactionTtlSec = txTtlSec;
     }
 
-    public static HttpRemoteSiteListener getInstance() {
+    public static HttpRemoteSiteListener getInstance(final NiFiProperties nifiProperties) {
         if (instance == null) {
             synchronized (HttpRemoteSiteListener.class) {
                 if (instance == null) {
-                    instance = new HttpRemoteSiteListener();
+                    instance = new HttpRemoteSiteListener(nifiProperties);
                 }
             }
         }
@@ -90,6 +89,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     private class TransactionWrapper {
+
         private final FlowFileTransaction transaction;
         private final HandshakeProperties handshakenProperties;
         private long lastCommunicationAt;
@@ -129,7 +129,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             try {
                 Set<String> transactionIds = transactions.keySet().stream().collect(Collectors.toSet());
                 transactionIds.stream().filter(tid -> !isTransactionActive(tid))
-                    .forEach(tid -> cancelTransaction(tid));
+                        .forEach(tid -> cancelTransaction(tid));
             } catch (Exception e) {
                 // Swallow exception so that this thread can keep working.
                 logger.error("An exception occurred while maintaining transactions", e);
@@ -146,7 +146,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         } else {
             logger.debug("Cancel a transaction. transactionId={}", transactionId);
             FlowFileTransaction t = wrapper.transaction;
-            if(t != null && t.getSession() != null){
+            if (t != null && t.getSession() != null) {
                 logger.info("Cancel a transaction, rollback its session. transactionId={}", transactionId);
                 try {
                     t.getSession().rollback();
@@ -158,10 +158,9 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         }
     }
 
-
     @Override
     public void stop() {
-        if(transactionMaintenanceTask != null) {
+        if (transactionMaintenanceTask != null) {
             logger.debug("Stopping transactionMaintenanceTask...");
             transactionMaintenanceTask.cancel(true);
         }
@@ -191,10 +190,9 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
 
     /**
      * @param transactionId transactionId to check
-     * @return Returns a HandshakeProperties instance which is created when this transaction is started,
-          only if the transaction is active,
-          and it holds a HandshakeProperties,
-          otherwise return null
+     * @return Returns a HandshakeProperties instance which is created when this
+     * transaction is started, only if the transaction is active, and it holds a
+     * HandshakeProperties, otherwise return null
      */
     public HandshakeProperties getHandshakenProperties(final String transactionId) {
         TransactionWrapper transaction = transactions.get(transactionId);
@@ -205,7 +203,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     public void holdTransaction(final String transactionId, final FlowFileTransaction transaction,
-                                final HandshakeProperties handshakenProperties) throws IllegalStateException {
+            final HandshakeProperties handshakenProperties) throws IllegalStateException {
         // We don't check expiration of the transaction here, to support large file transport or slow network.
         // The availability of current transaction is already checked when the HTTP request was received at SiteToSiteResource.
         TransactionWrapper currentTransaction = transactions.remove(transactionId);
@@ -224,7 +222,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     public FlowFileTransaction finalizeTransaction(final String transactionId) throws IllegalStateException {
-        if (!isTransactionActive(transactionId)){
+        if (!isTransactionActive(transactionId)) {
             throw new IllegalStateException("Transaction was not found or not active anymore. transactionId=" + transactionId);
         }
         TransactionWrapper transaction = transactions.remove(transactionId);
@@ -239,7 +237,7 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     public void extendTransaction(final String transactionId) throws IllegalStateException {
-        if (!isTransactionActive(transactionId)){
+        if (!isTransactionActive(transactionId)) {
             throw new IllegalStateException("Transaction was not found or not active anymore. transactionId=" + transactionId);
         }
         TransactionWrapper transaction = transactions.get(transactionId);

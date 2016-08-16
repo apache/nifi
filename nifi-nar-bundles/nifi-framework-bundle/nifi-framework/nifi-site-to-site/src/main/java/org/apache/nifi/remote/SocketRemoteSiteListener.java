@@ -46,6 +46,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
+import org.apache.nifi.util.NiFiProperties;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
@@ -55,18 +57,20 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     private final SSLContext sslContext;
     private final NodeInformant nodeInformant;
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
+    private final NiFiProperties nifiProperties;
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private static final Logger LOG = LoggerFactory.getLogger(SocketRemoteSiteListener.class);
 
-    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext) {
-        this(socketPort, sslContext, null);
+    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NiFiProperties nifiProperties) {
+        this(socketPort, sslContext, nifiProperties, null);
     }
 
-    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NodeInformant nodeInformant) {
+    public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NiFiProperties nifiProperties, final NodeInformant nodeInformant) {
         this.socketPort = socketPort;
         this.sslContext = sslContext;
+        this.nifiProperties = nifiProperties;
         this.nodeInformant = nodeInformant;
     }
 
@@ -267,7 +271,14 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                                 protocol.getPort().receiveFlowFiles(peer, protocol);
                                                 break;
                                             case REQUEST_PEER_LIST:
-                                                protocol.sendPeerList(peer, nodeInformant == null ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation()));
+                                                final Optional<ClusterNodeInformation> nodeInfo = (nodeInformant == null) ? Optional.empty() : Optional.of(nodeInformant.getNodeInformation());
+                                                protocol.sendPeerList(
+                                                        peer,
+                                                        nodeInfo,
+                                                        nifiProperties.getRemoteInputHost(),
+                                                        nifiProperties.getRemoteInputPort(),
+                                                        nifiProperties.getRemoteInputHttpPort(),
+                                                        nifiProperties.isSiteToSiteSecure());
                                                 break;
                                             case SHUTDOWN:
                                                 protocol.shutdown(peer);

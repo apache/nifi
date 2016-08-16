@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,9 +70,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     private AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
     private ScriptEngine scriptEngine = null;
+    private volatile String kerberosServicePrincipal = null;
+    private volatile File kerberosConfigFile = null;
+    private volatile File kerberosServiceKeytab = null;
 
     /**
-     * Returns the valid relationships for this processor as supplied by the script itself.
+     * Returns the valid relationships for this processor as supplied by the
+     * script itself.
      *
      * @return a Set of Relationships supported by this processor
      */
@@ -82,7 +87,7 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         if (instance != null) {
             try {
                 final Set<Relationship> rels = instance.getRelationships();
-                if(rels != null && !rels.isEmpty()){
+                if (rels != null && !rels.isEmpty()) {
                     relationships.addAll(rels);
                 }
             } catch (final Throwable t) {
@@ -98,10 +103,19 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         return Collections.unmodifiableSet(relationships);
     }
 
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        kerberosServicePrincipal = context.getKerberosServicePrincipal();
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosServiceKeytab = context.getKerberosServiceKeytab();
+    }
+
     /**
-     * Returns a list of property descriptors supported by this processor. The list always includes properties such as
-     * script engine name, script file name, script body name, script arguments, and an external module path. If the
-     * scripted processor also defines supported properties, those are added to the list as well.
+     * Returns a list of property descriptors supported by this processor. The
+     * list always includes properties such as script engine name, script file
+     * name, script body name, script arguments, and an external module path. If
+     * the scripted processor also defines supported properties, those are added
+     * to the list as well.
      *
      * @return a List of PropertyDescriptor objects supported by this processor
      */
@@ -138,11 +152,14 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     /**
-     * Returns a PropertyDescriptor for the given name. This is for the user to be able to define their own properties
-     * which will be available as variables in the script
+     * Returns a PropertyDescriptor for the given name. This is for the user to
+     * be able to define their own properties which will be available as
+     * variables in the script
      *
-     * @param propertyDescriptorName used to lookup if any property descriptors exist for that name
-     * @return a PropertyDescriptor object corresponding to the specified dynamic property name
+     * @param propertyDescriptorName used to lookup if any property descriptors
+     * exist for that name
+     * @return a PropertyDescriptor object corresponding to the specified
+     * dynamic property name
      */
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -156,8 +173,9 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     /**
-     * Performs setup operations when the processor is scheduled to run. This includes evaluating the processor's
-     * properties, as well as reloading the script (from file or the "Script Body" property)
+     * Performs setup operations when the processor is scheduled to run. This
+     * includes evaluating the processor's properties, as well as reloading the
+     * script (from file or the "Script Body" property)
      *
      * @param context the context in which to perform the setup operations
      */
@@ -193,14 +211,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
         }
     }
 
-
     /**
-     * Handles changes to this processor's properties. If changes are made to script- or engine-related properties,
-     * the script will be reloaded.
+     * Handles changes to this processor's properties. If changes are made to
+     * script- or engine-related properties, the script will be reloaded.
      *
      * @param descriptor of the modified property
-     * @param oldValue   non-null property value (previous)
-     * @param newValue   the new property value or if null indicates the property
+     * @param oldValue non-null property value (previous)
+     * @param newValue the new property value or if null indicates the property
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -212,15 +229,13 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                 || MODULES.equals(descriptor)
                 || SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
-        } else {
-            if (instance != null) {
-                // If the script provides a Processor, call its onPropertyModified() method
-                try {
-                    instance.onPropertyModified(descriptor, oldValue, newValue);
-                } catch (final Exception e) {
-                    final String message = "Unable to invoke onPropertyModified from script Processor: " + e;
-                    logger.error(message, e);
-                }
+        } else if (instance != null) {
+            // If the script provides a Processor, call its onPropertyModified() method
+            try {
+                instance.onPropertyModified(descriptor, oldValue, newValue);
+            } catch (final Exception e) {
+                final String message = "Unable to invoke onPropertyModified from script Processor: " + e;
+                logger.error(message, e);
             }
         }
     }
@@ -354,6 +369,21 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
                                 public NodeTypeProvider getNodeTypeProvider() {
                                     return InvokeScriptedProcessor.super.getNodeTypeProvider();
                                 }
+
+                                @Override
+                                public String getKerberosServicePrincipal() {
+                                    return InvokeScriptedProcessor.this.kerberosServicePrincipal;
+                                }
+
+                                @Override
+                                public File getKerberosServiceKeytab() {
+                                    return InvokeScriptedProcessor.this.kerberosServiceKeytab;
+                                }
+
+                                @Override
+                                public File getKerberosConfigurationFile() {
+                                    return InvokeScriptedProcessor.this.kerberosConfigFile;
+                                }
                             });
                         } catch (final Exception e) {
                             logger.error("Unable to initialize scripted Processor: " + e.getLocalizedMessage(), e);
@@ -386,12 +416,15 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     /**
-     * Invokes the validate() routine provided by the script, allowing for custom validation code.
-     * This method assumes there is a valid Processor defined in the script and it has been loaded
-     * by the InvokeScriptedProcessor processor
+     * Invokes the validate() routine provided by the script, allowing for
+     * custom validation code. This method assumes there is a valid Processor
+     * defined in the script and it has been loaded by the
+     * InvokeScriptedProcessor processor
      *
-     * @param context The validation context to be passed into the custom validate method
-     * @return A collection of ValidationResults returned by the custom validate method
+     * @param context The validation context to be passed into the custom
+     * validate method
+     * @return A collection of ValidationResults returned by the custom validate
+     * method
      */
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -446,17 +479,19 @@ public class InvokeScriptedProcessor extends AbstractScriptProcessor {
     }
 
     /**
-     * Invokes the onTrigger() method of the scripted processor. If the script failed to reload, the processor yields
-     * until the script can be reloaded successfully. If the scripted processor's onTrigger() method throws an
-     * exception, a ProcessException will be thrown. If no processor is defined by the script, an error is logged
-     * with the system.
+     * Invokes the onTrigger() method of the scripted processor. If the script
+     * failed to reload, the processor yields until the script can be reloaded
+     * successfully. If the scripted processor's onTrigger() method throws an
+     * exception, a ProcessException will be thrown. If no processor is defined
+     * by the script, an error is logged with the system.
      *
-     * @param context        provides access to convenience methods for obtaining
-     *                       property values, delaying the scheduling of the processor, provides
-     *                       access to Controller Services, etc.
-     * @param sessionFactory provides access to a {@link ProcessSessionFactory}, which
-     *                       can be used for accessing FlowFiles, etc.
-     * @throws ProcessException if the scripted processor's onTrigger() method throws an exception
+     * @param context provides access to convenience methods for obtaining
+     * property values, delaying the scheduling of the processor, provides
+     * access to Controller Services, etc.
+     * @param sessionFactory provides access to a {@link ProcessSessionFactory},
+     * which can be used for accessing FlowFiles, etc.
+     * @throws ProcessException if the scripted processor's onTrigger() method
+     * throws an exception
      */
     @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {

@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -26,7 +27,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
  * A ReportingConfiguration provides configuration information to a
  * ReportingTask at the time of initialization
  */
-public interface ReportingInitializationContext {
+public interface ReportingInitializationContext extends KerberosContext {
 
     /**
      * @return the identifier for this ReportingTask

@@ -26,6 +26,8 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -68,12 +70,12 @@ public class AccessControlHelper {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
 
         // update the flow.xml property
-        NiFiProperties props = NiFiProperties.getInstance();
-        props.setProperty(NiFiProperties.FLOW_CONFIGURATION_FILE, flowXmlPath);
-
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.FLOW_CONFIGURATION_FILE, flowXmlPath);
         if (overrideAuthorizer != null) {
-            props.setProperty(NiFiProperties.SECURITY_USER_AUTHORIZER, overrideAuthorizer);
+            addProps.put(NiFiProperties.SECURITY_USER_AUTHORIZER, overrideAuthorizer);
         }
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         // load extensions
         NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());

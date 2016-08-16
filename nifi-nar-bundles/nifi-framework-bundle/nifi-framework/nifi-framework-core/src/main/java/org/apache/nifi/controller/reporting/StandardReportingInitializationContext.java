@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller.reporting;
 
+import java.io.File;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -26,6 +27,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 public class StandardReportingInitializationContext implements ReportingInitializationContext, ControllerServiceLookup {
 
@@ -35,15 +37,19 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     private final SchedulingStrategy schedulingStrategy;
     private final ControllerServiceProvider serviceProvider;
     private final ComponentLog logger;
+    private final NiFiProperties nifiProperties;
 
-    public StandardReportingInitializationContext(final String id, final String name, final SchedulingStrategy schedulingStrategy,
-            final String schedulingPeriod, final ComponentLog logger, final ControllerServiceProvider serviceProvider) {
+    public StandardReportingInitializationContext(
+            final String id, final String name, final SchedulingStrategy schedulingStrategy,
+            final String schedulingPeriod, final ComponentLog logger,
+            final ControllerServiceProvider serviceProvider, final NiFiProperties nifiProperties) {
         this.id = id;
         this.name = name;
         this.schedulingPeriod = schedulingPeriod;
         this.serviceProvider = serviceProvider;
         this.schedulingStrategy = schedulingStrategy;
         this.logger = logger;
+        this.nifiProperties = nifiProperties;
     }
 
     @Override
@@ -112,5 +118,20 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     @Override
     public ComponentLog getLogger() {
         return logger;
+    }
+
+    @Override
+    public String getKerberosServicePrincipal() {
+        return nifiProperties.getKerberosServicePrincipal();
+    }
+
+    @Override
+    public File getKerberosServiceKeytab() {
+        return new File(nifiProperties.getKerberosKeytabLocation());
+    }
+
+    @Override
+    public File getKerberosConfigurationFile() {
+        return nifiProperties.getKerberosConfigurationFile();
     }
 }

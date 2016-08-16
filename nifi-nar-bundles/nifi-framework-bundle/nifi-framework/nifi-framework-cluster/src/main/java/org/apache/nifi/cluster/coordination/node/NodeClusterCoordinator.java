@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.node;
 
 import java.io.IOException;
@@ -25,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,6 +70,7 @@ import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -80,6 +79,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandler, RequestCompletionCallback {
+
     private static final Logger logger = LoggerFactory.getLogger(NodeClusterCoordinator.class);
     private static final String EVENT_CATEGORY = "Clustering";
 
@@ -97,6 +97,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final CuratorFramework curatorClient;
     private final String nodesPathPrefix;
     private final String coordinatorPath;
+    private final NiFiProperties nifiProperties;
 
     private volatile FlowService flowService;
     private volatile boolean connected;
@@ -107,18 +108,19 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     private final ConcurrentMap<NodeIdentifier, CircularFifoQueue<NodeEvent>> nodeEvents = new ConcurrentHashMap<>();
 
     public NodeClusterCoordinator(final ClusterCoordinationProtocolSenderListener senderListener, final EventReporter eventReporter,
-        final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final Properties nifiProperties) {
+            final ClusterNodeFirewall firewall, final RevisionManager revisionManager, final NiFiProperties nifiProperties) {
         this.senderListener = senderListener;
         this.flowService = null;
         this.eventReporter = eventReporter;
         this.firewall = firewall;
         this.revisionManager = revisionManager;
+        this.nifiProperties = nifiProperties;
 
         final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
         final ZooKeeperClientConfig zkConfig = ZooKeeperClientConfig.createConfig(nifiProperties);
 
         curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
-            zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
+                zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
 
         curatorClient.start();
         nodesPathPrefix = zkConfig.resolvePath("cluster/nodes");
@@ -226,12 +228,15 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     /**
-     * Attempts to update the nodeStatuses map by changing the value for the given node id from the current status to the new status, as in
-     * ConcurrentMap.replace(nodeId, currentStatus, newStatus) but with the difference that this method can handle a <code>null</code> value
-     * for currentStatus
+     * Attempts to update the nodeStatuses map by changing the value for the
+     * given node id from the current status to the new status, as in
+     * ConcurrentMap.replace(nodeId, currentStatus, newStatus) but with the
+     * difference that this method can handle a <code>null</code> value for
+     * currentStatus
      *
      * @param nodeId the node id
-     * @param currentStatus the current status, or <code>null</code> if there is no value currently
+     * @param currentStatus the current status, or <code>null</code> if there is
+     * no value currently
      * @param newStatus the new status to set
      * @return <code>true</code> if the map was updated, false otherwise
      */
@@ -295,7 +300,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         logger.info("{} is now connected", nodeId);
         updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.CONNECTED, getRoles(nodeId)));
     }
-
 
     @Override
     public void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
@@ -362,7 +366,6 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         final NodeConnectionStatus status = getConnectionStatus(nodeId);
         return status == null ? null : status.getState();
     }
-
 
     @Override
     public Map<NodeConnectionState, List<NodeIdentifier>> getConnectionStates() {
@@ -521,18 +524,18 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         }
 
         return nodeStatuses.entrySet().stream()
-            .filter(entry -> statesOfInterest.contains(entry.getValue().getState()))
-            .map(entry -> entry.getKey())
-            .collect(Collectors.toSet());
+                .filter(entry -> statesOfInterest.contains(entry.getValue().getState()))
+                .map(entry -> entry.getKey())
+                .collect(Collectors.toSet());
     }
 
     @Override
     public NodeIdentifier getPrimaryNode() {
         return nodeStatuses.values().stream()
-            .filter(status -> status.getRoles().contains(ClusterRoles.PRIMARY_NODE))
-            .findFirst()
-            .map(status -> status.getNodeIdentifier())
-            .orElse(null);
+                .filter(status -> status.getRoles().contains(ClusterRoles.PRIMARY_NODE))
+                .findFirst()
+                .map(status -> status.getNodeIdentifier())
+                .orElse(null);
     }
 
     @Override
@@ -582,13 +585,13 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         final Set<NodeIdentifier> connectedNodeIds = getNodeIdentifiers();
         final NodeIdentifier electedNodeId = connectedNodeIds.stream()
-            .filter(nodeId -> nodeId.getSocketAddress().equals(electedNodeHostname) && nodeId.getSocketPort() == electedNodePort)
-            .findFirst()
-            .orElse(null);
+                .filter(nodeId -> nodeId.getSocketAddress().equals(electedNodeHostname) && nodeId.getSocketPort() == electedNodePort)
+                .findFirst()
+                .orElse(null);
 
         if (electedNodeId == null && warnOnError) {
             logger.debug("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {},"
-                + "but there is no node with this address. Will attempt to communicate with node to determine its information", electedNodeAddress);
+                    + "but there is no node with this address. Will attempt to communicate with node to determine its information", electedNodeAddress);
 
             try {
                 final NodeConnectionStatus connectionStatus = senderListener.requestNodeConnectionStatus(electedNodeHostname, electedNodePort);
@@ -606,7 +609,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 }
             } catch (final Exception e) {
                 logger.warn("Failed to determine which node is elected active Cluster Coordinator: ZooKeeper reports the address as {}, but there is no node with this address. "
-                    + "Attempted to determine the node's information but failed to retrieve its information due to {}", electedNodeAddress, e.toString());
+                        + "Attempted to determine the node's information but failed to retrieve its information due to {}", electedNodeAddress, e.toString());
 
                 if (logger.isDebugEnabled()) {
                     logger.warn("", e);
@@ -656,8 +659,9 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     /**
-     * Updates the status of the node with the given ID to the given status and returns <code>true</code>
-     * if successful, <code>false</code> if no node exists with the given ID
+     * Updates the status of the node with the given ID to the given status and
+     * returns <code>true</code> if successful, <code>false</code> if no node
+     * exists with the given ID
      *
      * @param status the new status of the node
      */
@@ -705,7 +709,8 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
      * Notifies other nodes that the status of a node changed
      *
      * @param updatedStatus the updated status for a node in the cluster
-     * @param notifyAllNodes if <code>true</code> will notify all nodes. If <code>false</code>, will notify only the cluster coordinator
+     * @param notifyAllNodes if <code>true</code> will notify all nodes. If
+     * <code>false</code>, will notify only the cluster coordinator
      */
     void notifyOthersOfNodeStatusChange(final NodeConnectionStatus updatedStatus, final boolean notifyAllNodes, final boolean waitForCoordinator) {
         // If this node is the active cluster coordinator, then we are going to replicate to all nodes.
@@ -770,7 +775,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         Thread.sleep(100L);
                     } catch (final InterruptedException ie) {
                         logger.info("Could not send Reconnection request to {} because thread was "
-                            + "interrupted before FlowService was made available", request.getNodeId());
+                                + "interrupted before FlowService was made available", request.getNodeId());
                         Thread.currentThread().interrupt();
                         return;
                     }
@@ -797,7 +802,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     } catch (final Exception e) {
                         logger.warn("Problem encountered issuing reconnection request to node " + request.getNodeId(), e);
                         eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, "Problem encountered issuing reconnection request to node "
-                            + request.getNodeId() + " due to: " + e);
+                                + request.getNodeId() + " due to: " + e);
                     }
 
                     try {
@@ -810,7 +815,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 // We failed to reconnect too many times. We must now mark node as disconnected.
                 if (NodeConnectionState.CONNECTING == getConnectionState(request.getNodeId())) {
                     requestNodeDisconnect(request.getNodeId(), DisconnectionCode.UNABLE_TO_COMMUNICATE,
-                        "Attempted to request that node reconnect to cluster but could not communicate with node");
+                            "Attempted to request that node reconnect to cluster but could not communicate with node");
                 }
             }
         }, "Reconnect " + request.getNodeId());
@@ -944,10 +949,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         } else {
             // there is a node with that ID and it's a different node
             resolvedNodeId = new NodeIdentifier(UUID.randomUUID().toString(), proposedIdentifier.getApiAddress(), proposedIdentifier.getApiPort(),
-                proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(), proposedIdentifier.getSiteToSiteAddress(),
-                proposedIdentifier.getSiteToSitePort(), proposedIdentifier.getSiteToSiteHttpApiPort(), proposedIdentifier.isSiteToSiteSecure());
+                    proposedIdentifier.getSocketAddress(), proposedIdentifier.getSocketPort(), proposedIdentifier.getSiteToSiteAddress(),
+                    proposedIdentifier.getSiteToSitePort(), proposedIdentifier.getSiteToSiteHttpApiPort(), proposedIdentifier.isSiteToSiteSecure());
             logger.debug("A node already exists with ID {}. Proposed Node Identifier was {}; existing Node Identifier is {}; Resolved Node Identifier is {}",
-                proposedIdentifier.getId(), proposedIdentifier, getNodeIdentifier(proposedIdentifier.getId()), resolvedNodeId);
+                    proposedIdentifier.getId(), proposedIdentifier, getNodeIdentifier(proposedIdentifier.getId()), resolvedNodeId);
         }
 
         return resolvedNodeId;
@@ -989,7 +994,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                 dataFlow = flowService.createDataFlow();
             } catch (final IOException ioe) {
                 logger.error("Unable to obtain current dataflow from FlowService in order to provide the flow to "
-                    + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);
+                        + resolvedNodeIdentifier + ". Will tell node to try again later", ioe);
             }
         }
 
@@ -998,37 +1003,37 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             // the flow management service a chance to retrieve a current flow
             final int tryAgainSeconds = 5;
             addNodeEvent(resolvedNodeIdentifier, Severity.WARNING, "Connection requested from node, but manager was unable to obtain current flow. "
-                + "Instructing node to try again in " + tryAgainSeconds + " seconds.");
+                    + "Instructing node to try again in " + tryAgainSeconds + " seconds.");
 
             // return try later response
             return new ConnectionResponse(tryAgainSeconds);
         }
 
         return new ConnectionResponse(resolvedNodeIdentifier, dataFlow, instanceId, new ArrayList<>(nodeStatuses.values()),
-            revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
+                revisionManager.getAllRevisions().stream().map(rev -> ComponentRevision.fromRevision(rev)).collect(Collectors.toList()));
     }
 
     private NodeIdentifier addRequestorDn(final NodeIdentifier nodeId, final String dn) {
         return new NodeIdentifier(nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort(),
-            nodeId.getSocketAddress(), nodeId.getSocketPort(),
-            nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
-            nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), dn);
+                nodeId.getSocketAddress(), nodeId.getSocketPort(),
+                nodeId.getSiteToSiteAddress(), nodeId.getSiteToSitePort(),
+                nodeId.getSiteToSiteHttpApiPort(), nodeId.isSiteToSiteSecure(), dn);
     }
 
     @Override
     public boolean canHandle(final ProtocolMessage msg) {
         return MessageType.CONNECTION_REQUEST == msg.getType() || MessageType.NODE_STATUS_CHANGE == msg.getType()
-            || MessageType.NODE_CONNECTION_STATUS_REQUEST == msg.getType();
+                || MessageType.NODE_CONNECTION_STATUS_REQUEST == msg.getType();
     }
 
     private boolean isMutableRequest(final String method) {
         return "DELETE".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method);
     }
 
-
     /**
-     * Callback that is called after an HTTP Request has been replicated to nodes in the cluster.
-     * This allows us to disconnect nodes that did not complete the request, if applicable.
+     * Callback that is called after an HTTP Request has been replicated to
+     * nodes in the cluster. This allows us to disconnect nodes that did not
+     * complete the request, if applicable.
      */
     @Override
     public void afterRequest(final String uriPath, final String method, final Set<NodeResponse> nodeResponses) {
@@ -1047,7 +1052,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
          * state even if they had problems handling the request.
          */
         if (mutableRequest) {
-            final HttpResponseMerger responseMerger = new StandardHttpResponseMerger();
+            final HttpResponseMerger responseMerger = new StandardHttpResponseMerger(nifiProperties);
             final Set<NodeResponse> problematicNodeResponses = responseMerger.getProblematicNodeResponses(nodeResponses);
 
             // all nodes failed
@@ -1055,7 +1060,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
             // some nodes had a problematic response because of a missing counter, ensure the are not disconnected
             final boolean someNodesFailedMissingCounter = !problematicNodeResponses.isEmpty()
-                && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uriPath);
+                    && problematicNodeResponses.size() < nodeResponses.size() && isMissingCounter(problematicNodeResponses, uriPath);
 
             // ensure nodes stay connected in certain scenarios
             if (allNodesFailed) {
@@ -1079,12 +1084,15 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     /**
-     * Determines if all problematic responses were due to 404 NOT_FOUND. Assumes that problematicNodeResponses is not empty and is not comprised of responses from all nodes in the cluster (at least
-     * one node contained the counter in question).
+     * Determines if all problematic responses were due to 404 NOT_FOUND.
+     * Assumes that problematicNodeResponses is not empty and is not comprised
+     * of responses from all nodes in the cluster (at least one node contained
+     * the counter in question).
      *
      * @param problematicNodeResponses The problematic node responses
      * @param uriPath The path of the URI for the request
-     * @return Whether all problematic node responses were due to a missing counter
+     * @return Whether all problematic node responses were due to a missing
+     * counter
      */
     private boolean isMissingCounter(final Set<NodeResponse> problematicNodeResponses, final String uriPath) {
         if (COUNTER_URI_PATTERN.matcher(uriPath).matches()) {

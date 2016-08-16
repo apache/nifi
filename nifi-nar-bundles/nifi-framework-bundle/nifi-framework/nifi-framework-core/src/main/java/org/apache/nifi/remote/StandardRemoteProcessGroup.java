@@ -76,8 +76,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import static java.util.Objects.requireNonNull;
 
 /**
- * Represents the Root Process Group of a remote NiFi Instance. Holds information about that remote instance, as well as {@link IncomingPort}s and {@link OutgoingPort}s for communicating with the
- * remote instance.
+ * Represents the Root Process Group of a remote NiFi Instance. Holds
+ * information about that remote instance, as well as {@link IncomingPort}s and
+ * {@link OutgoingPort}s for communicating with the remote instance.
  */
 public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
@@ -95,6 +96,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final String protocol;
     private final ProcessScheduler scheduler;
     private final EventReporter eventReporter;
+    private final NiFiProperties nifiProperties;
 
     private final AtomicReference<String> name = new AtomicReference<>();
     private final AtomicReference<Position> position = new AtomicReference<>();
@@ -114,7 +116,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private volatile Integer proxyPort;
     private volatile String proxyUser;
     private volatile String proxyPassword;
-
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -137,7 +138,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private final ScheduledExecutorService backgroundThreadExecutor;
 
     public StandardRemoteProcessGroup(final String id, final String targetUri, final ProcessGroup processGroup,
-            final FlowController flowController, final SSLContext sslContext) {
+            final FlowController flowController, final SSLContext sslContext, final NiFiProperties nifiProperties) {
+        this.nifiProperties = nifiProperties;
         this.id = requireNonNull(id);
         this.flowController = requireNonNull(flowController);
         final URI uri;
@@ -174,7 +176,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
                 bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
-                    sourceName, category, severity.name(), message));
+                        sourceName, category, severity.name(), message));
             }
         };
 
@@ -400,8 +402,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Changes the currently configured input ports to the ports described in the given set. If any port is currently configured that is not in the set given, that port will be shutdown and removed.
-     * If any port is currently not configured and is in the set given, that port will be instantiated and started.
+     * Changes the currently configured input ports to the ports described in
+     * the given set. If any port is currently configured that is not in the set
+     * given, that port will be shutdown and removed. If any port is currently
+     * not configured and is in the set given, that port will be instantiated
+     * and started.
      *
      * @param ports the new ports
      *
@@ -450,10 +455,12 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Returns a boolean indicating whether or not an Output Port exists with the given ID
+     * Returns a boolean indicating whether or not an Output Port exists with
+     * the given ID
      *
      * @param id identifier of port
-     * @return <code>true</code> if an Output Port exists with the given ID, <code>false</code> otherwise.
+     * @return <code>true</code> if an Output Port exists with the given ID,
+     * <code>false</code> otherwise.
      */
     public boolean containsOutputPort(final String id) {
         readLock.lock();
@@ -465,8 +472,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Changes the currently configured output ports to the ports described in the given set. If any port is currently configured that is not in the set given, that port will be shutdown and removed.
-     * If any port is currently not configured and is in the set given, that port will be instantiated and started.
+     * Changes the currently configured output ports to the ports described in
+     * the given set. If any port is currently configured that is not in the set
+     * given, that port will be shutdown and removed. If any port is currently
+     * not configured and is in the set given, that port will be instantiated
+     * and started.
      *
      * @param ports the new ports
      *
@@ -519,7 +529,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      *
      *
      * @throws NullPointerException if the given output Port is null
-     * @throws IllegalStateException if the port does not belong to this remote process group
+     * @throws IllegalStateException if the port does not belong to this remote
+     * process group
      */
     @Override
     public void removeNonExistentPort(final RemoteGroupPort port) {
@@ -597,11 +608,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Adds an Output Port to this Remote Process Group that is described by this DTO.
+     * Adds an Output Port to this Remote Process Group that is described by
+     * this DTO.
      *
      * @param descriptor
      *
-     * @throws IllegalStateException if an Output Port already exists with the ID given by dto.getId()
+     * @throws IllegalStateException if an Output Port already exists with the
+     * ID given by dto.getId()
      */
     private void addOutputPort(final RemoteProcessGroupPortDescriptor descriptor) {
         writeLock.lock();
@@ -611,7 +624,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
 
             final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getName(), getProcessGroup(),
-                    this, TransferDirection.RECEIVE, ConnectableType.REMOTE_OUTPUT_PORT, sslContext, scheduler);
+                    this, TransferDirection.RECEIVE, ConnectableType.REMOTE_OUTPUT_PORT, sslContext, scheduler, nifiProperties);
             outputPorts.put(descriptor.getId(), port);
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
@@ -627,7 +640,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     /**
      * @param portIdentifier the ID of the Port to send FlowFiles to
-     * @return {@link RemoteGroupPort} that can be used to send FlowFiles to the port whose ID is given on the remote instance
+     * @return {@link RemoteGroupPort} that can be used to send FlowFiles to the
+     * port whose ID is given on the remote instance
      */
     @Override
     public RemoteGroupPort getInputPort(final String portIdentifier) {
@@ -644,7 +658,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * @return a set of {@link OutgoingPort}s used for transmitting FlowFiles to the remote instance
+     * @return a set of {@link OutgoingPort}s used for transmitting FlowFiles to
+     * the remote instance
      */
     @Override
     public Set<RemoteGroupPort> getInputPorts() {
@@ -659,11 +674,13 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Adds an InputPort to this ProcessGroup that is described by the given DTO.
+     * Adds an InputPort to this ProcessGroup that is described by the given
+     * DTO.
      *
      * @param descriptor port descriptor
      *
-     * @throws IllegalStateException if an Input Port already exists with the ID given by the ID of the DTO.
+     * @throws IllegalStateException if an Input Port already exists with the ID
+     * given by the ID of the DTO.
      */
     private void addInputPort(final RemoteProcessGroupPortDescriptor descriptor) {
         writeLock.lock();
@@ -673,7 +690,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
 
             final StandardRemoteGroupPort port = new StandardRemoteGroupPort(descriptor.getId(), descriptor.getName(), getProcessGroup(), this,
-                    TransferDirection.SEND, ConnectableType.REMOTE_INPUT_PORT, sslContext, scheduler);
+                    TransferDirection.SEND, ConnectableType.REMOTE_INPUT_PORT, sslContext, scheduler, nifiProperties);
 
             if (descriptor.getConcurrentlySchedulableTaskCount() != null) {
                 port.setMaxConcurrentTasks(descriptor.getConcurrentlySchedulableTaskCount());
@@ -703,7 +720,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * @return a set of {@link RemoteGroupPort}s used for receiving FlowFiles from the remote instance
+     * @return a set of {@link RemoteGroupPort}s used for receiving FlowFiles
+     * from the remote instance
      */
     @Override
     public Set<RemoteGroupPort> getOutputPorts() {
@@ -772,10 +790,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         writeLock.lock();
         try {
-            final NiFiProperties props = NiFiProperties.getInstance();
-            this.destinationSecure = props.isSiteToSiteSecure();
-            this.listeningPort = props.getRemoteInputPort();
-            this.listeningHttpPort = props.getRemoteInputHttpPort();
+            this.destinationSecure = nifiProperties.isSiteToSiteSecure();
+            this.listeningPort = nifiProperties.getRemoteInputPort();
+            this.listeningHttpPort = nifiProperties.getRemoteInputHttpPort();
 
             refreshContentsTimestamp = System.currentTimeMillis();
         } finally {
@@ -815,8 +832,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             // perform the request
             final ControllerDTO dto;
             try (
-                final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient();
-            ){
+                    final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient();) {
                 dto = apiClient.getController();
             } catch (IOException e) {
                 writeLock.lock();
@@ -1138,7 +1154,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         @Override
         public void run() {
-            try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()){
+            try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
                 try {
                     final ControllerDTO dto = apiClient.getController();
 
@@ -1182,7 +1198,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                                 logger.error("", e);
                             }
                         }
-                        */
+                         */
                         authorizationIssue = e.getDescription();
 
                     } else if (e.getResponseCode() == FORBIDDEN_STATUS_CODE) {
@@ -1192,7 +1208,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                         logger.warn("{} When communicating with remote instance, got unexpected result. {}",
                                 new Object[]{this, e.getMessage()});
                         authorizationIssue = "Unable to determine Site-to-Site availability.";
-                  }
+                    }
                 }
 
             } catch (final Exception e) {
@@ -1321,7 +1337,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     private File getPeerPersistenceFile() {
-        final File stateDir = NiFiProperties.getInstance().getPersistentStateDirectory();
+        final File stateDir = nifiProperties.getPersistentStateDirectory();
         return new File(stateDir, getIdentifier() + ".peers");
     }
 

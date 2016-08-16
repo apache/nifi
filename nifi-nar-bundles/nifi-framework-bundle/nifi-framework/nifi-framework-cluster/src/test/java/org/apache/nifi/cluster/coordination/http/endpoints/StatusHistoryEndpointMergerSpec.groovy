@@ -32,7 +32,8 @@ import spock.lang.Unroll
 class StatusHistoryEndpointMergerSpec extends Specification {
 
     def setup() {
-        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties"
+        def propFile = StatusHistoryEndpointMergerSpec.class.getResource("/conf/nifi.properties").getFile()
+        System.setProperty NiFiProperties.PROPERTIES_FILE_PATH, propFile
     }
 
     def cleanup() {
@@ -48,7 +49,7 @@ class StatusHistoryEndpointMergerSpec extends Specification {
         mapper.setSerializationConfig(serializationConfig.withSerializationInclusion(JsonSerialize.Inclusion.NON_NULL).withAnnotationIntrospector(jaxbIntrospector));
 
         and: "setup of the data to be used in the test"
-        def merger = new StatusHistoryEndpointMerger()
+        def merger = new StatusHistoryEndpointMerger(2)
         def requestUri = new URI("http://server/$requestUriPart")
         def requestId = UUID.randomUUID().toString()
         def Map<ClientResponse, Object> mockToRequestEntity = [:]

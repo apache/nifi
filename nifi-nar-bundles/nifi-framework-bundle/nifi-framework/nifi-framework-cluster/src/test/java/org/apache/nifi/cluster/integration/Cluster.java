@@ -18,7 +18,9 @@
 package org.apache.nifi.cluster.integration;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -91,11 +93,11 @@ public class Cluster {
 
 
     public Node createNode() {
-        NiFiProperties.getInstance().setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, getZooKeeperConnectString());
-        NiFiProperties.getInstance().setProperty(NiFiProperties.CLUSTER_IS_NODE, "true");
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, getZooKeeperConnectString());
+        addProps.put(NiFiProperties.CLUSTER_IS_NODE, "true");
 
-        final NiFiProperties properties = NiFiProperties.getInstance().copy();
-        final Node node = new Node(properties);
+        final Node node = new Node(NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", addProps));
         node.start();
         nodes.add(node);
 

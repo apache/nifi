@@ -55,6 +55,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TestFileSystemRepository {
 
@@ -65,14 +67,16 @@ public class TestFileSystemRepository {
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
     private final File rootFile = new File("target/content_repository");
+    private NiFiProperties nifiProperties;
 
     @Before
     public void setup() throws IOException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
         if (rootFile.exists()) {
             DiskUtils.deleteRecursively(rootFile);
         }
-        repository = new FileSystemRepository();
+        repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(claimManager);
         repository.purge();
@@ -94,49 +98,39 @@ public class TestFileSystemRepository {
         testAppender.setName("Test");
         testAppender.start();
         root.addAppender(testAppender);
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
+        final NiFiProperties localProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        repository = new FileSystemRepository(localProps);
+        repository.initialize(new StandardResourceClaimManager());
+        repository.purge();
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final String originalCleanupFreq = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-        properties.setProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, "1 millis");
-        try {
-            repository = new FileSystemRepository();
-            repository.initialize(new StandardResourceClaimManager());
-            repository.purge();
-
-
-            boolean messageFound = false;
-            String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
+        boolean messageFound = false;
+        String message = "The value of nifi.content.repository.archive.cleanup.frequency property "
                 + "is set to '1 millis' which is below the allowed minimum of 1 second (1000 milliseconds). "
                 + "Minimum value of 1 sec will be used as scheduling interval for archive cleanup task.";
-            for (ILoggingEvent event : testAppender.list) {
-                String actualMessage = event.getFormattedMessage();
-                if (actualMessage.equals(message)) {
-                    assertEquals(event.getLevel(), Level.WARN);
-                    messageFound = true;
-                    break;
-                }
-            }
-            assertTrue(messageFound);
-        } finally {
-            if (originalCleanupFreq == null) {
-                properties.remove(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-            } else {
-                properties.setProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY, originalCleanupFreq);
+        for (ILoggingEvent event : testAppender.list) {
+            String actualMessage = event.getFormattedMessage();
+            if (actualMessage.equals(message)) {
+                assertEquals(event.getLevel(), Level.WARN);
+                messageFound = true;
+                break;
             }
         }
+        assertTrue(messageFound);
     }
 
     @Test
     public void testBogusFile() throws IOException {
         repository.shutdown();
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
 
         File bogus = new File(rootFile, "bogus");
         try {
             bogus.mkdir();
             bogus.setReadable(false);
 
-            repository = new FileSystemRepository();
+            repository = new FileSystemRepository(nifiProperties);
             repository.initialize(new StandardResourceClaimManager());
         } finally {
             bogus.setReadable(true);
@@ -198,14 +192,13 @@ public class TestFileSystemRepository {
         repository.shutdown();
         Thread.sleep(1000L);
 
-        repository = new FileSystemRepository();
+        repository = new FileSystemRepository(nifiProperties);
         repository.initialize(new StandardResourceClaimManager());
         repository.purge();
 
         final ContentClaim claim2 = repository.create(false);
         assertNotSame(claim1.getResourceClaim(), claim2.getResourceClaim());
     }
-
 
     @Test
     public void testWriteWithNoContent() throws IOException {
@@ -313,7 +306,6 @@ public class TestFileSystemRepository {
 
         assertTrue(Arrays.equals(expected, baos.toByteArray()));
     }
-
 
     @Test
     public void testImportFromStream() throws IOException {
@@ -452,7 +444,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository() {
+            repository = new FileSystemRepository(nifiProperties) {
                 @Override
                 protected boolean archive(Path curPath) throws IOException {
                     archivedPaths.add(curPath);
@@ -494,7 +486,6 @@ public class TestFileSystemRepository {
         }
     }
 
-
     @Test
     public void testWriteCannotProvideNullOutput() throws IOException {
         FileSystemRepository repository = null;
@@ -504,7 +495,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository() {
+            repository = new FileSystemRepository(nifiProperties) {
                 @Override
                 protected boolean archive(Path curPath) throws IOException {
                     if (getOpenStreamCount() > 0) {
@@ -545,23 +536,33 @@ public class TestFileSystemRepository {
     }
 
     /**
-     * We have encountered a situation where the File System Repo is moving files to archive and then eventually
-     * aging them off while there is still an open file handle. This test is meant to replicate the conditions under
+     * We have encountered a situation where the File System Repo is moving
+     * files to archive and then eventually aging them off while there is still
+     * an open file handle. This test is meant to replicate the conditions under
      * which this would happen and verify that it is fixed.
      *
-     * The condition that caused this appears to be that a Process Session created a Content Claim and then did not write
-     * to it. It then decremented the claimant count (which reduced the count to 0). This was likely due to creating the
-     * claim in ProcessSession.write(FlowFile, StreamCallback) and then having an Exception thrown when the Process Session
-     * attempts to read the current Content Claim. In this case, it would not ever get to the point of calling
-     * FileSystemRepository.write().
+     * The condition that caused this appears to be that a Process Session
+     * created a Content Claim and then did not write to it. It then decremented
+     * the claimant count (which reduced the count to 0). This was likely due to
+     * creating the claim in ProcessSession.write(FlowFile, StreamCallback) and
+     * then having an Exception thrown when the Process Session attempts to read
+     * the current Content Claim. In this case, it would not ever get to the
+     * point of calling FileSystemRepository.write().
      *
-     * The above sequence of events is problematic because calling FileSystemRepository.create() will remove the Resource Claim
-     * from the 'writable claims queue' and expects that we will write to it. When we call FileSystemRepository.write() with that
-     * Resource Claim, we return an OutputStream that, when closed, will take care of adding the Resource Claim back to the
-     * 'writable claims queue' or otherwise close the FileOutputStream that is open for that Resource Claim. If FileSystemRepository.write()
-     * is never called, or if the OutputStream returned by that method is never closed, but the Content Claim is then decremented to 0,
-     * we can get into a situation where we do archive the content (because the claimant count is 0 and it is not in the 'writable claims queue')
-     * and then eventually age it off, without ever closing the OutputStream. We need to ensure that we do always close that Output Stream.
+     * The above sequence of events is problematic because calling
+     * FileSystemRepository.create() will remove the Resource Claim from the
+     * 'writable claims queue' and expects that we will write to it. When we
+     * call FileSystemRepository.write() with that Resource Claim, we return an
+     * OutputStream that, when closed, will take care of adding the Resource
+     * Claim back to the 'writable claims queue' or otherwise close the
+     * FileOutputStream that is open for that Resource Claim. If
+     * FileSystemRepository.write() is never called, or if the OutputStream
+     * returned by that method is never closed, but the Content Claim is then
+     * decremented to 0, we can get into a situation where we do archive the
+     * content (because the claimant count is 0 and it is not in the 'writable
+     * claims queue') and then eventually age it off, without ever closing the
+     * OutputStream. We need to ensure that we do always close that Output
+     * Stream.
      */
     @Test
     public void testMarkDestructableDoesNotArchiveIfStreamOpenAndNotWrittenTo() throws IOException, InterruptedException {
@@ -572,7 +573,7 @@ public class TestFileSystemRepository {
             // We are creating our own 'local' repository in this test so shut down the one created in the setup() method
             shutdown();
 
-            repository = new FileSystemRepository() {
+            repository = new FileSystemRepository(nifiProperties) {
                 @Override
                 protected boolean archive(Path curPath) throws IOException {
                     if (getOpenStreamCount() > 0) {

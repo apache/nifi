@@ -39,12 +39,13 @@ public class TestVolatileProvenanceRepository {
 
     @BeforeClass
     public static void setup() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestVolatileProvenanceRepository.class.getResource("/nifi.properties").getFile());
     }
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-        repo = new VolatileProvenanceRepository();
+
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -77,7 +78,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository();
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();

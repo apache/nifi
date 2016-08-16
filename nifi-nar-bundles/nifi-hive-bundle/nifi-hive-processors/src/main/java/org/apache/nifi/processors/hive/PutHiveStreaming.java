@@ -52,8 +52,6 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
@@ -367,7 +365,7 @@ public class PutHiveStreaming extends AbstractProcessor {
 
         final List<String> partitionColumnList;
         final String partitionColumns = context.getProperty(PARTITION_COLUMNS).getValue();
-        if (StringUtils.isEmpty(partitionColumns)) {
+        if (partitionColumns == null || partitionColumns.isEmpty()) {
             partitionColumnList = Collections.emptyList();
         } else {
             String[] partitionCols = partitionColumns.split(",");
@@ -832,7 +830,7 @@ public class PutHiveStreaming extends AbstractProcessor {
     }
 
     protected KerberosProperties getKerberosProperties() {
-        return KerberosProperties.create(NiFiProperties.getInstance());
+        return kerberosProperties;
     }
 
     protected class HiveStreamingRecord {

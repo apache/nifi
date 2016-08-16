@@ -70,7 +70,7 @@ public class TestCreateHadoopSequenceFile {
     public void setUp() {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+        kerberosProperties = new KerberosProperties(null);
 
         CreateHadoopSequenceFile proc = new TestableCreateHadoopSequenceFile(kerberosProperties);
         controller = TestRunners.newTestRunner(proc);

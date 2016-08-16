@@ -43,6 +43,7 @@ import java.net.URI;
 import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.nifi.util.NiFiProperties;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -70,17 +71,18 @@ public class TestStandardRemoteGroupPort {
 
     @BeforeClass
     public static void setup() throws Exception {
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
     }
 
     private void setupMock(final SiteToSiteTransportProtocol protocol,
-                           final TransferDirection direction) throws Exception {
+            final TransferDirection direction) throws Exception {
         setupMock(protocol, direction, mock(Transaction.class));
     }
 
     private void setupMock(final SiteToSiteTransportProtocol protocol,
-                          final TransferDirection direction,
-                          final Transaction transaction) throws Exception {
+            final TransferDirection direction,
+            final Transaction transaction) throws Exception {
         processGroup = null;
         remoteGroup = mock(RemoteProcessGroup.class);
         scheduler = null;
@@ -102,7 +104,7 @@ public class TestStandardRemoteGroupPort {
                 break;
         }
         port = spy(new StandardRemoteGroupPort(ID, NAME,
-                processGroup, remoteGroup, direction, connectableType, null, scheduler));
+                processGroup, remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
 
         doReturn(true).when(remoteGroup).isTransmitting();
         doReturn(protocol).when(remoteGroup).getTransportProtocol();

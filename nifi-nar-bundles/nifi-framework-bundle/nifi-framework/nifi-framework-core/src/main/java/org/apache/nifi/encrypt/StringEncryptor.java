@@ -26,14 +26,16 @@ import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 
 /**
  * <p>
- * An application specific string encryptor that collects configuration from the application properties, system properties, and/or system environment.
+ * An application specific string encryptor that collects configuration from the
+ * application properties, system properties, and/or system environment.
  * </p>
  *
  * <p>
  * Instance of this class are thread-safe</p>
  *
  * <p>
- * The encryption provider and algorithm is configured using the application properties:
+ * The encryption provider and algorithm is configured using the application
+ * properties:
  * <ul>
  * <li>nifi.sensitive.props.provider</li>
  * <li>nifi.sensitive.props.algorithm</li>
@@ -71,18 +73,21 @@ public final class StringEncryptor {
     }
 
     /**
-     * Creates an instance of the nifi sensitive property encryptor. Validates that the encryptor is actually working.
+     * Creates an instance of the nifi sensitive property encryptor. Validates
+     * that the encryptor is actually working.
      *
+     * @param niFiProperties properties
      * @return encryptor
-     * @throws EncryptionException if any issues arise initializing or validating the encryptor
+     * @throws EncryptionException if any issues arise initializing or
+     * validating the encryptor
      */
-    public static StringEncryptor createEncryptor() throws EncryptionException {
+    public static StringEncryptor createEncryptor(final NiFiProperties niFiProperties) throws EncryptionException {
 
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
-        final String sensitivePropAlgorithmVal = NiFiProperties.getInstance().getProperty(NF_SENSITIVE_PROPS_ALGORITHM);
-        final String sensitivePropProviderVal = NiFiProperties.getInstance().getProperty(NF_SENSITIVE_PROPS_PROVIDER);
-        final String sensitivePropValueNifiPropVar = NiFiProperties.getInstance().getProperty(NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
+        final String sensitivePropAlgorithmVal = niFiProperties.getProperty(NF_SENSITIVE_PROPS_ALGORITHM);
+        final String sensitivePropProviderVal = niFiProperties.getProperty(NF_SENSITIVE_PROPS_PROVIDER);
+        final String sensitivePropValueNifiPropVar = niFiProperties.getProperty(NF_SENSITIVE_PROPS_KEY, DEFAULT_SENSITIVE_PROPS_KEY);
 
         if (StringUtils.isBlank(sensitivePropAlgorithmVal)) {
             throw new EncryptionException(NF_SENSITIVE_PROPS_ALGORITHM + "must bet set");

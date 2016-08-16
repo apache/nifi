@@ -127,22 +127,23 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final Requirement inputRequirement;
     private final ProcessScheduler processScheduler;
     private long runNanos = 0L;
+    private final NiFiProperties nifiProperties;
 
     private SchedulingStrategy schedulingStrategy; // guarded by read/write lock
                                                    // ??????? NOT any more
 
     public StandardProcessorNode(final Processor processor, final String uuid,
         final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
-        final ControllerServiceProvider controllerServiceProvider) {
+        final ControllerServiceProvider controllerServiceProvider, final NiFiProperties nifiProperties) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider,
-            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName());
+            processor.getClass().getSimpleName(), processor.getClass().getCanonicalName(), nifiProperties);
     }
 
     public StandardProcessorNode(final Processor processor, final String uuid,
         final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
         final ControllerServiceProvider controllerServiceProvider,
-        final String componentType, final String componentCanonicalClass) {
+        final String componentType, final String componentCanonicalClass, final NiFiProperties nifiProperties) {
 
         super(processor, uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass);
 
@@ -166,6 +167,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         processScheduler = scheduler;
         isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
+        this.nifiProperties = nifiProperties;
 
         final Class<?> procClass = processor.getClass();
         triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class);
@@ -1374,7 +1376,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * </p>
      */
     private <T> void invokeTaskAsCancelableFuture(final SchedulingAgentCallback callback, final Callable<T> task) {
-        final String timeoutString = NiFiProperties.getInstance().getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
+        final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
         final long onScheduleTimeout = timeoutString == null ? 60000
                 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
         final Future<?> taskFuture = callback.invokeMonitoringTask(task);

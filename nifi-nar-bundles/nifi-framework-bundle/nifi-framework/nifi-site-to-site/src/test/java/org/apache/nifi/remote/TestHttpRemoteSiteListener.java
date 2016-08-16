@@ -39,7 +39,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNormalTransactionProgress() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
         String transactionId = transactionManager.createTransaction();
 
         assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
@@ -59,7 +59,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testDuplicatedTransactionId() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
         String transactionId = transactionManager.createTransaction();
 
         assertTrue("Transaction should be active.", transactionManager.isTransactionActive(transactionId));
@@ -78,7 +78,7 @@ public class TestHttpRemoteSiteListener {
 
     @Test
     public void testNoneExistingTransaction() {
-        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance();
+        HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
 
         String transactionId = "does-not-exist-1";
         assertFalse("Transaction should not be active.", transactionManager.isTransactionActive(transactionId));
@@ -88,8 +88,8 @@ public class TestHttpRemoteSiteListener {
         try {
             transactionManager.holdTransaction(transactionId, transaction, null);
         } catch (IllegalStateException e) {
-            fail("Transaction can be held even if the transaction id is not valid anymore," +
-                    " in order to support large file or slow network.");
+            fail("Transaction can be held even if the transaction id is not valid anymore,"
+                    + " in order to support large file or slow network.");
         }
 
         transactionId = "does-not-exist-2";
@@ -99,6 +99,5 @@ public class TestHttpRemoteSiteListener {
         } catch (IllegalStateException e) {
         }
     }
-
 
 }

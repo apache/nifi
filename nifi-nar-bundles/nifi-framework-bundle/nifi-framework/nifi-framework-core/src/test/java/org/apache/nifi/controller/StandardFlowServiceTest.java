@@ -74,7 +74,7 @@ public class StandardFlowServiceTest {
 
     @Before
     public void setup() throws Exception {
-        properties = NiFiProperties.getInstance();
+        properties = NiFiProperties.createBasicNiFiProperties(null, null);
         variableRegistry = new FileBasedVariableRegistry(properties.getVariableRegistryPropertiesPaths());
         mockFlowFileEventRepository = mock(FlowFileEventRepository.class);
         authorizer = mock(Authorizer.class);

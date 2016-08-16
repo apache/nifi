@@ -68,7 +68,7 @@ public class TestListHDFS {
     public void setup() throws InitializationException {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+        kerberosProperties = new KerberosProperties(null);
 
         proc = new ListHDFSWithMockedFileSystem(kerberosProperties);
         runner = TestRunners.newTestRunner(proc);

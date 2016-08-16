@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.node;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 
 import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
@@ -33,6 +31,7 @@ import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.io.socket.SocketConfiguration;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -40,19 +39,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Uses Apache Curator to determine the address of the current cluster coordinator
+ * Uses Apache Curator to determine the address of the current cluster
+ * coordinator
  */
 public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
+
     private static final Logger logger = LoggerFactory.getLogger(CuratorNodeProtocolSender.class);
 
     private final String coordinatorPath;
     private final ZooKeeperClientConfig zkConfig;
     private InetSocketAddress coordinatorAddress;
 
-
-    public CuratorNodeProtocolSender(final SocketConfiguration socketConfig, final ProtocolContext<ProtocolMessage> protocolContext, final Properties properties) {
+    public CuratorNodeProtocolSender(final SocketConfiguration socketConfig, final ProtocolContext<ProtocolMessage> protocolContext, final NiFiProperties nifiProperties) {
         super(socketConfig, protocolContext);
-        zkConfig = ZooKeeperClientConfig.createConfig(properties);
+        zkConfig = ZooKeeperClientConfig.createConfig(nifiProperties);
         coordinatorPath = zkConfig.resolvePath("cluster/nodes/coordinator");
     }
 
@@ -64,7 +64,7 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
 
         final RetryPolicy retryPolicy = new RetryNTimes(0, 0);
         final CuratorFramework curatorClient = CuratorFrameworkFactory.newClient(zkConfig.getConnectString(),
-            zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
+                zkConfig.getSessionTimeoutMillis(), zkConfig.getConnectionTimeoutMillis(), retryPolicy);
         curatorClient.start();
 
         try {
@@ -85,7 +85,7 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
             final String[] splits = address.split(":");
             if (splits.length != 2) {
                 final String message = String.format("Attempted to determine Cluster Coordinator address. Zookeeper indicates "
-                    + "that address is %s, but this is not in the expected format of <hostname>:<port>", address);
+                        + "that address is %s, but this is not in the expected format of <hostname>:<port>", address);
                 logger.error(message);
                 throw new ProtocolException(message);
             }
@@ -101,7 +101,7 @@ public class CuratorNodeProtocolSender extends AbstractNodeProtocolSender {
                 }
             } catch (final NumberFormatException nfe) {
                 final String message = String.format("Attempted to determine Cluster Coordinator address. Zookeeper indicates "
-                    + "that address is %s, but the port is not a valid port number", address);
+                        + "that address is %s, but the port is not a valid port number", address);
                 logger.error(message);
                 throw new ProtocolException(message);
             }

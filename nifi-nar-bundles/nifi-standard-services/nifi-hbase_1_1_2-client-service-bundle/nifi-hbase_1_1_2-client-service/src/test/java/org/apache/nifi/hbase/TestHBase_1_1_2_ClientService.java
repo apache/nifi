@@ -32,7 +32,6 @@ import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -71,13 +70,9 @@ public class TestHBase_1_1_2_ClientService {
         System.setProperty("java.security.krb5.realm", "nifi.com");
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
-        NiFiProperties niFiPropertiesWithKerberos = Mockito.mock(NiFiProperties.class);
-        when(niFiPropertiesWithKerberos.getKerberosConfigurationFile()).thenReturn(new File("src/test/resources/krb5.conf"));
-        kerberosPropsWithFile = KerberosProperties.create(niFiPropertiesWithKerberos);
+        kerberosPropsWithFile = new KerberosProperties(new File("src/test/resources/krb5.conf"));
 
-        NiFiProperties niFiPropertiesWithoutKerberos = Mockito.mock(NiFiProperties.class);
-        when(niFiPropertiesWithKerberos.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosPropsWithoutFile = KerberosProperties.create(niFiPropertiesWithoutKerberos);
+        kerberosPropsWithoutFile = new KerberosProperties(null);
     }
 
     @Test

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import java.net.URI;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.cluster.coordination.http.EndpointResponseMerger;
@@ -40,14 +38,13 @@ import org.apache.nifi.controller.status.history.RemoteProcessGroupStatusDescrip
 import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.status.NodeStatusSnapshotsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 
 public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
+
     public static final Pattern PROCESSOR_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/processors/[a-f0-9\\-]{36}/status/history");
     public static final Pattern PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status/history");
     public static final Pattern REMOTE_PROCESS_GROUP_STATUS_HISTORY_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status/history");
@@ -55,17 +52,8 @@ public class StatusHistoryEndpointMerger implements EndpointResponseMerger {
 
     private final long componentStatusSnapshotMillis;
 
-
-    public StatusHistoryEndpointMerger() {
-        final NiFiProperties properties = NiFiProperties.getInstance();
-        final String snapshotFrequency = properties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
-        long snapshotMillis;
-        try {
-            snapshotMillis = FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS);
-        } catch (final Exception e) {
-            snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
-        }
-        componentStatusSnapshotMillis = snapshotMillis;
+    public StatusHistoryEndpointMerger(final long componentStatusSnapshotMillis) {
+        this.componentStatusSnapshotMillis = componentStatusSnapshotMillis;
     }
 
     private Map<String, MetricDescriptor<?>> getMetricDescriptors(final URI uri) {

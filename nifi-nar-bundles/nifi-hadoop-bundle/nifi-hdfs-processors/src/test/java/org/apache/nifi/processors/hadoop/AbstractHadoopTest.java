@@ -67,7 +67,7 @@ public class AbstractHadoopTest {
         // mock properties and return a temporary file for the kerberos configuration
         mockedProperties = mock(NiFiProperties.class);
         when(mockedProperties.getKerberosConfigurationFile()).thenReturn(temporaryFile);
-        kerberosProperties = KerberosProperties.create(mockedProperties);
+        kerberosProperties = new KerberosProperties(temporaryFile);
     }
 
     @After
@@ -139,8 +139,7 @@ public class AbstractHadoopTest {
     @Test
     public void testKerberosOptionsWithBadKerberosConfigFile() throws Exception {
         // invalid since the kerberos configuration was changed to a non-existent file
-        when(mockedProperties.getKerberosConfigurationFile()).thenReturn(new File("BAD_KERBEROS_PATH"));
-        kerberosProperties = KerberosProperties.create(mockedProperties);
+        kerberosProperties = new KerberosProperties(new File("BAD_KERBEROS_PATH"));
 
         SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(processor);

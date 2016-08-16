@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -90,10 +91,26 @@ public class Node {
 
     public Node(final NodeIdentifier nodeId, final NiFiProperties properties) {
         this.nodeId = nodeId;
-        this.nodeProperties = properties;
+        this.nodeProperties = new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                if(key.equals(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT)){
+                    return String.valueOf(nodeId.getSocketPort());
+                }else if(key.equals(NiFiProperties.WEB_HTTP_PORT)){
+                    return String.valueOf(nodeId.getApiPort());
+                }else {
+                    return properties.getProperty(key);
+                }
+            }
 
-        nodeProperties.setProperty(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT, String.valueOf(nodeId.getSocketPort()));
-        nodeProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, String.valueOf(nodeId.getApiPort()));
+            @Override
+            public Set<String> getPropertyKeys() {
+                final Set<String> keys = new HashSet<>(properties.getPropertyKeys());
+                keys.add(NiFiProperties.CLUSTER_NODE_PROTOCOL_PORT);
+                keys.add(NiFiProperties.WEB_HTTP_PORT);
+                return keys;
+            }
+        };
 
         revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.<Revision> emptyList());
@@ -110,7 +127,7 @@ public class Node {
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
-            null, null, StringEncryptor.createEncryptor(), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator, heartbeatMonitor, VariableRegistry.EMPTY_REGISTRY);
+            null, null, StringEncryptor.createEncryptor(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator, heartbeatMonitor, VariableRegistry.EMPTY_REGISTRY);
 
         try {
             flowController.initializeFlow();
@@ -123,7 +140,7 @@ public class Node {
             flowController.getStateManagerProvider().getStateManager("Cluster Node Configuration").setState(Collections.singletonMap("Node UUID", nodeId.getId()), Scope.LOCAL);
 
             flowService = StandardFlowService.createClusteredInstance(flowController, nodeProperties, senderListener, clusterCoordinator,
-                StringEncryptor.createEncryptor(), revisionManager, Mockito.mock(Authorizer.class));
+                StringEncryptor.createEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
             flowService.load(null);

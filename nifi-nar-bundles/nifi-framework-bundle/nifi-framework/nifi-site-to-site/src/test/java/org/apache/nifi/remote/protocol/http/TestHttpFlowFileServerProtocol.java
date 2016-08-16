@@ -90,7 +90,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new StandardHttpFlowFileServerProtocol(versionNegotiator);
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator, NiFiProperties.createBasicNiFiProperties(null, null));
     }
 
     @Test
@@ -294,7 +294,7 @@ public class TestHttpFlowFileServerProtocol {
     }
 
     private Peer transferOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId) throws IOException {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
         final Peer peer = getDefaultPeer(transactionId);
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
         final String endpointUri = "https://peer-host:8443/nifi-api/output-ports/port-id/transactions/"
@@ -338,7 +338,7 @@ public class TestHttpFlowFileServerProtocol {
 
     @Test
     public void testTransferTwoFiles() throws Exception {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final String transactionId = "testTransferTwoFiles";
         final Peer peer = getDefaultPeer(transactionId);
@@ -470,7 +470,7 @@ public class TestHttpFlowFileServerProtocol {
     }
 
     private void receiveOneFile(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer) throws IOException {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
         final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"
                 + transactionId + "/flow-files";
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
@@ -530,7 +530,7 @@ public class TestHttpFlowFileServerProtocol {
 
     @Test
     public void testReceiveTwoFiles() throws Exception {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance();
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
 
         final String transactionId = "testReceiveTwoFile";
         final String endpointUri = "https://peer-host:8443/nifi-api/input-ports/port-id/transactions/"

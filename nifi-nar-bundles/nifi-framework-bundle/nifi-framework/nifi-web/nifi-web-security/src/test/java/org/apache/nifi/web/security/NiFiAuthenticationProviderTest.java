@@ -170,7 +170,7 @@ public class NiFiAuthenticationProviderTest {
 
     private NiFiProperties getNiFiProperties(final Properties properties) {
         final NiFiProperties nifiProperties = Mockito.mock(NiFiProperties.class);
-        when(nifiProperties.stringPropertyNames()).thenReturn(properties.stringPropertyNames());
+        when(nifiProperties.getPropertyKeys()).thenReturn(properties.stringPropertyNames());
 
         when(nifiProperties.getProperty(anyString())).then(new Answer<String>() {
             @Override

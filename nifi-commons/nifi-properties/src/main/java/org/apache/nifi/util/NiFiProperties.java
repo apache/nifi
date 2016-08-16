@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,17 +26,22 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
-public class NiFiProperties extends Properties {
-
-    private static final long serialVersionUID = 2119177359005492702L;
-
-    private static final Logger LOG = LoggerFactory.getLogger(NiFiProperties.class);
-    private static NiFiProperties instance = null;
+/**
+ * The NiFiProperties class holds all properties which are needed for various
+ * values to be available at runtime. It is strongly tied to the startup
+ * properties needed and is often refer to as the 'nifi.properties' file. The
+ * properties contains keys and values. Great care should be taken in leveraging
+ * this class or passing it along. It's use should be refactored and minimized
+ * over time.
+ */
+public abstract class NiFiProperties {
 
     // core properties
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
@@ -174,7 +176,6 @@ public class NiFiProperties extends Properties {
     public static final String ZOOKEEPER_SESSION_TIMEOUT = "nifi.zookeeper.session.timeout";
     public static final String ZOOKEEPER_ROOT_NODE = "nifi.zookeeper.root.node";
 
-
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
     public static final String KERBEROS_SERVICE_PRINCIPAL = "nifi.kerberos.service.principal";
@@ -243,68 +244,20 @@ public class NiFiProperties extends Properties {
     // Kerberos defaults
     public static final String DEFAULT_KERBEROS_AUTHENTICATION_EXPIRATION = "12 hours";
 
-    private NiFiProperties() {
-        super();
-    }
-
-    public NiFiProperties copy() {
-        final NiFiProperties copy = new NiFiProperties();
-        copy.putAll(this);
-        return copy;
-    }
+    /**
+     * Retrieves the property value for the given property key
+     *
+     * @param key the key of property value to lookup.
+     * @return value of property at given key or null if not found
+     */
+    public abstract String getProperty(String key);
 
     /**
-     * Factory method to create an instance of the {@link NiFiProperties}. This
-     * method employs a standard singleton pattern by caching the instance if it
-     * was already obtained
+     * Retrieves all known property keys.
      *
-     * @return instance of {@link NiFiProperties}
+     * @return all known property keys.
      */
-    public static synchronized NiFiProperties getInstance() {
-        // NOTE: unit tests can set instance to null (with reflection) to effectively create a new singleton.
-        //       changing the below as a check for whether the instance was initialized will break those
-        //       unit tests.
-        if (null == instance) {
-            final NiFiProperties suspectInstance = new NiFiProperties();
-            final String nfPropertiesFilePath = System
-                    .getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
-            if (null == nfPropertiesFilePath || nfPropertiesFilePath.trim().length() == 0) {
-                throw new RuntimeException("Requires a system property called \'"
-                        + NiFiProperties.PROPERTIES_FILE_PATH
-                        + "\' and this is not set or has no value");
-            }
-            final File propertiesFile = new File(nfPropertiesFilePath);
-            if (!propertiesFile.exists()) {
-                throw new RuntimeException("Properties file doesn't exist \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
-            }
-            if (!propertiesFile.canRead()) {
-                throw new RuntimeException("Properties file exists but cannot be read \'"
-                        + propertiesFile.getAbsolutePath() + "\'");
-            }
-            InputStream inStream = null;
-            try {
-                inStream = new BufferedInputStream(new FileInputStream(propertiesFile));
-                suspectInstance.load(inStream);
-            } catch (final Exception ex) {
-                LOG.error("Cannot load properties file due to " + ex.getLocalizedMessage());
-                throw new RuntimeException("Cannot load properties file due to "
-                        + ex.getLocalizedMessage(), ex);
-            } finally {
-                if (null != inStream) {
-                    try {
-                        inStream.close();
-                    } catch (final Exception ex) {
-                        /**
-                         * do nothing *
-                         */
-                    }
-                }
-            }
-            instance = suspectInstance;
-        }
-        return instance;
-    }
+    public abstract Set<String> getPropertyKeys();
 
     // getters for core properties //
     public File getFlowConfigurationFile() {
@@ -395,7 +348,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * The host name that will be given out to clients to connect to the Remote Input Port.
+     * The host name that will be given out to clients to connect to the Remote
+     * Input Port.
      *
      * @return the remote input host name or null if not configured
      */
@@ -443,7 +397,9 @@ public class NiFiProperties extends Properties {
 
     /**
      * The HTTP or HTTPS Web API port for a Remote Input Port.
-     * @return the remote input port for HTTP(S) communication, or null if HTTP(S) Site-to-Site is not enabled
+     *
+     * @return the remote input port for HTTP(S) communication, or null if
+     * HTTP(S) Site-to-Site is not enabled
      */
     public Integer getRemoteInputHttpPort() {
         if (!isSiteToSiteHttpEnabled()) {
@@ -479,7 +435,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns whether the processors should be started automatically when the application loads.
+     * Returns whether the processors should be started automatically when the
+     * application loads.
      *
      * @return Whether to auto start the processors or not
      */
@@ -490,7 +447,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the number of partitions that should be used for the FlowFile Repository
+     * Returns the number of partitions that should be used for the FlowFile
+     * Repository
      *
      * @return the number of partitions
      */
@@ -501,7 +459,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the number of milliseconds between FlowFileRepository checkpointing
+     * Returns the number of milliseconds between FlowFileRepository
+     * checkpointing
      *
      * @return the number of milliseconds between checkpoint events
      */
@@ -608,7 +567,7 @@ public class NiFiProperties extends Properties {
         List<Path> narLibraryPaths = new ArrayList<>();
 
         // go through each property
-        for (String propertyName : stringPropertyNames()) {
+        for (String propertyName : getPropertyKeys()) {
             // determine if the property is a nar library path
             if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX)
                     || NAR_LIBRARY_DIRECTORY.equals(propertyName)) {
@@ -684,7 +643,6 @@ public class NiFiProperties extends Properties {
         return file;
     }
 
-
     // getters for cluster node properties //
     public boolean isNode() {
         return Boolean.parseBoolean(getProperty(CLUSTER_IS_NODE));
@@ -718,7 +676,6 @@ public class NiFiProperties extends Properties {
             return DEFAULT_CLUSTER_NODE_PROTOCOL_THREADS;
         }
     }
-
 
     public boolean isClustered() {
         return Boolean.parseBoolean(getProperty(CLUSTER_IS_NODE));
@@ -779,7 +736,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns true if the Kerberos service principal and keytab location properties are populated.
+     * Returns true if the Kerberos service principal and keytab location
+     * properties are populated.
      *
      * @return true if Kerberos service support is enabled
      */
@@ -788,12 +746,14 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns true if client certificates are required for REST API. Determined if the following conditions are all true:
+     * Returns true if client certificates are required for REST API. Determined
+     * if the following conditions are all true:
      *
-     * - login identity provider is not populated
-     * - Kerberos service support is not enabled
+     * - login identity provider is not populated - Kerberos service support is
+     * not enabled
      *
-     * @return true if client certificates are required for access to the REST API
+     * @return true if client certificates are required for access to the REST
+     * API
      */
     public boolean isClientAuthRequiredForRestApi() {
         return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosServiceSupportEnabled();
@@ -839,7 +799,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the database repository path. It simply returns the value configured. No directories will be created as a result of this operation.
+     * Returns the database repository path. It simply returns the value
+     * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
      * @throws InvalidPathException If the configured path is invalid
@@ -849,7 +810,8 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the flow file repository path. It simply returns the value configured. No directories will be created as a result of this operation.
+     * Returns the flow file repository path. It simply returns the value
+     * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
      * @throws InvalidPathException If the configured path is invalid
@@ -859,8 +821,10 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the content repository paths. This method returns a mapping of file repository name to file repository paths. It simply returns the values configured. No directories will be created as
-     * a result of this operation.
+     * Returns the content repository paths. This method returns a mapping of
+     * file repository name to file repository paths. It simply returns the
+     * values configured. No directories will be created as a result of this
+     * operation.
      *
      * @return file repositories paths
      * @throws InvalidPathException If any of the configured paths are invalid
@@ -869,7 +833,7 @@ public class NiFiProperties extends Properties {
         final Map<String, Path> contentRepositoryPaths = new HashMap<>();
 
         // go through each property
-        for (String propertyName : stringPropertyNames()) {
+        for (String propertyName : getPropertyKeys()) {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, REPOSITORY_CONTENT_PREFIX)) {
                 // get the repository key
@@ -884,8 +848,10 @@ public class NiFiProperties extends Properties {
     }
 
     /**
-     * Returns the provenance repository paths. This method returns a mapping of file repository name to file repository paths. It simply returns the values configured. No directories will be created
-     * as a result of this operation.
+     * Returns the provenance repository paths. This method returns a mapping of
+     * file repository name to file repository paths. It simply returns the
+     * values configured. No directories will be created as a result of this
+     * operation.
      *
      * @return the name and paths of all provenance repository locations
      */
@@ -893,7 +859,7 @@ public class NiFiProperties extends Properties {
         final Map<String, Path> provenanceRepositoryPaths = new HashMap<>();
 
         // go through each property
-        for (String propertyName : stringPropertyNames()) {
+        for (String propertyName : getPropertyKeys()) {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, PROVENANCE_REPO_DIRECTORY_PREFIX)) {
                 // get the repository key
@@ -919,17 +885,9 @@ public class NiFiProperties extends Properties {
         return getProperty(MAX_APPENDABLE_CLAIM_SIZE);
     }
 
-    @Override
     public String getProperty(final String key, final String defaultValue) {
-        final String value = super.getProperty(key, defaultValue);
-        if (value == null) {
-            return null;
-        }
-
-        if (value.trim().isEmpty()) {
-            return defaultValue;
-        }
-        return value;
+        final String value = getProperty(key);
+        return (value == null || value.trim().isEmpty()) ? defaultValue : value;
     }
 
     public String getBoredYieldDuration() {
@@ -973,7 +931,7 @@ public class NiFiProperties extends Properties {
         return getProperty(FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE, DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_STORAGE);
     }
 
-    public String getVariableRegistryProperties(){
+    public String getVariableRegistryProperties() {
         return getProperty(VARIABLE_REGISTRY_PROPERTIES);
     }
 
@@ -981,18 +939,88 @@ public class NiFiProperties extends Properties {
         final List<Path> vrPropertiesPaths = new ArrayList<>();
 
         final String vrPropertiesFiles = getVariableRegistryProperties();
-        if(!StringUtils.isEmpty(vrPropertiesFiles)) {
+        if (!StringUtils.isEmpty(vrPropertiesFiles)) {
 
             final List<String> vrPropertiesFileList = Arrays.asList(vrPropertiesFiles.split(","));
 
-            for(String propertiesFile : vrPropertiesFileList){
+            for (String propertiesFile : vrPropertiesFileList) {
                 vrPropertiesPaths.add(Paths.get(propertiesFile));
             }
 
-            return vrPropertiesPaths.toArray( new Path[vrPropertiesPaths.size()]);
+            return vrPropertiesPaths.toArray(new Path[vrPropertiesPaths.size()]);
         } else {
             return new Path[]{};
         }
+    }
+
+    public int size() {
+        return getPropertyKeys().size();
+    }
+
+    /**
+     * Creates an instance of NiFiProperties. This should likely not be called
+     * by any classes outside of the NiFi framework but can be useful by the
+     * framework for default property loading behavior or helpful in tests
+     * needing to create specific instances of NiFiProperties. If properties
+     * file specified cannot be found/read a runtime exception will be thrown.
+     * If one is not specified no properties will be loaded by default.
+     *
+     * @param propertiesFilePath if provided properties will be loaded from
+     * given file; else will be loaded from System property. Can be null.
+     * @param additionalProperties allows overriding of properties with the
+     * supplied values. these will be applied after loading from any properties
+     * file. Can be null or empty.
+     * @return NiFiProperties
+     */
+    public static NiFiProperties createBasicNiFiProperties(final String propertiesFilePath, final Map<String, String> additionalProperties) {
+        final Map<String, String> addProps = (additionalProperties == null) ? Collections.EMPTY_MAP : additionalProperties;
+        final Properties properties = new Properties();
+        final String nfPropertiesFilePath = (propertiesFilePath == null)
+                ? System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
+                : propertiesFilePath;
+        if (nfPropertiesFilePath != null) {
+            final File propertiesFile = new File(nfPropertiesFilePath.trim());
+            if (!propertiesFile.exists()) {
+                throw new RuntimeException("Properties file doesn't exist \'"
+                        + propertiesFile.getAbsolutePath() + "\'");
+            }
+            if (!propertiesFile.canRead()) {
+                throw new RuntimeException("Properties file exists but cannot be read \'"
+                        + propertiesFile.getAbsolutePath() + "\'");
+            }
+            InputStream inStream = null;
+            try {
+                inStream = new BufferedInputStream(new FileInputStream(propertiesFile));
+                properties.load(inStream);
+            } catch (final Exception ex) {
+                throw new RuntimeException("Cannot load properties file due to "
+                        + ex.getLocalizedMessage(), ex);
+            } finally {
+                if (null != inStream) {
+                    try {
+                        inStream.close();
+                    } catch (final Exception ex) {
+                        /**
+                         * do nothing *
+                         */
+                    }
+                }
+            }
+        }
+        addProps.entrySet().stream().forEach((entry) -> {
+            properties.setProperty(entry.getKey(), entry.getValue());
+        });
+        return new NiFiProperties() {
+            @Override
+            public String getProperty(String key) {
+                return properties.getProperty(key);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                return properties.stringPropertyNames();
+            }
+        };
     }
 
 }

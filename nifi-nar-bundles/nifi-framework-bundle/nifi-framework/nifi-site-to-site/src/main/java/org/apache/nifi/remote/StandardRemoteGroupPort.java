@@ -74,14 +74,17 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final AtomicBoolean targetRunning = new AtomicBoolean(true);
     private final SSLContext sslContext;
     private final TransferDirection transferDirection;
+    private final NiFiProperties nifiProperties;
 
     private final AtomicReference<SiteToSiteClient> clientRef = new AtomicReference<>();
+
     SiteToSiteClient getSiteToSiteClient() {
         return clientRef.get();
     }
 
     public StandardRemoteGroupPort(final String id, final String name, final ProcessGroup processGroup, final RemoteProcessGroup remoteGroup,
-            final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler) {
+            final TransferDirection direction, final ConnectableType type, final SSLContext sslContext, final ProcessScheduler scheduler,
+            final NiFiProperties nifiProperties) {
         // remote group port id needs to be unique but cannot just be the id of the port
         // in the remote group instance. this supports referencing the same remote
         // instance more than once.
@@ -90,11 +93,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
+        this.nifiProperties = nifiProperties;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
     }
 
-    private static File getPeerPersistenceFile(final String portId) {
-        final File stateDir = NiFiProperties.getInstance().getPersistentStateDirectory();
+    private static File getPeerPersistenceFile(final String portId, final NiFiProperties nifiProperties) {
+        final File stateDir = nifiProperties.getPersistentStateDirectory();
         return new File(stateDir, portId + ".peers");
     }
 
@@ -138,17 +142,17 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
 
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
-            .url(remoteGroup.getTargetUri().toString())
-            .portIdentifier(getIdentifier())
-            .sslContext(sslContext)
-            .useCompression(isUseCompression())
-            .eventReporter(remoteGroup.getEventReporter())
-            .peerPersistenceFile(getPeerPersistenceFile(getIdentifier()))
-            .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
-            .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
-            .transportProtocol(remoteGroup.getTransportProtocol())
-            .httpProxy(new HttpProxy(remoteGroup.getProxyHost(), remoteGroup.getProxyPort(), remoteGroup.getProxyUser(), remoteGroup.getProxyPassword()))
-            .build();
+                .url(remoteGroup.getTargetUri().toString())
+                .portIdentifier(getIdentifier())
+                .sslContext(sslContext)
+                .useCompression(isUseCompression())
+                .eventReporter(remoteGroup.getEventReporter())
+                .peerPersistenceFile(getPeerPersistenceFile(getIdentifier(), nifiProperties))
+                .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
+                .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
+                .transportProtocol(remoteGroup.getTransportProtocol())
+                .httpProxy(new HttpProxy(remoteGroup.getProxyHost(), remoteGroup.getProxyPort(), remoteGroup.getProxyUser(), remoteGroup.getProxyPassword()))
+                .build();
         clientRef.set(client);
     }
 
@@ -306,7 +310,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
             logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[]{
-                    this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
 
             return flowFilesSent.size();
         } catch (final Exception e) {
@@ -364,7 +368,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
             final String dataSize = FormatUtils.formatDataSize(bytesReceived);
             logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-                    this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
         }
 
         return flowFilesReceived.size();
@@ -386,16 +390,16 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         ValidationResult error = null;
         if (!targetExists.get()) {
             error = new ValidationResult.Builder()
-            .explanation(String.format("Remote instance indicates that port '%s' no longer exists.", getName()))
-            .subject(String.format("Remote port '%s'", getName()))
-            .valid(false)
-            .build();
+                    .explanation(String.format("Remote instance indicates that port '%s' no longer exists.", getName()))
+                    .subject(String.format("Remote port '%s'", getName()))
+                    .valid(false)
+                    .build();
         } else if (getConnectableType() == ConnectableType.REMOTE_OUTPUT_PORT && getConnections(Relationship.ANONYMOUS).isEmpty()) {
             error = new ValidationResult.Builder()
-            .explanation(String.format("Port '%s' has no outbound connections", getName()))
-            .subject(String.format("Remote port '%s'", getName()))
-            .valid(false)
-            .build();
+                    .explanation(String.format("Port '%s' has no outbound connections", getName()))
+                    .subject(String.format("Remote port '%s'", getName()))
+                    .valid(false)
+                    .build();
         }
 
         if (error != null) {

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.cluster.coordination.heartbeat;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -31,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -45,11 +43,10 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     private volatile ScheduledFuture<?> future;
     private volatile boolean stopped = true;
 
-
-    public AbstractHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final Properties properties) {
+    public AbstractHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final NiFiProperties nifiProperties) {
         this.clusterCoordinator = clusterCoordinator;
-        final String heartbeatInterval = properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
-            NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
+        final String heartbeatInterval = nifiProperties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
+                NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
         this.heartbeatIntervalMillis = (int) FormatUtils.getTimeDuration(heartbeatInterval, TimeUnit.MILLISECONDS);
     }
 
@@ -118,8 +115,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     /**
-     * Fetches all of the latest heartbeats and updates the Cluster Coordinator as appropriate,
-     * based on the heartbeats received.
+     * Fetches all of the latest heartbeats and updates the Cluster Coordinator
+     * as appropriate, based on the heartbeats received.
      *
      * Visible for testing.
      */
@@ -145,7 +142,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 processHeartbeat(heartbeat);
             } catch (final Exception e) {
                 clusterCoordinator.reportEvent(null, Severity.ERROR,
-                    "Received heartbeat from " + heartbeat.getNodeIdentifier() + " but failed to process heartbeat due to " + e);
+                        "Received heartbeat from " + heartbeat.getNodeIdentifier() + " but failed to process heartbeat due to " + e);
                 logger.error("Failed to process heartbeat from {} due to {}", heartbeat.getNodeIdentifier(), e.toString());
                 logger.error("", e);
             }
@@ -162,7 +159,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 final long secondsSinceLastHeartbeat = TimeUnit.MILLISECONDS.toSeconds(System.currentTimeMillis() - heartbeat.getTimestamp());
 
                 clusterCoordinator.disconnectionRequestedByNode(heartbeat.getNodeIdentifier(), DisconnectionCode.LACK_OF_HEARTBEAT,
-                    "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
+                        "Have not received a heartbeat from node in " + secondsSinceLastHeartbeat + " seconds");
 
                 try {
                     removeHeartbeat(heartbeat.getNodeIdentifier());
@@ -201,8 +198,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         if (heartbeat.getConnectionStatus().getState() != NodeConnectionState.CONNECTED && connectionState == NodeConnectionState.CONNECTED) {
             // Cluster Coordinator believes that node is connected, but node does not believe so.
             clusterCoordinator.reportEvent(nodeId, Severity.WARNING, "Received heartbeat from node that thinks it is not yet part of the cluster,"
-                + "though the Cluster Coordinator thought it was (node claimed state was " + heartbeat.getConnectionStatus().getState()
-                + "). Marking as Disconnected and requesting that Node reconnect to cluster");
+                    + "though the Cluster Coordinator thought it was (node claimed state was " + heartbeat.getConnectionStatus().getState()
+                    + "). Marking as Disconnected and requesting that Node reconnect to cluster");
             clusterCoordinator.requestNodeConnect(nodeId, null);
             return;
         }
@@ -220,7 +217,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
                 case NOT_YET_CONNECTED:
                 case STARTUP_FAILURE: {
                     clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received heartbeat from node previously "
-                        + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
+                            + "disconnected due to " + disconnectionCode + ". Issuing reconnection request.");
 
                     clusterCoordinator.requestNodeConnect(nodeId, null);
                     break;
@@ -260,22 +257,24 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         clusterCoordinator.updateNodeRoles(nodeId, heartbeat.getRoles());
     }
 
-
     /**
-     * @return the most recent heartbeat information for each node in the cluster
+     * @return the most recent heartbeat information for each node in the
+     * cluster
      */
     protected abstract Map<NodeIdentifier, NodeHeartbeat> getLatestHeartbeats();
 
     /**
-     * This method does nothing in the abstract class but is meant for subclasses to
-     * override in order to provide functionality when the monitor is started.
+     * This method does nothing in the abstract class but is meant for
+     * subclasses to override in order to provide functionality when the monitor
+     * is started.
      */
     protected void onStart() {
     }
 
     /**
-     * This method does nothing in the abstract class but is meant for subclasses to
-     * override in order to provide functionality when the monitor is stopped.
+     * This method does nothing in the abstract class but is meant for
+     * subclasses to override in order to provide functionality when the monitor
+     * is stopped.
      */
     protected void onStop() {
     }

@@ -224,7 +224,7 @@ public class NiFi {
     public static void main(String[] args) {
         logger.info("Launching NiFi...");
         try {
-            new NiFi(NiFiProperties.getInstance());
+            new NiFi(NiFiProperties.createBasicNiFiProperties(null, null));
         } catch (final Throwable t) {
             logger.error("Failure to launch NiFi due to " + t, t);
         }

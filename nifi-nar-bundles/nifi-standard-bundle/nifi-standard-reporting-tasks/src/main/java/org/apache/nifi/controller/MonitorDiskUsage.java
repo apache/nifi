@@ -20,7 +20,6 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,13 +32,12 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tags({"disk", "storage", "warning", "monitoring", "repo"})
-@CapabilityDescription("Checks the amount of storage space available for the Content Repository and FlowFile Repository"
-        + " and warns (via a log message and a System-Level Bulletin) if the partition on which either repository exceeds"
+@CapabilityDescription("Checks the amount of storage space available for the specified directory"
+        + " and warns (via a log message and a System-Level Bulletin) if the partition on which it lives exceeds"
         + " some configurable threshold of storage space")
 public class MonitorDiskUsage extends AbstractReportingTask {
 
@@ -47,50 +45,50 @@ public class MonitorDiskUsage extends AbstractReportingTask {
 
     private static final Pattern PERCENT_PATTERN = Pattern.compile("(\\d+{1,2})%");
 
-    public static final PropertyDescriptor CONTENT_REPO_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("Content Repository Threshold")
-            .description("The threshold at which a bulletin will be generated to indicate that the disk usage of the Content Repository is of concern")
+    public static final PropertyDescriptor DIR_THRESHOLD = new PropertyDescriptor.Builder()
+            .name("Threshold")
+            .description("The threshold at which a bulletin will be generated to indicate that the disk usage of the partition on which the directory found is of concern")
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(PERCENT_PATTERN))
             .defaultValue("80%")
             .build();
-    public static final PropertyDescriptor FLOWFILE_REPO_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("FlowFile Repository Threshold")
-            .description("The threshold at which a bulletin will be generated to indicate that the disk usage of the FlowFile Repository is of concern")
+
+    public static final PropertyDescriptor DIR_LOCATION = new PropertyDescriptor.Builder()
+            .name("Directory Location")
+            .description("The directory path of the partition to be monitored.")
             .required(true)
-            .addValidator(StandardValidators.createRegexMatchingValidator(PERCENT_PATTERN))
-            .defaultValue("80%")
+            .addValidator(StandardValidators.createDirectoryExistsValidator(false, false))
+            .build();
+
+    public static final PropertyDescriptor DIR_DISPLAY_NAME = new PropertyDescriptor.Builder()
+            .name("Directory Display Name")
+            .description("The name to display for the directory in alerts.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue("Un-Named")
             .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(2);
-        descriptors.add(CONTENT_REPO_THRESHOLD);
-        descriptors.add(FLOWFILE_REPO_THRESHOLD);
+        descriptors.add(DIR_THRESHOLD);
+        descriptors.add(DIR_LOCATION);
         return descriptors;
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        final String contentRepoTresholdValue = context.getProperty(CONTENT_REPO_THRESHOLD).getValue();
-        final Matcher contentRepoMatcher = PERCENT_PATTERN.matcher(contentRepoTresholdValue.trim());
-        contentRepoMatcher.find();
-        final String contentRepoPercentageVal = contentRepoMatcher.group(1);
-        final int contentRepoThreshold = Integer.parseInt(contentRepoPercentageVal);
+        final String thresholdValue = context.getProperty(DIR_THRESHOLD).getValue();
+        final Matcher thresholdMatcher = PERCENT_PATTERN.matcher(thresholdValue.trim());
+        thresholdMatcher.find();
+        final String thresholdPercentageVal = thresholdMatcher.group(1);
+        final int contentRepoThreshold = Integer.parseInt(thresholdPercentageVal);
 
-        final String flowfileRepoTresholdValue = context.getProperty(FLOWFILE_REPO_THRESHOLD).getValue();
-        final Matcher flowFileRepoMatcher = PERCENT_PATTERN.matcher(flowfileRepoTresholdValue.trim());
-        flowFileRepoMatcher.find();
-        final String flowFileRepoPercentageVal = flowFileRepoMatcher.group(1);
-        final int flowFileRepoThreshold = Integer.parseInt(flowFileRepoPercentageVal);
+        final File dir = new File(context.getProperty(DIR_LOCATION).getValue());
+        final String dirName = context.getProperty(DIR_DISPLAY_NAME).getValue();
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
+        checkThreshold(dirName, dir.toPath(), contentRepoThreshold, context);
 
-        for (final Map.Entry<String, Path> entry : properties.getContentRepositoryPaths().entrySet()) {
-            checkThreshold("Content Repository (" + entry.getKey() + ")", entry.getValue(), contentRepoThreshold, context);
-        }
-
-        checkThreshold("FlowFile Repository", properties.getFlowFileRepositoryPath(), flowFileRepoThreshold, context);
     }
 
     static void checkThreshold(final String pathName, final Path path, final int threshold, final ReportingContext context) {

@@ -45,10 +45,12 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     private final Path flowXmlPath;
     private final StringEncryptor encryptor;
     private final FlowConfigurationArchiveManager archiveManager;
+    private final NiFiProperties nifiProperties;
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardXMLFlowConfigurationDAO.class);
 
-    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor) throws IOException {
+    public StandardXMLFlowConfigurationDAO(final Path flowXml, final StringEncryptor encryptor, final NiFiProperties nifiProperties) throws IOException {
+        this.nifiProperties = nifiProperties;
         final File flowXmlFile = flowXml.toFile();
         if (!flowXmlFile.exists()) {
             // createDirectories would throw an exception if the directory exists but is a symbolic link
@@ -64,7 +66,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         this.flowXmlPath = flowXml;
         this.encryptor = encryptor;
 
-        this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, NiFiProperties.getInstance());
+        this.archiveManager = new FlowConfigurationArchiveManager(flowXmlPath, nifiProperties);
     }
 
     @Override
@@ -77,7 +79,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
     public synchronized void load(final FlowController controller, final DataFlow dataFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
 
-        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor);
+        final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties);
         controller.synchronize(flowSynchronizer, dataFlow);
 
         if (StandardFlowSynchronizer.isEmpty(dataFlow)) {

@@ -122,8 +122,8 @@ public class RemoteResourceFactory extends RemoteResourceInitiator {
     }
 
     public static <T extends VersionedRemoteResource> T
-        receiveResourceNegotiation(final Class<T> cls, final DataInputStream dis, final DataOutputStream dos, final Class<?>[] constructorArgClasses, final Object[] constructorArgs)
-                throws IOException, HandshakeException {
+            receiveResourceNegotiation(final Class<T> cls, final DataInputStream dis, final DataOutputStream dos, final Class<?>[] constructorArgClasses, final Object[] constructorArgs)
+            throws IOException, HandshakeException {
         final String resourceClassName = dis.readUTF();
         final T resource;
         try {

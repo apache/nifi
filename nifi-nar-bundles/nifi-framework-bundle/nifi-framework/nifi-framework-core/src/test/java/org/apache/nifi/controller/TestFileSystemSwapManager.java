@@ -49,10 +49,9 @@ public class TestFileSystemSwapManager {
 
     @Test
     public void testBackwardCompatible() throws IOException {
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
 
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/old-swap-file.swap"));
-            final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
+                final DataInputStream in = new DataInputStream(new BufferedInputStream(fis))) {
 
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
@@ -91,7 +90,7 @@ public class TestFileSystemSwapManager {
 
         final SwapContents swappedIn;
         try (final FileInputStream fis = new FileInputStream(swapFile);
-            final DataInputStream dis = new DataInputStream(fis)) {
+                final DataInputStream dis = new DataInputStream(fis)) {
             swappedIn = FileSystemSwapManager.deserializeFlowFiles(dis, swapLocation, flowFileQueue, Mockito.mock(ResourceClaimManager.class));
         }
 
@@ -112,7 +111,6 @@ public class TestFileSystemSwapManager {
             assertEquals(pre.getPenaltyExpirationMillis(), post.getPenaltyExpirationMillis());
         }
     }
-
 
     public class NopResourceClaimManager implements ResourceClaimManager {
 
@@ -162,8 +160,8 @@ public class TestFileSystemSwapManager {
         }
     }
 
-
     private static class TestFlowFile implements FlowFileRecord {
+
         private static final AtomicLong idGenerator = new AtomicLong(0L);
 
         private final long id = idGenerator.getAndIncrement();
@@ -172,12 +170,10 @@ public class TestFileSystemSwapManager {
         private final Map<String, String> attributes;
         private final long size;
 
-
         public TestFlowFile(final Map<String, String> attributes, final long size) {
             this.attributes = attributes;
             this.size = size;
         }
-
 
         @Override
         public long getId() {

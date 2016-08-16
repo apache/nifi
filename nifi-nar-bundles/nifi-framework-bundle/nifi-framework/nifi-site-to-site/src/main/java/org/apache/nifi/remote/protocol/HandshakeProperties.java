@@ -28,7 +28,6 @@ public class HandshakeProperties {
     private long batchBytes = 0L;
     private long batchDurationNanos = 0L;
 
-
     public String getCommsIdentifier() {
         return commsIdentifier;
     }

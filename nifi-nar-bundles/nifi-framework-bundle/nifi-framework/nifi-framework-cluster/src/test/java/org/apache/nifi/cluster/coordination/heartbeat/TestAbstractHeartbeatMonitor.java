@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -52,6 +51,7 @@ public class TestAbstractHeartbeatMonitor {
 
     @Before
     public void setup() throws Exception {
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", null, null, false);
     }
 
@@ -179,10 +179,10 @@ public class TestAbstractHeartbeatMonitor {
         return monitor;
     }
 
-    private Properties createProperties() {
-        final Properties properties = new Properties();
-        properties.setProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, "10 ms");
-        return properties;
+    private NiFiProperties createProperties() {
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, "10 ms");
+        return NiFiProperties.createBasicNiFiProperties(null, addProps);
     }
 
     private static class ClusterCoordinatorAdapter implements ClusterCoordinator {
@@ -328,8 +328,8 @@ public class TestAbstractHeartbeatMonitor {
         private Map<NodeIdentifier, NodeHeartbeat> heartbeats = new HashMap<>();
         private final Object mutex = new Object();
 
-        public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, Properties properties) {
-            super(clusterCoordinator, properties);
+        public TestFriendlyHeartbeatMonitor(ClusterCoordinator clusterCoordinator, NiFiProperties nifiProperties) {
+            super(clusterCoordinator, nifiProperties);
         }
 
         @Override

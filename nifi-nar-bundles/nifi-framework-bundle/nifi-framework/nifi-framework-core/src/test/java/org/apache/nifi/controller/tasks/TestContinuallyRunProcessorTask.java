@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.controller.tasks;
 
 import static org.junit.Assert.assertFalse;
@@ -26,6 +25,7 @@ import java.util.Collections;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,7 +33,7 @@ public class TestContinuallyRunProcessorTask {
 
     @Test
     public void testIsWorkToDo() {
-        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestContinuallyRunProcessorTask.class.getResource("/conf/nifi.properties").getFile());
 
         final ProcessorNode procNode = Mockito.mock(ProcessorNode.class);
         Mockito.when(procNode.hasIncomingConnection()).thenReturn(false);
@@ -59,7 +59,6 @@ public class TestContinuallyRunProcessorTask {
 
         when(selfLoopingConnection.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         assertTrue(ContinuallyRunProcessorTask.isWorkToDo(procNode));
-
 
         // Test with only a non-looping Connection that has no FlowFiles
         final Connection emptyConnection = Mockito.mock(Connection.class);
