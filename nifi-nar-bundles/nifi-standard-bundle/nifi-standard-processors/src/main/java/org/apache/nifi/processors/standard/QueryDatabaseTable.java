@@ -58,22 +58,23 @@ import java.util.concurrent.atomic.AtomicLong;
 @Tags({"sql", "select", "jdbc", "query", "database"})
 @CapabilityDescription("Execute provided SQL select query. Query result will be converted to Avro format."
         + " Streaming is used so arbitrarily large result sets are supported. This processor can be scheduled to run on "
-        + "a timer, or cron expression, or using the standard scheduling methods. "
-        + "FlowFile attribute 'querydbtable.row.count' indicates how many rows were selected.")
+        + "a timer, or cron expression, using the standard scheduling methods, or it can be triggered by an incoming FlowFile. "
+        + "If it is triggered by an incoming FlowFile, then attributes of that FlowFile will be available when evaluating the "
+        + "select query. FlowFile attribute 'querydbtable.row.count' indicates how many rows were selected.")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
         + "incremental fetching, fetching of newly added rows, etc. To clear the maximum values, clear the state of the processor "
         + "per the State Management documentation")
 @WritesAttributes({
-    @WritesAttribute(attribute = "querydbtable.row.count"),
-    @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows in Flow File' is set then all FlowFiles from the same query result set "
-            + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-    @WritesAttribute(attribute="fragment.index", description="If 'Max Rows in Flow File' is set then the position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
-            + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
-            + "FlowFiles were produced")})
-    @DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
-            + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`")
+@WritesAttribute(attribute = "querydbtable.row.count"),
+@WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows in Flow File' is set then all FlowFiles from the same query result set "
+        + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
+@WritesAttribute(attribute="fragment.index", description="If 'Max Rows in Flow File' is set then the position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+        + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
+        + "FlowFiles were produced")})
+@DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
+        + "max value for max value columns. Properties should be added in the format `initial.maxvalue.{max_value_column}`.")
 public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
