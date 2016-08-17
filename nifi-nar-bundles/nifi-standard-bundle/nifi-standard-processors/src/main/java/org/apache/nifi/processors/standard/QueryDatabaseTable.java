@@ -53,7 +53,15 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -75,7 +83,11 @@ import java.util.concurrent.atomic.AtomicLong;
         @WritesAttribute(attribute = "querydbtable.row.count"),
         @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute="fragment.index", description="If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+        @WritesAttribute(attribute="fragment.count", description="If 'Max Rows Per Flow File' is set then this is the total number of  "
+                + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
+                + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet."),
+        @WritesAttribute(attribute="fragment.index", description="If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+                + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced")})
 @DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
@@ -152,7 +164,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         ProcessSession session = sessionFactory.createSession();
-        final Set<FlowFile> resultSetFlowFiles = new HashSet<>();
+        final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
         final ComponentLog logger = getLogger();
 
@@ -261,6 +273,14 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
 
                     fragmentIndex++;
                 }
+
+                //set count on all FlowFiles
+                if(maxRowsPerFlowFile > 0) {
+                    for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                        resultSetFlowFiles.set(i,
+                                session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
+                    }
+                }
             } catch (final SQLException e) {
                 throw e;
             }
@@ -322,7 +342,9 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final String key = entry.getKey().getName();
 
-            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) { continue; }
+            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) {
+                continue;
+            }
 
             defaultMaxValues.put(key.substring(INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
         }

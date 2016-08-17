@@ -30,6 +30,7 @@ import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.apache.nifi.processors.standard.db.impl.GenericDatabaseAdapter;
 import org.apache.nifi.processors.standard.db.impl.OracleDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
@@ -387,6 +388,7 @@ public class QueryDatabaseTableTest {
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
         InputStream in;
+        MockFlowFile mff;
 
         try {
             stmt.execute("drop table TEST_QUERY_DB_TABLE");
@@ -412,13 +414,22 @@ public class QueryDatabaseTableTest {
 
         //ensure all but the last file have 9 records each
         for(int ff=0;ff<11;ff++) {
-            in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ff).toByteArray());
+            mff = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(ff);
+            in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
+
+            mff.assertAttributeExists("fragment.identifier");
+            assertEquals(Integer.toString(ff), mff.getAttribute("fragment.index"));
+            assertEquals("12", mff.getAttribute("fragment.count"));
         }
 
         //last file should have 1 record
-        in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(11).toByteArray());
+        mff = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(11);
+        in = new ByteArrayInputStream(mff.toByteArray());
         assertEquals(1, getNumberOfRecordsFromStream(in));
+        mff.assertAttributeExists("fragment.identifier");
+        assertEquals(Integer.toString(11), mff.getAttribute("fragment.index"));
+        assertEquals("12", mff.getAttribute("fragment.count"));
         runner.clearTransferState();
 
         // Run again, this time no flowfiles/rows should be transferred
@@ -434,7 +445,11 @@ public class QueryDatabaseTableTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 1);
-        in = new ByteArrayInputStream(runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0).toByteArray());
+        mff = runner.getFlowFilesForRelationship(QueryDatabaseTable.REL_SUCCESS).get(0);
+        in = new ByteArrayInputStream(mff.toByteArray());
+        mff.assertAttributeExists("fragment.identifier");
+        assertEquals(Integer.toString(0), mff.getAttribute("fragment.index"));
+        assertEquals("1", mff.getAttribute("fragment.count"));
         assertEquals(5, getNumberOfRecordsFromStream(in));
         runner.clearTransferState();
 
