@@ -17,8 +17,13 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.*;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -68,9 +73,9 @@ import java.util.concurrent.atomic.AtomicLong;
         + "per the State Management documentation")
 @WritesAttributes({
         @WritesAttribute(attribute = "querydbtable.row.count"),
-        @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows in Flow File' is set then all FlowFiles from the same query result set "
+        @WritesAttribute(attribute="fragment.identifier", description="If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute="fragment.index", description="If 'Max Rows in Flow File' is set then the position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
+        @WritesAttribute(attribute="fragment.index", description="If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced")})
 @DynamicProperty(name = "Initial Max Value", value = "Attribute Expression Language", supportsExpressionLanguage = false, description = "Specifies an initial "
@@ -91,7 +96,8 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
-            .name("Max Rows in Flow File")
+            .name("qdbt-max-rows")
+            .displayName("Max Rows Per Flow File")
             .description("The maximum number of result rows that will be included in a single FlowFile. " +
                     "This will allow you to break up very large result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
             .defaultValue("0")
@@ -316,7 +322,7 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final String key = entry.getKey().getName();
 
-            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) continue;
+            if(!key.startsWith(INTIIAL_MAX_VALUE_PROP_START)) { continue; }
 
             defaultMaxValues.put(key.substring(INTIIAL_MAX_VALUE_PROP_START.length()), entry.getValue());
         }
