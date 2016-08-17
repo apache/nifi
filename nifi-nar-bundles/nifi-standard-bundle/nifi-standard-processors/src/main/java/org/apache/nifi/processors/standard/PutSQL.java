@@ -779,7 +779,7 @@ public class PutSQL extends AbstractProcessor {
                     if(LONG_PATTERN.matcher(parameterValue).matches()){
                         lTimestamp = Long.parseLong(parameterValue);
                     }else {
-                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
                         java.util.Date parsedDate = dateFormat.parse(parameterValue);
                         lTimestamp = parsedDate.getTime();
                     }
