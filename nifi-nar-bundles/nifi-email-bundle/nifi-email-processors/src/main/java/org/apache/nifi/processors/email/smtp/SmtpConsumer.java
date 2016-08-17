@@ -149,7 +149,7 @@ public class SmtpConsumer implements MessageHandler {
         }
 
         attributes.put("smtp.helo", context.getHelo());
-        attributes.put("smtp.remote.addr", context.getRemoteAddress().toString());
+        attributes.put("smtp.src", context.getRemoteAddress().toString().substring(1));
         attributes.put("smtp.from", from);
         for (int i = 0; i < recipientList.size(); i++) {
             attributes.put("smtp.recipient." + i, recipientList.get(i));
