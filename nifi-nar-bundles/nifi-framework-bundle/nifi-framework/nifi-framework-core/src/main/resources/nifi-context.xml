@@ -25,7 +25,10 @@
     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
 
     <!-- nifi properties created via getInstance using a file path specified as a system property -->
-    <bean id="nifiProperties" class="org.apache.nifi.util.NiFiProperties" factory-method="getInstance"/>
+    <bean id="nifiProperties" class="org.apache.nifi.util.NiFiProperties" factory-method="createBasicNiFiProperties">
+        <constructor-arg index="0"><null /></constructor-arg>
+        <constructor-arg index="1"><null /></constructor-arg>
+    </bean>
 
     <!-- variable registry -->
     <bean id="variableRegistry" class="org.apache.nifi.util.FileBasedVariableRegistry">
@@ -36,7 +39,9 @@
     <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
     </bean>
     
-    <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor"/>
+    <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor">
+        <constructor-arg ref="nifiProperties" />
+    </bean>
 
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">

@@ -42,6 +42,9 @@
     <bean id="clusterCoordinationProtocolSender" class="org.apache.nifi.cluster.protocol.impl.StandardClusterCoordinationProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
+        <constructor-arg>
+            <bean factory-bean="nifiProperties" factory-method="getClusterNodeProtocolThreads"/>
+        </constructor-arg>
         <property name="handshakeTimeout">
             <bean factory-bean="nifiProperties" factory-method="getClusterNodeConnectionTimeout"/>
         </property>

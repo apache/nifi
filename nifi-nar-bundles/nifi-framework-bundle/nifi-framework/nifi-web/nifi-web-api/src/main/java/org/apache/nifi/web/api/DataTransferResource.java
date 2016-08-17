@@ -116,10 +116,8 @@ public class DataTransferResource extends ApplicationResource {
     private final ResponseCreator responseCreator = new ResponseCreator();
     private final VersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
     private final HttpRemoteSiteListener transactionManager;
-    private final NiFiProperties nifiProperties;
 
     public DataTransferResource(final NiFiProperties nifiProperties) {
-        this.nifiProperties = nifiProperties;
         transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
     }
 
@@ -311,13 +309,13 @@ public class DataTransferResource extends ApplicationResource {
         ((HttpCommunicationsSession) peer.getCommunicationsSession()).setDataTransferUrl(dataTransferUrl);
 
         HttpFlowFileServerProtocol serverProtocol = getHttpFlowFileServerProtocol(versionNegotiator);
-        HttpRemoteSiteListener.getInstance(nifiProperties).setupServerProtocol(serverProtocol);
+        HttpRemoteSiteListener.getInstance(getProperties()).setupServerProtocol(serverProtocol);
         serverProtocol.handshake(peer);
         return serverProtocol;
     }
 
     HttpFlowFileServerProtocol getHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator) {
-        return new StandardHttpFlowFileServerProtocol(versionNegotiator, nifiProperties);
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator, getProperties());
     }
 
     private Peer constructPeer(final HttpServletRequest req, final InputStream inputStream,

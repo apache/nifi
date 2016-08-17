@@ -73,6 +73,7 @@ public class MonitorDiskUsage extends AbstractReportingTask {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(2);
         descriptors.add(DIR_THRESHOLD);
         descriptors.add(DIR_LOCATION);
+        descriptors.add(DIR_DISPLAY_NAME);
         return descriptors;
     }
 

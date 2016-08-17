@@ -215,6 +215,7 @@
         <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="siteToSiteResource" class="org.apache.nifi.web.api.SiteToSiteResource" scope="singleton">
+        <constructor-arg ref="nifiProperties"/>
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
@@ -222,6 +223,7 @@
         <property name="authorizer" ref="authorizer"/>
     </bean>
     <bean id="dataTransferResource" class="org.apache.nifi.web.api.DataTransferResource" scope="singleton">
+        <constructor-arg ref="nifiProperties"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
