@@ -19,6 +19,8 @@ package org.apache.nifi.processors.email.smtp;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -38,7 +41,6 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.email.ListenSMTP;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.util.StopWatch;
-
 import org.subethamail.smtp.MessageContext;
 import org.subethamail.smtp.MessageHandler;
 import org.subethamail.smtp.RejectException;
@@ -148,8 +150,16 @@ public class SmtpConsumer implements MessageHandler {
             }
         }
 
+        SocketAddress address = context.getRemoteAddress();
+        if (address != null) {
+            // will extract and format source address if available
+            String strAddress = address instanceof InetSocketAddress
+                    ? ((InetSocketAddress) address).getHostString() + ":" + ((InetSocketAddress) address).getPort()
+                    : context.getRemoteAddress().toString();
+            attributes.put("smtp.src", strAddress);
+        }
+
         attributes.put("smtp.helo", context.getHelo());
-        attributes.put("smtp.src", context.getRemoteAddress().toString().substring(1));
         attributes.put("smtp.from", from);
         for (int i = 0; i < recipientList.size(); i++) {
             attributes.put("smtp.recipient." + i, recipientList.get(i));
