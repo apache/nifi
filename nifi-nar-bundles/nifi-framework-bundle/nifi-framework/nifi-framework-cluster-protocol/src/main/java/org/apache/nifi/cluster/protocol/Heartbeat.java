@@ -16,10 +16,7 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -35,17 +32,15 @@ import org.apache.nifi.cluster.protocol.jaxb.message.HeartbeatAdapter;
 public class Heartbeat {
 
     private final NodeIdentifier nodeIdentifier;
-    private final Set<String> roles;
     private final NodeConnectionStatus connectionStatus;
     private final long createdTimestamp;
     private final byte[] payload;
 
-    public Heartbeat(final NodeIdentifier nodeIdentifier, final Set<String> roles, final NodeConnectionStatus connectionStatus, final byte[] payload) {
+    public Heartbeat(final NodeIdentifier nodeIdentifier, final NodeConnectionStatus connectionStatus, final byte[] payload) {
         if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node Identifier may not be null.");
         }
         this.nodeIdentifier = nodeIdentifier;
-        this.roles = roles == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(roles));
         this.connectionStatus = connectionStatus;
         this.payload = payload;
         this.createdTimestamp = new Date().getTime();
@@ -57,10 +52,6 @@ public class Heartbeat {
 
     public byte[] getPayload() {
         return payload;
-    }
-
-    public Set<String> getRoles() {
-        return roles;
     }
 
     public NodeConnectionStatus getConnectionStatus() {

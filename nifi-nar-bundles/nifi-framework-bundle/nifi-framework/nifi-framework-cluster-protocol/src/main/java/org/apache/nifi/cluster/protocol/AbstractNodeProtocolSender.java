@@ -24,6 +24,7 @@ import java.net.Socket;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.io.socket.SocketConfiguration;
@@ -74,7 +75,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
     }
 
     @Override
-    public void heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
+    public HeartbeatResponseMessage heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
         final String hostname;
         final int port;
         try {
@@ -85,7 +86,12 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
             throw new IllegalArgumentException("Cannot send heartbeat to address [" + address + "]. Address must be in <hostname>:<port> format");
         }
 
-        sendProtocolMessage(msg, hostname, port);
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, hostname, port);
+        if (MessageType.HEARTBEAT_RESPONSE == responseMessage.getType()) {
+            return (HeartbeatResponseMessage) responseMessage;
+        }
+
+        throw new ProtocolException("Expected message type '" + MessageType.HEARTBEAT_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
 
 
@@ -108,7 +114,7 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         return socketConfiguration;
     }
 
-    private void sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port) {
+    private ProtocolMessage sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port) {
         Socket socket = null;
         try {
             try {
@@ -124,6 +130,18 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
             } catch (final IOException ioe) {
                 throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
             }
+
+            final ProtocolMessage response;
+            try {
+                // unmarshall response and return
+                final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
+                response = unmarshaller.unmarshal(socket.getInputStream());
+            } catch (final IOException ioe) {
+                throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
+                    + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+            }
+
+            return response;
         } finally {
             SocketUtils.closeQuietly(socket);
         }

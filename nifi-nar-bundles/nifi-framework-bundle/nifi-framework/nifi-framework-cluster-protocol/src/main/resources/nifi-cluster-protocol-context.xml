@@ -54,10 +54,17 @@
     </bean>
     
     <!-- node protocol sender -->
+    <!--
     <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.CuratorNodeProtocolSender">
         <constructor-arg ref="protocolSocketConfiguration"/>
         <constructor-arg ref="protocolContext"/>
         <constructor-arg ref="nifiProperties"/>
+    </bean>
+    -->
+    <bean id="nodeProtocolSender" class="org.apache.nifi.cluster.coordination.node.LeaderElectionNodeProtocolSender">
+        <constructor-arg ref="protocolSocketConfiguration"/>
+        <constructor-arg ref="protocolContext"/>
+        <constructor-arg ref="leaderElectionManager"/>
     </bean>
     
     <!-- protocol listener -->

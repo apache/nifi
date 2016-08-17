@@ -908,6 +908,7 @@ public final class FingerprintFactory {
         builder.append(dto.getName());
         builder.append(dto.getComments());
         builder.append(dto.getAnnotationData());
+        builder.append(dto.getState());
 
         final Map<String, String> properties = dto.getProperties();
         if (properties == null) {

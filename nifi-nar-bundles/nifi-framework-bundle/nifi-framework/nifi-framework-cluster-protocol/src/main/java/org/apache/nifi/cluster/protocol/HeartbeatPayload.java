@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cluster;
+package org.apache.nifi.cluster.protocol;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -27,7 +28,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.apache.nifi.cluster.protocol.ProtocolException;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
 /**
  * The payload of the heartbeat. The payload contains status to inform the cluster manager the current workload of this node.
@@ -50,6 +51,7 @@ public class HeartbeatPayload {
     private long totalFlowFileCount;
     private long totalFlowFileBytes;
     private long systemStartTime;
+    private List<NodeConnectionStatus> clusterStatus;
 
     public int getActiveThreadCount() {
         return activeThreadCount;
@@ -81,6 +83,14 @@ public class HeartbeatPayload {
 
     public void setSystemStartTime(final long systemStartTime) {
         this.systemStartTime = systemStartTime;
+    }
+
+    public List<NodeConnectionStatus> getClusterStatus() {
+        return clusterStatus;
+    }
+
+    public void setClusterStatus(final List<NodeConnectionStatus> clusterStatus) {
+        this.clusterStatus = clusterStatus;
     }
 
     public byte[] marshal() throws ProtocolException {

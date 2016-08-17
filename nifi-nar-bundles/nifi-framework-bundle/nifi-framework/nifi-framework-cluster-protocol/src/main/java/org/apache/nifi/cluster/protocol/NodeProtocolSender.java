@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.protocol;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 
 /**
  * An interface for sending protocol messages from a node to the cluster
@@ -44,6 +45,8 @@ public interface NodeProtocolSender {
      * @param msg the heartbeat message to send
      * @param address the address of the Cluster Coordinator in &lt;hostname&gt;:&lt;port&gt; format
      * @throws ProtocolException if unable to send the heartbeat
+     *
+     * @return the response from the Cluster Coordinator
      */
-    void heartbeat(HeartbeatMessage msg, String address) throws ProtocolException;
+    HeartbeatResponseMessage heartbeat(HeartbeatMessage msg, String address) throws ProtocolException;
 }

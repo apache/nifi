@@ -17,222 +17,219 @@
 
 package org.apache.nifi.cluster.integration;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ClusterConnectionIT {
+    private Cluster cluster;
 
     @BeforeClass
     public static void setup() {
         System.setProperty("nifi.properties.file.path", "src/test/resources/conf/nifi.properties");
     }
 
-    @Test(timeout = 20000)
-    public void testSingleNode() throws InterruptedException {
-        final Cluster cluster = new Cluster();
+    @Before
+    public void createCluster() {
+        cluster = new Cluster();
         cluster.start();
+    }
 
-        try {
-            final Node firstNode = cluster.createNode();
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-
-            firstNode.waitUntilElectedForRole(ClusterRoles.CLUSTER_COORDINATOR, 10, TimeUnit.SECONDS);
-            firstNode.waitUntilElectedForRole(ClusterRoles.PRIMARY_NODE, 10, TimeUnit.SECONDS);
-        } finally {
+    @After
+    public void destroyCluster() {
+        if (cluster != null) {
             cluster.stop();
         }
+    }
+
+    @Test(timeout = 20000)
+    public void testSingleNode() throws InterruptedException {
+        final Node firstNode = cluster.createNode();
+        firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
+
+        firstNode.waitUntilElectedForRole(ClusterRoles.CLUSTER_COORDINATOR, 10, TimeUnit.SECONDS);
+        firstNode.waitUntilElectedForRole(ClusterRoles.PRIMARY_NODE, 10, TimeUnit.SECONDS);
     }
 
     @Test(timeout = 60000)
     public void testThreeNodeCluster() throws InterruptedException {
-        final Cluster cluster = new Cluster();
-        cluster.start();
+        cluster.createNode();
+        cluster.createNode();
+        cluster.createNode();
 
-        try {
-            final Node firstNode = cluster.createNode();
-            final Node secondNode = cluster.createNode();
-            final Node thirdNode = cluster.createNode();
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
 
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 1 Connected ****");
-            secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 2 Connected ****");
-            thirdNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 3 Connected ****");
-
-            final Node clusterCoordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
-            final Node primaryNode = cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
-            System.out.println("\n\n");
-            System.out.println("Cluster Coordinator = " + clusterCoordinator);
-            System.out.println("Primary Node = " + primaryNode);
-            System.out.println("\n\n");
-        } finally {
-            cluster.stop();
-        }
+        final Node clusterCoordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
+        final Node primaryNode = cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
+        System.out.println("\n\n");
+        System.out.println("Cluster Coordinator = " + clusterCoordinator);
+        System.out.println("Primary Node = " + primaryNode);
+        System.out.println("\n\n");
     }
 
     @Test(timeout = 60000)
     public void testNewCoordinatorElected() throws IOException {
-        final Cluster cluster = new Cluster();
-        cluster.start();
+        final Node firstNode = cluster.createNode();
+        final Node secondNode = cluster.createNode();
 
-        try {
-            final Node firstNode = cluster.createNode();
-            final Node secondNode = cluster.createNode();
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
 
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 1 Connected ****");
-            secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 2 Connected ****");
+        final Node clusterCoordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
+        clusterCoordinator.stop();
 
-            final Node clusterCoordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
-            clusterCoordinator.stop();
-
-            final Node otherNode = firstNode == clusterCoordinator ? secondNode : firstNode;
-            otherNode.waitUntilElectedForRole(ClusterRoles.CLUSTER_COORDINATOR, 10, TimeUnit.SECONDS);
-        } finally {
-            cluster.stop();
-        }
+        final Node otherNode = firstNode == clusterCoordinator ? secondNode : firstNode;
+        otherNode.waitUntilElectedForRole(ClusterRoles.CLUSTER_COORDINATOR, 10, TimeUnit.SECONDS);
     }
 
     @Test(timeout = 60000)
     public void testReconnectGetsCorrectClusterTopology() throws IOException {
-        final Cluster cluster = new Cluster();
-        cluster.start();
+        final Node firstNode = cluster.createNode();
+        final Node secondNode = cluster.createNode();
+        final Node thirdNode = cluster.createNode();
 
-        try {
-            final Node firstNode = cluster.createNode();
-            final Node secondNode = cluster.createNode();
-            final Node thirdNode = cluster.createNode();
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
 
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 1 Connected ****");
-            secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 2 Connected ****");
-            thirdNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 3 Connected ****");
+        // shutdown node
+        secondNode.stop();
 
-            // shutdown node
-            secondNode.stop();
+        System.out.println("\n\nNode 2 Shut Down\n\n");
 
-            System.out.println("\n\nNode 2 Shut Down\n\n");
+        // wait for node 1 and 3 to recognize that node 2 is gone
+        Stream.of(firstNode, thirdNode).forEach(node -> {
+            node.assertNodeDisconnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
+        });
 
-            // wait for node 1 and 3 to recognize that node 2 is gone
-            Stream.of(firstNode, thirdNode).forEach(node -> {
-                node.assertNodeDisconnects(secondNode.getIdentifier(), 5, TimeUnit.SECONDS);
-            });
+        // restart node
+        secondNode.start();
+        System.out.println("\n\nNode 2 Restarted\n\n");
 
-            // restart node
-            secondNode.start();
-            System.out.println("\n\nNode 2 Restarted\n\n");
+        secondNode.waitUntilConnected(20, TimeUnit.SECONDS);
+        System.out.println("\n\nNode 2 Reconnected\n\n");
 
-            secondNode.waitUntilConnected(20, TimeUnit.SECONDS);
-            System.out.println("\n\nNode 2 Reconnected\n\n");
+        // wait for all 3 nodes to agree that node 2 is connected
+        Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
+            ClusterUtils.waitUntilConditionMet(5, TimeUnit.SECONDS,
+                () -> firstNode.getClusterCoordinator().getConnectionStatus(secondNode.getIdentifier()).getState() == NodeConnectionState.CONNECTED);
+        });
 
-            // wait for all 3 nodes to agree that node 2 is connected
-            Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
-                ClusterUtils.waitUntilConditionMet(5, TimeUnit.SECONDS,
-                    () -> firstNode.getClusterCoordinator().getConnectionStatus(secondNode.getIdentifier()).getState() == NodeConnectionState.CONNECTED);
-            });
+        // Ensure that all 3 nodes see a cluster of 3 connected nodes.
+        Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
+            node.assertNodeIsConnected(firstNode.getIdentifier());
+            node.assertNodeIsConnected(secondNode.getIdentifier());
+            node.assertNodeIsConnected(thirdNode.getIdentifier());
+        });
 
-            // Ensure that all 3 nodes see a cluster of 3 connected nodes.
-            Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
-                node.assertNodeIsConnected(firstNode.getIdentifier());
-                node.assertNodeIsConnected(secondNode.getIdentifier());
-                node.assertNodeIsConnected(thirdNode.getIdentifier());
-            });
-
-            // Ensure that we get both a cluster coordinator and a primary node elected
-            cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
-            cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
-        } finally {
-            cluster.stop();
-        }
+        // Ensure that we get both a cluster coordinator and a primary node elected
+        cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
+        cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
     }
 
 
     @Test(timeout = 60000)
     public void testRestartAllNodes() throws IOException {
-        final Cluster cluster = new Cluster();
-        cluster.start();
+        final Node firstNode = cluster.createNode();
+        final Node secondNode = cluster.createNode();
+        final Node thirdNode = cluster.createNode();
 
-        try {
-            final Node firstNode = cluster.createNode();
-            final Node secondNode = cluster.createNode();
-            final Node thirdNode = cluster.createNode();
+        firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        System.out.println("**** Node 1 Connected ****");
+        secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        System.out.println("**** Node 2 Connected ****");
+        thirdNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        System.out.println("**** Node 3 Connected ****");
 
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 1 Connected ****");
-            secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 2 Connected ****");
-            thirdNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            System.out.println("**** Node 3 Connected ****");
+        // shutdown node
+        firstNode.stop();
+        secondNode.stop();
+        thirdNode.stop();
 
-            // shutdown node
-            firstNode.stop();
-            secondNode.stop();
-            thirdNode.stop();
+        System.out.println("\n\nRestarting all nodes\n\n");
+        thirdNode.start();
+        firstNode.start();
+        secondNode.start();
 
-            System.out.println("\n\nRestarting all nodes\n\n");
-            thirdNode.start();
-            firstNode.start();
-            secondNode.start();
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
 
-            Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
-                node.waitUntilConnected(10, TimeUnit.SECONDS);
-            });
+        // wait for all 3 nodes to agree that node 2 is connected
+        Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
+            ClusterUtils.waitUntilConditionMet(5, TimeUnit.SECONDS,
+                () -> firstNode.getClusterCoordinator().getConnectionStatus(secondNode.getIdentifier()).getState() == NodeConnectionState.CONNECTED);
+        });
 
-            // wait for all 3 nodes to agree that node 2 is connected
-            Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
-                ClusterUtils.waitUntilConditionMet(5, TimeUnit.SECONDS,
-                    () -> firstNode.getClusterCoordinator().getConnectionStatus(secondNode.getIdentifier()).getState() == NodeConnectionState.CONNECTED);
-            });
+        // Ensure that all 3 nodes see a cluster of 3 connected nodes.
+        Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
+            node.assertNodeConnects(firstNode.getIdentifier(), 10, TimeUnit.SECONDS);
+            node.assertNodeConnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
+            node.assertNodeConnects(thirdNode.getIdentifier(), 10, TimeUnit.SECONDS);
+        });
 
-            // Ensure that all 3 nodes see a cluster of 3 connected nodes.
-            Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
-                node.assertNodeConnects(firstNode.getIdentifier(), 10, TimeUnit.SECONDS);
-                node.assertNodeConnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
-                node.assertNodeConnects(thirdNode.getIdentifier(), 10, TimeUnit.SECONDS);
-            });
-
-            // Ensure that we get both a cluster coordinator and a primary node elected
-            cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
-            cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
-        } finally {
-            cluster.stop();
-        }
+        // Ensure that we get both a cluster coordinator and a primary node elected
+        cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
+        cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
     }
 
 
     @Test(timeout = 30000)
     public void testHeartbeatsMonitored() throws IOException {
-        final Cluster cluster = new Cluster();
-        cluster.start();
+        final Node firstNode = cluster.createNode();
+        final Node secondNode = cluster.createNode();
 
-        try {
-            final Node firstNode = cluster.createNode();
-            final Node secondNode = cluster.createNode();
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
 
-            firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
-            secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        final Node nodeToSuspend = firstNode;
+        final Node otherNode = secondNode;
 
-            secondNode.suspendHeartbeating();
+        nodeToSuspend.suspendHeartbeating();
 
-            // Heartbeat interval in nifi.properties is set to 1 sec. This means that the node should be kicked out
-            // due to lack of heartbeat after 8 times this amount of time, or 8 seconds.
-            firstNode.assertNodeDisconnects(secondNode.getIdentifier(), 12, TimeUnit.SECONDS);
+        // Heartbeat interval in nifi.properties is set to 1 sec. This means that the node should be kicked out
+        // due to lack of heartbeat after 8 times this amount of time, or 8 seconds.
+        otherNode.assertNodeDisconnects(nodeToSuspend.getIdentifier(), 12, TimeUnit.SECONDS);
 
-            secondNode.resumeHeartbeating();
-            firstNode.assertNodeConnects(secondNode.getIdentifier(), 10, TimeUnit.SECONDS);
-        } finally {
-            cluster.stop();
-        }
+        nodeToSuspend.resumeHeartbeating();
+        otherNode.assertNodeConnects(nodeToSuspend.getIdentifier(), 10, TimeUnit.SECONDS);
     }
 
+    @Test
+    public void testNodeInheritsClusterTopologyOnHeartbeat() throws InterruptedException {
+        final Node node1 = cluster.createNode();
+        final Node node2 = cluster.createNode();
+        final Node node3 = cluster.createNode();
+
+        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
+        final Node coordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
+
+        final NodeIdentifier node4NotReallyInCluster = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9283, "localhost", 9284, "localhost", 9285, null, false, null);
+
+        final Map<NodeIdentifier, NodeConnectionStatus> replacementStatuses = new HashMap<>();
+        replacementStatuses.put(node1.getIdentifier(), new NodeConnectionStatus(node1.getIdentifier(), DisconnectionCode.USER_DISCONNECTED));
+        replacementStatuses.put(node4NotReallyInCluster, new NodeConnectionStatus(node4NotReallyInCluster, NodeConnectionState.CONNECTING));
+
+        // reset coordinator status so that other nodes with get its now-fake view of the cluster
+        coordinator.getClusterCoordinator().resetNodeStatuses(replacementStatuses);
+        final List<NodeConnectionStatus> expectedStatuses = coordinator.getClusterCoordinator().getConnectionStatuses();
+
+        // give nodes a bit to heartbeat in. We need to wait long enough that each node heartbeats.
+        // But we need to not wait more than 8 seconds because that's when nodes start getting kicked out.
+        Thread.sleep(6000L);
+
+        for (final Node node : new Node[] {node1, node2, node3}) {
+            assertEquals(expectedStatuses, node.getClusterCoordinator().getConnectionStatuses());
+        }
+    }
 }
