@@ -235,7 +235,6 @@ public class FlowResource extends ApplicationResource {
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.TEXT_PLAIN)
     @Path("client-id")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @ApiOperation(
             value = "Generates a client id.",
             response = String.class,
