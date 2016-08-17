@@ -295,10 +295,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     /**
      * Starts the given {@link Processor} by invoking its
      * {@link ProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable)}
-     * .
+     * method.
      *
-     * @see StandardProcessorNode#start(ScheduledExecutorService, long,
-     * org.apache.nifi.processor.ProcessContext, Runnable).
+     * @see StandardProcessorNode#start(ScheduledExecutorService, long, org.apache.nifi.processor.ProcessContext, Runnable).
      */
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
@@ -329,11 +328,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     /**
      * Stops the given {@link Processor} by invoking its
-     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, Callable)}
-     * .
+     * {@link ProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)}
+     * method.
      *
-     * @see StandardProcessorNode#stop(ScheduledExecutorService,
-     * org.apache.nifi.processor.ProcessContext, Callable)
+     * @see StandardProcessorNode#stop(ScheduledExecutorService, org.apache.nifi.processor.ProcessContext, SchedulingAgent, ScheduleState)
      */
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {

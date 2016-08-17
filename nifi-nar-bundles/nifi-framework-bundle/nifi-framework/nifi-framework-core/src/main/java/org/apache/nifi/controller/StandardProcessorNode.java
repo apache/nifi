@@ -1288,16 +1288,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * Will idempotently stop the processor using the following sequence: <i>
      * <ul>
      * <li>Transition (atomically) Processor's scheduled state from RUNNING to
-     * STOPPING. If the above state transition succeeds, then execute the stop
-     * task (asynchronously) where 'activeThreadMonitorCallback' provided by the
-     * {@link ProcessScheduler} will be called to check if this processor still
-     * has active threads. If it does, the task will be re-scheduled with delay
-     * of 100 milliseconds until there are no more active threads, at which
-     * point processor's @OnUnscheduled and @OnStopped operation will be invoked
+     * STOPPING. If the above state transition succeeds, then invoke any method
+     * on the Processor with the {@link OnUnscheduled} annotation. Once those methods
+     * have been called and returned (either normally or exceptionally), start checking
+     * to see if all of the Processor's active threads have finished. If not, check again
+     * every 100 milliseconds until they have.
+     * Once all after threads have completed, the processor's @OnStopped operation will be invoked
      * and its scheduled state is set to STOPPED which completes processor stop
      * sequence.</li>
      * </ul>
      * </i>
+     *
      * <p>
      * If for some reason processor's scheduled state can not be transitioned to
      * STOPPING (e.g., the processor didn't finish @OnScheduled operation when
@@ -1316,19 +1317,17 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (this.scheduledState.compareAndSet(ScheduledState.RUNNING, ScheduledState.STOPPING)) { // will ensure that the Processor represented by this node can only be stopped once
             scheduleState.incrementActiveThreadCount();
 
-            // will continue to monitor active threads, invoking OnStopped once
-            // there are none
+            // will continue to monitor active threads, invoking OnStopped once there are no
+            // active threads (with the exception of the thread performing shutdown operations)
             scheduler.execute(new Runnable() {
-                boolean unscheduled = false;
                 @Override
                 public void run() {
-                    if (!this.unscheduled){
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
-                        this.unscheduled = true;
-                    }
                     try {
                         if (scheduleState.isScheduled()) {
                             schedulingAgent.unschedule(StandardProcessorNode.this, scheduleState);
+                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
+                            }
                         }
 
                         // all threads are complete if the active thread count is 1. This is because this thread that is
@@ -1338,6 +1337,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             try (final NarCloseable nc = NarCloseable.withNarLoader()) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
                             }
+
                             scheduleState.decrementActiveThreadCount();
                             scheduledState.set(ScheduledState.STOPPED);
                         } else {
