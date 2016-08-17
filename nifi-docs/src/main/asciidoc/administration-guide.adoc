@@ -1903,15 +1903,19 @@ that is specified.
 
 |====
 |*Property*|*Description*
-|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. Note that this property is not used to authenticate NiFi users.
-    Rather, it is made available for extension points, such as Hadoop-based Processors, to use. At this time, only a single krb5 file is allowed to
-    be specified per NiFi instance, so this property is configured here rather than in individual Processors.
+|nifi.kerberos.krb5.file*|The location of the krb5 file, if used. It is blank by default. At this time, only a single krb5 file is allowed to
+    be specified per NiFi instance, so this property is configured here to support SPNEGO and service principles rather than in individual Processors.
+    If necessary the krb5 file can support multiple realms.
     Example: `/etc/krb5.conf`
-|nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+|nifi.kerberos.service.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
+   Example: `nifi/nifi.example.com` or `nifi/nifi.example.com@EXAMPLE.COM`
+|nifi.kerberos.service.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is for NiFi to authenticate as a client other systems.
+  Example: `/etc/nifi.keytab`
+|nifi.kerberos.spnego.principal*|The name of the NiFi Kerberos service principal, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
    Example: `HTTP/nifi.example.com` or `HTTP/nifi.example.com@EXAMPLE.COM`
-|nifi.kerberos.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
+|nifi.kerberos.spnego.keytab.location*|The file path of the NiFi Kerberos keytab, if used. It is blank by default. Note that this property is used to authenticate NiFi users.
   Example: `/etc/http-nifi.keytab`
-|nifi.kerberos.authentication.expiration*|The expiration duration of a successful Kerberos user authentication, if used. It is 12 hours by default.
+|nifi.kerberos.spengo.authentication.expiration*|The expiration duration of a successful Kerberos user authentication, if used. It is 12 hours by default.
   Example: `12 hours`
 |====
 
