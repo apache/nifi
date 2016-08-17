@@ -79,7 +79,11 @@ public class JdbcCommon {
         return convertToAvroStream(rs, outStream, recordName, null);
     }
 
-    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback)
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback) throws IOException, SQLException {
+        return convertToAvroStream(rs, outStream, recordName, callback, 0);
+    }
+
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream, String recordName, ResultSetRowCallback callback, final int maxRows)
             throws SQLException, IOException {
         final Schema schema = createSchema(rs, recordName);
         final GenericRecord rec = new GenericData.Record(schema);
@@ -155,6 +159,9 @@ public class JdbcCommon {
                 }
                 dataFileWriter.append(rec);
                 nrOfRows += 1;
+
+                if(maxRows > 0 && nrOfRows == maxRows)
+                    break;
             }
 
             return nrOfRows;
