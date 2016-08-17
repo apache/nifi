@@ -43,13 +43,14 @@ import java.util.stream.Stream;
 public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<TlsClientConfig> {
     public static final String HOSTNAME_PROPERTIES = "hostname.properties";
     public static final String OVERLAY_PROPERTIES = "overlay.properties";
+    public static final String INCREMENTING_PROPERTIES = "incrementing.properties";
     public static final String CONF = "./conf/";
     private final NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
     private final File outputFile;
     private final String hostname;
     private final int hostNum;
     private final Properties overlayProperties;
-    private final Set<String> explicitProperties;
+    private final Set<String> metaProperties;
 
     public NifiPropertiesTlsClientConfigWriter(NiFiPropertiesWriterFactory niFiPropertiesWriterFactory, File outputFile, String hostname, int hostNum) throws IOException {
         this.niFiPropertiesWriterFactory = niFiPropertiesWriterFactory;
@@ -58,9 +59,11 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
         this.hostNum = hostNum;
         this.overlayProperties = new Properties();
         this.overlayProperties.load(getClass().getClassLoader().getResourceAsStream(OVERLAY_PROPERTIES));
-        HashSet<String> explicitProperties = new HashSet<>();
-        explicitProperties.add(HOSTNAME_PROPERTIES);
-        this.explicitProperties = Collections.unmodifiableSet(explicitProperties);
+        HashSet<String> metaProperties = new HashSet<>();
+        metaProperties.add(HOSTNAME_PROPERTIES);
+        metaProperties.add(INCREMENTING_PROPERTIES);
+        getIncrementingPropertiesStream().forEach(metaProperties::add);
+        this.metaProperties = Collections.unmodifiableSet(metaProperties);
     }
 
     @Override
@@ -82,21 +85,19 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsClientConfig.getTrustStoreType());
         niFiPropertiesWriter.setPropertyValue(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsClientConfig.getTrustStorePassword());
 
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_HOST, "");
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.WEB_HTTP_PORT, "");
-        niFiPropertiesWriter.setPropertyValue(NiFiProperties.SITE_TO_SITE_SECURE, "true");
-
         getHostnamePropertyStream().forEach(s -> niFiPropertiesWriter.setPropertyValue(s, hostname));
 
-        getPropertyPortMap().entrySet().forEach(nameToPortEntry -> niFiPropertiesWriter.setPropertyValue(nameToPortEntry.getKey(), Integer.toString(nameToPortEntry.getValue())));
+        overlayProperties.stringPropertyNames().stream().filter(s -> !metaProperties.contains(s)).forEach(s -> niFiPropertiesWriter.setPropertyValue(s, overlayProperties.getProperty(s)));
+
+        getIncrementingPropertyMap().entrySet().forEach(nameToIntegerEntry -> niFiPropertiesWriter.setPropertyValue(nameToIntegerEntry.getKey(), Integer.toString(nameToIntegerEntry.getValue())));
     }
 
     protected Properties getOverlayProperties() {
         return overlayProperties;
     }
 
-    protected Map<String, Integer> getPropertyPortMap() {
-        return overlayProperties.stringPropertyNames().stream().filter(s -> !explicitProperties.contains(s)).collect(Collectors.toMap(Function.identity(), portProperty -> {
+    protected Map<String, Integer> getIncrementingPropertyMap() {
+        return getIncrementingPropertiesStream().collect(Collectors.toMap(Function.identity(), portProperty -> {
             String portVal = overlayProperties.getProperty(portProperty);
             int startingPort;
             try {
@@ -108,8 +109,16 @@ public class NifiPropertiesTlsClientConfigWriter implements ConfigurationWriter<
         }));
     }
 
+    protected Stream<String> getIncrementingPropertiesStream() {
+        return getCommaSeparatedPropertyStream(INCREMENTING_PROPERTIES);
+    }
+
     protected Stream<String> getHostnamePropertyStream() {
-        String hostnamePropertyString = overlayProperties.getProperty(HOSTNAME_PROPERTIES);
+        return getCommaSeparatedPropertyStream(HOSTNAME_PROPERTIES);
+    }
+
+    private Stream<String> getCommaSeparatedPropertyStream(String property) {
+        String hostnamePropertyString = overlayProperties.getProperty(property);
         if (!StringUtils.isEmpty(hostnamePropertyString)) {
             return Arrays.stream(hostnamePropertyString.split(",")).map(String::trim);
         }
