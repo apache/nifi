@@ -915,6 +915,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 .source(requireNonNull(source))
                 .destination(destination)
                 .swapManager(swapManager)
+                .queueSwapThreshold(nifiProperties.getQueueSwapThreshold())
                 .eventReporter(eventReporter)
                 .resourceClaimManager(resourceClaimManager)
                 .flowFileRepository(flowFileRepository)
