@@ -127,7 +127,7 @@ public class StandardReportingInitializationContext implements ReportingInitiali
 
     @Override
     public File getKerberosServiceKeytab() {
-        return new File(nifiProperties.getKerberosKeytabLocation());
+        return new File(nifiProperties.getKerberosServiceKeytabLocation());
     }
 
     @Override
