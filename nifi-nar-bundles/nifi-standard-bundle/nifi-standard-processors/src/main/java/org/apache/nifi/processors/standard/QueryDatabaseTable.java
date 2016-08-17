@@ -275,9 +275,11 @@ public class QueryDatabaseTable extends AbstractDatabaseFetchProcessor {
                 }
 
                 //set count on all FlowFiles
-                for (int i = 0; i < resultSetFlowFiles.size(); i++) {
-                    resultSetFlowFiles.set(i,
-                            session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
+                if(maxRowsPerFlowFile > 0) {
+                    for (int i = 0; i < resultSetFlowFiles.size(); i++) {
+                        resultSetFlowFiles.set(i,
+                                session.putAttribute(resultSetFlowFiles.get(i), "fragment.count", Integer.toString(fragmentIndex)));
+                    }
                 }
             } catch (final SQLException e) {
                 throw e;
