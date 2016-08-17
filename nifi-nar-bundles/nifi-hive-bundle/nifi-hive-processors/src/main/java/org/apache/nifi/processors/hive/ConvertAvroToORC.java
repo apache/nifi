@@ -103,7 +103,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             .description("The size of the memory buffer (in bytes) for writing stripes to an ORC file")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("100 KB")
+            .defaultValue("64 MB")
             .build();
 
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()

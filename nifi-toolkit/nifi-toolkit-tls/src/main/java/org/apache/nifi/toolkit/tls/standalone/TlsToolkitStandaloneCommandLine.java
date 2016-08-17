@@ -21,6 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig;
 import org.apache.nifi.toolkit.tls.properties.NiFiPropertiesWriterFactory;
 import org.apache.nifi.toolkit.tls.util.PasswordUtil;
@@ -33,12 +34,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String OUTPUT_DIRECTORY_ARG = "outputDirectory";
@@ -47,13 +49,12 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
     public static final String TRUST_STORE_PASSWORD_ARG = "trustStorePassword";
     public static final String KEY_PASSWORD_ARG = "keyPassword";
     public static final String HOSTNAMES_ARG = "hostnames";
-    public static final String HTTPS_PORT_ARG = "httpsPort";
     public static final String OVERWRITE_ARG = "isOverwrite";
     public static final String CLIENT_CERT_DN_ARG = "clientCertDn";
     public static final String CLIENT_CERT_PASSWORD_ARG = "clientCertPassword";
+    public static final String GLOBAL_PORT_SEQUENCE_ARG = "globalPortSequence";
 
     public static final String DEFAULT_OUTPUT_DIRECTORY = "../" + Paths.get(".").toAbsolutePath().normalize().getFileName().toString();
-    public static final int DEFAULT_HTTPS_PORT = 9091;
 
     public static final String DESCRIPTION = "Creates certificates and config files for nifi cluster.";
 
@@ -61,12 +62,8 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
 
     private final PasswordUtil passwordUtil;
     private File baseDir;
-    private List<String> hostnames;
-    private int httpsPort;
+    private List<InstanceDefinition> instanceDefinitions;
     private NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
-    private List<String> keyStorePasswords;
-    private List<String> keyPasswords;
-    private List<String> trustStorePasswords;
     private List<String> clientDns;
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
@@ -81,13 +78,14 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         this.passwordUtil = passwordUtil;
         addOptionWithArg("o", OUTPUT_DIRECTORY_ARG, "The directory to output keystores, truststore, config files.", DEFAULT_OUTPUT_DIRECTORY);
         addOptionWithArg("n", HOSTNAMES_ARG, "Comma separated list of hostnames.");
-        addOptionWithArg("p", HTTPS_PORT_ARG, "Https port to use.", DEFAULT_HTTPS_PORT);
         addOptionWithArg("f", NIFI_PROPERTIES_FILE_ARG, "Base nifi.properties file to update. (Embedded file identical to the one in a default NiFi install will be used if not specified.)");
         addOptionWithArg("S", KEY_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("K", KEY_PASSWORD_ARG, "Key password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("P", TRUST_STORE_PASSWORD_ARG, "Keystore password to use.  Must either be one value or one for each host. (autogenerate if not specified)");
         addOptionWithArg("C", CLIENT_CERT_DN_ARG, "Generate client certificate suitable for use in browser with specified DN. (Can be specified multiple times.)");
         addOptionWithArg("B", CLIENT_CERT_PASSWORD_ARG, "Password for client certificate.  Must either be one value or one for each client DN. (autogenerate if not specified)");
+        addOptionWithArg("G", GLOBAL_PORT_SEQUENCE_ARG, "Use sequential ports that are calculated for all hosts according to the provided hostname expressions. " +
+                "(Can be specified multiple times, MUST BE SAME FROM RUN TO RUN.)");
         addOptionNoArg("O", OVERWRITE_ARG, "Overwrite existing host output.");
     }
 
@@ -114,10 +112,20 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         String outputDirectory = commandLine.getOptionValue(OUTPUT_DIRECTORY_ARG, DEFAULT_OUTPUT_DIRECTORY);
         baseDir = new File(outputDirectory);
 
+        Stream<String> globalOrderExpressions = null;
+        if (commandLine.hasOption(GLOBAL_PORT_SEQUENCE_ARG)) {
+            globalOrderExpressions = Arrays.stream(commandLine.getOptionValues(GLOBAL_PORT_SEQUENCE_ARG)).flatMap(s -> Arrays.stream(s.split(","))).map(String::trim);
+        }
+
         if (commandLine.hasOption(HOSTNAMES_ARG)) {
-            hostnames = Collections.unmodifiableList(Arrays.stream(commandLine.getOptionValue(HOSTNAMES_ARG).split(",")).map(String::trim).collect(Collectors.toList()));
+            instanceDefinitions = Collections.unmodifiableList(
+                    InstanceDefinition.createDefinitions(globalOrderExpressions,
+                    Arrays.stream(commandLine.getOptionValues(HOSTNAMES_ARG)).flatMap(s -> Arrays.stream(s.split(",")).map(String::trim)),
+                    parsePasswordSupplier(commandLine, KEY_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier()),
+                    parsePasswordSupplier(commandLine, KEY_PASSWORD_ARG, commandLine.hasOption(DIFFERENT_KEY_AND_KEYSTORE_PASSWORDS_ARG) ? passwordUtil.passwordSupplier() : null),
+                    parsePasswordSupplier(commandLine, TRUST_STORE_PASSWORD_ARG, passwordUtil.passwordSupplier())));
         } else {
-            hostnames = Collections.emptyList();
+            instanceDefinitions = Collections.emptyList();
         }
 
         String[] clientDnValues = commandLine.getOptionValues(CLIENT_CERT_DN_ARG);
@@ -127,12 +135,6 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
             clientDns = Collections.emptyList();
         }
 
-        httpsPort = getIntValue(commandLine, HTTPS_PORT_ARG, DEFAULT_HTTPS_PORT);
-
-        int numHosts = hostnames.size();
-        keyStorePasswords = Collections.unmodifiableList(getPasswords(KEY_STORE_PASSWORD_ARG, commandLine, numHosts, HOSTNAMES_ARG));
-        keyPasswords = Collections.unmodifiableList(getKeyPasswords(commandLine, keyStorePasswords));
-        trustStorePasswords = Collections.unmodifiableList(getPasswords(TRUST_STORE_PASSWORD_ARG, commandLine, numHosts, HOSTNAMES_ARG));
         clientPasswords = Collections.unmodifiableList(getPasswords(CLIENT_CERT_PASSWORD_ARG, commandLine, clientDns.size(), CLIENT_CERT_DN_ARG));
         clientPasswordsGenerated = commandLine.getOptionValues(CLIENT_CERT_PASSWORD_ARG) == null;
         overwrite = commandLine.hasOption(OVERWRITE_ARG);
@@ -165,11 +167,18 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
         return printUsageAndThrow("Expected either 1 value or " + num + " (the number of " + numArg + ") values for " + arg, ExitCode.ERROR_INCORRECT_NUMBER_OF_PASSWORDS);
     }
 
-    private List<String> getKeyPasswords(CommandLine commandLine, List<String> keyStorePasswords) throws CommandLineParseException {
-        if (differentPasswordForKeyAndKeystore() || commandLine.hasOption(KEY_PASSWORD_ARG)) {
-            return getPasswords(KEY_PASSWORD_ARG, commandLine, keyStorePasswords.size(), HOSTNAMES_ARG);
+    private Supplier<String> parsePasswordSupplier(CommandLine commandLine, String option, Supplier<String> defaultSupplier) {
+        if (commandLine.hasOption(option)) {
+            String[] values = commandLine.getOptionValues(option);
+            if (values.length == 1) {
+                return PasswordUtil.passwordSupplier(values[0]);
+            } else {
+                return PasswordUtil.passwordSupplier("Provided " + option + " exhausted, please don't specify " + option
+                        + ", specify one value to be used for all NiFi instances, or specify one value for each NiFi instance.", values);
+            }
+        } else {
+            return defaultSupplier;
         }
-        return new ArrayList<>(keyStorePasswords);
     }
 
     public StandaloneConfig createConfig() {
@@ -177,11 +186,7 @@ public class TlsToolkitStandaloneCommandLine extends BaseCommandLine {
 
         standaloneConfig.setBaseDir(baseDir);
         standaloneConfig.setNiFiPropertiesWriterFactory(niFiPropertiesWriterFactory);
-        standaloneConfig.setHostnames(hostnames);
-        standaloneConfig.setKeyStorePasswords(keyStorePasswords);
-        standaloneConfig.setKeyPasswords(keyPasswords);
-        standaloneConfig.setTrustStorePasswords(trustStorePasswords);
-        standaloneConfig.setHttpsPort(httpsPort);
+        standaloneConfig.setInstanceDefinitions(instanceDefinitions);
         standaloneConfig.setOverwrite(overwrite);
         standaloneConfig.setClientDns(clientDns);
         standaloneConfig.setClientPasswords(clientPasswords);

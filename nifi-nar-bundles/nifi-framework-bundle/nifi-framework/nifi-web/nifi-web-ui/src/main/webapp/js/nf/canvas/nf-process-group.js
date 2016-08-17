@@ -1082,13 +1082,13 @@ nf.ProcessGroup = (function () {
 
         /**
          * Reloads the process group state from the server and refreshes the UI.
-         * If the process group is currently unknown, this function just returns.
+         * If the process group is currently unknown, this function reloads the canvas.
          *
-         * @param {object} processGroup The process group to reload
+         * @param {string} id The process group id
          */
-        reload: function (processGroup) {
-            if (processGroupMap.has(processGroup.id)) {
-                var processGroupEntity = processGroupMap.get(processGroup.id);
+        reload: function (id) {
+            if (processGroupMap.has(id)) {
+                var processGroupEntity = processGroupMap.get(id);
                 return $.ajax({
                     type: 'GET',
                     url: processGroupEntity.uri,

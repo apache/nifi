@@ -25,14 +25,10 @@ import java.util.List;
 public class StandaloneConfig extends TlsConfig {
     private File baseDir;
     private NiFiPropertiesWriterFactory niFiPropertiesWriterFactory;
-    private List<String> hostnames;
-    private List<String> keyStorePasswords;
-    private List<String> keyPasswords;
-    private List<String> trustStorePasswords;
+    private List<InstanceDefinition> instanceDefinitions;
     private List<String> clientDns;
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
-    private int httpsPort;
     private boolean overwrite;
 
     public List<String> getClientDns() {
@@ -67,38 +63,6 @@ public class StandaloneConfig extends TlsConfig {
         this.niFiPropertiesWriterFactory = niFiPropertiesWriterFactory;
     }
 
-    public List<String> getHostnames() {
-        return hostnames;
-    }
-
-    public void setHostnames(List<String> hostnames) {
-        this.hostnames = hostnames;
-    }
-
-    public List<String> getKeyStorePasswords() {
-        return keyStorePasswords;
-    }
-
-    public void setKeyStorePasswords(List<String> keyStorePasswords) {
-        this.keyStorePasswords = keyStorePasswords;
-    }
-
-    public List<String> getKeyPasswords() {
-        return keyPasswords;
-    }
-
-    public void setKeyPasswords(List<String> keyPasswords) {
-        this.keyPasswords = keyPasswords;
-    }
-
-    public List<String> getTrustStorePasswords() {
-        return trustStorePasswords;
-    }
-
-    public void setTrustStorePasswords(List<String> trustStorePasswords) {
-        this.trustStorePasswords = trustStorePasswords;
-    }
-
     public List<String> getClientPasswords() {
         return clientPasswords;
     }
@@ -107,19 +71,19 @@ public class StandaloneConfig extends TlsConfig {
         this.clientPasswords = clientPasswords;
     }
 
-    public int getHttpsPort() {
-        return httpsPort;
-    }
-
-    public void setHttpsPort(int httpsPort) {
-        this.httpsPort = httpsPort;
-    }
-
     public boolean isClientPasswordsGenerated() {
         return clientPasswordsGenerated;
     }
 
     public void setClientPasswordsGenerated(boolean clientPasswordsGenerated) {
         this.clientPasswordsGenerated = clientPasswordsGenerated;
+    }
+
+    public List<InstanceDefinition> getInstanceDefinitions() {
+        return instanceDefinitions;
+    }
+
+    public void setInstanceDefinitions(List<InstanceDefinition> instanceDefinitions) {
+        this.instanceDefinitions = instanceDefinitions;
     }
 }
