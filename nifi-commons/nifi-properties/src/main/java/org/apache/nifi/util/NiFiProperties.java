@@ -179,8 +179,10 @@ public abstract class NiFiProperties {
     // kerberos properties
     public static final String KERBEROS_KRB5_FILE = "nifi.kerberos.krb5.file";
     public static final String KERBEROS_SERVICE_PRINCIPAL = "nifi.kerberos.service.principal";
-    public static final String KERBEROS_KEYTAB_LOCATION = "nifi.kerberos.keytab.location";
-    public static final String KERBEROS_AUTHENTICATION_EXPIRATION = "nifi.kerberos.authentication.expiration";
+    public static final String KERBEROS_SERVICE_KEYTAB_LOCATION = "nifi.kerberos.service.keytab.location";
+    public static final String KERBEROS_SPNEGO_PRINCIPAL = "nifi.kerberos.spnego.principal";
+    public static final String KERBEROS_SPNEGO_KEYTAB_LOCATION = "nifi.kerberos.spnego.keytab.location";
+    public static final String KERBEROS_AUTHENTICATION_EXPIRATION = "nifi.kerberos.spnego.authentication.expiration";
 
     // state management
     public static final String STATE_MANAGEMENT_CONFIG_FILE = "nifi.state.management.configuration.file";
@@ -717,8 +719,26 @@ public abstract class NiFiProperties {
         }
     }
 
-    public String getKerberosKeytabLocation() {
-        final String keytabLocation = getProperty(KERBEROS_KEYTAB_LOCATION);
+    public String getKerberosServiceKeytabLocation() {
+        final String keytabLocation = getProperty(KERBEROS_SERVICE_KEYTAB_LOCATION);
+        if (!StringUtils.isBlank(keytabLocation)) {
+            return keytabLocation.trim();
+        } else {
+            return null;
+        }
+    }
+
+    public String getKerberosSpnegoPrincipal() {
+        final String spengoPrincipal = getProperty(KERBEROS_SPNEGO_PRINCIPAL);
+        if (!StringUtils.isBlank(spengoPrincipal)) {
+            return spengoPrincipal.trim();
+        } else {
+            return null;
+        }
+    }
+
+    public String getKerberosSpnegoKeytabLocation() {
+        final String keytabLocation = getProperty(KERBEROS_SPNEGO_KEYTAB_LOCATION);
         if (!StringUtils.isBlank(keytabLocation)) {
             return keytabLocation.trim();
         } else {
@@ -741,8 +761,8 @@ public abstract class NiFiProperties {
      *
      * @return true if Kerberos service support is enabled
      */
-    public boolean isKerberosServiceSupportEnabled() {
-        return !StringUtils.isBlank(getKerberosServicePrincipal()) && !StringUtils.isBlank(getKerberosKeytabLocation());
+    public boolean isKerberosSpnegoSupportEnabled() {
+        return !StringUtils.isBlank(getKerberosSpnegoPrincipal()) && !StringUtils.isBlank(getKerberosSpnegoKeytabLocation());
     }
 
     /**
@@ -756,7 +776,7 @@ public abstract class NiFiProperties {
      * API
      */
     public boolean isClientAuthRequiredForRestApi() {
-        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosServiceSupportEnabled();
+        return StringUtils.isBlank(getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER)) && !isKerberosSpnegoSupportEnabled();
     }
 
     public InetSocketAddress getNodeApiAddress() {

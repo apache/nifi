@@ -161,8 +161,10 @@
         <!-- nifi.properties: kerberos properties -->
         <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
         <nifi.kerberos.service.principal />
-        <nifi.kerberos.keytab.location />
-        <nifi.kerberos.authentication.expiration>12 hours</nifi.kerberos.authentication.expiration>
+        <nifi.kerberos.service.keytab.location />
+        <nifi.kerberos.spnego.principal />
+        <nifi.kerberos.spnego.keytab.location />
+        <nifi.kerberos.spnego.authentication.expiration>12 hours</nifi.kerberos.spnego.authentication.expiration>
     </properties>
     <build>
         <plugins>

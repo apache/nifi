@@ -23,7 +23,10 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.security.kerberos.authentication.KerberosServiceAuthenticationProvider;
 import org.springframework.security.kerberos.authentication.KerberosTicketValidator;
+import org.springframework.security.kerberos.authentication.sun.GlobalSunJaasKerberosConfig;
 import org.springframework.security.kerberos.authentication.sun.SunJaasKerberosTicketValidator;
+
+import java.io.File;
 
 public class KerberosServiceFactoryBean implements FactoryBean<KerberosService> {
 
@@ -32,7 +35,14 @@ public class KerberosServiceFactoryBean implements FactoryBean<KerberosService> 
 
     @Override
     public KerberosService getObject() throws Exception {
-        if (kerberosService == null && properties.isKerberosServiceSupportEnabled()) {
+        if (kerberosService == null && properties.isKerberosSpnegoSupportEnabled()) {
+            final File krb5ConfigFile = properties.getKerberosConfigurationFile();
+            if (krb5ConfigFile != null) {
+                final GlobalSunJaasKerberosConfig krb5Config = new GlobalSunJaasKerberosConfig();
+                krb5Config.setKrbConfLocation(krb5ConfigFile.getAbsolutePath());
+                krb5Config.afterPropertiesSet();
+            }
+
             kerberosService = new KerberosService();
             kerberosService.setKerberosServiceAuthenticationProvider(createKerberosServiceAuthenticationProvider());
         }
@@ -68,8 +78,8 @@ public class KerberosServiceFactoryBean implements FactoryBean<KerberosService> 
 
     private KerberosTicketValidator createTicketValidator() throws Exception {
         SunJaasKerberosTicketValidator ticketValidator = new SunJaasKerberosTicketValidator();
-        ticketValidator.setServicePrincipal(properties.getKerberosServicePrincipal());
-        ticketValidator.setKeyTabLocation(new FileSystemResource(properties.getKerberosKeytabLocation()));
+        ticketValidator.setServicePrincipal(properties.getKerberosSpnegoPrincipal());
+        ticketValidator.setKeyTabLocation(new FileSystemResource(properties.getKerberosSpnegoKeytabLocation()));
         ticketValidator.afterPropertiesSet();
         return ticketValidator;
     }
