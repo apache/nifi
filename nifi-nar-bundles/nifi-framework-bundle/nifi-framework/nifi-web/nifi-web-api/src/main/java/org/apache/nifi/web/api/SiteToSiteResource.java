@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -60,6 +56,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -173,7 +171,6 @@ public class SiteToSiteResource extends ApplicationResource {
     @Path("/peers")
     @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    // TODO: @PreAuthorize("hasRole('ROLE_NIFI')")
     @ApiOperation(
             value = "Returns the available Peers and its status of this NiFi",
             response = PeersEntity.class,

@@ -17,6 +17,7 @@
 package org.apache.nifi.remote;
 
 import com.sun.jersey.api.client.ClientHandlerException;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import org.apache.nifi.authorization.Resource;
@@ -52,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -1135,6 +1137,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
+    private boolean isWebApiSecure() {
+        return targetUri.toString().toLowerCase().startsWith("https");
+    }
+
     @Override
     public boolean isSiteToSiteEnabled() {
         readLock.lock();
@@ -1182,9 +1188,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 } catch (SiteToSiteRestApiClient.HttpGetFailedException e) {
 
                     if (e.getResponseCode() == UNAUTHORIZED_STATUS_CODE) {
-                        // TODO: implement registration request
-                        /*
                         try {
+                            // attempt to issue a registration request in case the target instance is a 0.x
+                            final RemoteNiFiUtils utils = new RemoteNiFiUtils(isWebApiSecure() ? sslContext : null);
                             final ClientResponse requestAccountResponse = utils.issueRegistrationRequest(apiUri.toString());
                             if (Response.Status.Family.SUCCESSFUL.equals(requestAccountResponse.getStatusInfo().getFamily())) {
                                 logger.info("{} Issued a Request to communicate with remote instance", this);
@@ -1192,21 +1198,20 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                                 logger.error("{} Failed to request account: got unexpected response code of {}:{}", new Object[]{
                                     this, requestAccountResponse.getStatus(), requestAccountResponse.getStatusInfo().getReasonPhrase()});
                             }
-                        } catch (final Exception e) {
-                            logger.error("{} Failed to request account due to {}", this, e.toString());
+                        } catch (final Exception re) {
+                            logger.error("{} Failed to request account due to {}", this, re.toString());
                             if (logger.isDebugEnabled()) {
-                                logger.error("", e);
+                                logger.error("", re);
                             }
                         }
-                         */
-                        authorizationIssue = e.getDescription();
 
+                        authorizationIssue = e.getDescription();
                     } else if (e.getResponseCode() == FORBIDDEN_STATUS_CODE) {
                         authorizationIssue = e.getDescription();
                     } else {
                         final String message = e.getDescription();
                         logger.warn("{} When communicating with remote instance, got unexpected result. {}",
-                                new Object[]{this, e.getMessage()});
+                                new Object[]{this, message});
                         authorizationIssue = "Unable to determine Site-to-Site availability.";
                     }
                 }

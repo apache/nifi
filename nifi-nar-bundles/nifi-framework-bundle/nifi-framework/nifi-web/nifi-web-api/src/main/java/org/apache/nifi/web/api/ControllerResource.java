@@ -509,7 +509,6 @@ public class ControllerResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("cluster/nodes/{id}")
-    // TODO - @PreAuthorize("hasAnyRole('ROLE_ADMIN')")
     @ApiOperation(
             value = "Updates a node in the cluster",
             response = NodeEntity.class,
