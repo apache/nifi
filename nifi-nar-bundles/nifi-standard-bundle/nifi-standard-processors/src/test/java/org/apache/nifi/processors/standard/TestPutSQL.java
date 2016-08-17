@@ -30,6 +30,7 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -299,6 +300,45 @@ public class TestPutSQL {
                 assertEquals(1, rs.getInt(1));
                 assertEquals(arg2TS, rs.getString(2));
                 assertEquals(art3TS, rs.getString(3));
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException, IOException, ParseException {
+        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 CHAR(8) FOR BIT DATA, bn2 VARCHAR(100) FOR BIT DATA)");
+            }
+        }
+
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+
+        final String arg2BIN = "äðÖD";
+        final String art3VARBIN = "\u0003;ÙK\u0011h×äðÖDÃÉ^5¿";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("sql.args.1.type", String.valueOf(Types.BINARY));
+        attributes.put("sql.args.1.value", arg2BIN);
+        attributes.put("sql.args.2.type", String.valueOf(Types.VARBINARY));
+        attributes.put("sql.args.2.value", art3VARBIN);
+
+        runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
+
+        try (final Connection conn = service.getConnection()) {
+            try (final Statement stmt = conn.createStatement()) {
+                final ResultSet rs = stmt.executeQuery("SELECT * FROM BINARYTESTS");
+                assertTrue(rs.next());
+                assertEquals(1, rs.getInt(1));
+                assertTrue(Arrays.equals(arg2BIN.getBytes("UTF-8"), rs.getBytes(2)));
+                assertTrue(Arrays.equals(art3VARBIN.getBytes("UTF-8"), rs.getBytes(3)));
                 assertFalse(rs.next());
             }
         }

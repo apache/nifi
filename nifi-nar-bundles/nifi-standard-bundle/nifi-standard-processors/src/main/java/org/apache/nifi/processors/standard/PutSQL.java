@@ -41,6 +41,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
@@ -617,6 +618,8 @@ public class PutSQL extends AbstractProcessor {
                     throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted into the necessary data type", nfe);
                 } catch (ParseException pe) {
                     throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted to a timestamp", pe);
+                } catch (UnsupportedEncodingException uee) {
+                    throw new ProcessException("The value of the " + valueAttrName + " is '" + parameterValue + "', which cannot be converted to UTF-8", uee);
                 }
             }
         }
@@ -735,7 +738,7 @@ public class PutSQL extends AbstractProcessor {
      * @param jdbcType the JDBC Type of the SQL parameter to set
      * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
      */
-    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException, ParseException {
+    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException, ParseException, UnsupportedEncodingException {
         if (parameterValue == null) {
             stmt.setNull(parameterIndex, jdbcType);
         } else {
@@ -786,6 +789,10 @@ public class PutSQL extends AbstractProcessor {
 
                     stmt.setTimestamp(parameterIndex, new Timestamp(lTimestamp));
 
+                    break;
+                case Types.BINARY:
+                case Types.VARBINARY:
+                    stmt.setBytes(parameterIndex, parameterValue.getBytes("UTF-8"));
                     break;
                 case Types.CHAR:
                 case Types.VARCHAR:
