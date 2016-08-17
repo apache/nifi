@@ -1214,10 +1214,12 @@ nf.Common = (function () {
          * @argument {array} bulletins      The bulletins
          * @return {array}                  The jQuery objects
          */
-        getFormattedBulletins: function (bulletins) {
-            var formattedBulletins = [];
-            $.each(bulletins, function (j, bulletin) {
-                if (!nf.Common.isBlank(bulletin.level)) {
+        getFormattedBulletins: function (bulletinEntities) {
+            var formattedBulletinEntities = [];
+            $.each(bulletinEntities, function (j, bulletinEntity) {
+                if (bulletinEntity.canRead === true) {
+                    var bulletin = bulletinEntity.bulletin;
+
                     // format the node address
                     var nodeAddress = '';
                     if (nf.Common.isDefinedAndNotNull(bulletin.nodeAddress)) {
@@ -1236,10 +1238,10 @@ nf.Common = (function () {
                             '<b>' + nf.Common.escapeHtml(bulletin.level) + '</b>&nbsp;' +
                             '</div>').append(bulletinMessage);
 
-                    formattedBulletins.push(formattedBulletin);
+                    formattedBulletinEntities.push(formattedBulletin);
                 }
             });
-            return formattedBulletins;
+            return formattedBulletinEntities;
         }
     };
 }());
