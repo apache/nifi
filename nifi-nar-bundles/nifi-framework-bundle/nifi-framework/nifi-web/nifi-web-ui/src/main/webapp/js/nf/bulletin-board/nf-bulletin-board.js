@@ -333,12 +333,14 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
                     $('#bulletin-board-last-refreshed').text(bulletinBoard.generated);
 
                     // process the bulletins
-                    var bulletins = response.bulletinBoard.bulletins;
+                    var bulletinEntities = response.bulletinBoard.bulletins;
                     var content = [];
 
                     // append each bulletin
-                    $.each(bulletins, function (i, bulletin) {
-                        if (!nf.Common.isBlank(bulletin.level)) {
+                    $.each(bulletinEntities, function (i, bulletinEntity) {
+                        if (bulletinEntity.canRead === true) {
+                            var bulletin = bulletinEntity.bulletin;
+
                             // format the severity
                             var severityStyle = 'bulletin-normal';
                             if (bulletin.level === 'ERROR') {
@@ -385,7 +387,7 @@ nf.ng.BulletinBoardCtrl = function (serviceProvider) {
                         }
 
                         // record the id of the last bulletin in this request
-                        if (i + 1 === bulletins.length) {
+                        if (i + 1 === bulletinEntities.length) {
                             lastBulletin = bulletin.id;
                         }
                     });
