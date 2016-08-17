@@ -345,7 +345,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         // If Kerberos Service Principal and keytab location not configured, throws exception
-        if (!properties.isKerberosServiceSupportEnabled() || kerberosService == null) {
+        if (!properties.isKerberosSpnegoSupportEnabled() || kerberosService == null) {
             throw new IllegalStateException("Kerberos ticket login not supported by this NiFi.");
         }
 
