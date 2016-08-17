@@ -39,6 +39,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -738,7 +739,8 @@ public class PutSQL extends AbstractProcessor {
      * @param jdbcType the JDBC Type of the SQL parameter to set
      * @throws SQLException if the PreparedStatement throws a SQLException when calling the appropriate setter
      */
-    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType) throws SQLException, ParseException, UnsupportedEncodingException {
+    private void setParameter(final PreparedStatement stmt, final String attrName, final int parameterIndex, final String parameterValue, final int jdbcType)
+            throws SQLException, ParseException, UnsupportedEncodingException {
         if (parameterValue == null) {
             stmt.setNull(parameterIndex, jdbcType);
         } else {
@@ -792,7 +794,9 @@ public class PutSQL extends AbstractProcessor {
                     break;
                 case Types.BINARY:
                 case Types.VARBINARY:
-                    stmt.setBytes(parameterIndex, parameterValue.getBytes("UTF-8"));
+                case Types.LONGVARBINARY:
+                    byte[] bValue = parameterValue.getBytes("ASCII");
+                    stmt.setBinaryStream(parameterIndex, new ByteArrayInputStream(bValue), bValue.length);
                     break;
                 case Types.CHAR:
                 case Types.VARCHAR:

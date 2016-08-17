@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -33,7 +34,9 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -310,7 +313,8 @@ public class TestPutSQL {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 CHAR(8) FOR BIT DATA, bn2 VARCHAR(100) FOR BIT DATA)");
+                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 CHAR(8) FOR BIT DATA, bn2 VARCHAR(100) FOR BIT DATA, " +
+                "bn3 LONG VARCHAR FOR BIT DATA)");
             }
         }
 
@@ -318,16 +322,20 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String arg2BIN = "äðÖD";
-        final String art3VARBIN = "\u0003;ÙK\u0011h×äðÖDÃÉ^5¿";
+        final String arg2BIN = fixedSizeByteArrayAsString(8);
+        final String art3VARBIN = fixedSizeByteArrayAsString(50);
+        final String art4LongBin = fixedSizeByteArrayAsString(32700); //max size supported by Derby
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.BINARY));
         attributes.put("sql.args.1.value", arg2BIN);
         attributes.put("sql.args.2.type", String.valueOf(Types.VARBINARY));
         attributes.put("sql.args.2.value", art3VARBIN);
+        attributes.put("sql.args.3.type", String.valueOf(Types.LONGVARBINARY));
+        attributes.put("sql.args.3.value", art4LongBin);
 
-        runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2) VALUES (1, ?, ?)".getBytes(), attributes);
+        //runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2) VALUES (1, ?, ?)".getBytes(), attributes);
+        runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2, bn3) VALUES (1, ?, ?, ?)".getBytes(), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
@@ -337,8 +345,9 @@ public class TestPutSQL {
                 final ResultSet rs = stmt.executeQuery("SELECT * FROM BINARYTESTS");
                 assertTrue(rs.next());
                 assertEquals(1, rs.getInt(1));
-                assertTrue(Arrays.equals(arg2BIN.getBytes("UTF-8"), rs.getBytes(2)));
-                assertTrue(Arrays.equals(art3VARBIN.getBytes("UTF-8"), rs.getBytes(3)));
+                assertTrue(Arrays.equals(arg2BIN.getBytes("ASCII"), rs.getBytes(2)));
+                assertTrue(Arrays.equals(art3VARBIN.getBytes("ASCII"), rs.getBytes(3)));
+                assertTrue(Arrays.equals(art4LongBin.getBytes("ASCII"), rs.getBytes(4)));
                 assertFalse(rs.next());
             }
         }
@@ -710,5 +719,15 @@ public class TestPutSQL {
                 stmt.executeUpdate(createSQL);
             }
         }
+    }
+
+    private String fixedSizeByteArrayAsString(int length){
+        byte[] bBinary = RandomUtils.nextBytes(length);
+        ByteBuffer bytes = ByteBuffer.wrap(bBinary);
+        StringBuffer sbBytes = new StringBuffer();
+        for (int i = bytes.position(); i < bytes.limit(); i++)
+            sbBytes.append((char)bytes.get(i));
+
+        return sbBytes.toString();
     }
 }
