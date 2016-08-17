@@ -276,9 +276,9 @@ public class TestPutSQL {
         runner.enableControllerService(service);
         runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
 
-        final String arg2TS = "2001-01-01 23:01:01.001";
-        final String art3TS = "2002-02-02 22:02:02.002";
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+        final String arg2TS = "2001-01-01 00:01:01.001";
+        final String art3TS = "2002-02-02 12:02:02.002";
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         java.util.Date parsedDate = dateFormat.parse(arg2TS);
 
         final Map<String, String> attributes = new HashMap<>();
