@@ -34,7 +34,6 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -334,7 +333,6 @@ public class TestPutSQL {
         attributes.put("sql.args.3.type", String.valueOf(Types.LONGVARBINARY));
         attributes.put("sql.args.3.value", art4LongBin);
 
-        //runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2) VALUES (1, ?, ?)".getBytes(), attributes);
         runner.enqueue("INSERT INTO BINARYTESTS (ID, bn1, bn2, bn3) VALUES (1, ?, ?, ?)".getBytes(), attributes);
         runner.run();
 
