@@ -1056,7 +1056,7 @@
             // show the property description if applicable
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
                 if (!nf.Common.isBlank(propertyDescriptor.description) || !nf.Common.isBlank(propertyDescriptor.defaultValue) || !nf.Common.isBlank(propertyDescriptor.supportsEl)) {
-                    $('<div class="fa fa-question-circle" alt="Info" title="' + propertyDescriptor.description + '" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
+                    $('<div class="fa fa-question-circle" alt="Info" style="float: right; margin-right: 6px; margin-top: 4px;"></div>').appendTo(cellContent);
                     $('<span class="hidden property-descriptor-name"></span>').text(dataContext.property).appendTo(cellContent);
                     nameWidthOffset = 46; // 10 + icon width (10) + icon margin (6) + padding (20)
                 }
