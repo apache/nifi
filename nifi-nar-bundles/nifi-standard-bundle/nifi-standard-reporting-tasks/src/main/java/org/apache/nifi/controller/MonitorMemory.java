@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.controller;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryPoolMXBean;
-import java.lang.management.MemoryUsage;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -36,13 +27,18 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryUsage;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Reporting task used to monitor usage of memory after Garbage Collection has
@@ -130,8 +126,6 @@ public class MonitorMemory extends AbstractReportingTask {
     public static final Pattern DATA_SIZE_PATTERN = DataUnit.DATA_SIZE_PATTERN;
     public static final Pattern TIME_PERIOD_PATTERN = FormatUtils.TIME_DURATION_PATTERN;
 
-    private static final Logger logger = LoggerFactory.getLogger(MonitorMemory.class);
-
     private volatile MemoryPoolMXBean monitoredBean;
     private volatile String threshold = "65%";
     private volatile long lastReportTime;
@@ -200,8 +194,8 @@ public class MonitorMemory extends AbstractReportingTask {
 
         final MemoryUsage usage = bean.getUsage();
         if (usage == null) {
-            logger.warn("{} could not determine memory usage for pool with name {}", this,
-                    context.getProperty(MEMORY_POOL_PROPERTY));
+            getLogger().warn("{} could not determine memory usage for pool with name {}", new Object[] {this,
+                    context.getProperty(MEMORY_POOL_PROPERTY)});
             return;
         }
 
@@ -217,9 +211,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     bean.getName(), threshold, FormatUtils.formatDataSize(usage.getUsed()),
                     FormatUtils.formatDataSize(usage.getMax()), percentageUsed);
 
-            logger.warn("{}", message);
-            final Bulletin bulletin = context.createBulletin("Memory Management", Severity.WARNING, message);
-            context.getBulletinRepository().addBulletin(bulletin);
+            getLogger().warn("{}", new Object[] {message});
         } else if (lastValueWasExceeded) {
             lastValueWasExceeded = false;
             lastReportTime = System.currentTimeMillis();
@@ -227,9 +219,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     bean.getName(), threshold, FormatUtils.formatDataSize(usage.getUsed()),
                     FormatUtils.formatDataSize(usage.getMax()), percentageUsed);
 
-            logger.info("{}", message);
-            final Bulletin bulletin = context.createBulletin("Memory Management", Severity.INFO, message);
-            context.getBulletinRepository().addBulletin(bulletin);
+            getLogger().info("{}", new Object[] {message});
         }
     }
 

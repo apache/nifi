@@ -16,21 +16,18 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.controller.MonitorDiskUsage;
-import static org.junit.Assert.assertEquals;
-
-import java.nio.file.Paths;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
-
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestMonitorDiskUsage {
 
@@ -50,11 +47,9 @@ public class TestMonitorDiskUsage {
 
         }).when(context).createBulletin(Mockito.any(String.class), Mockito.any(Severity.class), Mockito.any(String.class));
 
-        final BulletinRepository brepo = Mockito.mock(BulletinRepository.class);
-        Mockito.doNothing().when(brepo).addBulletin(Mockito.any(Bulletin.class));
-        Mockito.doReturn(brepo).when(context).getBulletinRepository();
+        final ComponentLog logger = Mockito.mock(ComponentLog.class);
 
-        MonitorDiskUsage.checkThreshold("Test Path", Paths.get("."), 0, context);
+        MonitorDiskUsage.checkThreshold("Test Path", Paths.get("."), 0, logger);
         assertEquals(1, callCounter.get());
     }
 
