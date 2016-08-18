@@ -165,9 +165,25 @@ public class NiFiOrcUtils {
                 });
                 return mapWritable;
             }
-
+            if (o instanceof GenericData.Record) {
+                GenericData.Record record = (GenericData.Record) o;
+                TypeInfo recordSchema = NiFiOrcUtils.getOrcField(record.getSchema());
+                List<Schema.Field> recordFields = record.getSchema().getFields();
+                if (recordFields != null) {
+                    Object[] fieldObjects = new Object[recordFields.size()];
+                    for (int i = 0; i < recordFields.size(); i++) {
+                        Schema.Field field = recordFields.get(i);
+                        Schema fieldSchema = field.schema();
+                        Object fieldObject = record.get(field.name());
+                        fieldObjects[i] = NiFiOrcUtils.convertToORCObject(NiFiOrcUtils.getOrcField(fieldSchema), fieldObject);
+                    }
+                    return NiFiOrcUtils.createOrcStruct(recordSchema, fieldObjects);
+                }
+            }
+            throw new IllegalArgumentException("Error converting object of type " + o.getClass().getName() + " to ORC type " + typeInfo.getTypeName());
+        } else {
+            return null;
         }
-        return null;
     }
 
 
