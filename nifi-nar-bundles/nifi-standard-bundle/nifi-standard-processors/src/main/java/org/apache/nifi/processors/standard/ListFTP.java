@@ -74,17 +74,16 @@ public class ListFTP extends ListFileTransfer {
         properties.add(FTPTransfer.FILE_FILTER_REGEX);
         properties.add(FTPTransfer.PATH_FILTER_REGEX);
         properties.add(FTPTransfer.IGNORE_DOTTED_FILES);
-		properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
+        properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);
         properties.add(FTPTransfer.DATA_TIMEOUT);
-		properties.add(FTPTransfer.CONNECTION_MODE);
+        properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
         properties.add(FTPTransfer.PROXY_TYPE);
-		properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
-		properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-		properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-		
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         return properties;
     }
 

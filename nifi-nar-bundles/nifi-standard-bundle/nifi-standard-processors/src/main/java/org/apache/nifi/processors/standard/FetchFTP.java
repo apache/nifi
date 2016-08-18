@@ -65,13 +65,13 @@ public class FetchFTP extends FetchFileTransfer {
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);
         properties.add(FTPTransfer.DATA_TIMEOUT);
         properties.add(FTPTransfer.USE_COMPRESSION);
-		properties.add(FTPTransfer.CONNECTION_MODE);
+        properties.add(FTPTransfer.CONNECTION_MODE);
         properties.add(FTPTransfer.TRANSFER_MODE);
         properties.add(FTPTransfer.PROXY_TYPE);
-		properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_HOST);
         properties.add(FTPTransfer.PROXY_PORT);
-		properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
-		properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         return properties;
     }
 
