@@ -320,10 +320,19 @@ public class HiveJdbcCommon {
                     case NCHAR:
                     case NVARCHAR:
                     case VARCHAR:
-                        rowValues.add("\"" + StringEscapeUtils.escapeCsv(rs.getString(i)) + "\"");
+                        String valueString = rs.getString(i);
+                        if (valueString != null) {
+                            rowValues.add("\"" + StringEscapeUtils.escapeCsv(valueString) + "\"");
+                        } else {
+                            rowValues.add("");
+                        }
                         break;
                     default:
-                        rowValues.add(value.toString());
+                        if (value != null) {
+                            rowValues.add(value.toString());
+                        } else {
+                            rowValues.add("");
+                        }
                 }
             }
             // Write row values
