@@ -187,47 +187,26 @@ public class IndexManager implements Closeable {
             } else {
                 // keep track of any searchers that have been closed so that we can remove them
                 // from our cache later.
-                final List<ActiveIndexSearcher> expired = new ArrayList<>();
-
-                try {
-                    for ( final ActiveIndexSearcher searcher : currentlyCached ) {
-                        if ( searcher.isCache() ) {
-                            // if the searcher is poisoned, we want to close and expire it.
-                            if ( searcher.isPoisoned() ) {
-                                logger.debug("Index Searcher for {} is poisoned; removing cached searcher", absoluteFile);
-                                expired.add(searcher);
-                                continue;
-                            }
-
-                            // if there are no references to the reader, it will have been closed. Since there is no
-                            // isClosed() method, this is how we determine whether it's been closed or not.
-                            final int refCount = searcher.getSearcher().getIndexReader().getRefCount();
-                            if ( refCount <= 0 ) {
-                                // if refCount == 0, then the reader has been closed, so we need to discard the searcher
-                                logger.debug("Reference count for cached Index Searcher for {} is currently {}; "
-                                        + "removing cached searcher", absoluteFile, refCount);
-                                expired.add(searcher);
-                                continue;
-                            }
-
-                            final int referenceCount = searcher.incrementReferenceCount();
-                            logger.debug("Providing previously cached index searcher for {} and incrementing Reference Count to {}", indexDir, referenceCount);
-                            return searcher.getSearcher();
-                        }
-                    }
-                } finally {
-                    // if we have any expired index searchers, we need to close them and remove them
-                    // from the cache so that we don't try to use them again later.
-                    for ( final ActiveIndexSearcher searcher : expired ) {
-                        try {
-                            logger.debug("Closing {}", searcher);
-                            searcher.close();
-                            logger.trace("Closed {}", searcher);
-                        } catch (final Exception e) {
-                            logger.debug("Failed to close 'expired' IndexSearcher {}", searcher);
+                for (final ActiveIndexSearcher searcher : currentlyCached) {
+                    if (searcher.isCache()) {
+                        // if the searcher is poisoned, we want to close and expire it.
+                        if (searcher.isPoisoned()) {
+                            continue;
                         }
 
-                        currentlyCached.remove(searcher);
+                        // if there are no references to the reader, it will have been closed. Since there is no
+                        // isClosed() method, this is how we determine whether it's been closed or not.
+                        final int refCount = searcher.getSearcher().getIndexReader().getRefCount();
+                        if (refCount <= 0) {
+                            // if refCount == 0, then the reader has been closed, so we cannot use the searcher
+                            logger.debug("Reference count for cached Index Searcher for {} is currently {}; "
+                                + "removing cached searcher", absoluteFile, refCount);
+                            continue;
+                        }
+
+                        final int referenceCount = searcher.incrementReferenceCount();
+                        logger.debug("Providing previously cached index searcher for {} and incrementing Reference Count to {}", indexDir, referenceCount);
+                        return searcher.getSearcher();
                     }
                 }
             }
@@ -312,16 +291,14 @@ public class IndexManager implements Closeable {
                 if ( activeSearcher.getSearcher().equals(searcher) ) {
                     activeSearcherFound = true;
                     if ( activeSearcher.isCache() ) {
-                        // if the searcher is poisoned, close it and remove from "pool".
+                        // if the searcher is poisoned, close it and remove from "pool". Otherwise,
+                        // just decrement the count. Note here that when we call close() it won't actually close
+                        // the underlying directory reader unless there are no more references to it
                         if ( activeSearcher.isPoisoned() ) {
                             itr.remove();
 
                             try {
-                                logger.debug("Closing Index Searcher for {} because it is poisoned", indexDirectory);
-                                final boolean allReferencesClosed = activeSearcher.close();
-                                if (!allReferencesClosed) {
-                                    currentlyCached.add(activeSearcher);
-                                }
+                                activeSearcher.close();
                             } catch (final IOException ioe) {
                                 logger.warn("Failed to close Index Searcher for {} due to {}", absoluteFile, ioe);
                                 if ( logger.isDebugEnabled() ) {
@@ -384,7 +361,8 @@ public class IndexManager implements Closeable {
             }
 
             if (!activeSearcherFound) {
-                logger.error("Index Searcher {} was returned for {} but found no Active Searcher for it", searcher, indexDirectory);
+                logger.debug("Index Searcher {} was returned for {} but found no Active Searcher for it. "
+                    + "This will occur if the Index Searcher was already returned while being poisoned.", searcher, indexDirectory);
             }
         } finally {
             lock.unlock();
