@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.processors.hive;
 
+import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
 import org.apache.hadoop.hive.ql.io.orc.OrcFile;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
 import org.apache.hadoop.hive.ql.io.orc.Reader;
@@ -41,10 +44,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -209,6 +216,96 @@ public class TestConvertAvroToORC {
         assertNotNull(mapValue);
         assertTrue(mapValue instanceof DoubleWritable);
         assertEquals(2.0, ((DoubleWritable) mapValue).get(), Double.MIN_VALUE);
+    }
 
+    @Test
+    public void test_onTrigger_array_of_records() throws Exception {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/array_of_records.avsc"));
+        List<GenericRecord> innerRecords = new LinkedList<>();
+
+        final GenericRecord outerRecord = new GenericData.Record(schema);
+
+        Schema arraySchema = schema.getField("records").schema();
+        Schema innerRecordSchema = arraySchema.getElementType();
+        final GenericRecord innerRecord1 = new GenericData.Record(innerRecordSchema);
+        innerRecord1.put("name", "Joe");
+        innerRecord1.put("age", 42);
+
+        innerRecords.add(innerRecord1);
+
+        final GenericRecord innerRecord2 = new GenericData.Record(innerRecordSchema);
+        innerRecord2.put("name", "Mary");
+        innerRecord2.put("age", 28);
+
+        innerRecords.add(innerRecord2);
+
+        GenericData.Array<GenericRecord> array = new GenericData.Array<>(arraySchema, innerRecords);
+        outerRecord.put("records", array);
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<>(schema);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<>(datumWriter)) {
+            dataFileWriter.create(schema, out);
+            dataFileWriter.append(outerRecord);
+        }
+        out.close();
+
+        // Build a flow file from the Avro record
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+
+        // Write the flow file out to disk, since the ORC Reader needs a path
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS org_apache_nifi_outer_record " +
+                "(records ARRAY<STRUCT<name:STRING, age:INT>>)"
+                + " STORED AS ORC", resultFlowFile.getAttribute(ConvertAvroToORC.HIVE_DDL_ATTRIBUTE));
+        assertEquals("1", resultFlowFile.getAttribute(ConvertAvroToORC.RECORD_COUNT_ATTRIBUTE));
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        byte[] resultContents = runner.getContentAsByteArray(resultFlowFile);
+        FileOutputStream fos = new FileOutputStream("target/test1.orc");
+        fos.write(resultContents);
+        fos.flush();
+        fos.close();
+
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.getLocal(conf);
+        Reader reader = OrcFile.createReader(new Path("target/test1.orc"), OrcFile.readerOptions(conf).filesystem(fs));
+        RecordReader rows = reader.rows();
+        Object o = rows.next(null);
+        assertNotNull(o);
+        assertTrue(o instanceof OrcStruct);
+        StructObjectInspector inspector = (StructObjectInspector) OrcStruct.createObjectInspector(NiFiOrcUtils.getOrcField(schema));
+
+        // Verify the record contains an array
+        Object arrayFieldObject = inspector.getStructFieldData(o, inspector.getStructFieldRef("records"));
+        assertTrue(arrayFieldObject instanceof ArrayList);
+        ArrayList<?> arrayField = (ArrayList<?>) arrayFieldObject;
+        assertEquals(2, arrayField.size());
+
+        // Verify the first element. Should be a record with two fields "name" and "age"
+        Object element = arrayField.get(0);
+        assertTrue(element instanceof OrcStruct);
+        StructObjectInspector elementInspector = (StructObjectInspector) OrcStruct.createObjectInspector(NiFiOrcUtils.getOrcField(innerRecordSchema));
+        Object nameObject = elementInspector.getStructFieldData(element, elementInspector.getStructFieldRef("name"));
+        assertTrue(nameObject instanceof Text);
+        assertEquals("Joe", nameObject.toString());
+        Object ageObject = elementInspector.getStructFieldData(element, elementInspector.getStructFieldRef("age"));
+        assertTrue(ageObject instanceof IntWritable);
+        assertEquals(42, ((IntWritable) ageObject).get());
+
+        // Verify the first element. Should be a record with two fields "name" and "age"
+        element = arrayField.get(1);
+        assertTrue(element instanceof OrcStruct);
+        nameObject = elementInspector.getStructFieldData(element, elementInspector.getStructFieldRef("name"));
+        assertTrue(nameObject instanceof Text);
+        assertEquals("Mary", nameObject.toString());
+        ageObject = elementInspector.getStructFieldData(element, elementInspector.getStructFieldRef("age"));
+        assertTrue(ageObject instanceof IntWritable);
+        assertEquals(28, ((IntWritable) ageObject).get());
     }
 }
