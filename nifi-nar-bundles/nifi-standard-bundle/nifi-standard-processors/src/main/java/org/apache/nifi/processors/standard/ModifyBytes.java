@@ -51,7 +51,7 @@ import org.apache.nifi.util.StopWatch;
 @SideEffectFree
 @Tags({"binary", "discard", "keep"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Keep or discard bytes range from a binary file.")
+@CapabilityDescription("Discard byte range at the start and end or all content of a binary file.")
 public class ModifyBytes extends AbstractProcessor {
 
     // Relationships
@@ -74,6 +74,13 @@ public class ModifyBytes extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("0 B")
             .build();
+    public static final PropertyDescriptor REMOVE_ALL = new PropertyDescriptor.Builder()
+            .name("Remove All Content")
+            .description("Remove all content from the FlowFile superseding Start Offset and End Offset properties.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     private final List<PropertyDescriptor> propDescriptors;
 
     public ModifyBytes() {
@@ -84,6 +91,7 @@ public class ModifyBytes extends AbstractProcessor {
         ArrayList<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(START_OFFSET);
         pds.add(END_OFFSET);
+        pds.add(REMOVE_ALL);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -108,7 +116,8 @@ public class ModifyBytes extends AbstractProcessor {
 
         final int startOffset = context.getProperty(START_OFFSET).asDataSize(DataUnit.B).intValue();
         final int endOffset = context.getProperty(END_OFFSET).asDataSize(DataUnit.B).intValue();
-        final int newFileSize = (int) ff.getSize() - startOffset - endOffset;
+        final boolean removeAll = context.getProperty(REMOVE_ALL).asBoolean();
+        final int newFileSize = removeAll ? 0 : (int) ff.getSize() - startOffset - endOffset;
 
         final StopWatch stopWatch = new StopWatch(true);
         if (newFileSize <= 0) {
