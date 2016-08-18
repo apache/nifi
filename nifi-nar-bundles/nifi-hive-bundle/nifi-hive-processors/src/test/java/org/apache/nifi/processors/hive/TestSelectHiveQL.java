@@ -205,9 +205,11 @@ public class TestSelectHiveQL {
         Random rng = new Random(53496);
         final int nrOfRows = 100;
         stmt.executeUpdate("insert into persons values (1, 'Joe Smith', " + rng.nextInt(469947) + ")");
-        for (int i = 2; i <= nrOfRows; i++) {
+        for (int i = 2; i < nrOfRows; i++) {
             stmt.executeUpdate("insert into persons values (" + i + ", 'Someone Else', " + rng.nextInt(469947) + ")");
         }
+        stmt.executeUpdate("insert into persons values (" + nrOfRows + ", 'Last Person', NULL)");
+
         LOGGER.info("test data loaded");
 
         runner.setProperty(SelectHiveQL.HIVEQL_SELECT_QUERY, query);
@@ -254,10 +256,13 @@ public class TestSelectHiveQL {
             while ((line = br.readLine()) != null) {
                 recordsFromStream++;
                 String[] values = line.split(",");
-                assertEquals(3, values.length);
-                // Assert the name has been quoted
-                assertTrue(values[1].startsWith("\""));
-                assertTrue(values[1].endsWith("\""));
+                if(recordsFromStream < (nrOfRows - 10)) {
+                    assertEquals(3, values.length);
+                    assertTrue(values[1].startsWith("\""));
+                    assertTrue(values[1].endsWith("\""));
+                } else {
+                    assertEquals(2, values.length); // Middle value is null
+                }
             }
         }
         assertEquals(nrOfRows - 10, recordsFromStream);
