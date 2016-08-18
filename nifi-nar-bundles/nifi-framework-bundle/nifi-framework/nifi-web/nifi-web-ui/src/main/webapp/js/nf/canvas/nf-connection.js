@@ -1359,12 +1359,12 @@ nf.Connection = (function () {
                                 var xOffset = nf.Connection.config.selfLoopXOffset;
                                 var yOffset = nf.Connection.config.selfLoopYOffset;
 
-                                connectionEntity.connection.bends = [];
-                                connectionEntity.connection.bends.push({
+                                connectionEntity.component.bends = [];
+                                connectionEntity.component.bends.push({
                                     'x': (rightCenter.x + xOffset),
                                     'y': (rightCenter.y - yOffset)
                                 });
-                                connectionEntity.connection.bends.push({
+                                connectionEntity.component.bends.push({
                                     'x': (rightCenter.x + xOffset),
                                     'y': (rightCenter.y + yOffset)
                                 });
