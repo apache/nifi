@@ -44,6 +44,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AboutDTO;
 import org.apache.nifi.web.api.dto.BannerDTO;
@@ -2056,11 +2057,12 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("history/components/{componentId}")
     @ApiOperation(
-            value = "Gets configuration history for a processor",
+            value = "Gets configuration history for a component",
             notes = NON_GUARANTEED_ENDPOINT,
             response = ComponentHistoryEntity.class,
             authorizations = {
-                    @Authorization(value = "Read - /flow", type = "")
+                    @Authorization(value = "Read - /flow", type = ""),
+                    @Authorization(value = "Read underlying component - /{component-type}/{uuid}", type = "")
             }
     )
     @ApiResponses(
@@ -2079,7 +2081,38 @@ public class FlowResource extends ApplicationResource {
             )
             @PathParam("componentId") final String componentId) {
 
-        authorizeFlow();
+        serviceFacade.authorizeAccess(lookup -> {
+            final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // authorize the flow
+            authorizeFlow();
+
+            try {
+                final Authorizable authorizable = lookup.getProcessor(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a processor
+            }
+
+            try {
+                final Authorizable authorizable = lookup.getControllerService(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a controller service
+            }
+
+            try {
+                final Authorizable authorizable = lookup.getReportingTask(componentId).getAuthorizable();
+                authorizable.authorize(authorizer, RequestAction.READ, user);
+                return;
+            } catch (final ResourceNotFoundException e) {
+                // ignore as the component may not be a reporting task
+            }
+
+            throw new ResourceNotFoundException(String.format("Unable to find component with id '%s'.", componentId));
+        });
 
         // Note: History requests are not replicated throughout the cluster and are instead handled by the nodes independently
 
