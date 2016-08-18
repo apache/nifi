@@ -17,6 +17,7 @@
 package org.apache.nifi.dbcp.hive;
 
 import java.io.File;
+
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 
 /**
@@ -122,7 +124,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     private static final long TICKET_RENEWAL_PERIOD = 60000;
 
-    private final static List<PropertyDescriptor> properties;
+    private List<PropertyDescriptor> properties;
 
     private String connectionUrl = "unknown";
 
@@ -136,7 +138,8 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
     private volatile File kerberosConfigFile = null;
     private volatile KerberosProperties kerberosProperties;
 
-    static {
+    @Override
+    protected void init(final ControllerServiceInitializationContext context) {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(DATABASE_URL);
         props.add(HIVE_CONFIGURATION_RESOURCES);
@@ -144,15 +147,12 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
-        properties = props;
-    }
 
-    @Override
-    protected void init(final ControllerServiceInitializationContext context) {
         kerberosConfigFile = context.getKerberosConfigurationFile();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
-        properties.add(kerberosProperties.getKerberosPrincipal());
-        properties.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPrincipal());
+        props.add(kerberosProperties.getKerberosKeytab());
+        properties = props;
     }
 
     @Override
