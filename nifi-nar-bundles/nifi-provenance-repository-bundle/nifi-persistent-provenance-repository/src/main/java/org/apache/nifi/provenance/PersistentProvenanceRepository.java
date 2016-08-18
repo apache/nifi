@@ -1241,6 +1241,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
     }
 
+    protected long getRolloverRetryMillis() {
+        return 10000L;
+    }
+
     /**
      * <p>
      * MUST be called with the write lock held.
@@ -1349,14 +1353,14 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                             future.cancel(false);
 
                         } else {
-                            logger.warn("Couldn't merge journals. Will try again in 10 seconds. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
+                            logger.warn("Couldn't merge journals. Will try again. journalsToMerge: {}, storageDir: {}", journalsToMerge, storageDir);
                         }
                     }
                 };
 
                 // We are going to schedule the future to run immediately and then repeat every 10 seconds. This allows us to keep retrying if we
                 // fail for some reason. When we succeed or if retries are exceeded, the Runnable will cancel itself.
-                future = rolloverExecutor.scheduleWithFixedDelay(rolloverRunnable, 0, 10, TimeUnit.SECONDS);
+                future = rolloverExecutor.scheduleWithFixedDelay(rolloverRunnable, 0, getRolloverRetryMillis(), TimeUnit.MILLISECONDS);
                 futureReference.set(future);
             }
 
@@ -1499,6 +1503,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         return mergedFile;
     }
 
+    protected List<File> filterUnavailableFiles(final List<File> journalFiles) {
+        return journalFiles.stream().filter(file -> file.exists()).collect(Collectors.toList());
+    }
+
     /**
      * <p>
      * Merges all of the given Journal Files into a single, merged Provenance
@@ -1555,9 +1563,10 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
             }
         });
 
-        //Search for any missing files. At this point they should have been written to disk otherwise cannot continue
-        //missing files is most likely due to incomplete cleanup of files post merge
-        final long numAvailableFiles = journalFiles.size() - journalFiles.stream().filter(file -> !file.exists()).count();
+        // Search for any missing files. At this point they should have been written to disk otherwise cannot continue.
+        // Missing files is most likely due to incomplete cleanup of files post merge
+        final List<File> availableFiles = filterUnavailableFiles(journalFiles);
+        final int numAvailableFiles = availableFiles.size();
 
         // check if we have all of the "partial" files for the journal.
         if (numAvailableFiles > 0) {
@@ -1606,7 +1615,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         final File writerFile = isCompress ? new File(suggestedMergeFile.getParentFile(), suggestedMergeFile.getName() + ".gz") : suggestedMergeFile;
 
         try {
-            for (final File journalFile : journalFiles) {
+            for (final File journalFile : availableFiles) {
                 try {
                     // Use MAX_VALUE for number of chars because we don't want to truncate the value as we write it
                     // out. This allows us to later decide that we want more characters and still be able to retrieve
@@ -1842,7 +1851,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         }
 
         // Success. Remove all of the journal files, as they're no longer needed, now that they've been merged.
-        for (final File journalFile : journalFiles) {
+        for (final File journalFile : availableFiles) {
             if (!journalFile.delete() && journalFile.exists()) {
                 logger.warn("Failed to remove temporary journal file {}; this file should be cleaned up manually", journalFile.getAbsolutePath());
 
