@@ -133,9 +133,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     private volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     private volatile UserGroupInformation ugi;
-    private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
-    private volatile File kerberosServiceKeytab = null;
     private volatile KerberosProperties kerberosProperties;
 
     static {
@@ -151,9 +149,7 @@ public class HiveConnectionPool extends AbstractControllerService implements Hiv
 
     @Override
     protected void init(final ControllerServiceInitializationContext context) {
-        kerberosServicePrincipal = context.getKerberosServicePrincipal();
         kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosServiceKeytab = context.getKerberosServiceKeytab();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         properties.add(kerberosProperties.getKerberosPrincipal());
         properties.add(kerberosProperties.getKerberosKeytab());

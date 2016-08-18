@@ -91,16 +91,15 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     private List<PropertyDescriptor> properties;
     private KerberosProperties kerberosProperties;
-    private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
-    private volatile File kerberosServiceKeytab = null;
 
     // Holder of cached Configuration information so validation does not reload the same config over and over
     private final AtomicReference<ValidationResources> validationResourceHolder = new AtomicReference<>();
 
     @Override
     protected void init(ControllerServiceInitializationContext config) throws InitializationException {
-        this.kerberosProperties = getKerberosProperties();
+        kerberosConfigFile = config.getKerberosConfigurationFile();
+        kerberosProperties = getKerberosProperties(kerberosConfigFile);
 
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONF_FILES);
@@ -111,12 +110,9 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(ZOOKEEPER_ZNODE_PARENT);
         props.add(HBASE_CLIENT_RETRIES);
         this.properties = Collections.unmodifiableList(props);
-        kerberosServicePrincipal = config.getKerberosServicePrincipal();
-        kerberosConfigFile = config.getKerberosConfigurationFile();
-        kerberosServiceKeytab = config.getKerberosServiceKeytab();
     }
 
-    protected KerberosProperties getKerberosProperties() {
+    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
         return new KerberosProperties(kerberosConfigFile);
     }
 

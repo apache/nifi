@@ -69,7 +69,7 @@ public class StandardProcessorInitializationContext implements ProcessorInitiali
 
     @Override
     public File getKerberosServiceKeytab() {
-        return new File(nifiProperties.getKerberosServiceKeytabLocation());
+        return nifiProperties.getKerberosServiceKeytabLocation() == null ? null : new File(nifiProperties.getKerberosServiceKeytabLocation());
     }
 
     @Override

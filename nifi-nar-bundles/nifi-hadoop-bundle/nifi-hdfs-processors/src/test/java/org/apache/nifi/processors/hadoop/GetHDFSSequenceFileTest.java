@@ -30,6 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.io.File;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
@@ -113,7 +114,7 @@ public class GetHDFSSequenceFileTest {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return kerberosProperties;
         }
 

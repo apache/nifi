@@ -34,6 +34,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -252,7 +253,7 @@ public class TestGetHDFSEvents {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
         }
 

@@ -308,7 +308,7 @@ public class TestListHDFS {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProps;
         }
 
