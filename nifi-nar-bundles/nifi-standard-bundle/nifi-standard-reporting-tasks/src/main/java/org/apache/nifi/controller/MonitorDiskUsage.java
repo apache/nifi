@@ -22,9 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
 
 import java.io.File;

@@ -17,12 +17,8 @@
 package org.apache.nifi.controller;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.Severity;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,19 +31,13 @@ public class TestMonitorDiskUsage {
     public void testGeneratesMessageIfTooFull() {
         final AtomicInteger callCounter = new AtomicInteger(0);
 
-        final ReportingContext context = Mockito.mock(ReportingContext.class);
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final String message = (String) invocation.getArguments()[2];
-                System.out.println(message);
-                callCounter.incrementAndGet();
-                return null;
-            }
-
-        }).when(context).createBulletin(Mockito.any(String.class), Mockito.any(Severity.class), Mockito.any(String.class));
-
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        Mockito.doAnswer(invocation -> {
+            final String message = (String) invocation.getArguments()[0];
+            System.out.println(message);
+            callCounter.incrementAndGet();
+            return null;
+        }).when(logger).warn(Mockito.anyString());
 
         MonitorDiskUsage.checkThreshold("Test Path", Paths.get("."), 0, logger);
         assertEquals(1, callCounter.get());
