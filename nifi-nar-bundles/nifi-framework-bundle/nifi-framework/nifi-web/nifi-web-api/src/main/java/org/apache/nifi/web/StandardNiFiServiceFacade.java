@@ -2463,48 +2463,50 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final ControllerBulletinsEntity controllerBulletinsEntity = new ControllerBulletinsEntity();
 
+        final List<BulletinEntity> controllerBulletinEntities = new ArrayList<>();
+
         final Authorizable controllerAuthorizable = authorizableLookup.getController();
         final boolean authorized = controllerAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
-        if (authorized) {
-            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController());
-            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, authorized)).collect(Collectors.toList());
-            controllerBulletinsEntity.setBulletins(bulletinEntities);
-        }
+        final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController());
+        controllerBulletinEntities.addAll(bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, authorized)).collect(Collectors.toList()));
 
         // get the controller service bulletins
         final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
         final List<Bulletin> allControllerServiceBulletins = bulletinRepository.findBulletins(controllerServiceQuery);
-        final List<BulletinEntity> authorizedControllerServiceBulletinEntities = new ArrayList<>();
+        final List<BulletinEntity> controllerServiceBulletinEntities = new ArrayList<>();
         for (final Bulletin bulletin : allControllerServiceBulletins) {
             try {
                 final Authorizable controllerServiceAuthorizable = authorizableLookup.getControllerService(bulletin.getSourceId()).getAuthorizable();
                 final boolean controllerServiceAuthorized = controllerServiceAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
-                if (controllerServiceAuthorized) {
-                    authorizedControllerServiceBulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), controllerServiceAuthorized));
-                }
+
+                final BulletinEntity controllerServiceBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), controllerServiceAuthorized);
+                controllerServiceBulletinEntities.add(controllerServiceBulletin);
+                controllerBulletinEntities.add(controllerServiceBulletin);
             } catch (final ResourceNotFoundException e) {
                 // controller service missing.. skip
             }
         }
-        controllerBulletinsEntity.setControllerServiceBulletins(authorizedControllerServiceBulletinEntities);
+        controllerBulletinsEntity.setControllerServiceBulletins(controllerServiceBulletinEntities);
 
         // get the reporting task bulletins
         final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
         final List<Bulletin> allReportingTaskBulletins = bulletinRepository.findBulletins(reportingTaskQuery);
-        final List<BulletinEntity> authorizedReportingTaskBulletinEntities = new ArrayList<>();
+        final List<BulletinEntity> reportingTaskBulletinEntities = new ArrayList<>();
         for (final Bulletin bulletin : allReportingTaskBulletins) {
             try {
                 final Authorizable reportingTaskAuthorizable = authorizableLookup.getReportingTask(bulletin.getSourceId()).getAuthorizable();
                 final boolean reportingTaskAuthorizableAuthorized = reportingTaskAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
-                if (reportingTaskAuthorizableAuthorized) {
-                    authorizedReportingTaskBulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), reportingTaskAuthorizableAuthorized));
-                }
+
+                final BulletinEntity reportingTaskBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), reportingTaskAuthorizableAuthorized);
+                reportingTaskBulletinEntities.add(reportingTaskBulletin);
+                controllerBulletinEntities.add(reportingTaskBulletin);
             } catch (final ResourceNotFoundException e) {
                 // reporting task missing.. skip
             }
         }
-        controllerBulletinsEntity.setReportingTaskBulletins(authorizedReportingTaskBulletinEntities);
+        controllerBulletinsEntity.setReportingTaskBulletins(reportingTaskBulletinEntities);
 
+        controllerBulletinsEntity.setBulletins(pruneAndSortBulletins(controllerBulletinEntities, BulletinRepository.MAX_BULLETINS_FOR_CONTROLLER));
         return controllerBulletinsEntity;
     }
 
@@ -2706,6 +2708,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), authorizeBulletin(bulletin)));
         }
 
+        return pruneAndSortBulletins(bulletinEntities, BulletinRepository.MAX_BULLETINS_PER_COMPONENT);
+    }
+
+    private List<BulletinEntity> pruneAndSortBulletins(final List<BulletinEntity> bulletinEntities, final int maxBulletins) {
         // sort the bulletins
         Collections.sort(bulletinEntities, new Comparator<BulletinEntity>() {
             @Override
@@ -2725,11 +2731,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         });
 
         // prune the response to only include the max number of bulletins
-        if (bulletinEntities.size() > BulletinRepository.MAX_BULLETINS_PER_COMPONENT) {
-            bulletinEntities = bulletinEntities.subList(0, BulletinRepository.MAX_BULLETINS_PER_COMPONENT);
+        if (bulletinEntities.size() > maxBulletins) {
+            return bulletinEntities.subList(0, maxBulletins);
+        } else {
+            return bulletinEntities;
         }
-
-        return bulletinEntities;
     }
 
     @Override

@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.AbstractReportingTask;
+import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.util.FormatUtils;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -23,25 +32,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.AbstractReportingTask;
-import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.Severity;
-import org.apache.nifi.util.FormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 @Tags({"disk", "storage", "warning", "monitoring", "repo"})
 @CapabilityDescription("Checks the amount of storage space available for the specified directory"
         + " and warns (via a log message and a System-Level Bulletin) if the partition on which it lives exceeds"
         + " some configurable threshold of storage space")
 public class MonitorDiskUsage extends AbstractReportingTask {
-
-    private static final Logger logger = LoggerFactory.getLogger(MonitorDiskUsage.class);
 
     private static final Pattern PERCENT_PATTERN = Pattern.compile("(\\d+{1,2})%");
 
@@ -88,11 +83,11 @@ public class MonitorDiskUsage extends AbstractReportingTask {
         final File dir = new File(context.getProperty(DIR_LOCATION).getValue());
         final String dirName = context.getProperty(DIR_DISPLAY_NAME).getValue();
 
-        checkThreshold(dirName, dir.toPath(), contentRepoThreshold, context);
+        checkThreshold(dirName, dir.toPath(), contentRepoThreshold, getLogger());
 
     }
 
-    static void checkThreshold(final String pathName, final Path path, final int threshold, final ReportingContext context) {
+    static void checkThreshold(final String pathName, final Path path, final int threshold, final ComponentLog logger) {
         final File file = path.toFile();
         final long totalBytes = file.getTotalSpace();
         final long freeBytes = file.getFreeSpace();
@@ -109,8 +104,6 @@ public class MonitorDiskUsage extends AbstractReportingTask {
 
             final String message = String.format("%1$s exceeds configured threshold of %2$s%%, having %3$s / %4$s (%5$.2f%%) used and %6$s (%7$.2f%%) free",
                     pathName, threshold, usedSpace, totalSpace, usedPercent, freeSpace, freePercent);
-            final Bulletin bulletin = context.createBulletin("Disk Usage", Severity.WARNING, message);
-            context.getBulletinRepository().addBulletin(bulletin);
             logger.warn(message);
         }
     }

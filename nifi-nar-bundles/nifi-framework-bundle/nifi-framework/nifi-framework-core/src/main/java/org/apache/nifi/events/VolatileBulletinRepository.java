@@ -193,15 +193,6 @@ public class VolatileBulletinRepository implements BulletinRepository {
             }
         }
 
-        for (final String key : new String[] { SERVICE_BULLETIN_STORE_KEY, REPORTING_TASK_BULLETIN_STORE_KEY }) {
-            final ConcurrentMap<String, RingBuffer<Bulletin>> bulletinMap = bulletinStoreMap.get(key);
-            if (bulletinMap != null) {
-                for (final RingBuffer<Bulletin> buffer : bulletinMap.values()) {
-                    controllerBulletins.addAll(buffer.getSelectedElements(filter, max));
-                }
-            }
-        }
-
         // We only want the newest bulletin, so we sort based on time and take the top 'max' entries
         Collections.sort(controllerBulletins);
         if (controllerBulletins.size() > max) {

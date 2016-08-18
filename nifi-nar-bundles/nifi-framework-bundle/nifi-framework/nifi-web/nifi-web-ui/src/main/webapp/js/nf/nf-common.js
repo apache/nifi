@@ -1195,7 +1195,7 @@ nf.Common = (function () {
             if ($.isArray(bulletins) && $.isArray(otherBulletins)) {
                 if (bulletins.length === otherBulletins.length) {
                     for (var i = 0; i < bulletins.length; i++) {
-                        if (bulletins[i].id !== otherBulletins[i].id) {
+                        if (bulletins[i].id !== otherBulletins[i].id || bulletins[i].canRead !== otherBulletins[i].canRead) {
                             return true;
                         }
                     }
