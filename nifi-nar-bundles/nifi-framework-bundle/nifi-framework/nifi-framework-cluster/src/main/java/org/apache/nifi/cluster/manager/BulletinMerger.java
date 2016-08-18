@@ -22,10 +22,8 @@ import org.apache.nifi.web.api.entity.BulletinEntity;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public final class BulletinMerger {
 
@@ -54,23 +52,26 @@ public final class BulletinMerger {
      * @param bulletins bulletins
      */
     public static List<BulletinEntity> mergeBulletins(final Map<NodeIdentifier, List<BulletinEntity>> bulletins) {
-        final List<BulletinEntity> bulletinDtos = new ArrayList<>();
+        final List<BulletinEntity> bulletinEntities = new ArrayList<>();
 
         for (final Map.Entry<NodeIdentifier, List<BulletinEntity>> entry : bulletins.entrySet()) {
             final NodeIdentifier nodeId = entry.getKey();
             final List<BulletinEntity> nodeBulletins = entry.getValue();
             final String nodeAddress = nodeId.getApiAddress() + ":" + nodeId.getApiPort();
 
-            for (final BulletinEntity bulletin : nodeBulletins) {
-                if (bulletin.getNodeAddress() == null) {
-                    bulletin.setNodeAddress(nodeAddress);
+            for (final BulletinEntity bulletinEntity : nodeBulletins) {
+                if (bulletinEntity.getNodeAddress() == null) {
+                    bulletinEntity.setNodeAddress(nodeAddress);
                 }
 
-                bulletinDtos.add(bulletin);
+                if (bulletinEntity.getCanRead() && bulletinEntity.getBulletin() != null && bulletinEntity.getBulletin().getNodeAddress() == null) {
+                    bulletinEntity.getBulletin().setNodeAddress(nodeAddress);
+                }
+                bulletinEntities.add(bulletinEntity);
             }
         }
 
-        Collections.sort(bulletinDtos, (BulletinEntity o1, BulletinEntity o2) -> {
+        Collections.sort(bulletinEntities, (BulletinEntity o1, BulletinEntity o2) -> {
             final int timeComparison = o1.getTimestamp().compareTo(o2.getTimestamp());
             if (timeComparison != 0) {
                 return timeComparison;
@@ -79,28 +80,6 @@ public final class BulletinMerger {
             return o1.getNodeAddress().compareTo(o2.getNodeAddress());
         });
 
-        return bulletinDtos;
-    }
-
-    /**
-     * Normalizes the validation errors.
-     *
-     * @param validationErrorMap validation errors for each node
-     * @param totalNodes total number of nodes
-     * @return the normalized validation errors
-     */
-    public static Set<String> normalizedMergedValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, int totalNodes) {
-        final Set<String> normalizedValidationErrors = new HashSet<>();
-        for (final Map.Entry<String, Set<NodeIdentifier>> validationEntry : validationErrorMap.entrySet()) {
-            final String msg = validationEntry.getKey();
-            final Set<NodeIdentifier> nodeIds = validationEntry.getValue();
-
-            if (nodeIds.size() == totalNodes) {
-                normalizedValidationErrors.add(msg);
-            } else {
-                nodeIds.forEach(id -> normalizedValidationErrors.add(id.getApiAddress() + ":" + id.getApiPort() + " -- " + msg));
-            }
-        }
-        return normalizedValidationErrors;
+        return bulletinEntities;
     }
 }
