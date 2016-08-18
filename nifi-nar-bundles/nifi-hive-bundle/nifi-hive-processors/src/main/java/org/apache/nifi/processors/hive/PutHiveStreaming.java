@@ -244,9 +244,7 @@ public class PutHiveStreaming extends AbstractProcessor {
     private static final long TICKET_RENEWAL_PERIOD = 60000;
 
     protected KerberosProperties kerberosProperties;
-    private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
-    private volatile File kerberosServiceKeytab = null;
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
@@ -285,9 +283,7 @@ public class PutHiveStreaming extends AbstractProcessor {
 
     @Override
     protected void init(ProcessorInitializationContext context) {
-        kerberosServicePrincipal = context.getKerberosServicePrincipal();
         kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosServiceKeytab = context.getKerberosServiceKeytab();
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         propertyDescriptors.add(kerberosProperties.getKerberosPrincipal());
         propertyDescriptors.add(kerberosProperties.getKerberosKeytab());

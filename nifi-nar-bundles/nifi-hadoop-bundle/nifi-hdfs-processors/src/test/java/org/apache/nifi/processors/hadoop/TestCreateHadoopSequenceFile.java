@@ -213,7 +213,7 @@ public class TestCreateHadoopSequenceFile {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerbersProperties;
         }
     }

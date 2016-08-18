@@ -127,9 +127,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private long lastKerberosReloginTime;
     protected KerberosProperties kerberosProperties;
     protected List<PropertyDescriptor> properties;
-    private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
-    private volatile File kerberosServiceKeytab = null;
 
     // variables shared by all threads of this processor
     // Hadoop Configuration, Filesystem, and UserGroupInformation (optional)
@@ -141,7 +139,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @Override
     protected void init(ProcessorInitializationContext context) {
         hdfsResources.set(new HdfsResources(null, null, null));
-        kerberosProperties = getKerberosProperties();
+
+        kerberosConfigFile = context.getKerberosConfigurationFile();
+        kerberosProperties = getKerberosProperties(kerberosConfigFile);
 
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(HADOOP_CONFIGURATION_RESOURCES);
@@ -149,12 +149,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         props.add(kerberosProperties.getKerberosKeytab());
         props.add(KERBEROS_RELOGIN_PERIOD);
         properties = Collections.unmodifiableList(props);
-        kerberosServicePrincipal = context.getKerberosServicePrincipal();
-        kerberosConfigFile = context.getKerberosConfigurationFile();
-        kerberosServiceKeytab = context.getKerberosServiceKeytab();
     }
 
-    protected KerberosProperties getKerberosProperties() {
+    protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
         return new KerberosProperties(kerberosConfigFile);
     }
 

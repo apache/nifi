@@ -451,7 +451,7 @@ public class TestHBase_1_1_2_ClientService {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return kerberosProperties;
         }
 

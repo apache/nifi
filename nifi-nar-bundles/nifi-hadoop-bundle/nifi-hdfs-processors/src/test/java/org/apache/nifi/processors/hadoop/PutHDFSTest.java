@@ -273,7 +273,7 @@ public class PutHDFSTest {
             }
 
             @Override
-            protected KerberosProperties getKerberosProperties() {
+            protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
                 return testKerberosProperties;
             }
         });
@@ -375,7 +375,7 @@ public class PutHDFSTest {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
         }
     }
