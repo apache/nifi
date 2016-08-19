@@ -9,10 +9,13 @@
     "tests"
   ],
   "dependencies": {
-    "font-awesome": "fontawesome#^4.6.1",
-    "angular-material": "^1.0.8",
-    "angular-resource": "^1.5.5",
-    "angular-route": "^1.5.5",
-    "angular-sanitize": "^1.5.5"
+    "font-awesome": "fontawesome#4.6.1",
+    "angular-material": "1.0.8",
+    "angular-resource": "1.5.5",
+    "angular-route": "1.5.5",
+    "angular-sanitize": "1.5.5"
+  },
+  "resolutions": {
+    "angular": "1.5.8"
   }
 }
