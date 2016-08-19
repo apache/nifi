@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.cluster.manager.exception;
 
+import org.apache.nifi.cluster.exception.ClusterException;
+
 /**
  * Represents the exceptional case when a reconnection request to a node failed.
  *

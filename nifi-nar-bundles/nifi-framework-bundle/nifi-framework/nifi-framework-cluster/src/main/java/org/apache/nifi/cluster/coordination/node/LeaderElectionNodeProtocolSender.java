@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
+import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.AbstractNodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;

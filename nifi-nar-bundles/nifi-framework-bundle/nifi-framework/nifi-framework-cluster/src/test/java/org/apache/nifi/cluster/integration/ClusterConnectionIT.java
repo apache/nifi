@@ -46,7 +46,7 @@ public class ClusterConnectionIT {
     }
 
     @Before
-    public void createCluster() {
+    public void createCluster() throws IOException {
         cluster = new Cluster();
         cluster.start();
     }
@@ -140,9 +140,8 @@ public class ClusterConnectionIT {
         cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
     }
 
-
     @Test(timeout = 60000)
-    public void testRestartAllNodes() throws IOException {
+    public void testRestartAllNodes() throws IOException, InterruptedException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
         final Node thirdNode = cluster.createNode();
@@ -164,7 +163,13 @@ public class ClusterConnectionIT {
         firstNode.start();
         secondNode.start();
 
-        cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
+
+        firstNode.waitUntilConnected(20, TimeUnit.SECONDS);
+        System.out.println("\n\n\n**** Node 1 Re-Connected ****\n\n\n");
+        secondNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        System.out.println("**** Node 2 Re-Connected ****");
+        thirdNode.waitUntilConnected(10, TimeUnit.SECONDS);
+        System.out.println("**** Node 3 Re-Connected ****");
 
         // wait for all 3 nodes to agree that node 2 is connected
         Stream.of(firstNode, secondNode, thirdNode).forEach(node -> {
@@ -205,7 +210,7 @@ public class ClusterConnectionIT {
         otherNode.assertNodeConnects(nodeToSuspend.getIdentifier(), 10, TimeUnit.SECONDS);
     }
 
-    @Test
+    @Test(timeout = 60000)
     public void testNodeInheritsClusterTopologyOnHeartbeat() throws InterruptedException {
         final Node node1 = cluster.createNode();
         final Node node2 = cluster.createNode();

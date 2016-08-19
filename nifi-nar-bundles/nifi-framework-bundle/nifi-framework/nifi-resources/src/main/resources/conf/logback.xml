@@ -96,6 +96,7 @@
     <logger name="org.apache.zookeeper.server.NIOServerCnxnFactory" level="ERROR" />
     <logger name="org.apache.zookeeper.server.quorum" level="ERROR" />
     <logger name="org.apache.zookeeper.ZooKeeper" level="ERROR" />
+    <logger name="org.apache.zookeeper.server.PrepRequestProcessor" level="ERROR" />
 
     <logger name="org.apache.curator.framework.recipes.leader.LeaderSelector" level="OFF" />
     <logger name="org.apache.curator.ConnectionState" level="OFF" />

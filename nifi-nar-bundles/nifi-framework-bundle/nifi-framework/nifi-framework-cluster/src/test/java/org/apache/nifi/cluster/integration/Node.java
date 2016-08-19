@@ -87,8 +87,9 @@ public class Node {
 
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
+
     public Node(final NiFiProperties properties) {
-        this(new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null), properties);
+        this(createNodeId(), properties);
     }
 
     public Node(final NodeIdentifier nodeId, final NiFiProperties properties) {
@@ -121,6 +122,10 @@ public class Node {
     }
 
 
+    private static NodeIdentifier createNodeId() {
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+    }
+
     public synchronized void start() {
         running = true;
 
@@ -148,6 +153,7 @@ public class Node {
                 StringEncryptor.createEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
+
             flowService.load(null);
         } catch (Exception e) {
             throw new RuntimeException(e);

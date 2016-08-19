@@ -20,7 +20,7 @@ package org.apache.nifi.web.api.config;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
-import org.apache.nifi.cluster.manager.exception.NoClusterCoordinatorException;
+import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
