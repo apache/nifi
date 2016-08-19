@@ -78,7 +78,7 @@ public class ModifyBytes extends AbstractProcessor {
             .name("Remove All Content")
             .description("Remove all content from the FlowFile superseding Start Offset and End Offset properties.")
             .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .defaultValue("false")
             .build();
     private final List<PropertyDescriptor> propDescriptors;
