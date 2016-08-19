@@ -32,6 +32,7 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.common.PathUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,29 +87,32 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public synchronized void register(final String roleName) {
-        register(roleName, null);
-    }
-
-    @Override
     public void register(String roleName, LeaderElectionStateChangeListener listener) {
         register(roleName, listener, null);
+    }
+
+    private String getElectionPath(final String roleName) {
+        final String rootPath = zkConfig.getRootPath();
+        final String leaderPath = rootPath + (rootPath.endsWith("/") ? "" : "/") + "leaders/" + roleName;
+        return leaderPath;
     }
 
     @Override
     public synchronized void register(final String roleName, final LeaderElectionStateChangeListener listener, final String participantId) {
         logger.debug("{} Registering new Leader Selector for role {}", this, roleName);
 
-        if (leaderRoles.containsKey(roleName)) {
+        // If we already have a Leader Role registered and either the Leader Role is participating in election,
+        // or the given participant id == null (don't want to participant in election) then we're done.
+        final LeaderRole currentRole = leaderRoles.get(roleName);
+        if (currentRole != null && (currentRole.isParticipant() || participantId == null)) {
             logger.info("{} Attempted to register Leader Election for role '{}' but this role is already registered", this, roleName);
             return;
         }
 
-        final String rootPath = zkConfig.getRootPath();
-        final String leaderPath = rootPath + (rootPath.endsWith("/") ? "" : "/") + "leaders/" + roleName;
+        final String leaderPath = getElectionPath(roleName);
 
         try {
-            PathUtils.validatePath(rootPath);
+            PathUtils.validatePath(leaderPath);
         } catch (final IllegalArgumentException e) {
             throw new IllegalStateException("Cannot register leader election for role '" + roleName + "' because this is not a valid role name");
         }
@@ -116,16 +120,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         registeredRoles.put(roleName, new RegisteredRole(participantId, listener));
 
         if (!isStopped()) {
+            final boolean isParticipant = participantId != null && !participantId.trim().isEmpty();
+
             final ElectionListener electionListener = new ElectionListener(roleName, listener);
             final LeaderSelector leaderSelector = new LeaderSelector(curatorClient, leaderPath, leaderElectionMonitorEngine, electionListener);
-            leaderSelector.autoRequeue();
-            if (participantId != null) {
+            if (isParticipant) {
+                leaderSelector.autoRequeue();
                 leaderSelector.setId(participantId);
+                leaderSelector.start();
             }
 
-            leaderSelector.start();
-
-            final LeaderRole leaderRole = new LeaderRole(leaderSelector, electionListener);
+            final LeaderRole leaderRole = new LeaderRole(leaderSelector, electionListener, isParticipant);
 
             leaderRoles.put(roleName, leaderRole);
         }
@@ -193,9 +198,13 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public String getLeader(final String roleName) {
+        if (isStopped()) {
+            return determineLeaderExternal(roleName);
+        }
+
         final LeaderRole role = getLeaderRole(roleName);
         if (role == null) {
-            return null;
+            return determineLeaderExternal(roleName);
         }
 
         Participant participant;
@@ -218,14 +227,92 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         return participantId;
     }
 
+
+    /**
+     * Determines whether or not leader election has already begun for the role with the given name
+     *
+     * @param roleName the role of interest
+     * @return <code>true</code> if leader election has already begun, <code>false</code> if it has not or if unable to determine this.
+     */
+    @Override
+    public boolean isLeaderElected(final String roleName) {
+        final String leaderAddress = determineLeaderExternal(roleName);
+        return !StringUtils.isEmpty(leaderAddress);
+    }
+
+
+    /**
+     * Use a new Curator client to determine which node is the elected leader for the given role.
+     *
+     * @param roleName the name of the role
+     * @return the id of the elected leader, or <code>null</code> if no leader has been selected or if unable to determine
+     *         the leader from ZooKeeper
+     */
+    private String determineLeaderExternal(final String roleName) {
+        final CuratorFramework client = createClient();
+        try {
+            final LeaderSelectorListener electionListener = new LeaderSelectorListener() {
+                @Override
+                public void stateChanged(CuratorFramework client, ConnectionState newState) {
+                }
+
+                @Override
+                public void takeLeadership(CuratorFramework client) throws Exception {
+                }
+            };
+
+            final String electionPath = getElectionPath(roleName);
+
+            // Note that we intentionally do not auto-requeue here, and we do not start the selector. We do not
+            // want to join the leader election. We simply want to observe.
+            final LeaderSelector selector = new LeaderSelector(client, electionPath, electionListener);
+
+            try {
+                final Participant leader = selector.getLeader();
+                return leader == null ? null : leader.getId();
+            } catch (final KeeperException.NoNodeException nne) {
+                // If there is no ZNode, then there is no elected leader.
+                return null;
+            } catch (final Exception e) {
+                logger.warn("Unable to determine the Elected Leader for role '{}' due to {}; assuming no leader has been elected", roleName, e.toString());
+                if (logger.isDebugEnabled()) {
+                    logger.warn("", e);
+                }
+
+                return null;
+            }
+        } finally {
+            client.close();
+        }
+    }
+
+    private CuratorFramework createClient() {
+        // Create a new client because we don't want to try indefinitely for this to occur.
+        final RetryPolicy retryPolicy = new RetryNTimes(10, 500);
+
+        final CuratorFramework client = CuratorFrameworkFactory.builder()
+            .connectString(zkConfig.getConnectString())
+            .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
+            .connectionTimeoutMs(zkConfig.getConnectionTimeoutMillis())
+            .retryPolicy(retryPolicy)
+            .defaultData(new byte[0])
+            .build();
+
+        client.start();
+        return client;
+    }
+
+
     private static class LeaderRole {
 
         private final LeaderSelector leaderSelector;
         private final ElectionListener electionListener;
+        private final boolean participant;
 
-        public LeaderRole(final LeaderSelector leaderSelector, final ElectionListener electionListener) {
+        public LeaderRole(final LeaderSelector leaderSelector, final ElectionListener electionListener, final boolean participant) {
             this.leaderSelector = leaderSelector;
             this.electionListener = electionListener;
+            this.participant = participant;
         }
 
         public LeaderSelector getLeaderSelector() {
@@ -234,6 +321,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         public boolean isLeader() {
             return electionListener.isLeader();
+        }
+
+        public boolean isParticipant() {
+            return participant;
         }
     }
 

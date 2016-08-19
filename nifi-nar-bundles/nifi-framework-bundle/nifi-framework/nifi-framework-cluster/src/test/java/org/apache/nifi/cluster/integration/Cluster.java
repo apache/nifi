@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.integration;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,7 +41,7 @@ public class Cluster {
     private final Set<Node> nodes = new HashSet<>();
     private final TestingServer zookeeperServer;
 
-    public Cluster() {
+    public Cluster() throws IOException {
         try {
             zookeeperServer = new TestingServer();
         } catch (final Exception e) {
@@ -114,7 +115,8 @@ public class Cluster {
         addProps.put(NiFiProperties.ZOOKEEPER_CONNECT_STRING, getZooKeeperConnectString());
         addProps.put(NiFiProperties.CLUSTER_IS_NODE, "true");
 
-        final Node node = new Node(NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", addProps));
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties", addProps);
+        final Node node = new Node(nifiProperties);
         node.start();
         nodes.add(node);
 

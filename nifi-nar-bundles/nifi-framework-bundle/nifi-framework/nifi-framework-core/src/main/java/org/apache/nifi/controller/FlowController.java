@@ -591,16 +591,18 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             // kicking everyone out. This way, we instead inherit the cluster flow before we attempt to be
             // the coordinator.
             LOG.info("Checking if there is already a Cluster Coordinator Elected...");
-            final NodeIdentifier electedCoordinatorNodeId = clusterCoordinator.getElectedActiveCoordinatorNode();
-            if (electedCoordinatorNodeId == null) {
-                LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
-                registerForClusterCoordinator();
+            final boolean coordinatorLeaderElectionStarted = leaderElectionManager.isLeaderElected(ClusterRoles.CLUSTER_COORDINATOR);
+            if (coordinatorLeaderElectionStarted) {
+                LOG.info("The Election for Cluster Coordinator has already begun. Will not register to be elected for this role until after connecting "
+                    + "to the cluster and inheriting the cluster's flow.");
+                registerForClusterCoordinator(false);
             } else {
-                LOG.info("The Elected Cluster Coordinator is {}. Will not register to be elected for this role until after connecting "
-                        + "to the cluster and inheriting the cluster's flow.", electedCoordinatorNodeId);
+                LOG.info("It appears that no Cluster Coordinator has been Elected yet. Registering for Cluster Coordinator Role.");
+                registerForClusterCoordinator(true);
             }
 
             leaderElectionManager.start();
+            heartbeatMonitor.start();
         } else {
             heartbeater = null;
         }
@@ -3316,8 +3318,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         return configuredForClustering;
     }
 
-    private void registerForClusterCoordinator() {
-        final String participantId = heartbeatMonitor.getHeartbeatAddress();
+    private void registerForClusterCoordinator(final boolean participate) {
+        final String participantId = participate ? heartbeatMonitor.getHeartbeatAddress() : null;
 
         leaderElectionManager.register(ClusterRoles.CLUSTER_COORDINATOR, new LeaderElectionStateChangeListener() {
             @Override
@@ -3337,7 +3339,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
-                heartbeatMonitor.start();   // ensure heartbeat monitor is started
             }
         }, participantId);
     }
@@ -3396,7 +3397,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
                     // Participate in Leader Election for Heartbeat Monitor. Start the heartbeat monitor
                     // if/when we become leader and stop it when we lose leader role
-                    registerForClusterCoordinator();
+                    registerForClusterCoordinator(true);
 
                     leaderElectionManager.start();
                     stateManagerProvider.enableClusterProvider();

@@ -29,10 +29,6 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public void register(final String roleName) {
-    }
-
-    @Override
     public void register(final String roleName, final LeaderElectionStateChangeListener listener) {
     }
 
@@ -61,5 +57,10 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public void stop() {
+    }
+
+    @Override
+    public boolean isLeaderElected(String roleName) {
+        return false;
     }
 }
