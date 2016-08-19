@@ -146,14 +146,17 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         this.flowController = requireNonNull(flowController);
         final URI uri;
         try {
-            uri = new URI(requireNonNull(targetUri));
+            uri = new URI(requireNonNull(targetUri.trim()));
 
             // Trim the trailing /
             String uriPath = uri.getPath();
-            if (uriPath.endsWith("/")) {
+            if (uriPath == null || uriPath.equals("/") || uriPath.trim().isEmpty()) {
+                uriPath = "/nifi";
+            } else if (uriPath.endsWith("/")) {
                 uriPath = uriPath.substring(0, uriPath.length() - 1);
             }
-            final String apiPath = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort() + uriPath + "-api";
+
+            final String apiPath = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort() + uriPath.trim() + "-api";
             apiUri = new URI(apiPath);
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException(e);
@@ -856,7 +859,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     writeLock.unlock();
                 }
 
-                throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + apiUri + " due to: " + e.getMessage());
+                throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + getApiUri() + " due to: " + e.getMessage());
             }
 
             writeLock.lock();
@@ -927,10 +930,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private SiteToSiteRestApiClient getSiteToSiteRestApiClient() {
         SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword));
-        apiClient.setBaseUrl(apiUri.toString());
+        apiClient.setBaseUrl(getApiUri());
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         return apiClient;
+    }
+
+    protected String getApiUri() {
+        return apiUri.toString();
     }
 
     /**
