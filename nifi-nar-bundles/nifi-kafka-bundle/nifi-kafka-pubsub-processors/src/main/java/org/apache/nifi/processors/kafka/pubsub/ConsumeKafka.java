@@ -130,7 +130,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
      */
     @Override
     @OnStopped
-    public void close() {
+    public synchronized void close() {
         if (this.kafkaResource != null) {
             try {
                 this.kafkaResource.unsubscribe();
@@ -161,7 +161,10 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
      */
     @Override
     protected boolean rendezvousWithKafka(ProcessContext context, ProcessSession processSession) {
-        ConsumerRecords<byte[], byte[]> consumedRecords = this.kafkaResource.poll(100);
+        ConsumerRecords<byte[], byte[]> consumedRecords;
+        synchronized (this) {
+            consumedRecords = this.kafkaResource.poll(100);
+        }
         if (consumedRecords != null && !consumedRecords.isEmpty()) {
             long start = System.nanoTime();
             FlowFile flowFile = processSession.create();
@@ -216,7 +219,7 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
      * files in a NiFi sense before we commit them in a Kafka sense.
      */
     @Override
-    protected void postCommit(ProcessContext context) {
+    protected synchronized void postCommit(ProcessContext context) {
         this.kafkaResource.commitSync();
     }
 
@@ -246,7 +249,9 @@ public class ConsumeKafka extends AbstractKafkaProcessor<Consumer<byte[], byte[]
         kafkaProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
 
         KafkaConsumer<byte[], byte[]> consumer = new KafkaConsumer<>(kafkaProperties);
-        consumer.subscribe(Collections.singletonList(this.topic));
+        synchronized (this) {
+            consumer.subscribe(Collections.singletonList(this.topic));
+        }
         return consumer;
     }
 
