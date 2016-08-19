@@ -230,4 +230,17 @@ public class TestModifyBytes {
         final MockFlowFile out = runner.getFlowFilesForRelationship(ModifyBytes.REL_SUCCESS).get(0);
         assertEquals(testFile.length() - 20, out.getSize());
     }
+
+    @Test
+    public void testCheckAllowableValues() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ModifyBytes());
+        runner.setProperty(ModifyBytes.REMOVE_ALL, "maybe");
+        runner.assertNotValid();
+        runner.setProperty(ModifyBytes.REMOVE_ALL, "true");
+        runner.assertValid();
+        runner.setProperty(ModifyBytes.REMOVE_ALL, "false");
+        runner.assertValid();
+        runner.setProperty(ModifyBytes.REMOVE_ALL, "certainly");
+        runner.assertNotValid();
+    }
 }
