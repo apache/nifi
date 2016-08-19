@@ -476,11 +476,8 @@ nf.CanvasUtils = (function () {
         bulletins: function (selection, d, getTooltipContainer, offset) {
             offset = nf.Common.isDefinedAndNotNull(offset) ? offset : 0;
 
-            // remove any existing tip if necessary
+            // get the tip
             var tip = d3.select('#bulletin-tip-' + d.id);
-            if (!tip.empty()) {
-                tip.remove();
-            }
 
             var hasBulletins = false;
             if (!nf.Common.isEmpty(d.bulletins)) {
@@ -499,17 +496,20 @@ nf.CanvasUtils = (function () {
                 // update the tooltip
                 selection.select('text.bulletin-icon')
                         .each(function () {
-                            // if there are bulletins generate a tooltip
-                            tip = getTooltipContainer().append('div')
+                            // create the tip if necessary
+                            if (tip.empty()) {
+                                tip = getTooltipContainer().append('div')
                                     .attr('id', function () {
                                         return 'bulletin-tip-' + d.id;
                                     })
-                                    .attr('class', 'tooltip nifi-tooltip')
-                                    .html(function () {
-                                        return $('<div></div>').append(list).html();
-                                    });
+                                    .attr('class', 'tooltip nifi-tooltip');
+                            }
 
                             // add the tooltip
+                            tip.html(function () {
+                                return $('<div></div>').append(list).html();
+                            });
+
                             nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
                         });
 
@@ -517,6 +517,11 @@ nf.CanvasUtils = (function () {
                 selection.select('text.bulletin-icon').style("visibility", "visible");
                 selection.select('rect.bulletin-background').style("visibility", "visible");
             } else {
+                // clean up if necessary
+                if (!tip.empty()) {
+                    tip.remove();
+                }
+
                 // update the tooltip background
                 selection.select('text.bulletin-icon').style("visibility", "hidden");
                 selection.select('rect.bulletin-background').style("visibility", "hidden");
@@ -1292,6 +1297,9 @@ nf.CanvasUtils = (function () {
          * @param {string} groupId
          */
         enterGroup: function (groupId) {
+            // hide the context menu
+            nf.ContextMenu.hide();
+
             // set the new group id
             nf.Canvas.setGroupId(groupId);
 

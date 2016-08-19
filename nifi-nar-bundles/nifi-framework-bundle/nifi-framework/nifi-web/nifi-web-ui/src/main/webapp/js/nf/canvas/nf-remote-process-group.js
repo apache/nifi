@@ -520,18 +520,20 @@ nf.RemoteProcessGroup = (function () {
                             return icon;
                         })
                         .each(function (d) {
-                            // remove the existing tip if necessary
+                            // get the tip
                             var tip = d3.select('#transmission-secure-' + d.id);
-                            if (!tip.empty()) {
-                                tip.remove();
+
+                            // remove the tip if necessary
+                            if (tip.empty()) {
+                                tip = d3.select('#remote-process-group-tooltips').append('div')
+                                    .attr('id', function () {
+                                        return 'transmission-secure-' + d.id;
+                                    })
+                                    .attr('class', 'tooltip nifi-tooltip');
                             }
 
-                            tip = d3.select('#remote-process-group-tooltips').append('div')
-                                .attr('id', function () {
-                                    return 'transmission-secure-' + d.id;
-                                })
-                                .attr('class', 'tooltip nifi-tooltip')
-                                .text(function () {
+                            // update the tip
+                            tip.text(function () {
                                     if (d.component.targetSecure === true) {
                                         return 'Site-to-Site is secure.';
                                     } else {
@@ -720,20 +722,22 @@ nf.RemoteProcessGroup = (function () {
                 return d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues);
             })
             .each(function (d) {
-                // remove the existing tip if necessary
+                // get the tip
                 var tip = d3.select('#authorization-issues-' + d.id);
-                if (!tip.empty()) {
-                    tip.remove();
-                }
 
                 // if there are validation errors generate a tooltip
                 if (d.permissions.canRead && !nf.Common.isEmpty(d.component.authorizationIssues)) {
-                    tip = d3.select('#remote-process-group-tooltips').append('div')
-                        .attr('id', function () {
-                            return 'authorization-issues-' + d.id;
-                        })
-                        .attr('class', 'tooltip nifi-tooltip')
-                        .html(function () {
+                    // create the tip if necessary
+                    if (tip.empty()) {
+                        tip = d3.select('#remote-process-group-tooltips').append('div')
+                            .attr('id', function () {
+                                return 'authorization-issues-' + d.id;
+                            })
+                            .attr('class', 'tooltip nifi-tooltip');
+                    }
+
+                    // update the tip
+                    tip.html(function () {
                             var list = nf.Common.formatUnorderedList(d.component.authorizationIssues);
                             if (list === null || list.length === 0) {
                                 return '';
@@ -744,6 +748,10 @@ nf.RemoteProcessGroup = (function () {
 
                     // add the tooltip
                     nf.CanvasUtils.canvasTooltip(tip, d3.select(this));
+                } else {
+                    if (!tip.empty()) {
+                        tip.remove();
+                    }
                 }
             });
 
