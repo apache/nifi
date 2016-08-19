@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -36,6 +37,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import com.google.common.collect.Maps;
 
@@ -183,5 +185,14 @@ public class TestDeleteHDFS {
         protected FileSystem getFileSystem() {
             return mockFileSystem;
         }
+    }
+
+    @Test
+    public void testGlobMatcher() throws Exception {
+        DeleteHDFS deleteHDFS = new DeleteHDFS();
+        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/*").find());
+        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/[01-04]").find());
+        assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/0?/09/").find());
+        assertFalse(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09").find());
     }
 }

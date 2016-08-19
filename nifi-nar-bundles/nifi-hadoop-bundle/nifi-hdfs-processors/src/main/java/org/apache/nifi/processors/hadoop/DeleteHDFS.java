@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -61,7 +63,8 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_OR_DIRECTORY = new PropertyDescriptor.Builder()
-            .name("File or Directory")
+            .name("file_or_directory")
+            .displayName("File or Directory")
             .description("The HDFS file or directory to delete. A wildcard expression may be used to only delete certain files")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -69,13 +72,17 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor RECURSIVE = new PropertyDescriptor.Builder()
-            .name("Recursive")
+            .name("recursive")
+            .displayName("Recursive")
             .description("Remove contents of a non-empty directory recursively")
             .allowableValues("true", "false")
             .required(true)
             .defaultValue("true")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
+    protected final Pattern GLOB_PATTERN = Pattern.compile("\\[|\\]|\\*|\\?|\\^|\\{|\\}|\\\\c");
+    protected final Matcher GLOB_MATCHER = GLOB_PATTERN.matcher("");
 
     private static final Set<Relationship> relationships;
 
@@ -121,7 +128,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         try {
             // Check if the user has supplied a file or directory pattern
             List<Path> pathList = Lists.newArrayList();
-            if (fileOrDirectoryName.contains("*")) {
+            if (GLOB_MATCHER.reset(fileOrDirectoryName).find()) {
                 FileStatus[] fileStatuses = fileSystem.globStatus(new Path(fileOrDirectoryName));
                 if (fileStatuses != null) {
                     for (FileStatus fileStatus : fileStatuses) {
