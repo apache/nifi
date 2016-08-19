@@ -725,9 +725,6 @@ nf.Canvas = (function () {
          */
         reload: function (options) {
             return $.Deferred(function (deferred) {
-                // hide the context menu
-                nf.ContextMenu.hide();
-
                 // issue the requests
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId(), options);
                 var statusXhr = nf.ng.Bridge.injector.get('flowStatusCtrl').reloadFlowStatus();
