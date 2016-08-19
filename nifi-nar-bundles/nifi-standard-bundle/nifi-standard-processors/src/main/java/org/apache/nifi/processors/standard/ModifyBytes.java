@@ -114,10 +114,10 @@ public class ModifyBytes extends AbstractProcessor {
 
         final ComponentLog logger = getLogger();
 
-        final int startOffset = context.getProperty(START_OFFSET).asDataSize(DataUnit.B).intValue();
-        final int endOffset = context.getProperty(END_OFFSET).asDataSize(DataUnit.B).intValue();
+        final long startOffset = context.getProperty(START_OFFSET).asDataSize(DataUnit.B).longValue();
+        final long endOffset = context.getProperty(END_OFFSET).asDataSize(DataUnit.B).longValue();
         final boolean removeAll = context.getProperty(REMOVE_ALL).asBoolean();
-        final int newFileSize = removeAll ? 0 : (int) ff.getSize() - startOffset - endOffset;
+        final long newFileSize = removeAll ? 0L : ff.getSize() - startOffset - endOffset;
 
         final StopWatch stopWatch = new StopWatch(true);
         if (newFileSize <= 0) {
