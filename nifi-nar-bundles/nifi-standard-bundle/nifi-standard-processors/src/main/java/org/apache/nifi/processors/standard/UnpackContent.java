@@ -102,6 +102,13 @@ public class UnpackContent extends AbstractProcessor {
     public static final String FRAGMENT_COUNT = "fragment.count";
     public static final String SEGMENT_ORIGINAL_FILENAME = "segment.original.filename";
 
+    public static final String AUTO_DETECT_FORMAT_NAME = "use mime.type attribute";
+    public static final String TAR_FORMAT_NAME = "tar";
+    public static final String ZIP_FORMAT_NAME = "zip";
+    public static final String FLOWFILE_STREAM_FORMAT_V3_NAME = "flowfile-stream-v3";
+    public static final String FLOWFILE_STREAM_FORMAT_V2_NAME = "flowfile-stream-v2";
+    public static final String FLOWFILE_TAR_FORMAT_NAME = "flowfile-tar-v1";
+
     public static final String OCTET_STREAM = "application/octet-stream";
 
     public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder()
@@ -144,9 +151,6 @@ public class UnpackContent extends AbstractProcessor {
 
     private Unpacker tarUnpacker;
     private Unpacker zipUnpacker;
-    private Unpacker flowFileStreamV3Unpacker;
-    private Unpacker flowFileStreamV2Unpacker;
-    private Unpacker flowFileTarUnpacker;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -184,14 +188,6 @@ public class UnpackContent extends AbstractProcessor {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
             tarUnpacker = new TarUnpacker(fileFilter);
             zipUnpacker = new ZipUnpacker(fileFilter);
-            flowFileStreamV3Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-            flowFileStreamV2Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-            flowFileTarUnpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-        }
-
-        PackageFormat format = PackageFormat.getFormat(context.getProperty(PACKAGING_FORMAT).getValue());
-        if (format != PackageFormat.AUTO_DETECT_FORMAT && unpacker == null) {
-            initUnpacker(format);
         }
     }
 
@@ -207,15 +203,15 @@ public class UnpackContent extends AbstractProcessor {
                 addFragmentAttrs = true;
                 break;
             case FLOWFILE_STREAM_FORMAT_V2:
-                unpacker = flowFileStreamV2Unpacker;
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
                 addFragmentAttrs = false;
                 break;
             case FLOWFILE_STREAM_FORMAT_V3:
-                unpacker = flowFileStreamV3Unpacker;
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
                 addFragmentAttrs = false;
                 break;
             case FLOWFILE_TAR_FORMAT:
-                unpacker = flowFileTarUnpacker;
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
                 addFragmentAttrs = false;
                 break;
             case AUTO_DETECT_FORMAT:
@@ -254,6 +250,8 @@ public class UnpackContent extends AbstractProcessor {
             } else {
                 initUnpacker(packagingFormat);
             }
+        } else {
+            initUnpacker(packagingFormat);
         }
 
         final List<FlowFile> unpacked = new ArrayList<>();
@@ -495,13 +493,13 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     protected enum PackageFormat {
-        AUTO_DETECT_FORMAT("use mime.type attribute"),
-        TAR_FORMAT("tar", "application/tar"),
-        X_TAR_FORMAT("tar", "application/x-tar"),
-        ZIP_FORMAT("zip", "application/zip"),
-        FLOWFILE_STREAM_FORMAT_V3("flowfile-stream-v3", "application/flowfile-v3"),
-        FLOWFILE_STREAM_FORMAT_V2("flowfile-stream-v2", "application/flowfile-v2"),
-        FLOWFILE_TAR_FORMAT("flowfile-tar-v1", "application/flowfile-v1");
+        AUTO_DETECT_FORMAT(AUTO_DETECT_FORMAT_NAME),
+        TAR_FORMAT(TAR_FORMAT_NAME, "application/tar"),
+        X_TAR_FORMAT(TAR_FORMAT_NAME, "application/x-tar"),
+        ZIP_FORMAT(ZIP_FORMAT_NAME, "application/zip"),
+        FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, "application/flowfile-v3"),
+        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, "application/flowfile-v2"),
+        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, "application/flowfile-v1");
 
 
         private final String textValue;
@@ -526,17 +524,17 @@ public class UnpackContent extends AbstractProcessor {
 
         public static PackageFormat getFormat(String textValue) {
             switch (textValue) {
-            case "use mime.type attribute":
+            case AUTO_DETECT_FORMAT_NAME:
                 return AUTO_DETECT_FORMAT;
-            case "tar":
+            case TAR_FORMAT_NAME:
                 return TAR_FORMAT;
-            case "zip":
+            case ZIP_FORMAT_NAME:
                 return ZIP_FORMAT;
-            case "flowfile-stream-v3":
+            case FLOWFILE_STREAM_FORMAT_V3_NAME:
                 return FLOWFILE_STREAM_FORMAT_V3;
-            case "flowfile-stream-v2":
+            case FLOWFILE_STREAM_FORMAT_V2_NAME:
                 return FLOWFILE_STREAM_FORMAT_V2;
-            case "flowfile-stream-v1":
+            case FLOWFILE_TAR_FORMAT_NAME:
                 return FLOWFILE_TAR_FORMAT;
             }
             return null;
