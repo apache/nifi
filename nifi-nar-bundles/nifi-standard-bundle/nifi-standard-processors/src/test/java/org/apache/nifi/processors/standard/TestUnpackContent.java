@@ -199,11 +199,12 @@ public class TestUnpackContent {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V3.toString());
         runner.enqueue(dataPath.resolve("data.flowfilev3"));
+        runner.enqueue(dataPath.resolve("data.flowfilev3"));
 
-        runner.run();
+        runner.run(2);
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);

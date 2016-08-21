@@ -182,15 +182,18 @@ public class UnpackContent extends AbstractProcessor {
     public void onScheduled(ProcessContext context) throws ProcessException {
         if (fileFilter == null) {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
-            tarUnpacker = new TarUnpacker(fileFilter);
-            zipUnpacker = new ZipUnpacker(fileFilter);
-            flowFileStreamV3Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-            flowFileStreamV2Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-            flowFileTarUnpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
         }
+    }
+
+    private void initPackagers(ProcessContext context) {
+        tarUnpacker = new TarUnpacker(fileFilter);
+        zipUnpacker = new ZipUnpacker(fileFilter);
+        flowFileStreamV3Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+        flowFileStreamV2Unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+        flowFileTarUnpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
 
         PackageFormat format = PackageFormat.getFormat(context.getProperty(PACKAGING_FORMAT).getValue());
-        if (format != PackageFormat.AUTO_DETECT_FORMAT && unpacker == null) {
+        if (format != PackageFormat.AUTO_DETECT_FORMAT) {
             initUnpacker(format);
         }
     }
@@ -230,6 +233,8 @@ public class UnpackContent extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
+
+        this.initPackagers(context);
 
         final ProcessorLog logger = getLogger();
         PackageFormat packagingFormat = PackageFormat.getFormat(context.getProperty(PACKAGING_FORMAT).getValue().toLowerCase());
@@ -536,7 +541,7 @@ public class UnpackContent extends AbstractProcessor {
                 return FLOWFILE_STREAM_FORMAT_V3;
             case "flowfile-stream-v2":
                 return FLOWFILE_STREAM_FORMAT_V2;
-            case "flowfile-stream-v1":
+            case "flowfile-tar-v1":
                 return FLOWFILE_TAR_FORMAT;
             }
             return null;
