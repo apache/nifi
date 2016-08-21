@@ -17,14 +17,16 @@
 package org.apache.nifi.processors.hadoop;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,7 +39,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 import com.google.common.collect.Maps;
 
@@ -50,7 +51,7 @@ public class TestDeleteHDFS {
     public void setup() throws Exception {
         mockNiFiProperties = mock(NiFiProperties.class);
         when(mockNiFiProperties.getKerberosConfigurationFile()).thenReturn(null);
-        kerberosProperties = KerberosProperties.create(mockNiFiProperties);
+        kerberosProperties = new KerberosProperties(null);
         mockFileSystem = mock(FileSystem.class);
     }
 
@@ -177,7 +178,7 @@ public class TestDeleteHDFS {
         }
 
         @Override
-        protected KerberosProperties getKerberosProperties() {
+        protected KerberosProperties getKerberosProperties(File kerberosConfigFile) {
             return testKerberosProperties;
         }
 
