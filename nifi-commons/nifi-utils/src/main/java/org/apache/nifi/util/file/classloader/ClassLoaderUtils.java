@@ -16,50 +16,67 @@
  */
 package org.apache.nifi.util.file.classloader;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ClassLoaderUtils {
 
     public static ClassLoader getCustomClassLoader(String modulePath, ClassLoader parentClassLoader, FilenameFilter filenameFilter) throws MalformedURLException {
-        String[] modules = modulePath != null? modulePath.split(",") : null;
-        URL[] classpaths = getURLsForClasspath(modules,filenameFilter);
-        return createModuleClassLoader(classpaths,parentClassLoader);
+        // Split and trim the module path(s)
+        List<String> modules = (modulePath == null)
+                ? null
+                : Arrays.stream(modulePath.split(",")).filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toList());
+
+        URL[] classpaths = getURLsForClasspath(modules, filenameFilter);
+        return createModuleClassLoader(classpaths, parentClassLoader);
     }
 
-    protected static URL[] getURLsForClasspath(String[] modulePaths, FilenameFilter filenameFilter) throws  MalformedURLException {
+    protected static URL[] getURLsForClasspath(List<String> modulePaths, FilenameFilter filenameFilter) throws MalformedURLException {
         List<URL> additionalClasspath = new LinkedList<>();
         if (modulePaths != null) {
             for (String modulePathString : modulePaths) {
-                File modulePath = new File(modulePathString);
+                // If the path is already a URL, just add it (but don't check if it exists, too expensive and subject to network availability)
+                boolean isUrl = true;
+                try {
+                    additionalClasspath.add(new URL(modulePathString));
+                } catch (MalformedURLException mue) {
+                    isUrl = false;
+                }
+                if (!isUrl) {
+                    File modulePath = new File(modulePathString);
 
-                if (modulePath.exists()) {
+                    if (modulePath.exists()) {
 
-                    additionalClasspath.add(modulePath.toURI().toURL());
+                        additionalClasspath.add(modulePath.toURI().toURL());
 
-                    if (modulePath.isDirectory()) {
-                        File[] files = modulePath.listFiles(filenameFilter);
+                        if (modulePath.isDirectory()) {
+                            File[] files = modulePath.listFiles(filenameFilter);
 
-                        if (files != null) {
-                            for (File jarFile : files) {
-                                additionalClasspath.add(jarFile.toURI().toURL());
+                            if (files != null) {
+                                for (File jarFile : files) {
+                                    additionalClasspath.add(jarFile.toURI().toURL());
+                                }
                             }
                         }
+                    } else {
+                        throw new MalformedURLException("Path specified does not exist");
                     }
-                } else {
-                    throw new MalformedURLException("Path specified does not exist");
                 }
             }
         }
         return additionalClasspath.toArray(new URL[additionalClasspath.size()]);
     }
 
-    protected static ClassLoader createModuleClassLoader(URL[] modules,ClassLoader parentClassLoader) {
+    protected static ClassLoader createModuleClassLoader(URL[] modules, ClassLoader parentClassLoader) {
         return new URLClassLoader(modules, parentClassLoader);
     }
 

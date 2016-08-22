@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.util.file.classloader;
 
-import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -61,13 +61,25 @@ public class TestClassLoaderUtils {
         fail("exception did not occur, path should not exist");
     }
 
-    protected FilenameFilter getJarFilenameFilter(){
-        return  new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return (name != null && name.endsWith(".jar"));
-            }
-        };
+    @Test
+    public void testGetCustomClassLoaderWithMultipleLocations() throws Exception {
+        final String jarFilePath = " src/test/resources/TestClassLoaderUtils/TestSuccess.jar, http://nifi.apache.org/Test.jar";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
     }
 
+    @Test
+    public void testGetCustomClassLoaderWithEmptyLocations() throws Exception {
+        String jarFilePath = "";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+
+        jarFilePath = ",";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+
+        jarFilePath = ",src/test/resources/TestClassLoaderUtils/TestSuccess.jar, ";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+    }
+
+    protected FilenameFilter getJarFilenameFilter(){
+        return  (dir, name) -> name != null && name.endsWith(".jar");
+    }
 }
