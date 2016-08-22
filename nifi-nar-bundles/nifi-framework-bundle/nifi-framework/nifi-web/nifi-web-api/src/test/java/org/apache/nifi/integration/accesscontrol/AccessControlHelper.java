@@ -26,8 +26,6 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -48,41 +46,27 @@ public class AccessControlHelper {
 
     private static final String CONTEXT_PATH = "/nifi-api";
 
-    private String flowXmlPath;
     private NiFiTestServer server;
     private String baseUrl;
+    private String flowXmlPath;
 
-    public AccessControlHelper(final String flowXmlPath) throws Exception {
-        this(flowXmlPath, null);
+    public AccessControlHelper() throws Exception {
+        this("src/test/resources/access-control/nifi.properties");
     }
 
-    public AccessControlHelper(final String flowXmlPath, final String overrideAuthorizer) throws Exception {
-        this.flowXmlPath = flowXmlPath;
-
-        // look for the flow.xml and toss it
-        File flow = new File(flowXmlPath);
-        if (flow.exists()) {
-            flow.delete();
-        }
-
+    public AccessControlHelper(final String nifiPropertiesPath) throws Exception {
         // configure the location of the nifi properties
-        File nifiPropertiesFile = new File("src/test/resources/access-control/nifi.properties");
+        File nifiPropertiesFile = new File(nifiPropertiesPath);
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
-
-        // update the flow.xml property
-        final Map<String, String> addProps = new HashMap<>();
-        addProps.put(NiFiProperties.FLOW_CONFIGURATION_FILE, flowXmlPath);
-        if (overrideAuthorizer != null) {
-            addProps.put(NiFiProperties.SECURITY_USER_AUTHORIZER, overrideAuthorizer);
-        }
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         // load extensions
         NarClassLoaders.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
         ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
 
         // start the server
-        server = new NiFiTestServer("src/main/webapp", CONTEXT_PATH);
+        server = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);
         server.startServer();
         server.loadFlow();
 

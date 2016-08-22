@@ -58,6 +58,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -117,6 +118,7 @@ import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PreviousValueDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
@@ -1554,6 +1556,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyComponentTypes(FlowSnippetDTO snippet) {
+        templateDAO.verifyComponentTypes(snippet);
+    }
+
+    @Override
     public TemplateDTO createTemplate(final String name, final String description, final String snippetId, final String groupId, final Optional<String> idGenerationSeed) {
         // get the specified snippet
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
@@ -1576,7 +1583,69 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // drop the snippet
         snippetDAO.dropSnippet(snippetId);
 
+        // save the flow
+        controllerFacade.save();
+
         return dtoFactory.createTemplateDTO(template);
+    }
+
+    /**
+     * Ensures default values are populated for all components in this snippet. This is necessary to handle old templates without default values
+     * and when existing properties have default values introduced.
+     *
+     * @param snippet snippet
+     */
+    private void ensureDefaultPropertyValuesArePopulated(final FlowSnippetDTO snippet) {
+        if (snippet != null) {
+            if (snippet.getControllerServices() != null) {
+                snippet.getControllerServices().forEach(dto -> {
+                    if (dto.getProperties() == null) {
+                        dto.setProperties(new LinkedHashMap<>());
+                    }
+
+                    try {
+                        final ControllerService controllerService = controllerFacade.createTemporaryControllerService(dto.getType()).getControllerServiceImplementation();
+                        controllerService.getPropertyDescriptors().forEach(descriptor -> {
+                            if (dto.getProperties().get(descriptor.getName()) == null) {
+                                dto.getProperties().put(descriptor.getName(), descriptor.getDefaultValue());
+                            }
+                        });
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to create ControllerService of type %s to populate default values.", dto.getType()));
+                    }
+                });
+            }
+
+            if (snippet.getProcessors() != null) {
+                snippet.getProcessors().forEach(dto -> {
+                    if (dto.getConfig() == null) {
+                        dto.setConfig(new ProcessorConfigDTO());
+                    }
+
+                    final ProcessorConfigDTO config = dto.getConfig();
+                    if (config.getProperties() == null) {
+                        config.setProperties(new LinkedHashMap<>());
+                    }
+
+                    try {
+                        final ProcessorNode processorNode = controllerFacade.createTemporaryProcessor(dto.getType());
+                        processorNode.getPropertyDescriptors().forEach(descriptor -> {
+                            if (config.getProperties().get(descriptor.getName()) == null) {
+                                config.getProperties().put(descriptor.getName(), descriptor.getDefaultValue());
+                            }
+                        });
+                    } catch (final Exception e) {
+                        logger.warn(String.format("Unable to create Processor of type %s to populate default values.", dto.getType()));
+                    }
+                });
+            }
+
+            if (snippet.getProcessGroups() != null) {
+                snippet.getProcessGroups().forEach(processGroup -> {
+                    ensureDefaultPropertyValuesArePopulated(processGroup.getContents());
+                });
+            }
+        }
     }
 
     @Override
@@ -1588,8 +1657,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // mark the timestamp
         templateDTO.setTimestamp(new Date());
 
+        // ensure default values are populated
+        ensureDefaultPropertyValuesArePopulated(templateDTO.getSnippet());
+
         // import the template
         final Template template = templateDAO.importTemplate(templateDTO, groupId);
+
+        // save the flow
+        controllerFacade.save();
 
         // return the template dto
         return dtoFactory.createTemplateDTO(template);

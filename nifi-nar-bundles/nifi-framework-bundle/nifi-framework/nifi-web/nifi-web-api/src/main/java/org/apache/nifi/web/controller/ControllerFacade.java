@@ -211,7 +211,7 @@ public class ControllerFacade implements Authorizable {
      * @throws ReportingTaskInstantiationException when unable to instantiate the reporting task
      */
     public ReportingTaskNode createTemporaryReportingTask(String type) throws ReportingTaskInstantiationException {
-        return flowController.createReportingTask(type, UUID.randomUUID().toString(), false);
+        return flowController.createReportingTask(type, UUID.randomUUID().toString(), false, false);
     }
 
     /**

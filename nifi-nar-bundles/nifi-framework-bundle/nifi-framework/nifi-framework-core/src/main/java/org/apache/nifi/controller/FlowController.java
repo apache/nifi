@@ -16,38 +16,7 @@
  */
 package org.apache.nifi.controller;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import javax.net.ssl.SSLContext;
-
+import com.sun.jersey.api.client.ClientHandlerException;
 import org.apache.commons.collections4.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -237,7 +206,36 @@ import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.client.ClientHandlerException;
+import javax.net.ssl.SSLContext;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.Objects.requireNonNull;
 
 public class FlowController implements EventAccess, ControllerServiceProvider, ReportingTaskProvider, QueueProvider, Authorizable, ProvenanceAuthorizableFactory, NodeTypeProvider {
 
@@ -1912,45 +1910,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
     }
 
-    /**
-     * <p>
-     * Verifies that the given DTO is valid, according to the following:
-     *
-     * <ul>
-     * <li>None of the ID's in any component of the DTO can be used in this
-     * flow.</li>
-     * <li>The ProcessGroup to which the template's contents will be added must
-     * not contain any InputPort or OutputPort with the same name as one of the
-     * corresponding components in the root level of the template.</li>
-     * <li>All Processors' classes must exist in this instance.</li>
-     * <li>All Flow File Prioritizers' classes must exist in this instance.</li>
-     * </ul>
-     * </p>
-     *
-     * <p>
-     * If any of the above statements does not hold true, an
-     * {@link IllegalStateException} or a
-     * {@link ProcessorInstantiationException} will be thrown.
-     * </p>
-     *
-     * @param group group
-     * @param templateContents contents
-     */
-    private void validateSnippetContents(final ProcessGroup group, final FlowSnippetDTO templateContents) {
-        // validate the names of Input Ports
-        for (final PortDTO port : templateContents.getInputPorts()) {
-            if (group.getInputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
-            }
-        }
-
-        // validate the names of Output Ports
-        for (final PortDTO port : templateContents.getOutputPorts()) {
-            if (group.getOutputPortByName(port.getName()) != null) {
-                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
-            }
-        }
-
+    public void verifyComponentTypesInSnippet(final FlowSnippetDTO templateContents) {
         // validate that all Processor Types and Prioritizer Types are valid
         final Set<String> processorClasses = new HashSet<>();
         for (final Class<?> c : ExtensionManager.getExtensions(Processor.class)) {
@@ -1999,6 +1959,48 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
             }
         }
+    }
+
+    /**
+     * <p>
+     * Verifies that the given DTO is valid, according to the following:
+     *
+     * <ul>
+     * <li>None of the ID's in any component of the DTO can be used in this
+     * flow.</li>
+     * <li>The ProcessGroup to which the template's contents will be added must
+     * not contain any InputPort or OutputPort with the same name as one of the
+     * corresponding components in the root level of the template.</li>
+     * <li>All Processors' classes must exist in this instance.</li>
+     * <li>All Flow File Prioritizers' classes must exist in this instance.</li>
+     * </ul>
+     * </p>
+     *
+     * <p>
+     * If any of the above statements does not hold true, an
+     * {@link IllegalStateException} or a
+     * {@link ProcessorInstantiationException} will be thrown.
+     * </p>
+     *
+     * @param group group
+     * @param templateContents contents
+     */
+    private void validateSnippetContents(final ProcessGroup group, final FlowSnippetDTO templateContents) {
+        // validate the names of Input Ports
+        for (final PortDTO port : templateContents.getInputPorts()) {
+            if (group.getInputPortByName(port.getName()) != null) {
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
+            }
+        }
+
+        // validate the names of Output Ports
+        for (final PortDTO port : templateContents.getOutputPorts()) {
+            if (group.getOutputPortByName(port.getName()) != null) {
+                throw new IllegalStateException("One or more of the proposed Port names is not available in the process group");
+            }
+        }
+
+        verifyComponentTypesInSnippet(templateContents);
     }
 
     /**
@@ -2799,6 +2801,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, id, firstTimeAdded, true);
+    }
+
+    public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded, final boolean register) throws ReportingTaskInstantiationException {
         if (type == null || id == null) {
             throw new NullPointerException();
         }
@@ -2864,12 +2870,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             }
         }
 
-        reportingTasks.put(id, taskNode);
+        if (register) {
+            reportingTasks.put(id, taskNode);
 
-        // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
-        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
-        logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
-                new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+                    new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
+        }
 
         return taskNode;
     }

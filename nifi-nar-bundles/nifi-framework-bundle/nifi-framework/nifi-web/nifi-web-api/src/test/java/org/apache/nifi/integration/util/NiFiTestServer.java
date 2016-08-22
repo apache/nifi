@@ -17,17 +17,12 @@
 package org.apache.nifi.integration.util;
 
 import com.sun.jersey.api.client.Client;
-import java.io.File;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Collections;
-import javax.servlet.ServletContext;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.util.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.util.WebUtils;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
@@ -40,6 +35,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import javax.servlet.ServletContext;
+import java.io.File;
+import java.util.Collections;
+
 /**
  * Creates an embedded server for testing the NiFi REST API.
  */
@@ -51,16 +50,8 @@ public class NiFiTestServer {
     private final NiFiProperties properties;
     private WebAppContext webappContext;
 
-    public NiFiTestServer(String webappRoot, String contextPath) {
-        final URL resource = NiFiTestServer.class.getResource("/site-to-site/nifi.properties");
-        try {
-            final String propertiesFile = resource.toURI().getPath();
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile);
-            // load the configuration
-            properties = NiFiProperties.createBasicNiFiProperties(null, null);
-        } catch (final URISyntaxException ue) {
-            throw new RuntimeException();
-        }
+    public NiFiTestServer(String webappRoot, String contextPath, NiFiProperties properties) {
+        this.properties = properties;
 
         createWebAppContext(webappRoot, contextPath);
         createServer();

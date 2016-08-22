@@ -2042,6 +2042,7 @@ public class ProcessGroupResource extends ApplicationResource {
         }
         if (validationPhase) {
             serviceFacade.verifyCanAddTemplate(groupId, templateEntity.getTemplate().getName());
+            serviceFacade.verifyComponentTypes(templateEntity.getTemplate().getSnippet());
             return generateContinueResponse().build();
         }
 

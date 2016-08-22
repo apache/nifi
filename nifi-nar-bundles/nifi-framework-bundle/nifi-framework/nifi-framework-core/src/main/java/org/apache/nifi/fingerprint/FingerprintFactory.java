@@ -16,37 +16,16 @@
  */
 package org.apache.nifi.fingerprint;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.UUID;
-
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FlowController;
-import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -62,7 +41,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -70,6 +48,25 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.UUID;
 
 /**
  * Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -137,16 +134,6 @@ public final class FingerprintFactory {
         }
     }
 
-    public String md5Hash(final String string) throws NoSuchAlgorithmException {
-        final MessageDigest digest = MessageDigest.getInstance("MD5");
-        final byte[] hash = digest.digest(string.getBytes(Charset.forName("UTF-8")));
-        final StringBuilder strb = new StringBuilder();
-        for (int i = 0; i < hash.length; i++) {
-            strb.append(Integer.toHexString((hash[i] & 0xFF) | 0x100).substring(1, 3));
-        }
-        return strb.toString();
-    }
-
     /**
      * Creates a fingerprint from an XML document representing the flow.xml.
      *
@@ -172,50 +159,6 @@ public final class FingerprintFactory {
             return "";
         }
         addFlowControllerFingerprint(fingerprintBuilder, flowControllerElem, controller);
-
-        return fingerprintBuilder.toString();
-    }
-
-    /**
-     * Creates a fingerprint of a Collection of Templates The order of the templates does not influence the fingerprint generation.
-     *
-     *
-     * @param templates collection of templates
-     * @return a generated fingerprint
-     *
-     * @throws FingerprintException if the fingerprint failed to be generated
-     */
-    public String createFingerprint(final Collection<Template> templates) throws FingerprintException {
-        if (templates == null || templates.isEmpty()) {
-            return "";
-        }
-
-        final List<Template> sortedTemplates = new ArrayList<>(templates);
-        Collections.sort(sortedTemplates, new Comparator<Template>() {
-            @Override
-            public int compare(final Template o1, final Template o2) {
-                if (o1 == null && o2 == null) {
-                    return 0;
-                }
-                if (o1 == null) {
-                    return 1;
-                }
-                if (o2 == null) {
-                    return -1;
-                }
-
-                final TemplateDTO dto1 = o1.getDetails();
-                final TemplateDTO dto2 = o2.getDetails();
-                return dto1.getId().compareTo(dto2.getId());
-            }
-        });
-
-        // builder to hold fingerprint state
-        final StringBuilder fingerprintBuilder = new StringBuilder();
-
-        for (final Template template : sortedTemplates) {
-            addTemplateFingerprint(fingerprintBuilder, template.getDetails());
-        }
 
         return fingerprintBuilder.toString();
     }
@@ -272,7 +215,7 @@ public final class FingerprintFactory {
             });
 
             for (final ControllerServiceDTO dto : serviceDtos) {
-                addControllerServiceFingerprint(builder, dto);
+                addControllerServiceFingerprint(builder, dto, controller);
             }
         }
 
@@ -302,26 +245,14 @@ public final class FingerprintFactory {
             });
 
             for (final ReportingTaskDTO dto : reportingTaskDtos) {
-                addReportingTaskFingerprint(builder, dto);
+                addReportingTaskFingerprint(builder, dto, controller);
             }
         }
 
         return builder;
     }
 
-    private StringBuilder addTemplateFingerprint(final StringBuilder builder, final TemplateDTO dto) {
-        builder.append(dto.getId());
-        builder.append(dto.getGroupId());
-        builder.append(dto.getName());
-        builder.append(dto.getDescription());
-        final FlowSnippetDTO snippet = dto.getSnippet();
-        if (snippet != null) {
-            addSnippetFingerprint(builder, snippet);
-        }
-        return builder;
-    }
-
-    private StringBuilder addSnippetFingerprint(final StringBuilder builder, final FlowSnippetDTO snippet) {
+    private StringBuilder addSnippetFingerprint(final StringBuilder builder, final FlowSnippetDTO snippet, final FlowController controller) {
         final Comparator<ComponentDTO> componentComparator = new Comparator<ComponentDTO>() {
             @Override
             public int compare(final ComponentDTO o1, final ComponentDTO o2) {
@@ -407,7 +338,7 @@ public final class FingerprintFactory {
             Collections.sort(sortedProcGroups, componentComparator);
 
             for (final ProcessGroupDTO procGroup : sortedProcGroups) {
-                addProcessGroupFingerprint(builder, procGroup);
+                addProcessGroupFingerprint(builder, procGroup, controller);
             }
         }
 
@@ -419,7 +350,7 @@ public final class FingerprintFactory {
             Collections.sort(sortedProcessors, componentComparator);
 
             for (final ProcessorDTO proc : sortedProcessors) {
-                addProcessorFingerprint(builder, proc);
+                addProcessorFingerprint(builder, proc, controller);
             }
         }
 
@@ -443,7 +374,7 @@ public final class FingerprintFactory {
             Collections.sort(sortedServices, componentComparator);
 
             for (final ControllerServiceDTO service : sortedServices) {
-                addControllerServiceFingerprint(builder, service);
+                addControllerServiceFingerprint(builder, service, controller);
             }
         }
 
@@ -513,13 +444,13 @@ public final class FingerprintFactory {
         return builder;
     }
 
-    private StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final ProcessGroupDTO group) {
+    private StringBuilder addProcessGroupFingerprint(final StringBuilder builder, final ProcessGroupDTO group, final FlowController controller) {
         builder.append(group.getId());
         builder.append(group.getName());
         builder.append(group.getParentGroupId());
 
         final FlowSnippetDTO contents = group.getContents();
-        addSnippetFingerprint(builder, contents);
+        addSnippetFingerprint(builder, contents, controller);
         return builder;
     }
 
@@ -550,7 +481,9 @@ public final class FingerprintFactory {
         final NodeList propertyElems = DomUtils.getChildNodesByTagName(processorElem, "property");
         final List<Element> sortedPropertyElems = sortElements(propertyElems, getProcessorPropertiesComparator());
         for (final Element propertyElem : sortedPropertyElems) {
-            addFlowFileProcessorPropertyFingerprint(builder, propertyElem, processor);
+            final String propName = DomUtils.getChildElementsByTagName(propertyElem, "name").get(0).getTextContent();
+            String propValue = getFirstValue(DomUtils.getChildNodesByTagName(propertyElem, "value"), null);
+            addPropertyFingerprint(builder, processor, propName, propValue);
         }
 
         final NodeList autoTerminateElems = DomUtils.getChildNodesByTagName(processorElem, "autoTerminatedRelationship");
@@ -562,7 +495,7 @@ public final class FingerprintFactory {
         return builder;
     }
 
-    private StringBuilder addProcessorFingerprint(final StringBuilder builder, final ProcessorDTO processor) {
+    private StringBuilder addProcessorFingerprint(final StringBuilder builder, final ProcessorDTO processor, final FlowController controller) {
         final ProcessorConfigDTO config = processor.getConfig();
 
         builder.append(processor.getId());
@@ -577,20 +510,20 @@ public final class FingerprintFactory {
         builder.append(config.getPenaltyDuration());
         builder.append(config.getAnnotationData());
 
-        if (config.getProperties() == null) {
-            builder.append("NO_PROPERTIES");
-        } else {
-            final SortedMap<String, String> sortedProps = new TreeMap<>(config.getProperties());
-            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
-                final String propName = entry.getKey();
-                final String propValue = entry.getValue();
-                if (propValue == null) {
-                    continue;
-                }
-
-                builder.append(propName).append("=").append(propValue);
+        // create an instance of the Processor so that we know the default property values
+        Processor processorInstance = null;
+        try {
+            if (controller != null) {
+                processorInstance = controller.createProcessor(processor.getType(), UUID.randomUUID().toString(), false).getProcessor();
+            }
+        } catch (ProcessorInstantiationException e) {
+            logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", processor.getType(), e.toString());
+            if (logger.isDebugEnabled()) {
+                logger.warn("", e);
             }
         }
+
+        addPropertiesFingerprint(builder, processorInstance, config.getProperties());
 
         final Set<String> autoTerm = config.getAutoTerminatedRelationships();
         if (autoTerm == null || autoTerm.isEmpty()) {
@@ -606,41 +539,35 @@ public final class FingerprintFactory {
         return builder;
     }
 
-    StringBuilder addFlowFileProcessorPropertyFingerprint(final StringBuilder builder, final Element propElem, final Processor processor) throws FingerprintException {
-        // If we have a Processor to use, first determine if the value given is the default value for the specified property.
+    private StringBuilder addPropertyFingerprint(final StringBuilder builder, final ConfigurableComponent component, final String propName, final String propValue) throws FingerprintException {
+        // If we have a component to use, first determine if the value given is the default value for the specified property.
         // If so, we do not add the property to the fingerprint.
-        // We do this because if a Processor is updated to add a new property, whenever we connect to the cluster, we have issues because
+        // We do this because if a component is updated to add a new property, whenever we connect to the cluster, we have issues because
         // the Cluster Coordinator's flow comes from disk, where the flow.xml doesn't have the new property but our FlowController does have the new property.
         // This causes the fingerprints not to match. As a result, we just ignore default values, and this resolves the issue.
-        if (processor != null) {
-            final String propName = DomUtils.getChildElementsByTagName(propElem, "name").get(0).getTextContent();
 
-            String propValue = null;
-            final List<Element> valueElements = DomUtils.getChildElementsByTagName(propElem, "value");
-            if (valueElements != null && valueElements.size() >= 1) {
-                propValue = valueElements.get(0).getTextContent();
-            }
-
-            final PropertyDescriptor descriptor = processor.getPropertyDescriptor(propName);
+        if (component != null) {
+            final PropertyDescriptor descriptor = component.getPropertyDescriptor(propName);
             if (descriptor != null && propValue != null && propValue.equals(descriptor.getDefaultValue())) {
                 return builder;
             }
         }
 
         // check if there is a value
-        String propValue = getFirstValue(DomUtils.getChildNodesByTagName(propElem, "value"), null);
         if (propValue == null) {
             return builder;
         }
 
         // append name
-        appendFirstValue(builder, DomUtils.getChildNodesByTagName(propElem, "name"));
+        builder.append(propName).append("=");
 
         // append value
         if (isEncrypted(propValue)) {
-            propValue = decrypt(propValue);
+            // propValue is non null, no need to use getValue
+            builder.append(decrypt(propValue));
+        } else {
+            builder.append(getValue(propValue, NO_VALUE));
         }
-        builder.append(getValue(propValue, NO_VALUE));
 
         return builder;
     }
@@ -902,7 +829,7 @@ public final class FingerprintFactory {
         return builder;
     }
 
-    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
+    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto, final FlowController controller) {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
@@ -910,24 +837,34 @@ public final class FingerprintFactory {
         builder.append(dto.getAnnotationData());
         builder.append(dto.getState());
 
-        final Map<String, String> properties = dto.getProperties();
+        // create an instance of the ControllerService so that we know the default property values
+        ControllerService controllerService = null;
+        try {
+            if (controller != null) {
+                controllerService = controller.createControllerService(dto.getType(), UUID.randomUUID().toString(), false).getControllerServiceImplementation();
+            }
+        } catch (Exception e) {
+            logger.warn("Unable to create ControllerService of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());
+            if (logger.isDebugEnabled()) {
+                logger.warn("", e);
+            }
+        }
+
+        addPropertiesFingerprint(builder, controllerService, dto.getProperties());
+    }
+
+    private void addPropertiesFingerprint(final StringBuilder builder, final ConfigurableComponent component, final Map<String, String> properties) {
         if (properties == null) {
             builder.append("NO_PROPERTIES");
         } else {
             final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
             for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
-                final String propName = entry.getKey();
-                final String propValue = entry.getValue();
-                if (propValue == null) {
-                    continue;
-                }
-
-                builder.append(propName).append("=").append(propValue);
+                addPropertyFingerprint(builder, component, entry.getKey(), entry.getValue());
             }
         }
     }
 
-    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto) {
+    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto, final FlowController controller) {
         builder.append(dto.getId());
         builder.append(dto.getType());
         builder.append(dto.getName());
@@ -936,21 +873,20 @@ public final class FingerprintFactory {
         builder.append(dto.getSchedulingStrategy());
         builder.append(dto.getAnnotationData());
 
-        final Map<String, String> properties = dto.getProperties();
-        if (properties == null) {
-            builder.append("NO_PROPERTIES");
-        } else {
-            final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
-            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
-                final String propName = entry.getKey();
-                final String propValue = entry.getValue();
-                if (propValue == null) {
-                    continue;
-                }
-
-                builder.append(propName).append("=").append(propValue);
+        // create an instance of the ReportingTask so that we know the default property values
+        ReportingTask reportingTask = null;
+        try {
+            if (controller != null) {
+                reportingTask = controller.createReportingTask(dto.getType(), UUID.randomUUID().toString(), false, false).getReportingTask();
+            }
+        } catch (Exception e) {
+            logger.warn("Unable to create ReportingTask of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", dto.getType(), e.toString());
+            if (logger.isDebugEnabled()) {
+                logger.warn("", e);
             }
         }
+
+        addPropertiesFingerprint(builder, reportingTask, dto.getProperties());
     }
 
     private Comparator<Element> getIdsComparator() {

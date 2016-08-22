@@ -51,8 +51,8 @@ public class ITAccessTokenEndpoint {
 
     private static final String CLIENT_ID = "token-endpoint-id";
     private static final String CONTEXT_PATH = "/nifi-api";
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-admin.xml";
 
+    private static String flowXmlPath;
     private static NiFiTestServer SERVER;
     private static NiFiTestUser TOKEN_USER;
     private static String BASE_URL;
@@ -63,10 +63,8 @@ public class ITAccessTokenEndpoint {
         File nifiPropertiesFile = new File("src/test/resources/access-control/nifi.properties");
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
 
-        // update the flow.xml property
-        final Map<String, String> addProps = new HashMap<>();
-        addProps.put("nifi.flow.configuration.file", FLOW_XML_PATH);
-        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, addProps);
+        NiFiProperties props = NiFiProperties.createBasicNiFiProperties(null, null);
+        flowXmlPath = props.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE);
 
         // delete the database directory to avoid issues with re-registration in testRequestAccessUsingToken
         FileUtils.deleteDirectory(props.getDatabaseRepositoryPath().toFile());
@@ -76,7 +74,7 @@ public class ITAccessTokenEndpoint {
         ExtensionManager.discoverExtensions(NarClassLoaders.getInstance().getExtensionClassLoaders());
 
         // start the server
-        SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH);
+        SERVER = new NiFiTestServer("src/main/webapp", CONTEXT_PATH, props);
         SERVER.startServer();
         SERVER.loadFlow();
 
@@ -267,7 +265,7 @@ public class ITAccessTokenEndpoint {
         SERVER = null;
 
         // look for the flow.xml
-        File flow = new File(FLOW_XML_PATH);
+        File flow = new File(flowXmlPath);
         if (flow.exists()) {
             flow.delete();
         }
