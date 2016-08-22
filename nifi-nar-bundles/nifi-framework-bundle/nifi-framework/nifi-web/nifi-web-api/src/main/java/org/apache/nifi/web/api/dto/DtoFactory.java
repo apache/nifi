@@ -2446,6 +2446,8 @@ public final class DtoFactory {
             String propertyValue = entry.getValue();
             if (propertyValue != null && descriptor.isSensitive()) {
                 propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
             }
 
             // set the property value

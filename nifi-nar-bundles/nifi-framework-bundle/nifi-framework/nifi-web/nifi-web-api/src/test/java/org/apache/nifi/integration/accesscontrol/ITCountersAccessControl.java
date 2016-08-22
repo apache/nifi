@@ -30,14 +30,12 @@ import static org.junit.Assert.assertEquals;
  */
 public class ITCountersAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-counters.xml";
-
     private static AccessControlHelper helper;
     private static String uri;
 
     @BeforeClass
     public static void setup() throws Exception {
-        helper = new AccessControlHelper(FLOW_XML_PATH);
+        helper = new AccessControlHelper();
         uri = helper.getBaseUrl() + "/counters";
     }
 

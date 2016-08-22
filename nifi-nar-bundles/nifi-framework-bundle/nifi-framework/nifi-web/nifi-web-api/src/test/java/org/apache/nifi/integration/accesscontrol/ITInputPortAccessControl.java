@@ -48,14 +48,12 @@ import static org.junit.Assert.assertTrue;
  */
 public class ITInputPortAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-input-ports.xml";
-
     private static AccessControlHelper helper;
     private static int count = 0;
 
     @BeforeClass
     public static void setup() throws Exception {
-        helper = new AccessControlHelper(FLOW_XML_PATH);
+        helper = new AccessControlHelper();
     }
 
     /**

@@ -52,13 +52,11 @@ import static org.junit.Assert.assertTrue;
  */
 public class ITConnectionAccessControl {
 
-    private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-connections.xml";
-
     private static AccessControlHelper helper;
 
     @BeforeClass
     public static void setup() throws Exception {
-        helper = new AccessControlHelper(FLOW_XML_PATH);
+        helper = new AccessControlHelper();
     }
 
     /**

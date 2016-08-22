@@ -38,6 +38,7 @@ import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
@@ -359,9 +360,16 @@ public interface NiFiServiceFacade {
      * Verifies a template with the specified name can be created.
      *
      * @param groupId the id of the group for the template
-     * @param name name of purposed template
+     * @param name name of proposed template
      */
     void verifyCanAddTemplate(String groupId, String name);
+
+    /**
+     * Verifies the types of components in a template.
+     *
+     * @param snippet proposed template
+     */
+    void verifyComponentTypes(FlowSnippetDTO snippet);
 
     /**
      * Creates a new Template based off the specified snippet.
