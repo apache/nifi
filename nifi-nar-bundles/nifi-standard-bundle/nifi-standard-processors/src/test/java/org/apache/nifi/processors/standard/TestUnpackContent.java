@@ -82,17 +82,18 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
+        unpackRunner.enqueue(dataPath.resolve("data.tar"));
         Map<String, String> attributes = new HashMap<>(1);
         Map<String, String> attributes2 = new HashMap<>(1);
         attributes.put("mime.type", "application/x-tar");
         attributes2.put("mime.type", "application/tar");
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes);
         autoUnpackRunner.enqueue(dataPath.resolve("data.tar"), attributes2);
-        unpackRunner.run();
+        unpackRunner.run(2);
         autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
@@ -126,18 +127,20 @@ public class TestUnpackContent {
         unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
+        unpackRunner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
-        unpackRunner.run();
-        autoUnpackRunner.run();
+        autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
+        unpackRunner.run(2);
+        autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -160,18 +163,20 @@ public class TestUnpackContent {
         autoUnpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.AUTO_DETECT_FORMAT.toString());
         autoUnpackRunner.setProperty(UnpackContent.FILE_FILTER, "^folder/cal.txt$");
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
+        unpackRunner.enqueue(dataPath.resolve("data.zip"));
         Map<String, String> attributes = new HashMap<>(1);
         attributes.put("mime.type", "application/zip");
         autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
-        unpackRunner.run();
-        autoUnpackRunner.run();
+        autoUnpackRunner.enqueue(dataPath.resolve("data.zip"), attributes);
+        unpackRunner.run(2);
+        autoUnpackRunner.run(2);
 
-        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
-        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        unpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
-        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
+        autoUnpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -223,11 +228,12 @@ public class TestUnpackContent {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.FLOWFILE_STREAM_FORMAT_V2.toString());
         runner.enqueue(dataPath.resolve("data.flowfilev2"));
+        runner.enqueue(dataPath.resolve("data.flowfilev2"));
 
-        runner.run();
+        runner.run(2);
 
-        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
-        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 4);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 2);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
