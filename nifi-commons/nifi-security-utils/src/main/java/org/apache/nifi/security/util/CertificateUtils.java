@@ -74,8 +74,22 @@ import java.util.concurrent.TimeUnit;
 public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
-
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
+
+    /**
+     * The time in milliseconds that the last unique serial number was generated
+     */
+    private static long lastSerialNumberMillis = 0L;
+
+    /**
+     * An incrementor to add uniqueness to serial numbers generated in the same millisecond
+     */
+    private static int serialNumberIncrementor = 0;
+
+    /**
+     * BigInteger value to use for the base of the unique serial number
+     */
+    private static BigInteger millisecondBigInteger;
 
     private static Map<ASN1ObjectIdentifier, Integer> createDnOrderMap() {
         Map<ASN1ObjectIdentifier, Integer> orderMap = new HashMap<>();
@@ -439,6 +453,29 @@ public final class CertificateUtils {
     }
 
     /**
+     * Generates a unique serial number by using the current time in milliseconds left shifted 32 bits (to make room for incrementor) with an incrementor added
+     *
+     * @return a unique serial number (technically unique to this classloader)
+     */
+    protected static synchronized BigInteger getUniqueSerialNumber() {
+        final long currentTimeMillis = System.currentTimeMillis();
+        final int incrementorValue;
+
+        if (lastSerialNumberMillis != currentTimeMillis) {
+            // We can only get into this block once per millisecond
+            millisecondBigInteger = BigInteger.valueOf(currentTimeMillis).shiftLeft(32);
+            lastSerialNumberMillis = currentTimeMillis;
+            incrementorValue = 0;
+            serialNumberIncrementor = 1;
+        } else {
+            // Already created at least one serial number this millisecond
+            incrementorValue = serialNumberIncrementor++;
+        }
+
+        return millisecondBigInteger.add(BigInteger.valueOf(incrementorValue));
+    }
+
+    /**
      * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
      *
      * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
@@ -458,7 +495,7 @@ public final class CertificateUtils {
 
             X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
                     reverseX500Name(new X500Name(dn)),
-                    BigInteger.valueOf(System.currentTimeMillis()),
+                    getUniqueSerialNumber(),
                     startDate, endDate,
                     reverseX500Name(new X500Name(dn)),
                     subPubKeyInfo);
@@ -507,7 +544,7 @@ public final class CertificateUtils {
 
             X509v3CertificateBuilder certBuilder = new X509v3CertificateBuilder(
                     reverseX500Name(new X500Name(issuer.getSubjectX500Principal().getName())),
-                    BigInteger.valueOf(System.currentTimeMillis()),
+                    getUniqueSerialNumber(),
                     startDate, endDate,
                     reverseX500Name(new X500Name(dn)),
                     subPubKeyInfo);
