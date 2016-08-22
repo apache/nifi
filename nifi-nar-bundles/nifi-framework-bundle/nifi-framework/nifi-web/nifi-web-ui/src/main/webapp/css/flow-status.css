@@ -38,6 +38,18 @@
     color: #728E9B; /*base-color*/
 }
 
+#flow-status .fa.fa-play {
+    color: #5cb85c;
+}
+
+#flow-status .fa.fa-stop {
+    color: #d9534f;
+}
+
+#flow-status .fa.fa-warning {
+    color: #f0ad4e;
+}
+
 #flow-status .icon span {
     font-size: 15px;
     font-weight: 500;

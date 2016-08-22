@@ -114,7 +114,15 @@ rect.bulletin-background {
 }
 
 text.process-group-invalid.has-validation-errors {
-    fill: #ba554a;
+    fill: #f0ad4e;
+}
+
+text.process-group-stopped.process-group-contents-icon {
+    fill: #d9534f;
+}
+
+text.process-group-running.process-group-contents-icon{
+    fill: #5cb85c;
 }
 
 text.active-thread-count-icon {
