@@ -28,7 +28,7 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.curator.framework.recipes.leader.Participant;
 import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.retry.RetryForever;
+import org.apache.curator.retry.RetryNTimes;
 import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.util.NiFiProperties;
@@ -63,7 +63,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         stopped = false;
 
-        final RetryPolicy retryPolicy = new RetryForever(5000);
+        final RetryPolicy retryPolicy = new RetryNTimes(1, 100);
         curatorClient = CuratorFrameworkFactory.builder()
                 .connectString(zkConfig.getConnectString())
                 .sessionTimeoutMs(zkConfig.getSessionTimeoutMillis())
@@ -177,9 +177,13 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         return "CuratorLeaderElectionManager[stopped=" + isStopped() + "]";
     }
 
+    private synchronized LeaderRole getLeaderRole(final String roleName) {
+        return leaderRoles.get(roleName);
+    }
+
     @Override
-    public synchronized boolean isLeader(final String roleName) {
-        final LeaderRole role = leaderRoles.get(roleName);
+    public boolean isLeader(final String roleName) {
+        final LeaderRole role = getLeaderRole(roleName);
         if (role == null) {
             return false;
         }
@@ -188,8 +192,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
-    public synchronized String getLeader(final String roleName) {
-        final LeaderRole role = leaderRoles.get(roleName);
+    public String getLeader(final String roleName) {
+        final LeaderRole role = getLeaderRole(roleName);
         if (role == null) {
             return null;
         }
