@@ -523,6 +523,26 @@ div.context-menu-item.hover {
     left: 2px;
 }
 
+div.context-menu-item.hover > div.context-menu-item-img.fa.fa-play {
+    color:#5cb85c;
+}
+
+.running {
+    color:#5cb85c;
+}
+
+div.context-menu-item.hover > div.context-menu-item-img.fa.fa-stop {
+    color:#d9534f;
+}
+
+.stopped {
+    color:#d9534f !important;
+}
+
+.invalid {
+    color:#f0ad4e !important;
+}
+
 .context-menu-item-img.icon {
     position: relative;
     top: 1px;

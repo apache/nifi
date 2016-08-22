@@ -114,11 +114,19 @@ text.bulletin-icon {
 }
 
 rect.bulletin-background {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 text.process-group-invalid.has-validation-errors {
-    fill: #ba554a;
+    fill: #f0ad4e;
+}
+
+text.process-group-stopped.process-group-contents-icon {
+    fill: #d9534f;
+}
+
+text.process-group-running.process-group-contents-icon{
+    fill: #5cb85c;
 }
 
 text.active-thread-count-icon {
@@ -201,7 +209,7 @@ g.connection rect.body.unauthorized {
 
 g.connection rect.border.unauthorized {
     stroke-width: 1.5;
-    stroke: #ba554a;
+    stroke: #f0ad4e;
     stroke-dasharray: 3,3;
 }
 
@@ -243,7 +251,7 @@ g.connection path.connection-path.full {
 }
 
 g.connection path.connection-path.unauthorized {
-    stroke: #ba554a;
+    stroke: #f0ad4e;
     stroke-dasharray: 3,3;
 }
 
@@ -254,7 +262,7 @@ text.connection-from-run-status, text.connection-to-run-status, text.expiration-
 }
 
 text.connection-from-run-status.is-missing-port, text.connection-to-run-status.is-missing-port {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 g.connection rect.backpressure-tick {
@@ -430,7 +438,7 @@ text.remote-process-group-transmission-status {
 }
 
 text.remote-process-group-transmission-status.has-authorization-errors {
-    fill: #ba554a;
+    fill: #f0ad4e;
 }
 
 text.remote-process-group-transmission-secure {

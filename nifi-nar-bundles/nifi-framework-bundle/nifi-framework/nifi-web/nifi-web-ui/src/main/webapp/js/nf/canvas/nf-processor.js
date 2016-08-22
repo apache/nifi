@@ -621,9 +621,15 @@ nf.Processor = (function () {
             .attr({
                 'fill': function (d) {
                     var fill = '#728e9b';
-                    if (d.status.aggregateSnapshot.runStatus === 'Invalid') {
-                        fill = '#ba554a';
+
+                    if  (d.status.aggregateSnapshot.runStatus === 'Invalid') {
+                        fill = '#f0ad4e';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Running') {
+                        fill = '#5cb85c';
+                    } else if (d.status.aggregateSnapshot.runStatus === 'Stopped') {
+                        fill = '#d9534f';
                     }
+
                     return fill;
                 },
                 'font-family': function (d) {
