@@ -16,6 +16,29 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -43,36 +66,15 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.MockProvenanceRepository;
+import org.apache.nifi.testutil.IntegrationTest;
+import org.apache.nifi.util.FileBasedVariableRegistry;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.LockSupport;
-import org.apache.nifi.util.FileBasedVariableRegistry;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
 
 /**
  * Validate Processor's life-cycle operation within the context of
@@ -191,6 +193,7 @@ public class TestProcessorLifecycle {
      * operations can only be @OnScheduled, @OnUnscheduled, @OnStopped.
      */
     @Test
+    @Category(IntegrationTest.class)
     public void validateSuccessfullAndOrderlyShutdown() throws Exception {
         fc = this.buildFlowControllerForTest();
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
@@ -233,6 +236,7 @@ public class TestProcessorLifecycle {
      * operation validating their idempotency.
      */
     @Test
+    @Category(IntegrationTest.class)
     public void validateLifecycleOperationOrderWithConcurrentCallsToStartStop() throws Exception {
         fc = this.buildFlowControllerForTest();
         ProcessGroup testGroup = fc.createProcessGroup(UUID.randomUUID().toString());
