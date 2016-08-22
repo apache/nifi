@@ -182,6 +182,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             return;
         }
 
+        shutdownHttpServer(toShutdown);
+    }
+
+    private void shutdownHttpServer(Server toShutdown) {
         try {
             toShutdown.stop();
             toShutdown.destroy();
@@ -276,7 +280,12 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
         }
-        server.start();
+        try {
+            server.start();
+        } catch (Exception e) {
+            shutdownHttpServer(server);
+            throw e;
+        }
 
         this.server = server;
     }
