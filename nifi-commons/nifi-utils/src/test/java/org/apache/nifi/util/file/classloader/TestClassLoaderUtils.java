@@ -67,6 +67,18 @@ public class TestClassLoaderUtils {
         assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
     }
 
+    @Test
+    public void testGetCustomClassLoaderWithEmptyLocations() throws Exception {
+        String jarFilePath = "";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+
+        jarFilePath = ",";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+
+        jarFilePath = ",src/test/resources/TestClassLoaderUtils/TestSuccess.jar, ";
+        assertNotNull(ClassLoaderUtils.getCustomClassLoader(jarFilePath, this.getClass().getClassLoader(), getJarFilenameFilter()));
+    }
+
     protected FilenameFilter getJarFilenameFilter(){
         return  (dir, name) -> name != null && name.endsWith(".jar");
     }

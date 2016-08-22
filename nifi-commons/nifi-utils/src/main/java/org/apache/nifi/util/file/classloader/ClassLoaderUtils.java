@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.util.file.classloader;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.MalformedURLException;
@@ -32,7 +34,8 @@ public class ClassLoaderUtils {
         // Split and trim the module path(s)
         List<String> modules = (modulePath == null)
                 ? null
-                : Arrays.stream(modulePath.split(",")).map((path) -> path == null ? null : path.trim()).filter((item) -> item != null).collect(Collectors.toList());
+                : Arrays.stream(modulePath.split(",")).filter(StringUtils::isNotBlank).map(String::trim).collect(Collectors.toList());
+
         URL[] classpaths = getURLsForClasspath(modules, filenameFilter);
         return createModuleClassLoader(classpaths, parentClassLoader);
     }
