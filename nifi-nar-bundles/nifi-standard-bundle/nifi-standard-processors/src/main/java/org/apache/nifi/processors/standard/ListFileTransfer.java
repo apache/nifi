@@ -18,10 +18,8 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,6 +28,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Iterator;
+import java.util.Date;
+import java.util.Locale;
 
 public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -62,24 +66,26 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .defaultValue(".")
         .build();
 
-
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(getProtocolName() + ".remote.host", context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue());
         attributes.put(getProtocolName() + ".remote.port", context.getProperty(UNDEFAULTED_PORT).evaluateAttributeExpressions().getValue());
-        attributes.put("file.owner", fileInfo.getOwner());
-        attributes.put("file.group", fileInfo.getGroup());
-        attributes.put("file.permissions", fileInfo.getPermissions());
-        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
         attributes.put(getProtocolName() + ".listing.user", context.getProperty(USERNAME).evaluateAttributeExpressions().getValue());
-
-        final String fullPath = fileInfo.getFullPathFileName();
-        if (fullPath != null) {
-            final int index = fullPath.lastIndexOf("/");
-            if (index > -1) {
-                final String path = fullPath.substring(0, index);
-                attributes.put(CoreAttributes.PATH.key(), path);
+        if (fileInfo != null) {
+            final DateFormat formatter = new SimpleDateFormat(ListFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+            attributes.put(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(fileInfo.getLastModifiedTime())));
+            attributes.put(ListFile.FILE_PERMISSIONS_ATTRIBUTE, fileInfo.getPermissions());
+            attributes.put(ListFile.FILE_OWNER_ATTRIBUTE, fileInfo.getOwner());
+            attributes.put(ListFile.FILE_GROUP_ATTRIBUTE, fileInfo.getGroup());
+            attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFileName());
+            final String fullPath = fileInfo.getFullPathFileName();
+            if (fullPath != null) {
+                final int index = fullPath.lastIndexOf("/");
+                if (index > -1) {
+                    final String path = fullPath.substring(0, index);
+                    attributes.put(CoreAttributes.PATH.key(), path);
+                }
             }
         }
         return attributes;
@@ -124,3 +130,4 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
 
     protected abstract String getProtocolName();
 }
+
