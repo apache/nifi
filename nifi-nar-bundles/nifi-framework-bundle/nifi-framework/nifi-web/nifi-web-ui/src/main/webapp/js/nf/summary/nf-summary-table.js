@@ -276,6 +276,7 @@ nf.SummaryTable = (function () {
                     break;
                 case 'disabled':
                     classes += ' icon icon-enable-false';
+                    break;
                 case 'invalid':
                     classes += ' fa fa-warning';
                     break;
