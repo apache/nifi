@@ -1739,7 +1739,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 remoteGroup.setPosition(toPosition(remoteGroupDTO.getPosition()));
                 remoteGroup.setCommunicationsTimeout(remoteGroupDTO.getCommunicationsTimeout());
                 remoteGroup.setYieldDuration(remoteGroupDTO.getYieldDuration());
-                remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(remoteGroupDTO.getTransportProtocol()));
+                if (remoteGroupDTO.getTransportProtocol() == null) {
+                    remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.RAW);
+                } else {
+                    remoteGroup.setTransportProtocol(SiteToSiteTransportProtocol.valueOf(remoteGroupDTO.getTransportProtocol()));
+                }
+
                 remoteGroup.setProxyHost(remoteGroupDTO.getProxyHost());
                 remoteGroup.setProxyPort(remoteGroupDTO.getProxyPort());
                 remoteGroup.setProxyUser(remoteGroupDTO.getProxyUser());
