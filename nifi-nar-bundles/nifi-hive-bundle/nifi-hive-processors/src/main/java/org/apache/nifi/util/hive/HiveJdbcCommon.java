@@ -55,6 +55,7 @@ import static java.sql.Types.DECIMAL;
 import static java.sql.Types.DOUBLE;
 import static java.sql.Types.FLOAT;
 import static java.sql.Types.INTEGER;
+import static java.sql.Types.JAVA_OBJECT;
 import static java.sql.Types.LONGNVARCHAR;
 import static java.sql.Types.LONGVARBINARY;
 import static java.sql.Types.LONGVARCHAR;
@@ -64,6 +65,7 @@ import static java.sql.Types.NVARCHAR;
 import static java.sql.Types.REAL;
 import static java.sql.Types.ROWID;
 import static java.sql.Types.SMALLINT;
+import static java.sql.Types.STRUCT;
 import static java.sql.Types.TIME;
 import static java.sql.Types.TIMESTAMP;
 import static java.sql.Types.TINYINT;
@@ -211,6 +213,8 @@ public class HiveJdbcCommon {
                 case NVARCHAR:
                 case VARCHAR:
                 case ARRAY:
+                case STRUCT:
+                case JAVA_OBJECT:
                     builder.name(columnName).type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault();
                     break;
 
