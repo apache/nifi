@@ -145,8 +145,6 @@ public class UnpackContent extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
-    private Unpacker unpacker;
-    private boolean addFragmentAttrs;
     private Pattern fileFilter;
 
     private Unpacker tarUnpacker;
@@ -178,7 +176,6 @@ public class UnpackContent extends AbstractProcessor {
 
     @OnStopped
     public void onStopped() {
-        unpacker = null;
         fileFilter = null;
     }
 
@@ -188,35 +185,6 @@ public class UnpackContent extends AbstractProcessor {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
             tarUnpacker = new TarUnpacker(fileFilter);
             zipUnpacker = new ZipUnpacker(fileFilter);
-        }
-    }
-
-    public void initUnpacker(PackageFormat packagingFormat) {
-        switch (packagingFormat) {
-            case TAR_FORMAT:
-            case X_TAR_FORMAT:
-                unpacker = tarUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case ZIP_FORMAT:
-                unpacker = zipUnpacker;
-                addFragmentAttrs = true;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V2:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_STREAM_FORMAT_V3:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-                addFragmentAttrs = false;
-                break;
-            case FLOWFILE_TAR_FORMAT:
-                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-                addFragmentAttrs = false;
-                break;
-            case AUTO_DETECT_FORMAT:
-                // The format of the unpacker should be known before initialization
-                throw new ProcessException(packagingFormat + " is not a valid packaging format");
         }
     }
 
@@ -247,11 +215,38 @@ public class UnpackContent extends AbstractProcessor {
                 logger.info("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked; routing to 'success'", new Object[]{flowFile, mimeType});
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
-            } else {
-                initUnpacker(packagingFormat);
             }
-        } else {
-            initUnpacker(packagingFormat);
+        }
+
+        // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
+        final Unpacker unpacker;
+        final boolean addFragmentAttrs;
+        switch (packagingFormat) {
+        case TAR_FORMAT:
+        case X_TAR_FORMAT:
+            unpacker = tarUnpacker;
+            addFragmentAttrs = true;
+            break;
+        case ZIP_FORMAT:
+            unpacker = zipUnpacker;
+            addFragmentAttrs = true;
+            break;
+        case FLOWFILE_STREAM_FORMAT_V2:
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+            addFragmentAttrs = false;
+            break;
+        case FLOWFILE_STREAM_FORMAT_V3:
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+            addFragmentAttrs = false;
+            break;
+        case FLOWFILE_TAR_FORMAT:
+            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
+            addFragmentAttrs = false;
+            break;
+        case AUTO_DETECT_FORMAT:
+        default:
+            // The format of the unpacker should be known before initialization
+            throw new ProcessException(packagingFormat + " is not a valid packaging format");
         }
 
         final List<FlowFile> unpacked = new ArrayList<>();
