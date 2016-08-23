@@ -23,15 +23,16 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.nifi.processors.kafka.test.EmbeddedKafka;
 import org.apache.nifi.processors.kafka.test.EmbeddedKafkaProducerHelper;
+import org.apache.nifi.testutil.IntegrationTest;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-@Ignore
+@Category(IntegrationTest.class)
 // The test is valid and should be ran when working on this module. @Ignore is
 // to speed up the overall build
 public class GetKafkaIntegrationTests {
