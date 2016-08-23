@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.hbase;
 
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.hbase.put.PutColumn;
 import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -133,46 +135,7 @@ public class MockHBaseClientService extends AbstractControllerService implements
     }
 
     @Override
-    //Implementation of this and the isHexDigit and toBinaryFromHex are from HBase Bytes.java
     public byte[] toBytesBinary(String s) {
-        byte [] b = new byte[s.length()];
-        int size = 0;
-        for (int i = 0; i < s.length(); ++i) {
-            char ch = s.charAt(i);
-            if (ch == '\\' && s.length() > i+1 && s.charAt(i+1) == 'x') {
-                // ok, take next 2 hex digits.
-                char hd1 = s.charAt(i+2);
-                char hd2 = s.charAt(i+3);
-
-                // they need to be A-F0-9:
-                if (!isHexDigit(hd1) ||
-                        !isHexDigit(hd2)) {
-                    // bogus escape code, ignore:
-                    continue;
-                }
-                // turn hex ASCII digit -> number
-                byte d = (byte) ((toBinaryFromHex((byte)hd1) << 4) + toBinaryFromHex((byte)hd2));
-
-                b[size++] = d;
-                i += 3; // skip 3
-            } else {
-                b[size++] = (byte) ch;
-            }
-        }
-        // resize:
-        byte [] b2 = new byte[size];
-        System.arraycopy(b, 0, b2, 0, size);
-        return b2;
-    }
-    private static boolean isHexDigit(char c) {
-        return
-                (c >= 'A' && c <= 'F') ||
-                        (c >= '0' && c <= '9');
-    }
-    private byte toBinaryFromHex(byte ch) {
-        if (ch >= 'A' && ch <= 'F')
-            return (byte) ((byte)10 + (byte) (ch - 'A'));
-        // else
-        return (byte) (ch - '0');
+       return Bytes.toBytesBinary(s);
     }
 }

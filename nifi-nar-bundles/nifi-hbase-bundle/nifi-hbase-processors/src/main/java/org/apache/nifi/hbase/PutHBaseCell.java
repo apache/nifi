@@ -87,16 +87,12 @@ public class PutHBaseCell extends AbstractPutHBase {
 
         final Collection<PutColumn> columns = Collections.singletonList(new PutColumn(columnFamily.getBytes(StandardCharsets.UTF_8),
                                                                             columnQualifier.getBytes(StandardCharsets.UTF_8), buffer));
+        byte[] rowKeyBytes = getRow(row,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
 
-        //check to see if we need to modify the rowKey before we pass it down to the PutFlowFile
-        byte[] rowKeyBytes = null;
-        if(BINARY_ENCODING_VALUE.contentEquals(context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue())){
-            rowKeyBytes = clientService.toBytesBinary(row);
-        }else{
-            rowKeyBytes = row.getBytes(StandardCharsets.UTF_8);
-        }
 
         return new PutFlowFile(tableName,rowKeyBytes , columns, flowFile);
     }
+
+
 
 }

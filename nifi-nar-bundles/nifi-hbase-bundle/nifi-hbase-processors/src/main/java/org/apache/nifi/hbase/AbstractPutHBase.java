@@ -17,6 +17,7 @@
 package org.apache.nifi.hbase;
 
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -193,9 +194,19 @@ public abstract class AbstractPutHBase extends AbstractProcessor {
     }
 
     protected String getTransitUri(PutFlowFile putFlowFile) {
-        return "hbase://" + putFlowFile.getTableName() + "/" + new String(putFlowFile.getRow());
+        return "hbase://" + putFlowFile.getTableName() + "/" + new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
     }
 
+    protected byte[] getRow(final String row, final String encoding) {
+        //check to see if we need to modify the rowKey before we pass it down to the PutFlowFile
+        byte[] rowKeyBytes = null;
+        if(BINARY_ENCODING_VALUE.contentEquals(encoding)){
+            rowKeyBytes = clientService.toBytesBinary(row);
+        }else{
+            rowKeyBytes = row.getBytes(StandardCharsets.UTF_8);
+        }
+        return rowKeyBytes;
+    }
     /**
      * Sub-classes provide the implementation to create a put from a FlowFile.
      *

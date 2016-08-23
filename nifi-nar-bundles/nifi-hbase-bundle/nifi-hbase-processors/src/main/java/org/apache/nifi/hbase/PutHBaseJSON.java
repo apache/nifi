@@ -253,13 +253,7 @@ public class PutHBaseJSON extends AbstractPutHBase {
 
         final String putRowId = (extractRowId ? rowIdHolder.get() : rowId);
 
-        //determine if we need to convert the row key from a binary string.
-        byte[] rowKeyBytes = null;
-        if(BINARY_ENCODING_VALUE.contentEquals(context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue())){
-            rowKeyBytes = clientService.toBytesBinary(putRowId);
-        }else{
-            rowKeyBytes = putRowId.getBytes(StandardCharsets.UTF_8);
-        }
+        byte[] rowKeyBytes = getRow(putRowId,context.getProperty(ROW_ID_ENCODING_STRATEGY).getValue());
         return new PutFlowFile(tableName, rowKeyBytes, columns, flowFile);
     }
 
