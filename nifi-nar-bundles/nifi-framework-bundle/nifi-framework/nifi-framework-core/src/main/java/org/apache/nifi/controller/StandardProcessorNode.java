@@ -811,7 +811,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         Relationship returnRel = specRel;
 
         final Set<Relationship> relationships;
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
             relationships = processor.getRelationships();
         }
 
@@ -857,7 +857,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public Set<Relationship> getUndefinedRelationships() {
         final Set<Relationship> undefined = new HashSet<>();
         final Set<Relationship> relationships;
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
             relationships = processor.getRelationships();
         }
 
@@ -913,7 +913,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
                 validationResults = getProcessor().validate(validationContext);
             }
 
@@ -960,7 +960,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .newValidationContext(getProperties(), getAnnotationData(), getProcessGroup().getIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
                 validationResults = getProcessor().validate(validationContext);
             }
 
@@ -1036,14 +1036,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public Collection<Relationship> getRelationships() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
             return getProcessor().getRelationships();
         }
     }
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProcessor().getClass())) {
             return getProcessor().toString();
         }
     }
@@ -1060,7 +1060,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(processor.getClass())) {
             processor.onTrigger(context, sessionFactory);
         }
     }
@@ -1240,7 +1240,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         invokeTaskAsCancelableFuture(schedulingAgentCallback, new Callable<Void>() {
                             @Override
                             public Void call() throws Exception {
-                                try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                                try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
                                     ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, processContext);
                                     return null;
                                 }
@@ -1250,7 +1250,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         if (scheduledState.compareAndSet(ScheduledState.STARTING, ScheduledState.RUNNING)) {
                             schedulingAgentCallback.trigger(); // callback provided by StandardProcessScheduler to essentially initiate component's onTrigger() cycle
                         } else { // can only happen if stopProcessor was called before service was transitioned to RUNNING state
-                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             }
                             scheduledState.set(ScheduledState.STOPPED);
@@ -1325,7 +1325,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try {
                         if (scheduleState.isScheduled()) {
                             schedulingAgent.unschedule(StandardProcessorNode.this, scheduleState);
-                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, processor, processContext);
                             }
                         }
@@ -1334,7 +1334,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                         // performing the lifecycle actions counts as 1 thread.
                         final boolean allThreadsComplete = scheduleState.getActiveThreadCount() == 1;
                         if (allThreadsComplete) {
-                            try (final NarCloseable nc = NarCloseable.withNarLoader()) {
+                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(processor.getClass())) {
                                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, processor, processContext);
                             }
 

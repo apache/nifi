@@ -37,7 +37,7 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
     @Override
     public void initialize(ConfigurableComponent component) throws InitializationException {
         ReportingTask reportingTask = (ReportingTask) component;
-        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             reportingTask.initialize(new MockReportingInitializationContext());
         }
     }
@@ -45,7 +45,7 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
     @Override
     public void teardown(ConfigurableComponent component) {
         ReportingTask reportingTask = (ReportingTask) component;
-        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask, new MockComponentLogger(), context);

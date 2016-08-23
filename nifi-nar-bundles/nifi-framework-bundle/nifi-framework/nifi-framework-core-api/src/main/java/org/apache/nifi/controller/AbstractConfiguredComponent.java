@@ -99,7 +99,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
 
                 final String oldValue = properties.put(descriptor, value);
@@ -151,7 +151,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         try {
             verifyModifiable();
 
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
                 String value = null;
                 if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
@@ -182,7 +182,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
             if (supported == null || supported.isEmpty()) {
                 return Collections.unmodifiableMap(properties);
@@ -226,35 +226,35 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
 
     @Override
     public String toString() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.toString();
         }
     }
 
     @Override
     public Collection<ValidationResult> validate(final ValidationContext context) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.validate(context);
         }
     }
 
     @Override
     public PropertyDescriptor getPropertyDescriptor(final String name) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.getPropertyDescriptor(name);
         }
     }
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             component.onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
     @Override
     public List<PropertyDescriptor> getPropertyDescriptors() {
-        try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
             return component.getPropertyDescriptors();
         }
     }
@@ -286,7 +286,7 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 serviceIdentifiersNotToValidate, getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier());
 
             final Collection<ValidationResult> validationResults;
-            try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(component.getClass())) {
                 validationResults = component.validate(validationContext);
             }
 

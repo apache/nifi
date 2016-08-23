@@ -287,7 +287,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             }
 
             try {
-                try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
+                try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(worker.getClass())) {
                     worker.onTrigger(processContext, sessionFactory);
                 } catch (final ProcessException pe) {
                     logger.error("{} failed to process session due to {}", worker, pe.toString());
@@ -305,7 +305,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 }
             } finally {
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(worker.getClass())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, worker, processContext);
                     }
                 }
@@ -328,7 +328,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
             }
 
             try {
-                try (final AutoCloseable ncl = NarCloseable.withNarLoader()) {
+                try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(worker.getProcessor().getClass())) {
                     worker.onTrigger(processContext, sessionFactory);
                 } catch (final ProcessException pe) {
                     final ComponentLog procLog = new SimpleProcessLogger(worker.getIdentifier(), worker.getProcessor());
@@ -347,7 +347,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 // if the processor is no longer scheduled to run and this is the last thread,
                 // invoke the OnStopped methods
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                    try (final NarCloseable x = NarCloseable.withComponentNarLoader(worker.getProcessor().getClass())) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, worker.getProcessor(), processContext);
                     }
                 }
